@@ -1,0 +1,924 @@
+4
+2
+0
+2
+
+p
+e
+S
+5
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+4
+8
+0
+3
+1
+.
+5
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+THE 2ND FUTUREDIAL CHALLENGE: DIALOG SYSTEMS WITH RETRIEVAL
+AUGMENTED GENERATION (FUTUREDIAL-RAG)
+
+Yucheng Cai1, Si Chen2, Yuxuan Wu1, Yi Huang2, Junlan Feng∗,2, Zhijian Ou∗,1
+
+1Speech Processing and Machine Intelligence (SPMI) Lab, Tsinghua University, Beijing, China
+2China Mobile Research Institute, Beijing, China
+fengjunlan@chinamobile.com, ozj@tsinghua.edu.cn
+
+ABSTRACT
+
+Recently, increasing research interests have focused on
+retrieval augmented generation (RAG) to mitigate hallucina-
+tion for large language models (LLMs). Following this trend,
+we launch the FutureDial-RAG challenge at SLT 2024, which
+aims at promoting the study of RAG for dialog systems. The
+challenge builds upon the MobileCS2 dataset, a real-life cus-
+tomer service datasets with nearly 3000 high-quality dialogs
+containing annotations for knowledge base query and corre-
+sponding results. Over the dataset, we define two tasks, track
+1 for knowledge retrieval and track 2 for response genera-
+tion, which are core research questions in dialog systems with
+RAG. We build baseline systems for the two tracks and design
+metrics to measure whether the systems can perform accu-
+rate retrieval and generate informative and coherent response.
+The baseline results show that it is very challenging to per-
+form well on the two tasks, which encourages the participat-
+ing teams and the community to study how to make better use
+of RAG for real-life dialog systems.
+
+Index Terms— Dialog systems, Retrieval augmented
+
+generation
+
+1. INTRODUCTION
+
+Developing intelligent dialog systems has been one of the
+longest running goals in AI. In recent years, significant
+progress has been made in building dialog systems with the
+breakthrough of deep learning methods and the large amount
+of conversational data being made available for system devel-
+opment [1, 2, 3, 4].
+
+There are still many challenges toward building future
+dialog systems. The first FutureDial challenge focused on
+building semi-supervised and reinforced task-oriented dialog
+systems (FutureDial-SereTOD) [2, 5], which was success-
+fully held at EMNLP 2022 SereTOD workshop1. ChatGPT
+[3], a newly emerged generative dialog system in the end of
+2022, has marked another amazing progress in engaging users
+
+∗ Corresponding author.
+
+The code is released at https://
+github.com/futuredialchallenge/2024-RAG/. This work is
+partly supported by the National Science and Technology Major Project
+(2023ZD0121401)
+
+1http://seretod.org/
+
+in open-domain dialogs. However, problems like hallucina-
+tion and fabrication [6] still hinder the usage of such systems
+in real-life applications like customer service systems, which
+requires pin-point accuracy. Retrieval augmented generation
+(RAG) [7, 8] has been introduced to enhance dialog systems
+with retrieved information from external knowledge bases and
+has attracted increasing interests. RAG has been shown to be
+able to help the question-answering and dialog systems to re-
+ply with higher accuracy and factuality, providing more infor-
+mative and grounded responses [9, 10, 11, 12, 13, 14, 15, 16].
+However, there remain challenges for dialog systems with
+RAG such as designing retrievers that can retrieve knowledge
+from multiple knowledge sources, building dialog systems
+with RAG that can effectively utilize available tools and API-
+calls for retrieval [17, 18], and etc. These problems remain
+under-studied, mainly due to the lack of appropriate dialog
+datasets to study them.
+
+To further promote the study of how to empower dia-
+log systems with RAG, we release a new dataset, called Mo-
+bileCS2 (Mobile Customer Service) that aims to benchmark
+and stimulate related researches in this area. The dataset is
+annotated from the real-life customer-service logs instead of
+the Wizard-of-Oz methods [1]. Relevant knowledge bases
+and ground truth retrieved results are annotated so that dialog
+systems with RAG can be trained over such data. Note that
+successful fulfilling of customer-service usually needs to call
+specialized domain knowledge and/or APIs to retrieve rele-
+vant information. This dataset is very suited to benchmark
+dialog systems with RAG. In MobileCS2, there are multiple
+types of knowledge bases, like user profile, product informa-
+tion and FAQ manual, which bring challenge to the retrieval
+task in RAG. Moreover, the dataset contains around 3,000 ses-
+sions of unlabeled dialogs along with the same amount of ses-
+sions of labeled dialogs, which facilitates the study for semi-
+supervised dialog systems with RAG [19, 20, 21, 22, 16]. We
+also translate the dataset to make it available in both Chinese
+and English.
+
+Upon the MobileCS2 dataset, we build a baseline dialog
+system with RAG. The baseline system consists of a retriever
+to retrieve relevant knowledge pieces and a generator to gen-
+
+ 
+ 
+ 
+ 
+ 
+ 
+erate responses. To comprehensively evaluate the whole sys-
+tem, we design several metrics. For the retriever, we use the
+recall metrics to evaluate whether the retriever can accurately
+retrieve the relevant knowledge. For the generator, we assess
+both the coherency and informativeness of the system and cal-
+culate a combined score.
+
+Following the success of the 1st FutureDial challenge,
+the 2nd FutureDial challenge2, co-located with SLT 2024,
+aims to benchmark and stimulate research in building dialog
+systems with RAG. With the newly released dialog dataset,
+MobileCS2, the features of the 2nd FutureDial challenge are
+demonstrated in Figure 1. We aim to create a forum to discuss
+key challenges in the field and share findings from real-world
+applications.
+
+In summary, the main contributions of this work are three
+
+folds:
+
+• We propose the 2nd FutureDial Challenge (FutureDial-
+RAG) to promote the study of retrieval augmented gen-
+eration for dialog systems.
+
+• To support the challenge, we carefully selected and
+annotated dialogs from real-life customer-service logs
+and release the MobileCS2 dataset. The dataset is the
+first dialog dataset for RAG challenge, containing both
+Chinese and English version.
+
+• We release a dialog system with RAG as the baseline
+for the challenge, as well as metrics and evaluation
+scripts that can comprehensively evaluate the system.
+The evaluation results show that the dataset is challeng-
+ing, which can stimulate research in building dialog
+systems with RAG.
+
+2. RELATED WORK
+
+2.1. Dialog Datasets with Knowledge Bases
+Building dialog datasets with knowledge bases is challeng-
+ing, especially those which require annotations for the en-
+tities from the knowledge bases for each dialog utterance.
+The noisy utterances make it hard for the annotators to link
+the entity mentioned in a dialog to the existing one in the
+knowledge bases. To mitigate the difficulty of annotating di-
+alog with knowledge bases (especially those with noisy utter-
+ances), most previous datasets were built by using Wizard-of-
+Oz simulated games [23, 1, 24] to generate annotated dialogs.
+Instead of annotating real-life dialogs with knowledge bases,
+the annotators are asked to reconstruct dialogs based on sam-
+pled knowledge bases results. Though those datasets have the
+advantage of high-quality entity annotations with few mis-
+takes, they suffer from the serious problems that the dialogs
+in the datasets are different from real-life dialog logs, which
+contain noisy utterances. Dialog systems trained on those
+datasets are sensitive to noises [25], which hinder the usage
+of those systems for real-life applications.
+
+2http://futuredial.org/
+
+To relieve this issue, the previous work [25] has proposed
+to annotate entities from real-life dialogs instead of recon-
+structing them from the sampled entities. Following the suc-
+cess of [25], we also annotate dialogs from real-life customer-
+service logs. However, in the previous work [25], the dialog
+only contain local knowledge bases aggregated from the an-
+notations of a certain dialog, which is still not so realistic for
+real-life scenarios. To address this problem, we propose to
+aggregate the knowledge bases from the annotations of the
+whole datasets according to different search intents, which
+will be detailed in Section 4. This setting also support the
+study of dialog systems with RAG with multiple sources of
+knowledge bases, which is important for real-life applications
+of such dialog systems.
+
+2.2. Retrieval Augmented Generation (RAG)
+
+Recent researches such as RAG [7] and REALM [8] have
+introduced knowledge retrieval models into conditional gen-
+eration, which greatly improves the quality of generated re-
+sponses in knowledge-intensive tasks such as open-domain
+question answering and knowledge-grounded dialog systems.
+Those works use BM25 or neural network based retrievers
+such as DPR [26] to retrieve relevant knowledge given context
+and generate the answer using the retrieved knowledge pieces.
+There are several recent studies that improve over the origi-
+nal retrieval-augmented generation systems. Poly-encoder [9]
+proposes to use a poly encoder instead of the original dual
+encoder to improve the retrieval accuracy. Fusion-in-Decoder
+[10] proposes to process retrieved passages independently in
+the encoder, but jointly fused them in the decoder, which im-
+proves the generation quality. RetroMAE [27] proposed to
+pretrain the retriever with mask auto-encoding objective func-
+tion to better capture the information of the whole sentence.
+
+However, there still remain several problems that pre-
+vious works do not comprehensively study due to lack of
+appropriate datasets. First, to our knowledge, there are no
+previous works that study how to retrieve from multiple types
+of knowledge bases, including, for example, user profile (lo-
+cally to one dialog), product information and FAQ manual
+(globally in a task). Second, most RAG-related datasets do
+not contain annotations of multiple relevant knowledge for
+a single turn of dialog. These two problems are, however,
+commonly encountered in real-life scenarios.
+In this chal-
+lenge, the dataset, which is directly annotated from real-life
+customer-service logs, has the characteristic that helps to
+study the two problems mentioned above. The challenge pro-
+vides new challenging settings for researchers to study dialog
+systems with RAG.
+
+3. CHALLENGE OVERVIEW
+
+The 1st FutureDial challenge at EMNLP 2022 [2, 5, 25, 28]
+focused on building semi-supervised and reinforced task-
+oriented dialog systems (FutureDial-SereTOD), and released
+
+Table 1. Statistics of the MobileCS2 dataset. Knowledge-
+retrieval-needed denotes those turns that api query̸=NULL.
+
+Train
+
+Dev
+
+Test
+
+Total
+
+Dialogs
+Turns
+Knowledge-retrieval-needed
+
+1926
+16120
+4314
+
+412
+3246
+808
+
+413
+3240
+817
+
+2751
+22606
+5939
+
+• Track 2: Dialog systems with retrieval augmented gen-
+
+eration
+
+Given the context in a dialog, the most relevant knowledge
+snippet in the multi-source databases should be retrieved by a
+retrieval model. So Track 1 aims to build the retrieval model
+for the dialog system. Based on retrieved knowledge, Track
+2 aims to build a retrieval-augmented dialog system in the
+customer service scenario. The system should generate infor-
+mative responses leveraging the retrieved results.
+
+4. THE MOBILECS2 DATASET
+
+To support the 2nd FutureDial challenge and the study of
+dialog systems with RAG, we release the MobileCS2 dataset.
+The MobileCS2 dataset is derived from the real-world mo-
+bile conversational scenarios and comprises around 6,000
+processed dialog logs (nearly 3,000 carefully annotated) be-
+tween customers and customer service staffs. The statistics
+of the MobileCS2 dataset is shown in Table 1. It can serve
+for research aims such as the development of conversational
+models, colloquial human-to-human dialog systems, and
+data-driven systematic dialog analysis.
+
+4.1. Annotation Details
+In the customer service scenario, there are some knowledge
+or information that the customer service agent needs to get
+from knowledge bases (KBs) in order to correctly respond
+to the user. Therefore, to annotate the necessary knowledge
+or information, the annotators should imagine themselves as
+customer service agents. When presented with a dialog, an-
+notators are required to identify the agent’s intent (labeled by
+api query) at each turn. If the intent is to query the KBs to
+seek external information and the response contains specific
+details, the annotator should perform a retrospective analysis
+based on the information provided in the response and an-
+notate the corresponding query result. For those turns that
+knowledge retrieval is not needed by the agent in order to
+respond to the user, api query is labeled to be NULL. Specif-
+ically, Table 2 contains the set of intents and the explanations
+of each intent, which are provided to annotators for their ref-
+erence during the annotation process. For example, given the
+dialog “Help me check my package”, the annotator needs to
+identify the intent “Search for user information” and then an-
+notate the package that appears in the customer service’s re-
+sponse into the query result.
+
+We recruited 6 customer service staffs for the annotation,
+which are divided into 2 teams. The annotation is conducted
+
+Fig. 1. Overview of the FutureDial-RAG Challenge: Dialog
+Systems with Retrieval Augmented Generation.
+
+a large-scale human-human dialog dataset MobileCS1 (Mo-
+bile Customer Service). Following its success, the 2nd Fu-
+tureDial challenge focuses on building dialog systems with
+RAG, with the following features:
+
+• We release a new dataset from the mobile customer-
+service logs (MobileCS2) that contains both labeled
+and unlabeled data, which encourages the study of
+semi-supervised dialog systems with RAG.
+
+• The dataset enables the study of building dialog sys-
+
+tems with knowledge base queries and API calls.
+
+• The dataset is available in both Chinese and English
+versions to the public, so that researchers around the
+world can experiment with this dataset.
+
+To enable a dialog system with RAG to provide appro-
+priate answers and services to users, it is essential for the
+system to utilize knowledge relevant to the conversation
+context. Therefore the 2nd challenge examines how dia-
+log systems can retrieve the most appropriate knowledge
+pieces from the knowledge base and generate grounded and
+faithful response to user requests, with the newly released
+knowledge-grounded dialog dataset, MobileCS2. The in-
+formation needed should be retrieved from a given database
+or API call, which returns specific feedback closely related
+to real customer service scenarios, such as bill inquiry and
+package change. Accordingly, the following two tracks are
+proposed, which are related to the information retrieval of
+dialog data and the construction of dialog systems with RAG
+in the customer service scenario respectively:
+
+• Track 1:
+
+Information retrieval based on knowledge
+
+bases and dialog context
+
+Main class
+
+api query
+
+Description
+
+Table 2. Detailed description for api query annotation.
+
+QA
+
+[QA]
+
+NULL
+
+-
+
+API-Inquiry
+
+Search for products information
+
+Search for user information
+
+Search for other information
+
+Consult the FAQ manual, which includes a collection of commonly
+asked questions such as recent promotional packages and general
+business regulations.
+
+Based on the contextual information, customer service personnel can
+successfully complete the conversation without the need for addi-
+tional inquiries.
+
+Inquire about the current business information of the mobile com-
+pany, such as specific packages, data plans, etc.
+Inquire about the services that the user currently possesses, including
+the current package, current monthly fee, and current data usage.
+Inquire about other key information used to complete the dialog. For
+example, inquiring about text messages regarding excessive data us-
+age alerts sent by the mobile company in the historical trajectory,
+querying the address of the business hall, etc.
+
+API-Cancel
+
+Cancel business
+
+Revoke a certain service currently possessed by the user.
+
+API-Handle
+
+Handle business
+
+Process a new service for the user.
+
+API-Verification Verify identity
+
+Send verification codes, passwords, or other related customer service
+verification operations to the user.
+
+dialog by dialog, and the labeling task for one dialog is as-
+signed to an arbitrary annotator, and the annotation process
+takes about a week. To ensure the quality of the dataset, cross-
+validation is conducted between the 2 teams, and 100 anno-
+tated dialogs are checked by the other team everyday. The
+cross-validation agreement rate is 97 percent, which shows
+the dataset is of high quality. After annotation, the dataset
+is desensitized to remove sensitvie personal information like
+individual names, ids, and phone numbers.
+
+In the final dataset, each sample in the dataset represents a
+dialog. At each turn of the dialog, there are two types of infor-
+mation to be annotated: customer service intent (api query)
+and customer service query results (api result). An example
+of the annotated data dialog data is shown in Figure 2.
+
+4.2. Post-processing
+Based on the annotation data, it is possible to aggregate the
+information in the dataset and simulate the information that
+the agents can access in real-world services. For turns an-
+notated with the inquiry [QA], the information can be ag-
+gregated into an FAQ (Frequently Asked Questions) hand-
+book across the entire dataset (KBF AQ). Turns labeled as
+“Search for user information” can be consolidated into a user
+database (KBuser) within a single dialog. Meanwhile, turns
+labeled as “search for products information” can be aggre-
+gated into a product database (KBproduct) across the entire
+dataset. These three databases largely emulate the channels
+through which the agents acquire knowledge in real-world
+settings. In MobileCS2, the size of KBF AQ ∪ KBproduct
+is 4108, and the average size of KBuser is 0.535.
+
+To make the dataset more widely accessible, we translate
+the original Chinese dataset into English using the ChatGPT
+API. It is important to ensure that the annotated knowledge
+entities are consistent in the translated dialogs and the knowl-
+edge annotations. We first translate the knowledge annota-
+tions, and substitute the translated knowledge annotations into
+the dialog corpus. The English-Chinese hybrid dialogs are
+then sent to ChatGPT and translated into English. We find
+that ChatGPT can translate such hybrid data well, meanwhile
+maintaining the annotated knowledge entities consistent with
+the translated annotations.
+
+5. THE BASELINE SYSTEM
+
+We use RAG-based [7, 16] methods to build our baseline
+system. Dialog systems with RAG aim to retrieve relevant
+knowledge pieces given the dialog context and generate sys-
+tem response using the retrieved knowledge. We take into
+consideration multiple important characteristics of the Mo-
+bileCS2 dataset to design the baseline system, such as adding
+the unique user profile for each user to the knowledge base
+and considering multiple relevant knowledge pieces given
+context. This makes the baseline system over the Mobil-
+leCS2 dataset more suitable for real-life scenarios, which
+is different from prior work in knowledge grounded dialog
+systems [7, 16].
+
+To introduce the baseline dialog system with RAG on Mo-
+bileCS2, we make the following definitions. Assume we have
+a dialog X with T turns of user utterances and system re-
+sponses, denoted by u1, r1, · · · , uT , rT respectively. For each
+dialog, we assume that there is a knowledge base that is nec-
+
+Fig. 2. An example of annotated dialogs.
+
+essary for the system to respond correctly. In MobileCS2, the
+knowledge base is made up of the user information, which
+is unique for each dialog, the product information list, and
+the FAQ list for commonly asked questions. Therefore, for
+the dialog X, the knowledge base KBX can be denoted as:
+KBX ≜ KBuser ∪ KBF AQ ∪ KBproduct.
+
+At turn t of a dialog X, based on dialog context ct ≜
+u1 ⊕ r1 ⊕ · · · ⊕ ut−1 ⊕ rt−1 ⊕ ut (⊕ means sequence con-
+catenation) and the knowledge base KBX , the system uses
+a retriever, which is shown in Figure 3(a), to get the relevant
+knowledge ht from the knowledge base and generates appro-
+priate responses with the generator pθ(rt | ct, ht), which is
+shown in Figure 3(b).
+
+The retrieval model is implemented with the dual-encoder
+architecture, as shown in Figure 3(a). To train the re-
+trieval model, we consider each knowledge piece zi (i =
+1, 2, · · · , K) in KBX and model the retrieval distribution of
+pη(zi | ct) as in [7]:
+
+pη(zi | ct) ∝ exp (cid:0)Encoderp(zi)⊤ Encoderc(ct)(cid:1)
+
+(1)
+
+Encoderp and Encoderc are both initialized with a BERT-
+based pretrained model [29]. The probability is optimized
+with the standard cross entropy loss, with the positive pieces
+
+Fig. 3. Overview of our baseline systems: (a) the retrieval
+model, (b) the generation model.
+
+Table 3. Baseline results for the retrieval task (Track1).
+
+recall@1
+
+recall@5
+
+recall@20
+
+Score
+
+0.225
+
+0.387
+
+0.573
+
+1.185
+
+Table 4. Baseline results for the response generation task
+(Track2).
+
+BLEU-4
+
+BERTScore
+
+Inform
+
+Score
+
+14.54
+
+0.639
+
+0.092
+
+0.484
+
+z ∈ Z+ labeled in the dataset:
+
+pη(z | ct)
+
+Lret = −
+
+1
+| Z+ |
+
+(cid:88)
+
+log
+
+pη(z | ct) + (cid:80)K
+
+z∈Z+
+
+i=1,zi̸=z pη(zi | ct)
+(2)
+The knowledge piece encoder Encoderp is fixed during
+the training, and the context encoder Encoderc is trained with
+the loss in Eq. 2, following the setting in [26].
+
+To train the dialog system pθ(rt | ct, ht), we use the stan-
+dard auto-regressive loss to optimize the generation probabil-
+ity :
+
+pθ(rt | ct, ht) =
+
+|rt|
+(cid:89)
+
+l=1
+
+pθ(yl | ct, ht, y1, . . . , yl−1)
+
+(3)
+
+where | ·| denotes the length in tokens, and yl the l-th token of
+rt and pθ is initialized with a GPT-based pretrained lanugae
+model [30].
+
+6. EVALUATION
+
+Given a dialog X and its knowledge base KBX , the retrieval
+system needs to rank the relevance score for each knowledge
+piece in the KBX . We use the commonly used recall met-
+rics to assess the retrieval system. To get the recall@k met-
+rics, we calculate whether the ground-truth knowledge piece
+is in the top-k retrieved knowledge pieces. To comprehen-
+sively evaluate the retrieval quality of the system, we calcu-
+late the sum of the recall for k = 1, 5, 20 as the final score:
+scoreretriever = recall@1 + recall@5 + recall@20. The
+evaluation results for the baseline system on the Dev set are
+shown in Table 3 3. The results show that it is challenging for
+the retriever to achieve high recall even with top-20 retrieved
+documents.
+
+To generate the suitable system response, relevant knowl-
+edge pieces are first retrieved using the retrieval system.
+the generator can
+Given the retrieved knowledge pieces,
+generate response based on the retrieved knowledge. The
+generated response is evaluated by measuring the similarity
+score with the ground-truth response (BLEU and BERTScore)
+and whether the system correctly provides the requested in-
+formation by the user (Inform Rate). BLEU is used to mea-
+sure the fluency of the generated responses by analyzing the
+amount of n-gram overlap between the real responses and
+the generated responses. BERTScore [32] is used to measure
+the semantic similarity of the generated responses with the
+
+In-
+oracle responses by using a pretrained BERT model.
+form Rate refers to how often the system response is able
+to cover the requested information by the user. The final
+score of the generator is computed as scoregenerator =
+0.5 ∗ (BLEU/100 + BERT Score) + Inf orm. The eval-
+uation results for the baseline system are shown in Table 4 4.
+The Inf orm of the results is relatively low, presumably due
+to the low recall@1 score of the retriever and the cascaded
+error of the whole system. This shows the difficulty to build a
+RAG system that can accurately provide required knowledge
+in real-world scenarios.
+
+7. CHALLENGE RULES
+Each team should submit the results for the challenge via the
+official email before the Entry Submission Deadline. The sub-
+mission to the challenge is required to contain a system exe-
+cutable with all the dependencies or an encapsulated web ser-
+vice to be called, with a clear README documentation for
+running the system over the evaluation data. In either man-
+ners, the system’s processing speed should be no less than 10
+tokens per second. The submission should also provide a Sys-
+tem Description Document (SDD), introducing the submitted
+system. The organizers of the challenge either run the sys-
+tems over a server with Nvidia A100*4 hardware, or call the
+web service to evaluate the submitted systems and obtain the
+final scores.
+
+8. CONCLUSION
+
+We present the FutureDial-RAG challenge at SLT 2024,
+which aims at promoting the study of RAG for dialog sys-
+tems. To support the challenge, we build the MobileCS2
+dataset, a real-life customer service datasets with over 3000
+high-quality dialogs, containing annotations for knowledge
+base query and corresponding results. Upon the dataset, we
+define two tasks, track 1 for knowledge retrieval and track 2
+for response generation, which are core research questions in
+dialog systems with RAG. We build baseline systems for the
+two tracks and design metrics to measure whether the system
+can perform accurate retrieval and generate informative and
+coherent response. The baseline results show that it is very
+challenging to perform well on the two tasks. We hope that
+the dataset and the baseline systems will be helpful to foster
+the community to study how to make better use of RAG for
+dialog systems.
+
+3We use the BGE [31] model as our backbone. The resulting model is
+
+4We use the Chinese GPT-2 [30] model as our backbone. The resulting
+
+selected based on the Score on the Dev set.
+
+model is selected based on the Score on the Dev set.
+
+9. REFERENCES
+
+[1] Paweł Budzianowski, Tsung-Hsien Wen, Bo-Hsiang
+Tseng, Inigo Casanueva, Stefan Ultes, Osman Ramadan,
+and Milica Gaˇsi´c,
+“Multiwoz–a large-scale multi-
+domain wizard-of-oz dataset for task-oriented dialogue
+modelling,” arXiv preprint arXiv:1810.00278, 2018.
+
+[2] Zhijian Ou, Junlan Feng, and Juanzi Li,
+
+“Proceed-
+ings of the towards semi-supervised and reinforced task-
+in Proceedings
+oriented dialog systems (seretod),”
+of the Towards Semi-Supervised and Reinforced Task-
+Oriented Dialog Systems (SereTOD), 2022.
+
+[3] Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida,
+Carroll Wainwright, Pamela Mishkin, Chong Zhang,
+Sandhini Agarwal, Katarina Slama, Alex Ray, et al.,
+“Training language models to follow instructions with
+human feedback,” Advances in neural information pro-
+cessing systems, vol. 35, pp. 27730–27744, 2022.
+
+[4] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama
+Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo
+Almeida, Janko Altenschmidt, Sam Altman, Shyamal
+Anadkat, et al., “GPT-4 technical report,” arXiv preprint
+arXiv:2303.08774, 2023.
+
+[5] Zhijian Ou, Junlan Feng, Juanzi Li, Yakun Li, Hong Liu,
+Hao Peng, Yi Huang, and Jiangjiang Zhao, “A challenge
+on semi-supervised and reinforced task-oriented dialog
+systems,” arXiv preprint arXiv:2207.02657, 2022.
+
+[6] Hussam Alkaissi and Samy I McFarlane, “Artificial hal-
+lucinations in ChatGPT: Implications in scientific writ-
+ing,” 2023.
+
+[7] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich
+K¨uttler, Mike Lewis, Wen-tau Yih, Tim Rockt¨aschel,
+et al., “Retrieval-augmented generation for knowledge-
+intensive nlp tasks,” Advances in Neural Information
+Processing Systems, vol. 33, pp. 9459–9474, 2020.
+
+[8] Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pasu-
+pat, and Ming-Wei Chang, “Realm: retrieval-augmented
+in Proceedings of the
+language model pre-training,”
+37th International Conference on Machine Learning,
+2020, pp. 3929–3938.
+
+[9] Samuel Humeau, Kurt Shuster, Marie-Anne Lachaux,
+and Jason Weston,
+“Poly-encoders: Architectures
+and pre-training strategies for fast and accurate multi-
+in International Conference on
+sentence scoring,”
+Learning Representations, 2020.
+
+[10] Gautier Izacard and ´Edouard Grave, “Leveraging pas-
+sage retrieval with generative models for open domain
+
+question answering,” in Proceedings of the 16th Con-
+ference of the European Chapter of the Association for
+Computational Linguistics: Main Volume, 2021, pp.
+874–880.
+
+[11] Kurt Shuster, Jing Xu, Mojtaba Komeili, Da Ju,
+Eric Michael Smith, Stephen Roller, Megan Ung, Moya
+Chen, Kushal Arora, Joshua Lane, et al.,
+“Blender-
+bot 3: a deployed conversational agent that contin-
+arXiv preprint
+ually learns to responsibly engage,”
+arXiv:2208.03188, 2022.
+
+[12] Michael Glass, Gaetano Rossiello, Md Faisal Mah-
+bub Chowdhury, Ankita Naik, Pengshan Cai, and Alfio
+Gliozzo, “Re2g: Retrieve, rerank, generate,” in Pro-
+ceedings of the 2022 Conference of the North American
+Chapter of the Association for Computational Linguis-
+tics: Human Language Technologies, 2022, pp. 2701–
+2715.
+
+[13] Gautier Izacard, Mathilde Caron, Lucas Hosseini, Se-
+bastian Riedel, Piotr Bojanowski, Armand Joulin, and
+Edouard Grave, “Unsupervised dense information re-
+trieval with contrastive learning,” Transactions on Ma-
+chine Learning Research, 2022.
+
+[14] Gautier Izacard, Patrick Lewis, Maria Lomeli, Lucas
+Hosseini, Fabio Petroni, Timo Schick, Jane Dwivedi-
+Yu, Armand Joulin, Sebastian Riedel, and Edouard
+Grave, “Few-shot learning with retrieval augmented lan-
+guage models,” arXiv e-prints, pp. arXiv–2208, 2022.
+
+[15] Kurt Shuster, Mojtaba Komeili, Leonard Adolphs,
+Stephen Roller, Arthur Szlam, and Jason Weston, “Lan-
+guage models that seek for knowledge: Modular search
+& generation for dialogue and prompt completion,”
+arXiv preprint arXiv:2203.13224, 2022.
+
+[16] Yucheng Cai, Hong Liu, Zhijian Ou, Yi Huang, and
+Junlan Feng, “Knowledge-retrieval task-oriented dia-
+log systems with semi-supervision,” in INTERSPEECH,
+2023.
+
+[17] Timo Schick, Jane Dwivedi-Yu, Roberto Dessi, Roberta
+Raileanu, Maria Lomeli, Eric Hambro, Luke Zettle-
+moyer, Nicola Cancedda, and Thomas Scialom, “Tool-
+former: Language models can teach themselves to use
+tools,” in Thirty-seventh Conference on Neural Infor-
+mation Processing Systems, 2023.
+
+[18] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak
+Shafran, Karthik Narasimhan, and Yuan Cao, “React:
+Synergizing reasoning and acting in language models,”
+in International Conference on Learning Representa-
+tions (ICLR), 2023.
+
+[28] Yi Huang, Xiaoting Wu, Si Chen, Wei Hu, Qing Zhu,
+Junlan Feng, Chao Deng, Zhijian Ou, and Jiangjiang
+Zhao, “Cmcc: a comprehensive and large-scale human-
+human dataset for dialogue systems,” in Proceedings
+of the Towards Semi-Supervised and Reinforced Task-
+Oriented Dialog Systems (SereTOD), 2022, pp. 48–61.
+
+[29] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova, “Bert: Pre-training of deep bidi-
+rectional transformers for language understanding,” in
+Proc. of the Conference of the North American Chapter
+of the Association for Computational Linguistics: Hu-
+man Language Technologies, 2019.
+
+[30] Alec Radford, Jeffrey Wu, Rewon Child, David Luan,
+Dario Amodei, and Ilya Sutskever, “Language models
+are unsupervised multitask learners,” OpenAI Blog, vol.
+1, no. 8, pp. 9, 2019.
+
+[31] Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu
+Lian, and Zheng Liu,
+“Bge m3-embedding: Multi-
+lingual, multi-functionality, multi-granularity text em-
+arXiv
+beddings through self-knowledge distillation,”
+preprint arXiv:2402.03216, 2024.
+
+[32] Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q
+Weinberger, and Yoav Artzi, “Bertscore: Evaluating text
+generation with bert,” in International Conference on
+Learning Representations, 2019.
+
+[19] Yichi Zhang, Zhijian Ou, Min Hu, and Junlan Feng, “A
+probabilistic end-to-end task-oriented dialog model with
+latent belief states towards semi-supervised learning,”
+in Empirical Methods in Natural Language Processing
+(EMNLP), 2020.
+
+[20] Hong Liu, Yucheng Cai, Zhijian Ou, Yi Huang, and Jun-
+lan Feng, “Building Markovian generative architectures
+over pretrained LM backbones for efficient task-oriented
+dialog systems,” in IEEE Spoken Language Technology
+Workshop, 2022.
+
+[21] Yucheng Cai, Hong Liu, Zhijian Ou, Yi Huang, and Jun-
+lan Feng, “Advancing semi-supervised task oriented di-
+alog systems by JSA learning of discrete latent variable
+models,” in Proceedings of the 23rd Annual Meeting of
+the Special Interest Group on Discourse and Dialogue,
+2022, pp. 456–467.
+
+[22] Hong Liu, Yucheng Cai, Zhenru Lin, Zhijian Ou,
+Yi Huang, and Junlan Feng, “Variational latent-state
+GPT for semi-supervised task-oriented dialog systems,”
+IEEE/ACM Transactions on Audio, Speech, and Lan-
+guage Processing, 2023.
+
+[23] Tsung-Hsien Wen, David Vandyke, Nikola Mrkˇsi´c, Mil-
+ica Gasic, Lina M Rojas Barahona, Pei-Hao Su, Stefan
+Ultes, and Steve Young, “A network-based end-to-end
+trainable task-oriented dialogue system,” in Proceed-
+ings of the 15th Conference of the European Chapter of
+the Association for Computational Linguistics, 2017.
+
+[24] Qi Zhu, Kaili Huang, Zheng Zhang, Xiaoyan Zhu, and
+Minlie Huang, “Crosswoz: A large-scale chinese cross-
+domain task-oriented dialogue dataset,” Transactions of
+the Association for Computational Linguistics, vol. 8,
+pp. 281–295, 2020.
+
+[25] Hong Liu, Hao Peng, Zhijian Ou, Juanzi Li, Yi Huang,
+and Junlan Feng, “Information extraction and human-
+robot dialogue towards real-life tasks: A baseline study
+with the mobilecs dataset,” in EMNLP 2022 SereTOD
+Workshop, 2022.
+
+[26] Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick
+Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, and
+Wen-tau Yih, “Dense passage retrieval for open-domain
+question answering,” in Proceedings of the 2020 Con-
+ference on Empirical Methods in Natural Language
+Processing (EMNLP), 2020, pp. 6769–6781.
+
+[27] Shitao Xiao, Zheng Liu, Yingxia Shao, and Zhao
+“Retromae: Pre-training retrieval-oriented lan-
+Cao,
+guage models via masked auto-encoder,” in Proceed-
+ings of the 2022 Conference on Empirical Methods in
+Natural Language Processing, 2022, pp. 538–548.

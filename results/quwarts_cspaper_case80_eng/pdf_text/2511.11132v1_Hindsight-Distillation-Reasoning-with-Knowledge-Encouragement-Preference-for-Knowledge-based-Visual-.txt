@@ -1,0 +1,1990 @@
+5
+2
+0
+2
+
+v
+o
+N
+4
+1
+
+]
+
+V
+C
+.
+s
+c
+[
+
+1
+v
+2
+3
+1
+1
+1
+.
+1
+1
+5
+2
+:
+v
+i
+X
+r
+a
+
+Hindsight Distillation Reasoning with Knowledge Encouragement
+Preference for Knowledge-based Visual Question Answering
+
+Yu Zhao1,2 Ying Zhang1 Xuhui Sui1 Baohang Zhou3
+
+Li Shen4 Dacheng Tao2
+
+1 College of Computer Science, Nankai University, Tianjin, China
+2 College of Computing and Data Science, Nanyang Technological University, Singapore
+3 School of Software, Tiangong University, Tianjin, China 4 Sun Yat-sen University, Shenzhen, China
+zhaoyu@dbis.nankai.edu.cn, yingzhang@nankai.edu.cn
+
+Abstract
+
+Knowledge-based Visual Question Answering (KBVQA)
+necessitates external knowledge incorporation beyond
+cross-modal understanding. Existing KBVQA methods
+either utilize implicit knowledge in multimodal large
+language models (MLLMs) via in-context learning or
+explicit knowledge via retrieval augmented generation.
+However,
+their reasoning processes remain implicit,
+without explicit multi-step trajectories from MLLMs.
+To address this gap, we provide a Hindsight Distilled
+Reasoning (HinD) framework with Knowledge Encour-
+agement Preference Optimization (KEPO), designed to
+elicit and harness internal knowledge reasoning ability
+in MLLMs. First, to tackle the reasoning supervision
+problem, we propose to emphasize the hindsight wisdom
+of MLLM by prompting a frozen 7B-size MLLM to com-
+plete the reasoning process between the question and its
+ground truth answer, constructing Hindsight-Zero train-
+ing data. Then we self-distill Hindsight-Zero into Chain-
+of-Thought (CoT) Generator and Knowledge Genera-
+tor, enabling the generation of sequential steps and dis-
+crete facts. Secondly, to tackle the misalignment be-
+tween knowledge correctness and confidence, we opti-
+mize the Knowledge Generator with KEPO, preferring
+under-confident but helpful knowledge over the over-
+confident but unhelpful one. The generated CoT and
+sampled knowledge are then exploited for answer pre-
+diction. Experiments on OK-VQA and A-OKVQA vali-
+date the effectiveness of HinD, showing that HinD with
+elicited reasoning from 7B-size MLLM achieves supe-
+rior performance without commercial model APIs or
+outside knowledge.
+
+1. Introduction
+
+Knowledge-based Visual Question Answering (KB-
+VQA) [31] is a challenging task for cross-modal rea-
+
+Figure 1. KBVQA requires necessary knowledge incorpora-
+tion for reasoning. Unlike existing in-context learning and
+retrieval-augmented methods, we elicit the reasoning paths in-
+side MLLMs through Hindsight self-distillation.
+
+soning, aiming at answering the question based on the
+image and external knowledge. Unlike conventional
+VQA [2, 12], which answers questions based solely on
+image content, KBVQA necessitates the commonsense
+incorporation beyond the image. Take Figure 1 as an
+example, answering the question requires (1) identify-
+ing the stuffed animals in the image as teddy bears, (2)
+associating the teddy bear with President Teddy Roo-
+sevelt. KBVQA is essential for knowledge-intensive
+visual-language application scenarios [36].
+
+Existing KBVQA studies can be categorized into two
+mainstreams: (1) In-context learning methods [17, 22,
+52] usually construct relative examples with captions or
+zero-shot captions [50] to prompt large language models
+(LLMs) [1, 3, 19, 40] to exploit their implicit knowl-
+edge. However, the in-context learning paradigm is
+basically an “imitation” of the context examples, lack-
+ing explicit reasoning paths to explain their reasonabil-
+ity. (2) Retrieval augmented methods [13, 25, 28] usu-
+ally retrieve relevant knowledge triples or documents to
+augment the answer prediction. They usually fine-tune
+
+1
+
+Q1 C1 A1ExamplesDoc 1DocumentsReason PathRetrieval Augmented MethodsIn-Context Learning MethodsWhich American president is associated with stuffed animal seen here?TeddyRoosevelt?Our Hindsight Reasoning 
+ 
+ 
+ 
+ 
+ 
+the Multimodal LLMs (MLLMs) to answer the question
+based on the retrieved knowledge, in which the reason-
+ing source and process remain non-transparent.
+
+Thus, inspired by Chain-of-Thought (CoT) [44] stud-
+ies, we propose to elicit the internal reasoning ability
+of MLLMs to provide step-by-step reasoning processes
+for KBVQA. CoT is widely explored in LLMs [44] and
+MLLMs [43] to break down the reasoning process into
+human-like intermediate steps, facilitating multi-hop in-
+ference in the KBVQA task that naturally requires multi-
+step reasoning. However, though the idea of CoT is in-
+tuitive, it is non-trivial to realize it in KBVQA due to the
+following challenges:
+
+(1) Prohibitive Cost of Reasoning Supervision.
+Though KBVQA naturally requires multi-step reason-
+ing for knowledge-informed answer prediction, most
+datasets do not include ground-truth systematic and
+structured reasoning trajectories from the question and
+image to the answer. Existing multimodal reasoning
+studies obtain CoT data with larger and costly teacher
+MLLMs [21, 47, 51] or manual construction [29, 35],
+which requires high computational or labor expenses.
+This creates a significant bottleneck for constructing a
+KBVQA reasoning model, especially for more efficient
+7B-scale MLLMs.
+
+(2) Misalignment of Knowledge Correctness and
+Confidence. KBVQA inherently demands knowledge
+outside the image and question. For example, “Teddy
+Roosevelt” is crucial for reasoning in Figure 1, but did
+not appear in the image or the question of the sam-
+ple. However, MLLMs are usually trained with visual-
+language aligned content. This leads to a misalignment:
+when generating visual-agnostic facts, MLLMs often
+face an under-confidence problem due to lack of mul-
+timodal achoring, even when the knowledge is helpful.
+Conversely, MLLMs can be over-confident when gen-
+erating visual-concentrated content that is unhelpful for
+reasoning. Thus, aligning correctness and confidence is
+crucial for knowledge reasoning of MLLMs.
+
+In our paper, we propose the Hindsight Distilled Rea-
+soning (HinD) framework with Knowledge Encourage-
+ment Preference Optimization (KEPO) for KBVQA. To
+tackle the reasoning supervision problem, we propose to
+exploit the Hindsight wisdom of MLLMs, which elic-
+its the internal reasoning ability of MLLMs through
+“post-hoc rationalization”. Specifically, we construct
+the Hindsight-Zero training data by directly prompting
+the MLLM to connect the intermediate dots between the
+input and the ground-truth answer, which enables the
+self-generation of goal-oriented and conclusion-aligned
+CoT data from smaller MLLMs. Then, we self-distill
+the Hindsight-Zero to the MLLM itself to fine-tune a
+CoT Generator and Knowledge Generator, aiming at se-
+quential reasoning steps and discrete relevant facts, re-
+
+spectively. During this distillation, the model learns to
+generate reasoning processes using only the image and
+question, without answer access. To tackle the knowl-
+edge confidence-correctness misalignment, we optimize
+the Knowledge Generator with KEPO to prefer the less-
+confident but helpful knowledge, i.e., ground-truth an-
+swer containing, over the over-confident but unhelpful
+ones. Finally, Answer Generator summarizes an answer
+based on the generated CoT and sampled knowledge.
+Experiments on OK-VQA and A-OKVQA demonstrate
+the effectiveness of HinD. Our contributions can be sum-
+marized as follows:
+• We introduce the Hindsight Distilled Reasoning
+(HinD) framework with self-generated Hindsight-
+Zero data, which efficiently elicits the internal reason-
+ing ability of smaller MLLMs.
+
+• We propose Knowledge Encouragement Preference
+Optimization (KEPO) to align the knowledge gen-
+eration confidence and correctness to elicit vision-
+language agnostic internal knowledge.
+
+• Experiments on OK-VQA and A-OKVQA show that
+by fully eliciting and exploiting the internal reason-
+ing ability of MLLMs, HinD reaches superior perfor-
+mance without GPT APIs or outside knowledge.
+
+2. Related Work
+
+2.1. Knowledge-based VQA
+
+Visual Question Answering (VQA) [2, 12] is a cru-
+cial task for cross-modal reasoning aiming at answer-
+ing visual-related questions, such as colors, counting,
+etc. To address the VQA challenges when visual in-
+formation is not sufficient for reasoning and the ques-
+tion needs the necessary outside knowledge to answer,
+the Knowledge-based VQA task is proposed [4, 31, 35],
+aiming at reasoning with cross-modal understanding and
+necessary knowledge incorporation.
+
+Existing approaches can be categorized into two
+(1) In-Context Learning Methods.
+mainstreams:
+These methods [17, 22, 46, 48, 52] usually exploit the
+implicit knowledge from large language models, such as
+GPT-3 [1], GPT-4 [1, 19], Llama [40], etc. They usually
+construct in-context learning (ICL) examples and follow
+the few-shot learning paradigm to output the answer.
+Since the prompted LLMs are usually language-only
+models, they usually construct image captions [17, 48],
+object labels [22], scene-graphs [5], OCRs [22], etc, to
+turn visual modality into textual descriptions to enable
+cross-modal understanding [17]. The in-context exam-
+ples are selected through cross-modal similarity [48] or
+a smaller VQA model [46, 52]. However, the ICL meth-
+ods are imitations of demonstrated examples, while the
+explicit reasoning sources and processes are unavailable.
+(2) Retrieval Augmented Methods. These meth-
+
+2
+
+ods usually incorporate explicit outside knowledge from
+Knowledge Graphs such as Concept-Net [7, 11, 38]
+and Wikidata [13, 26, 41]; document corpora such
+as Wikipedia [10, 31, 32, 37, 45] and Google Search
+[9, 24, 25, 28, 30]; multimodal knowledge such as VQA
+dataset [37], VisualGenome [32], and Google Images
+[45]. They prompt the retrieved knowledge to GPT APIs
+[13, 26, 37] or fine-tune an MLLM [6, 23, 34] as the
+answer generator. However, the retrieved knowledge
+noises [52] limit the KBVQA performance, which also
+lacks further exploitation of MLLMs’ internal reasoning
+ability and explicit reasoning processes.
+
+2.2. Multimodal Chain-of-Thought
+
+Recently, LLMs [1, 3, 14, 19] have demonstrated strong
+reasoning ability,
+exploiting the Chain-of-Thought
+(CoT) [44] to elicit the human-alike intermediate step-
+by-step reasoning procedures. The Multimodal CoT
+(MCoT) [43] studies further extend CoT into coopera-
+tions of multiple modalities, including images, videos,
+audios, etc. The CoT Prompting strategy can be applied
+to Multimodal Large Language Models (MLLMs) such
+as GPT-4o [19] following zero-shot or ICL paradigms to
+obtain the reasoning steps for improving reasoning accu-
+racy. Existing MCoT KBVQA studies [5, 53] follow the
+ICL paradigm with captions, scene-graphs, rationales,
+etc, as contexts, without exploring step-by-step trajec-
+tories and internal knowledge generation in our work.
+Our work differs from theirs in proposing a CoT-tuning
+framework to fully elicit and exploit MLLM’s internal
+reasoning ability. Moreover, since there are usually no
+reasoning data for common datasets, CoT supervision
+data is often from human annotations [29, 35] or larger
+LLM guidance [21, 47, 51], which are usually computa-
+tionally expensive. On the contrary, we propose to ex-
+ploit the Hindsight wisdom in MLLMs to construct rea-
+soning data with to-be-tuned MLLM itself, decreasing
+tuning difficulty [49] and data construction expenses.
+
+3. Method
+
+Figure 2 shows the architecture of our Hindsight Dis-
+tilled Reasoning (HinD) framework. First, we con-
+struct the Hindsight-Zero training data. We input both
+the question and the answer and prompt the MLLM
+to output the structured intermediate reasoning paths to
+elicit the hindsight reasoning paths. Then, we sepa-
+rately distill Hindsignt-Zero into a CoT Generator and
+a Knowledge Generator to guide the MLLMs with ide-
+alized reasoning paths. To further balance knowledge
+correctness and confidence, we propose Knowledge En-
+couragement Preference Optimization (KEPO) for the
+Knowledge Generator. Finally, we fine-tune an Answer
+Generator to summarize the answer from the input gen-
+erated CoT and knowledge.
+
+3.1. Task Formulation
+
+Knowledge-based Visual Question Answering (KB-
+VQA) task aims to answer the question based on the im-
+age input and outside knowledge. Formally, we define
+the input sample as X = (Q, I) and its target answer as
+Y . The reasoning model fθ(·), often an LLM or MLLM,
+aims to answer the question based on the given context
+C, as ˆY = fθ(Y |C, X).
+
+Paradigm comparisons.
+
+For the In-Context
+Learning methods,
+their contexts are selected exam-
+ples Ccontext = E = {(Xi, Yi)}, where E denotes
+example set.
+For the Retrieval Augmented meth-
+ods, their contexts are retrieved documents or knowl-
+edge triples Cretrieval = D = {Di}, where D de-
+notes document/knowledge set. For HinD, our con-
+texts are the intermediate reasoning processes including
+the Chain-of-Thoughts (CoT) and Knowledge CHinD =
+(IC, RAT, S, K), which denotes image caption (IC), ra-
+tionales (RAT), sequential reasoning steps S = [Si], and
+discrete knowledge pieces K = {Ki}. For convenience,
+we jointly denote the (IC, RAT, S) as CoT in our paper.
+
+3.2. Hindsight Training Data Generation
+
+The ground-truth reasoning data for the task dataset is
+usually not available. Existing approaches [47, 51] con-
+struct reasoning data through larger MLLM distillation,
+which requires extensive computational costs.
+In our
+paper, we propose to exploit the Hindsight wisdom of
+MLLM by prompting both question and ground truth
+answer aiming at intermediate steps completion, which
+is feasible for the contextual understanding ability of
+7B-size MLLMs. The obtained reasoning processes are
+called the Hindsight-Zero in our paper.
+
+Hindsight Formulation.
+
+The usual CoT reason-
+ing process paradigm with LLMs is as f : X → R, Y ,
+where the reasoning path R and answer Y are from only
+the input sample X. In our paper, we obtain the R by
+prompting both input and its target as f : X × Y → R,
+which are contextually aligned with the input and also
+goal-targeted to the ground truth answer. In implemen-
+tation, we fix the MLLM and prompt the training set
+data, in which the answers are available, to construct
+the structured reasoning process Hindsight-Zero R0 =
+f (R|X, Y ) = (IC0, RAT0, S0, K0) = (R0
+Know)
+for subsequent distillation.
+
+CoT, R0
+
+3.3. Hindsight Distillation Fine-tuning
+
+We then distill Hindsight-Zero to the MLLM through
+Hindsight Distillation Fine-Tuning (HDFT). This way,
+the tuned MLLMs can generate the reasoning process
+from input samples as f : X → R, guided to generate
+the idealized reasoning process without seeing the an-
+swer. By distilling Hindsight-Zero, the reasoning model
+
+3
+
+Figure 2. Our Hindsight Distilled Reasoning (HinD) framework for KBVQA: (1) Constructing training data Hindsight-Zero by
+completing reasoning processes from question to ground truth answer. (2) Hindsight Distillation Fine-Tuning for CoT Generator and
+Knowledge Generator. (3) Knowledge Encouragement Preference Optimization for calibrating knowledge generation confidence
+and correctness. (4) Answer Generation to infer the final answer based on the generated CoT and knowledge.
+
+could generalize to test samples through a wiser perspec-
+tive since they have seen the right move towards the right
+answer through HDFT.
+
+Hindsight Self-Distillation. We exploit the same
+MLLM backbone as the one producing R0. Learning
+from the data generated by itself could align with the
+model distributions to avoid huge tuning offset [49],
+which lowers the fine-tuning difficulty. Moreover, we
+divide the reasoning process generation into CoT Gen-
+erator and Knowledge Generator, since CoT is a step-by-
+step sequential process, while the knowledge generation
+requires the model to recall the discrete related facts.
+
+CoT Hindsight Distillation.
+
+The CoT data is
+defined as RCoT = (IC,RAT, S). By prompting the
+MLLMs to generate the image caption, rationales, and
+step-by-step reasoning according to the input question
+and image, we fine-tune the CoT Generator to output the
+Hindsight-Zero data R0
+CoT. As a quality heuristic, we fil-
+ter the generated CoT and retain only those trajectories
+∗R0
+CoT that successfully incorporate the ground-truth an-
+swer Y , which are more likely to represent an idealized
+reasoning path. The training objective is as Equation (1),
+where gψ is CoT Generator.
+
+LCoT
+
+HDFT = − log gψ(∗R0
+
+CoT|X)
+
+(1)
+
+In R0
+
+Knowledge Hindsight Distillation.
+
+Know gen-
+eration, we prompt the fixed MLLM to output a fixed
+number of related knowledge or facts. Since known facts
+are usually discrete, we split the Knowledge Generator
+from the whole reasoning process, and fine-tune it to
+generate a single piece of knowledge. After obtaining
+the knowledge set K0 in Hindsight-Zero, we split the
+knowledge pieces into those hitting the ground truth an-
+swer and those not, as K0 = K0
+miss. For fine-
+hit
+
+(cid:83) K0
+
+tuning, we randomly select one of the hit knowledge
+Know ∼ U(Khit) as the training objective. The ob-
+∗R0
+jective is in Equation (2), where πHDFT
+is the fine-tuned
+Knowledge Generator.
+
+ϕ
+
+HDFT = − log πHDFT
+LKnow
+
+ϕ
+
+(∗R0
+
+Know|X)
+
+(2)
+
+3.4. Knowledge Encouragement Preference Op-
+
+timization
+
+To further align the knowledge correctness and confi-
+dence, we propose a Knowledge Encouragement Prefer-
+ence Optimization (KEPO) for the Knowledge Genera-
+tor πϕ(·). We observed that some hit knowledge, which
+includes the ground truth answer, shows lower confi-
+dence, while some missed knowledge shows higher con-
+fidence. We calculate the confidence of knowledge gen-
+eration sample K as Equation (3), which is the normal-
+ized perplexity of the model, where T denotes number
+of tokens of K, and pπϕ(Kt|K<t) denotes conditional
+probability for t-th token.
+
+C(K) = exp
+
+(cid:32) (cid:80)T
+
+1 log pπϕ (Kt|K<t)
+T
+
+(cid:33)
+
+(3)
+
+The reason could be that KBVQA task requires cir-
+cuitous knowledge to answer the question, rather than
+directly appearing in the image. Thus, the MLLM is
+less confident when generating such knowledge with-
+out vision-language anchors. In our paper, we propose
+to encourage the less-confident but helpful knowledge,
+while rejecting the over-confident but unhelpful one. In
+this way, the MLLM is calibrated to learn when to be
+more assured in generating the knowledge.
+
+Self Encouragement.
+
+We first sample a set
+of knowledge K from the Knowledge Generator af-
+ter HDFT πHDFT
+(·). The self-sampled pairs lower the
+
+ϕ
+
+4
+
+Generate the image description, rationales, step-by-step reasoning, and related knowledge to obtain the given answer based on the question and image.Question: Which American president is associated with stuffed animal seen here?Answer: TeddyRoosevelt## Image Description: The image shows…## Rationales: Teddy bears in the image…## Let’s think step by step.Step 1: Identify the stuffed animal…## Knowledge: Knowledge 1: Teddy bear is associated to …CoTDistillationKnowledgeDistillationGenerate the related knowledge based on the question and image.✓✗𝐶𝐶=0.95Theodore Roosevelt is famously associated with the teddy bear.Teddy bearsmade for babies are typically made from soft materials.𝐶𝐶=0.67ℒCoTHDFTℒKnowHDFTQ: What days might I most commonly go to this building?Sunday𝐾𝐾𝑤𝑤𝐾𝐾𝑙𝑙ℒKnowKEPOKnowledge 1Knowledge 2CaptionRationales~Sampling……ℒ𝑎𝑎𝑎𝑎𝑎𝑎𝑌𝑌𝑅𝑅0𝑓𝑓𝜃𝜃TrainingInference*𝑅𝑅CoT0*𝑅𝑅Know0𝑔𝑔𝜓𝜓𝜋𝜋ϕHDFT𝑓𝑓𝜃𝜃𝜋𝜋ϕKEPO𝑅𝑅0KEPO difficulty. We construct the preferred, dispre-
+ferred pairs for KEPO as (Kw, Kl) ∼ πHDFT
+(K|X),
+which are defined as Equation (4), respectively. The Kw
+is the winning knowledge with the minimum confidence
+in Khit, while the Kl is the losing knowledge with the
+maximum confidence in Kmiss.
+
+
+
+C(K)
+
+ϕ
+
+(4)
+
+Kw = arg min
+K∈Khit
+Kl = arg max
+K∈Kmiss
+
+
+
+C(K)
+
+KEPO Objective. KEPO is a DPO [33] loss to se-
+lect the Kw over Kl that Kw ≻ Kl as Equation (5). The
+πKEPO
+and πref are both initialized to HDFT optimized
+ϕ
+Knowledge Generator πHDFT
+parameters are
+optimized by KEPO, while the πref is fixed for reference.
+
+. The πKEPO
+
+ϕ
+
+ϕ
+
+LKEPO =
+
+(cid:32)
+
+− log σ
+
+β log
+
+πKEPO
+(Kw|X)
+ϕ
+πref(Kw|X)
+
+− log
+
+πKEPO
+(Kl|X)
+ϕ
+πref(Kl|X)
+
+(cid:33) (5)
+
+3.5. Answer Generation
+
+Training. We fine-tune the Answer Generator to con-
+cisely summarize the answer with the given image, ques-
+tion, and reasoning process as Equation (6), in which
+the fθ(·) is the optimized Answer Generator.
+In im-
+plementation, CoT and Knowledge that do not contain
+the ground-truth answer are preserved, and knowledge
+pieces are shuffled. This way, the generalization of the
+Answer Generator is improved in case the generated
+CoT and knowledge do not include the answer.
+
+Lans = − log fθ(Y |X, R0
+
+CoT, K0)
+
+(6)
+
+Inference. In the test phase, given the test sample X,
+we obtain the CoT ˆRCoT = gψ(RCoT|X) and sampled
+knowledge ˆK = { ˆRi
+Know} ∼ πKEPO
+(RKnow|X). Then,
+the answer is predicted as ˆY = fθ(Y |X, ˆRCoT, ˆK). We
+perform self-consistency (SC) [42] with major-vote on
+5 runs with different seeds for reasoning robustness fol-
+lowing [17, 52].
+
+ϕ
+
+4. Experiments
+
+4.1. Experimental Settings
+
+Dataset. We conduct experiments on two widely-
+adopted KBVQA benchmarks, OK-VQA [31] and A-
+OKVQA [35]. OK-VQA is a commonly used KBVQA
+dataset, consisting of 9K/5K image-question-answer
+samples for train/test. A-OKVQA is a large KBVQA
+dataset which requires more reasoning and common-
+sense knowledge, with 17K/1K samples for train/valid.
+OK-VQA is evaluated un-
+der the direct answering (DA) setting, while A-OKVQA
+provides both DA and multiple-choice (MC) settings.
+
+Evaluation Metrics.
+
+5
+
+For OK-VQA and A-OKVQA (DA), we follow previ-
+ous studies and exploit the VQA score [31] to evalu-
+ate the prediction accuracy. OK-VQA and A-OKVQA
+(DA) provide 10 ground truth answers A for each sam-
+ple. The VQA score is a soft accuracy based on
+the occurrence count in the annotated answers: VQA
+Score( ˆY , A) = min(#A( ˆY )/3, 1). For A-OKVQA
+(MC), multi-choice accuracy is reported.
+Follow-
+ing retrieval augmented KBVQA studies [25, 28, 30],
+we report Pseudo-relevance Recall@K (PRR@K) [30]
+to evaluate whether K pieces of knowledge (and 1
+CoT sample for HinD-CoT-Know) contain any human-
+annotated answers. We also extract recalls of selected
+examples [5, 52] from in-context learning methods.
+
+Baselines. We compare HinD with three groups
+(1) MLLM baselines: LLaVA [27],
+of baselines:
+MiniGPT4 [55], Qwen2.5 [39], PaLM-E [8], GPT-
+(2) In-context Learning Methods: Prompt-
+4V [1].
+Cap [17], VisualCoT [5], Prophet [52], MM-Reasoner
+[22], SimKBVQA [46], MM-CoT [53], QACap [50].
+(3) Retrieved Augmented Methods:
+KAT [13], Re-
+VIVE [26], TwO [37], TRiG [10], RA-VQA [24], Re-
+Veal [18], MAIL [7], FLMR [25], Boter [15], LLM-
+RA [20], ReAuSE [28]. We compare HinD-CoT-Know
+and HinD-Know to the baselines, in which HinD-Know
+refers to HinD with only generated knowledge for com-
+parison with retrieval-augmented baselines.
+
+Implementation details.
+
+In this paper, we exploit
+Qwen2.5-VL (7B) [39] as backbone MLLM. We freeze
+the parameters of MLLM and fine-tune LoRA [16] pa-
+rameters of CoT Generator, Knowledge Generator, and
+Answer Generator. Knowledge Generator requires two
+sets of LoRA for HDFT and KEPO. We exploit LLaMA-
+Factory [54] for efficient tuning. Knowledge is sampled
+with default parameters: temperature=0.7, top-p=0.95,
+top-k=50. We set | ˆK|=5 to mimic the 5 documents in the
+retrieval-augmented baselines. Answer generation fol-
+lows low-temperature (1e-5) configs for improving rea-
+soning certainty. Experiments are conducted with 1-2
+A6000 GPUs with 48 GB memory.
+
+4.2. Main Results
+
+Table 1 and Table 2 show the performance of HinD and
+baselines on OK-VQA and A-OKVQA datasets.
+
+Comparison with MLLM baselines.
+
+On OK-
+VQA, our HinD-Know achieves 68.3 VQA score, sur-
+passing even 562B-parameter PaLM-E by 2.2% and
+GPT-4V by 4.0% while using only a 7B backbone. On
+A-OKVQA, HinD-CoT-Know attains 87.2 MC accu-
+racy and 69.0 DA accuracy, outperforming fine-tuned
+MLLMs like MiniGPT4-v2 and Qwen2.5-VL. HinD-
+CoT-Know and HinD-Know outperform Qwen2.5-VL
+(FT), demonstrating the effectiveness of HinD in ex-
+ploiting the explicit reasoning process.
+
+Model
+
+Knowledge Source
+
+PRR@K Score
+
+Model
+
+Multi-Choice Direct-Answer
+
+Multimodal Large Language Models
+
+LLaVA-13B
+Minigpt4-v2-7B
+Minigpt4-v2-7B (FT)
+Qwen2.5-VL-7B
+Qwen2.5-VL-7B (FT)
+PaLM-E-562B
+GPT-4V
+
+-
+-
+-
+-
+-
+-
+-
+
+PromptCap
+VisualCoT
+Prophet
+Prophet++
+MM-Reasoner
+SimKBVQA
+QACap
+
+KAT
+ReVIVE
+TwO
+TRiG
+RA-VQA
+ReVeaL
+MAIL
+FLMR
+Boter
+LLM-RA
+NoteMR
+ReAuSE
+
+In-Context Learning Methods
+
+GPT-3
+BLIP2+Llama-2 (70B)
+GPT-3
+GPT-4o
+GPT-4
+Llama2 (13B)
+Claude 3.5
+
+Retrieval Augmented Methods
+
+WD+GPT-3
+WD+GPT-3
+W+VQAv2+GPT-3
+W+T5
+GS+T5
+W+T5
+C+InstructBlip
+GS+BLIP2+T5-XL (3B)
+GS+BLIP2+T5-XL (3B)
+GS+BLIP2+T5-XL (3B)
+GS+Qwen2-VL (7B)
+GS+Minigpt4 (7B)
+
+-
+-
+-
+-
+-
+-
+-
+
+-
+66.0
+79.8
+79.8
+-
+-
+-
+
+-
+-
+-
+45.5
+82.8
+-
+-
+89.3
+-
+90.4
+-
+92.6
+
+HinD-Know
+HinD-CoT-Know
+
+Qwen2.5-VL (7B)
+Qwen2.5-VL (7B)
+
+94.3
+95.3†
+
+61.9
+57.8
+61.9
+61.6
+62.0
+66.1
+64.3
+
+60.4
+54.9
+61.1
+65.7
+60.8
+61.2
+68.2
+
+54.4
+58.0
+56.7
+50.5
+54.5
+59.1
+61.8
+62.1
+62.8
+63.3
+64.8
+65.7
+
+68.3
+67.5
+
+Table 1. KBVQA performance on OK-VQA dataset. WD,
+W, GS, and C refer to Wikidata, Wikipedia passages, Google
+Search documents, and Concept-Net, respectively. † denotes
+K knowledge pieces plus 1 CoT process.
+
+Comparison with In-Context Learning Methods.
+On OK-VQA, HinD-Know exceeds Prophet++ based on
+GPT-4o by 2.6% and reaches comparable results with
+QACap based on Claude 3.5, demonstrating effective-
+ness. Comparing PRR@K, 95.3% samples in HinD-
+CoT-Know contain ground-truth answers, which outper-
+forms selected examples in VisualCoT and Prophet by
+29.3% and 15.5%.
+It shows that HinD could gener-
+ate more valuable prompting contexts through hindsight
+distillation. On A-OKVQA, HinD-CoT-Know outper-
+forms QACap by 10.5%. Moreover, MM-CoT, Visual-
+CoT, and SimKBVQA cannot apply to the MC setting
+due to the example imitation paradigm, while HinD is
+not constrained by the evaluation setting.
+
+Comparison with Retrieval Augmented Methods.
+On OK-VQA, HinD outperforms ReAuSE in both
+PRR@K and VQA score metrics by 2.7% and 2.6%
+based on the same 7B-sized MLLM and without out-
+side knowledge. On A-OKVQA, HinD-CoT-Know out-
+performs ReAuSE 2.2% MC accuracy and 1.3% DA
+accuracy. HinD-Know is similar in form to Retrieval-
+Augmented baselines that input pieces of knowledge and
+
+LLaVA-1.5-7B
+InstructBLIP-7B (FT)
+Minigpt4-v2-7B (FT)
+Qwen2-VL 7B (FT)
+GPT-2
+
+MM-CoT
+VisualCoT
+PromptCap
+Prophet
+SimKBVQA
+QACap
+
+REVEAL
+ReAuSE
+
+HinD-Know
+HinD-CoT-Know
+
+77.1
+73.0
+-
+-
+60.3
+
+-
+-
+73.2
+76.4
+-
+76.7
+
+-
+85.0
+
+85.9
+87.2
+
+63.7
+62.4
+61.3
+61.5
+48.6
+
+50.6
+50.5
+56.3
+58.2
+58.6
+66.3
+
+52.2
+67.7
+
+67.8
+69.0
+
+Table 2. KBVQA performance on A-OKVQA dataset.
+
+Model
+
+PRR@K
+
+Score
+
+HinD-CoT-Know
+w/ E2E CoT-Know HDFT
+w/o SC
+
+HinD-CoT
+w/o HDFT
+
+HinD-Know
+w/o C in KEPO
+w/o KEPO
+w/o KEPO w/o HDFT
+
+95.3
+80.7
+-
+
+75.7
+71.4
+
+94.3
+89.9
+85.0
+80.6
+
+67.5
+63.1
+66.0 ±0.2
+
+64.0
+60.6
+
+68.3
+65.3
+63.5
+62.9
+
+Table 3. Ablation Study on OK-VQA. E2E CoT-Know HDFT
+denotes End-to-End CoT Knowledge generation. w/o C in
+KEPO denotes randomly constructing the hit and miss knowl-
+edge pair without considering confidence.
+
+output the answer. The performance improvements of
+HinD-Know demonstrate that the level of knowledge
+sufficiency from MLLM itself for commonsense reason-
+ing in OK-VQA and A-OKVQA.
+
+Comparing HinD-CoT-Know and HinD-Know,
+HinD-Know performs better on OK-VQA even though
+HinD-CoT-Know has a higher PRR@K, while HinD-
+CoT-Know performs better on A-OKVQA. The reason
+could be that HinD-Know brought more relevant facts
+that are crucial for OK-VQA, while CoT includes more
+sequential reasoning steps to provide rationales that A-
+OKVQA values.
+
+4.3. Ablation Study
+
+Ablation study on OK-VQA is in Table 3. Compar-
+ing HinD-CoT-Know, HinD-Know, and HinD-CoT,
+it is obvious that the PRR@K improvements are mainly
+from generated knowledge. The reason is that CoT con-
+tains fewer relevant and helpful facts than generated
+knowledge. As shown in Figure 4, image description in
+
+6
+
+Figure 3. The joint distribution of Knowledge Generator’s confidence C and Hits (mentioned answer count out of 10 annotated
+ground truth answers) on OK-VQA test set: (1) Zero-shot model (Qwen2.5-VL-7B), (2) HinD-Know with HDFT, and (3) HinD-
+Know with HDFT and KEPO.
+
+CoT is mainly about the visual elements, while the ra-
+tionales and reasoning steps include more reasoning ac-
+tions, such as identifying objects, rather than the known
+facts in HinD-Know, which directly involves the key
+phrases to help the inference. Comparing zero-shot
+HinD-CoT (w/o HDFT) and HinD-Know (w/o HDFT
+w/o KEPO), the zero-shot generated knowledge (80.6)
+includes more ground-truth answer than CoT (71.4),
+which could serve as heuristics for KBVQA.
+
+By ablating self-consistency (SC), the average ac-
+curacy of 5 runs decreases by 1.5 with standard de-
+viation 0.2, demonstrating that SC could bring robust-
+ness and improve reasoning performance. By join-
+ing CoT-Knowledge generation, i.e., End-to-End CoT-
+Knowledge HDFT, the generated knowledge is not cali-
+brated; thus, the recall and VQA Score are both signif-
+icantly decreased. By ablating confidence in KEPO
+pair construction, the recall of HinD-Know decreases
+by 4.4%. It demonstrates that by calibrating the Knowl-
+edge Generator with self-confidence from its hindsight
+distillation fine-tuned version, the model is precisely en-
+couraged to generate accurate knowledge. By ablating
+KEPO and HDFT, PRR@K and VQA Score are both
+decreased, demonstrating the effectiveness of our pro-
+posed KEPO and HDFT.
+
+4.4. Confidence-Correctness Visualization
+
+We visualize the joint distribution of the Knowledge
+Generator’s confidence C and correct answer Hits on the
+OK-VQA test set in Figure 3.
+
+As shown in Figure 3 (left), the zero-shot model
+exhibits over-confidence: the majority of its generated
+knowledge has 0 hits (Hits=0) , yet its confidence is
+concentrated at a high level around 0.8. Samples with
+different hits show similar confidence distributions. Af-
+ter HDFT training (middle), HinD is able to generate
+knowledge with higher hits. However, the misalignment
+
+problem between confidence and correctness also ex-
+poses: high-hit knowledge may show confidence lower
+than the 0-hit knowledge. After KEPO optimization
+(right), the misalignment phenomenon is effectively cor-
+rected. The confidence distribution for high-hit knowl-
+edge shifts significantly to the right. This indicates that
+KEPO effectively calibrates the Knowledge Generator,
+enabling it to be more confident in generating helpful
+knowledge.
+
+4.5. Case Study
+
+Figure 4 shows the case study of HinD and baselines.
+Comparing with knowledge in baselines, SOTA ICL
+baseline Prophet [52] exploits a smaller VQA model to
+provide heuristics in example and answer candidates se-
+lection, which are limited by the capacity of the heuris-
+tic generation model. The retrieval-augmented meth-
+ods exploiting Google Search corpus [30] show SOTA
+PRR@K [25, 28] with the most relevant documents.
+Even the oracle documents are noised and cannot bring
+direct and concise reasoning evidence.
+
+Comparing Zero-shot and HinD generation, zero-
+shot-generated contexts are more detailed and diverse,
+while HinD provides more accurate and straightforward
+reasoning directions. Moreover, the sampled knowl-
+edge pieces are more focused on the direct proofs to
+address the question, rather than irrelevant but image-
+concentrated content.
+Improving the knowledge gen-
+eration diversity while maintaining accuracy would be
+promising for future studies.
+
+4.6. Other Studies
+
+Confusion Matrices.
+Figure 5 shows the confu-
+sion matrix and statistics of HinD-Know and HinD-CoT-
+Know on OK-VQA. Comparing HinD-Know and HinD-
+CoT-Know, though HinD-CoT-Know has more hit CoT
+and Knowledge contexts (95.3% v.s. 94.3%), HinD-
+
+7
+
+0.60.70.80.91.0Zero-shot Confidence0246810Zero-shot Hits0.60.70.80.91.0HDFT Confidence0246810HDFT Hits0.60.70.80.91.0HDFT + KEPO Confidence0246810HDFT + KEPO HitsFigure 4. Case study on OK-VQA test set. The answer heuristics candidates are from the smaller VQA model MCAN in Prophet
+[52]. The oracle documents are those in Google Search that include the ground-truth answers. Zero-shot generated CoT and
+Knowledge is from untrained Qwen2.5-VL-7B without HDFT or KEPO.
+
+| ˆK|
+
+PRR@K Score
+
+1
+2
+5
+
+84.1
+89.0
+94.3
+
+68.6
+68.1
+68.3
+
+| ˆK|
+
+8
+10
+15
+
+PRR@K Score
+
+95.0
+95.5
+96.3
+
+68.4
+66.2
+65.0
+
+Table 4. Effect of count of knowledge pieces in HinD-Know
+on OK-VQA. | ˆK| refers to the size of the sampled knowledge
+set during inference.
+
+VQA scores are with | ˆK|=1 and | ˆK|=8. With | ˆK|=1, the
+knowledge is more focused and contexts are simpler for
+the Answer Generator to understand. With more knowl-
+edge pieces, the relevant knowledge increases, as well as
+the noise, which increases the difficulty for the Answer
+Generator to reason. Thus, the VQA score decreases
+after | ˆK|=8. In summary, it is important to balance rel-
+evance and involved noise of the generated knowledge
+for better reasoning ability.
+
+5. Conclusion
+
+In this paper, we introduce the Hindsight Distilled Rea-
+soning framework, HinD, for KBVQA, aiming at elic-
+iting and exploiting explicit reasoning processes from
+MLLMs. To obtain reasoning training supervision,
+we construct Hindsight-Zero by prompting the 7B-size
+MLLM to complete the intermediate steps between the
+question and the ground-truth answer. This provides ef-
+ficient self-generated, conclusion-aligned training data
+without labor annotations or commercial model APIs.
+Then, we distill Hindsight-Zero to a CoT Generator and
+a Knowledge Generator. To align knowledge confidence
+and correctness, we propose Knowledge Encourage-
+ment Preference Optimization to prefer less-confident
+but helpful knowledge over the over-confident but un-
+helpful knowledge. Experiments demonstrate the effec-
+tiveness of HinD with 7B-size backbone without com-
+mercial model APIs or retrieved knowledge, providing
+
+Figure 5. Confusion matrix on OK-VQA test set. The ver-
+tical ✓& ✗ denote the prediction accuracy of Answer Genera-
+tor, while the horizontal ✓& ✗ denote whether HinD generated
+Knowledge and CoT hit the ground-truth answer.
+
+Know provides better both accurate rates. The reason
+could be that CoT brings more relevant contexts, as well
+as noisy information that interrupts the reasoning. As
+shown in Figure 4, the Knowledge Generator is more
+focused on the answer-directed fact illustration, while
+CoT concentrates more on the reasoning actions. Thus,
+HinD-Know performs better on OK-VQA while HinD-
+CoT-Know performs better on A-OKVQA which re-
+quires more commonsense reasoning [35].
+
+In Figure 5, it is worth noting that HinD-Know and
+HinD-CoT-Know both have large proportions (21.8% &
+23.3%) of samples that included relevant contexts but in-
+ferred the wrong answers. The reason could be that the
+noisy phrases disturb the reasoning, or the ground truth
+phrases are not understood as the target answer. More-
+over, the error accumulation is observed: when HinD
+generates contexts without answers, the answer genera-
+tor cannot infer the answer, either. In future works, it
+is crucial to improve both reasoning and summarization
+abilities of MLLMs.
+
+Effect of Knowledge Shots.
+
+Table 4 shows
+the effect of the count of knowledge pieces, | ˆK|, in
+HinD-Know. The PRR@K increases with more knowl-
+edge pieces, showing that by sampling more knowl-
+edge pieces from HinD-Know, it is more likely to in-
+volve the ground-truth answers, which would be more
+helpful to solve the question. The best and second-best
+
+8
+
+Image Description:A man is outdoors on grass, holding two frisbees in his hands. He has a dog perched on his back, which appears to be a cattle dog…Rationales:1. The man is holding frisbees, indicating game involving objects.2. The dog is on the man‘s back, suggesting itparticipates in game.3. Dogs typically use their mouthsto catch and hold frisbees…Let's think step by step.1.Identify the activity being depicted -the man is holding frisbees.2.Determine which part of the dog is likely used for the activity: Dogs use their mouthsto interact with objects like frisbees. 3. Conclude which part of the dog is in use: The dog's mouthwould be the part used for playing with the frisbees.Knowledge:1. Dogs use their mouthsto catch frisbees during frisbee games2.Dogs use their mouthto catch frisbees during frisbee games3.Dogs typically use their mouthduring games like frisbee4.Dogs use their mouthto catch frisbees when playing fetch game5.Dogs use their mouthto catch frisbees when playing fetch discQ: Which part of this animal would be in use of it was playing the game that is played with the items the man is holding?(A: Mouth)Oracle Documents from Google Search corpusDocument 1: …tool use in elephants involves holding branches and scratching themselves... most breathing is performed through the trunk rather than the mouth.Document 2: foxes in minecraft… of these in its mouth, it could be tempting to sneak up on it, but a fox will wake if you step onto an adjacent blockAnswer heuristics candidates in Prophetarm (0.33), leg (0.07), tail, (0.05), dog (0.05)…Image Description:The image shows a man playing frisbee with a dog. The man is holding two frisbees, one in each hand. The dog is standing on the man‘s back, with its front paws on the man’s shoulders and its head resting on his neck…Rationales:……Let's think step by step.1. The man is holding frisbees, used in game offrisbee…2. The dog is standing on the man’s back, indicating that it is participating.3. The dog's front paws are on the man's shoulders, suggesting that it is actively engaged in the game.Knowledge:1. Frisbee involves throwing and catching a flying disc…2. The frisbee game can be played individually or in team.3. Frisbee is often played in parks and open spaces...4. Frisbee can be played in various ways, including...5. Frisbee is not only recreational but also competitive.HinD-CoT-KnowZero-shot Generated CoTand KnowledgeKnowledge used in baselines3660(72.6%)30(0.6%)1102(21.8%)254(5.0%)HinD-Know3631(72.0%)28(0.6%)1178(23.3%)209(4.1%)HinD-CoT-KnowAnswer✓ ✗✓✗Answer✓✗✓ ✗an effective CoT-tuning framework for KBVQA.
+
+References
+
+[1] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama
+Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo
+Almeida, Janko Altenschmidt, Sam Altman, Shyamal
+Anadkat, et al. Gpt-4 technical report. arXiv preprint
+arXiv:2303.08774, 2023. 1, 2, 3, 5
+
+[2] Stanislaw Antol, Aishwarya Agrawal, Jiasen Lu, Mar-
+garet Mitchell, Dhruv Batra, C Lawrence Zitnick, and
+Devi Parikh. Vqa: Visual question answering. In Pro-
+ceedings of the IEEE international conference on com-
+puter vision, pages 2425–2433, 2015. 1, 2
+
+[3] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Sub-
+biah, Jared D Kaplan, Prafulla Dhariwal, Arvind Nee-
+lakantan, Pranav Shyam, Girish Sastry, Amanda Askell,
+et al. Language models are few-shot learners. Ad-
+vances in neural information processing systems, 33:
+1877–1901, 2020. 1, 3
+
+[4] Yang Chen, Hexiang Hu, Yi Luan, Haitian Sun, Soravit
+Changpinyo, Alan Ritter, and Ming-Wei Chang. Can
+pre-trained vision and language models answer visual
+In Proceedings of the
+information-seeking questions?
+2023 Conference on Empirical Methods in Natural Lan-
+guage Processing, pages 14948–14968, 2023. 2
+
+[5] Zhenfang Chen, Qinhong Zhou, Yikang Shen, Yining
+Hong, Zhiqing Sun, Dan Gutfreund, and Chuang Gan.
+Visual chain-of-thought prompting for knowledge-based
+visual reasoning. In Proceedings of the AAAI Conference
+on Artificial Intelligence, pages 1254–1262, 2024. 2, 3,
+5
+
+[6] Wenliang Dai, Junnan Li, Dongxu Li, Anthony Tiong,
+Junqi Zhao, Weisheng Wang, Boyang Li, Pascale N
+Fung, and Steven Hoi.
+Instructblip: Towards general-
+purpose vision-language models with instruction tuning.
+Advances in neural information processing systems, 36:
+49250–49267, 2023. 3
+
+[7] Junnan Dong, Qinggang Zhang, Huachi Zhou, Daochen
+Zha, Pai Zheng, and Xiao Huang. Modality-aware inte-
+gration with large language models for knowledge-based
+In 62nd Annual Meeting
+visual question answering.
+of the Association for Computational Linguistics, ACL
+2024, pages 2417–2429. Association for Computational
+Linguistics (ACL), 2024. 3, 5
+
+[8] Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch,
+Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid,
+Jonathan Tompson, Quan Vuong, Tianhe Yu, et al. Palm-
+e: an embodied multimodal language model. In Proceed-
+ings of the 40th International Conference on Machine
+Learning, pages 8469–8488, 2023. 5
+
+[9] Wenlong Fang, Qiaofeng Wu, Jing Chen, and Yun Xue.
+Notes-guided mllm reasoning: Enhancing mllm with
+knowledge and visual notes for visual question answer-
+In Proceedings of the IEEE/CVF Conference on
+ing.
+Computer Vision and Pattern Recognition (CVPR), pages
+19597–19607, 2025. 3
+
+[10] Feng Gao, Qing Ping, Govind Thattai, Aishwarya Re-
+ganti, Ying Nian Wu, and Prem Natarajan. Transform-
+
+language-centric outside-
+retrieve-generate: Natural
+knowledge visual question answering. In Proceedings of
+the IEEE/CVF conference on computer vision and pat-
+tern recognition, pages 5067–5077, 2022. 3, 5
+
+[11] Franc¸ois Gard`eres, Maryam Ziaeefard, Baptiste Abeloos,
+and Freddy Lecue. Conceptbert: Concept-aware repre-
+sentation for visual question answering. In Findings of
+the Association for Computational Linguistics: EMNLP
+2020, pages 489–498, 2020. 3
+
+[12] Yash Goyal, Tejas Khot, Douglas Summers-Stay, Dhruv
+Batra, and Devi Parikh. Making the v in vqa matter: El-
+evating the role of image understanding in visual ques-
+tion answering. In Proceedings of the IEEE conference
+on computer vision and pattern recognition, pages 6904–
+6913, 2017. 1, 2
+
+[13] Liangke Gui, Borui Wang, Qiuyuan Huang, Alexan-
+der G Hauptmann, Yonatan Bisk, and Jianfeng Gao.
+Kat: A knowledge augmented transformer for vision-
+and-language. In Proceedings of the 2022 Conference of
+the North American Chapter of the Association for Com-
+putational Linguistics: Human Language Technologies,
+pages 956–968, 2022. 1, 3, 5
+
+[14] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song,
+Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi
+Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing reason-
+ing capability in llms via reinforcement learning. arXiv
+preprint arXiv:2501.12948, 2025. 3
+
+[15] Dongze Hao, Qunbo Wang, Longteng Guo, Jie Jiang, and
+Jing Liu. Self-bootstrapped visual-language model for
+In Pro-
+knowledge selection and question answering.
+ceedings of the 2024 Conference on Empirical Meth-
+ods in Natural Language Processing, pages 1857–1868,
+2024. 5
+
+[16] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-
+Zhu, Yuanzhi Li, Shean Wang, Lu Wang, Weizhu Chen,
+et al. Lora: Low-rank adaptation of large language mod-
+els. ICLR, 1(2):3, 2022. 5
+
+[17] Yushi Hu, Hang Hua, Zhengyuan Yang, Weijia Shi,
+Noah A Smith, and Jiebo Luo. Promptcap: Prompt-
+guided image captioning for vqa with gpt-3. In Proceed-
+ings of the IEEE/CVF International Conference on Com-
+puter Vision, pages 2963–2975, 2023. 1, 2, 5
+
+[18] Ziniu Hu, Ahmet Iscen, Chen Sun, Zirui Wang, Kai-
+Wei Chang, Yizhou Sun, Cordelia Schmid, David A
+Ross, and Alireza Fathi. Reveal: Retrieval-augmented
+visual-language pre-training with multi-source multi-
+the
+modal knowledge memory.
+IEEE/CVF conference on computer vision and pattern
+recognition, pages 23369–23379, 2023. 5
+
+In Proceedings of
+
+[19] Aaron Hurst, Adam Lerer, Adam P Goucher, Adam
+Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Ak-
+ila Welihinda, Alan Hayes, Alec Radford, et al. Gpt-4o
+system card. arXiv preprint arXiv:2410.21276, 2024. 1,
+2, 3
+
+[20] Pu Jian, Donglei Yu, and Jiajun Zhang. Large language
+models know what is key visual entity: An llm-assisted
+multimodal retrieval for vqa. In Proceedings of the 2024
+Conference on Empirical Methods in Natural Language
+Processing, pages 10939–10956, 2024. 5
+
+9
+
+[21] Jingjing Jiang, Chao Ma, Xurui Song, Hanwang Zhang,
+and Jun Luo. Corvid: Improving multimodal large lan-
+guage models towards chain-of-thought reasoning. arXiv
+preprint arXiv:2507.07424, 2025. 2, 3
+
+[22] Mahmoud Khademi, Ziyi Yang, Felipe Frujeri, and
+Mm-reasoner: A multi-modal
+Chenguang Zhu.
+knowledge-aware framework for knowledge-based vi-
+In Findings of the Associa-
+sual question answering.
+tion for Computational Linguistics: EMNLP 2023, pages
+6571–6581, 2023. 1, 2, 5
+
+[23] Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi.
+Blip-2: Bootstrapping language-image pre-training with
+frozen image encoders and large language models.
+In
+International conference on machine learning, pages
+19730–19742. PMLR, 2023. 3
+
+[24] Weizhe Lin and Bill Byrne. Retrieval augmented vi-
+sual question answering with outside knowledge. In Pro-
+ceedings of the 2022 Conference on Empirical Methods
+in Natural Language Processing, pages 11238–11254,
+2022. 3, 5
+
+[25] Weizhe Lin, Jinghong Chen, Jingbiao Mei, Alexandru
+Coca, and Bill Byrne.
+Fine-grained late-interaction
+multi-modal retrieval for retrieval augmented visual
+question answering. Advances in Neural Information
+Processing Systems, 36:22820–22840, 2023. 1, 3, 5, 7
+
+[26] Yuanze Lin, Yujia Xie, Dongdong Chen, Yichong Xu,
+Chenguang Zhu, and Lu Yuan. Revive: Regional visual
+representation matters in knowledge-based visual ques-
+tion answering. Advances in neural information process-
+ing systems, 35:10560–10571, 2022. 3, 5
+
+[27] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae
+
+Lee. Visual instruction tuning, 2023. 5
+
+[28] Xinwei Long, Zhiyuan Ma, Ermo Hua, Kaiyan Zhang,
+Biqing Qi, and Bowen Zhou. Retrieval-augmented visual
+question answering via built-in autoregressive search en-
+gines. In Proceedings of the AAAI Conference on Artifi-
+cial Intelligence, pages 24723–24731, 2025. 1, 3, 5, 7, 4,
+6
+
+[29] Pan Lu, Swaroop Mishra, Tanglin Xia, Liang Qiu, Kai-
+Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter
+Clark, and Ashwin Kalyan. Learn to explain: Multi-
+modal reasoning via thought chains for science question
+answering. Advances in Neural Information Processing
+Systems, 35:2507–2521, 2022. 2, 3, 4
+
+[30] Man Luo, Yankai Zeng, Pratyay Banerjee, and Chitta
+Baral. Weakly-supervised visual-retriever-reader for
+arXiv preprint
+knowledge-based question answering.
+arXiv:2109.04014, 2021. 3, 5, 7
+
+[31] Kenneth Marino, Mohammad Rastegari, Ali Farhadi, and
+Roozbeh Mottaghi. Ok-vqa: A visual question answer-
+In Pro-
+ing benchmark requiring external knowledge.
+ceedings of the IEEE/cvf conference on computer vision
+and pattern recognition, pages 3195–3204, 2019. 1, 2, 3,
+5
+
+[32] Kenneth Marino, Xinlei Chen, Devi Parikh, Abhinav
+Gupta, and Marcus Rohrbach. Krisp: Integrating implicit
+and symbolic knowledge for open-domain knowledge-
+In Proceedings of the IEEE/CVF confer-
+based vqa.
+
+10
+
+ence on computer vision and pattern recognition, pages
+14111–14121, 2021. 3
+
+[33] Rafael Rafailov, Archit Sharma, Eric Mitchell, Christo-
+pher D Manning, Stefano Ermon, and Chelsea Finn. Di-
+rect preference optimization: Your language model is se-
+cretly a reward model. Advances in neural information
+processing systems, 36:53728–53741, 2023. 5
+
+[34] Colin Raffel, Noam Shazeer, Adam Roberts, Katherine
+Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei
+Li, and Peter J Liu. Exploring the limits of transfer learn-
+ing with a unified text-to-text transformer. Journal of
+machine learning research, 21(140):1–67, 2020. 3
+[35] Dustin Schwenk, Apoorv Khandelwal, Christopher
+Clark, Kenneth Marino, and Roozbeh Mottaghi. A-
+okvqa: A benchmark for visual question answering using
+world knowledge. In European conference on computer
+vision, pages 146–162. Springer, 2022. 2, 3, 5, 8
+[36] Sanket Shah, Anand Mishra, Naganand Yadati, and
+Partha Pratim Talukdar. Kvqa: Knowledge-aware visual
+question answering. In Proceedings of the AAAI confer-
+ence on artificial intelligence, pages 8876–8884, 2019.
+1
+
+[37] Qingyi Si, Yuchen Mo, Zheng Lin, Huishan Ji, and
+Weiping Wang. Combo of thinking and observing for
+outside-knowledge vqa. In Proceedings of the 61st An-
+nual Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers), pages 10959–10975,
+2023. 3, 5
+
+[38] Robyn Speer, Joshua Chin, and Catherine Havasi. Con-
+ceptnet 5.5: An open multilingual graph of general
+knowledge. In Proceedings of the AAAI conference on
+artificial intelligence, 2017. 3
+
+[39] Qwen Team. Qwen2 technical report. arXiv preprint
+
+arXiv:2407.10671, 2024. 5
+
+[40] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert,
+Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov,
+Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al.
+Llama 2: Open foundation and fine-tuned chat models.
+arXiv preprint arXiv:2307.09288, 2023. 1, 2
+
+[41] Denny Vrandeˇci´c and Markus Kr¨otzsch. Wikidata: a
+free collaborative knowledgebase. Communications of
+the ACM, 57(10):78–85, 2014. 3
+
+[42] Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc V Le,
+Ed H Chi, Sharan Narang, Aakanksha Chowdhery, and
+Denny Zhou. Self-consistency improves chain of thought
+reasoning in language models. In The Eleventh Interna-
+tional Conference on Learning Representations, 2022. 5
+[43] Yaoting Wang, Shengqiong Wu, Yuecheng Zhang,
+Shuicheng Yan, Ziwei Liu, Jiebo Luo, and Hao Fei. Mul-
+timodal chain-of-thought reasoning: A comprehensive
+survey. arXiv preprint arXiv:2503.12605, 2025. 2, 3
+[44] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou,
+et al. Chain-of-thought prompting elicits reasoning in
+large language models. Advances in neural information
+processing systems, 35:24824–24837, 2022. 2, 3
+[45] Jialin Wu, Jiasen Lu, Ashish Sabharwal, and Roozbeh
+answer validation for
+
+Multi-modal
+
+Mottaghi.
+
+In Proceedings of the AAAI
+knowledge-based vqa.
+conference on artificial intelligence, pages 2712–2721,
+2022. 3
+
+[46] Alexandros Xenos, Themos Stafylakis, Ioannis Patras,
+and Georgios Tzimiropoulos. A simple baseline for
+In Pro-
+knowledge-based visual question answering.
+ceedings of the 2023 Conference on Empirical Methods
+in Natural Language Processing, pages 14871–14877,
+2023. 2, 5
+
+[47] Guowei Xu, Peng Jin, Hao Li, Yibing Song, Lichao Sun,
+and Li Yuan. Llava-cot: Let vision language models
+reason step-by-step. arXiv preprint arXiv:2411.10440,
+2024. 2, 3
+
+[48] Zhengyuan Yang, Zhe Gan, Jianfeng Wang, Xiaowei Hu,
+Yumao Lu, Zicheng Liu, and Lijuan Wang. An empiri-
+cal study of gpt-3 for few-shot knowledge-based vqa. In
+Proceedings of the AAAI conference on artificial intelli-
+gence, pages 3081–3089, 2022. 2
+
+[49] Zhaorui Yang, Tianyu Pang, Haozhe Feng, Han Wang,
+Wei Chen, Minfeng Zhu, and Qian Liu. Self-distillation
+bridges distribution gap in language model fine-tuning.
+In Proceedings of the 62nd Annual Meeting of the Asso-
+ciation for Computational Linguistics (Volume 1: Long
+Papers), pages 1028–1043, 2024. 3, 4
+
+[50] Zhen Yang, Zhuo Tao, Qi Chen, Liang Li, Yuankai Qi,
+Anton van den Hengel, and Qingming Huang. Separation
+of powers: On segregating knowledge from observation
+in llm-enabled knowledge-based visual question answer-
+ing. In Proceedings of the Computer Vision and Pattern
+Recognition Conference, pages 24753–24762, 2025. 1, 5
+[51] Huanjin Yao, Jiaxing Huang, Wenhao Wu, Jingyi Zhang,
+Yibo Wang, Shunyu Liu, Yingjie Wang, Yuxin Song,
+Haocheng Feng, Li Shen, et al. Mulberry: Empow-
+ering mllm with o1-like reasoning and reflection via
+arXiv preprint
+collective monte carlo tree search.
+arXiv:2412.18319, 2024. 2, 3
+
+[52] Zhou Yu, Xuecheng Ouyang, Zhenwei Shao, Meng
+Wang, and Jun Yu.
+Prophet: Prompting large lan-
+guage models with complementary answer heuristics
+IEEE
+for knowledge-based visual question answering.
+Transactions on Pattern Analysis and Machine Intelli-
+gence, 2025. 1, 2, 3, 5, 7, 8
+
+[53] Zhuosheng Zhang, Aston Zhang, Mu Li, Hai Zhao,
+George Karypis, and Alex Smola. Multimodal chain-of-
+thought reasoning in language models. Transactions on
+Machine Learning Research, 2024, 2024. 3, 5
+
+[54] Yaowei Zheng, Richong Zhang, Junhao Zhang, Yan-
+han Ye, Zheyan Luo, Zhangchi Feng, and Yongqiang
+Ma. Llamafactory: Unified efficient fine-tuning of 100+
+In Proceedings of the 62nd Annual
+language models.
+Meeting of the Association for Computational Linguis-
+tics (Volume 3: System Demonstrations), Bangkok, Thai-
+land, 2024. Association for Computational Linguistics. 5
+[55] Deyao Zhu, Jun Chen, Xiaoqian Shen, Xiang Li, and
+Mohamed Elhoseiny. Minigpt-4: Enhancing vision-
+language understanding with advanced large language
+models. arXiv preprint arXiv:2304.10592, 2023. 5
+
+11
+
+Hindsight Distillation Reasoning with Knowledge Encouragement
+Preference for Knowledge-based Visual Question Answering
+
+Supplementary Material
+
+A. Hyper-parameters Analysis
+
+We analyze the effect of the KEPO loss coefficient β and the sampling temperature in Table 5. For β, we observe
+that a smaller value (0.1) achieves the highest PRR@K (94.3). Increasing β to 1.0 causes a significant drop in recall
+(89.6), suggesting that constraining the KEPO policy πKEP O
+to stay close to the reference policy πref is crucial for
+maintaining knowledge quality.
+
+ϕ
+
+For sampling temperature, a very low value (0.3) limits diversity and results in lower recall (91.5). Temperatures of
+0.7 (94.3) and 1.0 (94.7) yield the best performance, indicating that moderate stochasticity is beneficial for knowledge
+generation. Moreover, temperature=1.0 provides best PRR@K results, indicating improving knowledge diversity may
+be beneficial for KBVQA reasoning. We adopt β = 0.1 and temperature= 0.7 as the default in the paper.
+
+β
+
+0.1
+0.5
+1.0
+
+PRR@K temperature
+
+PRR@K
+
+94.3
+93.7
+89.6
+
+0.3
+0.7
+1.0
+
+91.5
+94.3
+94.7
+
+Table 5. Hyper-parameter analysis of HinD-Know on OK-VQA: (1) β of KEPO, (2) knowledge sampling temperature.
+
+B. Details of Prompts
+
+We provide the specific prompt templates used in our framework.
+
+Listing 1 details the structured prompt used for generating the Hindsight-Zero training data, which instructs the
+model to produce an image description, rationales, step-by-step reasoning, and related knowledge pieces given both
+the question and the ground-truth answer. Listing 2 and Listing 3 show the prompts used during training and inference
+for the CoT Generator and the Knowledge Generator, respectively. Listing 4 and Listing 5 detail the prompts for the
+final Answer Generator, configured for the HinD-CoT-Know and HinD-Know variants.
+
+1 Generate an image description based on the question.
+2 Then, provide a rationale to analyze the question to give the given answer.
+3 Next, generate a step-by-step reasoning process to solve the problem towards the given
+
+(cid:44)→ answer. Ensure the steps are logical and concise.
+
+4 After that, generate 5 related knowledge or facts to solve the question. Ensure the
+
+(cid:44)→ steps are logical and concise.
+
+5 Finally, provide a concise summary of the final answer with a single word or phrase in
+
+(cid:44)→ the following format: ’The final answer is: xxx’. Do not provide any
+(cid:44)→ explanation.
+
+6
+7 Format your response with the following sections, separated by ###:
+8 ### Image Description:
+9 ### Rationales:
+10 ### Let’s think step by step.
+11 ### Step 1:
+12 ### Step 2:
+13 ...
+14 ### Knowledge:
+15 ### Knowledge 1:
+16 ### Knowledge 2:
+17 ...
+18 ### The final answer is:
+
+1
+
+19
+20 {question}
+21 {answer}
+
+Listing 1. Prompt used to generate Hindsight-Zero data (Section 3.2.)
+
+1 Generate an image description based on the question.
+2 Then, provide a rationale to analyze the question.
+3 Next, generate a step-by-step reasoning process to solve the problem. Ensure the steps
+
+(cid:44)→ are logical and concise.
+
+4
+5 Question: {question}
+
+Listing 2. Prompt used for CoT Generator (Section 3.3.).
+
+1 Based on the image, generate related knowledge or facts to solve the question.
+2 Question: {question}
+
+Listing 3. Prompt used for Knowledge Generator (Section 3.3.).
+
+1 Based on the image and reasoning process, respond to this question with a single word
+
+(cid:44)→ or phrase.
+
+2 Question: {question}
+
+3
+4 {cot_process}
+
+5
+6 Knowledge:
+7 {knowledge}
+
+8
+9 Question: {question}
+
+Listing 4. Prompt used for HinD-CoT-Know Answer Generator (Section 3.5.).
+
+1 Based on the image and reasoning process, respond to this question with a single word
+
+(cid:44)→ or phrase.
+
+2 Question: {question}
+
+3
+4 Knowledge:
+5 {knowledge}
+
+6
+7 Question: {question}
+
+Listing 5. Prompt used for HinD-Know Answer Generator (Section 3.5.).
+
+C. Hindsight-Zero Data Construction Details
+
+We present the statistics of OK-VQA and A-OKVQA, and our generated Hindsight-Zero dataset in Table 6.
+
+For the CoT and Knowledge HDFT stage, we filter the CoT and knowledge piece with ground truths so that CoT
+and Knowledge HDFT is based on only reasoning process mentioning answers, to provide reasoning heuristic, thus the
+training samples are lower than the training set. For the KEPO stage, we construct 0-2 chosen-rejected pairs for each
+sample. For Hindsight-Zero samples that only includes accurate knowledge, we construct negative knowledge from
+random piece generated from other samples. Hindsight-Zero samples with only unhelpful knowledge are ommitted.
+We sample 2 pairs for samples has various accurate/wrong situations to increase the diversity of KEPO to avoid
+overfitting. This results in a larger dataset for preference optimization. The Answer Generator is trained on the full
+training sets with also the CoT or knowledge that do not mention answers. It provides reasoning robustness since it
+mimics the real inference scene when CoT and knowledge could be less accurate.
+
+Table 7 provides a concrete example of the generated Hindsight-Zero data for CoT HDFT, Knowledge HDFT, and
+
+the constructed KEPO pair, illustrating the “Chosen” and “Rejected” samples.
+
+2
+
+dataset
+
+OK-VQA A-OKVQA
+
+train set
+test/valid set
+
+9,009
+5,046
+
+CoT HDFT
+Knowledge HDFT
+Knowledge KEPO
+Answer Generator
+
+Hindsight-Zero
+7,694
+8,833
+15,636
+9,009
+
+17,055
+1,145
+
+15,746
+16,730
+30,203
+17,055
+
+Table 6. Dataset Statistics.
+
+Question: What is the hairstyle of
+the blond called?
+
+Hindsight-Zero for CoT HDFT:
+
+Answer: ponytail
+
+Image Description:
+Two women are standing on a tennis court. One woman has her hair tied
+back in a ponytail, while the other has her hair down. The woman with the
+ponytail is wearing a black tank top, and the other is wearing an orange
+tank top with a white headband.
+Rationales:
+- The woman with the ponytail has her hair pulled back into a single, thick
+strand that extends from the back of her head.
+- The term ¨ponytail¨refers to a hairstyle where hair is gathered at the nape of
+the neck and secured with a rubber band or similar fastener.
+Let’s think step by step.
+Step 1: Identify the hairstyle of the woman with the ponytail.
+Step 2: Determine if the hairstyle matches the definition of a ponytail.
+Step 3:Conclude whether the hairstyle is correctly identified as a ponytail.
+
+Hindsight-Zero for Knowledge HDFT:
+
+ponytails are common hairstyle for tennis players due to their practicality
+and ease of movement during game
+
+Hindsight-Zero for Knowledge KEPO:
+
+Chosen: ponytails are common hairstyle for tennis players due to their prac-
+ticality and ease of movement during game
+Rejected: pigtails are common hairstyle for tennis players due to their prac-
+ticality and ease of movement during game
+
+Table 7. Case for Hindsight-Zero data construction.
+
+Model
+
+Qwen2.5-VL-7B
+Qwen3-VL-8B-Instruct
+Qwen3-VL-8B-Thinking
+
+Score
+
+61.6
+60.6
+56.6
+
+Table 8. Qwen3 Zero-shot VQA Score on OK-VQA.
+
+3
+
+D. Discussions about Thinking model
+
+We investigate whether a pre-trained Thinking model can solve the KBVQA task in a zero-shot manner. As shown
+in Table 8, the latest Qwen3-VL-8B-Thinking model performs significantly worse (56.6) on OK-VQA than its cor-
+responding Instruct model (60.6) and the Qwen2.5-VL-7B base model (61.6). The case study in Table 9 illustrates
+this failure: the Thinking model gets confused by the question’s phrasing (“running around the bases on a single hit”),
+engages in a flawed reasoning process, and incorrectly concludes the answer by rephrasing the question: “single”. In
+contrast, our HinD-CoT-Know framework, guided by hindsight-distilled knowledge and CoT, correctly identifies the
+answer as “home run”. This demonstrates that generic thinking capabilities from the thinking model are unstructured,
+while the structured sequential thinking steps and discrete knowledge recall from HinD elicited by HDFT and KEPO
+would reinforce the model to generate targeted, well-organized reasoning processes for better reasoning performance.
+
+E. Out-of-Domain Experiments
+
+To evaluate the generalization ability of our HinD framework, we conduct an out-of-domain (OOD) experiment on the
+ScienceQA benchmark [29].
+
+As shown in Table 10, we first test the zero-shot performance of the backbone model, which achieves 71.12. We
+then select our HinD model trained on A-OKVQA dataset since A-OKVQA and ScienceQA are both multi-choice
+evaluation. Note that A-OKVQA MC and DA exploits the same CoT and Knowledge Generator parameters, only the
+Answer Generators of two settings are different. We then take our HinD model, trained on the A-OKVQA dataset,
+and directly evaluate it on ScienceQA without any further fine-tuning. Our model achieves an accuracy of 83.49,
+demonstrating a significant improvement over the zero-shot baseline. This suggests that the reasoning capabilities
+elicited by our Hindsight Distilled Reasoning framework can be effectively transferred to other, unseen knowledge-
+intensive tasks.
+
+F. HinD with Google Search Corpus
+
+To compare our internal knowledge elicitation with external retrieval, we added a constrained decoding procedure
+following ReAuSE [28] after our Knowledge Generator for a generative retrieval based on Google Search. As shown in
+Table 11, this approach (w/ generative retrieval) achieves only 74.9 PRR@K, a significant drop from the 94.3 PRR@K
+of our standard HinD-Know model. The case study on Table 12 highlights the reason: for a question about items in
+a red bag, HinD-Know generates relevant, commonsense possibilities like “lunchbox” or “clothes”. In contrast, the
+external retrieval system returns noisy and irrelevant documents about “cats” loving “laptops” and “Intel processors”.
+The reason could be that the MLLM’s intuition is laptops, thus MLLM would generatively decode from the corpus for
+laptop-related passages, which may bring noise and not be helpful. This demonstrates that for these KBVQA tasks,
+the MLLM’s internal, distilled knowledge (elicited via HinD) is more concise and relevant than noisy, general-purpose
+external documents.
+
+G. Limitations
+
+Our work primarily focuses on eliciting reasoning from a 7B-sized MLLM. A promising direction for future work is
+to investigate the scalability of HinD and KEPO on both smaller and significantly larger MLLMs to understand the
+relationship between model scale and the quality of elicited hindsight reasoning.
+
+Furthermore, our experiments utilize temperature decoding parameters for knowledge sampling. The impact of dif-
+ferent decoding strategies or test-time scaling mechanisms on the trade-off between knowledge diversity and accuracy
+remains unexplored.
+
+Finally, while our 7B MLLM’s internal knowledge, once distilled, proves surprisingly effective for OK-VQA and
+A-OKVQA, the reasoning processes generated are not perfect considering 7B-size model capacity. Moreover, for
+questions requiring knowledge that is absent from the MLLM’s parameters (e.g., very recent or highly specific facts),
+our current framework would still fail, indicating that a hybrid approach integrating external knowledge for such un-
+known scenarios is a critical area for future research. Future work includes incorporating RAG, improving knowledge
+generation diversity, improving answer summarization accuracy, and hybrid long-intuitive reasoning in HinD.
+
+4
+
+Question: What do they call run-
+ning around the bases on a single
+hit?
+
+Answer: home run
+
+Qwen3-8B-Thinking:
+
+< think > Got it, let’s see. The question is about what they call running
+around the bases on a single hit. In baseball, when a batter hits the ball and
+gets a single, they run around first base. The term for that is ”single,” but
+wait, the question is asking for the name of the action. Wait, no, the ac-
+tion of running around the bases after a single is just part of the play, but
+the term for the hit itself is ”single.” Wait, but the question says ”running
+around the bases on a single hit.” So when you hit a single, you run around
+first base. The term for that specific play is a ”single,” but maybe the an-
+swer is ”single”? Wait, no, let me think. Wait, in baseball, a single is a hit
+where the batter reaches first base safely without the ball being fielded and
+thrown to first. So the act of running around the bases on a single would
+be... well, the hit is a single, and then you run to first. But the term for that
+type of hit is ”single.” So the answer should be ”single.” < /think >
+single
+
+HinD-CoT-Know:
+
+Image Description: ...
+Rationales: ...
+Let’s think step by step.
+Step 1: Identify the elements in the image: batter, catcher, umpire, and
+home plate.
+Step 2: Determine the context: a baseball game in progress.
+Step 3: Consider the question: what do they call running around the bases
+on a single hit?
+Step 4:
+Recall the terminology used in baseball: ”running around the bases” refers
+to scoring after hitting a base hit.
+Knowledge:
+Knowledge 1: baseball term for running around all 4 bases after hitting sin-
+gle is home run but it’s not what they call it after hitting single hit is called
+base hit or single hit is called base hit or single when player hits ball into
+fair territory and reaches first base safely without being put out
+Knowledge 2: baseball term for hitting ball and running around all 4 bases
+is home run not single hit around bases which is called base hit or base hit
+with extra bases is triple or home run
+Knowledge 3: in baseball term for running around all 4 bases after hitting
+ball is home run not single hit
+Knowledge 4: baseball term for running around all 4 bases after hitting sin-
+gle is home run not single hit
+Knowledge 5: baseball term for running around all 4 bases after hitting sin-
+gle is home run not round trip or base hit
+Answer Generator: [’home run’, ’home run’, ’home run’, ’base hit’, ’base
+hit’] → home run
+
+Table 9. Case for HinD-CoT-Know and latest small thinking model Qwen3-8B-Thinking.
+
+Zero-shot ScienceQA A-OK (MC) → ScienceQA
+
+71.1
+
+83.49
+
+Table 10. Out-of-distribution experiments from A-OKVQA to Science QA
+
+5
+
+Model
+
+HinD-Know
+
+w/ generative retrieval
+
+PRR@K
+
+94.3
+74.9
+
+Table 11. HinD with generative retrieval from Google Search corpus on OK-VQA.
+
+Question: What could this gentle-
+man be carrying in that red bag?
+
+Answer: clothes/lunch/food/shoes
+
+HinD-Know:
+Knowledge 1: red bag could contain personal items like clothes or elec-
+tronics but more likely contains lunchbox or other food items for work or
+school.
+Knowledge 2: laptops are commonly carried in bags for work or study but
+they don’t typically match color scheme of red bag well unless it’s special-
+ized case like laptop sleeve which might be black or gray with red accents
+but not entirely red bag itself is unlikely to hold laptop.
+Knowledge 3: laptop bags are commonly used for carrying computers
+which are often used for work or school purposes.
+Knowledge 4: laptops and electronics often come in backpacks but they
+don’t typically match red color of bag as well as books might do.
+Knowledge 5: luggage is commonly carried for travel purposes and could
+include clothes or personal items for trip.
+
+HinD-Know w/ generative retrieval:
+
+Document 1: laptops can be warm if it’s been operating, and cats love
+warmth. this is evidenced by them laying out in sunlight even during the
+middle of summer.
+Document 2: processors for laptops, desktops, servers, and ai intel home
+toggle navigation sign in sign in username your username is missing pass-
+word your password is missing by signing in, you agree to our terms of ser-
+vice. intel® processors bring you world-class performance for business
+and personal use. find a wide range of processors by device type—laptops,
+desktops, workstations, and servers.
+Document 3: laptops can be warm if it’s been operating, and cats love
+warmth. this is evidenced by them laying out in sunlight even during the
+middle of summer.
+Document 4: luggage is constructed to protect the items during travel, ei-
+ther with a hard shell or a durable soft material. luggage often has internal
+subdivisions or sections to aid in securing items.
+Document 5: laptop computers and tablets do not have the adjustability
+of a desktop computer when adjusting keyboard, mouse and monitor. “er-
+gonomic” or “natural” keyboards: there are a variety of keyboard types
+available for use. as with chairs, desks or other office furniture, sit-stand
+desks are purchases made at the discretion of the department.
+
+Table 12. Case for HinD-Know with generative retrieval from ReAuSE [28].
+
+6

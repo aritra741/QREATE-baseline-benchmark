@@ -1,0 +1,1344 @@
+Introducing a new hyper-parameter for RAG: Context Window
+Utilization
+KUSH JUVEKAR, Independent, India
+ANUPAM PURWAR, Independent, India
+
+4
+2
+0
+2
+
+g
+u
+A
+7
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+4
+9
+7
+9
+1
+.
+7
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+This paper introduces a new hyper-parameter for Retrieval-Augmented Gen-
+eration (RAG) systems called Context Window Utilization. RAG systems
+enhance generative models by incorporating relevant information retrieved
+from external knowledge bases, improving the factual accuracy and contex-
+tual relevance of generated responses. The size of the text chunks retrieved
+and processed is a critical factor influencing RAG performance. This study
+aims to identify the optimal chunk size that maximizes answer generation
+quality. Through systematic experimentation, we analyze the effects of vary-
+ing chunk sizes on the efficiency and effectiveness of RAG frameworks. Our
+findings reveal that an optimal chunk size balances the trade-off between
+providing sufficient context and minimizing irrelevant information. These
+insights are crucial for enhancing the design and implementation of RAG
+systems, underscoring the importance of selecting an appropriate chunk
+size to achieve superior performance.
+
+CCS Concepts: • Information systems → Information extraction; •
+Computing methodologies → Natural language generation.
+Additional Key Words and Phrases: Retrieval Augmented Generation, Large
+Language Models, Context Window, Chunk size, Optimization
+
+ACM Reference Format:
+Kush Juvekar and Anupam Purwar. 2024. Introducing a new hyper-parameter
+for RAG: Context Window Utilization. 1, 1 (August 2024), 13 pages. https:
+//doi.org/10.1145/nnnnnnn.nnnnnnn
+
+Introduction
+
+1
+Retrieval-Augmented Generation (RAG)[Lewis et al. 2021] is the
+process of optimizing the output of a large language model, so it
+references an authoritative knowledge base outside of its training
+data sources before generating a response. Large Language Mod-
+els (LLMs) are trained on vast volumes of data and use billions of
+parameters to generate original output for tasks like answering
+questions, translating languages, and completing sentences. RAG
+extends the already powerful capabilities of LLMs to specific do-
+mains or an organization’s internal knowledge base, all without the
+need to retrain the model. Implementing RAG is an efficient way to
+enhance the output of LLM, ensuring its relevance, accuracy, and
+usefulness in diverse applications like as chat-bots for enterprise
+data [Juvekar and Purwar 2024], conversational learning interfaces
+[Harbola and Purwar 2024], and seamless integration with voice
+interfaces [Purwar and Sundar 2023].
+
+Authors’ Contact Information: Kush Juvekar, kushjuveka0610@gmail.com, Independent,
+Ahmedabad, Gujarat, India; Anupam Purwar, anupam.aiml@gmail.com, Independent,
+Delhi, India.
+
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+© 2024 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM XXXX-XXXX/2024/8-ART
+https://doi.org/10.1145/nnnnnnn.nnnnnnn
+
+Currently, most RAG systems follow the Dual-Encoder Architec-
+ture paradigm[Dong et al. 2022], in which the reference documents
+are divided into small snippets, encoded by specific encoders, and
+then stored in the vector database as embeddings. The DEA para-
+digm shows great potential for empowering LLMs with any existing
+knowledge database.
+
+Present day advancements in RAG have answered various ques-
+tions like "what should be retrieved" , "when retrieval should not
+occur", "how to utilize the retrieved information" and more.[Asai
+et al. 2023; Ganesh et al. 2024; Jonathan Larson 2024; Yan et al. 2024].
+However, the Failure point 1(Missing Context) as articulated by
+[Barnett et al. 2024] is often a result of inefficient chunking and
+indexing strategies. Many researchers have tried to address this by
+introducing advanced chunking strategies, both heuristic and seman-
+tic [Chen et al. 2023; Duarte et al. 2024; Rucinski 2024; thallyscostalat
+2024]. Despite all the research in this area, determining an optimal
+chunk size remains a tedious task as user queries differ in na-
+ture leading to answers of varied nature dependant on tasks like
+summarization, fact finding, translation and question answering
+tasks.
+
+Our current work address the issue of finding an optimal chunk
+size for naive RAG (fixed chunk size couple with a dense retriever)
+in question answering task. The motivation is to find a chunk size
+optimal for all tasks then the other RAG advancements will cer-
+tainly help RAG perform better on top of this. We demonstrate that,
+while documents may have distinct text alignment structures, LLMs
+do not respond in dramatically different ways. Through extensive
+experimentation with different chunk sizes across diverse datasets,
+including academic papers, legal documents, and Wikipedia articles,
+we aim to identify an optimal chunk size that balances the trade-off
+between providing sufficient context and minimizing irrelevant in-
+formation. Our study introduces a new parameter, Context Window
+Utilization, which optimizes the proportion of the context window
+used during retrieval. Our findings based on experimenting with
+2 different open source LLMs offer valuable insights into how to
+improve the design and implementation of RAG systems by using
+most optimal chunk size.
+
+2 Methodology
+2.1 Dataset Preparation
+To explore the practical applications of Retrieval-Augmented Gener-
+ation (RAG) with Large Language Models (LLMs), we conducted our
+testing using a diverse set of data corpora. These included scholarly
+publications, news articles, reports from the Indian government,
+newsletters, and decisions from the Indian High Court and Supreme
+Court. These document types are among the most frequently used
+documents by individuals in their daily activities.
+
+For each corpus, vector databases were constructed with varying
+chunk sizes of 128, 256, 512, 1024, and 2048. We employed a sentence
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+• Kush Juvekar and Anupam Purwar
+
+Dataset
+
+Question
+
+MS MARCO
+
+the meaning of reverence
+
+define traumatic
+
+Answer
+
+Deep respect
+
+It is extremely upsetting or something that causes
+great harm or damage to the mind or body.
+
+NarrativeQA
+
+What is the name of the night club in Los Angeles
+where the Doors grew their fan base?
+
+Whiskey a Go Go
+
+What does Corso realize when he compares
+Balkan’s and Fargas’ copies of the Ninth Gate?
+
+Each book has three different unique engravings
+with Lucifer’s signature.
+
+Natural Questions
+
+which type of rock forms on the earth’s crust
+
+who was the first person to see earth from space
+
+Igneous and metamorphic rocks make up 90-95% of
+the 16km of the Earth’s crust by volume. Igneous
+rocks form about 15% of the Earth’s crust by volume.
+Most of the Earth’s oceanic crust is made of igneous
+rock.
+
+Yuri Alekseyevich Gagarin was a Soviet pilot and
+cosmonaut. He was the first human to journey into
+outer space when his Vostok spacecraft completed
+an orbit of the Earth on 12 April 1961.
+
+Table 1. This table presents a random collection of questions and answers extracted from three datasets: MS MARCO, NarrativeQA, Natural Questions.
+
+splitter for segmentation and embedded the text using the Sentence
+Transformer model[Xiao et al. 2023].
+
+inquiries. Some of the question answer pairs from our datasets are
+described in Appendix A.
+
+We have utilized GPT-4 Turbo [OpenAI 2024] to generate question-
+answer pairs for each corpus. GPT-4 Turbo was selected based on
+evidence indicating that large language models achieve an 80%
+alignment with human judgment[Zheng et al. 2023]. Synthetic data
+generation using LLMs has proven to be useful in many cases for
+example, 83% GPT-4 generated example-label pairs were found to
+be correct by a clinician in this study[Woolsey et al. 2024]. As LLMs
+are a probabilistic model working the principle of next token pre-
+diction they are prone to hallucinations. But, their ability to align
+with human preferences over 80% of the time demonstrates their
+potential in tasks requiring natural language understanding and
+generation.
+
+2.2 Why custom datasets?
+We opted not to use existing datasets such as Natural Questions
+[Kwiatkowski et al. 2019], MS MARCO[Bajaj et al. 2018], and BEIR
+[Thakur et al. 2021] due to several limitations. These datasets typi-
+cally contain straightforward and direct queries, resulting in high se-
+mantic overlap between the queries and documents. In contrast, our
+queries encompass a mix of "What?", "How?", and "Why?" questions,
+which are more complex and diverse than simple factual questions.
+We have instructed GPT-4 Turbo to generate such queries as such
+queries are of greater relevance to a user rather than fact finding.
+Table 1 displays randomly selected set of question answer pairs
+from frequently used datasets in RAG assessment. As evident from
+Table 1, all inquiries are quite direct and do not need the LLMs to
+engage in reasoning, but rather to simply search for factual infor-
+mation. Due to the factual nature of queries in datasets like MS
+MARCO, we created our own dataset which has a lot of descriptive
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+Another justification for avoiding the usage of these datasets is
+because text embedding models have been fine-tuned using them.
+The sentence transformer utilized in this research is trained on many
+datasets including MS MARCO, NQ, HotpotQA, and others [Chen
+et al. 2024]. Additionally, another model gte-large-en-v1.5 has been
+trained on the MS MARCO, NQ, and FEVER among other datasets.
+Both models are on the top of the MTEB leaderboard among models
+that have fewer than 500 million parameters [Muennighoff et al.
+2023]. Therefore, evaluating the RAG on these datasets would result
+in good results as the embedding models have already learned the
+vector representations of these datasets.
+
+2.3 Evaluation
+To assess the quality of the generated response, we used open-source
+models viz. Llama 3 and Mixtral-8X7b to generate responses for
+the same set of questions. We then assessed the semantic similarity
+between GPT-4 Turbo’s ground truth responses and the answers
+generated by open-source models. The semantic similarity score
+has been used to evaluate the quality of the responses, as this metric
+has demonstrated its efficacy in measuring the quality of response
+from LLMs.[B and Purwar 2024; Risch et al. 2021]
+
+3 Results and Discussion
+We use two open source large language models(LLMs): Llama3-
+70B-Instuct[AI@Meta 2024] and Mixtral-8x7B-Instruct-v0.1[Jiang
+et al. 2024] for evaluating the impact of chunk size on quality of
+response. We calculated response quality for three types of data
+corpora: Wikipedia articles, legal documents and research papers
+to comprehensively cover all different document types and their
+associated structure.
+
+Introducing a new hyper-parameter for RAG: Context Window Utilization •
+
+3
+
+)
+l
+a
+r
+t
+x
+i
+m
+
+(
+
+s
+t
+n
+e
+m
+u
+c
+o
+D
+
+l
+a
+g
+e
+L
+)
+b
+(
+
+)
+3
+a
+m
+a
+l
+l
+(
+
+s
+t
+n
+e
+m
+u
+c
+o
+D
+
+l
+a
+g
+e
+L
+)
+a
+(
+
+)
+l
+a
+r
+t
+x
+i
+m
+
+(
+
+s
+r
+e
+p
+a
+P
+h
+c
+r
+a
+e
+s
+e
+R
+)
+d
+(
+
+)
+3
+a
+m
+a
+l
+l
+(
+
+s
+r
+e
+p
+a
+P
+h
+c
+r
+a
+e
+s
+e
+R
+)
+c
+(
+
+)
+l
+a
+r
+t
+x
+i
+m
+
+(
+
+s
+e
+g
+a
+P
+a
+i
+d
+e
+p
+i
+k
+i
+W
+
+)
+f
+(
+
+)
+3
+a
+m
+a
+l
+l
+(
+
+s
+e
+g
+a
+P
+a
+i
+d
+e
+p
+i
+k
+i
+W
+
+)
+e
+(
+
+s
+n
+o
+s
+i
+r
+a
+p
+m
+o
+C
+y
+t
+i
+r
+a
+l
+i
+
+m
+i
+S
+c
+i
+t
+n
+a
+m
+e
+S
+
+.
+
+1
+
+.
+
+g
+i
+F
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+4
+
+• Kush Juvekar and Anupam Purwar
+
+The table below shows the pair of chunk size and top-k where the
+similarity scores are maximized for each dataset for both models.
+
+quality of response is best. Thus, LLM context window utilization
+is an important parameter to be kept in mind while optimizing the
+performance of RAG workflow.
+
+Dataset
+
+Chunk Size Top-K Similarity Score
+
+Llama3-70B-Instruct
+
+Wikipedia Pages
+Legal Documents
+Research Papers
+
+512
+1024
+1024
+
+Wikipedia Pages
+Legal Documents
+Research Papers
+
+512
+1024
+128/5121
+
+12
+9
+5
+
+12
+7
+3/7
+
+Mixtral-8x7B-Instruct-v0.1
+
+0.9741
+0.9722
+0.9042
+
+0.9597
+0.9661
+0.9018/0.9010
+
+While a spike in similarity scores can be found at arbitrary com-
+bination of chunk size and top-k, we find that across all three docu-
+ment types chunk sizes 512 or 1024 consistently outperform other
+chunk sizes for both models (Fig. 1).
+
+With Mixtral-8x7B-Instruct-v0.1, we find inconsistency in scores.
+This may arise due to the fact that its context window is 32K tokens,
+but we have limited ourselves to 12 chunks at the maximum, thus
+utilizing only a small fraction of the large input space it has to
+offer. Other reason could be its unique architecture i.e Mixture of
+Experts which responds differently as compared to base or instruct
+models in retrieval augmented generation tasks . A recent blog by
+NVIDIA shows 8x7B doesn’t mean 56B parameters but 47B due to
+shared layers and despite load balancing algorithms there are large
+distribution imbalances in tokens assigned to each expert causing
+some experts to finish early while others are overloaded [Kranen
+and Nguyen 2024].
+
+The Llama3-70B-Instruct model has the maximum similarity
+scores when there are 7 to 9 chunks with chunk sizes of 512 and
+1024. This corresponds to a context window occupancy of 40-70%.
+Furthermore, there is no improvement in the similarity score gen-
+erated beyond 10 chunks in almost all combinations. This begs the
+question that along with an optimal chunk size, utilization of con-
+text window might also be an important factor. Similarity score is
+maximized at 40-50% of the context window for 512 chunk size and
+60-70% for 1024 chunk size.
+
+The considerably better results on the Wikipedia dataset for both
+LLMs are most likely attributable to the fact that Wikipedia pages
+are a typical element of the LLM pre-training process. While this
+maybe viewed as a limitation, there is no way to certainly ensure
+what data is used in pre-training LLMs. Researchers claim that
+publicly available resources and internet-scale data are used to train
+these LLMs [Jiang et al. 2024; MetaAI 2024]. Popular datasets like
+MS MARCO, Natural Questions, BEIR etc. could also well be part of
+their pre-training process.
+
+Furthermore, we average the scores for all questions to determine
+which value of top-k has the highest value (Fig. 2). With the ex-
+ception of academic publications, all datasets scores are maximum
+for chunk numbers between 6 and 9. The percentage of context
+window utilized for maximum scores are also displayed at the top
+of each bar in the same figure. This supports our hypothesis that
+there is an ideal context window utilization percentage where the
+
+1Both chunk sizes 128 and 512 give comparable performance here.
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+Fig. 2. Number of chunks for which semantic similarity with GPT-4 Turbo
+answers is maximum in the distinct datasets. The chunk size for each dataset
+where scores are maximized are also mentioned in brackets.
+
+Note: A value of 0.5 on the heatmaps (Fig. 1) either means chunks
+retrieved are over the limit of LLM’s context window or the API
+through which LLM is inferenced threw an unexpected error (400
+Bad Request).
+
+3.1 Context Window Utilization
+Our experiment with Llama3-70b-Instruct model demonstrates that
+Context window is an important parameter to be kept in mind while
+building the RAG pipeline. It can be defined as follows:
+
+CWU =
+
+𝑈
+𝐿
+
+where U is the number of tokens actually utilized by the model
+within the context window and L is the length of the context window
+(in tokens).
+
+Fig. 3 illustrates the context window employed by Llama3-70B-
+Instruct to maximize similarity across various chunk sizes. Despite
+utilizing high chunk sizes such as 2048, the whole context window,
+there is no notable enhancement in the similarity scores. Reducing
+the size of the chunks leads to improved outcomes. Even when the
+chunk size is increased to 1024, the performance improvement com-
+pared to a chunk size of 512 is only somewhat higher. Additionally,
+there is a large increase in the use of the context window, or an
+identical level of context window utilization. This indicates that
+using a chunk size of 1024 improves performance when there are
+more chunks. However, accessing more chunks also increases the
+retrieval and response time, resulting in higher latency. A chunk
+size of 512 can provide developers with good results while reducing
+the need for retrieving several pieces, hence lowering latency.
+
+To assess the uniformity of the results among various LLMs, we
+performed an experiment with Mistral Large, which was released in
+February 2024 and has a context window of 32K tokens [AI 2024].
+Given that chunk sizes of 512 and 1024 have shown better results,
+we evaluated chunk size of 128 in comparison to these two. In this
+instance too, it is evident that smaller context windows and suitable
+
+Introducing a new hyper-parameter for RAG: Context Window Utilization •
+
+5
+
+Fig. 3. Chunk Size vs. Context Window Utilization across document types with annotated similarity scores for Llama3-70B-Instruct
+
+Fig. 4. Chunk Size vs. Context Window Utilization across document types with annotated similarity scores for Mistral Large 2
+
+chunk sizes result in higher similarity scores. Furthermore, even
+when using Mistral Large, increasing the use of the context window
+does not enhance the similarity scores (Fig. 4). This suggests that
+there exists an ideal proportion of LLM’s context window which
+shall be utilized while performing RAG.
+
+There have been other experiments which point the shortcomings
+
+of Long Context LLMs:
+
+• LongICLBench: The authors curate a dataset with increasing
+levels of difficulty and find that there is a dramatic degrada-
+tion in performance of LLMs as task gets difficult and context
+length increase. Most state of the art LLMs are capped be-
+tween easy to medium difficulty level.[Li et al. 2024]
+
+• Same Task, More Tokens: The authors isolate the effect
+of input length using multiple versions of the same sample,
+each being extended with padding of different lengths, types
+and locations. The findings show a notable degradation in
+LLMs’ reasoning performance at much shorter input lengths
+than their technical maximum.[Levy et al. 2024]
+
+• BABILong: It is a novel generative benchmark for evaluating
+the performance of NLP models in processing arbitrarily long
+documents with distributed facts. Their evaluations show
+that popular LLMs effectively utilize only 10-20% of the con-
+text and their performance declines sharply with increased
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+6
+
+• Kush Juvekar and Anupam Purwar
+
+reasoning complexity. Among alternatives to in-context rea-
+soning, Retrieval-Augmented Generation methods achieve
+a modest 60% accuracy on single-fact question answering,
+independent of context length. [Kuratov et al. 2024]
+
+• Long Context RAG Performance of LLMs: This recent
+blog post by Databricks Mosaic Research is extremely similar
+to our experimental setup. They find out saturation point
+various models (in terms of tokens) like 16k for gpt-4-turbo
+and claude-3-sonnet, 4k for mixtral-instruct and 8k for dbrx-
+instruct. The low saturation point of 4k token for mixtral-
+instruct could also be the reason behind inconsistency in our
+experiments as explained in section 3. They also classify what
+kind of errors LLMs make in RAG as context length increases.
+But this study doesn’t experiment with multiple chunk size
+and show how granularity affects RAG with Long Context
+LLMs.[Leng et al. 2024]
+
+• RULER: It is a synthetic benchmark for evaluating long-
+context language models containing diverse task categories,
+retrieval, multi-hop tracing, aggregation and question answer-
+ing. They show that on their benchmark long context LLMs
+display an effective context length of half their claimed con-
+text length or less which also aligns with our results.[Hsieh
+et al. 2024]
+
+The aforementioned investigations highlight the limitations of
+long context language models (LLMs). Long context language mod-
+els struggle to successfully make use of their claimed context length
+across different tasks and benchmarks. This presents a fresh avenue
+for us to investigate in order to determine the underlying reason,
+whether it is related to the model’s architecture, the training process,
+or any other relevant factor. We have not yet discovered a method
+to ascertain the effective context length other than by testing it on
+various tasks and benchmarks.
+
+4 Significance and Conclusion
+Our study is an contribution towards understanding how effective
+state of the art LLMs are at utilizing their large context windows.
+As demonstrated by our findings, the right choice of chunk size
+influences the length of context required to come up with best an-
+swers in RAG. Besides, more context does not help always. This
+has important implications for LLM powered applications like Vid-
+yaRang [Harbola and Purwar 2024] and CultureVo [Agarwala et al.
+2024]. The results in Section 3 suggest a new hyper-parameter to
+be optimized for RAG which suggest focusing on giving the LLM
+n number of chunks that use a sufficient fraction of the context
+window rather than looking for top-k similar chunks. We can put
+forward our recommendations based on the experiments thus far
+as follows:
+
+• Optimization of Chunk Size: Our experiments consistently
+show that chunk sizes of 512 and 1024 tokens deliver supe-
+rior performance in terms of response quality across diverse
+datasets.
+
+• Introduction of Context Window Utilization: Context
+Window Utilization is crucial as it ensures the efficient use of
+the context window.
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+• Implications for Future Research: Researchers have demon-
+strated that long context language models perform poorly
+when compared to RAG on different tasks[Laban et al. 2024;
+Phan et al. 2024], it is yet to be determined what proportion
+of context window is genuinely useful and need to be ex-
+plored further. Our work lays a foundation for developing
+more efficient RAG systems by focusing simultaneously on
+both chunk size and context window utilization.
+
+5 Limitations and Future Work
+We have only explored with three language models owing to time
+and resource restrictions. In the future, we want to examine using
+million token context window models to see how many tokens
+the LLM can effectively handle. The optimal utilization percentage
+for Llama3-70B-Instruct is 60-70%. However, it is unclear if this
+proportion is consistent across all LLMs or varies depending on
+design. We would be investigating optimal value of context window
+utilization and its interplay with chunk size/top-k values for other
+open source LLMs in near future. We also wish to investigate if the
+under-utilization on the entire context length is caused my model
+architecture, training method or any such factors.
+
+6 Acknowledgement
+The authors thank I-Venture at Indian School of Business for infras-
+tructural support toward this work. Authors are extremely grateful
+to Prof. Bhagwan Chowdhry, Faculty Director (I-Venture at ISB) for
+his continued encouragement, ideas and support to carry out this
+research.
+
+References
+Ajita Agarwala, Anupam Purwar, and Viswanadhasai Rao. 2024.
+
+CultureVo:
+The Serious Game of Utilizing Gen AI for Enhancing Cultural Intelligence.
+arXiv:2407.20685 [cs.ET] https://arxiv.org/abs/2407.20685
+
+Mistral AI. 2024. Au Large — mistral.ai. https://mistral.ai/news/mistral-large/. [Ac-
+
+cessed 17-08-2024].
+
+AI@Meta. 2024. Llama 3 Model Card. https://github.com/meta-llama/llama3/blob/
+
+main/MODEL_CARD.md
+
+Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and Hannaneh Hajishirzi. 2023.
+Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection.
+arXiv:2310.11511 [cs.CL] https://arxiv.org/abs/2310.11511
+
+Gautam B and Anupam Purwar. 2024. Evaluating the Efficacy of Open-Source LLMs
+in Enterprise-Specific RAG Systems: A Comparative Study of Performance and
+Scalability. arXiv:2406.11424 [cs.IR] https://arxiv.org/abs/2406.11424
+
+Payal Bajaj, Daniel Campos, Nick Craswell, Li Deng, Jianfeng Gao, Xiaodong Liu, Ran-
+gan Majumder, Andrew McNamara, Bhaskar Mitra, Tri Nguyen, Mir Rosenberg, Xia
+Song, Alina Stoica, Saurabh Tiwary, and Tong Wang. 2018. MS MARCO: A Human
+Generated MAchine Reading COmprehension Dataset. arXiv:1611.09268 [cs.CL]
+https://arxiv.org/abs/1611.09268
+
+Scott Barnett, Stefanus Kurniawan, Srikanth Thudumu, Zach Brannelly, and Mohamed
+Abdelrazek. 2024. Seven Failure Points When Engineering a Retrieval Augmented
+Generation System. arXiv:2401.05856 [cs.SE] https://arxiv.org/abs/2401.05856
+Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, and Zheng Liu. 2024.
+BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text
+Embeddings Through Self-Knowledge Distillation. arXiv:2402.03216 [cs.CL] https:
+//arxiv.org/abs/2402.03216
+
+Tong Chen, Hongwei Wang, Sihao Chen, Wenhao Yu, Kaixin Ma, Xinran Zhao, Hong-
+ming Zhang, and Dong Yu. 2023. Dense X Retrieval: What Retrieval Granularity
+Should We Use? arXiv:2312.06648 [cs.CL] https://arxiv.org/abs/2312.06648
+
+Zhe Dong, Jianmo Ni, Daniel M. Bikel, Enrique Alfonseca, Yuan Wang, Chen Qu, and
+Imed Zitouni. 2022. Exploring Dual Encoder Architectures for Question Answering.
+arXiv:2204.07120 [cs.CL] https://arxiv.org/abs/2204.07120
+
+André V. Duarte, João Marques, Miguel Graça, Miguel Freire, Lei Li, and Arlindo L.
+Oliveira. 2024. LumberChunker: Long-Form Narrative Document Segmentation.
+arXiv:2406.17526 [cs.CL] https://arxiv.org/abs/2406.17526
+
+Sai Ganesh, Anupam Purwar, and Gautam B. 2024. Context-augmented Retrieval: A
+Novel Framework for Fast Information Retrieval based Response Generation using
+Large Language Model. arXiv:2406.16383 [cs.IR] https://arxiv.org/abs/2406.16383
+Chitranshu Harbola and Anupam Purwar. 2024. VidyaRANG: Conversational Learning
+arXiv:2407.16209 [cs.CR]
+
+Based Platform powered by Large Language Model.
+https://arxiv.org/abs/2407.16209
+
+Cheng-Ping Hsieh, Simeng Sun, Samuel Kriman, Shantanu Acharya, Dima Rekesh,
+Fei Jia, Yang Zhang, and Boris Ginsburg. 2024. RULER: What’s the Real Context
+Size of Your Long-Context Language Models? arXiv:2404.06654 [cs.CL] https:
+//arxiv.org/abs/2404.06654
+
+Albert Q. Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur Mensch, Blanche Savary,
+Chris Bamford, Devendra Singh Chaplot, Diego de las Casas, Emma Bou Hanna,
+Florian Bressand, Gianna Lengyel, Guillaume Bour, Guillaume Lample, Lélio Renard
+Lavaud, Lucile Saulnier, Marie-Anne Lachaux, Pierre Stock, Sandeep Subramanian,
+Sophia Yang, Szymon Antoniak, Teven Le Scao, Théophile Gervet, Thibaut Lavril,
+Thomas Wang, Timothée Lacroix, and William El Sayed. 2024. Mixtral of Experts.
+arXiv:2401.04088 [cs.LG] https://arxiv.org/abs/2401.04088
+
+Steven Truitt Jonathan Larson. 2024. GitHub - microsoft/graphrag: A modular graph-
+based Retrieval-Augmented Generation (RAG) system — github.com. https://github.
+com/microsoft/graphrag. [Accessed 27-07-2024].
+
+Kush Juvekar and Anupam Purwar. 2024. COS-Mix: Cosine Similarity and Distance
+Fusion for Improved Information Retrieval. arXiv:2406.00638 [cs.IR] https://arxiv.
+org/abs/2406.00638
+
+Kyle Kranen and Vinh Nguyen. 2024. Applying Mixture of Experts in LLM Architectures
+| NVIDIA Technical Blog — developer.nvidia.com. https://developer.nvidia.com/
+blog/applying-mixture-of-experts-in-llm-architectures/ [Accessed 15-08-2024].
+Yuri Kuratov, Aydar Bulatov, Petr Anokhin, Ivan Rodkin, Dmitry Sorokin, Artyom
+Sorokin, and Mikhail Burtsev. 2024. BABILong: Testing the Limits of LLMs with
+Long Context Reasoning-in-a-Haystack. arXiv:2406.10149 [cs.CL] https://arxiv.
+org/abs/2406.10149
+
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Redfield, Michael Collins, Ankur Parikh,
+Chris Alberti, Danielle Epstein, Illia Polosukhin, Jacob Devlin, Kenton Lee, Kristina
+Toutanova, Llion Jones, Matthew Kelcey, Ming-Wei Chang, Andrew M. Dai, Jakob
+Uszkoreit, Quoc Le, and Slav Petrov. 2019. Natural Questions: A Benchmark for
+Question Answering Research. Transactions of the Association for Computational
+Linguistics 7 (2019), 452–466. https://doi.org/10.1162/tacl_a_00276
+
+Philippe Laban, Alexander R. Fabbri, Caiming Xiong, and Chien-Sheng Wu. 2024.
+Summary of a Haystack: A Challenge to Long-Context LLMs and RAG Systems.
+arXiv:2407.01370 [cs.CL] https://arxiv.org/abs/2407.01370
+
+Quinn Leng, Jacob Portes, Sam Havens, Matei Zaharia, and Michael Carbin. 2024. Long
+Context RAG Performance of LLMs — databricks.com. https://www.databricks.com/
+blog/long-context-rag-performance-llms. [Accessed 15-08-2024].
+
+Mosh Levy, Alon Jacoby, and Yoav Goldberg. 2024. Same Task, More Tokens: the
+Impact of Input Length on the Reasoning Performance of Large Language Models.
+arXiv:2402.14848 [cs.CL] https://arxiv.org/abs/2402.14848
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Na-
+man Goyal, Heinrich Küttler, Mike Lewis, Wen tau Yih, Tim Rocktäschel, Sebastian
+Riedel, and Douwe Kiela. 2021. Retrieval-Augmented Generation for Knowledge-
+Intensive NLP Tasks. arXiv:2005.11401 [cs.CL] https://arxiv.org/abs/2005.11401
+Tianle Li, Ge Zhang, Quy Duc Do, Xiang Yue, and Wenhu Chen. 2024. Long-context
+LLMs Struggle with Long In-context Learning. arXiv:2404.02060 [cs.CL] https:
+//arxiv.org/abs/2404.02060
+
+MetaAI. 2024. Introducing Meta Llama 3: The most capable openly available LLM to
+date — ai.meta.com. https://ai.meta.com/blog/meta-llama-3/. [Accessed 15-08-2024].
+Niklas Muennighoff, Nouamane Tazi, Loïc Magne, and Nils Reimers. 2023. MTEB:
+Massive Text Embedding Benchmark. arXiv:2210.07316 [cs.CL] https://arxiv.org/
+abs/2210.07316
+
+OpenAI. 2024. Models - OpenAI API. https://platform.openai.com/docs/models/gpt-4-
+
+turbo-and-gpt-4. (Accessed on 07/28/2024).
+
+Hung Phan, Anurag Acharya, Sarthak Chaturvedi, Shivam Sharma, Mike Parker, Dan
+Nally, Ali Jannesari, Karl Pazdernik, Mahantesh Halappanavar, Sai Munikoti, and
+Sameera Horawalavithana. 2024. RAG vs. Long Context: Examining Frontier
+Large Language Models for Environmental Review Document Comprehension.
+arXiv:2407.07321 [cs.CL] https://arxiv.org/abs/2407.07321
+
+Anupam Purwar and Rahul Sundar. 2023.
+
+Keyword Augmented Retrieval:
+Novel framework for Information Retrieval integrated with speech interface.
+arXiv:2310.04205 [cs.IR] https://arxiv.org/abs/2310.04205
+
+Julian Risch, Timo Möller, Julian Gutsch, and Malte Pietsch. 2021. Semantic Answer
+Similarity for Evaluating Question Answering Models. arXiv:2108.06130 [cs.CL]
+https://arxiv.org/abs/2108.06130
+
+Konrad Rucinski. 2024. BitPeak — bitpeak.pl. https://bitpeak.pl/chunking-methods-in-
+
+rag-methods-comparison/. [Accessed 27-07-2024].
+
+Nandan Thakur, Nils Reimers, Andreas Rücklé, Abhishek Srivastava, and Iryna
+Gurevych. 2021. BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Infor-
+mation Retrieval Models. arXiv:2104.08663 [cs.IR] https://arxiv.org/abs/2104.08663
+
+Introducing a new hyper-parameter for RAG: Context Window Utilization •
+
+7
+
+thallyscostalat.
+
+2024.
+Augmented Generation (RAG)
+https://medium.com/@thallyscostalat/chunking-strategies-optimization-for-
+retrieval-augmented-generation-rag-in-the-context-of-e47cc949931d. [Accessed
+27-07-2024].
+
+Chunking Strategies Optimization for Retrieval
+in the Context of. . . — thallyscostalat.
+
+Chancellor R. Woolsey, Prakash Bisht, Joshua Rothman, and Gondy Leroy. 2024. Uti-
+lizing Large Language Models to Generate Synthetic Data to Increase the Per-
+formance of BERT-Based Neural Networks.
+arXiv:2405.06695 [cs.CL] https:
+//arxiv.org/abs/2405.06695
+
+Shitao Xiao, Zheng Liu, Peitian Zhang, and Niklas Muennighoff. 2023. C-Pack: Packaged
+Resources To Advance General Chinese Embedding. arXiv:2309.07597 [cs.CL]
+Shi-Qi Yan, Jia-Chen Gu, Yun Zhu, and Zhen-Hua Ling. 2024. Corrective Retrieval
+Augmented Generation. arXiv:2401.15884 [cs.CL] https://arxiv.org/abs/2401.15884
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao
+Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang, Joseph E. Gonzalez,
+and Ion Stoica. 2023. Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena.
+arXiv:2306.05685 [cs.CL] https://arxiv.org/abs/2306.05685
+
+Appendix
+A Custom Dataset
+On the following page we have presented few examples of question
+answer pairs from our dataset created using academic papers, legal
+documents, and Wikipedia articles. This question answer dataset is
+created by instructing GPT-4 Turbo.
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+8
+
+• Kush Juvekar and Anupam Purwar
+
+Table 2. Following table presents few examples of question answer pairs selected from our dataset
+
+Dataset
+
+Question
+
+Answer
+
+Ours - Wikipedia
+
+How does the archaeological evidence suggest that
+early farming communities in Afghanistan compare
+to other regions in terms of historical significance?
+
+The archaeological evidence suggests that early
+farming communities in Afghanistan are among
+the earliest in the world, dating back at least 7,000
+years. Excavations of prehistoric sites indicate that
+humans were living in what is now Afghanistan at
+least 50,000 years ago. Artifacts from various histor-
+ical periods, including the Paleolithic, Mesolithic,
+Neolithic, Bronze, and Iron Ages, have been found
+in Afghanistan.
+In terms of historical significance, Afghanistan’s
+early farming communities are comparable to re-
+gions like Egypt. The region is considered to be
+an important site of early historical activities, with
+archaeological sites that hold significant historical
+value. The urban civilization in Afghanistan is be-
+lieved to have begun as early as 3000 BCE, and the
+country has been part of major ancient civilizations
+like the Indus Valley Civilization.
+The archaeological evidence in Afghanistan, includ-
+ing the findings of artifacts and early settlements,
+indicates a long history of human habitation and
+cultural development. This historical significance
+places Afghanistan among the regions with early
+and important contributions to human civilization
+and cultural heritage.
+
+Continued on next page
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+Dataset
+
+Question
+
+Answer
+
+Continued from previous page
+
+Introducing a new hyper-parameter for RAG: Context Window Utilization •
+
+9
+
+How did the Kushan Empire contribute to the
+spread of Buddhism in Afghanistan during the first
+century CE?
+
+"The Kushan Empire, centered in Afghanistan,
+played a significant role in the spread and patron-
+age of Buddhism in the region during the first cen-
+tury CE. Here are some ways in which the Kushan
+Empire contributed to the spread of Buddhism in
+Afghanistan:
+1. **Patronage of Buddhist Culture**: The Kushan
+rulers were great patrons of Buddhist culture, sup-
+porting the development of Buddhist monasteries,
+stupas, and art. They provided financial and politi-
+cal support to Buddhist institutions, which helped
+Buddhism flourish in the region.
+2. **Artistic and Architectural Contributions**: The
+Kushans were known for their artistic and archi-
+tectural achievements, which included the creation
+of Buddhist sculptures, Gandharan art, and Bud-
+dhist monastic complexes. These artistic expres-
+sions helped in the visual representation and prop-
+agation of Buddhist teachings.
+3. **Religious Tolerance**: The Kushan Empire was
+characterized by religious tolerance, allowing Bud-
+dhism to coexist and thrive alongside other belief
+systems in the region. This environment of religious
+pluralism facilitated the spread of Buddhism among
+diverse populations.
+4. **Trade and Cultural Exchange**: The Kushan
+Empire was strategically located along the Silk Road,
+a major trade route connecting East and West. This
+facilitated cultural exchange and the transmission
+of Buddhist teachings to different regions, including
+Afghanistan.
+5. **Syncretism and Adaptation**: The Kushans pro-
+moted syncretism between Buddhist beliefs and lo-
+cal traditions, making Buddhism more accessible
+and adaptable to the diverse cultural landscape of
+Afghanistan. This blending of religious practices
+helped Buddhism resonate with a wider audience.
+Overall, the Kushan Empire’s patronage of Bud-
+dhist culture, artistic contributions, religious tol-
+erance, trade networks, and syncretic practices all
+contributed to the spread and flourishing of Bud-
+dhism in Afghanistan during the first century CE."
+
+Continued on next page
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+10
+
+• Kush Juvekar and Anupam Purwar
+
+Dataset
+
+Question
+
+Answer
+
+Continued from previous page
+
+Ours - Legal Document
+
+the
+
+does
+
+Why
+judge find Mr.
+appellate
+Vaidyanathan’s submission regarding the compar-
+ison of wood vinegars in skin care preparations
+insufficient in the case of Diamond Star Global Sdn
+Bhd vs Joint Controller?
+
+"The appellate judge finds Mr. Vaidyanathan’s sub-
+mission regarding the comparison of wood vinegars
+in skin care preparations insufficient in the case of
+Diamond Star Global Sdn Bhd vs Joint Controller
+for the following reasons:
+**Lack of Comparative Analysis**: Mr.
+1.
+the appellant’s ap-
+Vaidyanathan argued that
+plication was deficient because it did not compare
+the wood vinegar obtained from the Rhizophora
+apiculata tree with other wood vinegars used in
+skin care preparations to demonstrate superiority.
+However, the judge notes that the appellant’s
+invention focused on specific properties of the
+wood vinegar from the Rhizophora apiculata
+tree, such as being free of guaiacol and having
+antimicrobial properties, which were not addressed
+in existing wood vinegars.
+2. **Unique Properties**: The judge highlights that
+the appellant’s application emphasized the unique
+properties of the wood vinegar from the Rhizophora
+apiculata tree, such as its ability to selectively tar-
+get harmful bacteria while retaining beneficial lactic
+acid bacteria. These specific properties were not nec-
+essarily comparable to other wood vinegars used
+in skin care preparations, making a direct compari-
+son inadequate to assess the inventive step of the
+appellant’s invention.
+3. **Inventive Step**: The judge emphasizes that the
+appellant’s application demonstrated inventive step
+by identifying the unique properties of the wood
+vinegar from a specific tree, determining the opti-
+mal concentration for skin care preparations, and
+showcasing the antimicrobial benefits. This inven-
+tive step was based on the specific characteristics
+of the wood vinegar from the Rhizophora apiculata
+tree, rather than a generic comparison with other
+wood vinegars in the market.
+Overall,
+that Mr.
+Vaidyanathan’s argument regarding the com-
+parison of wood vinegars in skin care preparations
+was insufficient to undermine the inventive step
+and uniqueness of the appellant’s invention, which
+focused on distinct properties and applications of
+the wood vinegar from the Rhizophora apiculata
+tree."
+
+concludes
+
+judge
+
+the
+
+Continued on next page
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+Dataset
+
+Question
+
+Answer
+
+Continued from previous page
+
+Introducing a new hyper-parameter for RAG: Context Window Utilization •
+
+11
+
+Why does the court find it incorrect to allege that
+the plaintiff obtained Suit Patents by committing
+fraud on the Indian Patent Office?
+
+"The court finds it incorrect to allege that the plain-
+tiff obtained Suit Patents by committing fraud on
+the Indian Patent Office for several reasons, as indi-
+cated in the context provided:
+1. **Compliance with Section 8**: The plaintiff has
+asserted that it complied with Section 8 of the
+Patents Act by providing all relevant details and in-
+formation related to foreign prosecution history or
+foreign patents/filings concerning the suit patents.
+The plaintiff maintains that it did not withhold any
+material information during the patent application
+process or examination in India.
+2. **Absence of Evidence**: The court notes that
+the defendant’s allegation of fraud is based on the
+assertion that the plaintiff secured patents over un-
+patentable subject matter with unduly broad claims.
+However, the court finds that the defendant has
+not provided substantial evidence to support these
+claims of fraud or misconduct on the part of the
+plaintiff during the patent application process.
+3. **Challenge to Validity**: The defendant’s ob-
+jections and revocation petitions challenging the
+validity of the Suit Patents do not automatically
+imply fraud on the part of the plaintiff. The court
+emphasizes that the validity of a patent must be es-
+tablished before addressing infringement issues, but
+the mere challenge to validity does not necessarily
+indicate fraudulent conduct by the patentee.
+4. **Prior Knowledge**: The court highlights that
+the defendant had prior knowledge of the plaintiff’s
+patents for several years before raising objections to
+their validity. The defendant’s delay in questioning
+the patents and only challenging them when the
+plaintiff asserted their legal rights against third par-
+ties weakens the argument of fraud or misconduct
+by the plaintiff.
+5. **Lack of Serious Challenge**: The court observes
+that the defendant’s objections do not present a seri-
+ous challenge to the validity of the Suit Patents. The
+defendant’s conduct and actions, including delays in
+raising objections and lack of substantial evidence
+supporting fraud allegations, do not convincingly
+demonstrate fraudulent behavior on the part of the
+plaintiff.
+In summary, the court finds it incorrect to allege that
+the plaintiff obtained Suit Patents by committing
+fraud on the Indian Patent Office due to the lack of
+substantial evidence, the plaintiff’s compliance with
+legal requirements, the defendant’s prior knowledge
+of the patents, and the absence of a serious challenge
+to the patents’ validity."
+
+Continued on next page
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+12
+
+• Kush Juvekar and Anupam Purwar
+
+Dataset
+
+Question
+
+Answer
+
+Continued from previous page
+
+Ours - Research Papers
+
+How do PINNs allow for query at any tempo-
+ral/spatial location within a given domain once
+trained?
+
+"Physics-Informed Neural Networks (PINNs) allow
+for queries at any temporal/spatial location within
+a given domain once trained through the following
+mechanisms:
+1. **Implicit Function Representation**: - PINNs are
+trained to learn the underlying physics of a system
+and represent the solution as an implicit function.
+This implicit function can be evaluated at any point
+within the domain, allowing for queries at arbitrary
+temporal and spatial locations.
+2. **Generalization**: - PINNs generalize the learned
+physics across the entire domain. Once trained on
+a dataset, the network can provide accurate pre-
+dictions at new, unseen locations within the do-
+main without the need for additional training data
+at those specific points.
+3. **Interpolation**: - PINNs use interpolation tech-
+niques to estimate the solution at points where data
+is not available. By learning the underlying physics
+and relationships in the data, PINNs can interpolate
+between known data points to provide predictions
+at arbitrary locations.
+4. **Continuous Function Approximation**: - PINNs
+approximate the solution as a continuous function,
+allowing for smooth predictions across the domain.
+This continuous representation enables querying at
+any point, ensuring consistent and accurate results
+throughout the spatial and temporal domain.
+5. **Efficient Inference**: - Once trained, PINNs of-
+fer efficient inference capabilities, making it com-
+putationally feasible to query the model at multiple
+temporal and spatial locations. This efficiency al-
+lows for quick and accurate predictions at any point
+of interest within the domain.
+By leveraging these characteristics, PINNs enable
+flexible"
+
+Continued on next page
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.
+
+Dataset
+
+Question
+
+Answer
+
+Continued from previous page
+
+Introducing a new hyper-parameter for RAG: Context Window Utilization •
+
+13
+
+What is the significance of the two-network archi-
+tecture proposed for solving problems with moving
+interfaces, as outlined in the text?
+
+"The two-network architecture proposed for solving
+problems with moving interfaces, as outlined in
+the text, holds significant importance for several
+reasons:
+1. **Complex Problem Solving**: - The two-network
+architecture allows for solving complex problems
+involving moving interfaces, such as fluid-structure
+interaction or free surface flows, by dividing the
+task into two sub-problems that can be addressed
+independently.
+2. **Interface Tracking**: - One network in the ar-
+chitecture focuses on tracking the moving interface,
+which is crucial for problems where the interface
+location changes with time. This dedicated network
+ensures accurate representation and tracking of the
+interface dynamics.
+3. **Solution Reconstruction**: - The second net-
+work is responsible for learning the solution of
+the underlying partial differential equations (PDEs)
+with appropriate constraints at the interface. This
+network reconstructs the complete solution field
+based on the interface information provided by the
+first network.
+4. **Improved Generalization**: - By separating the
+interface tracking and solution reconstruction tasks,
+the architecture can achieve improved generaliza-
+tion and accuracy in solving problems involving
+dynamic interfaces."
+
+, Vol. 1, No. 1, Article . Publication date: August 2024.

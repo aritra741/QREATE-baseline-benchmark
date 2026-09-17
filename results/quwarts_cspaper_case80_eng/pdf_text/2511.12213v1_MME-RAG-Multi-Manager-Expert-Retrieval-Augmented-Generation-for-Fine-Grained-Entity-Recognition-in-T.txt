@@ -1,0 +1,1497 @@
+5
+2
+0
+2
+
+v
+o
+N
+5
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+3
+1
+2
+2
+1
+.
+1
+1
+5
+2
+:
+v
+i
+X
+r
+a
+
+MME-RAG: Multi-Manager-Expert Retrieval-Augmented Generation for
+Fine-Grained Entity Recognition in Task-Oriented Dialogues
+
+Liang Xue1,2*, Haoyu Liu1∗, Yajun Tian1, Xinyu Zhong2
+Yang Liu1†
+1Harbin Institute of Technology, 2Byering Technology
+xueliang.xl@byering.com, liuhaoyu@stu.hit.edu.cn
+zzzzzxy@byering.com, liuyang@hit.edu.cn
+
+Abstract
+
+Fine-grained entity recognition is crucial for
+reasoning and decision-making in task-oriented
+dialogues, yet current large language models
+(LLMs) continue to face challenges in domain
+adaptation and retrieval controllability. We in-
+troduce MME-RAG, a Multi-Manager-Expert
+Retrieval-Augmented Generation framework
+that decomposes entity recognition into two
+type-level judgment by
+coordinated stages:
+lightweight managers and span-level extrac-
+tion by specialized experts. Each expert is
+supported by a KeyInfo retriever that injects
+semantically aligned, few-shot exemplars dur-
+ing inference, enabling precise and domain-
+adaptive extraction without additional training.
+Experiments on CrossNER, MIT-Movie, MIT-
+Restaurant, and our newly constructed multi-
+domain customer-service dataset demonstrate
+that MME-RAG performs better than recent
+baselines in most domains. Ablation studies
+further show that both the hierarchical decom-
+position and KeyInfo-guided retrieval are key
+drivers of robustness and cross-domain general-
+ization, establishing MME-RAG as a scalable
+and interpretable solution for adaptive dialogue
+understanding.
+
+1
+
+Introduction
+
+Task-oriented dialogue systems are essential in do-
+mains such as e-commerce, healthcare, and cus-
+tomer support[ZHANG et al., 2020], where extract-
+ing key information from user utterances directly
+impacts task success. For instance, understanding
+user preferences enables personalized product rec-
+ommendations, while accurately capturing symp-
+toms facilitates reliable medical diagnoses. In these
+contexts, Named Entity Recognition (NER) plays a
+pivotal role[Chinchor and Robinson, 1998], as even
+minor extraction errors can cascade into suboptimal
+dialogue strategies and failed task completion.
+
+*Equal Contribution
+†Corresponding Author
+
+1
+
+Despite the impressive capabilities of large lan-
+guage models (LLMs) [DeepSeek-AI et al., 2025,
+OpenAI et al., 2024, Yang et al., 2025b], apply-
+ing them to fine-grained entity recognition in com-
+plex dialogues remains challenging. Specifically:
+(i) domain-specific performance gaps, as general-
+purpose LLMs often underperform compared to
+fine-tuned models and may hallucinate entities
+[Yang et al., 2025a] ; (ii) high adaptation costs, be-
+cause domain transfer typically requires expensive
+fine-tuning and large-scale annotations; and (iii)
+limited retrieval relevance, since existing Retrieval-
+Augmented Generation (RAG) methods often re-
+turn coarse-grained or noisy examples [Lewis et al.,
+2020].
+
+To address these challenges, we propose
+MME-RAG (Multi-Manager-Expert Retrieval-
+Augmented Generation), a framework that decom-
+poses the NER task into lightweight type-level
+“judges” (managers) and expert boundary “solvers”
+(experts). Each expert leverages a KeyInfo re-
+triever, which dynamically injects entity-centric,
+few-shot examples at inference time. This design
+enhances extraction accuracy, improves retrieval
+relevance, and ensures modularity and scalability
+without requiring costly model retraining.
+
+In summary, our contributions are threefold:
+
+1. We introduce a Multi-Manager-Expert archi-
+tecture that decomposes entity extraction into
+judge-solve subtasks, improving controllabil-
+ity and scalability.
+
+2. We propose a KeyInfo-driven retrieval method
+for few-shot RAG, which enhances retrieval
+relevance and boosts extraction accuracy.
+
+3. We provide extensive empirical validation on
+public benchmarks and our newly introduced
+customer-service dataset, demonstrating that
+MME-RAG outperforms strong baselines in
+most cases.
+
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 1: MME-RAG overview. The Orchestrator first routes user input to the appropriate domain Managers (e.g.,
+automotive industry), which then activates relevant entity-level Experts (e.g., product type, requirement, buyer
+group). Each expert employs RAG to extract domain-specific entities, supported by the KeyInfo Retriever that
+enhances traditional retrieval by leveraging user- and assistant-level key information for fine-grained relevance
+ranking. The Database stores domain knowledge (entity definitions, history, and key info), enabling adaptive
+retrieval.
+
+Extensive experiments confirm that MME-
+RAG achieves state-of-the-art performance in fine-
+grained entity recognition, highlighting the ef-
+fectiveness of our retrieval-augmented, manager-
+expert decomposition strategy.
+
+2 Background and Related Work
+
+Entity recognition is a cornerstone of task-oriented
+dialogue systems, as accurately extracted entities
+guide dialogue policies and downstream decisions.
+
+Early Approaches. Traditional NER began with
+rule-based systems [Borkowski and Watson, 1967]
+and feature-driven sequence labeling using HMMs
+and CRFs [Collobert et al., 2011]. Neural archi-
+tectures, including BiLSTM-CRF [Lample et al.,
+2016] and CNN/RNN encoders [Collobert et al.,
+2011], improved performance by automatically
+learning contextual features. Pre-trained encoders
+such as BERT [Devlin et al., 2019], RoBERTa [Liu
+et al., 2019], and DeBERTa [He et al., 2021] further
+advanced benchmark performance, yet remain data-
+hungry, brittle under domain transfer, and costly to
+
+extend to novel entity types.
+
+LLM-Based NER. Large language models
+(LLMs) recast NER as a generation task, enabling
+few-shot or zero-shot extraction through in-context
+learning [Dong et al., 2024]. Approaches such as
+PromptNER [Shen et al., 2023], GPT-NER [Wang
+et al., 2025], and UniversalNER [Zhou et al., 2024]
+leverage prompting and type descriptions to im-
+prove generalization. Although these methods re-
+duce annotation requirements, they still struggle
+with fine-grained subtype recognition, controllabil-
+ity, and computational cost in real-time dialogues.
+
+Retrieval-Augmented NER. RAG [Lewis et al.,
+2020] grounds LLMs with external knowledge, mit-
+igating hallucination. Models such as GPT-NER
+[Wang et al., 2025] and IF-WRANER [Nandi and
+Agrawal, 2024] demonstrate that retrieval can im-
+prove cross-domain extraction, while ColBERT
+[Khattab and Zaharia, 2020] provides token-level
+interactions for fine-grained relevance. Neverthe-
+less, current RAG methods in dialogue are limited
+by shallow retrieval relevance, weak adaptability to
+
+2
+
+emerging entity types, and tight coupling between
+type classification and boundary detection.
+
+Summary.
+In multi-turn, dynamic dialogues,
+these limitations are exacerbated by costly anno-
+tations, frequent schema evolution, and domain-
+specific semantics. Addressing them requires a
+retrieval framework that is fine-grained, adaptive,
+and seamlessly integrated with generative LLMs,
+motivating our MME-RAG approach.
+
+Motivated by these principles, MME-RAG splits
+entity recognition into two stages: (1) lightweight
+Managers act as judges for type presence; (2) acti-
+vated Experts perform precise boundary detection
+and value extraction.
+
+3.2 Multi-Manager-Expert Decomposition
+
+The MME architecture implements hierarchical
+and selective processing, as illustrated in Figure 1.
+It is composed of three main layers:
+
+3 Methodology
+
+The proposed MME-RAG framework (Figure 1)
+addresses fine-grained entity recognition in task-
+oriented dialogues by combining architectural
+It
+decomposition with retrieval augmentation.
+emphasizes precision, adaptability, and scalabil-
+ity, overcoming limitations of traditional NER
+pipelines and generic LLMs. The core concept is a
+Judge-Solve Paradigm, operationalized through a
+Multi-Manager-Expert architecture enhanced by a
+KeyInfo-driven retrieval mechanism.
+
+3.1
+
+Judge-Solve Paradigm
+
+Our design draws inspiration from both computa-
+tional complexity theory and cognitive science:
+
+Proposition 1: Judgment is Easier than Gen-
+eration. Decision problems are generally less
+computationally intensive than constructive gen-
+eration problems. For instance, Boolean satisfia-
+bility (SAT) is NP-complete when formulated as
+a decision problem, yet explicitly constructing a
+satisfying assignment is NP-hard [Eggers, 2016].
+Analogously, in natural language processing, de-
+termining whether a certain entity type appears
+in an utterance is simpler than generating its ex-
+act boundaries. Cognitive studies corroborate this
+notion: humans consistently perform recognition
+tasks more accurately and efficiently than genera-
+tive reasoning tasks [Axten et al., 1973].
+
+Proposition 2: Complex Problems Benefit from
+Decomposition. Decomposing a complex task
+into smaller, manageable subproblems is a well-
+established paradigm in both algorithms and cog-
+nition. Divide-and-conquer and dynamic program-
+ming algorithms demonstrate substantial gains in
+efficiency and tractability [Shyamasundar, 1996,
+Kleinberg and Tardos, 2005]. Cognitive problem-
+space theory similarly emphasizes hierarchical goal
+decomposition for tackling complex tasks [Axten
+et al., 1973].
+
+• Orchestrator: Receives dialogue input,
+routes through a dynamic router, coordinates
+Managers and Experts, and consolidates Ex-
+pert outputs into the final response.
+
+• Managers: Specialized in binary judgment
+for each domain (e.g., legal, automotive). Ac-
+tivation of a Manager triggers its Expert, re-
+ducing unnecessary computation and improv-
+ing controllability.
+
+• Experts: Once triggered, each Expert—a fo-
+cused LLM-based generator—extracts entity
+boundaries for a narrow scope (e.g., engine
+type). Restricting generation mitigates halluci-
+nation and enforces fine-grained distinctions.
+
+This hierarchical decomposition, coupled with
+selective activation, enables scalability across do-
+mains with diverse and evolving entity schemas.
+
+3.3 KeyInfo-Driven Retrieval
+
+A central innovation of MME-RAG is the KeyInfo-
+driven retrieval mechanism, which addresses the
+limitations of coarse dialogue-level RAG. Tradi-
+tional RAG methods often retrieve examples that
+are topically similar but semantically misaligned,
+introducing noise into few-shot prompts.
+
+Data Layer. The retrieval corpus is organized at
+the entity level, linking each target entity with its
+local dialogue context. Each example includes both
+user and assistant information, facilitating context-
+aware retrieval.
+
+Retrieval Layer. Rather than relying solely
+on embedding similarity, MME-RAG ranks ex-
+amples based on two complementary signals:
+(i) user_key_info, which captures salient entity
+mentions in the user utterances; and (ii) assis-
+tant_key_info, which reflects system prompts that
+elicit or clarify user responses. By focusing re-
+trieval on key expressions,
+the mechanism in-
+creases relevance, reduces irrelevant examples, and
+
+3
+
+ensures semantic alignment between the retrieved
+instance and the target dialogue context.
+
+Figure 2: Illustration of MME-RAG’s modular expan-
+sion strategy. At the Manager level, new Managers
+can be added for emerging domains (e.g., Healthcare).
+At the Expert level, new Experts are introduced only
+when novel entity types arise (e.g., Litigation). This
+hierarchical design allows the system to scale across
+industries while minimizing disruption to existing mod-
+ules, achieving cost-efficient and rapid domain–entity
+adaptation.
+
+3.4 Rapid Domain and Entity Adaptation
+
+MME-RAG is designed for rapid adaptation to new
+domains and entity types without fine-tuning, lever-
+aging both structural and knowledge-level modu-
+larity.
+
+Structural Adaptation. New Managers can be
+added for previously unseen domains, while new
+Experts are only required for novel entity types.
+For example, adding a Healthcare Manager and
+a Litigation Expert does not disrupt existing com-
+ponents such as the Automotive Manager and its
+Experts (e.g., Engine Type, Buyer Group). This
+ensures localized expansion, preserving system sta-
+bility.
+
+Knowledge-Level Adaptation. Domain-specific
+examples, annotated with KeyInfo, are inserted into
+the retrieval corpus. During inference, these exam-
+ples are dynamically injected into activated Ex-
+perts’ prompts, enabling precise extraction without
+additional training. This approach allows MME-
+RAG to scale efficiently across industries and main-
+tain robustness under evolving entity schemas.
+
+3.5 Customer-Service Dataset Construction
+
+information,
+
+Figure 3: Overview of Customer-Service Dataset.The
+schema distinguishes between Cross-Industry Generic
+Entities—shared across all domains (e.g., user name,
+time, budget)—and Vertical-
+contact
+Domain Entities, specific to individual industries.
+Examples include automotive attributes (engine type,
+brand), home features (layout, price), real estate prop-
+erties (type, location), and legal or financial aspects
+(dispute type, litigation stage). This fine-grained entity
+hierarchy facilitates precise domain understanding and
+robust entity-level reasoning.
+
+reasoning and (ii) modular extensibility across do-
+mains and entity types. The dataset spans both
+cross-industry attributes and vertical-domain se-
+mantics, following a hierarchical taxonomy (Fig-
+ure 3). Each dialogue instance is annotated using a
+unified structure that integrates conversation con-
+text, reasoning signals, and retrieval-oriented cues,
+enabling precise supervision for both managers and
+experts (Figure 4). This design allows systematic
+study of domain adaptation and schema evolution.
+Additional statistics and annotation details are pro-
+vided in Appendix A.
+
+4 Experiments
+
+4.1 Experimental Setup
+
+Benchmarks. We evaluate MME-RAG on three
+widely used public benchmarks and our newly con-
+structed customer-service dataset.
+
+• CrossNER[Liu et al., 2023] spans five diverse
+domains (AI, Literature, Music, Politics, Sci-
+ence) and contains fine-grained named entity
+categories, making it suitable for testing cross-
+domain generalization.
+
+To assess MME-RAG under diverse domains and
+evolving schemas, we construct a multi-domain
+dialogue dataset designed around two principles:
+(i) entity-level alignment for retrieval-augmented
+
+• MIT-Movie and MIT-Restaurant[Ushio and
+Camacho-Collados, 2022] are classic slot-
+filling benchmarks for dialogue-based entity
+recognition.
+
+4
+
+• 0.4–0.5: Partially Similar — some shared
+
+concepts but divergent intent.
+
+• 0.2–0.3: Low Similarity — minimal concep-
+
+tual overlap.
+
+• 0.0–0.1: Irrelevant/Opposite — no or con-
+
+tradictory semantic relation.
+
+4.2 Entity Recognition on Benchmarks
+
+Table 1 presents the results on CrossNER and
+MIT benchmarks. We compare MME-RAG—built
+upon the Qwen3-32B backbone—against strong
+and representative baselines, including Instruc-
+tUIE, UniNER[Zhou et al., 2024], GoLLIE[Sainz
+et al., 2023], KnowCoder[Li et al., 2024],
+GLiNER[Zaratiana et al., 2023], B2NER[Yang
+et al., 2024], SaM[Ding et al., 2025], and the recent
+state-of-the-art IF-WRANER [Nandi and Agrawal,
+2024].
+
+MME-RAG consistently achieves superior per-
+formance across most datasets. Specifically, MME-
+RAG (71.94 F1) outperforms IF-WRANER (68.81
+F1) in the AI domain of CrossNER and achieves
+comparable performance in Literature (75.53 vs.
+75.52). While IF-WRANER shows stronger results
+in Music, Politics, and Science, MME-RAG signifi-
+cantly surpasses SaM on both MIT datasets (Movie:
+75.38 vs. 72.17; Restaurant: 76.69 vs. 52.99).
+
+Notably, our improvements are most significant
+in low-resource domains such as MIT-Restaurant,
+where MME-RAG achieves a substantial lead, un-
+derscoring the effectiveness of our KeyInfo-driven
+retrieval mechanism and multi-manager–expert de-
+composition for handling data sparsity and fine-
+grained entity diversity. Additionally, we com-
+pared MME-RAG with a BERT-based model im-
+plemented using PaddlePaddle [Chai et al., 2024],
+with detailed results presented in Appendix B.
+
+4.3 Entity Recognition on Customer-Service
+
+Dataset
+
+To further validate the robustness and scalabil-
+ity of MME-RAG, we evaluate it on our newly
+constructed Customer-Service Dataset, which
+spans five practical domains: General, Automotive,
+Home, Real Estate, and Legal.
+
+Figure 4: Illustration of a single annotated instance in
+the multi-domain dialogue dataset.Each record com-
+prises five components: (1) Basic Metadata (dialogue
+ID, domain), (2) Conversation History (user–assistant
+turns), (3) Entity Extraction (e.g., layout, location, bud-
+get in the Real Estate domain), (4) Chain-of-Thought
+(CoT) reasoning for entity linking and intent derivation,
+and (5) Key_Info, summarizing essential mentions from
+both participants. This unified annotation schema en-
+ables structured evaluation and supports KeyInfo-based
+augmentation for the MME-RAG framework.
+
+• Customer-Service Dataset, our newly cu-
+rated corpus, covers multiple real-world do-
+mains including general customer service, au-
+tomotive, home, real estate, and legal dia-
+logues. Detailed dataset descriptions, statis-
+tics, and annotation schema are provided in
+Appendix A.
+
+Metrics. We adopt task-specific metrics for dif-
+ferent components. For entity recognition, we
+report Precision (P), Recall (R), and F1 across
+datasets. For retrieval, we use automatic metrics
+to measure: (1) Relevance (Relevant / Irrelevant).
+(2) Coverage (five buckets: 90–100%, 60–90%,
+30–60%, 1–30%, 0). (3) Semantic Similarity (a six-
+level scale: 1.0–0.0) for fine-grained alignment.
+
+The six-level scale for semantic similarity is de-
+
+fined as follows:
+
+• 1.0: Complete Match — identical semantic
+
+meaning despite phrasing differences.
+
+• 0.8–0.9: Highly Similar — nearly equivalent
+
+We compare three configurations:
+
+intent with minor variations.
+
+• 0.6–0.7: Moderately Similar — partially
+overlapping semantics with shifted focus.
+
+• Baseline-8B: A direct generation model based
+on a Qwen-8B backbone without decomposi-
+tion or retrieval.
+
+5
+
+CrossNER
+
+MIT
+
+AI
+
+Literature Music Politics Science Movie Restaurant
+
+InstructUIE
+UniNER
+GoLLIE
+KnowCoder
+GLiNER
+B2NER
+SaM
+IF-WRANER
+
+48.40
+62.90
+59.10
+60.30
+57.20
+59.00
+60.98
+68.81
+
+48.80
+64.90
+62.70
+61.10
+64.40
+63.70
+66.93
+75.52
+
+54.40
+70.60
+67.80
+70.00
+69.60
+68.60
+73.53
+85.43
+
+49.90
+66.90
+57.20
+72.20
+72.60
+67.80
+74.47
+79.80
+
+49.40
+70.80
+55.50
+59.10
+62.60
+72.00
+62.60
+75.31
+
+63.00
+61.20
+63.00
+50.00
+57.20
+67.60
+72.17
+–
+
+20.99
+35.20
+43.40
+48.20
+42.90
+53.30
+52.99
+–
+
+MME-RAG (Ours) 71.94
+
+75.53
+
+83.54
+
+75.58
+
+73.17
+
+75.38
+
+76.69
+
+Table 1: Performance comparison on CrossNER and MIT datasets. “–” indicates results not reported in the original
+paper and unavailable due to closed-source code.
+
+• +MME: Incorporating the proposed multi-
+manager–expert decomposition on a Qwen-
+4B backbone.
+
+• MME-RAG (Ours): Further integrating
+KeyInfo-driven retrieval on top of +MME,
+also utilizing a Qwen-4B backbone.
+
+As shown in Table 2, MME-RAG (Qwen-4B)
+achieves the best overall performance across all
+five domains, consistently improving Precision,
+Recall, and F1 over the Baseline-8B and the
++MME (Qwen-4B) variant. Notably, the combi-
+nation of the multi-manager–expert decomposi-
+tion and KeyInfo-driven retrieval yields substantial
+gains. For instance, in Real Estate, MME-RAG
+achieves an F1 of 99.48, significantly outperform-
+ing Baseline-8B’s 93.83. Similarly, in the Legal do-
+main, MME-RAG’s F1 of 95.11 surpasses Baseline-
+8B’s 93.44. These results confirm that both mod-
+ules are indispensable for robust entity recogni-
+tion and cross-domain generalization in customer-
+service dialogues, even when utilizing a smaller
+backbone model (Qwen-4B) compared to the base-
+line (Qwen-8B).
+
+4.4 Retrieval Performance
+
+We further evaluate the retrieval quality of MME-
+RAG from two complementary perspectives: (1)
+comparison of different recall strategies, and (2) se-
+mantic similarity analysis under various weighting
+schemes in the manager retrieval module.
+
+Comparison of recall strategies. To assess how
+query formulation affects retrieval effectiveness,
+
+we compare three strategies: (i) Entity-level re-
+call, which uses the entire user dialogue context
+as the query; (ii) Dialogue-level recall, which in-
+corporates the latest user query, dialogue history,
+and agent replies; and (iii) KeyInfo-based recall,
+which extracts concise user-side key expressions as
+the retrieval query.
+
+As shown in Table 3, the KeyInfo-based method
+achieves the highest proportion of relevant sam-
+ples (83.3%) while minimizing irrelevant retrievals
+(16.6%). Moreover, it substantially increases the
+proportion of cases with full or near-full coverage
+(91–100%), suggesting that focusing on essential
+user information yields more semantically aligned
+retrieval results compared to holistic or dialogue-
+level strategies.
+
+Weighting strategies in the retrieval manager.
+We further examine the impact of different weight-
+ing configurations within the retrieval manager, fo-
+cusing on the automotive domain. These weight ra-
+tios (e.g., 8–1–1) represent the relative importance
+of three dialogue components—user last reply, all
+user utterances, and all agent utterances—weighted
+as 8:1:1, respectively. A large-scale evaluation
+over 10,000 instances was conducted, measuring
+the semantic similarity between user queries and
+retrieved responses.
+
+Table 4 presents the distribution of similarity
+levels across five weighting strategies. The re-
+sults indicate that the 8:1:1 configuration yields
+the highest proportion of strong semantic matches
+(≥ 0.6), reaching 50%, while the 7:1:2 setting
+achieves the best comprehensive recall rate (≥ 0.2)
+
+6
+
+General
+
+Automotive
+
+Dataset (Metrics: P, R, F1)
+Home
+
+Real Estate
+
+Legal
+
+Qwen-8B
+
+Baseline
+
+91.97 92.79 92.30 91.09 90.06 90.57 96.82 95.13 95.96 94.93 92.93 93.83 93.85 93.08 93.44
+
+Qwen-4B
+
+94.79 93.16 93.93 91.58 93.24 92.38 96.39 98.19 97.27 95.63 98.01 96.74 94.41 94.53 94.44
++MME
+(∆ P, ∆ R, ∆ F1) +2.82 +0.37 +1.63 +0.49 +3.18 +1.81 -0.43 +3.06 +1.31 +0.70 +5.08 +2.91 +0.56 +1.45 +1.00
+
+95.75 95.46 95.55 93.85 92.62 93.23 98.14 98.19 98.17 99.55 99.41 99.48 95.40 94.85 95.11
++MME-RAG
+(∆ P, ∆ R, ∆ F1) +3.78 +2.67 +3.25 +2.76 +2.56 +2.66 +1.32 +3.06 +2.21 +4.62 +6.48 +5.65 +1.55 +1.77 +1.67
+
+Table 2: Entity recognition results on the customer-service dataset across five domains. Each entry reports Precision
+(P), Recall (R), and F1 score.
+
+Relevance
+
+Coverage Distribution
+
+Relevant
+
+Irrelevant
+
+91–100% 61–90% 31–60% 1–30%
+
+0%
+
+Entity-level
+Dialogue-level
+KeyInfo-based
+
+66.6%
+62.0%
+83.3%
+
+33.3%
+37.9%
+16.6%
+
+31.4%
+32.4%
+47.2%
+
+4.6%
+2.7%
+4.6%
+
+22.2%
+8.3% 33.3%
+13.8% 12.0% 37.9%
+19.4% 12.0% 16.6%
+
+Table 3: Evaluation of relevance and coverage under different recall strategies.
+
+Weight Strategy
+
+1.0
+
+0.8–0.9
+
+0.6–0.7
+
+0.4–0.5
+
+0.2–0.3
+
+0.0–0.1
+
+6–2–2
+6–3–1
+7–2–1
+7–1–2
+8–1–1
+
+2.0% 20.0% 17.0% 12.0% 22.0% 27.0%
+2.0% 23.0% 16.0% 12.0% 19.0% 28.0%
+3.0% 26.0% 19.0% 12.0% 16.0% 24.0%
+4.0% 22.0% 22.0% 13.0% 20.0% 19.0%
+4.0% 28.0% 18.0%
+19.0% 22.0%
+
+9.0%
+
+Table 4: Distribution of semantic similarity levels across different weighting strategies.
+
+with 81%. These findings suggest that different
+weighting schemes can be tailored to optimize ei-
+ther high-precision retrieval or broader recall cov-
+erage. These findings suggest that different weight-
+ing schemes can be tailored to optimize either high-
+precision retrieval or broader recall coverage.
+
+Overall,
+
+these analyses confirm that MME-
+RAG’s retrieval module benefits substantially from
+KeyInfo-based query formulation and adaptive
+weighting strategies, both of which enhance se-
+mantic alignment and retrieval reliability across
+domains.
+
+RAG effectively bridges few-shot generalization
+and domain adaptability without task-specific fine-
+tuning. Experiments across public and in-house
+benchmarks validate its superiority in robustness,
+interpretability, and efficiency. The proposed de-
+composition paradigm demonstrates that structured
+reasoning and targeted retrieval can jointly enhance
+the adaptability of LLM-based NER systems. Fu-
+ture research will explore reinforcement-based re-
+trieval optimization and interactive feedback mech-
+anisms to further improve adaptability in dynamic
+dialogue scenarios.
+
+5 Conclusion
+
+Limitations
+
+This work presented MME-RAG, a retrieval-
+augmented framework that decomposes fine-
+grained entity recognition into cooperative sub-
+tasks across a manager–expert hierarchy. Through
+the integration of KeyInfo-driven retrieval, MME-
+
+We acknowledge the following limitations of our
+work: (1) although the KeyInfo-driven retrieval
+mechanism improves relevance and robustness, it
+inevitably introduces additional inference latency,
+especially when the retrieval corpus scales up;
+
+7
+
+(2) the effectiveness of MME-RAG depends on
+the coverage and quality of the retrieved exam-
+ples—its performance may degrade in domains
+with scarce or noisy entity samples; (3) while
+the multi-manager–expert decomposition enhances
+controllability and interpretability, it also increases
+coordination complexity between modules, which
+may affect stability under domain shifts.
+
+References
+
+Zheng ZHANG, Ryuichi TAKANOBU, Qi ZHU, Min-
+Lie HUANG, and XiaoYan ZHU. Recent advances
+and challenges in task-oriented dialog systems.
+SCIENCE CHINA Technological Sciences, 63(10):
+2011–2027, 2020. URL http://www.sciengine.
+com/publisher/ScienceChinaPress/journal/
+SCIENCECHINATechnologicalSciences/63/10/
+10.1007/s11431-020-1692-3.
+
+N. Chinchor and P. Robinson. Appendix E: MUC-7
+named entity task definition (version 3.5). In Sev-
+enth Message Understanding Conference (MUC-7):
+Proceedings of a Conference Held in Fairfax, Vir-
+ginia, April 29 - May 1, 1998, 1998. URL https:
+//aclanthology.org/M98-1028/.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus,
+Fabio Petroni, Vladimir Karpukhin, Naman
+Goyal, Heinrich Küttler, Mike Lewis, Wen-tau
+Yih, Tim Rocktäschel, Sebastian Riedel, and
+Douwe Kiela. Retrieval-augmented generation for
+knowledge-intensive nlp tasks.
+In H. Larochelle,
+M. Ranzato, R. Hadsell, M.F. Balcan, and H. Lin,
+editors, Advances in Neural Information Processing
+Systems, volume 33, pages 9459–9474. Curran As-
+sociates, Inc., 2020. URL https://proceedings.
+neurips.cc/paper_files/paper/2020/file/
+6b493230205f780e1bc26945df7481e5-Paper.
+pdf.
+
+DeepSeek-AI, Daya Guo, Dejian Yang, Haowei Zhang,
+Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu,
+Shirong Ma, Peiyi Wang, Xiao Bi, Xiaokang Zhang,
+Xingkai Yu, Yu Wu, Z. F. Wu, Zhibin Gou, Zhihong
+Shao, Zhuoshu Li, Ziyi Gao, Aixin Liu, Bing Xue,
+Bingxuan Wang, Bochao Wu, Bei Feng, Chengda Lu,
+Chenggang Zhao, Chengqi Deng, Chenyu Zhang,
+Chong Ruan, Damai Dai, Deli Chen, Dongjie Ji,
+Erhang Li, Fangyun Lin, Fucong Dai, Fuli Luo,
+Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang,
+Han Bao, Hanwei Xu, Haocheng Wang, Honghui
+Ding, Huajian Xin, Huazuo Gao, Hui Qu, Hui Li,
+Jianzhong Guo, Jiashi Li, Jiawei Wang, Jingchang
+Chen, Jingyang Yuan, Junjie Qiu, Junlong Li, J. L.
+Cai, Jiaqi Ni, Jian Liang, Jin Chen, Kai Dong, Kai
+Hu, Kaige Gao, Kang Guan, Kexin Huang, Kuai
+Yu, Lean Wang, Lecong Zhang, Liang Zhao, Litong
+Wang, Liyue Zhang, Lei Xu, Leyi Xia, Mingchuan
+Zhang, Minghua Zhang, Minghui Tang, Meng Li,
+Miaojun Wang, Mingming Li, Ning Tian, Panpan
+Huang, Peng Zhang, Qiancheng Wang, Qinyu Chen,
+
+Qiushi Du, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan,
+Runji Wang, R. J. Chen, R. L. Jin, Ruyi Chen,
+Shanghao Lu, Shangyan Zhou, Shanhuang Chen,
+Shengfeng Ye, Shiyu Wang, Shuiping Yu, Shun-
+feng Zhou, Shuting Pan, S. S. Li, Shuang Zhou,
+Shaoqing Wu, Shengfeng Ye, Tao Yun, Tian Pei,
+Tianyu Sun, T. Wang, Wangding Zeng, Wanjia Zhao,
+Wen Liu, Wenfeng Liang, Wenjun Gao, Wenqin Yu,
+Wentao Zhang, W. L. Xiao, Wei An, Xiaodong Liu,
+Xiaohan Wang, Xiaokang Chen, Xiaotao Nie, Xin
+Cheng, Xin Liu, Xin Xie, Xingchao Liu, Xinyu
+Yang, Xinyuan Li, Xuecheng Su, Xuheng Lin, X. Q.
+Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xi-
+aowen Sun, Xiaoxiang Wang, Xinnan Song, Xinyi
+Zhou, Xianzu Wang, Xinxia Shan, Y. K. Li, Y. Q.
+Wang, Y. X. Wei, Yang Zhang, Yanhong Xu, Yao
+Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi Yu,
+Yichao Zhang, Yifan Shi, Yiliang Xiong, Ying He,
+Yishi Piao, Yisong Wang, Yixuan Tan, Yiyang Ma,
+Yiyuan Liu, Yongqiang Guo, Yuan Ou, Yuduan Wang,
+Yue Gong, Yuheng Zou, Yujia He, Yunfan Xiong,
+Yuxiang Luo, Yuxiang You, Yuxuan Liu, Yuyang
+Zhou, Y. X. Zhu, Yanhong Xu, Yanping Huang, Yao-
+hui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma, Ying
+Tang, Yukun Zha, Yuting Yan, Z. Z. Ren, Zehui
+Ren, Zhangli Sha, Zhe Fu, Zhean Xu, Zhenda Xie,
+Zhengyan Zhang, Zhewen Hao, Zhicheng Ma, Zhi-
+gang Yan, Zhiyu Wu, Zihui Gu, Zijia Zhu, Zijun
+Liu, Zilin Li, Ziwei Xie, Ziyang Song, Zizheng Pan,
+Zhen Huang, Zhipeng Xu, Zhongyu Zhang, and Zhen
+Zhang. Deepseek-r1: Incentivizing reasoning capa-
+bility in llms via reinforcement learning, 2025. URL
+https://arxiv.org/abs/2501.12948.
+
+Yuming Yang, Wantong Zhao, Caishuang Huang, Junjie
+Ye, Xiao Wang, Huiyuan Zheng, Yang Nan, Yuran
+Wang, Xueying Xu, Kaixin Huang, Yunke Zhang,
+Tao Gui, Qi Zhang, and Xuanjing Huang. Beyond
+boundaries: Learning a universal entity taxonomy
+across datasets and languages for open named entity
+recognition. In Owen Rambow, Leo Wanner, Mari-
+anna Apidianaki, Hend Al-Khalifa, Barbara Di Euge-
+nio, and Steven Schockaert, editors, Proceedings of
+the 31st International Conference on Computational
+Linguistics, pages 10902–10923, Abu Dhabi, UAE,
+January 2025a. Association for Computational Lin-
+guistics. URL https://aclanthology.org/2025.
+coling-main.725/.
+
+Ronan Collobert, Jason Weston, Léon Bottou, Michael
+Karlen, Koray Kavukcuoglu, and Pavel Kuksa. Nat-
+ural language processing (almost) from scratch. J.
+Mach. Learn. Res., 12(null):2493–2537, November
+2011. ISSN 1532-4435.
+
+Casimir Borkowski and Thomas J. Watson. An experi-
+mental system for automatic recognition of personal
+titles and personal names in newspaper texts. In COL-
+ING 1967 Volume 1: Conference Internationale Sur
+Le Traitement Automatique Des Langues, 1967. URL
+https://aclanthology.org/C67-1023/.
+
+Guillaume Lample, Miguel Ballesteros, Sandeep Sub-
+ramanian, Kazuya Kawakami, and Chris Dyer. Neu-
+In
+ral architectures for named entity recognition.
+
+8
+
+Kevin Knight, Ani Nenkova, and Owen Rambow,
+editors, Proceedings of the 2016 Conference of
+the North American Chapter of the Association for
+Computational Linguistics: Human Language Tech-
+nologies, pages 260–270, San Diego, California,
+June 2016. Association for Computational Linguis-
+tics. doi: 10.18653/v1/N16-1030. URL https:
+//aclanthology.org/N16-1030/.
+
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova. BERT: Pre-training of deep
+bidirectional transformers for language understand-
+ing.
+In Jill Burstein, Christy Doran, and Thamar
+Solorio, editors, Proceedings of the 2019 Confer-
+ence of the North American Chapter of the Associ-
+ation for Computational Linguistics: Human Lan-
+guage Technologies, Volume 1 (Long and Short Pa-
+pers), pages 4171–4186, Minneapolis, Minnesota,
+June 2019. Association for Computational Linguis-
+tics. doi: 10.18653/v1/N19-1423. URL https:
+//aclanthology.org/N19-1423/.
+
+Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Man-
+dar Joshi, Danqi Chen, Omer Levy, Mike Lewis,
+Luke Zettlemoyer, and Veselin Stoyanov. Roberta: A
+robustly optimized bert pretraining approach, 2019.
+URL https://arxiv.org/abs/1907.11692.
+
+Pengcheng He, Xiaodong Liu, Jianfeng Gao, and
+Weizhu Chen. Deberta: Decoding-enhanced bert
+with disentangled attention, 2021. URL https:
+//arxiv.org/abs/2006.03654.
+
+Yongliang Shen, Zeqi Tan, Shuhui Wu, Wenqi Zhang,
+Rongsheng Zhang, Yadong Xi, Weiming Lu, and
+Yueting Zhuang. PromptNER: Prompt locating and
+typing for named entity recognition. In Anna Rogers,
+Jordan Boyd-Graber, and Naoaki Okazaki, editors,
+Proceedings of the 61st Annual Meeting of the As-
+sociation for Computational Linguistics (Volume 1:
+Long Papers), pages 12492–12507, Toronto, Canada,
+July 2023. Association for Computational Linguistics.
+doi: 10.18653/v1/2023.acl-long.698. URL https:
+//aclanthology.org/2023.acl-long.698/.
+
+Shuhe Wang, Xiaofei Sun, Xiaoya Li, Rongbin Ouyang,
+Fei Wu, Tianwei Zhang, Jiwei Li, Guoyin Wang, and
+Chen Guo. GPT-NER: Named entity recognition
+via large language models. In Luis Chiruzzo, Alan
+Ritter, and Lu Wang, editors, Findings of the Associ-
+ation for Computational Linguistics: NAACL 2025,
+pages 4257–4275, Albuquerque, New Mexico, April
+2025. Association for Computational Linguistics.
+ISBN 979-8-89176-195-7. doi: 10.18653/v1/2025.
+findings-naacl.239. URL https://aclanthology.
+org/2025.findings-naacl.239/.
+
+Wenxuan Zhou, Sheng Zhang, Yu Gu, Muhao Chen, and
+Hoifung Poon. Universalner: Targeted distillation
+from large language models for open named entity
+recognition, 2024. URL https://arxiv.org/abs/
+2308.03279.
+
+Qingxiu Dong, Lei Li, Damai Dai, Ce Zheng, Jingyuan
+Ma, Rui Li, Heming Xia, Jingjing Xu, Zhiyong Wu,
+
+Tianyu Liu, Baobao Chang, Xu Sun, Lei Li, and
+Zhifang Sui. A survey on in-context learning, 2024.
+URL https://arxiv.org/abs/2301.00234.
+
+Subhadip Nandi and Neeraj Agrawal. Improving few-
+shot cross-domain named entity recognition by in-
+struction tuning a word-embedding based retrieval
+augmented large language model. In Conference on
+Empirical Methods in Natural Language Processing,
+2024. URL https://api.semanticscholar.org/
+CorpusID:273798397.
+
+O. Khattab and Matei A. Zaharia. Colbert: Effi-
+cient and effective passage search via contextual-
+ized late interaction over bert. Proceedings of the
+43rd International ACM SIGIR Conference on Re-
+search and Development in Information Retrieval,
+2020. URL https://api.semanticscholar.org/
+CorpusID:216553223.
+
+Bernd Eggers. Computers and intractability a guide
+to the theory of np completeness. 2016. URL
+https://api.semanticscholar.org/CorpusID:
+124074750.
+
+Nick Axten, Allen Newell, and Herbert A. Simon. Hu-
+man problem solving. Contemporary Sociology, 2:
+169, 1973. URL https://api.semanticscholar.
+org/CorpusID:62537074.
+
+Jon Kleinberg and Éva Tardos. Algorithm Design.
+
+Addison-Wesley, 2005.
+
+R. K. Shyamasundar.
+
+Introduction to algorithms.
+Resonance, 1:14–24, 1996. URL https://api.
+semanticscholar.org/CorpusID:123556377.
+
+Wei Liu, Weihao Zeng, Keqing He, Yong Jiang, and
+Junxian He. What makes good data for align-
+ment? a comprehensive study of automatic data se-
+lection in instruction tuning. ArXiv, abs/2312.15685,
+2023. URL https://api.semanticscholar.org/
+CorpusID:266551413.
+
+Asahi Ushio and José Camacho-Collados.
+
+T-ner:
+An all-round python library for transformer-based
+named entity recognition. ArXiv, abs/2209.12616,
+2022. URL https://api.semanticscholar.org/
+CorpusID:233364894.
+
+Oscar Sainz, Iker García-Ferrero, Rodrigo Agerri,
+Oier López de Lacalle, Germán Rigau, and Eneko
+Agirre. Gollie: Annotation guidelines improve zero-
+shot information-extraction. ArXiv, abs/2310.03668,
+2023. URL https://api.semanticscholar.org/
+CorpusID:263671572.
+
+Zixuan Li, Yutao Zeng, Yuxin Zuo, Weicheng Ren,
+Wenxuan Liu, Miao Su, Yucan Guo, Yantao Liu, Xi-
+ang Li, Zhilei Hu, Long Bai, Wei Li, Yidan Liu, Pan
+Yang, Xiaolong Jin, Jiafeng Guo, and Xueqi Cheng.
+Knowcoder: Coding structured knowledge into llms
+for universal information extraction. In Annual Meet-
+ing of the Association for Computational Linguistics,
+2024. URL https://api.semanticscholar.org/
+CorpusID:268379184.
+
+9
+
+Urchade Zaratiana, Nadi Tomeh, Pierre Holat,
+and Thierry Charnois.
+Gliner: Generalist
+model for named entity recognition using bidi-
+ArXiv, abs/2311.08526,
+rectional
+2023. URL https://api.semanticscholar.org/
+CorpusID:265213162.
+
+transformer.
+
+Yuming Yang, Wantong Zhao, Caishuang Huang, Jun-
+jie Ye, Xiao Wang, Huiyuan Zheng, Yang Nan,
+Yuran Wang, Xueying Xu, Kaixin Huang, Yunke
+Zhang, Tao Gui, Qi Zhang, and Xuanjing Huang.
+Beyond boundaries: Learning a universal entity
+taxonomy across datasets and languages for open
+named entity recognition. ArXiv, abs/2406.11192,
+2024. URL https://api.semanticscholar.org/
+CorpusID:270561144.
+
+Zhuojun Ding, Wei Wei, and Chenghao Fan. Select-
+ing and merging: Towards adaptable and scalable
+named entity recognition with large language mod-
+els. In Annual Meeting of the Association for Com-
+putational Linguistics, 2025. URL https://api.
+semanticscholar.org/CorpusID:280011730.
+
+Xiaomeng Chai, Min Zhang, and Hua Tian. Ai for
+science: Practice from baidu paddlepaddle. 2024
+Portland International Conference on Management
+of Engineering and Technology (PICMET), pages
+1–12, 2024. URL https://api.semanticscholar.
+org/CorpusID:272372709.
+
+OpenAI, Josh Achiam, Steven Adler, Sandhini Agarwal,
+Lama Ahmad, Ilge Akkaya, Florencia Leoni Ale-
+man, Diogo Almeida, Janko Altenschmidt, Sam Alt-
+man, Shyamal Anadkat, Red Avila, Igor Babuschkin,
+Suchir Balaji, Valerie Balcom, Paul Baltescu, Haim-
+ing Bao, Mohammad Bavarian, Jeff Belgum, Ir-
+wan Bello, Jake Berdine, Gabriel Bernadett-Shapiro,
+Christopher Berner, Lenny Bogdonoff, Oleg Boiko,
+Madelaine Boyd, Anna-Luisa Brakman, Greg Brock-
+man, Tim Brooks, Miles Brundage, Kevin Button,
+Trevor Cai, Rosie Campbell, Andrew Cann, Brittany
+Carey, Chelsea Carlson, Rory Carmichael, Brooke
+Chan, Che Chang, Fotis Chantzis, Derek Chen, Sully
+Chen, Ruby Chen, Jason Chen, Mark Chen, Ben
+Chess, Chester Cho, Casey Chu, Hyung Won Chung,
+Dave Cummings, Jeremiah Currier, Yunxing Dai,
+Cory Decareaux, Thomas Degry, Noah Deutsch,
+Damien Deville, Arka Dhar, David Dohan, Steve
+Dowling, Sheila Dunning, Adrien Ecoffet, Atty Eleti,
+Tyna Eloundou, David Farhi, Liam Fedus, Niko Felix,
+Simón Posada Fishman, Juston Forte, Isabella Ful-
+ford, Leo Gao, Elie Georges, Christian Gibson, Vik
+Goel, Tarun Gogineni, Gabriel Goh, Rapha Gontijo-
+Lopes, Jonathan Gordon, Morgan Grafstein, Scott
+Gray, Ryan Greene, Joshua Gross, Shixiang Shane
+Gu, Yufei Guo, Chris Hallacy, Jesse Han, Jeff Harris,
+Yuchen He, Mike Heaton, Johannes Heidecke, Chris
+Hesse, Alan Hickey, Wade Hickey, Peter Hoeschele,
+Brandon Houghton, Kenny Hsu, Shengli Hu, Xin
+Hu, Joost Huizinga, Shantanu Jain, Shawn Jain,
+Joanne Jang, Angela Jiang, Roger Jiang, Haozhun
+Jin, Denny Jin, Shino Jomoto, Billie Jonn, Hee-
+woo Jun, Tomer Kaftan, Łukasz Kaiser, Ali Ka-
+mali, Ingmar Kanitscheider, Nitish Shirish Keskar,
+
+Tabarak Khan, Logan Kilpatrick, Jong Wook Kim,
+Christina Kim, Yongjik Kim, Jan Hendrik Kirch-
+ner, Jamie Kiros, Matt Knight, Daniel Kokotajlo,
+Łukasz Kondraciuk, Andrew Kondrich, Aris Kon-
+stantinidis, Kyle Kosic, Gretchen Krueger, Vishal
+Kuo, Michael Lampe, Ikai Lan, Teddy Lee, Jan
+Leike, Jade Leung, Daniel Levy, Chak Ming Li,
+Rachel Lim, Molly Lin, Stephanie Lin, Mateusz
+Litwin, Theresa Lopez, Ryan Lowe, Patricia Lue,
+Anna Makanju, Kim Malfacini, Sam Manning, Todor
+Markov, Yaniv Markovski, Bianca Martin, Katie
+Mayer, Andrew Mayne, Bob McGrew, Scott Mayer
+McKinney, Christine McLeavey, Paul McMillan,
+Jake McNeil, David Medina, Aalok Mehta, Jacob
+Menick, Luke Metz, Andrey Mishchenko, Pamela
+Mishkin, Vinnie Monaco, Evan Morikawa, Daniel
+Mossing, Tong Mu, Mira Murati, Oleg Murk, David
+Mély, Ashvin Nair, Reiichiro Nakano, Rajeev Nayak,
+Arvind Neelakantan, Richard Ngo, Hyeonwoo Noh,
+Long Ouyang, Cullen O’Keefe, Jakub Pachocki, Alex
+Paino, Joe Palermo, Ashley Pantuliano, Giambat-
+tista Parascandolo, Joel Parish, Emy Parparita, Alex
+Passos, Mikhail Pavlov, Andrew Peng, Adam Perel-
+man, Filipe de Avila Belbute Peres, Michael Petrov,
+Henrique Ponde de Oliveira Pinto, Michael, Poko-
+rny, Michelle Pokrass, Vitchyr H. Pong, Tolly Pow-
+ell, Alethea Power, Boris Power, Elizabeth Proehl,
+Raul Puri, Alec Radford, Jack Rae, Aditya Ramesh,
+Cameron Raymond, Francis Real, Kendra Rimbach,
+Carl Ross, Bob Rotsted, Henri Roussez, Nick Ry-
+der, Mario Saltarelli, Ted Sanders, Shibani Santurkar,
+Girish Sastry, Heather Schmidt, David Schnurr, John
+Schulman, Daniel Selsam, Kyla Sheppard, Toki
+Sherbakov, Jessica Shieh, Sarah Shoker, Pranav
+Shyam, Szymon Sidor, Eric Sigler, Maddie Simens,
+Jordan Sitkin, Katarina Slama, Ian Sohl, Benjamin
+Sokolowsky, Yang Song, Natalie Staudacher, Fe-
+lipe Petroski Such, Natalie Summers, Ilya Sutskever,
+Jie Tang, Nikolas Tezak, Madeleine B. Thompson,
+Phil Tillet, Amin Tootoonchian, Elizabeth Tseng,
+Preston Tuggle, Nick Turley, Jerry Tworek, Juan Fe-
+lipe Cerón Uribe, Andrea Vallone, Arun Vijayvergiya,
+Chelsea Voss, Carroll Wainwright, Justin Jay Wang,
+Alvin Wang, Ben Wang, Jonathan Ward, Jason Wei,
+CJ Weinmann, Akila Welihinda, Peter Welinder, Ji-
+ayi Weng, Lilian Weng, Matt Wiethoff, Dave Willner,
+Clemens Winter, Samuel Wolrich, Hannah Wong,
+Lauren Workman, Sherwin Wu, Jeff Wu, Michael
+Wu, Kai Xiao, Tao Xu, Sarah Yoo, Kevin Yu,
+Qiming Yuan, Wojciech Zaremba, Rowan Zellers,
+Chong Zhang, Marvin Zhang, Shengjia Zhao, Tian-
+hao Zheng, Juntang Zhuang, William Zhuk, and
+Barret Zoph. Gpt-4 technical report, 2024. URL
+https://arxiv.org/abs/2303.08774.
+
+An Yang, Anfeng Li, Baosong Yang, Beichen Zhang,
+Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao,
+Chengen Huang, Chenxu Lv, Chujie Zheng, Dayi-
+heng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao Ge,
+Haoran Wei, Huan Lin, Jialong Tang, Jian Yang,
+Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi
+Yang, Jing Zhou, Jingren Zhou, Junyang Lin, Kai
+Dang, Keqin Bao, Kexin Yang, Le Yu, Lianghao
+Deng, Mei Li, Mingfeng Xue, Mingze Li, Pei Zhang,
+
+10
+
+Peng Wang, Qin Zhu, Rui Men, Ruize Gao, Shixuan
+Liu, Shuang Luo, Tianhao Li, Tianyi Tang, Wenbiao
+Yin, Xingzhang Ren, Xinyu Wang, Xinyu Zhang, Xu-
+ancheng Ren, Yang Fan, Yang Su, Yichang Zhang,
+Yinger Zhang, Yu Wan, Yuqiong Liu, Zekun Wang,
+Zeyu Cui, Zhenru Zhang, Zhipeng Zhou, and Zi-
+han Qiu. Qwen3 technical report, 2025b. URL
+https://arxiv.org/abs/2505.09388.
+
+A Customer-Service Dataset Details
+
+The customer-service dataset is constructed to sup-
+port fine-grained, industry-oriented entity recog-
+It spans multiple vertical
+nition and reasoning.
+domains and features unified annotation principles
+while preserving domain-specific distinctions. Fig-
+ure 3 provides an overview of the entity taxonomy,
+and Figure 4 illustrates the structure of a single
+annotated instance.
+
+Domains. The dataset
+customer-service verticals:
+
+covers five major
+
+• General Customer Service: routine meta-
+data entities such as contact information, time
+expressions, budget ranges, and user-provided
+identifiers.
+
+• Automotive: comprehensive vehicle-related
+entities, including structured specifications
+(brand, sub-brand, series, model), numerical
+attributes (mileage, year, displacement, price),
+categorical properties (energy type, transmis-
+sion, drivetrain, vehicle type), and purchas-
+ing–selling intent (intent vehicles vs. non-
+intent vs.
+selling vehicles). The schema
+also includes high-level purchasing conditions
+(e.g., usage purpose, target audience, broad
+constraints such as “low price” or “high cost-
+performance”).
+
+• Home (Renovation): entities reflecting ren-
+ovation needs across hard-decoration spaces,
+soft-decoration preferences, custom and non-
+custom furniture requirements, and style in-
+tentions. The schema additionally captures
+rejected or already-completed items, allowing
+contrastive reasoning about user constraints.
+
+• Real Estate:
+
+type,
+
+house
+
+property-related entities
+floor/building
+including
+layout and room
+type, area constraints,
+normalization
+address
+structure,
+(province–city–district–town–street). Both in-
+tent and non-intent expressions are annotated
+when applicable.
+
+and
+
+• Legal / Finance: entities describing dispute
+types, lawsuit and execution status, monetary
+amounts (normalized with comparison opera-
+tors), evidence conditions, guarantee informa-
+tion, and social-security / housing-fund con-
+tribution status.
+
+Entity Schema. To ensure cross-domain consis-
+tency, all entity types follow a unified structure
+with:
+
+• Class (e.g., intent vs. non-intent vs. selling
+in Automotive; intent vs. non-intent in Real
+Estate building types; evidence/no-evidence
+in Legal),
+
+• Surface Description (user-provided expres-
+
+sion),
+
+• Normalized Values (e.g., standardized brand–
+series–model; administrative divisions; nu-
+merical ranges with operators),
+
+• Optional Sub-Entities specific to the domain
+(e.g., layout structure, renovation style, law-
+suit program stage).
+
+Annotation Scope. Each dialogue instance con-
+tains: the full conversation history, CoT reasoning
+used for entity linking and constraint interpreta-
+tion, summarized Key_Info reflecting salient user
+and assistant mentions, aligned fine-grained entity
+annotations following the domain schema.
+
+full
+
+Detailed Taxonomies. The
+specifica-
+tions—including sub-entity definitions, value
+normalization rules, allowed category sets, and
+extended examples—are documented in Appendix
+A. They include:
+
+• multi-level
+
+normalization
+(province/city/district/town/street/community),
+
+address
+
+• vehicle schemas with 20+ sub-entity types
+(year, mileage, energy, drivetrain, configura-
+tion, etc.),
+
+• renovation entities (hard/soft spaces, furniture,
+
+styles, construction state),
+
+• real-estate entities (house type, building type,
+
+layout structure, area constraints),
+
+• legal/financial entities (dispute type taxonomy,
+lawsuit phase, evidence types, monetary nor-
+malization, guarantee types, social-security
+status).
+
+11
+
+Entity Type
+
+Phone Number
+WeChat ID
+Province
+City (multi-level)
+Budget
+Brand
+Car Series
+Car Model
+Model Year
+License Plate Date
+Vehicle Specs
+Energy Type
+Transmission Type
+Seat Count
+Vehicle Type
+Color
+Purchase Requirements
+Purchase Purpose
+
+PADDLE(bert)
+
+MME-RAG(ours)
+
+p
+
+r
+
+f1
+
+p
+
+r
+
+f1
+
+93.37% 99.41% 96.30% 97.47% 99.63% 98.54%
+98.17% 89.92% 93.86% 97.37% 92.50% 94.87%
+90.70% 100.00% 95.12% 96.59% 96.92% 96.75%
+85.96% 79.03% 82.35% 90.75% 89.71% 90.23%
+88.46% 71.88% 79.31% 82.25% 91.98% 86.85%
+96.72% 93.65% 95.16% 96.50% 95.57% 96.03%
+82.50% 81.48% 81.99% 86.81% 87.41% 87.11%
+79.17% 79.17% 79.17% 83.05% 85.47% 84.24%
+91.67% 78.57% 84.62% 94.48% 93.84% 94.16%
+82.35% 87.50% 84.85% 94.12% 86.49% 90.14%
+70.27% 78.79% 74.29% 89.19% 84.62% 86.84%
+92.31% 89.55% 90.91% 95.65% 92.96% 94.29%
+91.35% 81.90% 86.36% 90.38% 95.92% 93.07%
+88.89% 88.89% 88.89% 96.30% 98.11% 97.20%
+89.74% 92.11% 90.91% 92.13% 91.11% 91.62%
+97.87% 93.88% 95.83% 96.49% 96.49% 96.49%
+76.47% 83.87% 80.00% 87.10% 90.00% 88.52%
+74.55% 83.67% 78.85% 76.19% 94.12% 84.21%
+
+Table 5: Performance Comparison of Paddle (bert) and MME-RAG
+
+This dataset provides a challenging benchmark
+for fine-grained, domain-adaptive entity recogni-
+tion under evolving schemas, and serves as the
+evaluation foundation for MME-RAG.
+
+B Comparison with BERT-based
+
+PaddlePaddle Model
+
+To further contextualize the performance of MME-
+RAG, we compare it with a BERT-based entity
+recognition model implemented using PaddlePad-
+dle. The Paddle model follows a standard fine-
+tuning setup with token-level classification. Table 5
+reports precision, recall, and F1 scores across 18
+automotive-related entity types from our customer-
+service dataset.
+
+Overall, MME-RAG achieves consistently
+higher F1 scores across nearly all entity types, with
+particularly notable gains in challenging categories
+such as Vehicle Specs, Budget, and Purchase Re-
+quirements. These improvements highlight the
+advantages of our multi-manager–expert decom-
+position and KeyInfo-driven retrieval, especially
+for fine-grained and context-dependent entity types
+where pure encoder-based models tend to strug-
+gle. The results also demonstrate that MME-RAG
+remains robust even when compared to a domain-
+specific, fully fine-tuned encoder model.
+
+12

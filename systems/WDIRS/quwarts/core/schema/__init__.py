@@ -20,11 +20,15 @@ def _attr_name(entity: str, name: str) -> str:
 
 
 def _pk_for(entity: str, logical: LogicalSchema) -> list[str]:
-    names = [item.name for item in logical.attributes if item.entity_type == entity]
-    chosen = identity_name(entity, names)
-    if chosen and not is_coarsening(chosen):
-        return [_attr_name(entity, chosen)]
-    return [f"{entity}.id"]
+    """Keys from declared relationships only. No ``*_name`` / ``*_id`` guess."""
+
+    _ = identity_name
+    for rel in logical.relationships:
+        if rel.to_entity == entity and not is_coarsening(rel.to_attribute):
+            return [_attr_name(rel.to_entity, rel.to_attribute)]
+        if rel.from_entity == entity and not is_coarsening(rel.from_attribute):
+            return [_attr_name(rel.from_entity, rel.from_attribute)]
+    return []
 
 
 def canonical_schema(logical: LogicalSchema) -> PhysicalSchema:
@@ -101,7 +105,7 @@ def _star(logical: LogicalSchema, covered: set[str]) -> PhysicalSchema:
         fact_attrs.append(_attr_name(rel.from_entity, rel.from_attribute))
     fact_attrs = sorted(set(attr for attr in fact_attrs if attr in covered))
     fact_pk = _pk_for(fact_entity, logical)
-    fact_pk = [item for item in fact_pk if item in covered] or fact_attrs[:1]
+    fact_pk = [item for item in fact_pk if item in covered]
     relations.append(Relation(name="fact", attributes=fact_attrs, entity_type=fact_entity))
     pks["fact"] = fact_pk
     fds.extend(_fds(logical, "fact", fact_attrs, fact_pk))
@@ -116,7 +120,7 @@ def _star(logical: LogicalSchema, covered: set[str]) -> PhysicalSchema:
             continue
         name = f"dim_{entity}"
         pk = _pk_for(entity, logical)
-        pk = [item for item in pk if item in covered] or attrs[:1]
+        pk = [item for item in pk if item in covered]
         relations.append(Relation(name=name, attributes=attrs, entity_type=entity))
         pks[name] = pk
         fds.extend(_fds(logical, name, attrs, pk))

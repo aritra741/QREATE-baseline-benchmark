@@ -22,6 +22,7 @@ import argparse
 import json
 import logging
 import math
+import os
 import sqlite3
 import sys
 import time
@@ -164,13 +165,21 @@ def _summary(
 
 def _configure_docetl(args: argparse.Namespace) -> None:
     model = args.model
-    if not model.startswith("ollama/"):
+    if "/" not in model:
         model = f"ollama/{model}"
     docetl_runner.DOCETL_MODEL = model
     docetl_runner.OLLAMA_BASE_URL = args.ollama_base_url
     docetl_runner.DOCETL_THREADS = args.threads
     docetl_runner.DOCETL_MAP_TIMEOUT = args.timeout
     docetl_runner.DOCETL_MAX_RETRIES_PER_TIMEOUT = args.retries
+    api_key_env = getattr(args, "api_key_env", None)
+    if api_key_env:
+        api_key = os.getenv(api_key_env)
+        if not api_key:
+            raise SystemExit(f"API key environment variable is unset: {api_key_env}")
+        os.environ["OPENAI_API_KEY"] = api_key
+    if getattr(args, "disable_thinking", False):
+        os.environ["DOCETL_DISABLE_THINKING"] = "1"
 
 
 def _add_run_metadata(
@@ -210,6 +219,16 @@ def main() -> int:
     )
     parser.add_argument("--model", default="qwen2.5:7b-instruct")
     parser.add_argument("--ollama-base-url", default="http://localhost:11434")
+    parser.add_argument(
+        "--api-key-env",
+        default=None,
+        help="Environment variable containing the hosted-provider API key.",
+    )
+    parser.add_argument(
+        "--disable-thinking",
+        action="store_true",
+        help="Send DeepSeek-compatible non-thinking mode.",
+    )
     parser.add_argument("--threads", type=int, default=4)
     parser.add_argument("--timeout", type=int, default=420)
     parser.add_argument("--retries", type=int, default=2)
@@ -236,7 +255,14 @@ def main() -> int:
     out_dir = args.out.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     docetl_runner.setup_logging(out_dir / "docetl_grid_test.log")
-    ensure_precise_tokenizer_ready()
+    os.environ.setdefault("USE_TORCH", "0")
+    try:
+        ensure_precise_tokenizer_ready()
+    except Exception as exc:
+        logger.warning(
+            "Qwen tokenizer unavailable (%s); DocETL will use LiteLLM usage totals",
+            exc,
+        )
     _configure_docetl(args)
 
     manifest = _load_query_manifest(grid_path)

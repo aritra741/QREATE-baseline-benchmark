@@ -1,0 +1,1441 @@
+5
+2
+0
+2
+
+l
+u
+J
+
+1
+3
+
+]
+I
+
+A
+.
+s
+c
+[
+
+3
+v
+6
+2
+4
+7
+0
+.
+7
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+DrugMCTS: a Drug Repositioning Framework Combining
+Multi-Agent, RAG and Monte Carlo Tree Search
+
+Zerui Yang1,2
+
+, Yuwei Wan1, Siyu Yan3, Yudai Matsuda1, Tong Xie4, Bram Hoex5, and Linqi Song1,2⋆
+
+1 City University of Hong Kong, Hong Kong, PR China
+2 City University of Hong Kong Shenzhen Research Institute, Shenzhen, PR China
+3 The Hong Kong University of Science and Technology (Guangzhou), Guangzhou PR China
+4 GreenDynamics, Sydney, NSW, Australia
+5 University of New South Wales, Kensington, NSW, Australia
+6
+
+Abstract
+
+Recent advances in large language models have
+demonstrated considerable potential in scientific do-
+mains such as drug repositioning. However, their ef-
+fectiveness remains constrained when reasoning ex-
+tends beyond the knowledge acquired during pre-
+training. Conventional approaches, such as fine-
+tuning or retrieval-augmented generation, face limita-
+tions in either imposing high computational overhead
+or failing to fully exploit structured scientific data.
+To overcome these challenges, we propose DrugM-
+CTS, a novel framework that synergistically inte-
+grates RAG, multi-agent collaboration, and Monte
+Carlo Tree Search for drug repositioning. The frame-
+work employs five specialized agents tasked with re-
+trieving and analyzing molecular and protein infor-
+mation, thereby enabling structured and iterative
+reasoning. Extensive experiments on the DrugBank
+and KIBA datasets demonstrate that DrugMCTS
+achieves substantially higher recall and robustness
+compared to both general-purpose LLMs and deep
+learning baselines. Our results highlight the impor-
+tance of structured reasoning, agent-based collab-
+oration, and feedback-driven search mechanisms in
+advancing LLM applications for drug repositioning.
+Contact: zeruiyang2-c@my.cityu.edu.hk
+
+1 Introduction
+
+Large language models (LLMs) have demonstrated
+remarkable capabilities across a wide range of do-
+mains, including question answering, logical reason-
+ing, and knowledge-intensive tasks such as mathe-
+matics and code generation. These models are in-
+creasingly being explored for applications in scientific
+fields, particularly in drug discovery [33]. However,
+when confronted with problems that lie beyond their
+
+⋆ Corresponding author
+
+pre-training knowledge or inherent reasoning abili-
+ties, such as predicting novel drug-target interactions,
+their performance may fall short of expectations [38].
+As general-purpose large models gain traction
+in scientific domains, fine-tuning on domain-specific
+datasets has emerged as a common approach [36,27].
+However, this method faces several well-recognized
+limitations. Fine-tuning is computationally expensive
+and typically domain-specific, making it inefficient
+and often impractical for extending to new scientific
+areas. Furthermore, given the dynamic nature of sci-
+entific knowledge, maintaining up-to-date models re-
+quires continual retraining, which increases computa-
+tional overhead and risks catastrophic forgetting [19].
+These challenges hinder the scalability and long-term
+utility of fine-tuning in real-world scientific applica-
+tions.
+
+To address the drawbacks of fine-tuning, retrieval-
+augmented generation (RAG) has emerged as a
+promising alternative [35]. By leveraging external
+agents to retrieve relevant information from literature
+and databases, RAG enhances the reasoning capabil-
+ities of LLMs without requiring model updates [3].
+This makes it particularly suitable for dynamic do-
+mains such as drug discovery.
+
+Despite its advantages, RAG faces notable limita-
+tions. Scientific data can be broadly categorized into
+structured scientific data and unstructured general-
+purpose text [39]. Existing RAG systems often pri-
+oritize the latter due to better compatibility with
+LLMs [23], overlooking the richness of structured
+data such as molecular structures and protein se-
+quences. For example, drug-target interaction tasks
+information, relying
+frequently exclude structural
+solely on knowledge graphs or text [14], which com-
+promises both prediction reliability and interpretabil-
+ity.
+
+Some methods incorporate domain-specific mod-
+els to interpret scientific data [11,17], but this rein-
+troduces fine-tuning-related limitations. When in-
+puts deviate from training distributions, performance
+
+ 
+ 
+ 
+ 
+ 
+ 
+can drop sharply—for instance, drug-target interac-
+tion models may lose over 20% accuracy on unseen
+molecule-protein pairs [31].
+
+General-purpose data also presents challenges. It
+often contains noise or errors [10], and LLMs may
+inadvertently discard useful content due to limited
+contextual understanding. For instance, long-context
+models are known to suffer from the “lost in the mid-
+dle” [16] phenomenon (Figure 1), where information
+located in the middle of a long input sequence is more
+likely to be forgotten or overlooked [16], leading to
+incomplete or inaccurate reasoning. Moreover, cur-
+rent approaches typically lack feedback loops, treat-
+ing drug discovery as a one-shot task rather than an
+iterative process [33,4,6], which limits robustness and
+adaptability.
+
+Fig. 1: When the document relevant to the query ap-
+pears in the middle of the retrieved document se-
+quence, the model’s performance can even fall below
+that of the baseline closed-book setting [16].
+
+To address the aforementioned limitations, we pro-
+pose DrugMCTS, a novel drug repositioning algo-
+rithm based on RAG, multi-agent collaboration, and
+Monte Carlo Tree Search (MCTS) [2]. DrugMCTS is
+designed to overcome the challenges posed by compu-
+tationally expensive fine-tuning, underutilization of
+structured scientific data, model brittleness in out-of-
+distribution scenarios, and the lack of iterative feed-
+back mechanisms.
+
+Our system comprises five specialized agents:
+
+– Retrieval Agent: Identifies and gathers struc-
+turally similar molecules from external scientific
+databases. While this is the first retrieval step
+
+in the pipeline, subsequent agents also incorpo-
+rate retrieval mechanisms to augment the model’s
+input with task-relevant scientific knowledge.
+By leveraging external sources without modify-
+ing model parameters, these retrieval-based ac-
+tions collectively mitigate the limitations of static
+knowledge and the high cost of fine-tuning.
+
+– Molecule-Analysis Agent: Receives a dictio-
+nary containing the physicochemical and struc-
+tural properties of the query molecule and its can-
+didates, obtained from scientific APIs (e.g., RD-
+Kit, PubChem). This agent then summarizes the
+input into a concise natural language description,
+making the information more accessible to LLMs.
+– Molecule-Selection Agent: Filters retrieved
+molecules based on pharmacophore integrity
+and drug-likeness, effectively eliminating low-
+relevance or noisy inputs that could compromise
+model performance. This filtering step also helps
+mitigate the “lost in the middle” phenomenon.
+– Interaction-Analysis Agent: Analyzes drug-
+interaction mechanisms by extracting
+target
+structured protein data (e.g., pocket features
+from PDB files via PLIP) and enriching it with
+natural language summaries from literature. This
+transformation enables general LLMs to reason
+over biological structures that they cannot na-
+tively parse.
+
+– Decision Agent: Integrates all upstream out-
+puts—including molecular properties, interaction
+analyses, and supporting texts—and makes final
+predictions about likely protein targets. It serves
+as the final reasoning step informed by the entire
+multi-agent pipeline.
+
+Moreover, the incorporation of MCTS enables the
+framework to operate with a feedback-driven mecha-
+nism, iteratively refining its decision path. This allows
+the system to explore multiple reasoning trajectories
+and prioritize more promising nodes based on reward
+signals, thereby improving both robustness and deci-
+sion quality over time.
+
+our
+
+guidance
+
+With the
+
+framework,
+
+the
+of
+lightweight Qwen2.5-7B-Instruct model [26] achieves
+performance surpassing Deepseek-R1 [7], GPT-4o-
+mini [9] and domain-specific deep learning models
+on benchmark tasks. Notably, this is accomplished
+without any domain-specific fine-tuning. We further
+conduct ablation studies demonstrating that remov-
+ing any component of our pipeline leads to a perfor-
+mance drop of 1–10%, underscoring the necessity of
+each module. To facilitate future research and ensure
+reproducibility, the code and data processing pipeline
+for DrugMCTS will be released upon publication at:
+https://github.com/yaoge777/DrugMCTS
+
+Our main contributions include:
+
+a. We introduce an end-to-end drug repositioning
+framework that enables Qwen2.5-7B-Instruct to
+outperform much larger models such as Deepseek-
+R1, without requiring any fine-tuned domain-
+specific model. The method leverages external
+structured and textual knowledge sources to
+boost reasoning and decision-making capabilities.
+b. By incorporating MCTS, our framework intro-
+duces a feedback mechanism that enables itera-
+tive refinement of decisions, autonomous filtering
+of noisy inputs, and robust identification of high-
+value evidence—addressing the lack of adaptabil-
+ity in current one-shot inference systems.
+
+c. We propose a systematic data processing pipeline
+(Figure 2) that transitions from structured scien-
+tific data to hybrid scientific-general data, and fi-
+nally to general-purpose language input. This hy-
+brid representation exploits the strengths of each
+modality, enhances model interpretability, and of-
+fers a reusable workflow applicable beyond drug-
+target interaction tasks.
+
+2 Method
+
+2.1 Overview of DrugMCTS
+
+Our proposed framework, DrugMCTS, enhances
+molecular-protein interaction prediction through a
+structured multi-agent system guided by MCTS, as
+illustrated in Figure 3 and Appendix Algorithm 1.
+Given a query molecule Mqm, DrugMCTS coordi-
+nates a sequence of agents to retrieve relevant chem-
+ical and biological information, perform structured
+analysis, and identify promising protein targets.
+
+Each agent contributes domain-specific reasoning:
+retrieving structurally similar molecules, analyzing
+molecular properties, filtering irrelevant candidates,
+and evaluating interaction potential through struc-
+tural and textual evidence. Instead of relying on end-
+to-end model predictions, DrugMCTS incrementally
+builds reasoning paths, ensuring interpretability and
+robustness at every step.
+
+Crucially, we incorporate MCTS as an inference-
+time decision mechanism. At each decision point,
+multiple hypotheses are generated and evaluated us-
+ing the Upper Confidence Bound applied to Trees
+(UCT) algorithm (Equation 1) [5], enabling the
+framework to balance exploration and exploitation.
+This search-guided process allows DrugMCTS to it-
+eratively refine its predictions and autonomously fil-
+ter low-quality or noisy information without requiring
+domain-specific fine-tuning.
+
+By integrating structured data retrieval, expert-
+agent
+collaboration, and search-based decision-
+making, DrugMCTS offers a scalable and inter-
+pretable approach for scientific discovery in dynamic
+domains such as drug-target interaction.
+
+UCT =
+
+Wi
+ni
+
++ c
+
+(cid:114) ln N
+ni
+
+(1)
+
+2.2 MCTS for Drug Repositioning
+
+Given that MCTS is a well-established algorithm
+widely adopted and thoroughly explained in various
+studies [15], we provide only an overview here. As
+shown in Figure 4 and Appendix Algorithm 2, the
+MCTS algorithm consists of four main steps: selec-
+tion, expansion, simulation, and backpropagation.
+
+In each rollout, the process begins at the root node
+and proceeds by selecting a leaf node using the UCT
+algorithm. The selected leaf node is then expanded by
+generating one or more child nodes. This selection-
+expansion cycle continues iteratively until reaching
+an end node. Upon reaching this terminal node, a pre-
+defined scoring rule is applied to evaluate its quality.
+The score is then backpropagated up the tree to up-
+date the scores and visit counts of all nodes along the
+path. After completing a pre-defined number of roll-
+outs, we obtain a series of candidate solutions from
+which the final answer is chosen.
+
+2.3 Action Space
+
+The action space refers to the set of possible actions
+that can be performed during each expansion phase.
+Similar to chain-of-thought (CoT) reasoning, these
+actions are sequential and interdependent; each sub-
+sequent action builds upon the results of the previous
+one. Therefore, coordination among different agents
+is essential for coherent execution.
+
+Our framework includes six distinct actions corre-
+sponding to five specialized agents. Except for the
+retrieval agent, which does not invoke any model, all
+other agents utilize the same LLM without requiring
+additional fine-tuned models.
+
+A1 Retrieval Action. Upon receiving the query
+molecule, the Retrieval agent queries databases to
+identify molecules structurally similar to the query
+molecule. We employ two similarity metrics: the Tan-
+imoto coefficient [1] and the cosine similarity based
+on the last hidden state computed by ChemBERTa.
+For each metric, we retrieve the top-10 most similar
+molecules, merge the results, and remove duplicates
+
+Fig. 2: Data processing pipiline of DrugMCTS
+
+to form the initial candidate molecules Mcm. The pro-
+teins can interact with Mcm are also retrieved, form-
+ing candidate proteins Pcp. These molecules serve as
+inputs to the root node of the MCTS.
+
+Since the similarity scores are deterministic, the
+resulting molecule pool remains consistent, satisfying
+the requirement that the root node must be unique.
+
+simC(Mqm, Mi) =
+
+hqm · hi
+∥hqm∥ · ∥hi∥
+
+(2)
+
+Mcm = dedup
+
+(cid:16)
+
+Top10 (simT (Mqm))
+
+∪ Top10 (simC(Mqm))
+
+(cid:17)
+
+(3)
+
+A2 Molecule Analysis Action. Understanding
+molecular properties is crucial to predict molecular-
+target interactions [38]. While general-purpose LLMs
+can perform some analysis using SMILES representa-
+tions, their interpretations are often incomplete and
+prone to errors, especially when experimental data,
+such as hydrophobicity, is required.
+
+To address this limitation, the Molecule Analysis
+(MA) agent first utilizes RDKit and PubChemPy
+APIs [24] to extract a set of structural and physic-
+ochemical properties (Cq,s & Cq,phy) for the query
+molecule Mqm by calling RDKit and PubChemPy
+APIs. These properties include:
+
+– Structural features: chiral centers, scaffolds, and
+
+functional groups.
+
+– Physicochemical properties: molecular weight,
+lipophilicity (logP), polar surface area (PSA), hy-
+drogen bond donors/acceptors, rotatable bonds,
+and heavy atom counts.
+
+Based on this structured and quantified infor-
+mation, the agent then generates a comprehensive
+molecular analysis report Rqm.
+
+A3 Molecule Selection Action. Research has
+shown that the quality of retrieved information sig-
+nificantly impacts the accuracy of model-generated
+answers [22]. Excessive irrelevant information can
+negatively affect the model’s performance [18]. Al-
+though the retrieved molecules share structural sim-
+ilarities with the query molecule, they may not nec-
+essarily provide useful insights for drug reposition-
+ing tasks [14]. Thus, the Molecule Selection (MS)
+agent filters the molecule pool, based on structural
+similarity to the query molecule, pharmacophore in-
+tegrity, and drug-like essentials, to generate refer-
+ence molecules Mrm. The reference proteins Prp are
+obtained by selecting the proteins that can inter-
+act with Mrm from Pcp. To ensure that these ref-
+erence molecules are thoroughly characterized, this
+action also invokes the A2 Molecule Analysis Ac-
+tion. Specifically, the MA agent is called to retrieve
+the structural and physicochemical properties (Cc,s
+& Cc,phy) of Mcm but without generating reports.
+
+A4 Interaction Analysis Action. In this step,
+we aim to analyze potential interactions between the
+Mrm and Pcp. A major challenge lies in interpreting
+
+Fig. 3: Illustration of a single rollout in the DrugMCTS framework. The figure demonstrates how agents
+sequentially collaborate during one inference trajectory guided by MCTS.
+
+protein structures from amino acid sequences, which
+general-purpose LLMs struggle to handle due to their
+complexity. To overcome this, we adopt the method-
+ology from DrugRealign [29], utilizing Python’s PLIP
+library to extract binding pocket information Dbp
+from PDB files and present it in textual format. In
+contrast to the original tabular representation which
+can be difficult for LLMs to parse, we reformat each
+entry into a descriptive paragraph to improve inter-
+pretability. Additionally, we retrieve relevant scien-
+tific literature Lrp from PubMed [30] to provide con-
+textual support for interaction analysis by Interaction
+Analysis (IA) agent.
+
+A5 Protein Selection Action. At this stage,
+the Decision agent synthesizes all available informa-
+tion, including the Mqm, Rqm, Mrm, Pcp, Dbp, and
+Ria.Based on this integrated knowledge, the agent se-
+lects the most promising target protein Ps from the
+full list of candidates.
+
+A6 End Action. This action does not involve any
+agent invocation. When the model selects the final
+
+protein, the End Action is executed. Upon encoun-
+tering an end node, the MCTS algorithm terminates
+further expansion, evaluates the end node’s score, and
+backpropagates the updated values to all nodes along
+the traversal path, concluding the current rollout.
+
+Fig. 4: Example of MCTS for drug repositioning
+
+2.4 Reward Calculation
+
+Predicting molecular-protein binding affinity typi-
+cally involves two primary approaches: molecular
+docking methods [8] and deep learning-based meth-
+ods [31].
+
+Molecular Docking Methods. Molecular dock-
+ing methods, such as AutoDock Vina [8], are widely
+used but suffer from notable limitations. First, they
+require accurate three-dimensional structural infor-
+mation of the target proteins, which is often un-
+available or unreliable for many biologically rele-
+vant molecules. Second, these methods are computa-
+tionally intensive, limiting their scalability in large-
+scale drug repositioning tasks. Given these limita-
+tions, there has been a growing interest in developing
+more efficient alternatives.
+
+Deep Learning-Based Methods. Deep learning
+models have emerged as a promising solution due to
+their superior computational efficiency [32]. However,
+their performance is highly dependent on the train-
+ing dataset. When predicting samples that deviate
+significantly from the training data, the accuracy of
+these models can drop by over 20% [31], limiting their
+applicability across diverse scenarios.
+
+Self-Consistency Score. To address these chal-
+lenges, our work adopts an alternative reward calcula-
+tion method known as the self-consistency score [28].
+This approach involves querying the model multiple
+times with the same question and selecting the most
+frequently occurring answer p∗ as the final output.
+The frequency of this answer serves as the relative
+reward. However, this method introduces a potential
+issue: if all candidate proteins in one rollout exhibit
+strong binding affinity with the query molecule, while
+in another rollout none do, the calculated relative
+rewards could still be similar despite the stark dif-
+ferences in actual binding affinities. To mitigate this
+limitation, we introduce an absolute reward mecha-
+nism.
+
+Absolute Reward. The absolute reward is com-
+puted by inputting the Ps, Dbp, Lrp, Mqm, and Rqm
+into a decision-making model. This model evaluates
+whether there is a significant interaction between the
+protein and the query molecule. The frequency of af-
+firmative responses (”yes”) is then used as the abso-
+lute reward.
+
+Final Reward Calculation. The final reward for
+each rollout is calculated as the average of the rela-
+tive reward and the absolute reward. This combined
+approach ensures that both the consistency and the
+strength of the predicted interactions are taken into
+account, providing a more robust evaluation metric.
+
+Rrelative(p∗) =
+
+Number of times p∗ is selected
+Total number of selections
+
+(4)
+
+Rabsolute(p∗) =
+
+Number of ”yes” responses
+k
+
+Rfinal(p∗) =
+
+Rrelative(p∗) + Rabsolute(p∗)
+2
+
+(5)
+
+(6)
+
+3 Experiments
+
+3.1 Datasets and Metrics
+
+We utilized two datasets, DrugBank [12] and
+KIBA [25], which were processed to include a total
+of 788 entries from DrugBank and 626 entries from
+KIBA. Each entry consists of a molecule as input and
+its corresponding interacting proteins as output. The
+number of ground truth interactions per entry varies.
+To evaluate model performance, we used recall, de-
+fined as the ratio of correctly predicted proteins to
+the total number of ground truth proteins. The de-
+tailed information of data processing pipeline can be
+found in Appendix Section A.1
+
+Recall =
+
+|{proteins predicted correctly}|
+|{all ground truth proteins}|
+
+(7)
+
+3.2 Settings
+
+we
+
+the
+
+phase,
+
+retrieval
+
+employed
+For
+ESM2 t33 650M UR50D to compute cosine sim-
+ilarity. For all other
+inference stages, we used
+Qwen2.5-7B-Instruct. Specifically, each search pro-
+cess involved 12 rounds of rollouts. Except for the
+protein selection and end actions, which generate
+only one node during expansion, all other actions
+generated four nodes with distinct answers per
+expansion. The temperature was set to 0.8. Both
+relative and absolute rewards were computed by
+generating four responses per rollout, also with a
+temperature of 0.8.
+
+3.3 Baselines
+
+We established three sets of baselines to compare our
+model’s performance:
+
+General Models. (GM) We selected GPT-4o-
+mini and Deepseek-R1 as general-purpose models. In
+this group, we provided the models with minimal in-
+formation: the SMILES representation of the query
+
+molecule, reference molecules, and candidate proteins
+along with their pocket types.
+
+General Models with RAG. (GM + RAG)
+Many existing studies on drug repositioning using
+LLMs either employ divergent methodological for-
+mulations or are not open-sourced, which compli-
+cates comparative evaluation. Our approach adopts
+the framework of the DrugReAlign [29] method, with
+modifications and enhancements tailored to our spe-
+cific formulation. To ensure equitable comparison, we
+incorporate not only protein pocket information but
+also incorporate Cq,s and Cq,phy as additional fea-
+tures. The models used in this group remained GPT-
+4o-mini and Deepseek-R1.
+
+Deep Learning Models.
+
+(DL Models)
+We trained four deep learning models: Atten-
+tionDTA [37], GraphDTA [21], DeepConv DTI [13],
+and Perceiver CPI [20], on both DrugBank and
+KIBA datasets. We extracted data involving the
+query molecules as test sets and used the remaining
+data for training. All
+four models achieved over
+70% accuracy on the test sets. During testing, we
+applied majority voting to select the final answer
+by averaging the scores from the four models and
+choosing the top-k proteins, where k corresponds to
+the length of the ground truth.
+
+3.4 Results
+
+The experimental results (Table 1) indicate that
+general-purpose LLMs (GPT-4o-mini and Deepseek-
+R1) achieved relatively low recall scores of only
+12.59%–16.19% on the DrugBank dataset when op-
+erating in a zero-shot setting. However, when in-
+corporating molecular structural features and chem-
+ical properties via RAG-based prompting, model
+performance decreased, with GPT-4o-mini dropping
+to 15.19% and Deepseek-R1 significantly falling to
+12.59%. This suggests that the inclusion of poten-
+tially irrelevant or misleading information through
+retrieval can negatively impact the reasoning capa-
+bilities of general-purpose LLMs.
+
+Among the deep learning baselines, the ensem-
+ble of four specialized models (AttentionDTI, GIN-
+ConvNet, DeepConv DTI, Perceiver CPI) achieved
+a recall score of 23.64%, representing an 84% im-
+provement over the best-performing general-purpose
+model. On the KIBA dataset, the same ensemble at-
+tained a recall score of 26.45%, further demonstrating
+its effectiveness in capturing drug-target interactions.
+Our proposed method, DrugMCTS, significantly
+outperformed all baseline approaches. Using a base
+TopK strategy, DrugMCTS achieved a recall of
+44.66% on DrugBank and 42.24% on KIBA. This
+
+represents improvements of approximately 88.9% and
+31.7% over the best deep learning baselines, respec-
+tively. Furthermore, our dynamic adjustment strat-
+egy (TopK+3) boosted performance to 55.34% on
+DrugBank and 49.24% on KIBA, marking maximum
+improvements of 330% and 91.4% over the general-
+purpose models. It is worth noting that although the
+other three methods showed improved performance
+on the KIBA dataset, our method exhibited a slight
+drop. However, according to Appendix Table 2, this
+apparent improvement in other baseline settings is
+largely due to an increased ratio of ground truth can-
+didates among the total options. As shown in Ap-
+pendix Table 1, compared to DrugBank, the KIBA
+dataset contains a larger number of candidate pro-
+teins per drug, which increases the difficulty of se-
+lecting the correct Pcp after molecule selection. This
+observation indirectly highlights the importance of
+effective filtering mechanisms.
+
+These results strongly underscore the superiority of
+dynamic decision-making mechanisms, such as those
+used in DrugMCTS, over traditional static prediction
+methods like deep learning models. They also high-
+light the limitations of general-purpose large models
+in zero-shot settings for drug repositioning tasks, es-
+pecially when retrieval-augmented prompting intro-
+duces noise or irrelevant context. This further empha-
+sizes the importance of structured reasoning, domain-
+specific knowledge integration, and information filter-
+ing in such applications.
+
+Furthermore, to demonstrate the interpretability
+and transparency of our approach, we provide a de-
+tailed case study in the Appendix Section A.2. It illus-
+trates how the model predicts an interaction between
+Equol and the CXC chemokine receptor 3, including
+the complete step-by-step reasoning process during a
+specific MCTS rollout.
+
+4 Ablation Studies
+
+4.1 Settings
+
+In our ablation studies, we aim to investigate several
+key aspects:
+
+– Whether the MCTS algorithm can improve model
+
+accuracy.
+
+– The effectiveness of our proposed data processing
+pipelines for scientific data, a hybrid of scientific
+and general data, and general data.
+
+– The efficacy of the combined relative and absolute
+
+reward calculation method.
+
+To address these questions, we conducted the follow-
+ing experiments:
+
+Table 1: Performance comparison on DrugBank and KIBA datasets
+
+Model
+
+Size Dynamic Update DrugBank KIBA
+
+General Models (GM)
+GPT-4o-mini
+Deepseek-R1
+
+GM + RAG
+GPT-4o-mini
+Deepseek-R1
+
+DL Models
+DL models
+
+∼8B
+37Ba
+
+∼8B
+37Ba
+
+8M-12M
+
+DrugMCTS (Ours)
+Selection = GT count
+Selection = GT + 3
+
+7B
+7B
+
+×
+×
+
+✓
+✓
+
+×
+
+✓
+✓
+
+0.1552
+0.1619
+
+0.2580
+0.2645
+
+0.1519
+0.1259
+
+0.2252
+0.2173
+
+0.2364
+
+0.3216
+
+0.4466
+0.5534
+
+0.4224
+0.4924
+
+aActivation-aware model size. GT = Ground Truth count. Dynamic update: ✓ Yes, × No.
+
+– S1 Baseline Setup. Provide only the query
+molecule, all proteins in the protein pool, and the
+types of their pocket. Do not use the MCTS al-
+gorithm.
+
+– S2 Enhanced Information (EI) Setup. On
+top of the baseline setup, add the detailed pock-
+ets information and literature information for all
+proteins and structural and chemical properties
+of the query molecule.
+
+– S3 Molecule Analysis Exclusion (MAE).
+Conduct the MCTS process while excluding the
+molecule analysis action.
+
+– S4 Interaction Analysis Exclusion (IAE).
+Conduct the MCTS process while excluding the
+interaction analysis action.
+
+– S5 Dual Exclusion (DE). Conduct the MCTS
+process while excluding both the molecule analy-
+sis and interaction analysis actions.
+
+– S6 Relative Reward (RR) Only. During the
+MCTS process, compute only the relative rewards
+without considering the absolute rewards.
+
+Protein Selection Action, instead of a single node
+used in the full pipeline.
+
+4.2 Ablation Studies Results
+
+The ablation study results (Table 2) clearly demon-
+strate the effectiveness of our proposed framework
+components. First, comparing S1 (Baseline Setup)
+with S2 (Enhanced Information Setup) shows that
+providing richer contextual information, including de-
+tailed pocket features, literature descriptions, struc-
+tural and chemical properties, does improve perfor-
+mance to some extent (e.g., from 12.85% to 15.86% on
+DrugBank). However, the most significant improve-
+ment is observed when the MCTS algorithm is intro-
+duced in combination with these enhancements. Ex-
+perimental settings that incorporate MCTS (S3–S6
+and Final Result) consistently achieve much higher
+performance than S1 or S2, indicating that while
+richer input representations are beneficial, it is the
+MCTS-based reasoning process that plays the cen-
+tral role in boosting model accuracy.
+
+Since excluding certain actions in MCTS can occa-
+sionally reduce the number of generated nodes, some-
+times below the number of ground-truth targets, we
+ensure fair comparison by setting the MCTS-based
+baselines to generate four candidate nodes during the
+
+Second, by analyzing S3 (Molecule Analysis Ex-
+clusion), S4 (Interaction Analysis Exclusion), and S5
+(Dual Exclusion), we observe a consistent drop in per-
+formance when either or both of the analysis modules
+are removed. For instance, on the DrugBank dataset,
+
+Table 2: Performance comparison on DrugBank and KIBA datasets using Qwen7b (Top-k/Top-k+3 accu-
+racy).
+
+Setup
+
+S1 Baseline S2 EI
+
+S3 MAE
+
+S4 IAE
+
+S5 DE
+
+S6 RR
+
+DrugMCTS
+
+DrugBank
+KIBA
+
+0.1285
+0.2284
+
+0.1586 0.3879/0.4677 0.3946/0.5119 0.3472/0.3617 0.4320/0.5527 0.4466/0.5534
+0.2452 0.3772/0.4352 0.3846/0.4491 0.3189/0.3264 0.4193/0.4861 0.4224/0.4924
+
+removing molecule analysis alone leads to a decrease
+from 44.66% (Final Result) to 38.79%, while remov-
+ing interaction analysis results in a drop to 39.46%.
+The dual exclusion further reduces performance to
+34.72%, demonstrating that each data processing step
+contributes meaningfully to the overall effectiveness
+of the system. This supports our hypothesis that the
+proposed hybrid data processing pipeline, incorporat-
+ing both molecular and interaction-level analyses, is
+essential for capturing comprehensive contextual in-
+formation.
+
+Third, regarding the reward mechanism, the com-
+parison between S6 (Relative Reward Only) and the
+full reward setting (Final Result) shows that the com-
+bined use of relative and absolute rewards does not
+lead to a significant improvement in performance.
+One possible explanation is that prior steps, includ-
+ing candidate protein and molecule selection, have
+already filtered out most irrelevant options,
+leav-
+ing a refined set of high-quality reference proteins.
+As a result, the likelihood of encountering scenarios
+where none of the candidates interact with the query
+molecule becomes rare, reducing the added value of
+the absolute reward component.
+
+In summary, these findings confirm the importance
+of the MCTS algorithm, the multi-step data process-
+ing pipeline, and the overall design of the retrieval-
+augmented reasoning framework in achieving strong
+performance in molecular-target interaction predic-
+tion.
+
+on the KIBA dataset, while other scenarios show ei-
+ther marginal or even negative improvements. Con-
+sequently, to balance computational cost and model
+performance, we ultimately adopt rollout=12 for our
+experiments. Compared to baseline models, our ap-
+proach not only achieves the highest recall scores
+but also demonstrates superior cost efficiency, as ev-
+idenced by its position on the Pareto front.
+
+5 Conclusion
+
+Our DrugMCTS framework revolutionizes drug repo-
+sitioning by integrating multi-agent collaboration
+(five specialized agents), hybrid data processing (sci-
+entific → hybrid → general), and MCTS to enable the
+lightweight Qwen2.5-7B-Instruct model to outper-
+form Deepseek-R1 by more than 20% recall on Drug-
+Bank/KIBA datasets. The system achieves 55.34%
+recall via dynamic Top-K+3 selection, validated by
+1,221 experimental interactions and case studies like
+Equol-CXCR3 binding (docking score: -8.4 kcal/mol).
+This work establishes a template for LLM-powered
+scientific discovery beyond drug-target prediction.
+
+6 Limitations
+
+While DrugMCTS demonstrates significant improve-
+ments over baseline models, several limitations high-
+light opportunities for further optimization:
+
+4.3 Computation Overhead Results
+
+For inference time scaling, the discussion typically re-
+volves around two key aspects: the trade-off between
+model performance improvement and additional com-
+putational overhead. Therefore, in this section, we
+first analyze the impact of different rollout num-
+bers on model performance and then compare the
+performance-overhead profile with baseline models.
+
+Our analysis (Figure 5 and Figure 6) reveals that
+when the number of rollouts increases from 8 to 12,
+both Top-K and Top-K+3 metrics exhibit signifi-
+cant improvements across the two datasets. However,
+further increasing the rollout count from 12 to 24
+only yields a notable gain in the Top-K+3 metric
+
+– Despite achieving more than 20% recall gains over
+Deepseek-R1 (Table 1), the absolute performance
+(55.34% recall) suggests untapped optimization
+potential. The plateau in gains beyond 12 rollouts
+indicates diminishing returns from current MCTS
+configurations.
+
+– Current predictions primarily leverage PDB-
+derived binding pocket data (Section 2.4), omit-
+ting higher-order biological context. Future work
+may augment the framework with knowledge
+graph or Pathway activation score.
+
+– The combined relative/absolute reward system
+(Eq. 6) yields only around 1% improvement over
+relative-only rewards, suggesting the necessities
+of a more effective reward system.
+
+References
+
+1. D´avid Bajusz, Anita R´acz, and K´aroly H´eberger.
+Why is tanimoto index an appropriate choice for
+fingerprint-based similarity calculations? Journal of
+cheminformatics, 7:1–13, 2015.
+
+2. Guillaume Maurice Jean-Bernard Chaslot Chaslot.
+
+Monte-carlo tree search. 2010.
+
+3. Xinhao Che, Yujing Zhao, Qilei Liu, Fang Yu, Hanyu
+Gao, and Lei Zhang. Csstep: Step-by-step exploration
+of the chemical space of drug molecules via multi-
+agent and multi-stage reinforcement learning. Chem-
+ical Engineering Science, page 122048, 2025.
+
+4. Yiqun Chen, Lingyong Yan, Weiwei Sun, Xinyu
+Ma, Yi Zhang, Shuaiqiang Wang, Dawei Yin, Yim-
+ing Yang, and Jiaxin Mao.
+Improving retrieval-
+augmented generation through multi-agent reinforce-
+ment learning.
+arXiv preprint arXiv:2501.15228,
+2025.
+
+5. Adrien Cou¨etoux, Jean-Baptiste Hoock, Nataliya
+Sokolovska, Olivier Teytaud, and Nicolas Bonnard.
+Continuous upper confidence trees. In Learning and
+Intelligent Optimization: 5th International Confer-
+ence, LION 5, Rome, Italy, January 17-21, 2011. Se-
+lected Papers 5, pages 433–445. Springer, 2011.
+
+6. Carl Edwards, Ziqing Lu, Ehsan Hajiramezanali,
+Tommaso Biancalani, Heng Ji, and Gabriele Scalia.
+Molcap-arena: A comprehensive captioning bench-
+mark on language-enhanced molecular property pre-
+diction. arXiv preprint arXiv:2411.00737, 2024.
+7. Daya Guo, Dejian Yang, Haowei Zhang, Junxiao
+Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong
+Ma, Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incen-
+tivizing reasoning capability in llms via reinforcement
+learning. arXiv preprint arXiv:2501.12948, 2025.
+8. Ruth Huey, Garrett M Morris, Stefano Forli, et al.
+Using autodock 4 and autodock vina with autodock-
+tools: a tutorial. The Scripps Research Institute
+Molecular Graphics Laboratory, 10550(92037):1000,
+2012.
+
+9. Aaron Hurst, Adam Lerer, Adam P Goucher, Adam
+Perelman, Aditya Ramesh, Aidan Clark, AJ Os-
+trow, Akila Welihinda, Alan Hayes, Alec Rad-
+ford, et al. Gpt-4o system card.
+arXiv preprint
+arXiv:2410.21276, 2024.
+
+10. Jan Hutter, David Rau, Maarten Marx, and Jaap
+Kamps. Lost but not only in the middle: Positional
+bias in retrieval augmented generation. In European
+Conference on Information Retrieval, pages 247–261.
+Springer, 2025.
+
+11. Yoshitaka Inoue, Tianci Song, Xinling Wang, Au-
+gustin Luna, and Tianfan Fu. Drugagent: Multi-agent
+large language model-based reasoning for drug-target
+interaction prediction. In ICLR 2025 Workshop on
+Machine Learning for Genomics Explorations, 2025.
+12. Craig Knox, Mike Wilson, Christen M Klinger, Mark
+Franklin, Eponine Oler, Alex Wilson, Allison Pon,
+Jordan Cox, Na Eun Chin, Seth A Strawbridge, et al.
+Drugbank 6.0: the drugbank knowledgebase for 2024.
+Nucleic acids research, 52(D1):D1265–D1275, 2024.
+
+13. Ingoo Lee, Jongsoo Keum, and Hojung Nam.
+Deepconv-dti: Prediction of drug-target
+interac-
+tions via deep learning with convolution on pro-
+tein sequences.
+biology,
+15(6):e1007129, 2019.
+
+PLoS computational
+
+14. Namkyeong Lee, Edward De Brouwer, Ehsan Haji-
+ramezanali, Tommaso Biancalani, Chanyoung Park,
+and Gabriele Scalia. Rag-enhanced collaborative
+llm agents for drug discovery.
+arXiv preprint
+arXiv:2502.17506, 2025.
+
+15. Boyan Li, Jiayi Zhang, Ju Fan, Yanwei Xu, Chong
+Chen, Nan Tang, and Yuyu Luo. Alpha-sql: Zero-
+shot text-to-sql using monte carlo tree search. arXiv
+preprint arXiv:2502.17248, 2025.
+
+16. Nelson F Liu, Kevin Lin, John Hewitt, Ashwin Paran-
+jape, Michele Bevilacqua, Fabio Petroni, and Percy
+Liang. Lost in the middle: How language models
+use long contexts. arXiv preprint arXiv:2307.03172,
+2023.
+
+17. Sizhe Liu, Yizhou Lu, Siyu Chen, Xiyang Hu, Jieyu
+Zhao, Yingzhou Lu, and Yue Zhao. Drugagent:
+Automating ai-aided drug discovery programming
+through llm multi-agent collaboration. arXiv preprint
+arXiv:2411.15692, 2024.
+
+18. Kun Luo, Zheng Liu, Peitian Zhang, Hongjin Qian,
+Jun Zhao, and Kang Liu. Does rag really per-
+form bad for long-context processing? arXiv preprint
+arXiv:2502.11444, 2025.
+
+19. Cuong V Nguyen, Alessandro Achille, Michael Lam,
+Tal Hassner, Vijay Mahadevan, and Stefano Soatto.
+Toward understanding catastrophic forgetting in con-
+tinual
+arXiv preprint arXiv:1908.01091,
+2019.
+
+learning.
+
+20. Ngoc-Quang Nguyen, Gwanghoon Jang, Hajung
+Kim, and Jaewoo Kang. Perceiver cpi: a nested cross-
+attention network for compound–protein interaction
+prediction. Bioinformatics, 39(1):btac731, 2023.
+21. Thin Nguyen, Hang Le, Thomas P Quinn, Tri
+Nguyen, Thuc Duy Le, and Svetha Venkatesh.
+Graphdta: predicting drug–target binding affin-
+ity with graph neural networks. Bioinformatics,
+37(8):1140–1147, 2021.
+
+22. Tolga S¸akar and Hakan Emekci. Maximizing rag effi-
+ciency: A comparative analysis of rag methods. Nat-
+ural Language Processing, 31(1):1–25, 2025.
+
+23. Kevin Song, Andrew Trotter, and Jake Y Chen. Llm
+agent swarm for hypothesis-driven drug discovery.
+arXiv preprint arXiv:2504.17967, 2025.
+24. Matt Swain. Pubchempy documentation.
+
+In Pub-
+
+ChemPy documentation. 2014.
+
+25. Jing Tang, Agnieszka Szwajda, Sushil Shakyawar,
+Tao Xu, Petteri Hintsanen, Krister Wennerberg, and
+Tero Aittokallio. Making sense of large-scale kinase
+inhibitor bioactivity data sets: a comparative and in-
+tegrative analysis. Journal of chemical information
+and modeling, 54(3):735–743, 2014.
+
+26. Qwen Team. Qwen2 technical report. arXiv preprint
+
+arXiv:2412.15115, 2024.
+
+27. Joren Van Herck, Mar´ıa Victoria Gil, Kevin Maik
+Jablonka, Alex Abrudan, Andy S Anker, Mehrdad
+
+Asgari, Ben Blaiszik, Antonio Buffo, Leander Choud-
+hury, Clemence Corminboeuf, et al. Assessment of
+fine-tuned large language models for real-world chem-
+istry and material science applications. Chemical sci-
+ence, 16(2):670–684, 2025.
+
+39. Yizhen Zheng, Huan Yee Koh, Maddie Yang, Li Li,
+Lauren T May, Geoffrey I Webb, Shirui Pan, and
+George Church. Large language models in drug dis-
+covery and development: From disease mechanisms to
+clinical trials. arXiv preprint arXiv:2409.04481, 2024.
+
+28. Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc
+Le, Ed Chi, Sharan Narang, Aakanksha Chowdhery,
+and Denny Zhou. Self-consistency improves chain of
+thought reasoning in language models. arXiv preprint
+arXiv:2203.11171, 2022.
+
+29. Jinhang Wei, Linlin Zhuo, Xiangzheng Fu, XiangXi-
+ang Zeng, Li Wang, Quan Zou, and Dongsheng Cao.
+Drugrealign: a multisource prompt framework for
+drug repurposing based on large language models.
+BMC biology, 22(1):226, 2024.
+
+30. Jacob White. Pubmed 2.0. Medical reference services
+
+quarterly, 39(4):382–387, 2020.
+
+31. Zerui Yang, Yinqiao Li, Yudai Matsuda, and Linqi
+Song. mhmg-dti: A drug-target interaction prediction
+framework combining modified hierarchical molecular
+graphs and improved convolutional block attention
+module.
+In Trends and Applications in Knowledge
+Discovery and Data Mining: PAKDD 2025 Work-
+shops, ADUR, FairPC, GLFM, PM4B and RAFDA,
+Sydney, NSW, Australia, June 10–13, 2025, Proceed-
+ings, volume 15835, page 191. Springer Nature, 2025.
+32. Zerui Yang, Wei Shao, Yudai Matsuda, and Linqi
+Song. iresnetdm: An interpretable deep learning ap-
+proach for four types of dna methylation modification
+prediction. Computational and Structural Biotechnol-
+ogy Journal, 23:4214–4221, 2024.
+
+33. Geyan Ye, Xibao Cai, Houtim Lai, Xing Wang, Jun-
+hong Huang, Longyue Wang, Wei Liu, and Xiangx-
+iang Zeng. Drugassist: A large language model for
+molecule optimization. Briefings in Bioinformatics,
+26(1):bbae693, 2025.
+
+34. Shuguang Yuan, HC Stephen Chan, and Zhenquan
+Hu. Using pymol as a platform for computational
+drug design. Wiley Interdisciplinary Reviews: Com-
+putational Molecular Science, 7(2):e1298, 2017.
+35. Peidong Zhang, Xingang Peng, Rong Han, Ting
+Chen, and Jianzhu Ma. Rag2mol: Structure-based
+drug design based on retrieval augmented generation.
+Briefings in Bioinformatics, 26(3):bbaf265, 2025.
+36. Wei Zhang, Qinggong Wang, Xiangtai Kong, Ji-
+acheng Xiong, Shengkun Ni, Duanhua Cao, Buying
+Niu, Mingan Chen, Yameng Li, Runze Zhang, et al.
+Fine-tuning large language models for chemical text
+mining. Chemical Science, 15(27):10600–10611, 2024.
+37. Qichang Zhao, Fen Xiao, Mengyun Yang, Yaohang Li,
+and Jianxin Wang. Attentiondta: prediction of drug–
+target binding affinity using attention model. In 2019
+IEEE international conference on bioinformatics and
+biomedicine (BIBM), pages 64–69. IEEE, 2019.
+38. Yizhen Zheng, Huan Yee Koh, Jiaxin Ju, Anh TN
+Nguyen, Lauren T May, Geoffrey I Webb, and Shirui
+Pan. Large language models for scientific discovery
+in molecular property prediction. Nature Machine
+Intelligence, pages 1–11, 2025.
+
+A Appendix
+
+Algorithm 1 A single MCTS rollout within the DrugMCTS framework.
+
+Require: Query molecule Mqm
+Ensure: Selected protein Ps, final reward Rfinal(p∗)
+1: // A1 Retrieval Action
+2: Compute Tanimoto and ChemBERTa cosine similarities
+3: Mcm ← dedup(Top10(simT ) ∪ Top10(simC ))
+4: Pcp ← Proteins interacting with Mcm
+5: // A2 Molecule Analysis Action
+6: (Cq,s, Cq,phy) ← RDKit+PubChem(Mqm)
+7: Rqm ← Generate textual summary from (Cq,s, Cq,phy)
+8: // A3 Molecule Selection Action
+9: For all m ∈ Mcm: extract (Cc,s, Cc,phy) using MA agent
+10: Mrm ← MS Agent(Mqm, Rqm, Mcm, Cc,s, Cc,phy)
+11: Prp ← Proteins in Pcp interacting with Mrm
+12: // A4 Interaction Analysis Action
+13: Dbp ← Extract pockets from PDBs via PLIP
+14: Lrp ← Retrieve protein literature from PubMed
+15: Ria ← IA Agent(Mrm, Prp, Dbp, Lrp)
+16: // A5 Protein Selection Action
+17: Ps ← Decision Agent(Mqm, Rqm, Mrm, Prp, Dbp, Ria)
+18: // A6 End Action
+19: Perform backpropagation in MCTS from end node
+20: // Reward Calculation
+21: Query model k times to get selections {p(1), . . . , p(k)}
+22: p∗ ← most frequently selected candidate
+23: Rrelative(p∗) ← #times p∗ is selected
+24: Feed (Ps, Dbp, Lrp, Mqm, Rqm) to decision model k times
+25: Rabsolute(p∗) ← #‘yes’ responses
+26: Return: Ps, Rfinal(p∗) = Rrelative(p∗)+Rabsolute(p∗)
+
+k
+
+k
+
+2
+
+Algorithm 2 MCTS for DrugMCTS
+
+Require: Query molecule Mqm, number of simulations N
+Ensure: Selected protein Ps
+1: Initialize root node s0 with Mqm
+2: for i = 1 to N do
+3:
+4:
+5:
+6:
+7: end for
+8: return Ps ← BestChild(s0) based on average reward
+
+sleaf ← Select(s0) using UCT
+schild ← Expand(sleaf)
+Ri ← Rollout(schild)
+Backpropagate reward Ri to update tree
+
+▷ See Algorithm 1
+
+A.1 Dataset Construction
+
+Experimental Dataset. We first extracted all molecules from the original dataset and computed both
+Tanimoto similarity and cosine similarity between each pair. For each molecule, we selected the top 10 most
+similar molecules based on each metric, merged the results, and removed duplicates to form the candidate
+
+molecule set Mcm. Each unique query molecule paired with its corresponding Mcm constitutes one problem
+instance. These problem instances were further filtered according to the following criteria:
+
+– For each query molecule, the number of associated interacting proteins must be between 2 and 10.
+– For each candidate molecule in Mcm, the number of associated interacting proteins must be between 2
+
+and 4.
+
+– The total number of candidate molecules per query must not exceed 15.
+
+Table 3: Experimental Dataset Statistics
+
+Dataset
+
+Processed Points All Proteins Ground Truth Unique Molecules All Molecules
+
+DrugBank
+KIBA
+
+788
+626
+
+22 508
+23 849
+
+1595
+1664
+
+1304
+752
+
+7717
+6219
+
+We then extracted all proteins that interact with any molecule in Mcm, denoted as Pcp (as mentioned
+in Section 2.4). Additionally, we collected all proteins that directly interact with the query molecule. The
+intersection of these two protein sets was defined as the ground truth set. The ground truth set must satisfy
+the following constraints:
+
+– Its size must be between 1 and 5.
+– Its size must not exceed 70% of the size of the candidate protein set.
+
+Baseline Dataset. This dataset is derived from the Experimental Dataset, with the following modifica-
+
+tions:
+
+– Only the query molecules, the candidate protein set Pcp, and the ground truth set are retained.
+– All candidate molecules Mcm are removed.
+
+Table 4: Baseline Dataset Statistics
+
+Dataset
+
+DB
+KIBA
+
+Ground Truth
+
+All Proteins
+
+Ratio (%)
+
+1595
+1664
+
+14 654
+10 593
+
+10.88
+15.71
+
+Deep Learning Dataset. From the original dataset, we extracted all data instances involving the query
+molecules from the Experimental Dataset to form the test set. The remaining data were used as the training
+set.
+
+A.2 Case Study
+
+We manually selected a molecular-protein interaction with the highest self-consistency score that has never
+been previously reported: Equol (DrugBank ID: DB11674) and CXC chemokine receptor 3 (CXCR3, PDB
+ID: 8K2W). The binding affinity predicted by AutoDock Vina was -8.4 kcal/mol, indicating a strong potential
+interaction between the two. Visualization using PyMOL [34] revealed that Equol can bind within one of
+the binding pockets of CXCR3 and form hydrogen bonds, as evidenced by the continuous red dots in the
+lower-right corner of Appendix Figure 7(b). This observation is consistent with the reasoning generated by
+the large language model during the molecule analysis, protein selection, and absolute reward calculation
+stages, thereby validating the effectiveness of our framework.
+
+(a)
+
+(b)
+
+Fig. 5: Number of rollouts vs Recall score on (a) DrugBank and (b) KIBA dataset
+
+(a)
+
+(b)
+
+Fig. 6: Number of tokens vs Recall score on (a) DrugBank and (b) KIBA dataset
+
+Table 5: Deep Learning Dataset Statistics
+
+Dataset Split Negative Positive Total
+
+DrugBank
+
+KIBA
+
+Train
+Test
+
+Train
+Test
+
+14,787
+1,960
+
+62,553
+31,643
+
+12,428 27,215
+4,111 6,071
+
+17,350 79,903
+4,804 36,447
+
+(a)
+
+(b)
+
+Fig. 7: Protein-ligand docking results between (a) global binding site overview and (b) detailed interaction
+view, computed by AutoDock Vina with default scoring function and visualized using PyMOL.
+
+Fig. 8: Answers generated by the model

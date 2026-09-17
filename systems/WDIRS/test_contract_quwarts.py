@@ -327,6 +327,59 @@ def test_semantic_routing_timeout_opens_fallback_circuit(tmp_path):
     assert routes["place"] == ("opaque-place",)
 
 
+def test_contract_attribute_pass_skips_cells_supplied_by_bulk(tmp_path):
+    class RejectingClient:
+        def generate(self, _prompt, **_kwargs):
+            raise AssertionError("bulk-covered attribute was re-extracted")
+
+    document = SourceDocument(
+        "opaque-record",
+        "Alpha record\nThe detail is OMEGA.",
+    )
+    contract = WorkloadContract(
+        entities=(EntityContract("record"),),
+        attributes=(AttributeContract("record", "detail"),),
+        relationships=(),
+    )
+    entity_record = ExtractionRecord(
+        entity="record",
+        attribute=None,
+        identity="Alpha record",
+        value="Alpha record",
+        exact_span="Alpha record",
+        unit=None,
+        document_id=document.document_id,
+        unit_id=document.document_id,
+        span_start=0,
+        span_end=12,
+    )
+    bulk_record = ExtractionRecord(
+        entity="record",
+        attribute="detail",
+        identity="bulk-row",
+        value="OMEGA",
+        exact_span="OMEGA",
+        unit=None,
+        document_id=document.document_id,
+        unit_id=document.document_id,
+        span_start=27,
+        span_end=32,
+    )
+    with EvidenceStore(tmp_path / "bulk-skip.sqlite") as store:
+        extractor = ContractExtractor(
+            (document,),
+            RejectingClient(),
+            store,
+        )
+        records = extractor.extract_attributes(
+            contract,
+            (entity_record,),
+            existing_records=(bulk_record,),
+        )
+
+    assert records == ()
+
+
 def test_missing_opaque_primary_keys_receive_pathless_stable_surrogates():
     relation = RelationSpec(
         name="disease",
@@ -997,7 +1050,7 @@ def test_extract_holds_mapping_escrow_until_combined_mapping_pass(
         monkeypatch.setattr(
             extractor,
             "extract_attributes",
-            lambda _contract, _entities: (),
+            lambda _contract, _entities, **_kwargs: (),
         )
         monkeypatch.setattr(
             extractor,
@@ -4318,3 +4371,76 @@ def test_contract_modules_do_not_contain_benchmark_path_literals():
     ):
         source = (root / name).read_text(encoding="utf-8").lower()
         assert not any(value in source for value in forbidden)
+
+
+def test_budgeted_rows_skips_transient_connection_error(tmp_path):
+    from unittest.mock import Mock
+
+    from openai import APIConnectionError
+
+    class BoomClient:
+        def generate(self, *args, **kwargs):
+            raise APIConnectionError(request=Mock())
+
+    document = type(
+        "Document",
+        (),
+        {"document_id": "d1", "text": "Alpha 1", "metadata": {}},
+    )()
+    with EvidenceStore(tmp_path / "transient.sqlite") as store:
+        extractor = ContractExtractor(
+            (document,),
+            BoomClient(),
+            store,
+            max_workers=1,
+        )
+        rows = extractor._budgeted_rows(
+            target="calculation:legal:d1",
+            phase="calculation",
+            prompt="return []",
+            unit=extractor.units[0],
+            max_tokens=32,
+        )
+    assert rows == []
+    assert extractor.transient_failures[0]["target"] == "calculation:legal:d1"
+    assert extractor.transient_failures[0]["error_type"] == "APIConnectionError"
+
+
+def test_budgeted_client_retries_transient_then_succeeds(monkeypatch):
+    from unittest.mock import Mock
+
+    from openai import APIConnectionError
+
+    import extractor as extractor_module
+    from extractor import OllamaClient
+
+    monkeypatch.setenv("SPP_LLM_TRANSIENT_RETRIES", "3")
+    monkeypatch.setattr(extractor_module, "OLLAMA_RETRY_DELAY", 0)
+    calls = {"n": 0}
+
+    class Usage:
+        prompt_tokens = 1
+        completion_tokens = 1
+
+    class Message:
+        content = "[]"
+
+    class Choice:
+        message = Message()
+
+    class Response:
+        choices = [Choice()]
+        usage = Usage()
+
+    def create(**kwargs):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise APIConnectionError(request=Mock())
+        return Response()
+
+    client = OllamaClient(base_url="http://127.0.0.1:9/v1", model="test")
+    client.external_budget_retry_control = True
+    client.client.chat.completions.create = create
+    assert client.generate("ping", max_tokens=8) == "[]"
+    assert calls["n"] == 3
+

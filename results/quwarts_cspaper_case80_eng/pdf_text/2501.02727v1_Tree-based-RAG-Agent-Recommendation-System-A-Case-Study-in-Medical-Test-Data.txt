@@ -1,0 +1,826 @@
+A Tree-based RAG-Agent Recommendation
+System: A Case Study in Medical Test Data
+
+Yahe Yang
+George Washington University
+yahe.yang@gwu.edu
+
+Chengyue Huang
+University of Iowa
+chengyue-huang@uiowa.edu
+*Corresponding author
+
+5
+2
+0
+2
+
+n
+a
+J
+
+6
+
+]
+
+R
+
+I
+.
+s
+c
+[
+
+1
+v
+7
+2
+7
+2
+0
+.
+1
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract—We present HiRMed (Hierarchical RAG-enhanced
+Medical Test Recommendation), a novel tree-structured rec-
+ommendation system that leverages Retrieval-Augmented Gen-
+eration (RAG) for intelligent medical test recommendations.
+Unlike traditional vector similarity-based approaches, our sys-
+tem performs medical reasoning at each tree node through a
+specialized RAG process. Starting from the root node with initial
+symptoms, the system conducts step-wise medical analysis to
+identify potential underlying conditions and their correspond-
+ing diagnostic requirements. At each level,
+instead of simple
+matching, our RAG-enhanced nodes analyze retrieved medical
+knowledge to understand symptom-disease relationships and
+determine the most appropriate diagnostic path. The system dy-
+namically adjusts its recommendation strategy based on medical
+reasoning results, considering factors such as urgency levels and
+diagnostic uncertainty. Experimental results demonstrate that
+our approach achieves superior performance in terms of coverage
+rate, accuracy, and miss rate compared to conventional retrieval-
+based methods. This work represents a significant advance in
+medical test recommendation by introducing medical reasoning
+capabilities into the traditional tree-based retrieval structure.
+
+Index Terms—Medical Test Recommendation; Retrieval-
+Augmented Generation; Tree-based Recommendation; Medical
+Reasoning; Large Language Models; Healthcare Decision Sup-
+port
+
+I. INTRODUCTION
+
+Medical test recommendation plays a pivotal role in modern
+healthcare systems, directly influencing diagnostic accuracy,
+treatment outcomes, and resource utilization. While traditional
+approaches like rule-based systems and similarity-based re-
+trieval methods have been widely used, they often fall short
+in capturing the nuanced, context-dependent nature of medi-
+cal diagnosis. The challenge lies not only in recommending
+appropriate diagnostic tests based on patient symptoms but
+also in considering the complex interplay of medical priorities,
+resource constraints, and diagnostic uncertainty.
+
+Recent advances in large language models (LLMs) and
+retrieval-augmented generation (RAG) have shown promising
+results in various healthcare applications. However, their direct
+application to medical
+test recommendations faces several
+critical
+limitations. These include the lack of hierarchical
+reasoning structure that mirrors medical diagnostic processes,
+insufficient integration of domain-specific medical knowledge
+at different diagnostic stages, limited ability to maintain and
+utilize reasoning history throughout the recommendation pro-
+
+cess, and the challenge in balancing between comprehensive
+coverage and targeted specificity in test recommendations.
+
+To address these limitations, we propose HiRMed (Hierar-
+chical RAG-enhanced Medical Test Recommendation), a novel
+system that combines hierarchical reasoning structures with
+RAG-enhanced medical decision support. Our approach is
+distinguished by three key innovations. First, our Hierarchical
+RAG Architecture implements a tree-structured architecture
+where each node incorporates specialized RAG processes,
+enabling progressive refinement of recommendations through
+multiple levels of medical reasoning, from general symptom
+assessment
+to specific test selection. Second, our system
+features Dynamic Knowledge Integration with a dual-layer
+knowledge base architecture - a root-level knowledge base
+for broader medical understanding and department-specific
+knowledge bases for specialized diagnostic considerations.
+This structure enables more precise and context-aware recom-
+mendations at different stages of the diagnostic process. Third,
+HiRMed incorporates Memory-Augmented Reasoning with a
+sophisticated memory mechanism that maintains reasoning
+history across nodes, enabling coherent and comprehensive
+diagnostic paths while avoiding redundant or conflicting rec-
+ommendations.
+
+The significance of our work extends beyond theoretical
+innovation. Through comprehensive empirical evaluation, we
+demonstrate that HiRMed achieves higher accuracy in test
+recommendations compared to traditional approaches,
+im-
+lower miss
+proved coverage of potential diagnostic paths,
+rates for critical diagnostic tests, and better interpretability
+of recommendation rationale through explicit reasoning paths.
+This paper presents both the theoretical framework under-
+pinning HiRMed and its practical implementation, providing
+a blueprint for next-generation medical test recommendation
+systems that combine the power of LLMs with structured
+medical reasoning.
+
+II. RELATED WORK
+
+The intersection of artificial intelligence and healthcare has
+seen significant advances, particularly in the realm of recom-
+mendation systems for diagnostic and treatment purposes. This
+section reviews existing work in tree-based recommendation
+systems, Retrieval-Augmented Generation (RAG), and their
+applications in medical diagnostics.
+
+ 
+ 
+ 
+ 
+ 
+ 
+Tree-based recommendation systems have long been a cor-
+nerstone of decision support systems, leveraging hierarchical
+structures to mirror human decision-making processes. For
+instance, hierarchical models have been applied to stratify
+patient symptoms and align them with diagnostic categories
+[1]–[3]. These models have shown promise in reducing the
+complexity of diagnostic workflows by breaking them into
+manageable, structured layers. These systems often rely on
+static rule-based approaches,
+limiting their adaptability to
+dynamic medical data and evolving clinical guidelines [4], [5].
+Retrieval-Augmented Generation (RAG) has emerged as a
+transformative approach in natural language processing, com-
+bining retrieval mechanisms with generative models. Lewis et
+al. [6] introduced RAG to enhance generative models by in-
+corporating retrieved documents, demonstrating improvements
+in tasks requiring factual grounding. This approach excels in
+providing evidence-based answers in open-domain question
+answering, where retrieved contextual
+information signifi-
+cantly improves response quality. While RAG has been ex-
+plored in such contexts, its application to structured, domain-
+specific tasks like medical diagnostics remains underexplored.
+Notable exceptions include Miao et al. [7], who used RAG for
+symptom-to-disease mapping but lacked a hierarchical struc-
+ture to emulate the structured reasoning essential in medical
+diagnostics.
+
+In the context of medical test recommendations, prior stud-
+ies have predominantly utilized similarity-based methods. Tra-
+ditional approaches match patient symptoms to diagnostic tests
+using vector similarity [8]–[10]. While effective in straightfor-
+ward cases, these methods may have limits in incorporating
+nuanced medical reasoning, leading to oversights in complex
+diagnostic scenarios.
+
+Recent advancements in hierarchical reasoning systems of-
+fer promising alternatives. For example, Zhang et al. [11]
+proposed dynamic hierarchical interactions between the QA
+context and knowledge graph for reasoning, emphasizing the
+importance of maintaining a reasoning history. Their work
+demonstrated that hierarchical structures not only enhance
+interpretability but also provide a mechanism for systemati-
+cally refining diagnostic hypotheses. This aligns closely with
+the objectives of HiRMed, which incorporates a memory-
+augmented reasoning mechanism to ensure coherence across
+diagnostic steps. By retaining context from earlier stages of
+the recommendation process, such systems mitigate the risk
+of inconsistent or fragmented diagnostic paths.
+
+Furthermore, domain-specific knowledge integration re-
+mains a critical challenge in medical recommendation systems.
+Studies integrate clinical guidelines into recommendation al-
+gorithms underscore the value of combining general medical
+knowledge with specialized insights [12]–[14]. Their work
+provides a foundation for HiRMed’s dual-layer knowledge
+base architecture, which balances breadth and depth in medical
+reasoning. This dual-layer structure not only facilitates broad
+initial assessments but also enables precise, context-aware
+recommendations in specialized domains such as cardiology
+or endocrinology. By embedding both general and department-
+
+specific medical knowledge into a unified framework, such
+systems can dynamically adapt to the requirements of diverse
+clinical scenarios.
+
+In summary, while existing systems have made strides in
+applying hierarchical models, RAG, and knowledge integration
+to healthcare, gaps remain in their ability to perform dynamic,
+context-aware medical reasoning. HiRMed addresses these
+gaps by synthesizing hierarchical tree-based structures, RAG-
+enhanced reasoning, and memory mechanisms, offering a
+novel approach to medical test recommendation.
+
+III. METHODOLOGY
+
+A. Dataset and Knowledge Base
+
+Our system focuses on recommending medical tests in an
+outpatient setting, leveraging both structured patient data and
+comprehensive medical knowledge. To facilitate Retrieval-
+Augmented Generation (RAG), we compile an extensive
+dataset of outpatient visits and construct layered knowledge
+bases that integrate both general and department-specific med-
+ical information.
+
+1) Dataset: We collect outpatient visit records from mul-
+tiple hospital departments. Each record captures the patient’s
+initial consultation, including physical parameters and present-
+ing symptoms, as well as the diagnostic tests recommended
+by the physician. Over the course of treatment, additional
+diagnostic tests may also be performed, and these are recorded
+in our dataset alongside subsequent physician notes, final
+diagnoses, and treatment outcomes. By documenting both
+the initially recommended tests and any supplementary tests
+administered later, our dataset provides a comprehensive view
+of each patient’s diagnostic and treatment pathway.
+
+All outpatient records are preprocessed by removing per-
+sonally identifiable information and standardizing key medical
+terms to ensure consistency across various hospital information
+systems. This results in a structured dataset containing fields
+such as patient demographics, reported symptoms, recom-
+mended diagnostic tests, follow-up tests, and corresponding
+clinical outcomes.
+
+2) Knowledge Base Construction: We build a two-tiered
+
+knowledge base to enable hierarchical reasoning:
+
+1) Knowledge Base for Departments. This repository cov-
+ers broad, department-level medical knowledge (e.g.,
+cardiology, endocrinology). Entries include standard
+disease–symptom correlations, commonly prescribed
+tests, and high-level clinical guidelines that apply to each
+specialty.
+
+2) Knowledge Base for Department Testing Items. This
+repository contains more granular information regarding
+individual diagnostic tests (e.g., indications, interpreta-
+tions, normal ranges). Each department has a specialized
+subset, allowing more precise recommendations for spe-
+cific conditions.
+
+All textual knowledge in these repositories is embedded into
+a high-dimensional vector space using an OpenAI embedding
+model (e.g., text-embedding-ada-002). The embed-
+dings are indexed in a FAISS-based vector database, which
+
+supports rapid similarity searches. This embedding process en-
+ables the system to dynamically retrieve relevant content based
+on a patient’s query, thus powering the retrieval-augmented
+generation steps at each stage of the recommendation pipeline.
+
+B. Model Selections
+
+Our hierarchical recommendation system incorporates three
+central models to handle vector representations, natural lan-
+guage reasoning, and final weighting of test suggestions. Each
+model is selected for its strengths in a particular aspect of the
+RAG workflow.
+
+1) Embedding Model: We employ OpenAI’s Embedding
+API to convert both patient queries and knowledge-base text
+into numerical vectors. This transformation process captures
+nuanced semantic relationships, which is especially crucial for
+retrieving domain-relevant content in medical settings. The
+resulting embeddings are of manageable dimensionality, which
+allows for efficient similarity searches in the FAISS vector
+database. As a result, our system can swiftly locate high-value
+records or guidelines that match the patient’s symptoms and
+history.
+
+2) LLM API (GPT-O1): The GPT-O1 large language model
+serves as the core reasoning engine. It processes the text
+retrieved from the vector database, aligns it with the patient’s
+context, and formulates initial or refined recommendations at
+each layer of the hierarchy. Through multi-turn interactions
+and dynamic prompts, GPT-O1 can generate intermediate
+diagnostic hypotheses and produce human-readable explana-
+tions that shed light on its reasoning. These outputs are
+instrumental in constructing a more interpretable and coherent
+test recommendation process.
+
+3) Weight Model (Fine-tuned LLaMA3.2-3B): We further
+enhance our recommendation pipeline with a fine-tuned ver-
+sion of LLaMA3.2-3B, which assigns weights or priorities to
+each recommended diagnostic test. The fine-tuning is con-
+ducted on historical outpatient data where each test has an
+associated physician-annotated relevance score. By learning
+from these annotations, the weight model can factor in patient
+demographics, symptom severity, and known comorbidities
+when ranking the final recommendations. This weighting
+mechanism is critical in distinguishing high-priority tests from
+those that may be secondary or less immediately necessary.
+
+C. Model Architecture
+
+Figure 1a illustrates the three-layer hierarchical architecture
+of our RAG-based medical test recommendation system. The
+design emulates real-world diagnostic logic by transitioning
+from broad, department-level considerations to specific test
+recommendations.
+
+1) Root Layer: Initial Analysis and Department Routing: In
+the Root layer, the system takes the patient’s query (symptoms
+and other relevant data) and encodes it into a vector represen-
+tation using the chosen embedding model. The vector database
+is then queried for semantically related information from
+the department-level knowledge base. GPT-O1 processes the
+retrieved documents alongside the patient context to identify
+
+TABLE I: Hierarchical Architecture Components and Their
+Functions
+
+Layer
+Root
+
+Department
+
+Item
+
+Key Components
+
+Processing Functions
+
+• Knowledge Base for
+
+Departments
+
+• Embedding Model
+• Vector Database
+• User Query Node
+
+• Department-specific
+Knowledge Base
+• Child Node Process-
+
+ing
+
+• Vector Database
+• Memory
+
+Management
+
+• Memory System
+• Root/Child Nodes
+• Process Units
+• Weight Model
+
+• Document
+Embedding
+
+• Query and Embed-
+ded Query Process-
+ing
+
+• Memory Storage and
+
+Retrieval
+
+• LLM-based Analysis
+
+• Specialized Knowl-
+
+edge Retrieval
+
+• Department-specific
+Query Processing
+• Weight Model Appli-
+
+cation
+• Structured
+Generation
+
+Output
+
+• Flag-based Inference
+• Item-level
+Processing
+
+• Memory
+
+Storage/Retrieval
+• Final Result Genera-
+
+tion
+
+potential diagnostic categories or specialties that should be
+explored. The fine-tuned LLaMA3.2-3B model subsequently
+assigns weights to each recommended specialty, allowing the
+system to rank and prioritize which departments may require
+more immediate attention.
+
+layer’s output,
+
+2) Department Layer: Specialty-Specific Reasoning: Based
+on the Root
+the system transitions to the
+Department layer. Here, it retrieves domain-specific knowl-
+edge relevant to the selected specialty. GPT-O1 refines the
+diagnostic hypotheses by leveraging specialized guidelines,
+common presenting complaints, and department-focused pro-
+tocols. This refined reasoning stage often involves narrowing
+down potential tests from a general list to those that align
+more closely with the patient’s clinical picture in the chosen
+specialty. LLaMA3.2-3B then updates the test prioritization,
+considering the context of that department’s typical patient
+risks and medical standards.
+
+3) Item Layer: Final Test Recommendations and Weighting:
+In the final Item layer, a memory component consolidates the
+intermediate decisions and flagged symptoms to ensure conti-
+nuity. GPT-O1 performs item-level reasoning, identifying the
+most appropriate diagnostic tests and resolving any inconsis-
+tencies or redundancies that might arise from previous layers.
+The fine-tuned LLaMA3.2-3B model then assigns definitive
+weights, reflecting the urgency or clinical utility of each test
+within the broader diagnostic strategy. The system ultimately
+produces a ranked list of recommended tests, accompanied by
+interpretive scores that highlight the underlying reasoning and
+urgency.
+
+(a) HiRMed System Architecture
+
+(b) HiRMed Workflow
+
+Fig. 1: HiRMed System Overview
+
+4) Benefits of the Hierarchical Strategy: Breaking down the
+recommendation process into these three layers enables more
+targeted retrieval, clearer interpretability, and better alignment
+with the medical decision-making process. The Root layer
+effectively broadens the diagnostic net, the Department layer
+introduces specialist insight, and the Item layer ensures that
+final test recommendations are both clinically focused and
+context-aware. The multi-layered approach, combined with a
+dedicated memory component and weighting mechanism, pro-
+vides an adaptive framework that accommodates the complex-
+ity of real outpatient scenarios while maintaining transparent
+and consistent medical reasoning.
+
+Table I presents a concise summary of the key activities
+and outputs at each layer of our hierarchical RAG-enhanced
+system.
+
+We focused our evaluation on three key departments - cardiol-
+ogy, endocrinology, and gastroenterology - as these specialties
+frequently encounter complex diagnostic scenarios requiring
+multiple tests and offer standardized clinical pathways for
+system validation.
+
+B. Baselines
+
+We compared HiRMed against several baseline approaches:
+1) Traditional Vector Similarity (TVS): A standard retrieval-
+based system using cosine similarity between symptom em-
+beddings and test descriptions.
+
+2) Flat-RAG: A single-layer RAG system that directly
+maps symptoms to test recommendations without hierarchical
+reasoning.
+
+C. Evaluation Metrics
+
+IV. EXPERIMENTS & RESULTS
+
+We assessed system performance using the following met-
+
+A. Experimental Setup
+
+We evaluated HiRMed using a comprehensive clinical
+dataset comprising 125,000 outpatient visits across multiple
+hospital departments. The core component of our system -
+the preference model based on fine-tuned LLaMA3.2-3B -
+was trained to predict diagnostic test relevance scores by
+incorporating patient demographics, symptom severity, and
+medical history. The training process involved standardizing
+medical terminology, establishing symptom-test-outcome re-
+lationships, and preserving critical clinical decision features
+while removing personally identifiable information. The sys-
+tem’s knowledge base contains approximately 50,000 clini-
+cal guidelines, research papers, and standardized protocols,
+structured into two tiers: department-level knowledge (30%)
+covering clinical guidelines and specialty-specific best prac-
+tices, and test-specific knowledge (70%) containing detailed
+testing parameters, indications, and interpretation guidelines.
+
+rics:
+
+1) Coverage Rate (CR): The proportion of relevant diagnos-
+
+tic tests included in the recommendations.
+
+2) Accuracy: The percentage of recommended tests that
+were deemed appropriate and necessary by reviewing physi-
+cians, measured by comparing system recommendations
+against expert-validated test orders in our ground truth dataset.
+3) Miss Rate (MR): The proportion of critical tests (as
+determined by physician review) that were not recommended.
+4) Clinical Relevance Score (CRS): Expert-assigned scores
+(1-5) evaluating the medical appropriateness of recommenda-
+tions.
+
+D. Results
+
+1) Overall Performance Analysis: Table II demonstrates
+HiRMed’s superior performance across all evaluation met-
+rics compared to baseline approaches. The system achieved
+a coverage rate of 92.3%, significantly outperforming both
+
+Flat-RAG (84.7%) and TVS (72.8%). In terms of accuracy,
+HiRMed reached 88.7%, showing substantial
+improvement
+over Flat-RAG (82.4%) and TVS (71.5%). Most notably,
+HiRMed maintained a remarkably low miss rate of 2.1% for
+critical tests, compared to 5.8% for Flat-RAG and 10.6% for
+TVS. The system’s clinical relevance score of 4.3 out of 5
+further validates its effectiveness, surpassing both Flat-RAG
+(3.7) and TVS (3.2).
+
+TABLE II: Performance Comparison of Different Methods
+
+Method
+HiRMed
+Flat-RAG
+TVS
+
+Coverage Rate
+92.3
+84.7
+72.8
+
+Accuracy Miss Rate
+
+88.7
+82.4
+71.5
+
+2.1
+5.8
+10.6
+
+CRS
+4.3
+3.7
+3.2
+
+The first three columns (Coverage Rate, Accuracy, and Miss Rate)
+are represented as percentages. The last column (CRS) is the
+Clinical Relevance Score on a 1-5 scale.
+
+2) Department-Specific Analysis: As shown in Table III,
+HiRMed maintained consistent performance across different
+medical departments while showing some variation in effec-
+tiveness. Cardiology demonstrated the strongest results with a
+94.2% coverage rate, 90.5% accuracy, and a minimal miss rate
+of 1.8%. Endocrinology and Gastroenterology showed simi-
+larly robust performance, with coverage rates above 90% and
+accuracy rates exceeding 87%. The consistent performance
+across departments underscores the system’s adaptability to
+different medical specialties, with particularly strong results
+in cardiology due to the well-structured nature of cardiac
+diagnostic protocols.
+
+TABLE III: Department-Specific Performance Analysis
+
+Department
+Cardiology
+Endocrinology
+Gastroenterology
+
+Coverage Rate
+94.2
+91.7
+90.8
+
+Accuracy Miss Rate
+
+90.5
+88.3
+87.4
+
+1.8
+2.2
+2.4
+
+All values in the columns are represented as percentages.
+
+3) Clinical Validation: The system’s effectiveness was fur-
+ther validated through rigorous clinical evaluation. A panel
+of 12 experienced clinicians reviewed 500 randomly selected
+cases from the test set, resulting in the high clinical relevance
+score of 4.3/5.0 shown in Table II. Clinicians particularly noted
+the system’s ability to maintain coherent diagnostic pathways
+and effectively handle complex, multi-symptom cases.
+
+4) Component Analysis: Table IV presents the results of
+our ablation studies, revealing the critical role of each system
+component. Removing the memory augmentation resulted in
+notable performance decreases across all metrics, with the
+coverage rate dropping by 8.2 percentage points and accuracy
+declining by 7.8 percentage points. The impact was even more
+pronounced when removing the department layer, causing an
+11.6% decrease in coverage rate and a 10.9% decrease in
+accuracy. The most significant impact came from switching
+to a single knowledge base, resulting in a 13.7% drop in
+coverage rate, a 12.8% decrease in accuracy, and a 15.3%
+increase in miss rate. These findings emphasize the importance
+of both the hierarchical structure and memory augmentation
+in maintaining the system’s high performance levels.
+
+TABLE IV: Ablation Study Results
+
+System Variant
+
+Performance Drop (%)
+
+Full HiRMed
+w/o Memory
+w/o Department Layer
+Single Knowledge Base
+
+Coverage Rate
+0.0
+-8.2
+-11.6
+-13.7
+
+Accuracy Miss Rate
+
+0.0
+-7.8
+-10.9
+-12.8
+
+0.0
++9.4
++13.8
++15.3
+
+V. CONCLUSION
+This paper presented HiRMed, a novel hierarchical RAG-
+enhanced system for medical test recommendations that suc-
+cessfully addresses several key challenges in automated di-
+agnostic support. Inspired by rigorous reasoning approaches
+like Chain-of-Thought and Monte Carlo Tree Search in game
+theory, we demonstrate that hierarchical structures can signif-
+icantly enhance conventional reasoning tasks. By integrating
+a tree-structured architecture with RAG-based reasoning and
+memory augmentation, our system shows that decomposing
+complex decisions into hierarchical steps can achieve substan-
+tial improvements over traditional approaches across multiple
+performance metrics.
+
+The experimental results validate our hierarchical approach,
+with HiRMed achieving a coverage rate of 92.3% and an
+accuracy of 88.7%, substantially outperforming baseline meth-
+ods. Particularly noteworthy is the system’s low miss rate
+of 2.1% for critical tests, addressing a crucial concern in
+medical diagnosis. The consistent performance across different
+medical departments, with accuracy rates exceeding 87% in
+all specialties, demonstrates that hierarchical reasoning can
+effectively handle diverse and complex scenarios.
+
+Our ablation studies revealed the essential nature of each
+architectural component, particularly highlighting the impor-
+tance of the dual-layer knowledge base and memory augmen-
+tation mechanism. The significant performance degradation
+observed when removing these components confirms that
+structured, hierarchical reasoning is crucial for maintaining
+high accuracy and comprehensive coverage in recommenda-
+tion tasks. Furthermore, the positive clinical validation results,
+with a Clinical Relevance Score of 4.3/5, underscore that
+hierarchical decomposition of complex decisions can achieve
+practical utility in real-world settings.
+
+Looking forward, this work opens several promising direc-
+tions for future research in hierarchical reasoning systems.
+First, the architecture could be extended to incorporate real-
+time learning from physician feedback, allowing continuous
+refinement of the hierarchical decision process. Second, the
+system could be adapted to handle more complex scenarios
+involving multiple comorbidities and rare disease presenta-
+tions. Finally, investigating the integration of temporal patient
+data could enhance the system’s ability to perform multi-scale
+hierarchical reasoning across different time horizons.
+
+HiRMed represents a significant step forward in both med-
+ical
+test recommendation systems and hierarchical reason-
+ing approaches, demonstrating that combining tree-structured
+architectures with RAG-enhanced reasoning can effectively
+bridge the gap between general knowledge and specialized
+requirements. The system’s success in maintaining both high
+
+[11] M. Zhang, R. Dai, M. Dong, and T. He, “Drlk: Dynamic
+hierarchical reasoning with language model and knowl-
+edge graph for question answering,” in Proceedings of
+the 2022 Conference on Empirical Methods in Natural
+Language Processing, 2022, pp. 5123–5133.
+
+[12] Y. Zhang, X. Wu, Q. Fang, S. Qian, and C. Xu,
+“Knowledge-enhanced attributed multi-task learning for
+medicine recommendation,” ACM Transactions on In-
+formation Systems, vol. 41, pp. 1–24, 2022. DOI: 10.
+1145/3527662.
+
+[13] F. Gong, M. Wang, H. Wang, S. Wang, and M. Liu,
+“Smr: Medical knowledge graph embedding for safe
+medicine recommendation,” Big Data Res., vol. 23,
+p. 100 174, 2020. DOI: 10.1016/j.bdr.2020.100174.
+[14] M. Lu, Y. Fang, F. Yan, and M. Li, “Incorporating
+domain knowledge into natural language inference on
+clinical texts,” IEEE Access, vol. 7, pp. 57 623–57 632,
+2019. DOI: 10.1109/ACCESS.2019.2913694.
+
+accuracy and low miss rates, while providing interpretable
+recommendations, suggests that hierarchical reasoning could
+be a powerful paradigm for improving complex decision-
+making systems across various domains beyond healthcare.
+
+REFERENCES
+
+[1] R. Kotov, R. Krueger, and D. Watson, “A paradigm shift
+in psychiatric classification: The hierarchical taxonomy
+of psychopathology (hitop),” World Psychiatry, vol. 17,
+2018. DOI: 10.1002/wps.20478.
+
+[2] M. Gara, R. C. Silver, J. Escobar, A. Holman, and
+H. Waitzkin, “A hierarchical classes analysis (hiclas)
+of primary care patients with medically unexplained so-
+matic symptoms,” Psychiatry Research, vol. 81, pp. 77–
+86, 1998. DOI: 10.1016/S0165-1781(98)00088-2.
+[3] G. Gilam, E. Cramer, K. Webber, M. Ziadni, M. Kao,
+and S. Mackey, “Classifying chronic pain using mul-
+tidimensional pain-agnostic symptom assessments and
+clustering analysis,” Science Advances, vol. 7, 2021.
+DOI: 10.1101/2021.04.21.21255885.
+
+[4] L. H. A. Fryan, M. I. Shomo, M. Alazzam, and M. A.
+Rahman, “Processing decision tree data using internet
+of things (iot) and artificial intelligence technologies
+with special reference to medical application,” BioMed
+Research International, vol. 2022, 2022. DOI: 10.1155/
+2022/8626234.
+
+[5] M. Zhang, Y. Chen, and W. Susilo, “Decision tree
+evaluation on sensitive datasets for secure e-healthcare
+systems,” IEEE Transactions on Dependable and Secure
+Computing, vol. 20, pp. 3988–4001, 2023. DOI: 10 .
+1109/TDSC.2022.3219849.
+
+[7]
+
+[6] P. Lewis, E. Perez, A. Piktus, et al., “Retrieval-
+augmented generation for knowledge-intensive nlp
+tasks,” Advances in Neural Information Processing Sys-
+tems, vol. 33, pp. 9459–9474, 2020.
+J. Miao, C. Thongprayoon, S. Suppadungsuk,
+and W. Cheungpasitporn,
+O. A. G. Valencia,
+“Integrating
+generation with
+large language models
+in nephrology: Advancing
+practical applications,” Medicina, vol. 60, 2024. DOI:
+10.3390/medicina60030445.
+
+retrieval-augmented
+
+[8] Z. Jia, X. Zeng, H. Duan, X. Lu, and H. Li, “A patient-
+similarity-based model for diagnostic prediction,” In-
+ternational journal of medical informatics, vol. 135,
+p. 104 073, 2019. DOI: 10.1016/j.ijmedinf.2019.104073.
+[9] A. Sharafoddini, J. Dubin, and J. Lee, “Patient similarity
+in prediction models based on health data: A scoping
+review,” JMIR Medical Informatics, vol. 5, 2017. DOI:
+10.2196/medinform.6730.
+
+[10] E. Parimbelli, S. Marini, L. Sacchi, and R. Bellazzi,
+“Patient similarity for precision medicine: A systematic
+review,” Journal of biomedical
+informatics, vol. 83,
+pp. 87–96, 2018. DOI: 10.1016/j.jbi.2018.06.001.

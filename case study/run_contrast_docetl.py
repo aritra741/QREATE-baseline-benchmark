@@ -162,6 +162,10 @@ def run_one(
         "--retries",
         str(args.retries),
     ]
+    if args.api_key_env:
+        run_command.extend(["--api-key-env", args.api_key_env])
+    if args.disable_thinking:
+        run_command.append("--disable-thinking")
     if args.force:
         run_command.append("--fresh")
     eval_command = [
@@ -253,6 +257,16 @@ def run_one(
     record["log_path"] = rel(log_path)
 
     env = os.environ.copy()
+    env.setdefault("USE_TORCH", "0")
+    if args.api_key_env:
+        api_key = env.get(args.api_key_env)
+        if not api_key:
+            raise SystemExit(
+                f"API key environment variable is unset: {args.api_key_env}"
+            )
+        env["OPENAI_API_KEY"] = api_key
+    if args.disable_thinking:
+        env["DOCETL_DISABLE_THINKING"] = "1"
     summary_path = output_dir / "summary.json"
     log_mode = "a" if retry_failed and log_path.exists() else "w"
     with log_path.open(log_mode, encoding="utf-8") as log_handle:
@@ -401,6 +415,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-eval", action="store_true")
     parser.add_argument("--model", default="qwen2.5:7b-instruct")
     parser.add_argument("--ollama-base-url", default="http://localhost:11434")
+    parser.add_argument(
+        "--api-key-env",
+        default=None,
+        help="Environment variable containing the hosted-provider API key.",
+    )
+    parser.add_argument(
+        "--disable-thinking",
+        action="store_true",
+        help="Send DeepSeek-compatible non-thinking mode.",
+    )
     parser.add_argument("--threads", type=int, default=4)
     parser.add_argument("--timeout", type=int, default=420)
     parser.add_argument("--retries", type=int, default=2)

@@ -1,0 +1,1145 @@
+4
+2
+0
+2
+
+y
+a
+M
+0
+2
+
+]
+I
+
+A
+.
+s
+c
+[
+
+1
+v
+5
+3
+0
+2
+1
+.
+5
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+KG-RAG: Bridging the Gap Between Knowledge
+and Creativity
+
+Diego Sanmartín
+IE University, Spain
+dsanmartin.ieu2020@student.ie.edu
+
+Abstract
+
+Ensuring factual accuracy while maintaining the creative capabilities of Large Language
+Model Agents (LMAs) poses significant challenges in the development of intelligent agent sys-
+tems. LMAs face prevalent issues such as information hallucinations, catastrophic forgetting,
+and limitations in processing long contexts when dealing with knowledge-intensive tasks. This
+paper introduces a KG-RAG (Knowledge Graph-Retrieval Augmented Generation) pipeline, a
+novel framework designed to enhance the knowledge capabilities of LMAs by integrating struc-
+tured Knowledge Graphs (KGs) with the functionalities of LLMs, thereby significantly reducing
+the reliance on the latent knowledge of LLMs. The KG-RAG pipeline constructs a KG from
+unstructured text and then performs information retrieval over the newly created graph to per-
+form KGQA (Knowledge Graph Question Answering). The retrieval methodology leverages a
+novel algorithm called Chain of Explorations (CoE) which benefits from LLMs reasoning to
+explore nodes and relationships within the KG sequentially. Preliminary experiments on the
+ComplexWebQuestions dataset demonstrate notable improvements in the reduction of hallu-
+cinated content and suggest a promising path toward developing intelligent systems adept at
+handling knowledge-intensive tasks. 1
+
+1
+
+Introduction
+
+Large Language Models (LLMs) [44] have enabled researchers to achieve significant progress in the
+development of versatile intelligent agents, emerging as a potential solution for bridging the gap
+toward achieving Artificial General Intelligence (AGI) [59]. Notable efforts, such as Langchain [13]
+and LlamaIndex [30] exemplify the community’s endeavor to create intelligent LLM-based Agents
+(LMAs). These LMAs are already being implemented in various real-world applications, such as
+medicine [53], and finance [28].
+
+Despite these advancements, the inherent nature of LLMs poses critical challenges that hin-
+der the deployment of LMAs in production environments. One major issue is the disposition of
+LLMs to generate factually incorrect information, often producing "hallucinated" content, which
+compromises their reliability [22, 65]. Additionally, these models struggle with processing extended
+contexts, potentially leading to the loss of relevant information in longer dialogues or documents
+[31]. Furthermore, another significant limitation is catastrophic forgetting, where an LLM forgets
+previously learned knowledge as it is trained with new information [35].
+
+As depicted in Figure 1, an AI agent comprises three core components: perception, brain, and
+action [59]. These agents are designed to perceive their environments, make decisions, and execute
+actions, embodying the autonomous operation cycle of Sense-Plan-Act. The diagram illustrates how
+the brain of an AI agent is the decision-making core that is responsible for reasoning, planning, and
+storing the agent’s knowledge and memories.
+
+1The project website is available at https://dsanmart.github.io/KG-RAG/
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 1: shows the three core components of an AI agent: perception, brain, and action. The
+brain component integrates LLMs for dynamic reasoning and decision-making, alongside KGs for
+structured knowledge and memory storage.
+
+From a perspective of human cognition, the analogy of the "extended mind" [14], becomes
+particularly relevant. Just as humans extend their cognitive reach using tools such as smartphones
+and notebooks to offload memory and manage complex tasks, LMAs can similarly benefit from
+external cognitive extensions to enhance their cognitive capacities.
+
+Advancements in multimodal LLMs, which combine inputs from various data types like text,
+voice, and images [64, 27], have significantly enhanced LMAs’ perception capabilities, while re-
+search enabling interaction with external tools has improved their action capabilities [43]. While
+these aspects continue to evolve, this paper focuses on enhancing the core brain of these agents,
+fundamentally driven by advancements in prompt engineering and knowledge augmentation.
+
+Prompt engineering techniques like Chain of Thought (CoT) [57], Tree of Thought (ToT) [61],
+Graph of Thoughts (GoT) [6], or ReAct (Reason and Act) [60] have demonstrated significant im-
+provements in LLMs’ reasoning abilities and task-specific actions. Other techniques include Self-
+Consistency [56] and Few-Shot prompting [10], which have enhanced LLMs’ performance and relia-
+bility. These techniques have demonstrated that LLMs have promising problem-solving capabilities
+to take care of the decision-making in the brain of an LMA.
+
+On the other hand, researchers have proposed various techniques for knowledge augmentation
+on LMAs, including Retrieval-Augmented Generation (RAG), which augments LMAs with external
+databases and information retrieval tools [36, 63]. RAG dynamically injects specific information
+into LLMs’ prompt at inference time without modifying the model’s weights. This method can
+alleviate hallucinations and outperforms traditional fine-tuning methods by integrating external
+knowledge more effectively [39], particularly for applications demanding high accuracy and up-to-
+date information.
+
+Current RAG implementations rely upon dense vector similarity search as the retrieval mecha-
+nism. However, this method which partitions the corpus into text chunks and relies solely on dense
+retrieval systems, proves inadequate for complex queries [17]. While some approaches attempt to
+address this by incorporating metadata filtering or hybrid search techniques [34], these methods are
+constrained by the limited scope of metadata predefined by developers. Furthermore, it remains a
+difficult challenge to achieve the necessary granularity to find answers to complex queries in similar
+chunks in the vector space [16]. The inefficiency arises from the method’s inability to selectively tar-
+
+2
+
+get relevant information, leading to extensive chunk data retrieval that may not contribute directly
+to answering the queries. An optimal RAG system would accurately retrieve only the necessary
+content, minimizing the inclusion of irrelevant information. This is where Knowledge Graphs (KGs)
+can help, by offering a structured and explicit representation of entities and relationships that are
+more accurate than retrieving information through vector similarity.
+
+KGs enable us to search for "things, not strings" [5] by storing enormous amounts of explicit
+facts in the form of accurate, updatable, and interpretable knowledge triples. A triple is essentially a
+structured representation of a knowledge fact that can be represented as (entity) − [relationship] →
+(entity). Additionally, KGs can actively evolve with continuously added knowledge [11] and experts
+can construct domain-specific KGs to provide precise and dependable domain-specific knowledge
+[3]. Prominent KGs such as Freebase [8], Wikidata [54], and YAGO [51] exemplify this concept in
+practice. A significant body of research has emerged at the intersection of graph-based techniques
+and LLMs [24, 41, 29, 40, 55, 66], along with noteworthy applications include reasoning over graphs
+[33, 48, 62, 23] and improvements in the integration of graph data and LLMs [12, 62].
+
+In this work, we create a KG-RAG pipeline that extracts triples from raw text, stores them in
+a KG database, and allows searching complex information to augment LMAs with external KGs
+that serve as robust and faithful knowledge storage. We address the problems of hallucination,
+catastrophic forgetting, and granularity in dense retrieval systems. We achieve promising results
+depending on the task, suggesting a promising path toward building LMAs that perform well on
+knowledge-intensive tasks.
+
+2 Related Work
+
+In recent years, integrating Language Model Agents (LMAs) with external databases has signifi-
+cantly advanced knowledge retrieval and memory recall capabilities. Notably, systems like ChatDB
+[20] leverage SQL databases for complex reasoning over stored memories, while RET-LLMs [modar-
+ressi2023retllm] generate triples from past dialogues to enhance agents with external conversational
+memory. Our research builds upon these advancements, introducing a novel KG-RAG pipeline that
+leverages recent developments in KG construction and KGQA, dynamically integrating KGs with
+LMAs to address issues like hallucination through enhanced granularity in information retrieval.
+
+Knowledge Graph Construction: Recent progress in this field has focused on bridging un-
+structured text and structured knowledge representation. Key tasks include Named Entity Recogni-
+tion (NER) [25] and Relationship Extraction (RE) [18] to extract the triples forming a KG. Jointly
+performing these tasks has shown promise in reducing error propagation and improving overall perfor-
+mance [47, 67]. While existing work often focuses on heterogeneous KGs with rigid, domain-specific
+ontologies [37, 42, 15, 68], we propose a flexible, domain-agnostic, homogeneous KG framework.
+This adaptability overcomes the limitations of predefined ontologies, accommodating the dynamic
+nature of knowledge [38].
+
+Knowledge Graph Question Answering (KGQA): KGQA has evolved from rule-based
+systems to sophisticated architectures handling diverse question types [9, 21]. Recent LLM inte-
+gration with KGs, like in Chain-of-Knowledge (CoK) [26] and G-Retriever [19], further enhances
+precision and efficiency. Our research leverages these advancements, introducing a unique Chain of
+Explorations (CoE) method for more precise, contextually relevant lookups within the structured
+knowledge of KGs.
+
+Our Contribution: The KG-RAG pipeline we propose represents a significant step forward in
+integrating KGs as external knowledge modules for LMAs. It improves upon existing RAG methods
+by utilizing dynamically updated KGs, addressing information hallucination through more granular
+and context-sensitive retrieval processes.
+
+3
+
+3 Preliminaries
+
+This section defines the notation and formalizes key concepts related to Language Models (LMs),
+Knowledge Graphs (KGs), and their integration for the task of Knowledge Graph Question Answer-
+ing (KGQA).
+
+Large Language Models (LLMs) have presented a new paradigm for task adaptation called
+"pre-train, prompt, and predict", replacing the traditional “pre-train, fine-tune” procedure. In this
+approach, general language representations are first learned by the LLM through pre-training. The
+model is then prompted with a natural language query that specifies the task and the model generates
+the output directly, without the need for fine-tuning on task-specific labeled data [32]. Let LM be
+a Language Model that takes an input prompt as a sequence of tokens x = (x1, x2, . . . , xq) and
+produces as output a sequence of tokens y = (y1, y2, . . . , ym). The model LM is typically trained to
+optimize a conditional probability distribution P (y|x), which assigns a probability to each possible
+output sequence y given x. Formally, the probability of the output sequence y given x is:
+
+P (y|x) =
+
+m
+(cid:89)
+
+i=1
+
+P (yi|y<i, x),
+
+(1)
+
+where P (yi|y<i, x) represents the probability of generating token yi given x and the tokens prior in
+position to yi, denoted as y<i.
+
+Knowledge Graphs (KGs) serve as structured textual graph representations for real-world
+entities and interrelations. Heterogeneous KGs typically include multiple types of nodes and rela-
+tionships, guided by a defined ontology. In contrast, homogeneous KGs consist of only one type of
+node and relationship. Formally, a homogeneous KG can be defined as G = (E, R), where E and
+In this context, a triple refers to
+R represent the sets of entities and relationships, respectively.
+a basic unit of information represented in the graph, comprising three key components: a subject
+entity e, a predicate relationship r, and an object entity e′. Formally, a triple t can be represented
+as t = (e, r, e′). Hence, a KG can be defined as follows:
+
+G = (cid:8)t = (e, r, e′), where e, e′ ∈ E, r ∈ R(cid:9).
+
+(2)
+
+Knowledge Graph Question Answering (KGQA) aims to respond to questions with in-
+formation from the KG. For complex questions, this task requires Information Retrieval (IR) of
+information from multiple triples. When the knowledge is navigable in the graph, we can find the
+r2−→ . . . rl−→ el, where
+answer through a multi-hop traversal path, represented as wz = e0
+ei ∈ E denotes the i-th entity, ri denotes the i-th relation in the multi-hop path z = r1, r2, . . . , rl,
+and l denotes the length of the path. The task of KGQA is given a natural language question q and
+a KG G to design a function f that predicts an answer a ∈ Aq based on knowledge from G. Hence,
+the predicted answer a∗ from multi-hop KGQA can be defined as:
+
+r1−→ e1
+
+a∗ = f (q, G) = arg max
+
+(cid:88)
+
+a∈A
+
+P (wz|q, G) · P (a|wz),
+
+(3)
+
+z
+where A denotes the set of possible answers, P (wz|q, G) represents the model’s capacity to identify
+the most relevant paths wz given the natural language question q and the knowledge graph G, and
+P (a|wz) is the probability of arriving at the answer a given the paths wz.
+
+3.1 Storage
+
+The storage process involves converting unstructured text data into a structured KG. This is achieved
+by the extraction of triples from the text using a language model (LM ). The LM is trained through
+a few-shot learning approach [10], typically involving 5-10 examples.
+
+4
+
+Given a chunk of text T , the LM must identify and extract relevant triples represented as
+t = (e, r, e′), where e and e′ are entities and r is the relationship between these entities. The process
+is modeled as:
+
+T LM−−→ {ti}n
+
+i=1
+
+(4)
+
+Here, LM denotes the pre-trained Language Model which processes the text prompt T that is
+composed by a natural language instruction, along with several example conversions of text to triples
+consists on the
+for few-shot learning and the text chunk to extract triples from. The output {ti}n
+set of extracted triples {(e, r, e′)i}n
+
+, where i indexes each triple from 1 to n.
+
+This setup is designed to optimize the LM in a task-specific conditional probability distribution
+
+i=1
+
+i=1
+
+P (T ′|T ), where T ′ is the structured output in the form of triples:
+
+P (T ′|T ) =
+
+n
+(cid:89)
+
+i=1
+
+P (cid:0)ti|T (cid:1)
+
+(5)
+
+3.2 Retrieval
+
+The IR process is vital for effectively responding to user queries within a KG. This process entails
+locating and extracting relevant paths through nodes and relationships within the KG, that lead to
+the answer sought by the query. Formally, given a natural language query q and a knowledge graph
+G, the retrieval task can be modeled as a search problem where the objective is to find paths wz
+within the graph G that connect relevant entities through relationships that are appropriate to the
+specific question posed by q. This is mathematically represented as:
+
+This formulation implies that the system is tasked with maximizing the conditional probability
+
+P (wz|q, G), where wz represents a path in G that is most likely to answer the query q.
+
+IR = arg max
+
+wz
+
+P (wz|q, G).
+
+(6)
+
+3.3 Answer Generation
+In the Answer Generation phase, the LM uses the paths wz retrieved from the KG to generate
+coherent and contextually relevant responses to user queries q. This phase involves synthesizing
+information from the paths into a format directly addressing the query’s requirements. The process
+is formalized as follows:
+
+To achieve optimal results, the LM is tasked with maximizing the probability of generating the
+most suitable answer a, given the query q and the paths wz. This is represented mathematically as:
+
+a = LM(q, wz).
+
+(7)
+
+arg max
+a∈A
+
+P (a|q, wz) =
+
+m
+(cid:89)
+
+P (aj|a<j, q, wz).
+
+(8)
+
+j=1
+In this equation, A is the set of all possible answers, and m is the length of the generated answer.
+The term P (aj|a<j, q, wz) reflects the probability of choosing each word aj in the answer sequence,
+considering all previously chosen words a<j, the query q, and the context provided by wz.
+
+This integration employs an LLM configured with a standard RAG prompt as input, which
+combines the query with the retrieved context and specific instructions to produce accurate answers
+that pertain to the knowledge in the context given.
+
+5
+
+4 Methodology
+
+Our approach encompasses three primary stages: Storage, Retrieval, and Answer Generation.
+
+4.1 Storage
+
+The first stage involves transforming unstructured text data into a structured KG that can be queried
+later. This process fundamentally relies on the extraction of triples formatted as (entity)−[relationship]→(entity).
+To facilitate this, we employ a 6-shot learning approach on an LLM, tasking it with extracting as
+many triples as possible from text chunks, while incorporating examples of text-to-triple conversions
+in the prompt.
+
+To handle more complex informational structures, such as triples linked to specific contexts (e.g.
+dates), we introduce the concept of triple hypernodes. A triple hypernode h can be thought of as a
+complex node within the set of KG triples E that contains the information of a nested triple. Nested
+triples represent a relationship between two nodes that may themselves be triple hypernodes. This
+recursive structure allows for multi-layered relationships within a single node. Additionally, in a
+triple hypernode, all of the elements that belong to it can be connected to another node by a single
+relationship. A triple hypernode h, represented visually in figure 2a, is defined as:
+
+(9)
+Here, h1 and h2 represent subject and target entities respectively that can either be simple entities
+
+h∗ = (h1, r1, h2), where h∗, h1, h2 ∈ E, r1 ∈ R.
+
+or other triple hypernodes, allowing h∗ to recursively include further nested triple hypernodes:
+
+(cid:40)
+
+hi =
+
+e
+(hj, r2, hk)
+
+if hi is a simple entity
+if hi is another triple hypernode,
+
+(10)
+
+where e represents a simple entity, hj, hk ∈ E, and r2 ∈ R denote the relationships within these
+nested hypernodes.
+
+(a)
+
+(b)
+
+Figure 2: Illustrations of triple hypernode behaviors and representations. 2a) Represents the be-
+havior of hyperobject (triple hypernode) which allows them to connect their internal components
+to other nodes. 2b) Illustrates our approach to storing triple hypernodes (the orange node) in a
+traditional KG database.
+
+Equation 11 shows an example of a triple t having several nested layers of triple hypernodes in
+
+its entities:
+
+6
+
+t = (cid:0)(e1, r1, (e2, r2, e3)), r3, e4
+where e1, e2, and (e1, r1, (e2, r2, e3)) are subject entities, r1, r2, and r3 are predicate relationships,
+and e3, (e2, r2, e3) and e4 are object entities.
+
+Triple hypernodes enable us to store representations of nested and complex relational structures
+within the KG, enhancing the representation and navigability of the knowledge. For instance,
+extracting triples from the text "Seth MacFarlane created Family Guy in 1999," would yield the
+following outputs:
+
+(11)
+
+(cid:1),
+
+(Seth MacFarlane)−[is creator of]→(Family Guy)
+((Seth MacFarlane)−[created]→(Family Guy))−[in]→(1999),
+
+where ((Seth MacFarlane)−[created]→(Family Guy)) represents a triple hypernode represented
+
+visually in a graph in figure 2b.
+
+To store triple hypernodes in current graph databases, we connect objects to their corresponding
+hypernodes labeled with the full meaning of the hypernodes and maintain the relationship paths.
+This allows us to store relationships that connect to that hypernode as shown in figure 2b. Finally,
+with the KG created, we compute embeddings for all nodes, hypernodes, and relationships and store
+them in a vector database with their corresponding metadata. This enables us to perform dense
+vector similarity search through the KG during the retrieval stage of the KG-RAG pipeline.
+
+4.2 Retrieval
+
+The retrieval stage constitutes a critical component of the KGQA process, where the goal is to
+systematically extract pertinent information from a KG in response to a user-specified query. To
+this end, we perform a Chain of Explorations (CoE) over the KG, a novel approach designed to
+facilitate the exploration of a KG through a sequential traversal of its nodes and relationships to
+find relevant information.
+
+Figure 3: Diagram illustrating the components to perform KGQA over a KG using Chain of Explo-
+rations (CoE).
+
+7
+
+CoE, formally defined in Algorithm 1 and illustrated in Figure 3, strategically traverses the KG
+by navigating through nodes and edges that are directly relevant to the query. It performs a step-
+by-step exploration to ensure a thorough and directed search, increasing the likelihood of retrieving
+accurate and relevant information.
+
+The algorithm consists of three main components: planning, KG lookups, and evaluation. The
+planning phase involves devising a sequence of steps that guide the exploration through the KG. KG
+lookups are executed using a combination of vector similarity search and cipher queries to identify
+relevant nodes or relationships. The evaluation phase checks the current state of the traversal
+against the initial query, deciding whether to continue exploring, refine the exploration strategy, or
+synthesize an answer based on the gathered context.
+
+Algorithm 1 Chain of Exploration for KG Retrieval
+1: procedure CoE(q, G)
+2:
+3:
+4:
+5:
+6:
+7:
+
+exploration_plan ← Plan steps to explore through the graph
+current_nodes ← ∅
+path_traveled ← ∅
+current_step ← 0
+f ailed_tries ← 0
+while current_step ≤ length(exploration_plan) and f ailed_tries < 3 do
+
+8:
+9:
+10:
+11:
+12:
+
+13:
+14:
+15:
+16:
+17:
+18:
+
+19:
+20:
+21:
+22:
+23:
+24:
+
+25:
+26:
+27:
+28:
+29:
+30:
+
+if is_node_exploration(step) then
+
+node_candidates ← VectorDB.Search(step)
+selected_nodes ← LM(prompt, node_candidates)
+path_traveled.add(selected_nodes)
+
+end if
+if is_relationship_exploration(step) then
+
+explorable_rels ← Cypher.Query(current_nodes)
+rel_candidates ← VectorSimilarity.Rank(explorable_rels, step)
+selected_rels ← LM(prompt, rel_candidates)
+current_nodes ← get_target_nodes(current_nodes, selected_rels)
+path_traveled.add(selected_rels, current_nodes)
+
+end if
+eval_outcome ← eval_state(path_traveled, q)
+if eval_outcome = needs refinement then
+
+exploration_plan ← redefine_CoT_steps(exploration_plan, q)
+current_step ← 1
+path_traveled ← {}
+f ailed_tries ← f ailed_tries + 1
+else if eval_outcome = continue then
+current_step ← current_step + 1
+else if eval_outcome = respond then
+
+return generate_answer(path_traveled, q)
+
+end if
+end while
+return "I am sorry, I could not find an answer to your question."
+
+31:
+32:
+33: end procedure
+
+The initial step of CoE uses a few-shot learning prompt along with the user query q to guide the
+planner in formulating a strategic exploration plan throughout the KG. In the first step of the plan,
+CoE finds top-k starting nodes using vector similarity search over a specified keyword and selects
+relevant nodes to perform further exploration. The process then progresses into a cyclical lookup
+phase within the KG, outlined as follows:
+
+8
+
+1. Execution of Cypher queries to retrieve connected nodes and relationships in the KG.
+
+2. Ranking of nodes or relationships by relevance using dense vector embeddings to measure
+
+relevance for the current step’s task.
+
+3. Utilizing an LLM to filter and select the most relevant nodes or relationships for continuing
+
+the exploration hops over the KG.
+
+This is followed by an evaluation phase, where the LLM assesses the alignment of the current
+traversal with the initial plan. Based on this assessment, the algorithm decides whether to continue
+the exploration, adjust the exploratory steps, or synthesize a response based on the context found
+thus far. Suppose the evaluation phase identifies a conclusive answer within the traversed path. In
+that case, it compiles the data into a coherent chain of node triples and sends it to the next stage
+for generating an answer.
+
+4.3 Answer Generation
+
+The final stage of the KG-RAG pipeline is generating an answer for the user, where the LLM
+processes the retrieved KG information to produce accurate and contextually appropriate answers.
+The LLM is instructed to answer a user question q and only rely on the knowledge found inside the
+KG at the previous retrieval stage. Figures 4 and 5 illustrate examples of step-by-step execution of
+CoE for resolving complex queries.
+
+Q: Which former husband of Elizabeth Taylor died in Chichester?
+Step1: Start at target entity: "Elizabeth Taylor"
+selected_nodes = ["Elizabeth Taylor", "Liz Taylor"]
+Step2: List former husbands
+selected_rels = ["married to", "married", "was married to"]
+selected_nodes = ["Michael Wilding", "Conrad Nicky Hilton Jr", "Eddie Fisher"]
+Step3: Identify places of death for each husband
+selected_rels = ["died in"]
+selected_nodes = ["hospital near his home in Sussex town of Chichester","Chichester,
+West Sussex"]
+Step4: Isolate the husband who died in Chichester
+return (Elizabeth Taylor)-[married]→(Michael Wilding)-[died in]→(Chichester,
+West Sussex)
+Answer Generated: Michael Wilding
+
+Figure 4: An illustrative scenario demonstrating the Chain of Explorations methodology on a com-
+plex query involving historical and personal data.
+
+5 Experiments
+
+In this section, we discuss the evaluation of our approach using the ComplexWebQuestions (CWQ)
+version 1.1 dataset [52]. We detail the experiment setup, the dataset used, the metrics chosen to
+assess performance, and present our results.
+
+5.1 Experimental Setup
+
+Our experimental framework is performed on a local machine, using an M2 Ultra with 128 GB of
+unified memory. We utilize NebulaGraph [58] as our distributed knowledge graph database since
+
+9
+
+it is open-sourced and supports rapid query execution for large-scale graphs, with milliseconds of
+latency. For vector similarity search, we use a SentenceTransformer [46] model, specifically the
+multi-qa-mpnet-base-dot-v1, for computing high-quality sentence embeddings and store them in a
+local RedisDB [1] instance. Redis serves as our in-memory vector database and with the Redis
+Search module, we perform fast vector similarity search computations over the DB to find relevant
+data during the process. The LLM employed is hosted on Azure Cloud and is always GPT-4 Turbo
+1106-Preview configured with a temperature setting of 1, which facilitates the generation of diverse
+and contextually relevant responses.
+
+5.2 ComplexWebQuestions Dataset
+
+The CWQ dataset is specifically designed to challenge systems with complex queries that involve
+multi-hop reasoning, temporal constraints, and aggregations, making it a challenging task for test-
+ing our KGQA framework. The dataset contains 34,689 complex questions, each associated with
+an average of 367 Google web snippets and the corresponding SPARQL queries for Freebase [8].
+The questions are composed by merging simple questions into one, such as "What movie starred
+Miley Cyrus and was released in December of 2003?", to enable multi-hop reasoning over the KG.
+Additionally, some questions in the dataset are wrongly paraphrased, such as "Who was the leader
+of France from 1079 until 2012?". This question led CoE to reach the node with the answer "Nicolas
+Sarkozy". However, the answer generation stage responded by saying it doesn’t know the answer
+since there was no leader of France from 1079 until 2012. The correct question was "Who was the
+leader of France in 2012, and was the politician that started tenure after 1979?". Other questions,
+such as "What county is home to Littleton and has CO2 commercial emissions of 0.089006319?", ask
+about a specific quantity of CO2 emissions that may be in the Freebase KG but not in the Google
+snippets given to the KG-RAG pipeline.
+
+The dataset was originally split into 80% for training, 10% for development, and 10% for test.
+For our experiments, we randomly sampled 100 questions from the development split, excluding 11
+questions where the correct answers were not present in any of the provided snippets. Since there
+is an average of 367 web snippets for each question, we filter out the snippets that contain answers
+to the queries to reduce costs and build a KG of 9604 connected nodes (of which 8141 are normal
+nodes and 1463 triple hypernodes) and 3175 unique relationship names.
+
+5.3 Evaluation Metrics
+
+In our study, we use two standard evaluation metrics for assessing QA systems: Exact Match (EM)
+and F1 Score [45]. Additionally, to address the accuracy of our KG-RAG approach against vector
+RAG and no RAG specifically, we incorporate a conventional accuracy metric and we introduce a
+modified version of the precision metric, designed to quantify the incidence of hallucinations. These
+metrics allow us to assess the model’s ability to provide correct answers and accurately capture the
+span of the answer within the given context.
+
+Exact Match (EM) which calculates the percentage of predictions that exactly match the
+
+ground truth answers. It is defined as:
+
+EM (%) =
+
+|{i | ˆai = ai}|
+N
+
+× 100,
+
+where ˆai is the predicted answer, ai is the ground truth answer, and N is the number of samples.
+
+F1 Score considers both the precision and recall of the predicted answers, providing a balance
+
+between the two. The F1 score for each instance is calculated as:
+
+F1 (%) = 2 ×
+
+Precision × Recall
+Precision + Recall × 100.
+
+10
+
+Precision and recall are computed based on the common tokens between the predicted and the
+correct answer. It is especially useful in cases where the answers are phrases or sentences.
+
+Accuracy defined as the proportion of answers that have any overlapping word with the ground
+
+truth answer:
+
+Accuracy (%) =
+
+|{i | overlap(ˆai, ai) > 0}|
+N
+
+× 100,
+
+where the overlap function checks if there is any common word between the predicted and the correct
+answer.
+
+Hallucination quantifies the frequency of "hallucinated" content, defined as responses con-
+taining information not present in the ground truth. Hallucinations pose a significant challenge
+to the accuracy and reliability of QA systems, particularly those utilizing generative models. The
+hallucination rate is calculated as follows:
+
+Hallucination (%) =
+
+|{i | hallucination(ˆai, ai) = 1}|
+N
+
+× 100,
+
+where ˆai is the predicted answer, ai is the ground truth answer, and N is the number of samples.
+A hallucination score of ’1’ indicates a hallucinated response. This is determined by the absence
+of perfect precision (i.e., no token mismatch between predicted and ground truth answers) and the
+presence of specific heuristic indicators, such as phrases like "I don’t know," that signal uncertainty
+and a lack of substantive response. All responses flagged as hallucinations by this metric undergo
+manual review to ensure the metric’s accuracy.
+
+5.4 Results and Analysis
+
+We assessed the performance our KG-RAG pipeline on the CWQ dataset, comparing it against a
+standard configuration for vector similarity search RAG and other state-of-the-art models in the
+CWQ leaderboard for Google snippets.
+
+Model
+Human
+MHQA-GRN
+Embedding-RAG
+KG-RAG
+
+EM F1 Score Accuracy Hallucination
+-
+63
+33.2
+-
+46
+28
+32
+19
+
+-
+-
+30
+15
+
+-
+-
+37
+25
+
+Table 1: Comparison of model performances against CWQ web snippets dataset
+
+We present our findings in Table 1 and summarize our analysis, which highlights areas of strength
+
+and opportunities for improvement in KG-RAG, below:
+
+• KG-RAG achieved an EM of 19% and an F1 Score of 25%. These results are lower compared
+to the top performers on the CWQ leaderboard, where the highest EM by human benchmarks
+is 63%, and the best machine performance using the provided Google snippets is 33.2%. This
+indicates potential areas for improvement in KG-RAG’s ability to accurately parse and retrieve
+relevant information. Additionally, these results are lower than those of Embedding-RAG,
+which achieved an EM of 28% and an F1 Score of 37%.
+
+• KG-RAG demonstrated an accuracy of 32%, compared to 46% for Embedding-RAG. This
+reflects the capability of KG-RAG to retrieve relevant information, but it highlights a challenge
+in pinpointing the exact answers required for complex multi-hop questions.
+
+• Notably, the hallucination rate for KG-RAG stands at 15%, which is significantly lower than
+the 30% observed in Embedding-RAG. This improvement suggests that KG-RAG is more adept
+
+11
+
+at adhering to factual content, reducing the generation of unsupported content significantly
+compared to Embedding-RAG.
+
+The average CoE took between 4 and 5 steps over the KG until reaching the answer nodes. Some
+questions, such as "What high school did the actor who worked in the movie ’Moment of Truth:
+Stalking Back’ attend?", did not find the starting node ("Moment of Truth: Stalking Back") since
+web snippets that did not contain the final answer (the name of the high school in this case) were not
+processed to reduce costs in constructing the KG. This leaves room for improvement in the future
+work.
+
+Figure 5: An example comparison of responses to a complex query by (a) LLM without RAG, (b)
+LLM with vector similarity search RAG, (c) LLM with KG-RAG
+
+6 Limitations and Future Work
+
+One major limitation was the financial constraints during our experiments. The high costs associated
+with converting web snippets to KG triples utilizing LLMs limited our ability to use all of the web
+snippets corresponding to each question and to perform tests on the entire development split of the
+CWQ dataset. Future research could expand upon this work as budget allowances increase or as the
+computing costs of LLMs keep decreasing [49].
+
+Additionally, the quality of the CWQ web snippets dataset posed challenges. The information
+contained within the snippets was often of very low quality and could have affected the reliability of
+our results. Future iterations of this research may benefit from applying the KG-RAG framework
+to other question-answer datasets that do not necessarily rely on a traditional knowledge graph
+structure or in such complicated questions. Furthermore, the performance of the LLM used for KG
+construction occasionally generated incorrect triples or missed some triple extractions. This error
+could have propagated through to the performance of CoE. This issue highlights the need for further
+refinement of the models used for KG construction to ensure accuracy in the triples generated, which
+are foundational to the subsequent query-answering processes. Future work on integrating advanced
+methods such as entity resolution [7] and linking [50] could improve the quality and reliability of the
+KG used by CoE.
+
+There remains a significant opportunity for future research to develop a specialized dataset for
+Knowledge Graph Construction using triple hypernodes from raw text. This would allow for fine-
+
+12
+
+tuning of open-source models, such as llama-3-70B [4], and enable affordable local KG construction
+from raw text. Such an approach would not only mitigate some of the cost issues noted but also
+enhance the control and quality of the data used in the research.
+
+7 Discussion
+
+The integration of structured knowledge into the operational framework of LMAs through KGs
+represents a significant paradigm shift in how these agents store and manage their information.
+The transition from unstructured dense text representations to a dynamic, structured knowledge
+representation via KGs can significantly reduce the occurrence of hallucinations in LMAs, as it
+ensures that these agents rely on explicit information rather than generating responses based on
+knowledge stored "implicitly" in their weights. Additionally, KGs enable LMAs to access vast
+volumes of accurate and updated information without the need for resource-intensive fine-tuning.
+
+On the technological front, the continuous advancement in hardware optimized for LLM op-
+erations, highlighted by innovations like the Groq system [2], opens up promising possibilities for
+improving these integrations. Such advancements significantly speed up information retrieval times,
+lower operational costs, and boost the efficiency of knowledge retrieval processes. This improvement
+is crucial for systems like our Chain of Explorations (CoE), where the average response time cur-
+rently stands at 30 seconds due to multiple calls to the Azure API. With Groq hardware, this could
+already be reduced to just 3 seconds, making the real-time use of LLMs in conjunction with KGs
+more practical and effective.
+
+Given these advancements, it’s essential that research continues to push the boundaries in KG
+construction and knowledge representation. Enhancing these areas will further refine how LMAs
+interact with and utilize structured knowledge, ensuring their reliability for knowledge-intensive
+tasks. Moreover, research should also aim to empower LLMs to excel in advanced cognitive tasks
+such as analytical thinking, reasoning, and complex problem-solving. By enabling these agents
+to ’extend their minds’ with external tools, we can facilitate their access to extensive information
+resources.
+
+8 Conclusion
+
+In this paper, we have introduced the KG-RAG pipeline, a novel framework that significantly
+advances the integration of structured knowledge in Knowledge Graphs (KGs) with the creative
+and reasoning capabilities of Large Language Models (LLMs) to create advanced Language Model
+Agents (LMAs). This integration notably reduces the propensity for generating hallucinated content,
+thereby enhancing the reliability and factual accuracy of responses generated by LMAs. Particu-
+larly, our approach to building homogeneous KGs with triple hypernodes sets a new benchmark
+for deriving structured knowledge from unstructured text and utilizing homogeneous KGs in the
+grounding of LMAs when answering questions. Within the KG-RAG pipeline, we introduce Chain
+of Explorations (CoE), a method which sequentially explores nodes and relationships within the KG
+until it arrives at the information required to answer a question. CoE serves as a testament to how
+refined methods of knowledge retrieval can leverage the advanced capabilities of LLMs to increase
+the relevancy and precision of the paths explored through reasoning.
+
+Our preliminary experiments, though limited, show promising results and suggest a robust path-
+way toward building LMAs that excel in handling knowledge-intensive tasks. This work lays a
+reliable foundation for further research and development and aims to inspire continued innovations
+within LMAs, particularly towards developing more advanced LLMs capable of sophisticated cog-
+nitive tasks. KG-RAG ensures that the next generation of LMAs not only performs exceptionally
+across various domains but also adheres to the highest standards of reliability and accuracy.
+
+13
+
+References
+
+[1] May 2024. url: https://redis.io/.
+[2] Dennis Abts et al. “A software-defined tensor streaming multiprocessor for large-scale ma-
+chine learning”. In: Proceedings of the 49th Annual International Symposium on Computer
+Architecture. 2022, pp. 567–580.
+
+[3] Bilal Abu-Salih. “Domain-specific knowledge graphs: A survey”. In: Journal of Network and
+
+Computer Applications 185 (2021), p. 103076.
+
+[4] AI@Meta. “Llama 3 Model Card”. In: (2024). url: https : / / github . com / meta - llama /
+
+llama3/blob/main/MODEL_CARD.md.
+
+[5] Singhal Amit. Introducing the Knowledge Graph: things, not strings. 2012. url: https : / /
+blog.google/products/search/introducing- knowledge- graph- things- not (visited on
+02/29/2024).
+
+[6] Maciej Besta et al. “Graph of thoughts: Solving elaborate problems with large language mod-
+
+els”. In: arXiv preprint arXiv:2308.09687 (2023).
+
+[7] Olivier Binette and Rebecca C Steorts. “(Almost) all of entity resolution”. In: Science Advances
+
+8.12 (2022), eabi8021.
+
+[8] Kurt Bollacker et al. “Freebase: a collaboratively created graph database for structuring human
+knowledge”. In: Proceedings of the 2008 ACM SIGMOD international conference on Manage-
+ment of data. 2008, pp. 1247–1250.
+
+[9] Antoine Bordes et al. Large-scale Simple Question Answering with Memory Networks. 2015.
+
+arXiv: 1506.02075 [cs.LG].
+
+[10] Tom Brown et al. “Language models are few-shot learners”. In: Advances in neural information
+
+processing systems 33 (2020), pp. 1877–1901.
+
+[11] Andrew Carlson et al. “Toward an architecture for never-ending language learning”. In: Pro-
+ceedings of the AAAI conference on artificial intelligence. Vol. 24. 1. 2010, pp. 1306–1313.
+[12] Ziwei Chai et al. “Graphllm: Boosting graph reasoning ability of large language model”. In:
+
+arXiv preprint arXiv:2310.05845 (2023).
+
+[13] Harrison Chase. LangChain. Oct. 2022. url: https://github.com/langchain-ai/langchain.
+[14] Andy Clark and David J Chalmers. “The extended mind”. In: (2010).
+
+[15] Biswanath Dutta and Jyotima Patel. “AMV : Algorithm Metadata Vocabulary”. In: ArXiv
+abs/2106.03567 (2021). url: https://api.semanticscholar.org/CorpusID:235358600.
+[16] Luyu Gao et al. “Precise zero-shot dense retrieval without relevance labels”. In: arXiv preprint
+
+arXiv:2212.10496 (2022).
+
+[17] Yunfan Gao et al. “Retrieval-augmented generation for large language models: A survey”. In:
+
+arXiv preprint arXiv:2312.10997 (2023).
+
+[18] Xu Han et al. “More Data, More Relations, More Context and More Openness: A Review and
+Outlook for Relation Extraction”. In: Proceedings of the 1st Conference of the Asia-Pacific
+Chapter of the Association for Computational Linguistics and the 10th International Joint
+Conference on Natural Language Processing. Ed. by Kam-Fai Wong, Kevin Knight, and Hua
+Wu. Suzhou, China: Association for Computational Linguistics, Dec. 2020, pp. 745–758. url:
+https://aclanthology.org/2020.aacl-main.75.
+
+[19] Xiaoxin He et al. G-Retriever: Retrieval-Augmented Generation for Textual Graph Under-
+
+standing and Question Answering. 2024. arXiv: 2402.07630 [cs.LG].
+
+14
+
+[20] Chenxu Hu et al. “ChatDB: Augmenting LLMs with Databases as Their Symbolic Memory”.
+
+In: arXiv preprint arXiv:2306.03901 (2023).
+
+[21] Sen Hu et al. “Answering natural language questions by subgraph matching over knowledge
+graphs”. In: IEEE Transactions on Knowledge and Data Engineering 30.5 (2017), pp. 824–837.
+[22] Ziwei Ji et al. “Survey of hallucination in natural language generation”. In: ACM Computing
+
+Surveys 55.12 (2023), pp. 1–38.
+
+[23] Jinhao Jiang et al. “Structgpt: A general framework for large language model to reason over
+
+structured data”. In: arXiv preprint arXiv:2305.09645 (2023).
+
+[24] Bowen Jin et al. “Large language models on graphs: A comprehensive survey”. In: arXiv
+
+preprint arXiv:2312.02783 (2023).
+
+[25] Jing Li et al. “A Survey on Deep Learning for Named Entity Recognition : Extended Abstract”.
+In: 2023 IEEE 39th International Conference on Data Engineering (ICDE). 2023, pp. 3817–
+3818. doi: 10.1109/ICDE55515.2023.00335.
+
+[26] Xingxuan Li et al. Chain-of-Knowledge: Grounding Large Language Models via Dynamic
+Knowledge Adapting over Heterogeneous Sources. 2024. arXiv: 2305.13269 [cs.CL].
+[27] Xiujun Li et al. “Oscar: Object-semantics aligned pre-training for vision-language tasks”. In:
+Computer Vision–ECCV 2020: 16th European Conference, Glasgow, UK, August 23–28, 2020,
+Proceedings, Part XXX 16. Springer. 2020, pp. 121–137.
+
+[28] Yang Li et al. “Tradinggpt: Multi-agent system with layered memory and distinct characters
+for enhanced financial trading performance”. In: arXiv preprint arXiv:2309.03736 (2023).
+[29] Yuhan Li et al. “A survey of graph meets large language model: Progress and future directions”.
+
+In: arXiv preprint arXiv:2311.12399 (2023).
+
+[30] Jerry Liu. LlamaIndex. Nov. 2022. doi: 10.5281/zenodo.1234. url: https://github.com/
+
+jerryjliu/llama_index.
+
+[31] Nelson F Liu et al. “Lost in the middle: How language models use long contexts”. In: Trans-
+
+actions of the Association for Computational Linguistics 12 (2024), pp. 157–173.
+
+[32] Pengfei Liu et al. “Pre-train, prompt, and predict: A systematic survey of prompting methods
+
+in natural language processing”. In: ACM Computing Surveys 55.9 (2023), pp. 1–35.
+
+[33] Linhao Luo et al. “Reasoning on graphs: Faithful and interpretable large language model
+
+reasoning”. In: arXiv preprint arXiv:2310.01061 (2023).
+
+[34] Man Luo et al. “A Study on the Efficiency and Generalization of Light Hybrid Retrievers”. In:
+
+arXiv preprint arXiv:2210.01371 (2022).
+
+[35] Yun Luo et al. “An empirical study of catastrophic forgetting in large language models during
+
+continual fine-tuning”. In: arXiv preprint arXiv:2308.08747 (2023).
+
+[36] Grégoire Mialon et al. “Augmented language models: a survey”. In: arXiv preprint arXiv:2302.07842
+
+(2023).
+
+[37]
+
+Ishani Mondal, Yufang Hou, and Charles Jochim. “End-to-End Construction of NLP Knowl-
+edge Graph”. In: Findings of the Association for Computational Linguistics: ACL-IJCNLP
+2021. Ed. by Chengqing Zong et al. Online: Association for Computational Linguistics, Aug.
+2021, pp. 1885–1895. doi: 10.18653/v1/2021.findings-acl.165. url: https://aclanthology.
+org/2021.findings-acl.165.
+
+[38] Seungwhan Moon et al. “OpenDialKG: Explainable Conversational Reasoning with Attention-
+based Walks over Knowledge Graphs”. In: Proceedings of the 57th Annual Meeting of the
+Association for Computational Linguistics. Ed. by Anna Korhonen, David Traum, and Lluís
+Màrquez. Florence, Italy: Association for Computational Linguistics, July 2019, pp. 845–854.
+doi: 10.18653/v1/P19-1081. url: https://aclanthology.org/P19-1081.
+
+15
+
+[39] Oded Ovadia et al. “Fine-tuning or retrieval? comparing knowledge injection in llms”. In: arXiv
+
+preprint arXiv:2312.05934 (2023).
+
+[40] Shirui Pan, Yizhen Zheng, and Yixin Liu. “Integrating graphs with large language models:
+
+Methods and prospects”. In: arXiv preprint arXiv:2310.05499 (2023).
+
+[41] Shirui Pan et al. “Unifying large language models and knowledge graphs: A roadmap”. In:
+
+IEEE Transactions on Knowledge and Data Engineering (2024).
+
+[42] Jyotima Patel and Biswanath Dutta. An Approach for Automatic Construction of an Algo-
+rithmic Knowledge Graph from Textual Resources. 2022. arXiv: 2205.06854 [cs.AI].
+[43] Shishir G Patil et al. “Gorilla: Large language model connected with massive apis”. In: arXiv
+
+preprint arXiv:2305.15334 (2023).
+
+[44] Alec Radford et al. “Language models are unsupervised multitask learners”. In: OpenAI blog
+
+1.8 (2019), p. 9.
+
+[45] Pranav Rajpurkar et al. “SQuAD: 100,000+ Questions for Machine Comprehension of Text”.
+In: Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing.
+Ed. by Jian Su, Kevin Duh, and Xavier Carreras. Austin, Texas: Association for Computa-
+tional Linguistics, Nov. 2016, pp. 2383–2392. doi: 10 . 18653 / v1 / D16 - 1264. url: https :
+//aclanthology.org/D16-1264.
+
+[46] Nils Reimers and Iryna Gurevych. “Sentence-BERT: Sentence Embeddings using Siamese
+BERT-Networks”. In: Proceedings of the 2019 Conference on Empirical Methods in Natural
+Language Processing. Association for Computational Linguistics, Nov. 2019. url: https :
+//arxiv.org/abs/1908.10084.
+
+[47] Xiang Ren et al. “CoType: Joint Extraction of Typed Entities and Relations with Knowledge
+
+Bases”. In: Apr. 2017, pp. 1015–1024. doi: 10.1145/3038912.3052708.
+
+[48] Swarnadeep Saha et al. “ExplaGraphs: An explanation graph generation task for structured
+
+commonsense reasoning”. In: arXiv preprint arXiv:2104.07644 (2021).
+
+[49] Shivanshu Shekhar et al. “Towards Optimizing the Costs of LLM Usage”. In: arXiv preprint
+
+arXiv:2402.01742 (2024).
+
+[50] Wei Shen et al. “Entity linking meets deep learning: Techniques and solutions”. In: IEEE
+
+Transactions on Knowledge and Data Engineering 35.3 (2021), pp. 2556–2578.
+
+[51] Fabian M Suchanek, Gjergji Kasneci, and Gerhard Weikum. “Yago: a core of semantic knowl-
+edge”. In: Proceedings of the 16th international conference on World Wide Web. 2007, pp. 697–
+706.
+
+[52] A. Talmor and J. Berant. “The Web as a Knowledge-base for Answering Complex Questions”.
+
+In: North American Association for Computational Linguistics (NAACL). 2018.
+
+[53] Xiangru Tang et al. “Medagents: Large language models as collaborators for zero-shot medical
+
+reasoning”. In: arXiv preprint arXiv:2311.10537 (2023).
+
+[54] Denny Vrandečić and Markus Krötzsch. “Wikidata: a free collaborative knowledgebase”. In:
+
+Communications of the ACM 57.10 (2014), pp. 78–85.
+
+[55] Heng Wang et al. “Can language models solve graph problems in natural language?” In: Ad-
+
+vances in Neural Information Processing Systems 36 (2024).
+
+[56] Xuezhi Wang et al. “Self-consistency improves chain of thought reasoning in language models”.
+
+In: arXiv preprint arXiv:2203.11171 (2022).
+
+[57] Jason Wei et al. “Chain-of-thought prompting elicits reasoning in large language models”. In:
+
+Advances in Neural Information Processing Systems 35 (2022), pp. 24824–24837.
+
+16
+
+[58] Min Wu et al. “Nebula Graph: An open source distributed graph database”. In: arXiv preprint
+
+arXiv:2206.07278 (2022).
+
+[59] Zhiheng Xi et al. “The rise and potential of large language model based agents: A survey”. In:
+
+arXiv preprint arXiv:2309.07864 (2023).
+
+[60] Shunyu Yao et al. “React: Synergizing reasoning and acting in language models”. In: arXiv
+
+preprint arXiv:2210.03629 (2022).
+
+[61] Shunyu Yao et al. “Tree of thoughts: Deliberate problem solving with large language models”.
+
+In: Advances in Neural Information Processing Systems 36 (2024).
+
+[62] Junchi Yu, Ran He, and Rex Ying. “Thought propagation: An analogical approach to complex
+
+reasoning with large language models”. In: arXiv preprint arXiv:2310.03965 (2023).
+
+[63] Wenhao Yu et al. “A survey of knowledge-enhanced text generation”. In: ACM Computing
+
+Surveys 54.11s (2022), pp. 1–38.
+
+[64] Duzhen Zhang et al. “Mm-llms: Recent advances in multimodal large language models”. In:
+
+arXiv preprint arXiv:2401.13601 (2024).
+
+[65] Yue Zhang et al. “Siren’s song in the AI ocean: a survey on hallucination in large language
+
+models”. In: arXiv preprint arXiv:2309.01219 (2023).
+
+[66] Ziwei Zhang et al. “Graph meets llms: Towards large graph models”. In: NeurIPS 2023 Work-
+
+shop: New Frontiers in Graph Learning. 2023.
+
+[67] Suncong Zheng et al. “Joint Extraction of Entities and Relations Based on a Novel Tagging
+Scheme”. In: Proceedings of the 55th Annual Meeting of the Association for Computational
+Linguistics (Volume 1: Long Papers). Ed. by Regina Barzilay and Min-Yen Kan. Vancouver,
+Canada: Association for Computational Linguistics, July 2017, pp. 1227–1236. doi: 10.18653/
+v1/P17-1113. url: https://aclanthology.org/P17-1113.
+
+[68] Yuqi Zhu et al. “LLMs for Knowledge Graph Construction and Reasoning: Recent Capa-
+bilities and Future Opportunities”. In: ArXiv abs/2305.13168 (2023). url: https : / / api .
+semanticscholar.org/CorpusID:258833039.
+
+17

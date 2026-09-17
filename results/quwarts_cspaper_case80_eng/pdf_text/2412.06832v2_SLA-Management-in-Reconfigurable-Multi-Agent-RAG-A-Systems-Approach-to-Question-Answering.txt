@@ -1,0 +1,1250 @@
+5
+2
+0
+2
+
+r
+p
+A
+8
+2
+
+]
+E
+S
+.
+s
+c
+[
+
+2
+v
+2
+3
+8
+6
+0
+.
+2
+1
+4
+2
+:
+v
+i
+X
+r
+a
+
+SLA Management in Reconfigurable Multi-Agent RAG: A Systems
+Approach to Question Answering
+
+Michael Iannelli
+Yext, Inc.
+New York, New York, USA
+miannelli@yext.com
+
+Sneha Kuchipudi
+Yext, Inc.
+New York, New York, USA
+skuchipudi@yext.com
+
+Vera Dvorak
+Yext, Inc.
+New York, New York, USA
+vdvorakova@yext.com
+
+Abstract
+Retrieval Augmented Generation (RAG) enables Large Language
+Models (LLMs) to generalize to new information by decoupling
+reasoning capabilities from static knowledge bases. Traditional RAG
+enhancements have explored vertical scaling—assigning subtasks
+to specialized modules—and horizontal scaling—replicating tasks
+across multiple agents—to improve performance. However, real-
+world applications impose diverse Service Level Agreements (SLAs)
+and Quality of Service (QoS) requirements, involving trade-offs
+among objectives such as reducing cost, ensuring answer quality,
+and adhering to specific operational constraints.
+
+In this work, we present a systems-oriented approach to multi-
+agent RAG tailored for real-world Question Answering (QA) appli-
+cations. By integrating task-specific non-functional requirements
+— such as answer quality, cost, and latency — into the system, we
+enable dynamic reconfiguration to meet diverse SLAs. Our method
+maps these Service Level Objectives (SLOs) to system-level param-
+eters, allowing the generation of optimal results within specified
+resource constraints.
+
+We conduct a case study in the QA domain, demonstrating how
+dynamic re-orchestration of a multi-agent RAG system can effec-
+tively manage the trade-off between answer quality and cost. By
+adjusting the system based on query intent and operational con-
+ditions, we systematically balance performance and resource uti-
+lization. This approach allows the system to meet SLOs for various
+query types, showcasing its practicality for real-world applications.
+
+CCS Concepts
+• Information systems → Information retrieval; • Applied
+computing → Service-oriented architectures; • Computing
+methodologies → Distributed artificial intelligence.
+
+Keywords
+Retrieval Augmented Generation, Multi-Agent Systems, Service
+Level Agreement
+
+1 Introduction
+Question Answering (QA) has been a pivotal area of research since
+the 1960s, aiming to provide precise answers to natural language
+questions. Unlike traditional search engines that return a list of
+hyperlinks to relevant pages, QA systems deliver direct answers to
+user queries [30].
+
+The advent of generative Large Language Models (LLMs) has
+led search engines to integrate abstractive QA into their offer-
+ings—systems that generate answers which may not exist verbatim
+in source documents [4]. Additionally, new platforms specializing
+
+in abstractive QA, such as Perplexity [20] and ChatGPT Search [19],
+have emerged.
+
+However, LLM-based abstractive QA exhibits notable limitations,
+including a lack of generalization to unseen data and a propensity
+for hallucination, i.e. the generation of false assertions [10]. Re-
+trieval Augmented Generation (RAG) [8] addresses these shortcom-
+ings by combining LLMs with external knowledge sources, enabling
+the LLM to function as a reasoning layer rather than a static repos-
+itory of facts. RAG retrieves context from external sources such
+as search engines, traditional databases, vector databases [11], or
+knowledge graphs [17, 28], and utilizes the LLM for reasoning and
+response generation.
+
+Enhancements to RAG-based QA have primarily focused on de-
+composing the task into smaller subtasks and distributing respon-
+sibilities among specialized components. While these techniques
+have improved answer quality, they often introduce additional costs
+in terms of computation or increased response times.
+
+Real-world QA systems must navigate trade-offs between an-
+swer quality and the costs associated with providing those answers.
+Moreover, they must be dynamically reconfigurable to handle di-
+verse Service Level Agreements (SLAs) and Quality of Service (QoS)
+requirements arising from various query intents and problem do-
+mains. For instance:
+
+• E-commerce Search: Highly sensitive to response times,
+where delays can significantly impact user experience and
+sales conversions [1, 25].
+
+• Customer Support: Requires not just correct answers but
+stylistically compliant ones that adhere to the brand-voice
+guidelines of the domain or company [18].
+
+• Legal and Healthcare Queries: Demand high answer
+quality due to the critical nature of the information, with
+less emphasis on cost or latency constraints [22].
+
+Furthermore, because modern cloud providers (e.g., SaaS and
+PaaS platforms) host these varied workloads side by side on shared
+infrastructure, the system’s overall utility is increased: by optimally
+provisioning and multiplexing resources across collocated services
+with diverse SLA requirements, we achieve higher utilization and
+more efficient service delivery.
+
+In addition to these domain-specific requirements, real-world
+RAG systems operate under constantly changing and sometimes
+adverse conditions. Factors such as network congestion, computa-
+tional capacity constraints, and security concerns necessitate adap-
+tive strategies. For example, during periods of high network traffic,
+minimizing external API calls and leveraging local LLM instances
+can help maintain answer quality while adhering to operational
+constraints.
+
+ 
+ 
+ 
+ 
+ 
+ 
+By incorporating knowledge about the task domain, QoS re-
+quirements, and the operational environment, we can quantify and
+manage the trade-offs between cost, answer quality, and other non-
+functional requirements. This enables the design of QA systems
+that are both efficient and effective across a range of real-world
+scenarios.
+
+1.1 Our Contributions
+We present a novel system-theoretic framework for SLA manage-
+ment in reconfigurable multi-agent RAG systems, specifically tai-
+lored for question-answering applications. Our main contributions
+are as follows:
+
+• Dynamically Reconfigurable Horizontal Scaling Frame-
+work: We propose a method for horizontally scaling multi-
+agent RAG systems by replicating agents with diverse con-
+figurations. This approach systematically improves per-
+formance by enabling the system to dynamically adjust
+resource allocation based on the specific requirements of
+each query.
+
+• Implementation and Experimental Validation: We de-
+tail the architecture and implementation of our Abstrac-
+tive Question Answering Intent Handler. Additionally, we
+present experimental results that demonstrate the effective-
+ness of our approach, including comparisons of strategies
+employed by different agent architectures.
+
+• Novel Metrics and Dataset Creation: We introduce novel
+metrics and a dataset creation process to address stylistic ad-
+herence requirements, which are critical for many industry
+users.
+
+By addressing the challenges of SLA management in multi-agent
+RAG systems, our work contributes to the development of QA
+systems that are adaptable, efficient, and capable of delivering high-
+quality answers under diverse operational conditions.
+
+1.2 Related Work
+Scaling Retrieval-Augmented Generation (RAG) systems has been
+an active area of research, with most approaches focusing on verti-
+cal scaling—decomposing tasks into subtasks assigned to specialized
+components. Recent studies incorporate Large Language Models
+(LLMs) at the planning stages to mitigate issues like irrelevant
+retrieval and focus drift. For instance, PlanRAG uses an LLM to gen-
+erate retrieval plans, enhancing context relevance [12]. Similarly,
+Retrieve-Plan-Generate (RPG) separates planning and answering
+stages to improve long-form question answering [14]. AutoGPT+P
+introduces planning loops for step-by-step plan generation in dy-
+namic environments [2].
+
+Horizontal scaling through multi-agent systems has also been
+explored, where multiple agents are synchronously assigned to the
+same question. LLM-Debate employs multiple LLM agents debating
+to reach better answers [5]. Chain-of-Thought Self-Consistency
+(CoT-SC) generates multiple reasoning paths and selects the most
+consistent answer [27]. Li et al. demonstrate that increasing the
+number of agents with simple voting improves performance [13].
+Temporal scaling techniques involve sequential interactions with
+LLMs to enhance question-answering performance on complex
+queries. Shao et al. use iterative querying to refine answers for
+
+Iannelli et al.
+
+complex information needs [23]. Query refinement methods, such
+as RQ-RAG involve rewriting, decomposing, and disambiguating
+complex queries have also been shown to improve answer quality
+[3].
+
+While these aforementioned methods enhance answer quality,
+they often overlook dynamic adaptation to operational constraints
+critical in real-world applications with strict Service Level Agree-
+ments (SLAs).
+
+Gao et al. introduce a modular RAG framework that encompasses
+horizontal, vertical, and temporal scaling techniques [9]. Zhang et
+al. propose an agentic information retrieval framework capable of
+handling complex queries by introducing IR agents with greater
+levels of autonomy [29]. However, these works lack experimental
+results on adapting systems to real-world environments.
+
+Arbitration mechanisms have been proposed to improve decision-
+making in multi-agent systems. Some studies suggest using multiple
+LLMs to select the best response [26]. These methods improve an-
+swer quality but may not address trade-offs such as cost, latency,
+and security.
+
+Evaluation frameworks like RAGAS assess RAG performance but
+may omit industry-relevant metrics such as adherence to stylistic
+constraints [6]. In practical applications, an answer must be not
+only correct but also stylistically appropriate.
+
+Our work differs by focusing on the dynamic reconfiguration of
+multi-agent RAG systems to meet diverse SLAs in real-world set-
+tings. We integrate task-specific non-functional requirements into
+system parameters, addressing trade-offs between answer quality,
+cost, latency, and adherence to stylistic guidelines. This practical
+framework aims to deploy question-answering systems in industrial
+contexts with stringent SLA demands.
+
+2 SLA Composition in Multi-Agent QA Systems
+We adopt a compositional perspective on Service Level Agree-
+ments (SLAs), decomposing a complex SLA into multiple interacting
+Quality-of-Service (QoS) attributes—such as response latency, fac-
+tual accuracy, stylistic adherence, and cost—and then combining
+them into an overall service commitment. Under this framework,
+the composite SLA for a QA system is defined as
+
+SLAcomposite = 𝑓 (𝑞1, 𝑞2, . . . , 𝑞𝑘 ),
+
+where each 𝑞𝑖 denotes a QoS attribute (e.g., latency, answer
+quality, stylistic compliance) and the function 𝑓 captures how these
+attributes interact.
+
+In our reconfigurable multi-agent RAG architecture, every mod-
+ule—from Intent Detection and Planning to individual QA agents
+and the Arbitration component—contributes toward one or more
+of these QoS attributes. For example, the Planning Module dynami-
+cally allocates both the number and configuration of RAG agents
+based on the incoming query’s requirements and current opera-
+tional conditions; this allocation explicitly considers the relevant
+SLA sub-attributes to ensure the final answer meets its targets for
+speed, accuracy, and style.
+
+A continuous monitoring subsystem then audits each module’s
+compliance with its assigned sub-SLAs in real time. Whenever a de-
+viation from the target QoS levels is detected—whether in response
+
+SLA Management in Reconfigurable Multi-Agent RAG
+
+time, factual correctness, or stylistic conformity—adaptive recon-
+figuration is triggered. Such adjustments might include tuning the
+arbitration thresholds, shifting workload between cloud and local
+LLM instances, or reallocating compute resources. This feedback
+loop ensures that the composite SLA is upheld by continuously
+reconciling the performance of individual components.
+
+By embedding this compositional SLA framework into our multi-
+agent QA system, we achieve a systematic balance among answer
+quality, latency, and cost—yielding a robust, adaptable service that
+satisfies diverse and stringent SLA requirements in real-world de-
+ployments.
+
+3 Architecture
+Our Question Answering System is designed to dynamically recon-
+figure its components to meet Service Level Agreements (SLAs).
+The system consists of three primary modules: an Intent Detec-
+tion Module, a Planning Module, and multiple Intent Handlers. A
+high-level overview of the architecture is shown in Figure 1.
+
+3.1 System Inputs and Outputs
+3.1.1 User Query. : The system accepts arbitrary input queries
+from users, such as: “How do I reset my phone?", “How to reset
+phone", or “Burger joints near me".
+
+These queries vary significantly in intent and complexity, neces-
+sitating a robust mechanism for accurate intent recognition and
+appropriate handling.
+
+Figure 1: A bird’s eye view of the architecture of the Abstrac-
+tiveQA System
+
+3.1.2 Task SLA/QoS Parameters. : Specific requirements such as:
+
+• Required precision and recall for the task
+• Maximum acceptable hallucination rate and incongruent
+response rate (to ensure adherence to stylistic constraints)
+• Budget and Latency constraints for different intent types
+
+3.1.3 Operational Environment. Current conditions affecting the
+system, such as:
+
+• Availability of network resources
+• Status of external APIs and services
+• Available models and data sources
+
+3.2 Intent Detection Module
+The Intent Detection Module processes the user query to classify
+it into predefined intent categories, focusing on determining the
+what of the input query1, i.e., what kind of query it is:
+
+• Directly Answerable Question: Queries seeking specific
+
+information that can be directly addressed.
+
+• Request for Summarization: Queries asking to condense
+
+or summarize information from a source.
+
+• Non-Question Statements: Inputs that are not interroga-
+
+tive but may require action.
+
+• Request for a List: Queries seeking a collection of items
+
+(e.g., nearby restaurants serving hamburgers).
+
+• Sales Inquiry: Queries related to purchasing or product
+
+information.
+
+Implementation Options. Implementation options for this
+3.2.1
+module include various techniques, each with trade-offs in terms
+of computational cost, extensibility, and accuracy2:
+
+• Heuristic Methods: Rule-based systems using predefined
+patterns and keywords for quick intent classification. While
+low in computational overhead, they may lack flexibility
+and scalability.
+
+• Machine Learning Classifiers: Lightweight models trained
+on labeled datasets to predict intents, offering a balance
+between performance and resource utilization.
+
+• Generative Large Language Models (LLMs): Zero-shot
+or few-shot classifiers leveraging pre-trained LLMs to un-
+derstand and classify intents without extensive domain-
+specific training data. Although highly extensible and ac-
+curate, they incur higher computational costs.
+
+3.3 Planning Module
+The Planning Module dynamically configures the resources of the
+Intent Handlers to meet the system’s SLA requirements for each
+specific intent in the current environment. Its core functions in-
+clude:
+
+• Resource Allocation: Determining the optimal number of
+Retrieval Augmented Generation (RAG) agents to deploy,
+balancing response quality against computational cost.
+• Backend Data Source Selection: Choosing appropriate data
+
+repositories (e.g., cached datasets, real-time databases, knowl-
+edge graphs) based on required information freshness and
+relevance.
+
+• Arbitration Mechanism Configuration: Selecting and pa-
+rameterizing arbitration algorithms to aggregate and eval-
+uate responses from multiple agents effectively.
+
+For example, to service a query requiring high answer quality,
+
+the Planning Module may:
+
+• Increase Agent Replication: Deploy more RAG agents to
+
+generate diverse candidate answers.
+
+• Employ Appropriate Data Sources: Access multiple data
+repositories to enrich the context and determine which
+
+3.1.4 Results. : The QA system’s outputs are Intent-Dependent
+Answers which consist of diverse responses tailored to the user’s
+intent and complying with specified SLAs.
+
+1The what refers to the type or kind of query being made, as opposed to the why,
+which pertains to the motivation behind the user’s question.
+2In this context, accuracy is used in a qualitative sense to measure the quality of
+outcomes, rather than the quantitative definition commonly used in machine learning.
+
+agents should have access to which sources e.g. an agent
+using a third-party LLM would not get access to sensitive
+documents.
+
+• Select what threshold to use in a voting-based arbitration
+mechanism e.g. only return an answer when 70% of the
+agents think it should be answered.
+
+By adjusting these configurations in real-time, the Planning
+Module ensures compliance with SLA parameters, optimizing the
+system’s performance in terms of answer quality and resource
+utilization.
+
+Figure 2: Possible Instantiation of Abstractive Question An-
+swer Intent Handler
+
+3.4 Intent Handlers
+The Intent Handler is a reconfigurable module that executes the
+necessary processes to address the user’s query based on the clas-
+sified intent. By dynamically adjusting its internal workflows and
+resource utilization in response to directives from the Planning
+Module, the Intent Handler can:
+
+• Manage Computational Costs: Allocate resources judi-
+ciously to stay within budgetary constraints without sig-
+nificantly compromising answer quality.
+
+• Enhance Answer Quality: Allocate additional resources,
+such as more RAG agents or advanced arbitration mecha-
+nisms, for queries where accuracy is paramount.
+
+• Ensure Compliance with Non-Functional Require-
+ments: Adjust processing to adhere to stylistic guidelines,
+security policies, and other non-functional requirements
+specified in the SLAs.
+
+To achieve these objectives, the Intent Handler orchestrates a
+
+network of logical entities and services, which may include:
+
+Iannelli et al.
+
+– Ranking Models: Machine learning models trained to
+rank candidate responses based on relevance, accuracy,
+and other quality metrics.
+
+• Ensemble Techniques: Combining outputs from multiple
+
+agents to produce a more robust final answer.
+
+• Response Synthesis: Constructing the final response, en-
+suring coherence and adherence to stylistic guidelines.
+
+A diagram showing a potential instantiation of a multi-agent
+
+Abstractive QA Intent Handler is presented in Figure 2.
+
+4 Benchmark Dataset Creation and Metrics
+4.1 Dataset Creation
+We sampled approximately 5,000 actual user queries spanning over
+200 different businesses across various industries (e.g. retail, finance,
+etc.) Each query was classified into one of two intent categories:
+Directly Answerable Questions or All Other Intents.
+
+In this context, a query is considered directly answerable if it
+can be addressed succinctly (e.g., with a yes/no or factual response),
+such as inquiries about a product, service, or specific company
+information. Non-directly answerable queries include broad topics,
+technical issues, or those better answered with a list or document
+link.
+
+Each query was annotated by two independent annotators, fol-
+lowed by a conflict resolution process when necessary. The resulting
+dataset served two purposes:
+
+• Evaluation of the Intent Classifier (which is outside the
+
+scope of this research).
+
+• Creation of an annotated dataset for queries and answers.
+
+We found that directly answerable queries constituted approxi-
+mately 12% of the original dataset, totaling around 600 queries. Each
+of these queries was input into five separately configured RAG-QA
+Agents, resulting in approximately 3,000 (query, context, answer)
+triples. Each triple was annotated by two independent annotators,
+with a conflict resolution step to ensure consistency.
+
+Each result was assigned three attributes reflecting: (i) the avail-
+ability of an answer in context, (ii) the provision of an answer,
+and (iii) the quality of the answer. Detailed definitions for these
+attributes are provided in Table 1.
+
+4.2 Metrics
+4.2.1 Answer Quality Metrics. We evaluated the performance of
+the agents using the following metrics:
+
+• Precision: The number of correct answers divided by the
+
+• Backend Data Access Interfaces: APIs and connectors
+
+total number of answers provided.
+
+to interact with various data sources.
+
+• RAG Agents: Multiple instances of Retrieval Augmented
+Generation agents, each potentially configured with differ-
+ent retrieval strategies, preprocessing pipelines, and LLMs
+to generate diverse candidate responses.
+
+• Arbitration Algorithms: Mechanisms to evaluate and
+select the optimal response from the candidate answers.
+This may involve:
+
+– Voting Systems: Methods like majority voting or
+weighted voting based on agent confidence scores.
+
+• Recall: The number of correct answers divided by the num-
+ber of times the answer exists in the global context (i.e., the
+union of all contexts from all agents).3
+
+3The use of the global context to compute precision and recall introduces limitations
+to our dataset, as the exact upper bound on the number of answers in any context
+is unknown and could not be determined within our time constraints. However, we
+found that the difference in the number of answers sourced from the global context
+between the four-agent and five-agent systems was minimal (one to two instances,
+depending on configuration). This suggests that the overall impact is likely negligible
+with the retrieval mechanisms used.
+
+SLA Management in Reconfigurable Multi-Agent RAG
+
+Category
+
+Context
+Availability
+
+Answer Provision
+
+Answer Quality
+
+Option
+
+Description
+
+Answer Exists in
+Context
+Answer Does Not Exist
+in Context
+
+Answer Provided
+No Answer Provided
+
+Correct Answer
+
+Hallucination
+Incongruent Response
+
+At least one agent’s retrieval process returned a result from which a correct direct
+answer could be derived.
+None of the agents’ retrieval processes returned a result from which a correct direct
+answer could be derived.
+
+An answer was returned (regardless of its correctness).
+A negative, or null, answer was returned.
+
+The returned answer was correct and aligned with the task’s non-functional re-
+quirements (e.g., adhered to the specified style in the prompt).
+The returned answer was not grounded in the provided context.
+The returned answer did not adhere to the task’s non-functional requirements.
+
+Table 1: Summary of Answer Annotation Attributes
+
+• F1 Score: The harmonic mean of precision and recall:
+
+𝐹1 = 2 ·
+
+Precision · Recall
+Precision + Recall
+
+• Hallucination Rate: The number of hallucinations divided
+by the total number of answers provided, where a halluci-
+nation is any answer not grounded in the context.4
+
+• Incongruent Response Rate: The number of incongruent
+
+responses divided by the total number of responses.
+
+Precision, Recall, and F1: In traditional information retrieval, pre-
+cision is defined as the proportion of retrieved documents that are
+relevant, and recall as the proportion of relevant documents that
+are retrieved [16]. In our question answering domain, we adapted
+these definitions to suit our specific context.
+
+Incongruent Responses: For many users of this system, particu-
+larly brands, it is insufficient to simply return a correct answer; the
+answer must also adhere to the non-functional and stylistic require-
+ments specified in the prompt. This includes guidelines such as not
+breaking the fourth wall or referencing the context directly. Ensur-
+ing compliance with these requirements is essential for maintaining
+brand voice and user experience.
+
+System Cost. Our model incorporates a fixed overhead cost
+4.2.2
+per question, the cumulative cost of the diverse QA agents deployed
+for the intent, and the associated arbitration cost. Mathematically,
+this is expressed as:
+
+𝐶sys = 𝐶overhead +
+
+𝑁intent∑︁
+𝑖=1
+
+Where:
+
+𝐶agent,𝑖 + 𝐶arbitration (𝑁intent)
+
+• 𝐶sys: Total system cost of answering one question.
+• 𝐶overhead: Fixed system overhead cost per question.
+• 𝐶agent,𝑖 : Cost of the 𝑖-th QA agent.
+• 𝑁intent: Number of QA agents deployed for the intent.
+• 𝐶arbitration (𝑁intent): Arbitration cost for the 𝑁intent agents.
+4The Hallucination Rate is analogous to the False Positive Rate, with the key difference
+being that false positives in this context include answers not grounded in the provided
+context (extrinsic hallucinations), contradicted by the provided context (intrinsic
+hallucinations), or incongruent responses. Further details on categories of hallucination
+can be found in [10].
+
+System Latency. The system latency for our implementation
+4.2.3
+is defined as the sum of the fixed overhead latency, the maximum
+latency among the QA agents configured for a given intent (since
+agent operations are asynchronous and parallel), and the arbitration
+latency for those agents. Mathematically, this is expressed as:
+
+𝐿sys = 𝐿overhead + max
+
+1≤𝑖 ≤𝑁intent
+
+𝐿QA,𝑖 + 𝐿arbitration (𝑁intent)
+
+Where:
+
+• 𝐿sys: Total system latency.
+• 𝐿overhead: Fixed overhead latency.
+• 𝐿QA,𝑖 : Latency of the 𝑖-th QA agent.
+• max1≤𝑖 ≤𝑁intent
+QA agents.
+
+𝐿QA,𝑖 : Maximum latency among all 𝑁intent
+
+• 𝐿arbitration (𝑁intent): Arbitration latency for the 𝑁intent agents.
+
+5 Agent Implementation
+In this section, we describe the experiments conducted to evaluate
+our reconfigurable multi-agent RAG system for question answering.
+We detail the agent architecture, single-agent experiments, and the
+arbitration algorithm, including its implementation and ablation
+studies.
+
+Figure 3: The RAG QA Agent Architecture we use in our
+experiments
+
+5.1 Agent Architecture
+The architecture of an individual QA agent used in our experiments,
+shown in Figure 3, is designed to be flexible and configurable based
+
+on the output of the Planning Module. The specific parameteriza-
+tion of each agent depends on factors such as which backend data
+sources are provisioned and caching strategies. While the imple-
+mentation details of the Planning Module are outside the scope of
+this research, we provide an overview of the QA agent’s architecture
+and workflow.
+
+window limitation of 8,000 tokens, we needed to prune the retrieved
+context appropriately. We developed several pruning methods aim-
+ing to balance content relevance with the token limit. For each
+agent, we measured Answer Quality using the metrics described in
+Section 4.2.1.
+
+Iannelli et al.
+
+• Query Input: The user query is input into the Retrieval
+Module. Only queries classified as directly answerable are
+processed by the QA agent.
+
+• Retrieval Module: Accesses backend data sources using the
+input query. Utilizes a federated search approach, querying
+multiple backend data sources asynchronously. Supports
+vertical search5 by returning data categorized by entity
+type, configured based on domain requirements. Verticals
+are ranked in order of relevance.
+
+• Post-Retrieval Preprocessing: A preprocessing module pre-
+pares the context documents for input into the Reasoning
+Module. Prunes and organizes retrieved documents to com-
+ply with the LLM’s context window size limitations.
+
+• Reasoning Module: Powered by GPT-4 [7]. Generates an-
+swers based on the user query and preprocessed context.
+Details of the prompt used are discussed in Section 5.3.
+
+5.2 Retrieval Module Details
+The Retrieval Module, shown in Figure 4, pulls data from various
+backend sources, including vector databases, lexical search engines,
+and graph data stores, depending on the domain. For vector search,
+we employ the following components:
+
+• Embedding Model: Documents are embedded using a trans-
+former model based on MPNet [24]. Embeddings capture
+semantic information for effective similarity comparisons.
+• Vector Database: Indexed using Hierarchical Navigable
+Small World (HNSW) graphs [15] for efficient approximate
+nearest neighbor search. At query time, the same embed-
+ding model is used to encode the user query. The resulting
+query vector q is used to retrieve documents whose vectors
+d are similar, based on cosine similarity:
+
+𝑠𝑖𝑚𝑖𝑙𝑎𝑟𝑖𝑡𝑦 (q, d) =
+
+q · d
+∥q∥ ∥d∥
+
+Documents with higher cosine similarity scores are consid-
+ered more relevant to the query.
+
+5.3 Prompt Engineering
+After re-ranking and/or thresholding, we construct the prompt
+for the LLM. The preprocessed list of context documents and the
+original user query are interpolated into the prompt at appropriate
+places. An example prompt is shown in Figure 5.
+
+6 Experiments
+We conducted experiments on individual QA agents by varying the
+post-retrieval preprocessing logic used to prepare the input prompts
+for the GPT-4-powered Reasoning Module. Given the LLM’s context
+
+Prompt Example
+
+Context : { context_entities }.
+
+Use only the provided context to answer the
+question : `{ query } ' to the best of your
+ability and in a few sentences or less .
+
+If there is more than one answer , summarize
+
+the options . Provide the `uid ' values of the
+object you used to inform the answer ( do NOT
+use the `id ' value ). Return the answer in a
+json dictionary format
+
+[ Example :
+{
+
+`answer ': ` This is the answer ',
+` uid_list ': [12345 , 98342]
+
+}]
+
+Do not refer to the context in your answer .
+
+Figure 5: An example of the constructed prompt used by the
+QA Agent’s Reasoning Module.
+
+For the multi-agent experiments, we implemented an arbitra-
+tion algorithm based on majority voting and relevance ranking.
+We varied the size of the agent ensemble dedicated to servicing
+the QA queries by adjusting the number of QA agents—each em-
+ploying diverse post-retrieval preprocessing strategies—included
+in the ensemble. The final answer was selected based on the ar-
+bitration algorithm. Similar to the single-agent experiments, we
+measured Answer Quality and evaluated the system cost relative
+to the number of agents in the ensemble.6
+
+6.1 Preprocessing Methods
+We implemented two main types of preprocessing logic:
+
+• Thresholding:
+
+– Thresholding (Control): A naive truncation strategy
+where the first 8,000 tokens from the search results are
+taken.
+
+– Vertical Thresholding: Selects top tokens from the top
+two verticals (until the prompt reaches 8,000 tokens).
+– Aggressive Thresholding: Takes the first 6,000 tokens
+from the search response, allowing more space for the
+reasoning process.
+
+5Vertical search refers to specialized searches within predefined categories or domains.
+For instance, a healthcare-related query for cardiology may return results segmented
+into verticals such as cardiologists and hospitals specializing in cardiology.
+
+6A notable limitation of these experiments was the inability to accurately measure
+system latency due to non-stationary external conditions, such as API rate limiting.
+Future work will involve simulating realistic conditions to accurately measure latency.
+
+SLA Management in Reconfigurable Multi-Agent RAG
+
+Figure 4: Architecture of the Vector Search Process we use in our experiments
+
+• Re-ranking: Utilized a cross-encoder model based on ‘ms-
+marco-MiniLM-L-12-v2’ from the Sentence Transformers
+library [21]. The cross-encoder accepts the query and doc-
+ument as input and returns a relevance score between 0
+and 1. Documents are re-ranked based on relevance scores
+before thresholding.7
+
+answer at random from the set of affirmative responses. Next, we
+evaluated the effect of the threshold mechanism by randomly choos-
+ing a response from the affirmative set after threshold evaluation.
+Finally, we applied the cross-encoder-based arbitration function 𝐴
+over the complete set of candidate responses to assess its overall
+impact on the final output.
+
+6.2 Arbitration
+In our multi-agent RAG system, we employ an arbitration algorithm
+to select the optimal response from a set of candidate answers
+generated by various QA agents. The arbitration process is governed
+by a decision threshold 𝑇 ∈ (0, 1) and an arbitration function 𝐴
+that maps a set of results to a single final answer. The algorithm is
+defined in Algorithm 1
+
+For our experiments, the arbitration function 𝐴 was implemented
+using a cross-encoder model, consistent with the post-retrieval
+preprocessing methods described earlier. The cross-encoder jointly
+encodes each candidate answer with the original query to compute
+a relevance score. It effectively re-ranks the affirmative responses
+based on their contextual relevance and quality, selecting the top-
+ranked answer as the final output.
+
+6.3 Algorithm Ablations
+To isolate the contributions of each component in our arbitration
+algorithm, we conducted a series of ablation experiments. First, we
+bypassed the arbitration function entirely by selecting a candidate
+
+7Note: The raw entity JSON is not used directly as input. Search configurations define
+an LLM-friendly view of the entity, specifying which fields should be included. The
+design of this view generation model is outside the scope of this work.
+
+7 Results
+In this section, we present the results of our experiments, focus-
+ing on both single-agent ablations and multi-agent configurations.
+Our goal is to evaluate how different preprocessing strategies and
+arbitration mechanisms affect the performance of the QA system,
+particularly in terms of precision, recall, hallucination rate, and
+incongruent response rate.
+
+7.1 Single-Agent Experiments
+The results of the single-agent experiments are summarized in
+the upper section of Table 2. These results encompass the three
+preprocessing strategies discussed in the Single Agent Experiments
+section
+
+Key Findings
+
+• Aggressive Thresholding emerged as the best-performing
+strategy, achieving the highest precision and recall, as well
+as the lowest incongruent response rate.
+
+• Vertical Thresholding performed comparably to aggressive
+thresholding, indicating that focusing on top-ranked verti-
+cals effectively preserves relevant context.
+
+• Agents utilizing Re-ranking with Cross-Encoder exhibited
+lower precision and recall. The cross-encoder tended to
+
+Algorithm 1: Candidate Response Collection and Arbitra-
+tion
+Input: Set of candidate responses 𝐶 = {𝑐1, 𝑐2, . . . , 𝑐𝑛 };
+
+threshold 𝑇
+
+Output: Final answer or a negative result
+
+Step 1: Candidate Response Collection
+Let 𝐶 be the set of candidate responses from 𝑁 QA agents.
+
+Step 2: Affirmative Response Identification
+Define 𝐶affirmative ⊆ 𝐶 as the subset of responses that
+include an attempted answer (i.e., non-null and substantive
+responses).
+
+Step 3: Threshold Evaluation
+Compute the minimum number of affirmative responses
+required:
+
+𝑘 = ⌊𝑇 × |𝐶 |⌋
+
+if |𝐶affirmative| ≥ 𝑘 then
+
+Proceed to arbitration.
+
+else
+
+Return a negative result indicating that no answer will
+be provided.
+
+return Negative Result
+
+Step 4: Arbitration Function Application
+Apply the arbitration function 𝐴 to 𝐶affirmative:
+
+Final Answer = 𝐴(𝐶affirmative)
+
+return Final Answer
+
+eliminate important context documents, leading to reduced
+precision despite a lower hallucination rate.
+
+7.2 Multi-Agent Experiments
+The multi-agent experiments were designed to evaluate the impact
+of ensemble configurations on system performance. We varied
+the number of agents in the ensemble and observed the effects
+of different arbitration mechanisms, all of which used a threshold
+𝑇 = 0.5, requiring at least half of the agents to provide an affirmative
+answer for a response to be returned. The results can be found in
+the bottom section of Table 2. Detailed charts are shown in Figures
+6 - 10.
+
+Key Findings
+
+• Increasing the number of agents consistently improved per-
+formance, enhancing precision and recall while reducing
+the hallucination and incongruent response rates. This high-
+lights the benefit of aggregating responses across agents.
+• Balancing performance improvements with computational
+costs is crucial. Larger ensembles offer better performance
+metrics but come at the expense of increased resource usage
+and latency.
+
+Iannelli et al.
+
+Figure 6: Recall vs. Ensemble Size
+
+Figure 7: Precision vs. Ensemble Size
+
+Figure 8: F1 vs. Ensemble Size
+
+• Simple voting mechanisms often performed on par with
+relevance-based arbitration. While the latter showed pre-
+dictable improvements with more agents, the additional
+gains were minimal compared to the increased computa-
+tional overhead.
+
+8 Discussion and Future Directions
+In this work, we introduce a dynamically reconfigurable multi-
+agent RAG system and present experimental results that highlight
+its ability to navigate multiple SLA dimensions—balancing answer
+
+SLA Management in Reconfigurable Multi-Agent RAG
+
+Table 2: Experimental Results for Single and Multi-Agent Experiments
+
+Experiment Version
+
+Recall Precision
+
+F1
+
+Hallucination Rate
+
+Incongruent Response Rate
+
+Thresholding (control)
+Rerank with thresholding
+Rerank with vertical thresholding
+Aggressive Thresholding
+Vertical Thresholding
+vote_with_thresh, N=3
+vote_with_thresh, N=5
+vote_most_relevant, N=3
+vote_most_relevant, N=5
+vote_most_relevant_with_thresh, N=3
+vote_most_relevant_with_thresh, N=5
+
+0.640
+0.529
+0.571
+0.656
+0.656
+
+0.655
+0.684
+0.666
+0.684
+0.652
+0.684
+
+0.656
+0.652
+0.619
+0.670
+0.654
+
+0.672
+0.691
+0.674
+0.681
+0.672
+0.691
+
+0.648
+0.584
+0.594
+0.663
+0.655
+
+0.663
+0.688
+0.670
+0.683
+0.661
+0.688
+
+0.239
+0.187
+0.249
+0.235
+0.249
+
+0.230
+0.220
+0.229
+0.229
+0.228
+0.220
+
+0.015
+0.027
+0.017
+0.008
+0.013
+
+0.011
+0.012
+0.014
+0.013
+0.013
+0.012
+
+Figure 9: Hallucination Rate vs. Ensemble Size
+
+make the case for a system that can adapt in real time to diverse
+SLA requirements.
+
+Looking ahead, several promising research directions are appar-
+ent. Exploring alternative arbitration mechanisms—such as weighted
+voting or additional machine learning-based approaches—may help
+optimize overall system performance, even if improvements in one
+dimension might be offset by challenges in another. Incorporat-
+ing additional explicit QoS parameters—particularly latency and
+computational constraints—into our experiments would enable a
+more nuanced approach to SLA management. Coupling this with
+simulations of real-world conditions, such as network congestion
+and variable computational resources, and optimizing threshold
+parameters will be critical for comprehensively understanding their
+impact on latency and other performance dimensions. We would
+also like to explore enhancements to our planning modules that en-
+able temporal replication and dynamic strategy adjustments, which
+could further improve the system’s overall adaptability.
+
+Overall, our work demonstrates that a systems-oriented ap-
+proach to SLA management in reconfigurable multi-agent RAG
+systems is not only feasible but also essential for deploying QA
+solutions that meet the multifaceted demands of real-world appli-
+cations.
+
+References
+[1] Neel Achary. 2023.
+
+The Hidden Impact of Latency on E-commerce:
+https:
+
+How Slow Load Times Affect Checkout Payment Experience.
+//businessnewsthisweek.com/business/the-hidden-impact-of-latency-on-
+e-commerce-how-slow-load-times-affect-checkout-payment-experience/
+Accessed: 2024-11-25.
+
+Figure 10: Incongruent Response Rate vs. Ensemble Size
+
+quality and resource efficiency. Our results show that aggressive
+thresholding at the retrieval stage, by focusing on the most perti-
+nent context, enables the system to generate more responses with
+improved precision. However, conventional re-ranking methods,
+while effective at prioritizing relevant documents, can sometimes
+filter out essential context and thereby impact the overall perfor-
+mance balance. Similarly, scaling the number of agents tends to
+boost metrics like precision and recall, but this comes with in-
+creased resource consumption. These interdependent trade-offs
+
+[2] Timo Birr, Christoph Pohl, Abdelrahman Younes, and Tamim Asfour. 2024. Au-
+toGPT+P: Affordance-based Task Planning using Large Language Models. In
+Robotics: Science and Systems XX (RSS2024). Robotics: Science and Systems Foun-
+dation. doi:10.15607/rss.2024.xx.112
+
+[3] Chi-Min Chan, Chunpu Xu, Ruibin Yuan, Hongyin Luo, Wei Xue, Yike Guo,
+and Jie Fu. 2024. RQ-RAG: Learning to Refine Queries for Retrieval Augmented
+Generation. In First Conference on Language Modeling. https://openreview.net/
+forum?id=tzE7VqsaJ4
+
+[4] Danny D’Cruze. 2024. After Google, Microsoft Unveils AI-Powered Bing
+Search Features: See How It Works. https://www.businesstoday.in/technology/
+news/story/after-google\protect\penalty\z@-microsoft\protect\penalty\z@-
+unveils\protect\penalty\z@-ai-powered\protect\penalty\z@-bing-search-
+features-see-how-it-works-438665-2024-07-25. Accessed: 2024-11-25.
+
+[5] Yilun Du, Shuang Li, Antonio Torralba, Joshua B. Tenenbaum, and Igor Mor-
+datch. 2023. Improving Factuality and Reasoning in Language Models through
+Multiagent Debate. arXiv:2305.14325 [cs.CL] https://arxiv.org/abs/2305.14325
+
+Iannelli et al.
+
+[29] Weinan Zhang, Junwei Liao, Ning Li, and Kounianhua Du. 2024. Agentic Infor-
+mation Retrieval. arXiv:2410.09713 [cs.IR] https://arxiv.org/abs/2410.09713
+[30] Fengbin Zhu, Wenqiang Lei, Chao Wang, Jianming Zheng, Soujanya Poria, and
+Tat-Seng Chua. 2021. Retrieving and Reading: A Comprehensive Survey on Open-
+domain Question Answering. CoRR abs/2101.00774 (2021). arXiv:2101.00774
+https://arxiv.org/abs/2101.00774
+
+[6] Shahul Es,
+
+Jithin James, Luis Espinosa-Anke, and Steven Schockaert.
+2023. RAGAS: Automated Evaluation of Retrieval Augmented Generation.
+arXiv:2309.15217 [cs.CL] https://arxiv.org/abs/2309.15217
+
+[7] OpenAI et al. 2024. GPT-4 Technical Report. arXiv:2303.08774 [cs.CL] https:
+
+//arxiv.org/abs/2303.08774
+
+[8] Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia, Jinliu Pan, Yuxi Bi, Yi
+Dai, Jiawei Sun, Meng Wang, and Haofen Wang. 2024. Retrieval-Augmented
+Generation for Large Language Models: A Survey. arXiv:2312.10997 [cs.CL]
+https://arxiv.org/abs/2312.10997
+
+[9] Yunfan Gao, Yun Xiong, Meng Wang, and Haofen Wang. 2024. Modular
+RAG: Transforming RAG Systems into LEGO-like Reconfigurable Frameworks.
+arXiv:2407.21059 [cs.CL] https://arxiv.org/abs/2407.21059
+
+[10] Ziwei Ji, Nayeon Lee, Rita Frieske, Tiezheng Yu, Dan Su, Yan Xu, Etsuko Ishii,
+Ye Jin Bang, Andrea Madotto, and Pascale Fung. 2023. Survey of Hallucination
+in Natural Language Generation. ACM Comput. Surv. 55, 12, Article 248 (March
+2023), 38 pages. doi:10.1145/3571730
+
+[11] Zhi Jing, Yongye Su, and Yikun Han. 2024. When Large Language Models Meet
+Vector Databases: A Survey. arXiv:2402.01763 [cs.DB] https://arxiv.org/abs/2402.
+01763
+
+[13]
+
+[12] Myeonghwa Lee, Seonho An, and Min-Soo Kim. 2024. PlanRAG: A Plan-then-
+Retrieval Augmented Generation for Generative Large Language Models as
+Decision Makers. arXiv:2406.12430 [cs.CL] https://arxiv.org/abs/2406.12430
+Junyou Li, Qin Zhang, Yangbin Yu, Qiang Fu, and Deheng Ye. 2024. More Agents
+Is All You Need. arXiv:2402.05120 [cs.CL] https://arxiv.org/abs/2402.05120
+[14] Yuanjie Lyu, Zihan Niu, Zheyong Xie, Chao Zhang, Tong Xu, Yang Wang,
+and Enhong Chen. 2024.
+Retrieve-Plan-Generation: An Iterative Plan-
+ning and Answering Framework for Knowledge-Intensive LLM Generation.
+arXiv:2406.14979 [cs.CL] https://arxiv.org/abs/2406.14979
+
+[15] Yury A. Malkov and Dmitry A. Yashunin. 2016. Efficient and robust approximate
+nearest neighbor search using Hierarchical Navigable Small World graphs. CoRR
+abs/1603.09320 (2016). arXiv:1603.09320 http://arxiv.org/abs/1603.09320
+[16] Christopher D. Manning, Prabhakar Raghavan, and Hinrich Schütze. 2008. Intro-
+duction to Information Retrieval. Cambridge University Press, Cambridge, UK.
+https://nlp.stanford.edu/IR-book/ Evaluation in Information Retrieval.
+
+[17] Ariana Martino, Michael Iannelli, and Coleen Truong. 2023. Knowledge Injection
+to Counter Large Language Model (LLM) Hallucination. In The Semantic Web:
+ESWC 2023 Satellite Events: Hersonissos, Crete, Greece, May 28 - June 1, 2023,
+Proceedings (Hersonissos, Greece). Springer-Verlag, Berlin, Heidelberg, 182–185.
+doi:10.1007/978-3-031-43458-7_34
+
+[18] Peter Murár, Michal Kubovics, and Vladimíra Jurišová. 2024. The Impact of
+Brand-Voice Integration and Artificial Intelligence on Social Media Marketing.
+Communication Today (04 2024), 50–63. doi:10.34135/communicationtoday.2024.
+Vol.15.No.1.4
+
+[19] OpenAI. 2024. Introducing ChatGPT Search. https://openai.com/index/\protect\
+
+penalty\z@introducing-chatgpt-search/. Accessed: 2024-11-25.
+
+[20] Perplexity AI. 2024. An Introduction to RAG Models. https://www.perplexity.
+
+ai/page/exploring\protect\penalty\z@-ai-in-search\protect\penalty\z@-an-
+intr\protect\penalty\z@-jBULt6_mSB2yAV8b17WLDA. Accessed: 2024-11-25.
+[21] Nils Reimers and Iryna Gurevych. 2019. Sentence-BERT: Sentence Embeddings
+using Siamese BERT-Networks. In Conference on Empirical Methods in Natural
+Language Processing. https://api.semanticscholar.org/CorpusID:201646309
+[22] Arunim Samat. 2024. Legal-RAG vs. RAG: A Technical Exploration of Re-
+trieval Systems.
+https://www.truelaw.ai/blog/legal-rag-vs-rag-a-technical-
+exploration-of-retrieval-systems Published on March 23, 2024, Last Updated on
+March 23, 2024.
+
+[23] Zhihong Shao, Yeyun Gong, Yelong Shen, Minlie Huang, Nan Duan, and Weizhu
+Chen. 2023. Enhancing Retrieval-Augmented Large Language Models with
+Iterative Retrieval-Generation Synergy. arXiv:2305.15294 [cs.CL] https://arxiv.
+org/abs/2305.15294
+
+[24] Kaitao Song, Xu Tan, Tao Qin, Jianfeng Lu, and Tie-Yan Liu. 2020. MPNet: Masked
+and Permuted Pre-training for Language Understanding. CoRR abs/2004.09297
+(2020). arXiv:2004.09297 https://arxiv.org/abs/2004.09297
+
+[25] Steven van Vessum. n.d.. Amazon Page Speed Study FAQ. https://www.conductor.
+com/academy/page-speed-resources/faq/amazon-page-speed-study Accessed:
+2024-11-25.
+
+[26] Pat Verga, Sebastian Hofstatter, Sophia Althammer, Yixuan Su, Aleksandra Piktus,
+Arkady Arkhangorodsky, Minjie Xu, Naomi White, and Patrick Lewis. 2024.
+Replacing Judges with Juries: Evaluating LLM Generations with a Panel of
+Diverse Models. arXiv:2404.18796 [cs.CL] https://arxiv.org/abs/2404.18796
+[27] Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed Chi, Sharan Narang,
+Aakanksha Chowdhery, and Denny Zhou. 2023. Self-Consistency Improves
+Chain of Thought Reasoning in Language Models. arXiv:2203.11171 [cs.CL]
+https://arxiv.org/abs/2203.11171
+
+[28] Zhentao Xu, Mark Jerome Cruz, Matthew Guevara, Tie Wang, Manasi Deshpande,
+Xiaofeng Wang, and Zheng Li. 2024. Retrieval-Augmented Generation with
+Knowledge Graphs for Customer Service Question Answering. In Proceedings
+of the 47th International ACM SIGIR Conference on Research and Development in
+Information Retrieval (SIGIR 2024). ACM, 2905–2909. doi:10.1145/3626772.3661370

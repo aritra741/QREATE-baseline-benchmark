@@ -1,0 +1,2864 @@
+Investigating Language Preference of Multilingual RAG Systems
+
+Jeonghyun Park and Hwanhee Lee†
+Department of Artificial Intelligence, Chung-Ang University, Seoul, Korea
+{tom0365, hwanheelee}@cau.ac.kr
+
+5
+2
+0
+2
+
+n
+u
+J
+
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+4
+v
+5
+7
+1
+1
+1
+.
+2
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Multilingual Retrieval-Augmented Generation
+(mRAG) systems enhance language models by
+integrating external multilingual information
+to produce context-aware responses. However,
+mRAG systems struggle with retrieving rele-
+vant information due to linguistic variations
+between queries and documents, generating
+responses when multilingual
+inconsistent
+sources conflict. In this work, we systemati-
+cally investigate language preferences in both
+retrieval and generation of mRAG through a
+series of experiments. Our analysis indicates
+that retrievers tend to prefer high-resource and
+query languages, yet this preference does not
+consistently improve generation performance.
+Moreover, we observe that generators prefer
+the query language or Latin scripts, leading to
+inconsistent outputs. To overcome these issues,
+we propose Dual Knowledge Multilingual
+RAG (DKM-RAG), a simple yet effective
+framework that fuses translated multilingual
+passages with complementary model knowl-
+edge. Empirical
+results demonstrate that
+DKM-RAG mitigates language preference in
+generation and enhances performance across
+diverse linguistic settings. Code is available at
+https://github.com/jeonghyunpark2002/
+LanguagePreference.git
+
+Figure 1: Failure cases of multilingual RAG system
+showing degraded generation ability because of lan-
+guage preference of retriever and generator in mRAG
+pipeline. docrel in the Korean (KO) document repre-
+sents the relevant document to the given query that can
+be utilized to generate a final answer.
+
+1
+
+Introduction
+
+Multilingual Retrieval-Augmented Generation
+(mRAG) extends traditional Retrieval-Augmented
+Generation (RAG) (Lewis et al., 2020) by lever-
+aging multilingual external sources to generate
+accurate, contextually and linguistically aware re-
+sponses. However, mRAG systems face challenges
+in retrieving relevant information due to linguistic
+discrepancies between queries and documents (Wu
+et al., 2024a). Moreover, conflicts among multi-
+lingual sources can lead to inconsistencies in the
+generated responses (Chataigner et al., 2024).
+
+†Corresponding author.
+
+Beyond retrieval challenges and source conflicts,
+language preference is another critical issue in
+mRAG systems, often leading to inaccurate outputs.
+As illustrated in Case 1 of Figure 1, the retriever
+may prioritize particular languages—especially
+high-resource or query-language documents—at
+the expense of truly relevant information in low-
+resource languages. Consequently, the Large Lan-
+guage Model (LLM) either produces an incorrect
+answer or deems the query unanswerable due to
+irrelevant content in the documents. Likewise, in
+Case 2, even if relevant documents are retrieved,
+the generator might favor passages in the query lan-
+guage or Latin scripts, ignoring essential evidence
+
+1
+
+( ). . .KO. . .2nd3rd4th5th1stENENENZHESGold Answer: Iris Mittenaerequien ganó el título de miss universe en 2016(who won the miss universe title in 2016)Queryinespañol#Case 1#Case 2LLMRetrieveDatastoreMiss France 2016 was hosted by Jean-Pierre Foucault (...) Iris Mittenaerewas crowned Miss Universe 2016.Not retrieved but Relevant2nd3rd4th5th1stENENENKOESRetrieveDatastore𝒅𝒐𝒄𝒓𝒆𝒍𝒅𝒐𝒄𝒓𝒆𝒍Generator only uses documents in the preferred languages to produce the final answerCatriona GrayGenerate Incorrect Answer( X )미스 프랑스 2016은 Jean-Pierre Foucault가 진행했으며 (…) Iris Mittenaere는 2016년 미스 유니버스로 선발되었습니다.51th 
+ 
+ 
+ 
+ 
+ 
+in lower-resource languages and resulting in inac-
+curate outputs. These preferences ultimately limit
+the effectiveness of mRAG, yielding biased rank-
+ings, reduced answer quality, and inconsistencies
+across languages (Sharma et al., 2024).
+
+Prior studies (Yang et al., 2024a; Telemala and
+Suleman, 2022; Sharma et al., 2024) have investi-
+gated this issue by introducing language fairness
+metrics to assess whether documents from different
+languages are ranked equitably via statistical equiv-
+alence testing, by proposing Language-Preference-
+Based Re-ranking for multilingual information re-
+trieval, and investigating LLM’s linguistic prefer-
+ence in across-language RAG-based information
+search setting. However, these approaches primar-
+ily focus on a limited set of languages and fail
+to reflect the true ranking dynamics of documents
+across languages.
+
+In this work, we aim to understand language
+preference phenomena in mRAG systems compre-
+hensively. We focus on the following three key
+research questions:
+
+• RQ1 (§4): Which languages does the retriever
+
+prefer?
+
+• RQ2 (§5): Which languages does the genera-
+tor prefer, and how do these preferences cor-
+relate with mRAG performance?
+
+• RQ3 (§6): How can we mitigate language
+
+preference in mRAG?
+
+To address these questions, we present a com-
+prehensive evaluation of language preferences
+throughout the entire mRAG pipeline across multi-
+ple languages. To systematically investigate the lan-
+guage preference problem of multilingual retriev-
+ers, we propose MultiLingualRankShift (MLRS),
+a novel metric that quantifies language preference
+at the retriever level by measuring the shift in docu-
+ment rankings when non-query-language passages
+are translated into the query language. Our exten-
+sive experiments with diverse language combina-
+tions demonstrate that the retriever strongly prefers
+documents that are in high-resource languages and
+also share the same language as the query, confirm-
+ing the presence of significant preference (§4).
+
+At the generator level, we evaluate language
+preference by generating responses in multiple lan-
+guages for the same query and the same retrieved
+document set, measuring their semantic similarity.
+Our results show that the generator favors both
+
+query languages and Latin script languages, with a
+relatively modest preference for query languages.
+This ultimately results in a decline in answer qual-
+ity. Moreover, we uncover a nuanced relationship
+between language preference and overall mRAG
+performance. We observe that a strong preference
+for high-resource languages does not always lead to
+improved mRAG performance (§5). This occurs be-
+cause the retriever may retrieve high-resource but
+irrelevant documents so that the generator cannot
+generate accurate answers from them. Therefore,
+language preference can degrade performance by
+overlooking lower-resource but relevant documents,
+thereby causing inconsistencies.
+
+Finally, we propose Dual Knowledge Multilin-
+gual RAG (DKM-RAG), a simple yet effective
+framework that mitigates the language preference
+of mRAG. DKM-RAG enhances mRAG by com-
+bining externally retrieved, translated passages
+with internally rewritten passages enriched by the
+model’s knowledge. Empirical results demonstrate
+that DKM-RAG significantly reduces language
+preference issues in the generation process, leading
+to improved performance across a range of linguis-
+tic settings (§6).
+
+2 MultiLingualRankShift
+
+To evaluate the language preference of a multilin-
+gual retriever in the mRAG system, we introduce
+MultiLingualRankShift (MLRS), a novel metric
+that quantifies how much the ranking of retrieved
+documents improves when non-query language
+documents are translated into the query language.
+As shown in Figure 2, MLRS is computed in three
+stages: (i) retrieving documents across multiple lan-
+guages, (ii) translating documents that are not in
+the query language into the query language, and
+(iii) re-ranking the translated documents to measure
+rank improvements.
+
+2.1 Stage 1: Initial Document Retrieval
+
+For each query q ∈ Q (where Q is the set of all
+queries), we retrieve a ranked list of documents
+Dq from multilingual datastores. Each document
+d ∈ Dq is assigned an initial rank rinit
+(with 1 being
+d
+the highest rank). Let Lq denote the language of
+the query and Ld the language of document d.
+
+2.2 Stage 2: Translation of Non-Query
+
+Language Documents
+
+To ensure language consistency when assess-
+ing ranking improvements, we extract documents
+
+2
+
+Figure 2: Overall framework of calculating MLRS. For simplicity, we only consider three documents to calculate
+the MLRS score.
+
+whose language differs from that of the query. For-
+mally, we define:
+
+Ddiff
+
+q = { (d, rinit
+
+d ) | d ∈ Dq, Ld ̸= Lq }.
+
+Each document in Ddiff
+query language Lq, resulting in the set:
+
+q
+
+is then translated into the
+
+DTranslated
+
+q
+
+= { d | d has been translated into Lq }.
+
+2.3 Stage 3: Re-Ranking and MLRS Score
+
+Computation
+
+q
+
+The translated documents in DTranslated
+are re-
+ranked using retrievers in conjunction with the
+original query. Let rre-rank
+denote the new rank of
+document d after re-ranking. To capture ranking
+improvements, we compute the rank difference for
+each document d as:
+
+d
+
+∆rd = max(cid:0)rinit
+
+d − rre-rank
+d
+
+, 0(cid:1).
+
+A positive value of ∆rd indicates that the document
+has moved up in the ranking. For each query q, the
+total observed improvement is given by:
+
+∆rq =
+
+(cid:88)
+
+∆rd.
+
+d∈DTranslated
+q
+
+To normalize this improvement, we first define
+the maximum possible improvement for each doc-
+ument as:
+
+∆rmax
+
+d = rinit
+and then compute the total maximum improvement
+for query q:
+
+d − 1,
+
+∆rmax
+
+q =
+
+(cid:88)
+
+∆rmax
+d
+
+.
+
+d∈DTranslated
+q
+
+3
+
+The query-specific MLRS score is then calcu-
+
+lated as:
+
+MLRSq =
+
+
+
+
+
+
+∆rq
+∆rmax
+q
+0,
+
+× 100,
+
+if ∆rmax
+
+q > 0,
+
+otherwise.
+
+Finally, the overall MultiLingualRankShift is ob-
+tained by averaging the scores over all queries:
+
+MLRS =
+
+1
+|Q|
+
+(cid:88)
+
+q∈Q
+
+MLRSq.
+
+3 General Setup
+
+3.1 Dataset
+
+By following previous study (Chirkova et al., 2024),
+we use MKQA (Longpre et al., 2021) dataset, a
+multilingual open domain question answering eval-
+uation set in our experiments. MKQA consists of
+10k examples from the Natural Questions (NQ)
+dataset (Kwiatkowski et al., 2019), translated into
+25 languages. This dataset is therefore parallel be-
+tween languages and grounds knowledge primarily
+in English Wikipedia. In our experiments, we also
+select a subset of 2.7K samples, overlapping be-
+tween MKQA and KILT NQ datasets *, thus recov-
+ering relevant documents information from KILT
+NQ.
+
+3.2 Models
+
+Multilingual Retrievers Following previous
+work (Chirkova et al., 2024), we use a strong
+and publicly available BGE-m3 (Chen et al.,
+2024) as our multilingual retriever which can
+
+*https://huggingface.co/datasets/facebook/
+
+kilt_tasks
+
+Translate to 𝑳𝒒(ko)Gold Answer: 로버트 M. 피르식 (Robert. M. Pirsig)누가 선과 모터사이클 관리술을 썼나요 (who wrote zen and the art of motorcycle maintenance)Query in Korean(q∈Q,𝑳𝒒=𝒌𝒐)(𝒓𝒊𝒏𝒊𝒕,𝒅𝑳𝒅)ESRUIT(𝟕,𝒊𝒕)(𝟐𝟎,𝒓𝒖)(𝟑𝟔,𝒆𝒔)𝑫𝒒𝒅𝒊𝒇𝒇𝑫𝒒𝒕𝒓𝒂𝒏𝒔𝒍𝒂𝒕𝒆𝒅Re-rank and check rank difference using retriever(𝒓𝒅𝒓𝒆−𝒓𝒂𝒏𝒌, ∆𝒓𝒅)∆𝒓𝒒=𝟎+𝟏𝟐+𝟐𝟐=𝟑𝟒(𝒓𝒅𝒊𝒏𝒊𝒕, 𝒓𝒅𝒎𝒂𝒙)𝒓𝒒𝒎𝒂𝒙=𝟔+𝟏𝟗+𝟑𝟓=𝟔𝟎Compute MLRS𝑴𝑳𝑹𝑺𝒒=𝟎+𝟏𝟐+𝟐𝟐𝟔+𝟏𝟗+𝟑𝟓 ×𝟏𝟎𝟎= 56.66Language Preference score (MLRS) of Korean with related to query q:𝟓𝟔.𝟔𝟔……KOKOKO(𝟕,𝒌𝒐)(𝟐𝟎,𝒌𝒐)(𝟑𝟔,𝒌𝒐)……#1#2#3#1#2#3KOKOKO……(𝟖,+𝟏𝟐)(𝟏𝟒,+𝟐𝟐)(𝟏𝟐,𝟎(−𝟓))#1#2#3KOKOKO……#1#2#3(𝟕,𝟔)(𝟐𝟎,𝟏𝟗)(𝟑𝟔,𝟑𝟓)encode various languages we consider in our
+experiments. Consistent with the retriever, we
+use BGE-m3 (Chen et al., 2024) as a re-
+ranking encoder for computing MLRS. In ad-
+dition, we use two other Sentence-BERT se-
+ries re-ranking encoders (Reimers and Gurevych,
+2019), paraphrase-multilingual-MiniLM-L12-v2
+and paraphrase-multilingual-mpnet-base-v2 to gen-
+eralize the experimental results. We abbreviate
+them as p-mMiniLM and p-mMpNet for better vis-
+ibility of the table.
+
+Generators We use a recently released strong
+multilingual LLM, aya-expanse-8b (Dang et al.,
+2024) that can deal with various languages well.
+Also, we use strong LLMs, qwen 2.5-7B In-
+struct (Team, 2024) and Phi-4 14B (Abdin et al.,
+2024), Llama-3.1-8B-Instruct (Dubey et al., 2024)
+as our generators.
+
+3.3 Other Implementation Details
+
+Translation model We utilize a robust trans-
+lation model for various languages, NLLB-200-
+distilled-600M (Costa-jussà et al., 2022) in our ex-
+periments.
+
+Datastore Following previous study (Chirkova
+et al., 2024), we use Wikipedia as our datastore
+documents collection. In most of our experiments,
+we retrieve from two main Wikipedia sources:
+the KILT version of English Wikipedia† and the
+Wikipedia edition in the user’s native language‡.
+For detailed statistics, please refer to Appendix D.
+
+Baseline We conduct several experiments to mea-
+sure the language preference of mRAG based on
+Bergen (Chirkova et al., 2024). Bergen explores the
+components and adjustments necessary to develop
+an effective mRAG pipeline, serving as a robust
+baseline for future research.
+
+4 Language Preference of Retrievers
+
+In this section, we examine two factors that may
+affect the retriever’s language preference: (i) the
+relationship between the query language (Lq) and
+the document language (Ld), and (ii) the resource
+availability of the languages involved.
+
+†https://huggingface.co/datasets/facebook/
+
+kilt_wikipedia
+
+‡https://huggingface.co/datasets/wikimedia/
+
+wikipedia
+
+4.1 Effect of the Lq and Ld Relationship
+
+4.1.1 Experimental Setup
+
+We evaluate eight language pairs under two sce-
+narios: (1) monolingual settings where Lq = Ld,
+and (2) cross-lingual settings where Lq ̸= Ld.
+In each case, our primary metric is MLRS (Multi-
+LingualRankShift), computed using three re-ranker
+encoders (bge-m3, p-mMiniLM, and p-mMpNet).
+For example, if the query is in English (en) but
+the target translation is in Korean (ko), we trans-
+late all non-English passages into Korean and then
+measure the rank changes with MLRS.
+
+4.1.2 Results for Monolingual Settings
+
+(Lq = Ld)
+
+Strong Preference When the Query and Docu-
+ment Languages Match. As shown in the left-
+most column of Table 1, when the query and doc-
+ument languages are identical, the retriever shows
+a high preference. This is expected, as direct lin-
+guistic alignment avoids the complexities of cross-
+lingual mapping and translation, thereby yielding
+stronger preference.
+
+4.1.3 Results for Cross-Lingual Settings
+
+(Lq ̸= Ld)
+
+Lower Overall MLRS in Cross-Lingual Match-
+ing. When Lq ̸= Ld, the retriever performs cross-
+lingual matching, which typically results in lower
+MLRS values than in monolingual cases. As indi-
+cated by the right-hand columns in Table 1 (high-
+lighted in blue), cross-lingual setups are gener-
+ally less preferred than their monolingual coun-
+terparts—except in cases involving English.
+
+English as a Dominant Target Language. We
+observe that when the translated document lan-
+guage Ld is English, the retriever exhibits nearly
+the highest language preference as stated in the
+English column (en) in Table 1. In fact, English of-
+ten outperforms even monolingual configurations,
+likely due to the abundance of English data in pre-
+training, which biases the model towards stronger
+English representations.
+
+Influence of Language Family Similarity. Lan-
+guage family and geographic proximity also play a
+role. For example, Romance languages (fr, it, pt, es)
+share extensive lexical and structural similarities,
+which help maintain a relatively high cross-lingual
+preference and narrow the performance gap with
+monolingual setups, as illustrated by the joint Lq
+
+4
+
+Query Lang.
+
+Encoder
+
+Lq = Ld
+
+bge-m3
+
+56.03
+p-mMiniLM 56.85
+57.49
+p-mMpNet
+
+Lq ̸= Ld
+
+en
+
+–
+–
+–
+
+ko
+
+zh
+
+fr
+
+ja
+
+it
+
+pt
+
+es
+
+33.02 (-23.01) 33.10 (-22.93) 36.61 (-19.42) 33.36 (-22.67) 35.89 (-20.14) 35.86 (-20.17) 36.62 (-19.41)
+34.34 (-22.51) 34.61 (-22.24) 38.17 (-18.68) 34.52 (-22.33) 37.15 (-19.70) 36.73 (-20.12) 37.96 (-18.89)
+34.45 (-23.04) 34.27 (-23.22) 37.94 (-19.55) 34.67 (-22.82) 37.34 (-20.15) 37.02 (-20.47) 37.90 (-19.59)
+
+bge-m3
+
+41.15
+p-mMiniLM 42.95
+p-mMpNet
+42.53
+
+43.49 (+2.34)
+44.62 (+1.67)
+44.98 (+2.45)
+
+–
+–
+–
+
+34.42 (-6.73) 36.42 (-4.73) 37.18 (-3.97) 35.72 (-5.43) 35.30 (-5.85) 35.93 (-5.22)
+36.04 (-6.91) 37.08 (-5.87) 38.47 (-4.48) 36.07 (-6.88) 36.18 (-6.77) 36.45 (-6.50)
+35.85 (-6.68) 37.20 (-5.33) 39.01 (-3.52) 36.21 (-6.32) 35.65 (-6.88) 36.34 (-6.19)
+
+bge-m3
+
+44.98
+p-mMiniLM 46.18
+46.27
+p-mMpNet
+
+45.26 (+0.28) 34.52 (-10.46)
+45.39 (-0.79) 35.46 (-10.72)
+45.41 (-0.86) 35.21 (-11.06)
+
+–
+–
+–
+
+36.34 (-8.64) 36.05 (-8.93) 35.86 (-9.12) 35.73 (-9.25) 36.45 (-8.53)
+36.98 (-9.20) 36.77 (-9.41) 36.38 (-9.80) 36.05 (-10.13) 36.85 (-9.33)
+36.87 (-9.40) 36.71 (-9.56) 36.28 (-9.99) 35.94 (-10.33) 36.78 (-9.49)
+
+bge-m3
+
+43.18
+p-mMiniLM 44.09
+p-mMpNet
+43.96
+
+47.23 (+4.05) 33.29 (-9.89) 33.58 (-9.60)
+48.15 (+4.06) 34.54 (-9.55) 34.52 (-9.57)
+48.14 (+4.18) 34.25 (-9.71) 34.37 (-9.59)
+
+–
+–
+–
+
+34.07 (-9.11) 36.70 (-6.48) 36.30 (-6.88) 37.25 (-5.93)
+34.83 (-9.26) 37.65 (-6.44) 37.05 (-7.04) 38.03 (-6.06)
+34.61 (-9.35) 37.59 (-6.37) 36.93 (-7.03) 38.01 (-5.95)
+
+bge-m3
+
+45.03
+p-mMiniLM 45.80
+45.67
+p-mMpNet
+
+45.18 (+0.15) 35.45 (-9.58) 34.86 (-10.17) 36.71 (-8.32)
+45.54 (-0.26) 35.90 (-9.90) 35.57 (-10.23) 37.18 (-8.62)
+45.39 (-0.28) 35.73 (-9.94) 35.30 (-10.37) 36.94 (-8.73)
+
+–
+–
+–
+
+36.11 (-8.92) 35.88 (-9.15) 36.56 (-8.47)
+36.53 (-9.27) 36.25 (-9.55) 36.91 (-8.89)
+36.24 (-9.43) 35.98 (-9.69) 36.62 (-9.05)
+
+bge-m3
+
+41.06
+p-mMiniLM 42.11
+p-mMpNet
+41.98
+
+46.63 (+5.57) 33.30 (-7.76) 33.47 (-7.59) 37.92 (-3.14) 33.86 (-7.20)
+47.69 (+5.58) 34.57 (-7.54) 34.59 (-7.52) 39.07 (-3.04) 34.80 (-7.31)
+47.59 (+5.61) 34.48 (-7.50) 34.68 (-7.30) 38.94 (-3.04) 34.67 (-7.31)
+
+–
+–
+–
+
+36.44 (-4.62) 37.68 (-3.38)
+37.55 (-4.56) 38.83 (-3.28)
+37.27 (-4.71) 38.67 (-3.31)
+
+bge-m3
+
+39.19
+p-mMiniLM 40.17
+p-mMpNet
+39.91
+
+46.64 (+7.45) 33.37 (-5.82) 33.46 (-5.73) 37.83 (-1.36) 34.02 (-5.17) 37.13 (-2.06)
+47.75 (+7.58) 34.67 (-5.50) 34.91 (-5.26) 39.02 (-1.15) 35.03 (-5.14) 38.25 (-1.92)
+47.30 (+7.39) 34.68 (-5.23) 34.50 (-5.41) 38.70 (-1.21) 34.72 (-5.19) 38.01 (-1.90)
+
+–
+–
+–
+
+38.61 (-0.58)
+39.68 (-0.49)
+39.35 (-0.56)
+
+bge-m3
+
+40.76
+p-mMiniLM 41.81
+p-mMpNet
+41.33
+
+46.93 (+6.17) 33.36 (-7.40) 33.42 (-7.34) 37.73 (-3.03) 33.87 (-6.89) 37.22 (-3.54) 36.88 (-3.88)
+47.90 (+6.09) 34.63 (-7.18) 34.52 (-7.29) 38.86 (-2.95) 34.76 (-7.05) 38.33 (-3.48) 37.84 (-3.97)
+47.34 (+6.01) 34.39 (-6.94) 34.19 (-7.14) 38.34 (-2.99) 34.39 (-6.94) 37.73 (-3.60) 37.25 (-4.08)
+
+–
+–
+–
+
+en
+
+ko
+
+zh
+
+fr
+
+ja
+
+it
+
+pt
+
+es
+
+Table 1: Language preference measured by MLRS with different re-ranking encoders for various query–document
+language pairs. The Lq = Ld column shows scores for matching query and document languages, while the remaining
+columns represent cross-lingual scenarios. Parentheses indicate the change from the Lq = Ld column (positive for
+improvement, negative for decline). The highest score per row is in bold, and the second highest is underlined.
+
+and Ld pairs in Table 1. Similarly, East Asian lan-
+guages (ko, ja, zh) tend to show moderate declines
+in cross-lingual scenarios compared to the mono-
+lingual baseline, although they still lag behind the
+highest scores.
+
+4.2
+
+Impact of Language Resource Availability
+
+4.2.1 Experimental Setup
+We also investigate whether the volume of available
+language resources affects MLRS. We categorize
+languages into three groups based on their distri-
+bution in the pre-training corpus of recent LLMs:
+high-resource (e.g., English), mid-resource (e.g.,
+Spanish), and low-resource (e.g., Korean). We use
+the same query set across all setups while system-
+atically varying Lq and Ld.
+
+4.2.2 Results
+Limited Impact of Query Language Resources.
+The resource level of the query language (Lq) has
+a limited effect on cross-lingual preference. As
+shown in Table 1, when Lq is high-resource (e.g.,
+English), strong preference is observed only if
+Ld also matches a high-resource language. Oth-
+erwise, the MLRS scores remain similar regardless
+of whether Lq is high-, mid-, or low-resource.
+
+Document Language Resources Are More Influ-
+ential.
+In contrast, the language resource level
+of the document language (Ld) has a pronounced
+impact on MLRS. As shown in Table 1, documents
+from high-resource languages consistently achieve
+the highest preference scores, followed by mid-
+resource and then low-resource languages. This
+trend (High > Mid > Low) suggests that extensive
+pre-training on high-resource languages enables
+stronger alignment, yielding higher MLRS even
+across diverse query languages. Conversely, low-
+resource datastores typically produce lower MLRS
+scores unless the query language also corresponds
+to that low-resource setting.
+
+Overall, our results indicate that the resource
+availability of Ld critically influences the language
+preference of the retriever. These findings lay the
+groundwork for further investigation into the lan-
+guage dynamics within mRAG systems.
+
+4.3
+
+Impact of Translation Quality
+
+To investigate the effect of translation quality on
+language preference as measured by the MLRS
+metric, we conduct a small-scale experiment by
+randomly sampling 100 queries out of the full set
+
+5
+
+Figure 3: Language Preference of the Generators. In each figure, "aya" represents aya-expanse-8B, "llama" represents
+Llama-3.1-8B-Instruct, and "gpt" represents gpt-4o-mini. The red dotted line indicates the average generator
+preference.
+
+of 2,827. We translate these queries using GPT-4o-
+mini, which demonstrated highly robust translation
+quality. We evaluate five languages (English, Ko-
+rean, Spanish, Chinese, and French) and re-ranked
+the top-10 retrieved documents using the BGE-M3
+encoder, and compute rank shifts within the top-
+10 to derive MLRS for monolingual (Lq = Ld)
+and cross-lingual (Lq ̸= Ld) settings. The results,
+shown in Table 2, are consistent with prior MLRS
+findings and further reveal that GPT-based transla-
+tion amplifies the distinctness of language prefer-
+ence trends, as indicated by larger inter-language
+preference gaps.
+
+Lq = Ld
+
+Query Lang.
+
+en
+
+ko
+
+Lq ̸= Ld
+zh
+
+fr
+
+es
+
+en
+ko
+zh
+fr
+es
+
+58.29
+47.15
+47.42
+47.35
+45.98
+
+–
+
+–
+42.59 (-4.56)
+46.66 (-0.76) 36.89 (-10.53)
+50.76 (+3.41) 34.90 (-12.45) 36.10 (-11.25)
+50.73 (+4.75) 35.06 (-10.92) 36.18 (-9.80) 40.52 (-5.46)
+
+34.98 (-23.31) 36.10 (-22.19) 38.49 (-19.80) 40.07 (-18.22)
+37.50 (-9.65) 39.31 (-7.84) 38.74 (-8.41)
+38.24 (-9.18) 38.10 (-9.32)
+38.90 (-8.45)
+–
+
+–
+
+–
+
+Table 2: MLRS scores for monolingual (Lq = Ld) and
+cross-lingual (Lq ̸= Ld) settings on 100 randomly sam-
+pled queries.
+
+5 Language Preference of Generators
+
+In this section, we explore LLM generators’ lan-
+guage preferences in mRAG and their impact on
+overall performance.
+
+5.1 Do LLMs Prefer Certain Languages for
+
+Contextual Knowledge?
+
+5.1.1 Experimental Setup
+
+To assess the generator’s language preference, we
+measure multilingual answer consistency across
+eight languages: English (en), Korean (ko), Chi-
+nese (zh), French (fr), Japanese (ja), Italian (it),
+Portuguese (pt), and Spanish (es). As shown in Ta-
+ble 13, for a given query the generator produces
+responses in each language using the same set of
+
+6
+
+retrieved documents from the multilingual datas-
+tore. We then compute the embedding similarity be-
+tween each pair of generated answers, resulting in
+an 8×8 similarity matrix. We define the preference
+for a specific language as the average similarity
+score of the responses in that language.
+
+We use LaBSE for measuring multilingual se-
+mantic similarity (Feng et al., 2022). And we
+use aya-expanse-8B, Llama-3.1-8B-Instruct, and
+GPT-4o-mini as our generators. We use language-
+specific prompts that incorporate the retrieved pas-
+sages to induce responses in the target language,
+enabling us to capture the generator’s inherent lan-
+guage preference.
+
+5.1.2 Results
+
+Strong Preference for Latin Script Languages.
+Figure 3 indicates that the generator produces more
+consistent responses in languages that use Latin
+scripts (e.g., en, fr, it, pt, es) compared to non-Latin
+languages (e.g., ko, zh, ja). This suggests that the
+model benefits from structural advantages in token
+alignment when processing Latin-based languages.
+
+Modest Preference for the Query Languages.
+In addition, the generator shows a slight increase
+in consistency when the output language matches a
+query language. For instance, Korean (ko) queries
+yield somewhat more consistent responses when
+the generator replies in Korean rather than when
+the query is in English. However, this improvement
+is marginal, suggesting that the overall preference
+toward Latin scripts remains influential. Despite
+the modest gain, the model still demonstrates some
+capacity to handle multilingual queries effectively,
+indicating that matching the query language can
+provide a small but measurable benefit in non-Latin
+contexts.
+
+enkozhfrjaitptes0.700.750.800.850.900.951.00Generator Language Preference (en)llamaayagptenkozhfrjaitptes0.700.750.800.850.900.951.00Generator Language Preference (zh)llamaayagptenkozhfrjaitptes0.700.750.800.850.900.951.00Generator Language Preference (ko)llamaayagpt5.2 Correlation between Language Preference
+
+and mRAG Performance
+
+5.2.1 Experimental Setup
+
+To examine how language preference impacts over-
+all mRAG performance, we isolate language effects
+by providing generators with retrieved passages
+unified in a single target language—selected from
+the eight candidates (en, ko, zh, fr, ja, it, pt, es). We
+retrieve data from multilingual sources, enabling
+a direct comparison between language preference
+(measured by MLRS, as shown in Table 1) and
+performance across three query languages (en, ko,
+zh).
+
+We evaluate four generators (aya-expanse-8B,
+Phi-4, Qwen2.5-7B-Instruct, and Llama3.1-8B-
+Instruct) using character 3-gram recall (Chirkova
+et al., 2024) under three configurations. In the first
+configuration, passages are retrieved from multilin-
+gual resources, denoted as all. In the second, all
+retrieved passages are unified into a single target
+language (single-language document set). Finally,
+in the third configuration, we employ our proposed
+DKM-RAG framework (detailed in Section 6) to
+mitigate language preference. We also compute the
+average MLRS score (across different query lan-
+guages) for each language to indicate its overall
+preference.
+
+5.2.2 Results and Analysis
+
+Strong Correlation for English Queries. As
+stated in Table 3, for queries in English (Lq = en),
+RAG performance shows a strong correlation with
+language preference. English achieves the best re-
+sults—likely due to its high-resource availability
+and the model’s familiarity with it. In this setting,
+the all strategy is particularly effective, as it lever-
+ages cross-lingual knowledge fusion. We observe
+an exception for Japanese (ja), where performance
+is lower despite moderate preference, possibly due
+to challenges with non-Latin scripts and complex
+morphology.
+
+Weaker Correlation for Non-English Queries.
+When Lq ̸= en, the relationship between language
+preference and performance becomes less pro-
+nounced. Although the generator generally prefers
+English passages overall, it achieves optimal per-
+formance when it receives retrieved passages that
+directly match the query language. In these cases,
+translating all passages into English does not en-
+hance performance; instead, maintaining language
+consistency between the query and passages yields
+
+better results. This finding underscores the impor-
+tance of linguistic compatibility in mRAG systems.
+
+Optimal mRAG Strategy. Based on our experi-
+ments, different strategies depending on the query
+language prove more effective. As stated in Table 3,
+for English queries, employing the all strategy cap-
+italizes on the high cross-lingual preference for
+English. In contrast, for non-English queries, trans-
+lating retrieved passages into the query language
+Lq bridges the comprehension gap and ensures bet-
+ter alignment between query intent, passage seman-
+tics, and output language. This targeted approach
+ultimately leads to improved RAG performance by
+accommodating the specific language dynamics of
+the generator.
+
+Figure 4: Overall flow of proposed DKM-RAG.
+
+6 Dual Knowledge Multilingual RAG
+
+Translating retrieved documents into the query lan-
+guage benefits mRAG, but it may also reflect re-
+trieval outputs from high-resource languages in-
+cluding irrelevant content. Therefore, leveraging
+the LLM’s internal knowledge can help filter inac-
+curacies and enrich the retrieved information with
+more reliable content. So we rewrite translated pas-
+sages to refine the relevancy of documents by lever-
+aging LLM’s internal information.
+
+Based on this insight, we propose Dual Knowl-
+edge Multilingual RAG (DKM-RAG), a framework
+
+7
+
+2nd3rd4th5th1stENENENZHESGenerate final answer with concat (𝑷𝒕𝒓𝒂𝒏𝒔𝒍𝒂𝒕𝒆𝒅, 𝑷𝒓𝒆𝒇𝒊𝒏𝒆𝒅)Translate to 𝑳𝒒#1#2#3#4Rewrite 𝑷𝒕𝒓𝒂𝒏𝒔𝒍𝒂𝒕𝒆𝒅to 𝑷𝒓𝒆𝒇𝒊𝒏𝒆𝒅𝑷𝒕𝒓𝒂𝒏𝒔𝒍𝒂𝒕𝒆𝒅RewriteLLM(Rewriter)𝑷𝒓𝒆𝒇𝒊𝒏𝒆𝒅ESESESESESESESESESESLLM(Generator)Query Retrieve Re-rankall
+
+en
+
+zh
+
+ko
+
+fr
+
+ja
+
+it
+
+pt
+
+es
+
+DKM-RAG
+
+Lq = en
+
+aya-expanse-8b
+Phi-4
+Qwen2.5-7B-Instruct
+Llama3.1-8B-Instruct
+
+80.09
+79.69
+80.15
+80.25
+
+79.34
+78.89
+79.11
+79.28
+
+63.08
+63.06
+50.31
+61.99
+
+64.46
+52.30
+64.90
+65.81
+
+76.13
+74.43
+76.28
+76.40
+
+61.20
+48.86
+62.62
+62.58
+
+75.47
+74.02
+75.47
+75.89
+
+75.65
+74.39
+75.97
+76.09
+
+76.32
+75.32
+76.54
+76.47
+
+Lq = zh
+
+aya-expanse-8b
+Phi-4
+Qwen2.5-7B-Instruct
+Llama3.1-8B-Instruct
+
+32.55
+16.75
+34.28
+28.50
+
+25.62
+17.57
+27.33
+24.36
+
+38.31
+36.76
+38.31
+38.48
+
+26.64
+17.50
+27.91
+23.84
+
+24.00
+18.15
+25.15
+22.48
+
+25.27
+17.56
+27.78
+23.78
+
+23.63
+18.19
+25.90
+23.18
+
+23.63
+17.89
+25.37
+23.32
+
+23.79
+18.44
+25.30
+23.02
+
+Lq = ko
+
+aya-expanse-8b
+Phi-4
+Qwen2.5-7B-Instruct
+Llama3.1-8B-Instruct
+
+40.60
+26.80
+36.50
+37.18
+
+38.08
+20.24
+22.87
+26.48
+
+26.01
+17.54
+20.08
+22.88
+
+49.66
+49.25
+49.44
+49.87
+
+25.37
+19.03
+21.79
+24.46
+
+26.82
+17.91
+20.94
+24.86
+
+24.98
+18.93
+21.65
+25.23
+
+25.26
+19.19
+21.44
+24.87
+
+25.51
+19.19
+21.52
+25.22
+
+82.60
+82.59
+82.60
+82.57
+
+44.57
+44.56
+44.70
+44.51
+
+55.01
+54.82
+54.85
+54.99
+
+MLRS (Preference)
+
+-
+
+47.70
+
+35.90
+
+35.47
+
+37.94
+
+37.59
+
+37.66
+
+37.15
+
+37.97
+
+-
+
+Table 3: Performance comparison between DKM-RAG and single/all language retrieval settings, showing character
+3-gram recall scores for three query languages (Lq ∈ {en, ko, zh}) and eight passage languages. The bottom row
+shows average preference (MLRS) scores. We highlight the cells corresponding to matching query and passage
+languages with a yellow background. The highest score per row is in bold, and the second highest is underlined.
+
+that leverages both external translated passages and
+internal knowledge as shown in Figure 4. First (#1),
+we retrieve documents for a given query from the
+all strategy and re-rank them. Next (#2), we obtain
+external translated passages, Ptranslated by translat-
+ing into the query language. And (#3), the rewriter
+LLM refines each translated passage in the con-
+text of the given query to produce refined passages,
+Prefined. This refining process utilizes a prompt to
+guide the model in integrating its internal knowl-
+edge, removing redundancy, and highlighting rele-
+vant information in a coherent and consistent style.
+For detailed prompts, please refer to Appendix B.
+Finally (#4), We concatenate the two sets to form
+the final passage set as input to the generator LLM,
+ensuring that responses are both contextually en-
+riched and linguistically aligned with the query.
+
+Results. As shown in Table 3, DKM-RAG out-
+performs other document-based generator settings.
+For non-English queries (Lq ̸= en), it leverages
+translated passages and enriched content to han-
+dle linguistic diversity. Even for English queries
+(Lq = en), it surpasses the all baseline, highlight-
+ing the importance of integrating translated and
+refined knowledge.
+
+Ablation Study. To prove the effectiveness of
+concatenating translated passages and refined pas-
+sages in the DKM-RAG framework, we provide an
+
+ablation study of each component in DKM-RAG.
+As stated in Table 4, removing any component from
+DKM-RAG decreases performance, highlighting
+that every part is crucial to its effectiveness.
+
+7 Related Works
+
+7.1 Multilingual RAG
+
+Researchers explore challenges in mRAG, such
+as the problem of cross-lingual dense passage
+retrieval for low-resource languages (Wu et al.,
+2024a), and propose various techniques to ad-
+dress key challenges in mRAG, such as enhanc-
+ing the performance of language models in low-
+resource languages (Deshpande et al., 2024), re-
+solving low-resource scenarios (Zhang et al., 2024),
+and adapting language models for multilingual rea-
+soning tasks (Yoon et al., 2024). Benchmarks like
+MMTEB (Enevoldsen et al., 2025) enable system-
+atic evaluation of multilingual retrieval.
+
+Earlier mRAG systems frequently focus on high-
+resource languages (e.g., English), but a growing
+body of research aims to make advanced Natural
+Language Processing (NLP) technology accessi-
+ble across a wide spectrum of linguistic contexts.
+Proposed solutions include code-mixed prompts
+for in-context learning (Shankar et al., 2024) and
+self-distillation from resource-rich to low-resource
+languages (Zhang et al., 2024).
+
+8
+
+7.2 Language Preference in mRAG
+
+DKM-RAG w/o Prefined w/o Ptranslated
+
+Despite significant progress,
+language prefer-
+ence—a systematic tendency to favor certain lan-
+guages—remains a critical issue in mRAG systems.
+This preference arises from imbalances in train-
+ing data, tokenization mismatches, script differ-
+ences, and uneven resource availability (Sharma
+et al., 2024; Wu et al., 2024b). Studies show
+that high-resource languages (e.g., English) of-
+ten overshadow relevant content in lower-resource
+languages during retrieval (Yang et al., 2024b;
+Chirkova et al., 2024), leading to suboptimal
+evidence retrieval
+(Yang et al., 2024a) and
+causing inconsistencies or hallucinations in out-
+puts (Chataigner et al., 2024). These disparities
+also raise broader fairness concerns in multilingual
+NLP, as pre-trained models exhibit group fairness
+issues across languages (Cabello Piqueras and Sø-
+gaard, 2022; Ramesh et al., 2023).
+
+Researchers propose several methods to coun-
+teract language preferences, including language-
+preference-based re-ranking (Telemala and Sule-
+man, 2022), evaluate knowledge consistency across
+languages (Qi et al., 2023), and specialized datasets
+designed to detect such imbalances (Li et al., 2024).
+However, these approaches often focus on a sin-
+gle mRAG stage or overlook the actual ranking of
+retrieved documents (Sharma et al., 2024; Yang
+et al., 2024a). We introduce a metric that quantifies
+language preference in retrieval via ranking differ-
+ences and propose a simple framework to mitigate
+these preferences across the entire mRAG pipeline.
+
+8 Conclusion
+
+In this work, we investigate language preferences in
+mRAG systems. We propose a metric that measures
+the language preference of retrievers by checking
+the rank difference between the translated passage
+and the original one. Our experiments reveal that
+retrievers prefer high-resource and query language
+but do not always yield better generation perfor-
+mance. We also find that generators often favor
+the query language or Latin scripts, resulting in
+inconsistent outputs. To address this, we propose
+DKM-RAG which integrates translated passages
+with internal knowledge. Empirical results show
+that DKM-RAG consistently enhances mRAG per-
+formance across diverse languages.
+
+Lq = en
+
+aya-expanse-8b
+Phi-4
+Qwen2.5-7B-Instruct
+Llama3.1-8B-Instruct
+
+Lq = zh
+
+aya-expanse-8b
+Phi-4
+Qwen2.5-7B-Instruct
+Llama3.1-8B-Instruct
+
+Lq = ko
+
+aya-expanse-8b
+Phi-4
+Qwen2.5-7B-Instruct
+Llama3.1-8B-Instruct
+
+82.60
+82.59
+82.60
+82.57
+
+44.57
+44.56
+44.70
+44.51
+
+55.01
+54.82
+54.85
+54.99
+
+79.34
+78.89
+79.11
+79.28
+
+38.31
+36.76
+38.31
+38.48
+
+49.66
+49.25
+49.44
+49.87
+
+81.10
+81.08
+81.06
+81.19
+
+39.44
+38.95
+39.78
+39.35
+
+46.15
+45.24
+45.32
+45.55
+
+Table 4: Ablation study on DKM-RAG. “DKM-RAG”
+denotes the DKM-RAG setting (i.e., the DKM-RAG
+column in Table 3), “w/o Prefined” indicates the perfor-
+mance corresponding to the highlighted cells, and “w/o
+Ptranslated” represents the results using only refined pas-
+sages.
+
+Limitations
+
+Our approach involves translating documents to
+measure rank shifts and unify linguistic representa-
+tions. This process relies heavily on the quality of
+the translation model employed. Errors or inaccura-
+cies in translation can distort the original meaning
+of passages and potentially introduce noise into
+both the retrieval and generation stages.
+
+MLRS entails translation and re-ranking steps.
+While this approach offers a principled way to quan-
+tify language preference, it also adds latency and
+computational cost, especially when dealing with
+large-scale multilingual corpora or real-time sys-
+tems.
+
+DKM-RAG framework which combines exter-
+nal translated passages and parametric (internal)
+knowledge, improves performance yet remains rel-
+atively straightforward. Future work could explore
+more sophisticated techniques for merging exter-
+nal and internal knowledge (e.g., trainable fusion
+mechanisms, dynamic weighting) to further reduce
+preferences and enhance overall system capabili-
+ties.
+
+Lastly, our experiments focus on Wikipedia-
+based datasets in a specific set of languages, which
+may not generalize to all linguistic varieties or spe-
+cialized domains. Future research should exam-
+ine broader contexts, including low-resource lan-
+guages not present in widely available corpora or
+
+9
+
+domain-specific retrieval settings, to fully assess
+how language preferences manifest across diverse
+real-world scenarios.
+
+Ethics Statement
+
+We conduct our experiments using publicly avail-
+able, multilingual dataset and models that follow
+recognized research and data-sharing guidelines.
+These resources are widely utilized in the academic
+community and are distributed with the intent to
+minimize harmful biases, inappropriate content, or
+stereotypes. However, they may still not fully rep-
+resent the diversity of all languages and cultural
+contexts. We adhere strictly to the usage protocols
+and license agreements set forth by the original
+providers, who have taken steps to ensure compli-
+ance with established ethical standards.
+
+Acknowledgments
+
+We would like to thank Byeongjeong Kim for his
+comments and feedback about our figures. We also
+thank Gyutae Park for his minor corrections to this
+work. This work was supported by the Institute of
+Information & Communications Technology Plan-
+ning & Evaluation (IITP) grant funded by the Korea
+government (MSIT) [RS-2021-II211341, Artificial
+Intelligent Graduate School Program (Chung-Ang
+University)]. This research was supported by the
+Chung-Ang University Graduate Research Scholar-
+ship in 2025.
+
+References
+
+Marah Abdin, Jyoti Aneja, Harkirat Behl, Sébastien
+Bubeck, Ronen Eldan, Suriya Gunasekar, Michael
+Harrison, Russell J. Hewett, Mojan Javaheripi, Piero
+Kauffmann, James R. Lee, Yin Tat Lee, Yuanzhi Li,
+Weishung Liu, Caio C. T. Mendes, Anh Nguyen, Eric
+Price, Gustavo de Rosa, Olli Saarikivi, Adil Salim,
+Shital Shah, Xin Wang, Rachel Ward, Yue Wu, Dingli
+Yu, Cyril Zhang, and Yi Zhang. 2024. Phi-4 technical
+report.
+
+Laura Cabello Piqueras and Anders Søgaard. 2022. Are
+pretrained multilingual models equally fair across
+languages? In Proceedings of the 29th International
+Conference on Computational Linguistics, pages
+3597–3605, Gyeongju, Republic of Korea. Interna-
+tional Committee on Computational Linguistics.
+
+Cléa Chataigner, Afaf Taïk, and Golnoosh Farnadi. 2024.
+Multilingual hallucination gaps in large language
+models.
+
+Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu
+Lian, and Zheng Liu. 2024. Bge m3-embedding:
+
+Multi-lingual, multi-functionality, multi-granularity
+text embeddings through self-knowledge distillation.
+
+Nadezhda Chirkova, David Rau, Hervé Déjean, Thibault
+Formal, Stéphane Clinchant, and Vassilina Nikoulina.
+2024. Retrieval-augmented generation in multi-
+In Proceedings of the 1st Work-
+lingual settings.
+shop on Towards Knowledgeable Language Models
+(KnowLLM 2024), pages 177–188, Bangkok, Thai-
+land. Association for Computational Linguistics.
+
+Marta R Costa-jussà, James Cross, Onur Çelebi, Maha
+Elbayad, Kenneth Heafield, Kevin Heffernan, Elahe
+Kalbassi, Janice Lam, Daniel Licht, Jean Maillard,
+et al. 2022. No language left behind: Scaling
+human-centered machine translation. arXiv preprint
+arXiv:2207.04672.
+
+John Dang, Shivalika Singh, Daniel D’souza, Arash
+Ahmadian, Alejandro Salamanca, Madeline Smith,
+Aidan Peppin, Sungjin Hong, Manoj Govindassamy,
+Terrence Zhao, Sandra Kublik, Meor Amer, Viraat
+Aryabumi, Jon Ander Campos, Yi-Chern Tan, Tom
+Kocmi, Florian Strub, Nathan Grinsztajn, Yannis
+Flet-Berliac, Acyr Locatelli, Hangyu Lin, Dwarak
+Talupuru, Bharat Venkitesh, David Cairuz, Bowen
+Yang, Tim Chung, Wei-Yin Ko, Sylvie Shang Shi,
+Amir Shukayev, Sammie Bae, Aleksandra Piktus, Ro-
+man Castagné, Felipe Cruz-Salinas, Eddie Kim, Lu-
+cas Crawhall-Stein, Adrien Morisot, Sudip Roy, Phil
+Blunsom, Ivan Zhang, Aidan Gomez, Nick Frosst,
+Marzieh Fadaee, Beyza Ermis, Ahmet Üstün, and
+Sara Hooker. 2024. Aya expanse: Combining re-
+search breakthroughs for a new multilingual frontier.
+
+Tejas Deshpande, Nidhi Kowtal, and Raviraj Joshi.
+2024. Chain-of-translation prompting (cotr): A novel
+prompting technique for low resource languages.
+arXiv preprint arXiv:2409.04512.
+
+Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey,
+Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman,
+Akhil Mathur, Alan Schelten, Amy Yang, Angela
+Fan, et al. 2024. The llama 3 herd of models. arXiv
+preprint arXiv:2407.21783.
+
+Kenneth Enevoldsen, Isaac Chung, Imene Kerboua, Már-
+ton Kardos, Ashwin Mathur, David Stap, Jay Gala,
+Wissam Siblini, Dominik Krzemi´nski, Genta In-
+dra Winata, Saba Sturua, Saiteja Utpala, Math-
+ieu Ciancone, Marion Schaeffer, Diganta Misra,
+Shreeya Dhakal, Jonathan Rystrøm, Roman Solo-
+matin, Ömer Veysel Ça˘gatan, Akash Kundu, Martin
+Bernstorff, Shitao Xiao, Akshita Sukhlecha, Bhav-
+ish Pahwa, Rafał Po´swiata, Kranthi Kiran GV, Sha-
+won Ashraf, Daniel Auras, Björn Plüster, Jan Philipp
+Harries, Loïc Magne, Isabelle Mohr, Dawei Zhu,
+Hippolyte Gisserot-Boukhlef, Tom Aarsen, Jan
+Kostkan, Konrad Wojtasik, Taemin Lee, Marek
+Suppa, Crystina Zhang, Roberta Rocca, Mohammed
+Hamdy, Andrianos Michail, John Yang, Manuel
+Faysse, Aleksei Vatolin, Nandan Thakur, Manan
+Dey, Dipam Vasani, Pranjal A Chitale, Simone
+Tedeschi, Nguyen Tai, Artem Snegirev, Mariya Hen-
+driksen, Michael Günther, Mengzhou Xia, Weijia
+
+10
+
+Shi, Xing Han Lù, Jordan Clive, Gayatri K, Mak-
+simova Anna, Silvan Wehrli, Maria Tikhonova, He-
+nil Shalin Panchal, Aleksandr Abramov, Malte Osten-
+dorff, Zheng Liu, Simon Clematide, Lester James Val-
+idad Miranda, Alena Fenogenova, Guangyu Song,
+Ruqiya Bin Safi, Wen-Ding Li, Alessia Borghini, Fed-
+erico Cassano, Lasse Hansen, Sara Hooker, Cheng-
+hao Xiao, Vaibhav Adlakha, Orion Weller, Siva
+Reddy, and Niklas Muennighoff. 2025. MMTEB:
+Massive multilingual text embedding benchmark. In
+The Thirteenth International Conference on Learning
+Representations.
+
+Fangxiaoyu Feng, Yinfei Yang, Daniel Cer, Naveen Ari-
+vazhagan, and Wei Wang. 2022. Language-agnostic
+bert sentence embedding. In Proceedings of the 60th
+Annual Meeting of the Association for Computational
+Linguistics (Volume 1: Long Papers), pages 878–891.
+
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-
+field, Michael Collins, Ankur Parikh, Chris Alberti,
+Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-
+ton Lee, et al. 2019. Natural questions: a benchmark
+for question answering research. Transactions of the
+Association for Computational Linguistics, 7:453–
+466.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+täschel, Sebastian Riedel, and Douwe Kiela. 2020.
+Retrieval-augmented generation for knowledge-
+intensive nlp tasks. In Proceedings of the 34th Inter-
+national Conference on Neural Information Process-
+ing Systems, NIPS ’20, Red Hook, NY, USA. Curran
+Associates Inc.
+
+Bryan Li, Samar Haider, Fiona Luo, Adwait Agashe,
+and Chris Callison-Burch. 2024. BordIRlines: A
+dataset for evaluating cross-lingual retrieval aug-
+mented generation. In Proceedings of the First Work-
+shop on Advancing Natural Language Processing for
+Wikipedia, pages 1–13, Miami, Florida, USA. Asso-
+ciation for Computational Linguistics.
+
+Shayne Longpre, Yi Lu, and Joachim Daiber. 2021.
+MKQA: A linguistically diverse benchmark for mul-
+tilingual open domain question answering. Transac-
+tions of the Association for Computational Linguis-
+tics, 9:1389–1406.
+
+Jirui Qi, Raquel Fernández, and Arianna Bisazza. 2023.
+Cross-lingual consistency of factual knowledge in
+multilingual language models. In Proceedings of the
+2023 Conference on Empirical Methods in Natural
+Language Processing, pages 10650–10666, Singa-
+pore. Association for Computational Linguistics.
+
+Krithika Ramesh, Sunayana Sitaram, and Monojit
+Choudhury. 2023. Fairness in language models be-
+yond English: Gaps and challenges. In Findings of
+the Association for Computational Linguistics: EACL
+2023, pages 2106–2119, Dubrovnik, Croatia. Associ-
+ation for Computational Linguistics.
+
+Nils Reimers and Iryna Gurevych. 2019. Sentence-bert:
+Sentence embeddings using siamese bert-networks.
+In Proceedings of the 2019 Conference on Empirical
+Methods in Natural Language Processing. Associa-
+tion for Computational Linguistics.
+
+Bhavani Shankar, Preethi Jyothi, and Pushpak Bhat-
+tacharyya. 2024. In-context mixing (ICM): Code-
+mixed prompts for multilingual LLMs. In Proceed-
+ings of the 62nd Annual Meeting of the Association
+for Computational Linguistics (Volume 1: Long Pa-
+pers), pages 4162–4176, Bangkok, Thailand. Associ-
+ation for Computational Linguistics.
+
+Nikhil Sharma, Kenton Murray, and Ziang Xiao. 2024.
+Faux polyglot: A study on information disparity in
+multilingual large language models.
+
+Qwen Team. 2024. Qwen2.5: A party of foundation
+
+models.
+
+Joseph P. Telemala and Hussein Suleman. 2022.
+Language-preference-based re-ranking for multilin-
+gual swahili information retrieval. In Proceedings
+of the 2022 ACM SIGIR International Conference
+on Theory of Information Retrieval, ICTIR ’22, page
+144–152, New York, NY, USA. Association for Com-
+puting Machinery.
+
+Jie Wu, Zhaochun Ren, and Suzan Verberne. 2024a.
+What are the limits of cross-lingual dense passage
+retrieval for low-resource languages?
+
+Suhang Wu, Jialong Tang, Baosong Yang, Ante Wang,
+Kaidi Jia, Jiawei Yu, Junfeng Yao, and Jinsong Su.
+2024b. Not all languages are equal: Insights into
+multilingual retrieval-augmented generation.
+
+Eugene Yang, Thomas Jänich, James Mayfield, and
+Dawn Lawrie. 2024a. Language fairness in mul-
+tilingual information retrieval. In Proceedings of the
+47th International ACM SIGIR Conference on Re-
+search and Development in Information Retrieval,
+SIGIR ’24, page 2487–2491, New York, NY, USA.
+Association for Computing Machinery.
+
+Jinrui Yang, Fan Jiang, and Timothy Baldwin. 2024b.
+Language bias in multilingual information retrieval:
+The nature of the beast and mitigation methods. In
+Proceedings of the Fourth Workshop on Multilingual
+Representation Learning (MRL 2024), pages 280–
+292, Miami, Florida, USA. Association for Compu-
+tational Linguistics.
+
+Dongkeun Yoon, Joel Jang, Sungdong Kim, Seungone
+Kim, Sheikh Shafayat, and Minjoon Seo. 2024. Lang-
+Bridge: Multilingual reasoning without multilingual
+In Proceedings of the 62nd Annual
+supervision.
+Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers), pages 7502–7522,
+Bangkok, Thailand. Association for Computational
+Linguistics.
+
+Yuanchi Zhang, Yile Wang, Zijun Liu, Shuo Wang,
+Xiaolong Wang, Peng Li, Maosong Sun, and Yang
+Liu. 2024. Enhancing multilingual capabilities of
+
+11
+
+large language models through self-distillation from
+resource-rich languages. In Proceedings of the 62nd
+Annual Meeting of the Association for Computational
+Linguistics (Volume 1: Long Papers), pages 11189–
+11204, Bangkok, Thailand. Association for Compu-
+tational Linguistics.
+
+12
+
+A Implementation Details
+
+When retrieving from the datastore in all languages,
+we utilize the approach outlined in (Chirkova et al.,
+2024) as our baseline. Specifically, we employ the
+basic_translated_langspec prompt template, as de-
+tailed in Table 6 to generate our final mRAG an-
+swer from the generator. In our method, we retrieve
+and re-rank the top-50 documents for each query,
+and then use only the top-5 documents to gener-
+ate the final answer. The document retrieval and
+re-ranking are carried out using bge-m3. We do not
+translate documents already in query language in
+the framework of DKM-RAG to reduce costs.
+
+We conduct our experiments using an AMD
+EPYC 7313 CPU (3.0 GHz) paired with four
+NVIDIA RTX 4090 GPUs. We use Python 3.11.5
+and PyTorch 2.3.1 for the software environment.
+
+Language
+
+Passage Count (M)
+
+Percentage (%)
+
+ja
+en
+de
+fr
+zh
+es
+ru
+it
+pt
+th
+ar
+ko
+fi
+
+27
+25
+14
+13
+11
+10
+8.6
+8.2
+4.7
+3.7
+3.3
+1.6
+1.5
+
+20.53
+19.00
+10.64
+9.88
+8.36
+7.60
+6.54
+6.23
+3.57
+2.81
+2.51
+1.22
+1.14
+
+in our experiments. Specifically, en denotes En-
+glish, ko represents Korean, ar corresponds to Ara-
+bic, zh refers to Chinese (Simplified), fi indicates
+Finnish, fr stands for French, de represents German,
+ja corresponds to Japanese, it refers to Italian, pt
+denotes Portuguese, ru stands for Russian, es rep-
+resents Spanish, and th corresponds to Thai. These
+concise notations facilitate the identification and
+processing of language-specific data across datasets
+and models in multilingual NLP research.
+
+D Dataset Statistics
+
+We present the statistics of the datasets used in
+our experiments. MKQA serves as the primary
+dataset, and its details, including the number of
+examples and the median lengths of questions and
+answers, are summarized in Table 10. Additionally,
+we utilize Wikipedia as the external source for the
+retriever datastore, with its statistics (number of
+passages and median lengths) also provided in Ta-
+ble 10. And we provide the number of passages
+in each language and the ratio of them in Table 5.
+These details offer a clear overview of the data
+resources supporting our experiments.
+
+Language Distribution of Pre-trained LLM
+We provide language distribution in the pre-training
+corpus of Llama-2. As stated in Table 9, we use
+English (EN) as a high-resource, Spanish (ES) as a
+mid-resource, and Korean (KO) as a low-resource
+language in our experiment based on their ratios.
+
+Table 5: Language distribution of wikipedia we use in
+our experiment.
+
+E Language Preference of Other
+
+Languages
+
+B Prompts
+
+As shown in Table 6, we provide the prompts used
+to generate our final answer with the retrieved doc-
+uments in our mRAG baseline. Docs refers to re-
+trieved documents and question refers to the current
+query. We also provide prompts during the passage
+rewriting phase in the DKM-RAG framework as
+stated in Table 7. We only provide english prompts
+for simplicity. And we provide prompts to measure
+the language preference of GPT-4o-mini, regard-
+ing answering in the specific languages as stated in
+Table 8.
+
+C Language Notation
+
+In this work, we use standard ISO 639-1 language
+codes to represent the various languages involved
+
+We also perform additional experiments to explore
+language preferences for languages not covered in
+Table 1, using the MLRS score that we propose. As
+shown in Table 11, similar to the results in Table 1,
+the highest preferences are typically observed when
+Lq = Ld across all query languages. English is also
+the most preferred language. For clarity, we omit
+results for other languages.
+
+For most languages, such as Arabic, Finnish,
+German, and Russian, switching to a cross-lingual
+setup leads to a significant drop in MLRS. For
+example, Arabic queries using the bge-m3 encoder
+achieve a monolingual score of 40.39, but cross-
+lingual retrieval (e.g., with Thai) results in a 6.80-
+point decrease.
+
+Interestingly, for Thai queries, some cross-
+lingual pairs show a slight improvement over the
+monolingual baseline (as indicated by the positive
+
+13
+
+System
+
+Prompt
+
+With Documents
+
+You are a helpful assistant. Your task is to extract relevant
+
+information from provided documents and to answer to
+
+questions as short as possible. Please reply in English.
+
+user: f"Background:{docs}\n\nQuestion:{question}"
+
+Without Documents
+
+You are a helpful assistant. Answer the questions as short
+
+as possible. Please reply in English.
+
+user: f"Question:{question}"
+
+Table 6: System prompts with and without documents. The table outlines how instructions and prompts differ when
+documents are provided or omitted.
+
+Prompt
+
+Original Passage: {passage}
+
+Question: {question}
+
+Please create an independent document according to the following requirements:
+
+1) Utilize known facts (parametric knowledge) related to the question.
+
+2) Seamlessly combine with the original passage by removing redundant or unnecessary
+sentences. No additional explanations are allowed.
+
+3) All content must be written smoothly and concisely in English.
+
+Table 7: The prompt used for generating Prefined based on the passage and question. The instructions guide the
+generator to combine parametric knowledge with the original passage while ensuring clarity and conciseness.
+
+differences in red), suggesting that for low-resource
+languages like Thai, cross-lingual signals might
+sometimes offer complementary benefits
+
+F Similarity Matrices
+
+We provide similarity matrix measured by LaBSE
+for each query language en, zh, ko and each gen-
+erator in Figure 5, Figure 6, Figure 7, Figure 8,
+Figure 9, Figure 10, Figure 11, Figure 12 and Fig-
+ure 13. Each entry represents the embedding simi-
+larity score between answers generated in different
+languages, with the diagonal values all equal to 1
+(i.e., comparing an answer with itself). Moreover,
+the values shown in Figure 3 are computed by aver-
+aging over the rows or columns for each language.
+
+G Case study
+
+MLRS We provide an example of a document
+that improved MLRS score, where the rank of a rel-
+evant document significantly increases after transla-
+
+d
+
+tion. In Table 12, the user query "영국 캐리비안에
+언제 노예제가 폐지됐나요? (When was slavery
+abolished in the British Caribbean?)" is in Korean,
+whereas the original passage is in English. Initially,
+the document’s rank (rinit
+d = 34) was relatively
+low, but after translating the passage into Korean
+and re-ranking (rre-rank
+= 2), the document moved
+much closer to the top. This demonstrates how
+cross-lingual alignment can substantially improve
+retrieval performance in a multilingual setting. No-
+tably, even if the passage content is semantically
+the same, language preference in the model can
+lead to poor alignment when the query and docu-
+ment are in different languages, adversely affecting
+retrieval. Translating the document into the query
+language effectively mitigates this issue.
+
+Answer Generation in Language Preference of
+Generator We also provide an example of gen-
+erated answers in different languages with a gen-
+erator, GPT-4o-mini as shown in Table 13. The
+
+14
+
+System Message
+
+Content
+You are a highly capable multilingual assistant.
+Here are some reference documents:
+
+{top5_passages}
+
+The user wants answers in multiple languages.
+Please follow these rules strictly:
+
+1) Return your final answer as a valid JSON object.
+
+The
+
+2)
+{TARGET_LANGUAGES}.
+
+JSON
+
+object
+
+must
+
+contain
+
+exactly
+
+these
+
+keys:
+
+3) Each field’s value must be the answer written in that respective
+language.
+
+4) Do not include any additional text outside the JSON (e.g., no
+Markdown or explanations).
+
+User Message
+
+5) Ensure it is valid JSON with correct format.
+Question: {question}
+
+Please provide the answers in JSON form for each of the following
+languages: {TARGET_LANGUAGES}.
+
+Table 8: Prompts used for measuring language preference of GPT-4o-mini in mRAG pipeline.
+
+preference score in the rightmost column of Ta-
+ble 13 indicates that the generator prefers the query
+language and Latin-script languages over other lan-
+guages.
+
+Unified Document of DKM-RAG Additionally,
+we provide a sample of Ptranslated and Prefined ob-
+tained via our proposed DKM-RAG framework in
+Table 14. This example illustrates how the crucial
+answer component, “the executive branch”, which
+is not apparent from the translated passage alone,
+emerges through the model’s internal knowledge.
+Consequently, this shows that DKM-RAG can ef-
+fectively leverage additional knowledge sources
+that is not included in the translated passage to
+achieve better performance.
+
+G.1 Failure Case
+
+MLRS We present a failure case of the MLRS
+metric in Table 15. Due to the difficulty of translat-
+ing documents in low-resource languages, repeti-
+tive phrases such as Changing the line-up appear
+in the translated passage. This repetition causes the
+re-ranker to misinterpret the content, leading to an
+improvement in the rank even though the content
+is irrelevant.
+
+DKM-RAG We also present a failure case of
+DKM-RAG in Table 16. The retriever retrieves an
+English document that is irrelevant to the query
+due to its language preference. Additionally, the
+
+LLM lacks relevant knowledge related to the query,
+resulting in a failed generation.
+
+H Language Preference of Generators in
+
+average
+
+We provide language preference of generators in
+terms of average as shown in Figure 14. Consistent
+with the result of each query language in Figure 3,
+the generator shows preferences for Latin-script
+languages. And GPT-4o-mini shows more consis-
+tent outputs than other generators. This is because
+it is a larger model than the others, providing more
+stable answers regardless of language preference.
+Between Llama and Aya, Aya produces slightly
+more consistent outputs, demonstrating its multilin-
+gual capability in handling diverse linguistic con-
+texts.
+
+I MLRS Analysis
+
+We prove the effectiveness of our proposed lan-
+guage preference metric, MLRS by comparing lan-
+guage preference between MLRS score and the
+average document language ratio of retrieved docu-
+ments for each dataset. As stated in Table 17, the
+tendency of average language ratio of retrieved
+documents and MLRS score is similar. To prove
+it, we also report Pearson and Spearman correla-
+tion coefficients and each p-value between them.
+Pearson value (0.98558) indicates a very strong pos-
+
+15
+
+Language Percentage
+89.70%
+EN
+8.38%
+Unknown
+0.17%
+DE
+0.15%
+FR
+0.15%
+SV
+0.13%
+ES
+0.15%
+ZH
+0.12%
+RU
+0.11%
+NL
+0.11%
+IT
+0.11%
+JP
+0.09%
+PL
+0.09%
+PT
+0.08%
+VI
+0.03%
+RO
+0.04%
+SR
+0.04%
+CA
+0.06%
+KO
+0.07%
+UK
+0.21%
+Other
+
+Table 9: Language distribution in the pre-training corpus of Llama-2. Unknown represents languages we cannot
+know because of closed-source access of model and other denotes other languages.
+
+itive linear correlation between the average MKQA
+language distribution values (mkqa_avg) and the
+MLRS (Preference) scores. The p-value (7.75e-10)
+is extremely small, showing that the probability of
+observing such a strong correlation by chance is al-
+most negligible. In short, there is a statistically sig-
+nificant, nearly perfect linear relationship between
+these two sets of values. Similarly, the Spearman
+value (0.86264) also indicates a strong association,
+and the corresponding p-value (1.47e-4) confirms
+that this correlation is statistically significant. By
+these results, we prove that MLRS is efficient for
+measuring language preference of retriever.
+
+16
+
+Dataset
+
+en
+
+ar
+
+es
+
+fi
+
+fr
+
+de
+
+ja
+
+it
+
+ko
+
+pt
+
+ru
+
+zh
+
+th
+
+MKQA
+# examples
+len question.
+len answer.
+
+Wikipedia
+# ex. (M)
+len passage.
+
+2827
+43
+11
+
+2827
+38
+10
+
+2827
+48
+11
+
+2827
+46
+11
+
+2827
+49
+11
+
+2827
+47
+11
+
+2827
+26
+8
+
+2827
+48
+11
+
+2827
+22
+6
+
+2827
+45
+11
+
+2827
+42
+12
+
+2827
+16
+6
+
+2827
+41
+12
+
+25
+624
+
+3.3
+585
+
+10
+619
+
+1.5
+833
+
+13
+627
+
+14
+720
+
+27
+208
+
+8.2
+650
+
+1.6
+431
+
+4.7
+619
+
+8.6
+721
+
+11
+206
+
+3.7
+217
+
+Table 10: Statistics of the datasets used in our experiments. MKQA Number of examples and median lengths of
+questions and answers (in Unicode characters). Wikipedia: Number of passages (in millions) and their median
+lengths.
+
+Query Lang.
+
+Encoder
+
+Lq = Ld
+
+bge-m3
+
+40.39
+p-mMiniLM 41.25
+41.34
+p-mMpNet
+
+Lq ̸= Ld
+de
+
+fi
+
+ru
+
+th
+
+34.10 (-6.29) 35.91 (-4.48) 36.22 (-4.17) 33.59 (-6.80)
+34.90 (-6.35) 36.58 (-4.67) 37.13 (-4.12) 34.46 (-6.79)
+34.64 (-6.70) 36.34 (-5.00) 36.87 (-4.47) 34.36 (-6.98)
+
+ar
+
+–
+–
+–
+
+bge-m3
+
+36.65
+p-mMiniLM 37.37
+37.27
+p-mMpNet
+
+33.47 (-3.18)
+34.60 (-2.77)
+34.41 (-2.86)
+
+–
+–
+–
+
+36.33 (-0.32) 35.42 (-1.23) 33.07 (-3.58)
+37.14 (-0.23) 36.48 (-0.89) 34.12 (-3.25)
+36.92 (-0.35) 36.28 (-0.99) 34.12 (-3.15)
+
+bge-m3
+
+39.81
+p-mMiniLM 40.80
+40.92
+p-mMpNet
+
+33.21 (-6.60) 34.16 (-5.65)
+34.62 (-6.18) 35.25 (-5.55)
+34.81 (-6.11) 35.33 (-5.59)
+
+–
+–
+–
+
+34.63 (-5.18) 32.95 (-6.86)
+35.94 (-4.86) 34.18 (-6.62)
+36.13 (-4.79) 34.37 (-6.55)
+
+bge-m3
+
+45.05
+p-mMiniLM 46.08
+45.82
+p-mMpNet
+
+33.84 (-11.21) 34.20 (-10.85) 35.63 (-9.42)
+34.85 (-11.23) 35.18 (-10.90) 36.73 (-9.35)
+34.63 (-11.19) 34.83 (-10.99) 36.28 (-9.54)
+
+–
+–
+–
+
+33.24 (-11.81)
+34.23 (-11.85)
+34.12 (-11.70)
+
+bge-m3
+
+34.52
+p-mMiniLM 35.38
+p-mMpNet
+34.73
+
+33.68 (-0.84) 34.11 (-0.41) 35.99 (+1.47) 35.60 (+1.08)
+34.65 (-0.73) 34.77 (-0.61) 36.63 (+1.25) 36.40 (+1.02)
+34.10 (-0.63) 34.14 (-0.59) 36.08 (+1.35) 35.84 (+1.11)
+
+–
+–
+–
+
+ar
+
+fi
+
+de
+
+ru
+
+th
+
+Table 11: Language preference measured by MLRS with various re-ranking encoders for various query and document
+language combinations in a multilingual retriever. The Lq = Ld column reports the diagonal scores where the query
+language matches the translated document language, while the remaining columns represent cross-lingual scenarios
+(i.e., where the query language differs from the document language). Scores in parentheses indicate the difference
+from the diagonal value (positive for an improvement, negative for a decline). The highest score for each row is
+highlighted in bold, and the second highest is underlined.
+
+17
+
+Field
+query
+
+gold answer
+doc id
+rinit
+d
+rre-rank
+d
+d (content)
+
+d (translated)
+
+Value
+영국 캐리비안에 언제 노예제가 폐지됐나요? (When was slavery abolished in the
+British Caribbean?)
+1834-08-01
+kilt-100w_6947054 (English)
+34
+2
+History of the Caribbean. Empire remained slaves, however, until Britain passed the
+Slavery Abolition Act in 1833. When the Slavery Abolition Act came into force in 1834,
+roughly 700,000 slaves in the British West Indies immediately became free; other
+enslaved workers were freed several years later after a period of forced apprenticeship.
+Slavery was abolished in the Dutch Empire in 1814. Spain abolished slavery in its
+empire in 1811, with the exceptions of Cuba, Puerto Rico, and Santo Domingo; Spain
+ended the slave trade to these colonies in 1817, after being paid ₤400,000 by Britain.
+Slavery itself was not abolished in Cuba until 1886.
+1834년 노예제 폐지법이 시행되자, 영국 서인도 제도에서 약 700,000명의 노예가
+즉시 해방되었고, 다른 노예 노동자들은 강제 연습생 생활을 한 후 몇 년 후에 해방
+되었다. 1814년 네덜란드 제국에서 노예제는 폐지되었다. 1811년 스페인은 쿠바,
+푸에르토리코, 산토 도밍고를 제외하고는 제국에서 노예제를 폐지했다. 1817년 영
+국이 400만원을 지불한 후 스페인은 이들 식민지에서의 노예 무역을 종식시켰다.
+노예제는 1886년까지 쿠바에서 폐지되지 않았다.
+
+Table 12: An example of an improved MLRS case. After translating the document into Korean, its rank improved
+from 34 to 2, illustrating language preference of retriever.
+
+Question which type of air pressure is associated with warm air rising
+
+Language Answer
+
+Preference Score
+
+en
+ko
+zh
+fr
+ja
+it
+pt
+es
+
+Low pressure is associated with warm air rising.
+따뜻한 공기가 상승하는 것과 관련된 공기 압력은 저압입니다.
+暖空上升相的空力是低。
+La pression basse est associée à l’ascension de l’air chaud.
+暖かい空が上昇することに連するは低です。
+La bassa pressione è associata all’aria calda che sale.
+A pressão baixa está associada ao ar quente que sobe.
+La presión baja está asociada con el aire caliente que asciende.
+
+0.9179
+0.9060
+0.8853
+0.9231
+0.9187
+0.9256
+0.9316
+0.9317
+
+Table 13: An example of generated answers in different languages with gpt-4o-mini. Also, we report the average
+similarity score between each pair of answers.
+
+18
+
+Field
+query
+gold answer
+doc id
+Ptranslated
+
+Prefined
+
+Value
+in the united states the president is the head of which branch of government?
+the executive branch
+kilt-100w_5089743 (English)
+President of the United States. President of the United States (POTUS) is the head of
+state and head of government of the United States of America. The president is the
+commander-in-chief of the United States Armed Forces. In contemporary times, the
+president is looked upon as one of the world’s most powerful political figures as the
+leader of the only remaining global superpower. The role includes responsibility for
+the world’s most expensive military, which has the second largest nuclear arsenal. The
+president also leads the nation with the largest economy.
+The president of the United States is the head of the executive branch of the federal
+government. The president directs the executive branch and is the commander-in-chief
+of the United States Armed Forces/ In contemporary times, the president is looked upon
+as one of the world’s most powerful political figures as the leader of the only remaining
+global superpower. The role includes responsibility for the world’s most expensive
+military, which has the second-largest nuclear arsenal. The president also leads the
+nation with the largest economy.
+
+Table 14: A DKM-RAG case study illustrating how Ptranslated and Prefined correspond to the retrieved passage
+(translated into the query language) and the rewritten passage leveraging parametric knowledge, respectively. The
+overlap with the gold answer is highlighted in red.
+
+Field
+query
+
+Value
+연속으로 가장 많은 자유투 기록 (who holds the record for most free throws made in
+a row)
+
+gold answer 톰 앰베리
+doc id
+rinit
+d
+rre-rank
+d
+d (content)
+
+wiki-100w-ja_8993041
+31
+5
+’林直明. を 更 \n \n 記 \n イ ニ ン グ 最 多 連 四 球 ： 5 （ 日 本 記 ）
+1 9 4
+6 年 4 月 2 9 日 \n 同 一 年 に 2 球 で 勝 利 ： 1 9 4 8 年 ※ 史 上 3 人 目 \n
+ゲ ム 最 多 失 点 ： 1 4 （ セ リ グ 記 ）
+
+1 9 5 0 年 6 月 7 日 \n \n 背 番 ’
+
+d (translated) Changing the line-up, Changing the line-up, Changing the line-up, Changing the line-
+up, Changing the line-up, Changing the line-up, Changing the line-up, Changing the
+line-up, Changing the line-up, Changing the line-up, Changing the line-up, Changing
+the line-up, Changing the line-up, Changing the line-up, Changing the line-up, (...)
+
+Table 15: A failure case of MLRS because bad translation quality due to difficulty in translating low-resource
+language.
+
+19
+
+Value
+who is the first british governor in india?
+
+Field
+query
+gold answer William Bentinck, Warren Hastings
+doc id
+Ptranslated
+
+kilt-100w_10189364 (English)
+Sir John Child, 1st Baronet. Sir John Child, 1st Baronet (died 1690) was a governor of
+Bombay, and de facto (although not officially) the first governor-general of the British
+settlements in India. Born in London, Child was sent as a young boy to his uncle,
+the chief of the factory at Rajapur. On 27 October 1681, he was appointed chief of
+the East India Company’s affairs at Surat and Bombay, while at the same time his
+namesake—stated to be unrelated by the Oxford Dictionary of National Biography—Sir
+Josiah Child, was governor of the company at home. The two
+Sir John Child, 1st Baronet was the first governor of Bombay, and de facto (although
+not officially) the first governor-general of the British settlements in India. He was
+born in London but later moved to India where he became involved in the East India
+Company’s affairs. On 27th October 1681, he took up the position of Chief of the East
+India Company’s affairs at both Surat and Bombay. This made him the first British
+Governor in . . .
+
+Prefined
+
+Table 16: A failure case of DKM-RAG because of preference of retriever so that high-resource but irrelevant
+document is retrieved.
+
+20
+
+mkqa_en
+mkqa_ko
+mkqa_ar
+mkqa_zh
+mkqa_fi
+mkqa_fr
+mkqa_de
+mkqa_ja
+mkqa_it
+mkqa_pt
+mkqa_ru
+mkqa_es
+mkqa_th
+
+en
+
+ko
+
+ar
+
+zh
+
+fi
+
+fr
+
+de
+
+ja
+
+it
+
+pt
+
+ru
+
+es
+
+th
+
+44.12
+1.60
+23.07 17.35
+3.30
+24.93
+3.17
+24.70
+2.27
+30.32
+1.48
+29.90
+1.46
+32.54
+4.80
+24.56
+1.59
+28.72
+1.71
+28.82
+2.53
+27.02
+1.73
+29.45
+3.10
+32.39
+
+1.19
+1.99
+15.29
+1.76
+1.63
+1.25
+1.17
+1.69
+1.30
+1.40
+1.92
+1.27
+2.10
+
+1.30
+4.81
+4.07
+23.22
+2.33
+1.55
+1.44
+3.99
+1.58
+1.63
+1.98
+1.60
+2.96
+
+2.54
+2.04
+2.10
+2.01
+7.92
+2.50
+2.96
+2.19
+2.52
+2.60
+2.45
+2.66
+2.53
+
+6.90
+10.03
+5.96
+7.90
+6.53
+8.30
+6.17
+7.47
+8.20
+11.11
+21.44
+6.96
+11.40 15.12
+5.99
+7.97
+6.97
+12.30
+6.74
+11.92
+6.44
+8.83
+6.93
+11.85
+7.40
+10.00
+
+1.44
+10.36
+6.64
+6.27
+3.78
+2.06
+1.89
+22.55
+1.95
+2.23
+2.71
+1.83
+4.43
+
+7.67
+8.32
+5.06
+6.16
+5.71
+6.80
+5.24
+6.08
+7.18
+8.77
+7.96
+9.40
+7.69
+9.09
+5.66
+6.38
+17.46
+8.47
+10.24 13.78
+6.24
+7.36
+9.33
+10.55
+7.43
+8.06
+
+4.85
+6.85
+7.78
+6.37
+6.51
+4.77
+4.83
+6.49
+5.26
+5.38
+23.83
+5.27
+6.80
+
+9.90
+6.85
+7.65
+7.27
+9.42
+10.55
+10.17
+7.45
+11.70
+13.33
+8.43
+17.36
+9.70
+
+0.13
+1.58
+0.89
+0.27
+0.58
+0.19
+0.24
+0.28
+0.17
+0.24
+0.26
+0.16
+3.10
+
+mkqa_avg
+0.62
+MLRS (Preference) 47.70 35.47 35.59 35.90 35.13 37.94 37.20 37.59 37.66 37.15 37.99 37.97 34.09
+
+29.27
+
+10.81
+
+7.31
+
+8.82
+
+7.49
+
+2.85
+
+7.41
+
+5.24
+
+4.04
+
+9.98
+
+2.61
+
+3.55
+
+Pearson correlation coefficient: 0.98558 (p-value: 7.75e-10)
+Spearman correlation coefficient: 0.86264 (p-value: 1.47e-4)
+
+Table 17: Language distribution ratios of documents retrieved from datasets composed of each query language.
+The table lists the raw MKQA language distribution values (without the percent sign) for each dataset. The row
+mkqa_avg shows the average distribution across all MKQA datasets for each language, while the row MLRS
+(Preference) provides the corresponding MLRS scores. Additionally, we report Pearson and Spearman correlation
+coefficients between MLRS and mkqa_avg.
+
+21
+
+Figure 5: LaBSE Similarity Matrix of aya-expanse-8b (en).
+
+22
+
+enkozhfrjaitptesenkozhfrjaitptes1.00000.75960.76140.78880.76480.79740.77600.79660.75961.00000.75020.77380.77840.77110.77430.77870.76140.75021.00000.77310.75460.76410.76650.77360.78880.77380.77311.00000.77760.79190.80610.81290.76480.77840.75460.77761.00000.77410.77820.78410.79740.77110.76410.79190.77411.00000.78840.80150.77600.77430.76650.80610.77820.78841.00000.80680.79660.77870.77360.81290.78410.80150.80681.0000Cross-Lingual Similarity Matrix (en)0.800.850.900.951.00Figure 6: LaBSE Similarity Matrix (zh) of aya-expanse-8b.
+
+23
+
+enkozhfrjaitptesenkozhfrjaitptes1.00000.76820.77900.78340.76250.77300.77270.78690.76821.00000.79520.76780.78060.78340.76210.78000.77900.79521.00000.77950.78550.80910.76820.79060.78340.76780.77951.00000.76800.77030.79710.79860.76250.78060.78550.76801.00000.77510.76290.77470.77300.78340.80910.77030.77511.00000.76500.78550.77270.76210.76820.79710.76290.76501.00000.79000.78690.78000.79060.79860.77470.78550.79001.0000Cross-Lingual Similarity Matrix (zh)0.800.850.900.951.00Figure 7: LaBSE Similarity Matrix (ko) of aya-expanse-8b.
+
+24
+
+enkozhfrjaitptesenkozhfrjaitptes1.00000.76090.75940.77550.75650.76130.76930.77910.76091.00000.74450.76970.79930.81530.78580.79700.75940.74451.00000.76300.74870.75020.75340.75590.77550.76970.76301.00000.76630.77370.79150.79100.75650.79930.74870.76631.00000.79700.77940.78800.76130.81530.75020.77370.79701.00000.79220.80000.76930.78580.75340.79150.77940.79221.00000.80140.77910.79700.75590.79100.78800.80000.80141.0000Cross-Lingual Similarity Matrix (ko)0.750.800.850.900.95Figure 8: LaBSE Similarity Matrix (en) of Llama-3.1-8B-instruct.
+
+25
+
+enkozhfrjaitptesenkozhfrjaitptes1.00000.71900.74880.77900.72210.80240.77220.78240.71901.00000.73850.73180.74910.69740.71760.73190.74880.73851.00000.76060.74460.72490.74200.75600.77900.73180.76061.00000.74150.75420.78860.79610.72210.74910.74460.74151.00000.69970.72480.73870.80240.69740.72490.75420.69971.00000.75240.75910.77220.71760.74200.78860.72480.75241.00000.79040.78240.73190.75600.79610.73870.75910.79041.0000Cross-Lingual Similarity Matrix (en)0.700.750.800.850.900.951.00Figure 9: LaBSE Similarity Matrix (zh) of Llama-3.1-8B-instruct.
+
+26
+
+enkozhfrjaitptesenkozhfrjaitptes1.00000.69580.71860.73200.70120.71700.70900.74240.69581.00000.72830.71940.72730.71940.71850.71730.71860.72831.00000.73720.73150.72950.73360.72810.73200.71940.73721.00000.72170.73030.73100.74590.70120.72730.73150.72171.00000.72410.71670.71970.71700.71940.72950.73030.72411.00000.72660.73070.70900.71850.73360.73100.71670.72661.00000.72760.74240.71730.72810.74590.71970.73070.72761.0000Cross-Lingual Similarity Matrix (zh)0.700.750.800.850.900.951.00Figure 10: LaBSE Similarity Matrix (ko) of Llama-3.1-8B-instruct.
+
+27
+
+enkozhfrjaitptesenkozhfrjaitptes1.00000.68810.71160.72950.65940.73170.71490.73310.68811.00000.71650.72400.72400.70830.72130.72460.71160.71651.00000.73100.68980.71250.72050.72890.72950.72400.73101.00000.69910.73520.75280.75670.65940.72400.68980.69911.00000.69410.70520.70590.73170.70830.71250.73520.69411.00000.73020.74570.71490.72130.72050.75280.70520.73021.00000.75190.73310.72460.72890.75670.70590.74570.75191.0000Cross-Lingual Similarity Matrix (ko)0.700.750.800.850.900.951.00Figure 11: LaBSE Similarity Matrix (en) of gpt-4o-mini.
+
+28
+
+enkozhfrjaitptesenkozhfrjaitptes1.00000.87520.86680.94630.87230.95230.93780.95040.87521.00000.84200.86680.89960.86930.87210.86930.86680.84201.00000.85510.84830.85690.83760.85670.94630.86680.85511.00000.86010.97160.96430.97000.87230.89960.84830.86011.00000.86390.86520.86280.95230.86930.85690.97160.86391.00000.96750.97490.93780.87210.83760.96430.86520.96751.00000.97460.95040.86930.85670.97000.86280.97490.97461.0000Cross-Lingual Similarity Matrix (en)0.840.860.880.900.920.940.960.98Figure 12: LaBSE Similarity Matrix (zh) of gpt-4o-mini.
+
+29
+
+enkozhfrjaitptesenkozhfrjaitptes1.00000.88200.86550.94320.87970.95020.93500.94840.88201.00000.84330.87450.90530.87660.87920.87510.86550.84331.00000.85650.84530.85750.83650.85750.94320.87450.85651.00000.86860.97220.96610.97160.87970.90530.84530.86861.00000.87190.87350.86930.95020.87660.85750.97220.87191.00000.96680.97470.93500.87920.83650.96610.87350.96681.00000.97370.94840.87510.85750.97160.86930.97470.97371.0000Cross-Lingual Similarity Matrix (zh)0.840.860.880.900.920.940.960.98Figure 13: LaBSE Similarity Matrix (ko) of gpt-4o-mini.
+
+30
+
+enkozhfrjaitptesenkozhfrjaitptes1.00000.88900.88540.94800.88910.95380.93920.95310.88901.00000.85890.88330.91550.88500.88840.88440.88540.85891.00000.87700.86330.87880.85830.87940.94800.88330.87701.00000.88160.97580.96950.97530.88910.91550.86330.88161.00000.88410.88680.88270.95380.88500.87880.97580.88411.00000.96890.97790.93920.88840.85830.96950.88680.96891.00000.97560.95310.88440.87940.97530.88270.97790.97561.0000Cross-Lingual Similarity Matrix (ko)0.860.880.900.920.940.960.98Figure 14: Average Generator Preference for three query languages: en, zh, ko.
+
+31
+
+enkozhfrjaitptes0.700.750.800.850.900.951.00Generator Language Preference (avg)llamaayagpt

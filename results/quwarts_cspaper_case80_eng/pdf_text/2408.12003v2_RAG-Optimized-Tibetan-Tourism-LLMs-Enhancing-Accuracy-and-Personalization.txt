@@ -1,0 +1,1052 @@
+RAG-Optimized Tibetan Tourism LLMs: Enhancing Accuracy and
+Personalization
+Shuai Yan∗
+Chengdu Jincheng College
+Chengdu, Sichuan, China
+yanshuai1@cdjcc.edu.cn
+
+Jinhu Qi
+Chengdu Jincheng College
+Chengdu, Sichuan, China
+qijinhu1218@gmail.com
+
+Yibo Zhang
+Chengdu Jincheng College
+Chengdu, Sichuan, China
+z1575075389@gmail.com
+
+5
+2
+0
+2
+
+b
+e
+F
+9
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+3
+0
+0
+2
+1
+.
+8
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+Wentao Zhang
+Chengdu Jincheng College
+Chengdu, Sichuan, China
+vraniumzwt@gmail.com
+
+Rong Jin
+Chengdu Jincheng College
+Chengdu, Sichuan, China
+kim.rong.king@gmail.com
+
+Ke Wang
+Chengdu Jincheng College
+Chengdu, Sichuan, China
+wangke@cdjcc.edu.cn
+
+Yuwei Hu
+Chengdu Jincheng College
+Chengdu, Sichuan, China
+huy791745@gmail.com
+
+Abstract
+With the development of the modern social economy, tourism has
+become an important way to meet people’s spiritual needs, bringing
+development opportunities to the tourism industry. However, exist-
+ing large language models (LLMs) face challenges in personalized
+recommendation capabilities and the generation of content that can
+sometimes produce hallucinations. This study proposes an optimiza-
+tion scheme for Tibet tourism LLMs based on retrieval-augmented
+generation (RAG) technology. By constructing a database of tourist
+viewpoints and processing the data using vectorization techniques,
+we have significantly improved retrieval accuracy. The application
+of RAG technology effectively addresses the hallucination prob-
+lem in content generation. The optimized model shows significant
+improvements in fluency, accuracy, and relevance of content gener-
+ation. This research demonstrates the potential of RAG technology
+in the standardization of cultural tourism information and data
+analysis, providing theoretical and technical support for the devel-
+opment of intelligent cultural tourism service systems.
+
+CCS Concepts
+• Computing methodologies → Natural language generation;
+Artificial intelligence; Natural language processing.
+
+Keywords
+Retrieval-Augmented Generation, Large Language Models, Vector
+Databases, Hallucination Problem
+
+∗Corresponding author
+
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than ACM
+must be honored. Abstracting with credit is permitted. To copy otherwise, or republish,
+to post on servers or to redistribute to lists, requires prior specific permission and/or a
+fee. Request permissions from permissions@acm.org.
+International Conference on Artificial Intelligence and Pattern Recognition | AIPR ,
+© 2024 ACM.
+ACM ISBN 979-8-4007-1717-8
+https://doi.org/10.48550/arXiv.2408.12003
+
+ACM Reference Format:
+Jinhu Qi, Shuai Yan, Yibo Zhang, Wentao Zhang, Rong Jin, Yuwei Hu, and Ke
+Wang. 2024. RAG-Optimized Tibetan Tourism LLMs: Enhancing Accuracy
+and Personalization. In Proceedings of September 20-22, 2024 (International
+Conference on Artificial Intelligence and Pattern Recognition | AIPR ). ACM,
+New York, NY, USA, 8 pages. https://doi.org/10.48550/arXiv.2408.12003
+
+1 Introduction
+1.1 Current issues regarding Tibet’s cultural
+
+tourism and LLMs
+
+With the development of modern society’s economy, people’s desire
+for spiritual fulfillment is increasing. In terms of tourism, more and
+more people prefer to visit viewpoints that suit their preferences
+rather than popular ones. At this point, the abundance of infor-
+mation and inadequate viewpoint recommendations have become
+significant factors affecting the tourism experience. The Tibet re-
+gion, with its rich tourism resources but substantial development
+challenges, urgently needs technological innovation to tap its cul-
+tural value and commercial potential.
+
+To address these challenges, this study, under Project ID: XZ2024-
+01ZY0008, titled "Research and Application of Intelligent Tourism
+Service System in Tibet Based on LLM," aims to enhance tourists’
+travel experiences and promote the development of Tibet’s tourism
+industry. The project focuses on the systematic organization and
+classification of viewpoints in the region. This includes detailed doc-
+umentation of each viewpoint’s historical background, geographical
+location, cultural significance, and transportation information [1].
+By constructing a comprehensive database and leveraging con-
+temporary large language models (LLMs), we can offer personalized
+and precise attraction recommendations based on tourists’ needs.
+Specifically, this approach can guide tourists to less well-known
+but uniquely charming attractions, thereby alleviating the pressure
+on popular sites and promoting the rational utilization of tourism
+resources. Despite the significant technological advancements in
+LLMs, traditional models in the domain of personalized tourism
+
+ 
+ 
+ 
+ 
+ 
+ 
+International Conference on Artificial Intelligence and Pattern Recognition | AIPR , Xiamen, China,
+
+recommendations still face two critical challenges: insufficient capa-
+bility in personalized precise recommendations and issues related
+to the breadth, depth, timeliness, and accuracy of data.
+
+Regarding the insufficiency in personalized recommendation
+capabilities, traditional models emphasize generalization but lack
+targeted fine-tuning, leading to suboptimal performance in per-
+sonalized tourism contexts. Specifically, these models may exhibit
+"hallucination" phenomena[7], where they fail to accurately under-
+stand user needs and recommend the most suitable attractions. This
+limitation is particularly evident in the context of Tibetan tourism,
+where the unique characteristics of many emerging attractions are
+not effectively captured, resulting in recommendations that lack
+accuracy and relevance.
+
+Our research addresses these challenges by employing a vector
+database query method within the Retrieval-Augmented Genera-
+tion (RAG) framework[6]. LLM extracts user requirements, which
+are then matched against a vector database to identify suitable at-
+tractions. These viewpoints are returned to the LLM for integration,
+resulting in accurate and contextually relevant recommendations
+tailored to the user’s preferences.
+
+The breadth, depth, timeliness, and accuracy of data represent an-
+other major challenge affecting the personalized recommendation
+capabilities of LLMs. As Tibet’s tourism resources and infrastruc-
+ture continue to evolve, LLMs require frequent updates to reflect
+the latest information. However, existing models often struggle to
+acquire and integrate the most recent tourism information and user
+feedback in real-time. This issue is particularly pronounced in re-
+mote areas or lesser-known attractions, where detailed data records
+and descriptions are often insufficient, leading to incomplete and
+inaccurate recommendations. Moreover, the unique cultural back-
+ground of Tibet presents challenges for LLMs in handling relevant
+details with accuracy and depth. For instance, the understanding of
+Tibetan Buddhist rituals, festivals, and customs may be limited. Al-
+though LLMs possess multilingual processing capabilities, they may
+still face limitations when dealing with the Tibetan language and
+specialized terms related to Tibetan culture, potentially affecting
+the accuracy of information transmission.
+
+2 Methods and Models
+2.1 Vectorization Methods: TF-IDF and BERT
+TF-IDF (Term Frequency-Inverse Document Frequency) is used
+to evaluate the importance of a word in a document collection
+or corpus. By multiplying TF (term frequency) and IDF (inverse
+document frequency), the TF-IDF value is obtained, which measures
+the significance of a word to a particular document[8].
+
+BERT (Bidirectional Encoder Representations from Transform-
+ers) handles unlabelled text data by pre-training deep bidirectional
+representations[9]. This pre-training process involves jointly con-
+ditioning on both left and right context in all layers, allowing the
+pre-trained BERT model to be fine-tuned for various tasks by simply
+adding an output layer. The advantage of this approach lies in its
+flexibility to adapt to the text data of this project and its capability
+to create state-of-the-art models for a wide range of NLP tasks.
+
+Jinhu Qi, Shuai Yan, Yibo Zhang, Wentao Zhang, Rong Jin, Yuwei Hu, and Ke Wang
+
+2.2 Retrieval Construction Methods
+Retrieval techniques in vector databases can significantly impact the
+performance and efficiency of systems in large-scale data processing
+and querying. This project employs the following methods:
+
+Flat (Brute Force Search): The system compares each vector in
+the database with the query vector, calculates their distance or
+similarity, and returns the closest vectors[10].
+
+HNSW (Hierarchical Navigable Small World): This method con-
+structs a layered, small-world graph structure to accelerate query
+speed. HNSW supports multiple distance metrics, including l2 (Eu-
+clidean distance), l1 (Manhattan distance), and dot product[11].
+
+IVFFlat (Inverted File Index with Flat Quantization): This tech-
+nique clusters database vectors into multiple groups. During query-
+ing, it only searches the most relevant clusters to reduce computa-
+tion.
+
+SQ (Scalar Quantization): This method quantizes vector data to
+
+reduce storage and computation requirements[12].
+
+IVFSQ (Inverted File Index with Scalar Quantization): This com-
+bines the advantages of IVF and SQ by first clustering the data into
+multiple groups and then quantizing each cluster.
+
+NSG (Navigable Small World Graph): Another graph-based Ap-
+proximate Nearest Neighbor (ANN) search method, it constructs a
+navigable small-world graph for fast retrieval[13].
+
+LSH (Locality-Sensitive Hashing): This technique accelerates sim-
+ilarity search by mapping similar data into the same hash buckets[14].
+
+2.3 LLMS Function Calling and
+
+Retrieval-Augmented Generation
+
+LLM Function Calling enables large language models to interact
+with external functions, perform specific tasks, and generate more
+practical outputs[15]. Function calling allows large language models
+to call external functions or services during the text generation
+process. By leveraging function calling, large language models can
+decide whether to invoke the corresponding functions based on
+instructions and return information in a structured format.
+
+Retrieval-augmented generation (RAG) is a method that com-
+bines information retrieval and generation models to improve the
+performance of language models in handling complex queries and
+generation tasks. The core of the RAG method lies in its ability
+to combine pre-trained parametric memory with non-parametric
+external knowledge bases, accessing these external knowledge
+sources through a differentiable retrieval mechanism. This com-
+bination allows RAG models to rely not only on the internally
+learned knowledge during language generation but also to dynami-
+cally incorporate external information, thereby enhancing the rele-
+vance and accuracy of the generated content and eliminating model
+hallucinations[17].
+
+3 Theoretical Exposition of RAG’s Method for
+Optimizing Hallucination in Large Language
+Models
+
+The comprehensive methodology and procedural workflow of this
+study are depicted in Figure 1 and Figure 2. This figure provides a
+visual representation of the sequential steps and critical processes
+
+RAG-Optimized Tibetan Tourism LLMs: Enhancing Accuracy and Personalization
+
+International Conference on Artificial Intelligence and Pattern Recognition | AIPR , Xiamen, China,
+
+involved in the research, highlighting the key phases and their in-
+terconnections. Through this schematic, readers can gain a clearer
+understanding of the systematic approach adopted in this investi-
+gation.
+
+The formula presented below is the formula for TF-IDF[16].
+
+𝑤𝑥,𝑦 = tf𝑥,𝑦 × log
+
+(cid:18) 𝑁
+
+(cid:19)
+
+df𝑥
+
+(1)
+
+3.1 Dataset construction
+To match the characteristics of each viewpoint when querying
+with an input prompt and identify the top three viewpoints that
+best meet the requirements, we integrated and processed existing
+viewpoint information to create a standardized database. After com-
+paring the accuracy, standardization, and coverage of viewpoint
+data from various sources in the standardized database, we selected
+tourism information from Ctrip Travel as the primary data source
+and supplemented it with information from Wikipedia. For each
+viewpoint in the database, we recorded key information such as
+name, province, city, district, address, distance, popularity, ticket
+prices, brief description, and promotional policies. Through manual
+selection, we curated a total of 563 viewpoints, saving this informa-
+tion in CSV format as the basis for subsequent experiments.
+
+Additionally, we needed a knowledge source database based on
+Retrieval-Augmented Generation (RAG) technology to mitigate
+hallucinations in large-scale language models while retaining cru-
+cial information. For this purpose, we employed the open-source
+large language model Mistral-7B-Instruct-v0.3[23], which supports
+function calling. We designed precise prompts and detailed infor-
+mation extraction requirements for the model, embedding them
+into a function-calling framework. This enabled the large language
+model to automatically extract required geographic and historical
+information from Ctrip’s tourism information. Extracted informa-
+tion was formatted into a dictionary data structure, containing two
+primary key-value pairs: one for storing historical information and
+another for storing geographic information. Ultimately, we suc-
+cessfully extracted and organized the necessary geographic and
+historical information from the 563 viewpoints corresponding to
+our standardized database.
+
+3.2 Database Vectorization and Indexing
+To achieve the task of matching viewpoints based on user prefer-
+ences and needs while addressing the issue of insufficient retrieval
+accuracy caused by fuzzy searches, we adopted a method of vectoriz-
+ing the database before indexing. The classic vectorization methods
+include TF-IDF and BERT, and the indexing methods for the vec-
+torized data include Flat, HNSWFlat, SQ, LSH, etc. The distance
+calculation methods after indexing include Manhattan distance, Eu-
+clidean distance, and inner product. To explore which combination
+of "vectorization method + indexing method + distance calculation"
+is most suitable for the content in the context of Tibet’s cultural
+tourism, we designed a total of 20 sets of control experiments across
+these three dimensions.
+
+The prompts for the control experiments were manually created.
+To ensure randomness in user searches and stability in feature quan-
+tity, each prompt randomly includes 1-4 features with an average
+total feature count of 3. These prompts were used as inputs for each
+group, and we used the SpaCy library to calculate the number of
+feature hits and feature hit rates to evaluate the performance of
+vectorized indexing.
+
+TF-IDF
+tf𝑥,𝑦 = frequency of 𝑥 in 𝑦
+df𝑥 = number of documents containing 𝑥
+𝑁 = total number of documents
+
+• 𝑤𝑥,𝑦: This represents the TF-IDF weight of term 𝑥 in doc-
+ument 𝑦. It is a measure of how important term 𝑥 is in the
+specific document 𝑦.
+
+• tf𝑥,𝑦: This is the Term Frequency (TF), which refers to the
+number of times term 𝑥 appears in document 𝑦. It reflects
+how frequently a word occurs in a document.
+
+• log
+
+(cid:17)
+
+(cid:16) 𝑁
+df𝑥
+
+: This part is the Inverse Document Frequency
+
+(IDF):
+– 𝑁 : The total number of documents in the corpus.
+– df𝑥 : The number of documents that contain the term 𝑥.
+𝑁
+–
+df𝑥 : This ratio represents how common or rare the term
+𝑥 is across all documents in the corpus. The logarithm
+of this ratio dampens the effect of the term frequency,
+making sure that common terms (which appear in many
+documents) do not dominate the weighting.
+
+3.3 RAG Optimization for Large Language
+
+Models
+
+We employed vector database retrieval to address the hallucination
+problem of large models. After identifying the viewpoints based
+on user needs, the geographical and historical information from
+the knowledge source database was returned to the large language
+model as an external knowledge base. Under this framework, the
+large language model no longer relies solely on its internal knowl-
+edge base to generate viewpoint introduction information. Instead,
+it understands and integrates the viewpoint introduction content
+through the external knowledge base. This method not only effec-
+tively optimizes the hallucination problem of LLMs but also allows
+the model to fetch and generate comprehensive viewpoint intro-
+duction information, including geographical and historical details,
+even when certain knowledge is not included within the LLM itself.
+This research demonstrates the potential of RAG technology in en-
+hancing the accuracy of information generated by large language
+models, providing new methods and tools for the standardization
+of tourism information and data analysis.
+
+3.4 Evaluation Method
+To evaluate the vector databases, we used the keyword-matching
+function of the SpaCy library along with a mature Chinese pre-
+trained model. After loading SpaCy’s[18] pre-trained Chinese model,
+we applied it to the result text data from different retrieval methods.
+By calculating the number of keywords that match the features in
+the prompts, we can determine the relevance and accuracy of the
+retrieval results.
+
+Since the dataset used in this experiment is unstructured, we
+utilized the "calculate composite score" scoring system’s b formula
+to calculate the scores for various dataset metrics and derive a
+
+International Conference on Artificial Intelligence and Pattern Recognition | AIPR , Xiamen, China,
+
+Jinhu Qi, Shuai Yan, Yibo Zhang, Wentao Zhang, Rong Jin, Yuwei Hu, and Ke Wang
+
+Figure 1: RAG viewpoint information generation system flow chart
+
+composite score. Detailed scoring criteria can be referenced from
+Qi’s scoring standards[19].
+
+Comprehensive score (percentage system) =
+
+(cid:40)𝑏 (cid:205) (𝑑1 · fluency + 𝑑2 · log(accurate rate + 1)+
+
+𝑑3 · exp(relevance ))
+
+(2)
+
+For the b formula, we rated the responses of the large language
+model from three aspects: fluency, accuracy rate, and relevance,
+and calculated the composite score. The weight coefficients for the
+different evaluation metrics, d1, d2, and d3, were set with a focus on
+solving the hallucination problem of the large model. We assigned
+relevance as the primary analysis metric, with weight parameters
+set to 0.3, 0.2, and 0.4, respectively. To ensure objectivity in scor-
+ing, we chose the fine-tuned Llama3-Chinese model[20] based on
+Wang’s work to evaluate the data results of each model. By ana-
+lyzing the fluency of the generated sentences and the relevance
+of the generated text to the corresponding knowledge source con-
+tent, we obtained the scores for fluency and relevance. We used
+the BERTscore[21] evaluation tool developed by Zhang to score
+the generated text for the accuracy rate. By setting the prompt to
+control the scores within a range of 0 to 1, with 1 being the highest,
+we then applied the b formula to calculate the composite score for
+each model.
+
+4 Experiment
+4.1 Database Vectorization and Indexing
+
+Experiment
+
+In constructing and retrieving the vector database, we utilized the
+widely used FAISS vector library and its associated algorithms (the
+rationale here may need further justification). For database vector-
+ization, we compared mainstream methods TF-IDF and BERT. For
+indexing methods, we selected the most representative and charac-
+teristic methods: Flat, IVFFlat, NSGFlat, HNSWFlat, SQ, HNSWSQ,
+IVFSQ, and LSH (the dimension names used here and in Chapter
+3 need to be consistent; if necessary, a brief explanation of these
+concepts should be included at an appropriate place in the text).
+
+Since most of the indexing methods primarily support L2 (Eu-
+clidean distance), L1 (Manhattan distance), and Inner-Product (dot
+product) were only used as comparisons for HNSW in this experi-
+ment. Each of the two vectorization methods was tested with the
+10 different indexing methods, using the standardized viewpoint
+dataset established in Section 3.1 for vectorization. We used the 180
+prompts constructed following the randomness principle described
+in Section 3.2 as inputs. To ensure experimental generalization,
+each prompt randomly included 1 to 4 features, with an average of
+3 features per prompt.
+
+RAG-Optimized Tibetan Tourism LLMs: Enhancing Accuracy and Personalization
+
+International Conference on Artificial Intelligence and Pattern Recognition | AIPR , Xiamen, China,
+
+The following Algorithm 1 outlines a procedure for vectorizing
+text data (using either TF-IDF or BERT), defining distance metrics
+and index types, and then querying and saving the results as JSON
+files.
+
+Algorithm 1 GenerateIndexResults
+
+Require: stop_words_file, attractions_csv_file
+Ensure: results_with_different_index_methods
+
+1: if TF-IDF is chosen then
+2:
+
+vectorizer←TfidfVectorizer(stop_words,
+ChineseTokenizer)
+text_vectors ← vectorizer.fit_transform(texts).astype(float32)
+
+3:
+
+𝑑 ← columns of text_vectors
+
+4:
+5: else if BERT is chosen then
+6: model, tokenizer ← BERT(’bert-base-chinese’)
+7:
+
+text_vectors ← BERT_encode(texts).astype(float32)
+𝑑 ← size of BERT embeddings
+
+8:
+9: end if
+10: distance_metrics←{ ’L2’:faiss.METRIC_L2,’L1’:faiss.METRIC_L1,
+
+’Inner Product’:faiss.METRIC_INNER_PRODUCT}
+
+11: index_types ← {}
+12: Procedure QueryAndSaveAllAsJSON(index, method_name,
+
+query_texts, output_filename)
+
+13: all_results ← {}
+14: for query_text in query_texts do
+15:
+
+query_vector← vectorizer.transform([query_text]).astype(float32)
+
+6:
+
+7:
+
+8:
+
+9:
+
+10:
+
+11:
+
+12:
+
+13:
+
+Algorithm 2 SpaCy_avg_hit_count
+
+Require: json_files_directory, json_results_with_different_index_methods
+Ensure: average_scores
+
+1: Function AssessAllQueries(json_path)
+2: queries_results ← LoadQueriesResults(json_path)
+3: total_score, total_results_count ← 0, 0
+4: for query_data in queries_results.values() do
+5:
+
+query ← query_data["query"]
+results ← query_data["results"]
+query_keywords ← ExtractKeywords(query)
+for result in results do
+
+result_text ← Concatenate(result.get("description", ""), re-
+sult.get("name", ""))
+result_keywords ← ExtractKeywords(result_text)
+matched_keywords ← Intersection(query_keywords, re-
+sult_keywords)
+total_score ← total_score + Size(matched_keywords)
+total_results_count ← total_results_count + 1
+
+average_score ← total_score / total_results_count
+
+end for
+
+14:
+15: end for
+16: if total_results_count > 0 then
+17:
+18: else
+19:
+20: end if
+21: return average_score
+
+average_score ← 0
+
+16:
+
+17:
+
+18:
+
+19:
+
+20:
+
+21:
+
+𝑘 ← 3
+distances, indices ← index.search(query_vector, 𝑘)
+for 𝑖 ← 0 to 𝑘 − 1 do
+
+results_for_query.append({"description":
+data.iloc[indices[0][i]][’description’] })
+
+end for
+all_results[query_text] ← { "query": query_text, "results":
+results_for_query }
+
+22: end for
+23: return results_with_different_index_methods
+
+This formula represents the percentage improvement of TF-IDF
+
+relative to Bert.
+
+Following the methodology outlined in Section 3.2, we retrieved
+the three closest results for each prompt and confirmed the number
+of keyword matches using the Chinese model loaded in SpaCy as
+Algorithm 2. The final results are as follows Table 1.
+
+Calculation of “avg gap” The formula for calculating the “avg
+
+gap” is as follows:
+
+avg gap =
+
+TF-IDF − Bert
+Bert
+
+As shown in Table 1, in terms of keyword hit rate, the TF-
+IDF vectorization method consistently outperformed the BERT
+vectorization method, with the maximum difference observed in
+the IVFSQ indexing method. Under the L2 space calculation method,
+the TF-IDF algorithm’s hit rate was 60.1770% higher than that of
+the BERT algorithm. The TF-IDF algorithm also had an average
+hit rate across various indexing methods that was 52.1495% higher
+
+than that of BERT. Additionally, due to differences in the principles
+of the two vectorization methods, the TF-IDF algorithm reduced
+vectorization time and performance requirements by approximately
+60% and 47%, respectively (rough estimates).
+
+Among the TF-IDF vectorization methods, the HNSWFlat method
+with inner product calculation showed the most outstanding per-
+formance, with an average keyword hit rate of 1.9556. However,
+because the Euclidean distance calculation method is more univer-
+sal and the difference with the inner product calculation method
+is less than 1%, within the experimental error range, considering
+both universality and performance, we believe that vectorizing the
+database using the TF-IDF method, constructing the index using the
+HNSWFlat method, and using L2 Euclidean distance calculation for
+vector distance is most suitable for this study on Tibetan cultural
+tourism.
+
+4.2 Optimization of Large Language Models
+
+with RAG Technology
+
+In our RAG process, we utilized the LLaMA-Factory[22], developed
+by hiyouga, as the tool for integrating knowledge and making
+inferences using large language models. We employed this tool
+with specific parameters to ensure the quality of the language
+model: a default temperature coefficient of 0.95, a maximum input
+length of 1024 tokens, and a maximum output length of 512 tokens.
+Below is the designed instruction for reference: "Please use the
+provided viewpoint knowledge to introduce the viewpoint to the
+user. Always adhere strictly to the provided viewpoint information.
+Input: query of user, viewpoint information."
+
+International Conference on Artificial Intelligence and Pattern Recognition | AIPR , Xiamen, China,
+
+Jinhu Qi, Shuai Yan, Yibo Zhang, Wentao Zhang, Rong Jin, Yuwei Hu, and Ke Wang
+
+index
+
+TF-IDF
+
+Bert
+
+Flat
+HNSW_L2
+HNSW_L1
+HNSW_IP
+IVFFlat
+SQ
+IVFSQ
+NSG
+LSH
+AVG
+
+avg hit count
+1.9481
+1.9519
+1.9463
+1.9556
+1.3500
+1.9481
+1.3407
+1.9500
+0.6833
+1.6749
+
+avg hit rate
+64.9383%
+65.0617%
+64.8765%
+65.1852%
+45.0000%
+64.9383%
+44.6914%
+65.0000%
+22.7778%
+55.8299%
+
+avg hit count
+1.2981
+1.2815
+1.2796
+1.2926
+0.8370
+1.3037
+0.8370
+1.2981
+0.4796
+1.1008
+
+avg hit rate
+43.2716%
+42.7160%
+42.6543%
+43.0864%
+27.9012%
+43.4568%
+27.9012%
+43.2716%
+15.9877%
+36.6941%
+
+avg gap
+(bert base)
+50.0713%
+52.3121%
+52.0984%
+51.2894%
+61.2832%
+49.4318%
+60.1770%
+50.2140%
+42.4710%
+52.1495%
+
+Table 1: Comparison of Vectorization and Indexing Methods
+
+In the research by Jinhu et al., methods such as Supervised Fine-
+Tuning (SFT) and Optimizing Model Weights (ORPO) were primarily
+used. These methods generated content about viewpoints under
+different computation precisions (including BF16, FP16, and FP32)
+and compared their optimal scores under various large language
+models, specific computation precisions, and fine-tuning methods.
+Additionally, these results were compared with the laboratory re-
+search on Retrieval-Augmented Generation (RAG) technology. This
+experiment was conducted using the same large language model,
+with identical parameter sizes, prompts, and evaluation methods,
+to scientifically compare the performance differences between RAG
+technology and different fine-tuning methods in generating view-
+point content while strictly controlling variables. The experimental
+results indicated significant differences in content quality gener-
+ated by different fine-tuning methods and computation precisions,
+while RAG technology demonstrated unique advantages in specific
+scenarios.
+
+The results of the models optimized with RAG technology are
+
+as Table 2.
+
+From the table, we can see that the performance of most experi-
+mental models improved after optimization with RAG technology.
+Keeping the weight parameters consistent and setting the scores of
+each metric to 1, we obtained a full score of 1.5873 using the formula.
+The ChatGLM3-6b[5] model achieved a total score of 1.2868 after
+fine-tuning, and a total score of 1.3228 after RAG optimization, with
+relevance increasing from 0.7885 to 0.7995, indicating improved
+model performance. The Baichuan2-7b[4] model had a total score
+of 1.0012 after fine-tuning, and a total score of 0.9215 after RAG
+optimization, with relevance decreasing from 0.5485 to 0.4687, sug-
+gesting that the model did not perform well after RAG optimization.
+This issue is likely due to the model’s poor performance, making
+it unsuitable for complex optimization techniques like RAG. The
+QWEN7b-chat[3] model achieved a total score of 1.1876 after fine-
+tuning and a total score of 1.3238 after RAG optimization, with
+relevance increasing from 0.6924 to 0.7966, showing a significant
+improvement and indicating that RAG technology effectively ad-
+dresses the hallucination problem in this model. The Llama3-8b
+model[2] showed the most significant improvement, with relevance
+increasing from 0.6743 to 0.9721, making the model’s performance
+nearly perfect after optimization. We speculate that the significant
+impact is due to Llama3-8b’s lack of Chinese corpus, preventing
+
+effective integration and linking of content from the external knowl-
+edge base, resulting in overfitting.
+
+Based on the above experimental results, it is evident that most
+models perform better in terms of relevance when answering user
+questions after RAG optimization. Therefore, we believe that RAG
+technology greatly helps optimize the hallucination problem of
+large models. Additionally, it can also improve overall model per-
+formance metrics such as fluency and accuracy, thereby enhancing
+the model’s generation performance and robustness comprehen-
+sively.
+
+5 Conclusion
+This study proposes an optimization scheme based on Retrieval-
+Augmented Generation (RAG) technology for large language mod-
+els in the context of Tibet’s cultural tourism industry. By analyzing
+the deficiencies of existing large language models in the application
+of the cultural tourism field and combining experimental validation,
+we demonstrated the effectiveness of RAG technology in improving
+the accuracy of information generation and personalized recom-
+mendation capabilities.
+
+First, we integrated existing tourism information resources to
+construct a detailed database of viewpoints and used vectorization
+techniques such as TF-IDF and BERT to process the data. Experimen-
+tal results showed that TF-IDF performed excellently in keyword
+hit rate and vectorization efficiency. Particularly when combined
+with the HNSWFlat indexing method and L2 Euclidean distance
+calculation method, it significantly improved retrieval accuracy.
+This research provides guidance for the generation and debugging
+of similar databases in the future.
+
+Second, we applied RAG technology to large language models,
+utilizing external knowledge bases to address the hallucination
+problem in content generation. The experimental results indicated
+that models optimized with RAG showed noticeable improvements
+in fluency, accuracy, and relevance of content generation. Among
+them, the Llama3-8b model exhibited the most significant improve-
+ment in overall score, increasing from 74.29.% to 92.25% after RAG
+optimization.
+
+Finally, by comparing the performance of various models under
+different computation precisions and fine-tuning methods, we veri-
+fied the unique advantages of RAG technology in specific scenarios.
+
+RAG-Optimized Tibetan Tourism LLMs: Enhancing Accuracy and Personalization
+
+International Conference on Artificial Intelligence and Pattern Recognition | AIPR , Xiamen, China,
+
+Model
+
+Group
+
+Fluency
+
+ChatGLM 3-6b RAG
+
+Baichuan2-7b
+
+Qwen-7b-chat
+
+Llama3-8b
+
+Fine-tuning
+RAG
+Fine-tuning
+RAG
+Fine-tuning
+RAG
+Fine-tuning
+
+0.8730
+0.8523
+0.4435
+0.5734
+0.8876
+0.8018
+0.7530
+0.8150
+
+Accurate
+Rate
+0.8094
+0.6879
+0.6774
+0.6074
+0.8048
+0.6681
+0.8724
+0.6795
+
+Relevance Overall Score
+
+0.7995
+0.7885
+0.4687
+0.5485
+0.7966
+0.6924
+0.9721
+0.6743
+
+1.3228
+1.2868
+0.9215
+1.0012
+1.3238
+1.1876
+1.4643
+1.1792
+
+Overall
+Score%
+83.33%
+81.07%
+58.05%
+63.08%
+83.40%
+74.82%
+92.25%
+74.29%
+
+Improvement
+
+0.0279
+
+-0.0800
+
+0.1148
+
+0.2418
+
+Table 2: Comparison of Large Language Model Performance with RAG Optimization and Fine-Tuning
+
+Figure 2: Comparison of the models in RAG and Fine-tuning between Accurate Rate and Overall Score
+
+This research not only demonstrates the potential of RAG tech-
+nology in the standardization of cultural tourism information and
+data analysis but also provides new methods and tools for further
+optimizing the application of large models in specialized fields.
+
+In conclusion, the vector database construction and model opti-
+mization methods employed in this study effectively addressed the
+challenges of hallucinations and insufficient personalization capabil-
+ities in large models for Tibet tourism information recommendation.
+This provides a solid theoretical and technical foundation for future
+intelligent cultural tourism service systems. Future research can
+further explore the application of RAG technology in other fields
+and how to further enhance the personalized recommendation ca-
+pabilities and information generation accuracy of large language
+models.
+
+Acknowledgments
+This work is supported by the project “Research and Application of
+Intelligent Tourism Service System in Tibet Based on LLM” under
+Grant No. XZ202401ZY0008.
+
+References
+[1] Y. Chen, J. Zhang, M. Li, "Constructing a Comprehensive Database for Tourism
+Recommendation," *Proceedings of the International Conference on Social and
+Human Sciences (ICSHS2020)*, pp. 460–470, 2020.
+
+[2] meta-llama, "Meta-Llama-3-8B-Instruct," *Unknown Journal/Conference*, 2024.
+[3] Qwen, "Qwen2 Technical Report and Qwen2-7B-Instruct," *Unknown Jour-
+
+nal/Conference*, 2024.
+
+[4] baichuan-inc, "Baichuan2-7B-Chat," *Unknown Journal/Conference*, 2023.
+[5] THUDM, "ChatGLM3-6B," *Unknown Journal/Conference*, 2023.
+[6] Meta, "Retrieval Augmented Generation: Streamlining the creation of intelligent
+natural language processing models," *Unknown Journal/Conference*, 2020.
+[7] X. Chen, Y. Wang, L. Zhang, J. Li, "Mitigating Hallucination in Large Language
+Models for Travel Domain Tasks," *arXiv preprint arXiv:2311.13314*, 2023.
+[8] L. Havrlant, V. Kreinovich, "A simple probabilistic explanation of term frequency-
+inverse document frequency (tf-idf) heuristic (and variations motivated by this
+explanation)," *International Journal of General Systems*, vol. 27, pp. 27–36, 2017.
+[9] J. Devlin, M. Chang, others, "BERT: Pre-training of Deep Bidirectional Transform-
+ers for Language Understanding," *Proceedings of the North American Chapter
+of the Association for Computational Linguistics*, 2019.
+
+[10] X. Li, H. Yan, X. Qiu, X. Huang, "FLAT: Chinese NER Using Flat-Lattice Trans-
+
+former," *arXiv preprint arXiv:2004.11795*, 2020.
+
+[11] P. Lin, W. Zhao, "A Comparative Study on Hierarchical Navigable Small World
+
+Graphs," *arXiv preprint arXiv:1909.09111*, 2019.
+
+[12] J. Johnson, M. Douze, H. Jégou, "Billion-scale similarity search with GPUs," *IEEE
+
+Transactions on Big Data*, vol. 7, no. 3, pp. 535–547, 2017.
+
+[13] L. Fu, M. Li, J. Zhang, "Navigable Small World Graphs for Efficient Approximate
+
+Nearest Neighbor Search," *arXiv preprint arXiv:1909.09111*, 2019.
+
+[14] M. Datar, N. Immorlica, others, "Locality-sensitive hashing scheme based on p-
+stable distributions," *Proceedings of the Symposium on Computational Geometry
+(SCG ’04)*, 2004.
+
+International Conference on Artificial Intelligence and Pattern Recognition | AIPR , Xiamen, China,
+
+Jinhu Qi, Shuai Yan, Yibo Zhang, Wentao Zhang, Rong Jin, Yuwei Hu, and Ke Wang
+
+[15] Y. Gao, Y. Jiang, T. Zhao, T. Liu, "An LLM Compiler for Parallel Function Calling,"
+
+*arXiv preprint arXiv:2312.04511*, 2023.
+
+2024 2nd International Conference on Wireless Communications and the Internet
+of Things (ICWOC 2024)*, 2024.
+
+[16] K. S. Jones, "A statistical interpretation of term specificity and its application in
+
+[20] S. Wang, Y. Zheng, "Llama3-8B-Chinese-Chat," *Unknown Journal/Conference*,
+
+retrieval," *Journal of Documentation*, vol. 28, no. 1, pp. 11–21, 1972.
+
+2024.
+
+[17] P. Lewis, E. Perez, others, "Retrieval-Augmented Generation for Knowledge-
+Intensive NLP Tasks," *Proceedings of the Neural Information Processing Systems
+(NeurIPS)*, 2020.
+
+[18] Explosion AI, "SpaCy 101: Everything you need to know," *Unknown Jour-
+
+nal/Conference*, 2024.
+
+[19] J. Qi, S. Yan, W. Zhang, Y. Zhang, Z. Liu, K. Wang, "Research on Tibetan Tourism
+Viewpoints Information Generation System Based on LLM," *Proceedings of the
+
+[21] T. Zhang, V. Kishore, F. Wu, K. Q. Weinberger, Y. Artzi, "BERTScore: Evaluating
+
+Text Generation with BERT," *arXiv preprint arXiv:1904.09675*, 2019.
+
+[22] Y. Zheng, R. Zhang, J. Zhang, Y. Ye, Z. Luo, Z. Feng, Y. Ma, "LlamaFactory: Unified
+Efficient Fine-Tuning of 100+ Language Models," *Proceedings of the 62nd Annual
+Meeting of the Association for Computational Linguistics (Volume 3: System
+Demonstrations)*, 2024.
+
+[23] mistralai, "Mistral-7B-Instruct-v0.3," *Unknown Journal/Conference*, 2024.

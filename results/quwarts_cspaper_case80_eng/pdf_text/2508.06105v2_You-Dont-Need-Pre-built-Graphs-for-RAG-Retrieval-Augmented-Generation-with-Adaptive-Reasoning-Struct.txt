@@ -1,0 +1,1395 @@
+You Don’t Need Pre-built Graphs for RAG:
+Retrieval Augmented Generation with Adaptive Reasoning Structures
+
+Shengyuan Chen*, Chuang Zhou∗, Zheng Yuan, Qinggang Zhang†, Zeyang Cui, Hao Chen, Yilin
+Xiao, Jiannong Cao, Xiao Huang
+The Hong Kong Polytechnic University
+{sheng-yuan.chen, qinggang.zhang, jiannong.cao, xiao.huang}@polyu.edu.hk,
+{chuang-qgzj, yzheng.yuan, ze-yang.cui, yilin.xiao}@connect.polyu.hk, sundaychenhao@gmail.com
+
+5
+2
+0
+2
+
+v
+o
+N
+7
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+5
+0
+1
+6
+0
+.
+8
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Large language models (LLMs) often suffer from halluci-
+nation, generating factually incorrect statements when han-
+dling questions beyond their knowledge and perception.
+Retrieval-augmented generation (RAG) addresses this by
+retrieving query-relevant contexts from knowledge bases
+to support LLM reasoning. Recent advances leverage pre-
+constructed graphs to capture the relational connections
+among distributed documents, showing remarkable perfor-
+mance in complex tasks. However, existing Graph-based
+RAG (GraphRAG) methods rely on a costly process to trans-
+form the corpus into a graph, introducing overwhelming to-
+ken cost and update latency. Moreover, real-world queries
+vary in type and complexity, requiring different logic struc-
+tures for accurate reasoning. The pre-built graph may not
+align with these required structures, resulting in ineffective
+knowledge retrieval. To this end, we propose a Logic-aware
+Retrieval-Augmented Generation framework (LogicRAG)
+that dynamically extracts reasoning structures at inference
+time to guide adaptive retrieval without any pre-built graph.
+LogicRAG begins by decomposing the input query into a set
+of subproblems and constructing a directed acyclic graph to
+model the logical dependencies among them. To support co-
+herent multi-step reasoning, LogicRAG then lin- earizes the
+graph using topological sort, so that subproblems can be ad-
+dressed in a logically consistent order. Besides, LogicRAG
+applies graph pruning to reduce redundant retrieval and uses
+context pruning to filter irrelevant context, significantly re-
+ducing the overall token cost. Extensive experiments demon-
+strate that LogicRAG achieves both superior performance and
+efficiency compared to state-of-the-art baselines.
+
+Code — https://github.com/chensyCN/LogicRAG
+Extended version — https://arxiv.org/abs/2508.06105
+
+Introduction
+Large language models (LLMs), like Claude (Anthropic
+2024) and ChatGPT (OpenAI 2023), have shown remark-
+able ability in a wide range of tasks like complex reason-
+ing (Chen et al. 2024c; Zhou et al. 2025c,b; Hong et al.
+2024, 2025), question answering (Khashabi et al. 2020), and
+social analysis (Lu et al. 2021). However, these foundation
+models frequently struggle with domain-specific tasks, of-
+ten producing hallucinations or inaccurate responses when
+
+*Equal contribution. †Corresponding author.
+
+Figure 1: Token and runtime cost of the graph construction
+process of graph-based RAG methods on 2WikiMQA.
+
+handling knowledge-intensive queries (Huang et al. 2023;
+Fang et al. 2025, 2024). To mitigate these issues, retrieval-
+augmented generation (RAG) (Gao et al. 2023; Lewis et al.
+2020; Zhang et al. 2025a) emerges as a promising frame-
+work that enhances LLMs by retrieving query-relevant con-
+texts from external knowledge bases.
+
+Real-world RAG systems often face significant chal-
+lenges when handling large-scale, unstructured domain cor-
+pora (Peng et al. 2024; Zhang et al. 2025b). Documents
+sourced from research papers, textbooks, or technical reports
+vary widely in reliability and completeness (Guo et al. 2025;
+Zhong et al. 2024; Wu et al. 2025), and the retrieved infor-
+mation is often complex and disorganized, as domain knowl-
+edge is typically scattered across multiple sources without
+clear dependencies (Sun et al. 2024; Ma et al. 2024). To
+manage this complexity, RAG systems commonly segment
+documents into smaller chunks for indexing (Borgeaud et al.
+2022; Izacard et al. 2023; Jiang et al. 2023). This approach,
+however, sacrifices critical contextual information, leading
+to reduced retrieval accuracy and limited capability for com-
+plex reasoning tasks, particularly those requiring multi-hop
+reasoning across interconnected concepts.
+
+To address this, recent advances (Zhang et al. 2024; Xi-
+ang et al. 2025; Li et al. 2023a; Zhou et al. 2025d) leverage
+pre-constructed graphs to capture the relational connections
+among distributed documents, showing remarkable perfor-
+mance in complex tasks. The typical graph-based RAG
+(GraphRAG) approaches like Microsoft GraphRAG (Edge
+et al. 2024) utilize hierarchical community-based search
+and combine local and global querying to enhance response
+quality. Similarly HippoRAG (Guti´errez et al. 2024) lever-
+
+HippoRAGRAPTORLightRAGGraphRAG1234Token Count×107Prompt TokensCompletion TokensRuntime101102Runtime (min) 
+ 
+ 
+ 
+ 
+ 
+ages PageRank-inspired algorithms to prioritize highly rel-
+evant nodes in memory-augmented retrieval for enhanced
+contextual coherence, RAPTOR (Sarthi et al. 2024) uses
+recursive abstractive processing for hierarchical text repre-
+sentation, and KGP (Wang et al. 2024) constructs domain-
+specific knowledge graphs with probabilistic reasoning to
+reduce noise. LinearRAG (Zhuang et al. 2025) explores
+relation-free graph construction, eliminating LLM token
+costs and improve robust graphRAG with elegant bipartite
+graphs. These GraphRAG methods excel in handling multi-
+hop queries by providing structured contextual depth.
+
+Despite recent advances, GraphRAG systems still face
+critical limitations in real-world scenarios. (i) Efficiency is-
+sues. Existing GraphRAG models rely on a costly process to
+transform the corpus into a graph, introducing overwhelm-
+ing token cost and update latency as shown in Figure 1. It
+is hard to generalize to practical scenarios where knowl-
+edge bases are large-scale or dynamically evolving (Edge
+et al. 2024). (ii) Low quality of the pre-built graph. Exist-
+ing methods leverage LLMs to automatically build the graph
+without any guidance, which may introduce irrelevant or
+redundant information, leading to inefficiencies in both re-
+trieval and reasoning (Guo et al. 2024). (iii) Lack of flexibil-
+ity. Real-world queries vary in type and complexity, requir-
+ing different logic structures for accurate reasoning (Peng
+et al. 2024). The pre-built graph may not align with these
+required structures, resulting in ineffective knowledge re-
+trieval. These challenges highlight the need for a more adap-
+tive and efficient approach.
+
+To this end, we propose LogicRAG, which dynamically
+extracts reasoning structures at inference time to guide adap-
+tive retrieval without any pre-constructed graph. Specifi-
+cally, LogicRAG begins by decomposing the input query
+into a set of subproblems and constructing a directed acyclic
+graph (DAG) to model the logical dependencies among
+them. This structured representation enables adaptive plan-
+ning of the retrieval process by identifying which evidence
+chunks are logically connected to each subproblem. To sup-
+port coherent multi-step reasoning, LogicRAG then lin-
+earizes the graph using topological sort, so that subproblems
+can be addressed in a logically consistent order. To further
+improve efficiency without compromising performance, the
+model applies graph pruning to reduce redundant retrieval
+and uses context pruning to filter irrelevant context, signifi-
+cantly reducing the overall token cost.
+
+Our contributions are summarized as follows:
+
+• We identify the limitations of pre-built graphs used in
+existing GraphRAG models, and propose LogicRAG,
+a novel framework that dynamically extracts reasoning
+structures at inference time to guide adaptive retrieval
+without any pre-built graph.
+
+• We model query logical dependencies with a directed
+acyclic graph, offering a principled and universal mod-
+eling of reasoning structure.
+
+• We enable efficient reasoning by graph reasoning lin-
+
+earization and context and graph pruning.
+
+• Extensive experiments on benchmark datasets show that
+LogicRAG achieves both superior performance and effi-
+
+ciency compared to state-of-the-art baselines.
+
+Problem Statement
+Given an input query Q, retrieval-augmented generation
+aims to produce an answer A by retrieving relevant context
+C from an external knowledge corpus K and generating a
+response using a language model. Formally:
+
+A = fRAG(Q, C),
+
+C = R(Q).
+
+The key in a RAG system is the relevance of the retrieved
+context to the query. While direct semantic matching is of-
+ten sufficient for simple fact retrieval tasks, it becomes inad-
+equate for complex queries that require assembling multiple
+pieces of supporting knowledge. These pieces are often log-
+ically interconnected and must be retrieved and composed in
+a way that supports coherent reasoning. As such, the prob-
+lem is to identify and retrieve a structured set of relevant
+contexts from K that collectively address the query’s under-
+lying information needs. This requires reasoning over both
+the content and the relationships among the retrieved evi-
+dence to guide the generation model toward producing ac-
+curate, complete, and logically consistent answers.
+
+The Framework of LogicRAG
+
+Overview
+To handle complex queries in RAG, we propose a structured
+inference framework that decomposes complex queries into
+interdependent subproblems and resolves them via a logic-
+guided retrieval and generation process. The core of our
+method is the construction and utilization of a Query Logic
+Dependency Graph, a directed acyclic graph (DAG) that
+models the logical structure underlying the query. Each node
+in the DAG represents a subproblem, while edges encode the
+directional dependencies required for reasoning.
+
+The framework operates in three sequential stages. First,
+the input query is decomposed into subproblems, and a
+DAG is constructed to capture their logical relationships.
+This graph is dynamically adapted during inference to reflect
+evolving retrieval needs. Second, the DAG is topologically
+sorted to produce a linear execution order that respects the
+dependencies among subproblems. Each subproblem is then
+resolved in a greedy, forward-pass manner, wherein retrieval
+is conditioned on the outputs of previously resolved sub-
+problems. This process ensures context-aware retrieval and
+avoids recursive dependencies that hinder efficiency. Finally,
+to enhance scalability, we apply a two-dimensional prun-
+ing strategy that reduces context redundancy and merges se-
+mantically similar subproblems. Context pruning uses LLM-
+based summarization to maintain a rolling memory of rele-
+vant information, while graph pruning consolidates loosely
+coupled subproblems for unified resolution.
+
+This logic-aware RAG pipeline transforms the tradition-
+ally flat retrieval paradigm into a dependency-sensitive in-
+ference mechanism. By aligning retrieval operations with
+the query’s internal reasoning structure, the framework en-
+ables efficient, accurate, and scalable multi-step reasoning
+over complex information needs.
+
+Figure 2: Illustration of the proposed LogicRAG.
+
+Query Logic Dependency Graph Construction
+To model the interdependencies among sub-problems during
+inference, we construct a logic dependency graph that adap-
+tively captures the structure of complex queries. This graph
+is instantiated as a directed acyclic graph (DAG), which
+guides the retrieval process in a manner aligned with the
+query’s reasoning structure. We discuss the details of the
+graph modeling and graph construction below:
+
+Graph modeling. Let Q denote the input query, decom-
+posed into a set of subproblems P = {p1, p2, . . . , pn},
+where each pi corresponds to a node vi in a DAG G =
+(V, E). The node set V = {v1, v2, . . . , vn} represents the
+subproblems, and the directed edge set E ⊆ V × V encodes
+logical dependencies among them. The acyclic nature of G
+ensures a well-defined ordering for retrieval and reasoning.
+Graph construction. The DAG construction process is
+guided by three key considerations: ❶ Decomposition Accu-
+racy: The query Q is first segmented into subproblems via
+LLM-based reasoning, using few-shot prompting to ensure
+precise task separation. ❷ Dependency Modeling: Edges are
+inferred by the LLM based on logical precedence among
+subproblems, and the resulting graph is verified via topolog-
+ical sorting to enforce acyclicity. ❸ Dynamic Adaptation: If
+retrieval for a node yields insufficient context, the LLM dy-
+namically augments the DAG by adding new subproblems
+and updating dependencies.
+
+This DAG-based representation enables a principled rep-
+resentation of the query structures by explicit modeling
+of conditional dependencies across subproblems, support-
+ing query decomposition and prioritization of retrieval. By
+aligning retrieval with the query’s internal logic, the model
+is better equipped for complex reasoning.
+
+Graph Reasoning Linearization
+Although query logic dependency graphs provide a struc-
+tured approach to modeling complex queries, integrating
+RAG with logical reasoning remains challenging due to
+their inherent operational asymmetry: RAG assumes that
+
+queries are independent and self-contained, whereas reason-
+ing requires the sequential processing of interdependent sub-
+problems, with intermediate results composed and passed
+along logical dependencies. A na¨ıve integration of the two
+paradigms results in significant inefficiencies and semantic
+drift: each sub-query must be resolved in context, yet its for-
+mulation may depend on unresolved predecessors, creating
+a circular dependency in retrieval and generation.
+
+Formally, let fRAG(pi, Ci) denote the retrieved answer for
+subproblem pi, given context Ci, and let R(pi) be a retrieval
+function producing Ci from an external corpus K. Then the
+complete query resolution requires computing:
+A = Compose ({fRAG(pi, R(pi))}n
+
+i=1) ,
+
+where Compose denotes the reasoning function that aggre-
+gates sub-results according to the logic encoded in the DAG
+G.
+
+However, due to the dependencies in G, not all pi can be
+processed in parallel. Specifically, the retrieval for pi may
+depend on the answers to its parent nodes Pa(vi). This in-
+troduces a local directed constraint:
+
+Ci = R (cid:0)pi
+
+(cid:12)
+(cid:12) {fRAG(pj, Cj)}vj ∈Pa(vi)
+
+(cid:1) ,
+
+which prevents direct batching of retrievals. Without careful
+scheduling, this leads to recursive resolution that is ineffi-
+cient and hard to optimize.
+
+To address this, we exploit the acyclic nature of the de-
+pendency graph G and reduce the query resolution process
+to a two-step solution:
+
+Step 1: Topological Sort. To efficiently schedule the res-
+olution process, we perform a topological sort over the DAG
+G, using a depth-first search traversal. This yields an ordered
+sequence of subproblems ⟨p(1), p(2), . . . , p(n)⟩, in which ev-
+ery subproblem appears after all its dependencies. This lin-
+earization respects the logical flow of reasoning and allows
+sequential resolution of subproblems in a single forward
+pass. The DFS-based topological sort has O(V + E) time
+and space complexity.
+
+zSub-problemsp1p2p3p4p1p2p3p4logical dependenciesDirected acyclicgraph (DAG)Graph Reasoning LinearizationQuery Logic Dependency Graph ConstructionRetrievalDependency Graph Constructionm1Contextpruningm2Queryp1p2p3p4TopologicalsortGreedy Retrieval and ResolutionRollingmemoryContextpruningContextpruningm3Retrievalm3p5Newsub-problemNewdependencyp5ContextpruningFinalanswerGenerationAnswerGenerationwithSelf-reflectionRetrieval Augmented Generation withReasoningStructureRetrievalRetrievalQueryDecompositionSelf-reflectionIncompleteCompleteRe-checkm3m4CurrentmemoryCheckcompletenessRetrievalp3p4p1p2m1m2Figure 3: Word-level Jaccard similarity between subqueries across rounds in the
+agentic RAG process, averaging across the dataset.
+
+Figure 4: Comparison between two strate-
+gies: sampling w/ and w/o replacement.
+
+Step 2: Greedy Retrieval and Resolution. We then iter-
+ate over the sorted subproblems, resolving each p(i) greedily
+using the current context:
+
+C(i) = R
+
+(cid:16)
+
+p(i)
+
+(cid:12)
+(cid:12)
+(cid:12) {fRAG(p(j), C(j))}j<i, v(j)∈Pa(v(i))
+
+(cid:17)
+
+a(i) = fRAG(p(i), C(i)).
+
+, (1)
+
+(2)
+
+This greedy approach eliminates recursion while maintain-
+ing logical consistency. Each context C(i) can be dynami-
+cally adapted based on previously retrieved and inferred sub-
+answers, enabling context-aware retrieval and incremental
+reasoning with linear complexity.
+
+Overall, this DAG-guided reasoning framework trans-
+forms the complex interplay between retrieval and logic into
+a tractable pipeline. The explicit decomposition via topolog-
+ical sort and greedy resolution ensures efficiency, scalability,
+and faithfulness to the original query’s reasoning structure.
+
+Graph and Context Pruning
+
+While the topological sort linearizes the reasoning process,
+the overall inference cost remains non-trivial due to two fac-
+tors: the growing size of accumulated context as subprob-
+lems are resolved, and the potential redundancy among sub-
+problems with similar semantics or overlapping dependen-
+cies. To address this, we introduce a two-dimensional prun-
+ing mechanism that improves both computational efficiency
+and retrieval quality by reducing unnecessary context prop-
+agation and subproblem duplication.
+
+Context pruning via rolling memory. As the RAG pro-
+gresses through the topologically sorted subproblems, each
+retrieval step accumulates more contexts—text chunks re-
+trieved from the knowledge base—which can overwhelm the
+LLM and introduce noise that impairs generation. To miti-
+gate this, we maintain a compressed memory state—a sin-
+gle text string that serves as a rolling summary of the most
+salient facts retrieved so far. After each subproblem p(i) is
+resolved, its retrieved context and answer a(i) are distilled
+via LLM-based summarization, and the resulting summary
+is incorporated into the memory. At each subsequent step,
+newly retrieved context is summarized oriented by the query
+and merged with the existing memory to form an updated
+memory:
+
+Mem(i) = Summarize(Mem(i−1) ∪ R(p(i))),
+
+(3)
+
+where R(p(i)) is the set of retrieved text chunks for subprob-
+lem p(i). This summarization-based pruning prevents con-
+text bloat while preserving only the most relevant informa-
+tion for downstream reasoning.
+
+Graph pruning via unified subquery generation. Mul-
+tiple subproblems in the DAG often share similar priori-
+ties or loosely coupled dependencies, such as leaf or sib-
+ling nodes in the topological order, representing paralleliz-
+able factoid sub-tasks. To reduce redundant retrievals and
+improve efficiency, we merge subproblems with the same
+topological rank into a single unified query. For each step
+in the graph reasoning process (Section ), let S(i) = {p(j) |
+rank(p(j)) = rank(p(i))}n
+j=i denote the set of subproblems
+with the same rank as p(i). We construct a unified query:
+
+quni
+(i) = Merge(S(i)),
+and perform a single retrieval to obtain a unified context
+Cuni
+(i) and a response set {a(j)}p(j)∈S(i). The process then
+advances to the next topological rank, skipping individual
+subproblem iterations. This graph pruning reduces retrieval
+operations, shortens the reasoning chain, and enhances con-
+sistency among semantically related subproblems.
+
+(4)
+
+By jointly applying context pruning and graph prun-
+ing, our framework achieves more efficient inference with-
+out compromising reasoning quality. The pruning process
+is tightly guided by the DAG and dynamically adapts to
+the evolving retrieval state, offering a scalable and context-
+aware solution for complex query answering.
+
+Sampling Strategy
+We have developed a logic-guided RAG model that oper-
+ates in an iterative, agentic manner. However, such systems
+often encounter a “hesitation” issue, wherein the language
+model, faced with uncertainty, repeatedly generates simi-
+lar subqueries. This behavior impedes progress in resolving
+downstream subproblems and leads to inefficiencies in both
+computation and information gathering.
+
+During the subquery generation step in Equation 4, we
+consider two strategies for iterating over subproblems: (1)
+sampling with replacement, where the current batch of sub-
+problems S(i) is retained after generating the unified sub-
+query quni
+(i), allowing the language model to decide whether
+to proceed to the next batch S(i+1); and (2) sampling with-
+out replacement, where S(i) is removed after generating quni
+(i),
+
+Q1Q2Q3Q4Q5Q1Q2Q3Q4Q51.000.571.000.600.781.000.590.760.831.000.560.770.850.891.00HotpotQAQ1Q2Q3Q4Q5Q1Q2Q3Q4Q51.000.531.000.510.771.000.510.750.831.000.510.730.800.841.00MuSiQueQ1Q2Q3Q4Q5Q1Q2Q3Q4Q51.000.681.000.620.841.000.620.810.881.000.610.810.890.921.002WikiMQA0.500.620.750.881.002WikiMQAHotpotQAMuSiQueDatasets0255075100125150175200Accuracy63.162.562.662.636.437.5Acc (w/ repl.)Acc (w/o repl.)Token-Cost (w/ repl.)Token-Cost (w/o repl.)01000200030004000Token Cost243719972097173238732501Type
+
+Model
+
+HotpotQA
+
+2WikiMQA
+
+MuSiQue
+
+Str-Acc.
+
+LLM-Acc.
+
+Str-Acc.
+
+LLM-Acc.
+
+Str-Acc.
+
+LLM-Acc.
+
+Direct Zero-shot LLM
+
+Vanilla RAG
+
+Graph-based RAG
+
+Ours
+
+Llama3 (8b)
+Llama3 (13b)
+GPT-3.5-turbo
+GPT-4o-mini
+
+VanillaRAG (Top-1)
+VanillaRAG (Top-3)
+VanillaRAG (Top-5)
+
+KGP
+G-retriever
+RAPTOR
+GraphRAG
+LightRAG
+HippoRAG
+HippoRAG2
+
+LogicRAG
+
+17.1
+23.7
+31.5
+38.7
+
+38.4
+43.2
+44.1
+
+46.4
+28.5
+48.1
+39.6
+47.8
+53.7
+56.7
+
+54.8
+
+11.1
+20.1
+35.4
+36.3
+
+48.6
+53.1
+53.9
+
+57.1
+40.9
+57.8
+45.2
+57.7
+55.6
+61.9
+
+62.6
+
+22.3
+33.8
+24.0
+26.4
+
+34.8
+43.0
+46.7
+
+47.5
+26.7
+47.7
+46.3
+43.1
+47.7
+50.0
+
+64.7
+
+4.7
+15.4
+22.0
+24.3
+
+37.3
+42.0
+45.6
+
+43.7
+35.7
+45.9
+43.3
+36.3
+47.2
+47.1
+
+62.5
+
+2.3
+6.4
+7.9
+17.6
+
+13.2
+20.3
+21.0
+
+23.3
+9.1
+25.2
+16.5
+18.1
+24.9
+27.0
+
+30.4
+
+2.0
+6.0
+10.9
+14.0
+
+18.5
+23.6
+23.6
+
+27.5
+15.6
+29.1
+23.1
+19.4
+30.1
+32.6
+
+37.5
+
+Table 1: Question answering accuracy across benchmark datasets.
+
+enforcing forward progression to S(i+1). The first strategy,
+commonly adopted in iterative frameworks (Fu et al. 2023;
+Yang et al. 2024a; Li, Li, and Nie 2021), is prone to stalling
+at intermediate stages, producing near-duplicate subqueries
+until the maximum number of retrieval iterations is reached.
+Figure 3 presents the similarity matrix of subqueries gen-
+erated under the first strategy. The heatmap indicates an in-
+creasing tendency toward repetition as iterations progress.
+Figure 4 compares token consumption and answer accuracy
+under both strategies. Sampling without replacement con-
+sistently yields lower per-question token cost across three
+datasets while maintaining comparable answer quality. We
+attribute this to two factors: (1) forcing progression pre-
+vents the model from lingering on uncertain subproblems
+and encourages the assimilation of broader knowledge, and
+(2) avoiding redundant subquery generation leads to more
+efficient inference.
+
+Motivated by these findings, we adopt sampling without
+replacement as the default strategy to ensure efficient and
+effective multi-step retrieval and reasoning.
+
+Experiments
+
+Experiment Setup
+Datasets. We evaluate our method’s RAG capabilities using
+three multi-hop question-answering benchmarks: MuSiQue
+(answerable) (Trivedi et al. 2022), 2WikiMultiHopQA (ab-
+breviated as 2WikiMQA) (Ho et al. 2020), and Hot-
+potQA (Yang et al. 2018). To manage experimental costs,
+we follow HippoRAG (Guti´errez et al. 2024) by extracting
+1,000 questions from each dataset’s validation set. Addition-
+ally, we adopt the approach of IRCOT (Trivedi et al. 2023)
+and HippoRAG (Guti´errez et al. 2024) to gather all candi-
+date passages, including both supporting and distractor pas-
+sages, from the selected questions to create a retrieval corpus
+for each dataset. Dataset details are presented in Table 2.
+
+Baselines. We compare against several baselines: (i)
+
+MuSiQue
+
+2WikiMQA HotpotQA
+
+# of Passage
+# of Query type
+
+11,656
+3
+
+6,119
+4
+
+9,221
+2
+
+Table 2: Dataset statistics.
+
+Zero-shot LLM Inference (llama3(8b), llama3(13b) (Lla-
+maIndex 2024), gpt3.5-turbo, gpt-4o-mini (Achiam et al.
+2023)), (ii) vanilla retrieval augmented generation (top1,
+top3, top5), (iii) graph-based retrieval augmented generation
+(KGP (Wang et al. 2024), RAPTOR (Sarthi et al. 2024), G-
+retriever (He et al. 2024), GraphRAG (Edge et al. 2024),
+LightRAG (Guo et al. 2024), HippoRAG (Guti´errez et al.
+2024), HippoRAG2 (Guti´errez et al. 2025)). For those who
+provide both single-step and multi-step options, we use their
+multi-step version for its general superior performance.
+
+Metrics. We evaluate end-to-end QA performance on the
+datasets using two metrics: string-based accuracy, which
+computes whether the gold answer is included in the gener-
+ated answer after normalizing them to lowercase words; and
+LLM-based accuracy, which lets an LLM decide whether
+the generated answer correctly matches the gold answer.
+
+Component
+
+Specification
+
+GPU
+CPU
+
+NVIDIA GeForce RTX 3090
+Intel Xeon (R) Silver (R) 4214R CPU 2.40 @ GHz
+
+Table 3: Machine configuration.
+
+Implementation details. To ensure fair comparison, we
+use the same embedding models (sentence-transformers/all-
+MiniLM-L6-v2) for all algorithms. The k is set to 3 for each
+top-k retrieval. All the RAG methods use the same large
+language models used for generation and evaluation, which
+is gpt-4o-mini. Hardware configurations of the experiments
+are presented in Table 3.
+
+Figure 5: Distribution of accuracy across question types. Each ball represents a question type, with the y-axis position indicating
+its accuracy and the radius reflecting its proportion in the dataset.
+
+Figure 6: Pareto frontier of efficiency versus effectiveness for different k values.
+
+Main Results
+
+Table 1 reports the end-to-end question answering accu-
+racy across three benchmarks, comparing LogicRAG against
+baselines. Metrics include string-based accuracy and LLM-
+based accuracy. The results lead to several key observations:
+Zero-shot LLM inference. Direct prompting of LLMs
+without any retrieval yields poor performance across all
+datasets. Even strong models like GPT-4o-mini achieve only
+38.7% string accuracy on HotpotQA and significantly lower
+on 2WikiMQA and MuSiQue, underscoring the necessity of
+retrieval augmentation for knowledge-intensive questions.
+
+Vanilla RAG. Integrating corpus retrieval substantially
+enhances performance. Increasing k consistently improves
+accuracy across all datasets. However,
+the performance
+gains from larger k diminish at higher values, revealing that
+vanilla RAG’s limitation lies in its bottleneck: reasoning
+over multi-hop dependencies.
+
+Graph-based RAG. Methods that explicitly model rela-
+tionships among text chunks via graph structures further en-
+hance performance. HippoRAG2 achieves the best results
+among existing methods, reaching 56.7% string accuracy on
+HotpotQA and 27.0% on MuSiQue. However, these meth-
+ods remain limited in integrating logic constraints or lever-
+aging structural reasoning during retrieval.
+
+LogicRAG outperforms all baselines by a significant mar-
+gin across all datasets. Notably, LogicRAG achieves 64.7%
+string accuracy on 2WikiMQA, a +14.7% absolute improve-
+ment over the next best baseline (HippoRAG2), and boosts
+GPT-based accuracy to 62.5%. Similarly, on MuSiQue, Log-
+icRAG reaches 30.4% string accuracy and 37.5% LLM ac-
+curacy, outperforming HippoRAG2 by +3.4% and +4.9%,
+respectively. These results highlight the effectiveness of
+
+structured, logic-guided reasoning in enhancing retrieval
+and QA quality in multi-hop settings.
+
+Performance Breakdown by Question Type
+
+Figure 5 presents the distribution of LogicRAG’s accuracy
+across question types with a ball plot. This visualization al-
+lows us to assess the proportion of query types and their im-
+pact on model performance.
+
+On HotpotQA, LogicRAG demonstrates strong perfor-
+mance on comparison questions, achieving an accuracy
+of 83%, significantly higher than the 58% accuracy on the
+more prevalent bridge questions. This suggests that Log-
+icRAG is particularly effective in tasks that require identi-
+fying and comparing specific facts, while performance on
+bridge-type questions—often requiring entity chaining—is
+more susceptible to retrieval errors or reasoning drift.
+
+In MuSiQue and 2WikiMQA, we observe more diverse
+reasoning patterns. For MuSiQue, accuracy consistently de-
+clines as the number of reasoning hops increases. This trend
+underscores the growing complexity of multi-hop reasoning
+and the challenge of maintaining coherent retrieval chains.
+In 2WikiMQA, LogicRAG excels at comparison (89%)
+and bridge-comparison (67%) questions. In contrast,
+it shows lower performance on inference questions
+(39%) and moderate performance on compositional
+questions (50%), which represent
+the largest category
+(44.4%). Given both the prevalence and the difficulty of the
+compositional type, improving model capability in handling
+compositional reasoning would likely yield substantial gains
+in overall performance on 2WikiMQA and represents a valu-
+able direction for future research.
+
+bridgecomparison2-hop3-hop4-hopbridgecomparisoncomparisoncompositionalinference0.000.250.500.751.00AccuracyHotpotQAMuSiQue2WikiMQAtop-1top-2top-3top-5top-10top-200.00.20.40.60.8Accuracy2WikiMQALLM AccStr AccToken Costtop-1top-2top-3top-5top-10top-20HotpotQAtop-1top-2top-3top-5top-10top-20MuSiQue20003000400050006000Token CostEfficiency-Effectiveness Trade-off of Top-k
+Figure 6 illustrates the trade-off between the overall perfor-
+mance and efficiency of LogicRAG of varied top-k selec-
+tion. We plot both accuracy (left y-axis) alongside the corre-
+sponding token cost (right y-axis) of the overall RAG task.
+This figure serves as a Pareto frontier analysis, highlighting
+how k impacts answer quality and computational overhead.
+Across all datasets, both accuracy metrics generally im-
+prove as k increases, but with diminishing returns beyond
+top-3 or top-5. For example, on 2WikiMQA, increasing k
+from 1 to 5 leads to a notable gain in string accuracy, while
+gains from top-10 to top-20 are marginal. A similar trend
+holds for HotpotQA, where LLM accuracy saturates near
+top-10. On MuSiQue, improvements are more gradual, re-
+flecting the inherent difficulty and more dispersed knowl-
+edge distribution in this dataset.
+
+However, increasing k incurs a steep rise in token cost,
+particularly in MuSiQue, where the average cost exceeds
+6000 tokens at top-20. This growing cost makes high k val-
+ues less practical in real-world applications where latency
+or budget constraints are critical. Taken together, these re-
+sults suggest that moderate values (e.g., k = 3 or k = 5)
+offer the best balance between effectiveness and efficiency.
+This insight also motivates our context pruning with rolling
+memory that summarizes salient facts during iterative RAG
+to avoid incremental context accumulation.
+
+Figure 7: Impact of graph pruning, by comparing the average
+number of retrieval rounds with and without graph pruning.
+
+Impact of Graph Pruning
+We evaluate the impact of graph pruning by comparing the
+average number of retrieval rounds across different query
+types, as shown in Figure 7. Overall, graph pruning consis-
+tently reduces the number of retrieval steps across all cate-
+gories, confirming its effectiveness in eliminating redundant
+subproblem resolution and promoting efficient inference.
+Notably, compositional and multi-hop questions—typically
+requiring deeper reasoning—benefit most from pruning due
+to their higher potential for semantic overlap across sub-
+queries.
+
+Interestingly, while multi-hop questions (2-hop to 4-hop)
+generally demand more retrieval rounds, the increase is not
+strictly monotonic. In particular, 4-hop questions exhibit
+
+fewer retrieval rounds on average than 3-hop questions. Our
+investigation reveals that this arises from a behavioral ten-
+dency of the LLM: when faced with long, complex queries,
+it sometimes becomes prematurely confident and produces
+an answer based on partial information. This mirrors a
+well-known human cognitive bias—those with less insight
+may display higher confidence—highlighting the challenge
+of trust calibration in LLM-driven reasoning.
+
+Method
+
+Avg. Time (s) Avg. Token
+
+ZeroShot
+VanillaRAG
+
+G-retriever
+KGP
+Raptor
+GraphRAG
+LightRAG
+HippoRAG
+HippoRAG2
+
+LogicRAG
+
+5.88
+4.28
+
+12.50
+70.72
+5.79
+13.05
+35.14
+6.30
+5.89
+
+9.83
+
+216.2
+489.7
+
+1000.0
+11097.8
+2568.0
+4699.8
+5730.6
+2608.8
+2809.2
+
+1777.9
+
+Table 4: Query answering efficiency on 2WikiMQA.
+
+Query-time Efficiency Comparison
+Table 4 reports the query-time efficiency of various multi-
+hop QA models on 2WikiMQA, measured by average la-
+tency and token usage during the retrieval and generation
+stages. Notably, this comparison excludes the cost of graph
+construction, which is required by all graph-based base-
+lines. These methods typically rely on costly preprocessing
+to build knowledge graphs, including steps like named entity
+recognition, open information extraction, and offline graph
+generation. The constructed graphs are then used to sum-
+marize and index the corpus. This preprocessing often takes
+tens to hundreds of minutes and can incur substantial addi-
+tional token usage, as shown in Table 1.
+
+By contrast, LogicRAG eliminates the need for any offline
+graph construction, yet still maintains competitive query-
+time performance with a modest latency and moderate token
+usage. While flat retrieval baselines like VanillaRAG and
+ZeroShot achieve slightly faster response times, they lack
+the structured reasoning capabilities enabled by LogicRAG.
+Taken together, these results suggest that LogicRAG offers a
+cost-effective and practical solution for multi-hop QA, par-
+ticularly in deployment scenarios where preprocessing and
+knowledge update overhead is a bottleneck.
+
+Conclusion
+In this work, we present LogicRAG, a novel retrieval-
+augmented generation framework that dynamically lever-
+ages reasoning structures for complex query resolution. By
+decomposing queries into subproblems and modeling their
+dependencies as a directed acyclic graph, LogicRAG en-
+ables logic-aware and efficient multi-step retrieval. This
+principled framework offers a practical and scalable solution
+for knowledge-intensive complex question answering with
+large language models.
+
+bridgecomparisoncomparisoncompositionalinferencebridgecomparison2-hop3-hop4-hop0.81.52.33.0w/ graph pruningw/o graph pruningAcknowledgement
+The work described in this paper was fully supported by
+a grant from the Innovation and Technology Commission
+of the Hong Kong Special Administrative Region, China
+(Project No. ITS/263/24FP).
+
+References
+Achiam, J.; Adler, S.; Agarwal, S.; Ahmad, L.; Akkaya, I.;
+Aleman, F. L.; Almeida, D.; Altenschmidt, J.; Altman, S.;
+Anadkat, S.; et al. 2023. Gpt-4 technical report. arXiv
+preprint arXiv:2303.08774.
+Anthropic. 2024. The Claude 3 Model Family: Opus, Son-
+net, Haiku. Claude-3 Model Card.
+Bei, Y.; Chen, H.; Chen, S.; Huang, X.; Zhou, S.; and Huang,
+F. 2023. Non-recursive cluster-scale graph interacted model
+for click-through rate prediction. In Proceedings of the 32nd
+ACM International Conference on Information and Knowl-
+edge Management, 3748–3752.
+Borgeaud, S.; Mensch, A.; Hoffmann, J.; Cai, T.; Ruther-
+ford, E.; Millican, K.; Van Den Driessche, G. B.; Lespiau,
+J.-B.; Damoc, B.; Clark, A.; et al. 2022.
+Improving lan-
+guage models by retrieving from trillions of tokens. In In-
+ternational Conference on Machine Learning (ICML).
+Chen, H.; Bei, Y.; Huang, W.; Chen, S.; Huang, F.; and
+Huang, X. 2024a. Graph cross-correlated network for rec-
+ommendation. IEEE Transactions on Knowledge and Data
+Engineering.
+Chen, S.; Zhang, Q.; Dong, J.; Hua, W.; Cao, J.; and Huang,
+X. 2024b. Neuro-Symbolic Entity Alignment via Variational
+Inference. arXiv preprint arXiv:2410.04153.
+Chen, S.; Zhang, Q.; Dong, J.; Hua, W.; Li, Q.; and Huang,
+X. 2024c. Entity Alignment with Noisy Annotations from
+Large Language Models. arXiv preprint arXiv:2405.16806.
+Edge, D.; Trinh, H.; Cheng, N.; Bradley, J.; Chao, A.; Mody,
+A.; Truitt, S.; and Larson, J. 2024. From local to global: A
+graph rag approach to query-focused summarization. arXiv
+preprint arXiv:2404.16130.
+Fang, J.; Jiang, H.; Wang, K.; Ma, Y.; Jie, S.; Wang, X.; He,
+X.; and Chua, T.-S. 2024. Alphaedit: Null-space constrained
+arXiv preprint
+knowledge editing for language models.
+arXiv:2410.02355.
+Fang, J.; Wang, Y.; Wang, R.; Yao, Z.; Wang, K.; Zhang,
+A.; Wang, X.; and Chua, T.-S. 2025. Safemlrm: Demysti-
+fying safety in multi-modal large reasoning models. arXiv
+preprint arXiv:2504.08813.
+Fu, Y.; Peng, H.; Ou, L.; Sabharwal, A.; and Khot, T. 2023.
+Specializing smaller language models towards multi-step
+reasoning. In International Conference on Machine Learn-
+ing, 10421–10430. PMLR.
+Gao, Y.; Xiong, Y.; Gao, X.; Jia, K.; Pan, J.; Bi, Y.; Dai,
+Y.; Sun, J.; and Wang, H. 2023. Retrieval-augmented gen-
+eration for large language models: A survey. arXiv preprint
+arXiv:2312.10997.
+Guo, K.; Shomer, H.; Zeng, S.; Han, H.; Wang, Y.; and Tang,
+J. 2025. Empowering GraphRAG with Knowledge Filtering
+and Integration. arXiv preprint arXiv:2503.13804.
+
+Guo, Z.; Xia, L.; Yu, Y.; Ao, T.; and Huang, C. 2024. Ligh-
+tRAG: Simple and Fast Retrieval-Augmented Generation.
+arXiv preprint arXiv:2410.05779.
+Guti´errez, B. J.; Shu, Y.; Gu, Y.; Yasunaga, M.; and Su, Y.
+2024. HippoRAG: Neurobiologically Inspired Long-Term
+Memory for Large Language Models. In Advances in Neural
+Information Processing Systems (NeurIPS).
+Guti´errez, B. J.; Shu, Y.; Qi, W.; Zhou, S.; and Su, Y. 2025.
+From RAG to Memory: Non-Parametric Continual Learning
+for Large Language Models. In Forty-second International
+Conference on Machine Learning.
+He, X.; Tian, Y.; Sun, Y.; Chawla, N. V.; Laurent, T.; LeCun,
+Y.; Bresson, X.; and Hooi, B. 2024. G-retriever: Retrieval-
+augmented generation for textual graph understanding and
+question answering. arXiv preprint arXiv:2402.07630.
+Ho, X.; Nguyen, A.-K. D.; Sugawara, S.; and Aizawa,
+A. 2020. Constructing a multi-hop qa dataset for com-
+prehensive evaluation of reasoning steps. arXiv preprint
+arXiv:2011.01060.
+Hong, Z.; Yuan, Z.; Chen, H.; Zhang, Q.; Huang, F.; and
+Huang, X. 2024. Knowledge-to-SQL: Enhancing SQL Gen-
+eration with Data Expert LLM. In Findings of the Associa-
+tion for Computational Linguistics: ACL 2024.
+Hong, Z.; Yuan, Z.; Zhang, Q.; Chen, H.; Dong, J.; Huang,
+F.; and Huang, X. 2025. Next-generation database inter-
+faces: A survey of llm-based text-to-sql. IEEE Transactions
+on Knowledge and Data Engineering.
+Huang, L.; Yu, W.; Ma, W.; Zhong, W.; Feng, Z.; Wang, H.;
+Chen, Q.; Peng, W.; Feng, X.; Qin, B.; et al. 2023. A survey
+on hallucination in large language models: Principles, tax-
+onomy, challenges, and open questions. ACM Transactions
+on Information Systems (TOIS).
+Izacard, G.; Lewis, P.; Lomeli, M.; Hosseini, L.; Petroni,
+F.; Schick, T.; Dwivedi-Yu, J.; Joulin, A.; Riedel, S.; and
+Grave, E. 2023. Atlas: Few-shot learning with retrieval aug-
+mented language models. The Journal of Machine Learning
+Research (JMLR).
+Jiang, Z.; Xu, F. F.; Gao, L.; Sun, Z.; Liu, Q.; Dwivedi-Yu,
+J.; Yang, Y.; Callan, J.; and Neubig, G. 2023. Active re-
+trieval augmented generation. In Empirical Methods in Nat-
+ural Language Processing (EMNLP).
+Khashabi, D.; Min, S.; Khot, T.; Sabharwal, A.; Tafjord, O.;
+Clark, P.; and Hajishirzi, H. 2020. Unifiedqa: Crossing for-
+mat boundaries with a single qa system. In Findings of Em-
+pirical Methods in Natural Language Processing (EMNLP).
+Lewis, P.; Perez, E.; Piktus, A.; Petroni, F.; Karpukhin, V.;
+Goyal, N.; K¨uttler, H.; Lewis, M.; Yih, W.-t.; Rockt¨aschel,
+Retrieval-augmented generation for
+T.; et al. 2020.
+In Advances in Neural In-
+knowledge-intensive nlp tasks.
+formation Processing Systems (NeurIPS).
+Li, Y.; Li, W.; and Nie, L. 2021. A graph-guided multi-round
+retrieval method for conversational open-domain question
+answering. arXiv preprint arXiv:2104.08443.
+Li, Y.; Li, Z.; Wang, P.; Li, J.; Sun, X.; Cheng, H.; and
+Yu, J. X. 2023a. A survey of graph meets large lan-
+guage model: Progress and future directions. arXiv preprint
+arXiv:2311.12399.
+
+Li, Z.; Wang, L.; Sun, X.; Luo, Y.; Zhu, Y.; Chen, D.; Luo,
+Y.; Zhou, X.; Liu, Q.; Wu, S.; et al. 2023b. GSLB: the graph
+structure learning benchmark. Advances in Neural Informa-
+tion Processing Systems, 36: 30306–30318.
+Liu, Z.; Shengyuan, C.; Zhou, K.; Zha, D.; Huang, X.; and
+Hu, X. 2023. Rsc: accelerate graph neural networks train-
+In International
+ing via randomized sparse computations.
+Conference on Machine Learning, 21951–21968. PMLR.
+LlamaIndex. 2024. LlamaIndex - Build Knowledge Assis-
+tants over your Enterprise Data. LlamaIndex Blog.
+Lu, Z.; Ding, K.; Zhang, Y.; Li, J.; Peng, B.; and Liu, L.
+2021. Engage the public: Poll question generation for social
+media posts. In Proceedings of the 59th Annual Meeting of
+the Association for Computational Linguistics and the 11th
+International Joint Conference on Natural Language Pro-
+cessing (Volume 1: Long Papers), 29–40.
+Ma, S.; Xu, C.; Jiang, X.; Li, M.; Qu, H.; and Guo, J.
+2024. Think-on-graph 2.0: Deep and interpretable large
+language model reasoning with knowledge graph-guided re-
+trieval. In International Conference on Learning Represen-
+tations (ICLR).
+OpenAI. 2023. GPT-4 Technical Report. OpenAI Blog.
+Peng, B.; Zhu, Y.; Liu, Y.; Bo, X.; Shi, H.; Hong, C.; Zhang,
+Y.; and Tang, S. 2024. Graph retrieval-augmented genera-
+tion: A survey. arXiv preprint arXiv:2408.08921.
+Sarthi, P.; Abdullah, S.; Tuli, A.; Khanna, S.; Goldie, A.;
+and Manning, C. D. 2024. RAPTOR: Recursive Abstractive
+In International
+Processing for Tree-Organized Retrieval.
+Conference on Learning Representations (ICLR).
+Shengyuan, C.; Cai, Y.; Fang, H.; Huang, X.; and Sun, M.
+2024. Differentiable neuro-symbolic reasoning on large-
+scale knowledge graphs. Advances in Neural Information
+Processing Systems, 36.
+Sun, J.; Xu, C.; Tang, L.; Wang, S.; Lin, C.; Gong, Y.; Ni,
+L.; Shum, H.-Y.; and Guo, J. 2024. Think-on-Graph: Deep
+and Responsible Reasoning of Large Language Model on
+Knowledge Graph. In International Conference on Learning
+Representations (ICLR).
+Trivedi, H.; Balasubramanian, N.; Khot, T.; and Sabharwal,
+A. 2022. ♪ MuSiQue: Multihop Questions via Single-hop
+Question Composition. Transactions of the Association for
+Computational Linguistics, 10: 539–554.
+Trivedi, H.; Balasubramanian, N.; Khot, T.; and Sabharwal,
+A. 2023. Interleaving Retrieval with Chain-of-Thought Rea-
+In
+soning for Knowledge-Intensive Multi-Step Questions.
+The 61st Annual Meeting Of The Association For Computa-
+tional Linguistics.
+Wang, Y.; Lipka, N.; Rossi, R. A.; Siu, A.; Zhang, R.;
+and Derr, T. 2024. Knowledge graph prompting for multi-
+document question answering. In Proceedings of the AAAI
+Conference on Artificial Intelligence, volume 38, 19206–
+19214.
+Wu, K.; Chen, H.; Wang, C.; Karray, F.; Li, Z.; Wang, Y.; and
+Zhong, F. 2025. Hierarchical Instruction-aware Embodied
+Visual Tracking. arXiv preprint arXiv:2505.20710.
+
+Xiang, Z.; Wu, C.; Zhang, Q.; Chen, S.; Hong, Z.; Huang,
+X.; and Su, J. 2025. When to use graphs in rag: A compre-
+hensive analysis for graph retrieval-augmented generation.
+arXiv preprint arXiv:2506.05690.
+Xiao, Y.; Zhou, C.; Zhang, Q.; Dong, S.; Chen, S.; and
+Huang, X. 2025a. LAG: Logic-Augmented Generation from
+a Cartesian Perspective. arXiv:2508.05509.
+Xiao, Y.; Zhou, C.; Zhang, Q.; Li, B.; Li, Q.; and Huang,
+X. 2025b. Reliable Reasoning Path: Distilling Effective
+Guidance for LLM Reasoning with Knowledge Graphs.
+arXiv:2506.10508.
+Yang, D.; Rao, J.; Chen, K.; Guo, X.; Zhang, Y.; Yang,
+J.; and Zhang, Y. 2024a.
+Im-rag: Multi-round retrieval-
+augmented generation through learning inner monologues.
+In Proceedings of the 47th International ACM SIGIR Con-
+ference on Research and Development in Information Re-
+trieval, 730–740.
+Yang, D.; Rao, J.; Chen, K.; Guo, X.; Zhang, Y.; Yang,
+J.; and Zhang, Y. 2024b.
+Im-rag: Multi-round retrieval-
+augmented generation through learning inner monologues.
+In Proceedings of the 47th International ACM SIGIR Con-
+ference on Research and Development in Information Re-
+trieval, 730–740.
+Yang, Z.; Qi, P.; Zhang, S.; Bengio, Y.; Cohen, W. W.;
+Salakhutdinov, R.; and Manning, C. D. 2018. HotpotQA: A
+dataset for diverse, explainable multi-hop question answer-
+ing. In Empirical Methods in Natural Language Processing
+(EMNLP).
+Zhang, F.; Huang, Z.; Zhou, Y.; Guo, Q.; Li, Z.; Luo, W.;
+Jiang, D.; Fang, Y.; and Zhou, X. 2025a. EraRAG: Efficient
+and Incremental Retrieval Augmented Generation for Grow-
+ing Corpora. arXiv preprint arXiv:2506.20963.
+Zhang, Q.; Dong, J.; Chen, H.; Zha, D.; Yu, Z.; and Huang,
+X. 2024. Knowgpt: Knowledge graph based prompting for
+large language models. Advances in Neural Information
+Processing Systems, 37: 6052–6080.
+Zhang, Q.; Xiang, Z.; Xiao, Y.; Wang, L.; Li, J.; Wang, X.;
+and Su, J. 2025b. FaithfulRAG: Fact-Level Conflict Model-
+ing for Context-Faithful Retrieval-Augmented Generation.
+arXiv preprint arXiv:2506.08938.
+Zhong, F.; Wu, K.; Wang, C.; Chen, H.; Ci, H.; Li, Z.; and
+Wang, Y. 2024. Unrealzoo: Enriching photo-realistic virtual
+worlds for embodied ai. arXiv preprint arXiv:2412.20977.
+Zhou, C.; Wang, Z.; Chen, S.; Du, J.; Zheng, Q.; Xu, Z.;
+and Huang, X. 2025a. Taming Language Models for Text-
+attributed Graph Learning with Decoupled Aggregation. In
+Proceedings of the 63rd Annual Meeting of the Associa-
+tion for Computational Linguistics (Volume 1: Long Papers),
+3463–3474.
+Zhou, H.; Du, J.; Zhou, C.; Yang, C.; Xiao, Y.; Xie, Y.; and
+Huang, X. 2025b. Each Graph is a New Language: Graph
+Learning with LLMs. arXiv preprint arXiv:2501.11478.
+Zhou, H.; Yu, K.; Zhang, Q.; Chen, H.; Zha, D.; Pei, W.;
+Kong, A.; and Huang, X. 2025c. Self-Monitoring Large
+Language Models for Click-Through Rate Prediction. ACM
+Transactions on Information Systems, 44(1): 1–25.
+
+Zhou, Y.; Su, Y.; Sun, Y.; Wang, S.; Wang, T.; He, R.; Zhang,
+Y.; Liang, S.; Liu, X.; Ma, Y.; et al. 2025d. In-depth Anal-
+ysis of Graph-based RAG in a Unified Framework. arXiv
+preprint arXiv:2503.04338.
+Zhuang, L.; Chen, S.; Xiao, Y.; Zhou, H.; Zhang, Y.; Chen,
+H.; Zhang, Q.; and Huang, X. 2025. LinearRAG: Linear
+Graph Retrieval Augmented Generation on Large-scale Cor-
+pora. arXiv preprint arXiv:2510.10114.
+
+A. Pseudo Code
+
+Supplementary Material
+
+Algorithm 1: LogicRAG: Logic-Aware Retrieval-Augmented Generation
+
+1: Input: Query Q, LLM, embedding model θ, knowledge corpus K
+2: Output: Final answer A
+3: Use LLM to decompose Q into subproblems P = {p1, . . . , pn}
+4: Initialize DAG G = (V, E) with V = {vi ↔ pi} and E = ∅
+5: Use LLM to infer logical dependencies among P and populate E
+6: Topologically sort G to obtain ranks rank(pi) for all pi
+7: Initialize rolling memory Mem(0) ← ∅
+8: for each rank r in ascending topological order do
+9:
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20: end for
+21: Generate final answer A = Compose({ai}) using LLM
+22: Return A
+
+Let S(r) = {pi | rank(pi) = r}
+Construct unified query q(r) = Merge(S(r)) using LLM
+Retrieve documents C (r) = R(q(r); θ, K)
+Summarize C (r) with respect to Q and Mem(r−1) to get Mem(r)
+for each pi ∈ S(r) do
+
+end for
+if LLM identifies a new unresolved subproblem pn+1 then
+Add new node vn+1 to V and edge(s) to E if needed
+Append pn+1 as a new rank after the current rank sequence
+
+end if
+
+Use LLM to resolve pi using Mem(r) and store intermediate answer ai
+
+▷ Subproblems at same level
+
+▷ Unified retrieval
+
+B. Related Work
+Graph-based RAG methods explicitly structure textual corpora into graphs to support multi-hop reasoning. For example,
+hierarchical-graph methods like GraphRAG (Edge et al. 2024) and RAPTOR (Sarthi et al. 2024) organize knowledge into multi-
+level document graphs (via community detection or recursive tree summarization) for coarse-to-fine retrieval. LightRAG (Guo
+et al. 2024) similarly builds a dual-level, graph-augmented index to enable efficient, incrementally updatable retrieval. Inspired
+by hippocampal memory models, HippoRAG (Guti´errez et al. 2024) and HippoRAG2 (Guti´errez et al. 2025) constructs a
+knowledge graph to index text chunks, and employ Personalized PageRank to perform one-shot multi-hop search. These graph-
+based approaches can employ off-the-shelf graph reasoning algorithms (Shengyuan et al. 2024; Chen et al. 2024b; Zhou et al.
+2025a; Liu et al. 2023; Bei et al. 2023; Chen et al. 2024a; Li et al. 2023b) for enhancing retrieval accuracy. However, they rely
+on pre-built knowledge graphs or indexes. In contrast, LogicRAG eschews any fixed graph: it dynamically constructs a logic
+dependency graph of intermediate subqueries at inference time and uses a topological ordering to guide retrieval in a logically
+coherent sequence. LogicRAG also prunes redundant graph branches and context passages at each step to reduce overlap and
+token usage, enabling efficient multi-hop reasoning without a precomputed graph structure.
+
+Reasoning-enhanced RAG methods instead interleave retrieval with the model’s own reasoning process. Think-on-
+Graph (Ma et al. 2024) alternates between using a static knowledge graph and text retrieval, leveraging entity links to deepen
+contextual retrieval iteratively. Likewise, RRP (Xiao et al. 2025b) distills guidance for LLM reasoning on well-established
+knowledge graphs. IRCoT (Trivedi et al. 2023) interleaves retrieval with a chain-of-thought: it uses the LLM’s intermediate
+reasoning steps to decide what to retrieve next, feeding retrieved facts back into the CoT. Likewise, IM-RAG (Yang et al.
+2024b) trains the LLM to generate iterative “inner monologue” queries over multiple rounds of retrieval, refining its queries
+via reinforcement learning. Recent LAG (Xiao et al. 2025a) enhances problem solving by problem decomposition and logic
+augmentation from a Cartesian perspective. These methods improve multi-step QA by tightly coupling retrieval with reasoning
+steps, but they still depend on fixed resources (like a static KG) or predetermined retrieval schedules. LogicRAG, by contrast,
+constructs and updates its reasoning DAG adaptively during inference. It schedules subgoals by topologically sorting the DAG,
+effectively planning retrieval in dependency order, and prunes irrelevant branches and context on the fly. This dynamic, adaptive
+planning lets LogicRAG perform flexible multi-step reasoning efficiently, without any static graph or fixed retrieval plan.
+
+C. Notations
+Please refer to Table 5.
+
+Symbol
+
+Description
+
+Input query
+Final answer generated by the RAG system
+External knowledge corpus
+Retrieved context for the query Q
+Retrieval function mapping queries to relevant contexts from K
+Set of subproblems decomposed from the input query Q
+Query logic dependency graph (a DAG) modeling subproblem dependencies
+
+Q
+A
+K
+C
+R(·)
+P = {p1, . . . , pn}
+G = (V, E)
+V = {v1, . . . , vn} Node set of G, where vi corresponds to subproblem pi
+E ⊆ V × V
+Pa(vi)
+fRAG(pi, Ci)
+ai
+Mem(i)
+rank(pi)
+S(i)
+quni
+i
+C uni
+i
+
+Directed edge set representing logical dependencies among subproblems
+Set of parent nodes of vi in the DAG G
+RAG model output for subproblem pi with context Ci
+Answer generated for subproblem pi
+Rolling memory at step i, containing summarized prior context
+Topological rank of subproblem pi in DAG G
+Set of subproblems with the same rank rank(pi)
+Unified query constructed from S(i)
+Retrieved context for the unified query quni
+
+i
+
+Table 5: Notation Table
+
+D. Case Study
+We show a case of a three-hop question from the MuSiQue dataset, to demonstrate how to identify supporting knowledge for
+the question by multiround retrieval with reasoning.
+
+This example demonstrates a complex multi-hop question requiring geopolitical knowledge, temporal reasoning, and indirect
+entity resolution. The question refers obliquely to the Soviet Union through the phrase “the country where, despite being
+headquartered in the nation called the nobilities commonwealth, the top-ranking Warsaw Pact operatives originated,” which
+demands recognizing that the “nobilities commonwealth” is a historical reference to the Polish–Lithuanian Commonwealth,
+and that while the Warsaw Pact was signed in Warsaw, Poland, it was dominated by the USSR. Thus, the country in question is
+the Soviet Union, making the Tripartite discussions involve Britain, France, and the USSR.
+
+To answer the temporal aspect of the question, the model must locate when discussions involving these three parties began.
+RetrievalBox3 provides a precise temporal signal: “In mid-June, the main Tripartite negotiations started.” This date, paired
+with the correct identification of the USSR, allows for an accurate answer—June. The example illustrates the model’s ability to
+resolve indirect references, integrate multi-document evidence, and infer temporal details grounded in historical context.
+
+Question
+
+What month did the Tripartite discussions begin between Britain, France, and the country where, despite being head-
+quartered in the nation called the nobilities commonwealth, the top-ranking Warsaw Pact operatives originated?
+
+Retrieval Round 1
+
+The Warsaw Pact, formally known as the Treaty of Friendship, Cooperation and Mutual Assistance, was a collective
+defence treaty signed in Warsaw, Poland among the Soviet Union and seven Soviet satellite states of Central and East-
+ern Europe during the Cold War. The Warsaw Pact was the military complement to the Council for Mutual Economic
+Assistance (CoMEcon), the regional economic organization for the socialist states of Central and Eastern Europe. The
+Warsaw Pact was created in reaction to the integration of West Germany into NATO in 1955 per the London and Paris
+Conferences of 1954, but it is also considered to have been motivated by Soviet desires to maintain control over military
+forces in Central and Eastern Europe.
+
+Retrieval Round 2
+
+The eight member countries of the Warsaw Pact pledged the mutual defense of any member who would be attacked.
+Relations among the treaty signatories were based upon mutual non-intervention in the internal affairs of the member
+countries, respect for national sovereignty, and political independence. However, almost all governments of those member
+states were indirectly controlled by the Soviet Union.
+
+Retrieval Round 3
+
+By the end of May, drafts were formally presented. In mid-June, the main Tripartite negotiations started. The discussion
+was focused on potential guarantees to central and east European countries should a German aggression arise. The USSR
+proposed to consider that a political turn towards Germany by the Baltic states would constitute an ”indirect aggression”
+towards the Soviet Union. Britain opposed such proposals, because they feared the Soviets´proposed language could
+justify a Soviet intervention in Finland and the Baltic states, or push those countries to seek closer relations with Germany.
+The discussion about a definition of ”indirect aggression” became one of the sticking points between the parties, and by
+mid-July, the tripartite political negotiations effectively stalled, while the parties agreed to start negotiations on a military
+agreement, which the Soviets insisted must be entered into simultaneously with any political agreement.
+
+Answer
+
+June Supporting Evidence:
+
+• Historical records state: ”In mid-June, the main Tripartite negotiations started”
+• Contextual factors:
+
+– The ”nobilities commonwealth” refers to the USSR (headquartered in Moscow)
+– Warsaw Pact operatives were predominantly Soviet-controlled
+– Discussions focused on Central/Eastern European security guarantees

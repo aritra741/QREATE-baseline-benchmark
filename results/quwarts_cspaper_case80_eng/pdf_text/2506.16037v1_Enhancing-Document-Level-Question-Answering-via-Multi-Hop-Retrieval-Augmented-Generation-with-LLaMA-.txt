@@ -1,0 +1,709 @@
+Enhancing Document-Level Question Answering
+via Multi-Hop Retrieval-Augmented Generation
+with LLaMA 3
+
+Xinyue Huang*
+Independent Researcher
+New York, USA
+huangxinyue8616@gmail.com
+
+Ziqi Lin
+Cornell University
+New Jersey, USA
+zl825@cornell.edu
+
+Fang Sun
+University of Southern California
+Los Angeles, USA
+fangsun@usc.edu
+
+Wenchao Zhang
+Independent Researcher
+New Jersey, USA
+wenchao.zhang@rutgers.edu
+
+Kejian Tong
+Independent Researcher
+Mukilteo, USA
+tongcs2021@gmail.com
+
+Yunbo Liu
+Independent Researcher
+New York, USA
+chrisliu38387@gmail.com
+
+Abstract—This paper presents a novel Retrieval-Augmented
+Generation (RAG) framework tailored for complex question
+answering tasks, addressing challenges in multi-hop reasoning
+and contextual understanding across lengthy documents. Built
+upon LLaMA 3, the framework integrates a dense retrieval
+module with advanced context fusion and multi-hop reasoning
+mechanisms, enabling more accurate and coherent response
+generation. A joint optimization strategy combining retrieval
+likelihood and generation cross-entropy improves the model’s
+robustness and adaptability. Experimental results show that the
+proposed system outperforms existing retrieval-augmented and
+generative baselines, confirming its effectiveness in delivering
+precise, contextually grounded answers.
+
+Kerwords—retrieval-augmented generation, financial QA,
+
+multi-hop reasoning, LLaMA 3, context fusion
+
+I. INTRODUCTION
+
+Understanding complex question answering (QA) tasks re-
+quires deep comprehension of documents containing numbers,
+legal texts, and intricate language. Large language models
+(LLMs) often struggle to effectively retrieve and reason
+over dispersed pieces of information. Retrieval-Augmented
+Generation (RAG), which integrates retrieval and generation,
+has shown promising results. However, many existing RAG
+models still face limitations in multi-hop reasoning and context
+fusion, which are crucial for tasks involving linked reports,
+statements, and structured content. Recent advances have
+addressed these challenges in part—for instance, Dai et al.
+[1] employed contrastive augmentation to strengthen retrieval,
+Wang et al. [2] introduced an attention-based architecture for
+improved context comprehension.
+
+In this study, we propose a multi-module RAG framework
+built on LLaMA 3 with enhanced retrieval and reasoning
+capabilities. The system incorporates a query-document em-
+bedding module that generates high-dimensional representa-
+tions and retrieves relevant content from a vector database.
+To overcome single-hop limitations, we introduce a multi-hop
+
+reasoning module that incrementally aggregates context across
+documents via attention mechanisms. A joint optimization
+strategy combining retrieval likelihood and generation cross-
+entropy further improves both retrieval precision and genera-
+tion quality. Overall, the framework demonstrates improved
+performance in answering complex queries requiring deep
+contextual understanding.
+
+Beyond improving general document QA, our methodology
+also supports high-stakes domains—fraud investigation, reg-
+ulatory compliance and risk analysis—by enabling accurate
+multi-document retrieval and reasoning over lengthy, cross-
+referenced records (e.g., suspicious activity reports, customer
+disclosures and transaction logs). This capability facilitates au-
+tomated early fraud detection, streamlined compliance work-
+flows and enhanced transparency in financial operations—key
+priorities for institutions and regulators. Building on these
+findings, FinLLaMA-RAG holds significant potential in tax
+compliance and strategy through two key applications. First,
+it can empower individual taxpayers and small businesses by
+serving as a virtual tax assistant. Leveraging its multi-hop
+retrieval and reasoning, the system can dynamically retrieve
+relevant sections of tax code and official publications and
+fuse context (e.g. income type, filing status) to provide per-
+sonalized, legally accurate guidance on deductions, credits,
+and filing requirements—helping users maximize benefits and
+avoid errors that often lead to inquiries or penalties.
+
+II. RELATED WORK
+
+Choi et al. [3] made FinDER, a dataset for financial QA
+and RAG tests, to solve the lack of good financial data. Kim
+et al. [4] improved retrieval for financial QA by adding a
+multi-stage optimization that raises document relevance, but
+their work focuses more on retrieval than text generation.
+Chen et al. [5] created a coarse-to-fine 3D reconstruction
+system with transformers. While it works in vision tasks,
+
+5
+2
+0
+2
+
+n
+u
+J
+
+9
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+7
+3
+0
+6
+1
+.
+6
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+ 
+ 
+ 
+ 
+ 
+ 
+it shows how attention can help in text retrieval too. Guan
+et al. [6] used machine learning to predict breast cancer
+with network analysis, giving ideas about modeling complex
+links,
+though in a medical setting. Luo, Wang, and Guo
+[7] introduce Gemini-GraphQA, a graph question answering
+framework that integrates the Gemini large language model
+with a graph neural network encoder, a graph solver network
+to translate natural language into executable graph code, and
+a retrieval-augmented generation module—enhanced by an
+execution correctness loss—to ensure syntactic and functional
+accuracy, achieving state-of-the-art performance on diverse
+graph reasoning tasks.
+
+to improve information extraction, but
+
+Chen et al. [8] made FinTextQA, a dataset for long-form
+financial QA, which helps with large-context understanding
+but does not add new RAG methods. Sarmah et al. [9]
+proposed HybridRAG, which mixes knowledge graphs with
+vector retrieval
+its
+multi-hop part is still simple. Iaroshev et al. [10] tested RAG
+systems on financial reports and showed that challenges remain
+in dealing with detailed domain language and links between
+documents.Yu [11] introduces DynaSched-Net, a dual-network
+framework that combines a Deep Q-Network–based reinforce-
+ment learning scheduler with a hybrid LSTM-Transformer
+workload predictor—optimized via a joint loss function and
+stabilized by experience replay and target network updates—to
+enable real-time adaptive cloud resource scheduling that out-
+performs traditional FCFS and RR methods. Their results also
+pointed out that current systems often fail when financial
+questions need reasoning over multiple sections, which shows
+a need for better ways to combine retrieved data into a full
+answer.
+
+Lin et al. [12] propose a vector-weighted average algo-
+rithm–optimized kernel Extreme Learning Machine for na-
+tional tax revenue ratio prediction, achieving R² values of
+0.995 (training) and 0.994 (test) with RMSEs of 0.185 and
+0.177, respectively, demonstrating excellent generalization and
+the retrieved
+stability for tax forecasting. In many cases,
+documents are relevant but the generated answers miss key
+context, which limits the system’s real use. This makes it clear
+that a better model should focus on both improving retrieval
+precision and making sure the generation part fully uses all the
+retrieved information. Guo and Yu [13] propose PrivacyPre-
+serveNet, a novel multilevel privacy-preserving framework for
+multimodal large language models that integrates differential
+privacy-enhanced pretraining, privacy-aware gradient clipping,
+and noise-injected attention mechanisms to safeguard sensitive
+text, image, and audio data without sacrificing task perfor-
+mance.
+
+contextual fusion layer to aggregate information from multiple
+document chunks, facilitating comprehensive understanding.
+A novel loss function balances retrieval accuracy and gen-
+eration quality, optimizing both components simultaneously.
+Experimental evaluations demonstrate that FinLLaMA-RAG
+outperforms existing models in handling intricate queries,
+offering a robust solution for document analysis. The pipeline
+of our approach is shown in Fig. 1.
+
+Fig. 1. The FinLLaMA-RAG base on LLaMA 3 using multi-hop reasoning
+module
+
+A. Query Embedding Module
+
+The input query q is transformed into a dense vector
+
+representation q using a pre-trained LLaMA 3 model:
+
+q = LLaMA3embed(q)
+
+(1)
+
+This embedding captures the semantic meaning of the query,
+facilitating efficient retrieval of relevant document chunks.
+
+B. Document Retrieval Module
+
+Utilizing the query embedding q, the system retrieves the
+top-k most relevant document chunks {d1, d2, . . . , dk} from a
+vector database. The relevance of each chunk di is assessed
+using cosine similarity:
+
+sim(q, di) =
+
+q⊤di
+∥q∥ ∥di∥
+
+(2)
+
+where di is the embedding of chunk di.
+
+C. Contextual Fusion Layer
+
+To enhance the representation of the retrieved chunks, a
+
+contextual fusion layer aggregates the embeddings:
+
+Dagg =
+
+k
+(cid:88)
+
+i=1
+
+αi di
+
+with attention weights
+
+αi =
+
+exp(cid:0)sim(q, di)(cid:1)
+j=1 exp(cid:0)sim(q, dj)(cid:1) .
+
+(cid:80)k
+
+(3)
+
+(4)
+
+III. METHODOLOGY
+
+D. Multi-Hop Reasoning Module
+
+In this section, we introduce FinLLaMA-RAG, an ad-
+vanced Retrieval-Augmented Generation (RAG) model de-
+signed for document analysis. Leveraging the LLaMA 3
+model, FinLLaMA-RAG integrates a multi-hop reasoning
+module to traverse complex data, enhancing the accuracy
+and relevance of generated responses. The system employs a
+
+The multi-hop reasoning module performs iterative updates
+
+over the aggregated representation:
+(cid:0)D(t−1)
+
+hop = LLaMA3hop
+
+D(t)
+
+hop , q(cid:1), D(0)
+
+hop = Dagg,
+
+(5)
+
+for t = 1, . . . , T . The pipeline of this module is shown in
+Fig. 2.
+
+Fig. 2. The pipeline of the Multi-Hop Reasoning Module.
+
+E. Generation Module
+
+G. Integration of Large-Scale Document Embeddings
+
+The final representation D(T )
+
+hop is passed to the LLaMA 3-
+based generation module, which produces the response r to
+the input query q:
+
+r = LLaMA3gen
+
+(cid:0)D(T )
+
+hop, q(cid:1).
+
+(6)
+
+F. Loss Function
+
+The training objective combines retrieval accuracy and
+
+generation quality. The retrieval loss is
+
+Lretrieval = − log
+
+exp(cid:0)sim(q, dtrue)(cid:1)
+i=1 exp(cid:0)sim(q, di)(cid:1) ,
+(cid:80)k
+
+(7)
+
+and the generation loss is
+
+Lgeneration = −
+
+T
+(cid:88)
+
+t=1
+
+log P (cid:0)rt | r<t, D(T )
+
+hop, q(cid:1).
+
+(8)
+
+The total loss is a weighted sum:
+
+One key innovation of FinLLaMA-RAG is the integration
+of large-scale pre-trained models like LLaMA 3 with efficient
+document retrieval and re-ranking mechanisms. By embedding
+both the query and chunks into high-dimensional vectors and
+applying similarity-based retrieval, the model can efficiently
+handle vast collections of documents. Combining retrieval-
+augmented information with the generative capabilities of
+LLaMA 3 enables more accurate, contextually relevant re-
+sponses. FinLLaMA-RAG can streamline international
+tax
+strategy for multinational corporations. By parsing and com-
+paring complex regulations—such as bilateral
+treaties and
+global tax frameworks—it can rapidly benchmark transfer-
+pricing policies across jurisdictions. This reduces research
+time, enhances accuracy of intercompany pricing, and gener-
+ates an audit-ready trail of citations, supporting both corporate
+documentation and regulatory oversight to minimize costly
+disputes.
+
+Ltotal = λretrieval Lretrieval + λgeneration Lgeneration,
+
+(9)
+
+H. Multi-Hop Reasoning Across Hierarchical Data
+
+where λretrieval and λgeneration are hyperparameters. Training
+loss curves are shown in Fig. 3.
+
+Fig. 3. Training loss components over epochs: retrieval loss, generation loss,
+and total loss
+
+Another innovation is the use of the multi-hop reasoning
+module, which enables iterative reasoning across multiple
+document sections. This approach allows for a more com-
+prehensive understanding of information, as the model can
+reason over interconnected sections to extract insights. This is
+especially crucial in analysis scenarios where a question may
+require synthesizing information from several document parts.
+As shown in Fig. 4, the left panel visualizes the embedding
+space via PCA, and the right panel compares initial retrieval
+scores with re-ranked scores.
+
+I. Data Preprocessing
+
+Raw documents draw are cleaned by
+
+dclean = Clean(cid:0)draw
+
+(cid:1)
+
+The cleaned text is tokenized into IDs:
+
+dtok = (cid:2)ID(t1), . . . , ID(tn)(cid:3)
+
+(10)
+
+(11)
+
+TABLE I
+FULL MODEL EVALUATION RESULTS
+
+Model
+BERT-based Retriever
+Traditional RAG
+FinBERT
+GPT-3
+FinLLaMA-RAG
+Retrieval-Only Model
+Generation-Only Model
+
+FinDER (nDCG@10)
+0.45
+0.49
+0.52
+0.56
+0.62
+–
+–
+
+FinQABench (BLEU)
+22.3
+23.5
+24.7
+26.3
+30.5
+–
+–
+
+FinanceBench (ROUGE-L)
+24.5
+26.3
+28.0
+29.2
+35.2
+–
+–
+
+TATQA (F1)
+0.60
+0.62
+0.64
+0.66
+0.75
+–
+–
+
+FinQA (F1)
+0.63
+0.67
+0.70
+0.72
+0.78
+–
+–
+
+TABLE II
+ABLATION STUDY RESULTS
+
+Model
+BERT-based Retriever
+Traditional RAG
+FinBERT
+GPT-3
+FinLLaMA-RAG
+Retrieval-Only Model
+Generation-Only Model
+
+nDCG@10
+–
+–
+–
+–
+0.62
+0.45
+0.48
+
+BLEU
+–
+–
+–
+–
+30.5
+18.2
+19.1
+
+ROUGE-L
+–
+–
+–
+–
+35.2
+22.5
+24.1
+
+F1
+–
+–
+–
+–
+0.75
+0.60
+0.62
+
+VI. CONCLUSION
+
+In this paper, we introduced FinLLaMA-RAG, a novel
+Retrieval-Augmented Generation model for document anal-
+ysis. Building on its strengths in complex financial QA,
+FinLLaMA-RAG also extends naturally into tax compliance
+and strategy—whether as a virtual tax assistant for individuals
+and SMEs or as a corporate tool for international transfer-
+pricing analysis. The model combines advanced retrieval
+techniques with a powerful generation model and multi-hop
+reasoning.
+
+REFERENCES
+
+[1] W. Dai, Y. Jiang, Y. Liu, J. Chen, X. Sun, and J. Tao, “Cab-kws: Con-
+trastive augmentation: An unsupervised learning approach for keyword
+spotting in speech technology,” in International Conference on Pattern
+Recognition. Springer, 2025, pp. 98–112.
+
+[2] E. Wang, “Attention-driven interaction network for e-commerce recom-
+
+mendations,” 2025.
+
+Fig. 5. Changes in model training indicators over time.
+
+Fig. 4.
+(Left) Visualization of query and document embeddings in 2D via
+PCA. (Right) Comparison of initial retrieval scores and re-ranked scores across
+top-k documents.
+
+Embeddings are generated and indexed for retrieval:
+
+q = LLaMA3embed(q)
+di = LLaMA3embed(di)
+
+sim(q, di) =
+
+q⊤di
+∥q∥∥di∥
+
+IV. EVALUATION METRICS
+
+(12)
+
+(13)
+
+(14)
+
+The model performance is evaluated using several key
+
+metrics:
+
+A. nDCG@10
+
+nDCG@10 evaluates the ranking of the top-10 retrieved
+
+documents. It is calculated as:
+
+nDCG@10 =
+
+1
+Z
+
+10
+(cid:88)
+
+i=1
+
+2reli − 1
+log2(i + 1)
+
+(15)
+
+B. BLEU
+
+BLEU measures the overlap of n-grams between the pre-
+
+dicted and reference responses. It is computed as:
+
+BLEU = exp
+
+(cid:32)
+
+1
+N
+
+N
+(cid:88)
+
+n=1
+
+(cid:33)
+
+log pn
+
+(16)
+
+C. ROUGE-L
+
+ROUGE-L measures the longest common subsequence
+
+(LCS) between predicted and reference responses:
+
+ROUGE-L =
+
+LCS(reference, prediction)
+length of reference
+
+(17)
+
+D. F1 Score
+
+The F1 score is calculated as:
+
+F1 = 2 ×
+
+precision × recall
+precision + recall
+
+V. EXPERIMENT RESULTS
+
+(18)
+
+Table I and Table II summarize the performance of all
+models on five datasets using nDCG@10, BLEU, ROUGE-L,
+and F1 scores. Figure 5 shows the changes in model training
+indicators.
+
+[3] C. Choi, J. Kwon, J. Ha, H. Choi, C. Kim, Y. Lee, J.-y. Sohn,
+and A. Lopez-Lira, “Finder: Financial dataset for question answer-
+ing and evaluating retrieval-augmented generation,” arXiv preprint
+arXiv:2504.15800, 2025.
+
+[4] S. Kim, H. Song, H. Seo, and H. Kim, “Optimizing retrieval strate-
+gies for financial question answering documents in retrieval-augmented
+generation systems,” arXiv preprint arXiv:2503.15191, 2025.
+
+[5] X. Chen, “Coarse-to-fine multi-view 3d reconstruction with slam opti-
+mization and transformer-based matching,” in 2024 International Con-
+ference on Image Processing, Computer Vision and Machine Learning
+(ICICML).
+
+IEEE, 2024, pp. 855–859.
+
+[6] S. Guan, “Breast cancer risk prediction: A machine learning study
+using network analysis,” in 2025 IEEE 15th Annual Computing and
+Communication Workshop and Conference (CCWC).
+IEEE, 2025, pp.
+00 448–00 452.
+
+[7] X. Luo, E. Wang, and Y. Guo, “Gemini-graphqa: Integrating language
+models and graph encoders for executable graph reasoning,” 2025.
+[8] J. Chen, P. Zhou, Y. Hua, Y. Loh, K. Chen, Z. Li, B. Zhu, and J. Liang,
+“Fintextqa: A dataset for long-form financial question answering,” arXiv
+preprint arXiv:2405.09980, 2024.
+
+[9] B. Sarmah, D. Mehta, B. Hall, R. Rao, S. Patel, and S. Pasquali, “Hy-
+bridrag: Integrating knowledge graphs and vector retrieval augmented
+generation for efficient information extraction,” in Proceedings of the
+5th ACM International Conference on AI in Finance, 2024, pp. 608–
+616.
+
+[10] I. Iaroshev, R. Pillai, L. Vaglietti, and T. Hanne, “Evaluating retrieval-
+augmented generation models for financial report question and answer-
+ing.” Applied Sciences (2076-3417), vol. 14, no. 20, 2024.
+
+[11] Y. Yu, “Towards intelligent cloud scheduling: Dynasched-net with rein-
+
+forcement learning and predictive modeling,” 2025.
+
+[12] Z. Lin, “Tax share analysis and prediction of kernel extreme
+learning machine optimized by vector weighted average algorithm,” in
+Proceedings of the International Conference on Economic Management
+and Green Development (ICEMGD). UK: Zenodo, 2025. [Online].
+Available: https://doi.org/10.5281/zenodo.15532134
+
+[13] Y. Guo and Y. Yu, “Privacypreservenet: A multilevel privacy-preserving
+llms via gradient clipping and attention
+
+framework for multimodal
+noise,” 2025.

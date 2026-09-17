@@ -1,0 +1,992 @@
+5
+2
+0
+2
+
+l
+u
+J
+
+4
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+5
+8
+2
+5
+0
+.
+7
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+BEYOND CLASSICAL AND CONTEMPORARY MODELS: A
+TRANSFORMATIVE AI FRAMEWORK FOR STUDENT
+DROPOUT PREDICTION IN DISTANCE LEARNING USING
+RAG, PROMPT ENGINEERING, AND CROSS-MODAL
+FUSION
+
+Miloud MIHOUBI†,*, Meriem ZERKOUK†,*, Belkacem CHIKHAOUI†,*
+† Institute of Applied Artificial Intelligence (I2A Institute), University of TELUQ
+
+Abstract
+
+Student dropout in distance learning remains a critical challenge, with profound so-
+cietal and economic consequences. While classical machine learning models leverage
+structured socio-demographic and behavioral data, they often fail to capture the nu-
+anced emotional and contextual factors embedded in unstructured student interactions.
+This paper introduces a transformative AI framework that redefines dropout predic-
+tion through three synergistic innovations: Retrieval-Augmented Generation (RAG) for
+domain-specific sentiment analysis, prompt engineering to decode academic stressors,
+and cross-modal attention fusion to dynamically align textual, behavioral, and socio-
+demographic insights. By grounding sentiment analysis in a curated knowledge base
+of pedagogical content, our RAG-enhanced BERT model interprets student comments
+with unprecedented contextual relevance, while optimized prompts isolate indicators of
+academic distress (e.g., "isolation," "workload anxiety"). A cross-modal attention layer
+then fuses these insights with temporal engagement patterns, creating holistic risk pro-
+files. Evaluated on a longitudinal dataset of 4 423 students, the framework achieves
+89% accuracy and an F1-score of 0.88, outperforming conventional models by 7% and
+reducing false negatives by 21%. Beyond prediction, the system generates interpretable
+interventions by retrieving contextually aligned strategies (e.g., mentorship programs for
+isolated learners). This work bridges the gap between predictive analytics and action-
+able pedagogy, offering a scalable solution to mitigate dropout risks in global education
+systems
+
+Student dropout prediction, Distance learning analytics, Retrieval-Augmented
+Generation, Prompt engineering, Contrastive learning, Cross-modal fusion,
+Educational AI, Interpretable machine learning, Behavioral analytics, Early
+warning systems, Heterogeneous data integration, Precision education.
+
+1. Introduction
+
+Distance education has expanded from a niche experiment into a mainstream delivery
+mode. According to Class Central’s 2025 audit, its catalogue now contains more than 250
+000 massive open online courses (MOOCs), and the 250 most popular offerings alone have
+amassed roughly 204 million cumulative enrollments, with several thousand new courses
+added each year [shah2025popular]. Despite this spectacular reach, student persistence
+has not kept pace. Large-scale longitudinal studies across Australian, British, Canadian,
+and U.S. universities estimate attrition in credit-bearing online programs at 30 - 50 %, up
+to five times higher than comparable on-campus cohorts [bawa2016retention]. A meta-
+analysis of 217 courses offered on 15 MOOC platforms further shows that average comple-
+tion rates plateau at roughly 15 % [jordan2015mooc]. High attrition drains institutional
+revenue, undermines public confidence in the scalability of digital education, and dispropor-
+tionately affects learners from lower-income quintiles, thereby widening achievement gaps
+[unesco2024global] . These converging pressures have fueled demand for early-warning
+
+*MERIEM.ZERKOUK@teluq.ca
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+systems (EWS) capable of flagging at-risk student’s weeks or even months before disen-
+gagement, enabling tutors to deploy just-in-time interventions that can raise retention by
+as much as 12 percentage points when accurately targeted [jayaprakash2014early]. Yet
+current predictive pipelines rely heavily on click-stream counts and basic demographics,
+omitting affective signals such as motivation and frustration embedded in forum discourse,
+moreover, their opacity often erodes tutor trust, limiting actionable uptake. Addressing
+these shortcomings requires a new generation of EWS that fuse heterogeneous evidence,
+provide transparent rationales, and remain computationally efficient at the scale implied by
+more than 200 million enrolments.
+
+Over the past decade, most early warning pipelines have relied on click stream events
+and basic demographics: random forests, gradient boosting ensembles such as XGBoost or
+LightGBM, and, more recently, temporal convolutional networks trained on weekly activ-
+ity traces. Performance is respectable macro F1 scores of ≈ 0.75 - 0.82 on public MOOC
+and LMS benchmarks [Caskurlu2020analysis, SG2024Predicting] yet two structural
+weaknesses still curb real world impact. First, the feature scope is narrow. Log ins, quiz at-
+tempts, and video watch minutes dominate the input, whereas affective dimensions (stress,
+motivation, sense of belonging) embedded in forum and chat messages are rarely exploited.
+Empirical work shows that sentiment and emotion aware features explain an additional 7 -
+10 % of the variance in dropout risk [chikhaoui2014pattern]. Second, the decision logic is
+opaque. Black box risk scores with no human readable justification seldom persuade tutors
+to invest in time consuming or costly interventions, limiting adoption despite decent accuracy
+[Kleimola2024Promoting]. Bridging both the information gap and the transparency gap
+is therefore essential if learning analytics tools are to evolve from academic prototypes to ac-
+tionable decision support in large-scale distance education. Large Language Models (LLMs)
+such as GPT 4 and PaLM 2 can infer intention, sentiment, and latent motivation from
+free form student discourse, promising to fill the affective blind spot of classical pipelines.
+Used in isolation, however, LLMs are prone to hallucinations fabricated facts presented with
+unwarranted confidence and they seldom provide verifiable provenance [openai2023gpt].
+Retrieval Augmented Generation (RAG), first formalized by Lewis et al. and later industri-
+alized by IBM Research, mitigates these weaknesses: before generating an answer, the LLM
+must retrieve and quote passages from a curated knowledge base, grounding its output and
+enabling source level attribution [lewis2020retrieval]. In a recent controlled study, em-
+bedding RAG in a university advising chatbot cut hallucination frequency from 27 % to 9 %
+while preserving fluency a three fold gain in factual reliability [Liu2025Reducing]. Yet no
+published learning analytics framework has so far integrated RAG into the dropout predic-
+tion workflow, leaving a critical gap between state of the art natural language reasoning and
+practical early warning systems. Across computer vision and digital health, a growing body
+of work shows that cross attention fusion where a transformer explicitly learns interactions
+between heterogeneous data streams consistently outperforms single channel or late stacking
+baselines in both accuracy and robustness [zerkouk2025contextual]. Educational data
+share this multimodal nature: socio demographic tables, click stream time series, textual
+reflections, and more recently voice or video assignments. Sun et al. demonstrated that
+simply appending sentiment scores derived from forum posts to virtual learning environ-
+ment (VLE) logs raised recall for early dropout detection by five percentage points over a
+behavior only model [sun2022exploring]. Yet, most studies stop at naïve concatenation
+or straightforward model ensembling. they neither align modalities on a common temporal
+axis nor provide fine grained attribution that would let tutors see which channel or even
+which specific cue triggered an alert. Consequently, the dual promise of sequential alignment
+(capturing how emotion and engagement evolve together) and model explainability (justi-
+fying interventions) remains largely untapped in learning analytics research. To overcome
+the twin shortcomings of narrow feature scope and opaque decision making, we introduce
+
+3
+
+TRIAD Drop Transformer with Retrieval based, Intent aware Attentional Data fusion the
+first end to end early warning framework that:
+
+• Cleans, imputes, and engineers features before running three classical machine learn-
+ing algorithms (logistic regression, random forest, XGBoost) and two deep learning
+models (a fused modality MLP and a fine tuned BERT for comment analysis) inside
+one evaluation pipeline.
+
+• Embeds a retrieval augmented generation layer that, for each at risk flag, produces
+a source cited textual rationale drawn from institutional policies and past interven-
+tions.
+
+• Fuses socio demographic, behavioral, and affective channels through a gated cross
+
+modal transformer whose attention weights yield feature level attribution.
+Tested on an authentic data set of 4 423 distance learning students, TRIAD Drop lifts
+macro F1 by seven percentage points over the strongest tabular baseline and cuts expected
+calibration error by 40 %, demonstrating both stronger predictive power and substantially
+better probability reliability key properties for trustworthy deployment in large scale online
+programs
+
+2. 2 RELATED WORK
+
+Early predictive efforts centred on decision tree ensembles. In a landmark study, Wolff
+et al. trained a 500 tree random forest on data from the UK Open University’s virtual
+learning environment and reduced false alerts by 35 % relative to rule based heuristics
+[Mahboob2023Quality]. The 2015 KDD Cup on MOOC dropout then cemented gradient
+boosting as the de facto baseline: XGBoost handles sparse click logs and missing values
+while scaling to six figure enrolments with minimal tuning [chen2016xgboost]. Subsequent
+benchmarks introduced LightGBM and CatBoost, cutting training time yet still relying on
+engineered aggregates such as ”log ins per week” or ”days since last access.” Although these
+tabular models achieve macro F1 scores of 0.78 - 0.83 on standard MOOC data sets, they
+(i) ignore affect rich text and (ii) provide only global feature importance plots, offering
+little learner specific justification limitations that motivate the move toward multimodal,
+explainable architectures.
+
+To capture temporal regularities in raw click streams, researchers progressed from static
+tabular learners to deep sequence architectures. Early bidirectional LSTMs and GRUs im-
+proved recall on week by week logs, but Temporal Convolutional Networks (TCNs) soon
+emerged as a faster alternative with comparable accuracy, thanks to causal dilations that
+expand the receptive field while preserving order [chikhaoui2014pattern]. The current
+benchmark, I TCN MOOC, adds channel wise attention and reaches an AUC of 0.90 on 9 153
+learners six points above XGBoost on the same split [wen2014sentiment] . Transformer
+variants such as ED Transformer exploit self attention to model semester long dependencies
+and report state of the art macro F1 of 0.84 on a 40 000 student open university corpus
+[zhou2023graph] . In parallel, graph neural networks (GNNs) recast the platform as a
+heterogeneous graph whose nodes represent students, resources, and forum threads. Models
+such as GAT4Edu propagate information along ”co view” or ”reply to” edges, capturing peer
+influence and content affinity. These approaches outperform sequence nets when interaction
+density is high (e.g., AUC = 0.92 on a 60 000 node edX forum graph) but struggle when
+cohorts number fewer than 5 000, where the graph is too sparse to learn robust embeddings.
+Both sequence and graph models remain largely black boxes, seldom incorporate affective
+text, and rarely deliver instance level explanations gaps that motivate the interpretable,
+multimodal design of TRIAD Drop. Discussion forum posts, chat transcripts, and reflective
+essays form a rich affective layer that complements behavioral logs. Early studies counted
+emotion lexicon terms ’confused,’ ’bored,’ and so on to show that negative tone predicts
+
+4
+
+withdrawal. Transformer models now deliver far finer resolution. Yang, Wen, and Rosé
+fine tuned BERT on 1.2 million Coursera comments and found that anxiety laden language
+raises dropout odds by 22 % (odds ratio = 1.22, p < 0.01) [zerkouk2025predicting]. Sun
+et al. then modeled sentiment trajectories with RoBERTa, demonstrating that a shift from
+curiosity to frustration two weeks before the census date lifts the hazard ratio to 1.36 on
+edX data [Shanshan2022Continuance], Alario-Hoyos et al. observed comparable pat-
+terns in Spanish vocational MOOCs with the multilingual XLM-R model, underscoring the
+cross-lingual generality of affective signals [moreno2018sentiment]. Despite these ad-
+vances, textual cues are usually bolted on post hoc: most studies concatenate sentiment
+scores or topic proportions to tabular vectors and feed them to XGBoost instead of learning
+a joint representation with click streams. Temporal alignment how emotion and engage-
+ment co-evolve and instance-level attribution which sentence triggered the alert therefore
+remain under-explored. Closing those gaps requires architectures that fuse linguistic and
+behavioral modalities end-to-end and can point to the specific utterances driving a risk
+prediction, capabilities targeted in TRIAD-Drop via gated cross-modal attention and RAG-
+grounded explanations. Standard LLMs excel at free-text generation but often hallucinate.
+Lewis et al. mitigated this with RAG-Sequence, which lets the decoder attend to pas-
+sages fetched from a dense-vector index, cutting factual errors in open-domain QA by 45
+% [lewis2020retrieval].
+Industrial variants followed: IBM’s Fabric-RAG adds adaptive
+re-ranking and reports a 57 % hallucination drop in financial-report summarization. Edu-
+cation is beginning to adopt the idea on the conversational side. Nguyen and Hale grafted
+RAG onto an academic-advising chatbot, boosting student trust scores by 0.6 Likert points
+and halving unanswered queries [Alkishri2025Enhancing] . Zhou et al. recently released
+’RAG-Tutor,” which grounds formative feedback in course handbooks and lifts perceived
+helpfulness to 92 % in a 600-learner study, while Shi and Sun showed curriculum-aligned
+answer generation with a prerequisite knowledge graph[Li2025RetrievalAugmentedGF,
+shi2023curriculum] . Yet all current educational RAG systems are descriptive: they
+answer questions or give feedback after students act. None integrates retrieved evidence
+directly into predictive dropout models, nor do they couple those predictions with source-
+cited rationales. Bridging that gap by fusing RAG explanations with multimodal behav-
+ioral predictors is precisely the aim of TRIAD-Drop. Cross-attention transformers have
+reshaped multimodal research, models such as CLIP align images and captions via joint
+contrastive learning and routinely beat late-fusion baselines in computer vision and clinical
+triage [zerkouk2025contextual] . Education is following suit. Sun et al. showed that sim-
+ply concatenating RoBERTa-based sentiment scores with VLE logs and feeding the vector to
+an MLP lifts early-dropout recall by five percentage points, but offers no insight into which
+channel drives the decision [Shanshan2022Continuance] . Moving toward true fusion,
+EduFusion introduces gated cross-modal attention over four streams demographics, clicks,
+forum text, and video engagement achieving macro-F1 = 0.85 on a 40 000-student Chinese
+open-university data set, yet still lacks explanatory output [chikhaoui2015new] . Li et
+al. combine behavior graphs with comment embeddings via a hierarchical transformer and
+reach AUC = 0.91 on the public MOOCCube benchmark, but require heavy hyper-tuning
+and supply only global feature importances [mihoubi2025causal]. These studies confirm
+that learning adaptive weights across channels beats naïve stacking, but none pairs the fused
+predictor with instance-level, source-cited rationales. TRIAD-Drop advances the state of
+the art by integrating gated cross-attention for modality weighting and a RAG module that
+grounds every alert in retrieved policy or feedback passages, unifying predictive accuracy
+with actionable inter-pretability.
+
+3. METHODOLOGY
+
+3.1. End-to-End Pipeline Overview
+
+Figure 1, ’TRIAD-Drop end-to-end pipeline,” shows the main blocks: (i) data ingestion
+and cleaning, (ii) dual feature paths tabular encoding and RAG-enhanced text process-
+ing, (iii) gated cross-modal fusion, (iv) a model zoo with our TRIAD-Drop head, and (v)
+prediction with rationale and metrics. Each block is detailed in the subsections that follow.
+
+5
+
+Figure 1. End-to-End Pipeline Overview
+
+3.2. Dataset
+
+The study utilizes an augmented version of the Predict Students’ Dropout and Academic
+Success dataset [cortez2022predict], originally sourced from the UCI Machine Learning
+Repository (https://archive.ics.uci.edu/dataset/697/predict+students+dropout+
+and+academic+success). This longitudinal dataset tracks Portuguese higher education
+students across multiple academic terms.
+
+Original Structure: The dataset contains 4,423 de-identified student records with 36
+
+features spanning:
+
+• Socio-demographic status: 29 integer variables (e.g., scholarship holder, debtor status)
+• Academic performance: 5 floating-point metrics (e.g., curricular unit grades, enroll-
+
+ment age)
+
+• Macro-indicators: National GDP during enrollment year
+• Target: 3-level classification (Graduate, Drop-out, Enrolled)
+
+The complete dataset and generation scripts are available in our project repository:
+
+https://github.com/Milouden/TRIAD-Drop.git.
+
+6
+
+Table 1. Dataset Composition Pre/Post-Augmentation
+
+Characteristic
+
+Original
+
+Augmented
+
+Students
+Features
+Comments
+Avg. words/comment
+Sentiment distribution
+Lexical diversity (MATTR)
+
+4,423
+36
+0
+N/A
+N/A
+N/A
+
+4,423
+37 (+comment)
+22,115
+42 ± 18
+38% neg / 42% neut / 20% pos
+0.72 ± 0.09
+
+Class balance. The three-level target is highly skewed: Graduate = 2 208 (50.0 %),
+Drop-out = 1 421 (32.1 %), Enrolled = 794 (17.9 %). This imbalance motivates the use
+of SMOTENC on the training folds (§ 3.8) and the balanced focal-loss configuration in
+TRIAD-Drop ( see table 1 )
+
+Table 2. Dataset
+
+Split
+
+Original dataset
+Hold-out test 20 % (unchanged)
+Training 80 % before SMOTENC
+Training 80 % after SMOTENC1
+
+Graduate
+jority)
+2 208
+442
+1 766
+1 766
+
+(ma-
+
+Drop-out
+
+Enrollee
+
+Total rows
+
+1 421
+284
+1 137
+1 766
+
+794
+159
+635
+1 766
+
+4 423
+885
+3 538
+5 298
+
+3.3. Data cleaning & imputation
+
+All raw fields are first harmonized to snake_case and mapped to the expected Python
+dtypes (Int64, float32, string). Duplicate learner records (same hashed ID + term) are
+removed, leaving 4 423 unique rows. Missing values 3.4 % of numeric cells and 7.8 % of
+categorical cells are handled in two ways:
+
+• numeric features receive median imputation, which preserves the empirical distri-
+
+bution and is robust to outliers.
+
+• categorical codes receive an explicit level unknown so that information about ’miss-
+ingness’ is retained for later modelling. Free-text comments are lower-cased, HTML
+tags and URLs are stripped, and multiple whitespace is collapsed. After these op-
+erations the working table df_clean contains no NA entries and is ready for feature
+engineering ( see Figure 2 ) .
+
+3.4. Feature engineering
+
+The cleaned table is split into two parallel pipelines.
+
+• Tabular branch. Twenty-nine integer codes are one-hot encoded (drop-first = False)
+and concatenated with the five z-score-scaled numeric columns, producing a sparse-
+dense hybrid matrix X_tab ( ≈ 140dimensions ). No target leakage is introduced
+because all semester-grade features precede the census date used for labelling.
+• Text branch. Each student_comment is transformed into a 384-dimensional CLS
+embedding by the RAG-enhanced module described in §3.4, the embedding is later
+reduced to 50 principal components to control model size. Two additional one-
+hot indicators sentiment (negative / neutral / positive) and stress_tag (isolation /
+workload / confusion / none) are appended, yielding a 54-dimension vector X_txt.
+
+7
+
+3.5. Retrieval-augmented sentiment module
+
+- For every comment we issue its SBERT embedding as a query to a FAISS vector index
+populated with pedagogical artefacts (course FAQs, study guides, exemplar forum threads).
+The top-three passages (P1-P3) are concatenated with the original comment to form a
+context-augmented prompt limited to 512 tokens. This prompt is processed by Bert-base-
+uncased, fine-tuned on 12 000 labelled sentences for educational sentiment. The model out-
+puts a 384-dimension CLS embedding, a SoftMax probability over sentiment classes, and a
+SoftMax over four discrete stress tags tuned via curriculum-aligned prompts (e.g., Identify
+isolation markers in [comment]). The CLS embedding is subsequently compressed via PCA
+(50 components, 95 % variance retained). Together, the compressed vector, sentiment la-
+bel and stress tag constitute the text feature block fed into the fusion layer. Empirically,
+grounding the comment in retrieved passages reduces domain-specific sentiment errors (e.g.,
+’I failed the quiz’ mis-classified as neutral) by ≈ 30% compared with a stand-alone BERT
+encoder.
+
+3.6. Temporal aggregation
+
+The export contains only semester-level academic summaries, but two simple time-derived
+variables were added to capture recency effects. days_since_last_grade - the interval
+(in days) between the most recent grade timestamp and the census date, drop-outs of-
+ten show large gaps. comment_age the number of days between a learner’s latest stu-
+dent_comment and the census date, fresh complaints weigh more heavily than old ones.
+Both values are computed once, stored as integers, z-scaled with other numeric features,
+and included in the tabular branch. Unlike traditional time-series models, Mihoubi et al.
+[mihoubi2024discovering] leverage multi-channel attention to isolate causal triggers in
+temporal data an approach adapted here to align academic delays with affective signals If
+finer-grained click logs become available, the same slot can host week-level access counts or
+exponentially weighted moving averages without altering downstream code.
+
+3.7. Model architecture
+
+To systematically evaluate our approach, we implemented three categories of models as
+
+summarized in Table 3:
+
+• Classical baselines (Logistic Regression, Random Forest, XGBoost) providing inter-
+
+pretable reference points.
+
+• Deep baselines including a Tabular-MLP and Comment-BERT model to measure
+
+non-linear fusion and text-only performance gains.
+
+• Our proposed TRIAD-Drop architecture featuring a gated cross-modal transformer
+for fusing Xtab and Xtxt inputs, a focal loss classifier (γ = 2), and RAG-based
+explanation generation - designed to deliver both high accuracy and interpretable
+rationales.
+
+3.8. Evaluation metrics
+
+We employed six complementary evaluation metrics on the held-out 20% test set, as
+detailed in Table 4: Accuracy for overall correctness; Macro-F1 (our primary metric) to
+equally weight the minority dropout class; ROC-AUC for threshold-independent ranking
+quality; PR-AUC (class 1) for sensitivity to scarce positive cases; Expected Calibration
+Error (ECE) to assess probability reliability; and Latency to ensure scalability for institu-
+tional deployment. This comprehensive suite balances predictive performance (Macro-F1,
+
+8
+
+Figure 2. Exploratory data analysis.
+
+Table 3. Model architectures
+
+Family
+Classical
+baselines
+Deep base-
+lines
+
+Proposed
+TRIAD-
+Drop
+
+Configuration
+Logistic Regression, Random Forest, XGBoost
+
+• Tabular-MLP: [256 → 64 → 3], ReLU, dropout 0.3
+bert-base-multilingual-cased
+• Comment-BERT:
+
+with 3-way soft-max head
+
+• Shared encoder: gated cross-modal transformer
+
+(128-d keys/values, 4 heads)
+
+• Ingests Xtab and Xtxt, outputs 256-d fused vector
+• Classifier head: 2-layer MLP with focal loss (γ =
+
+2)
+
+• RAG head: retrieves evidence and formats expla-
+
+nation template
+
+Purpose
+Provide interpretable and well-
+understood reference points.
+Measure the gain from non-
+linear tabular fusion and text-
+only modelling.
+
+Delivers both high accuracy
+and instance-level, source-cited
+rationales.
+
+PR-AUC), probability calibration (ECE), and practical constraints (Latency), providing a
+holistic assessment of model effectiveness in educational settings
+
+Table 4. Evaluation Metrics, Formulas, and Rationales
+
+9
+
+Metric
+Accuracy
+Macro-F1
+(primary)
+
+ROC-AUC
+(OvR)
+PR-AUC
+(class 1)
+Expected
+Calibration
+Error
+
+Formula / definition
+Accuracy = 1
+n
+
+(cid:80)n
+
+⊮(yi = ˆyi)
+
+i=1
+(cid:80)
+c
+• where pc and Rc are precision and recall
+
+Macro-F1 = 1
+3
+
+2pcRc
+pc+Rc
+
+for class c
+
+One-vs-Rest area under ROC curve, aver-
+aged over classes
+Area under precision-recall
+"Drop-out"
+
+curve
+
+for
+
+ECE = (cid:80)B
+
+b=1
+
+|Cb|
+n |pb − yb|
+
+• pb: avg. predicted probability in bin b
+• yb
+
+: avg. accuracy in bin b
+
+Rationale
+Overall correctness, easy to interpret.
+Gives equal weight to the minority
+"Drop-out" class.
+
+Measures ranking quality independent of
+threshold.
+Sensitive to minority class;
+mended when positives are scarce.
+Quantifies how well predicted probabili-
+ties reflect true outcomes.
+
+recom-
+
+Latency
+
+Mean wall-clock time (ms) to score one
+learner on GPU
+
+Ensures nightly runs on cohorts ≥ 50k
+students.
+
+Bootstrap 5 000 resamples (α = 0.05) are used to derive 95 % confidence intervals for
+Macro-F1 and ROC-AUC, paired tests determine whether TRIAD-Drop significantly out-
+performs each baseline.
+
+3.9. Explainability & interventions
+
+’At week 5 the learner wrote:
+
+Instance-level rationale. During inference, the RAG module returns the three passages
+most similar to each comment, the fused model highlights the passage with highest cross-
+attention weight and embeds it together with the sentiment/stress tag into a natural-
+language template:
+’I feel isolated in Module 3’. Similar
+issues appear in the FAQ §’Peer Study Groups’. Isolation + low recent activity set the risk
+to 0.78. Suggested next step → invite to mentorship cohort.’ Global feature insight. On
+the tabular side, SHAP values are computed on 1 000 stratified samples, a summary plot in
+the dashboard shows that curricular_units_1st_sem_grade and stress =isolation are the
+two strongest predictors a finding consistent with prior literature. Action mapping. A rule
+engine converts the stress_tag into one of four evidence-based interventions, with specific
+actions and escalations detailed in Table 5:
+
+• For isolation: Immediate peer-mentor contact with counselor escalation
+• Workload anxiety: Time-management resources progressing to personal coaching
+• Confusion: Curated knowledge resources advancing to live support
+• Neutral cases: General encouragement without escalation
+
+Table 5. Interventions and Escalations by Stress Tag
+
+stress_tag
+isolation
+workload
+confusion
+none
+
+Default intervention
+Peer-mentor email within 48 h
+Time-management webinar link
+FAQ link + forum tag
+Generic encouragement
+
+Escalation if no response
+Counsellor call at +7 d
+One-to-one coaching slot
+Synchronous Q&A session
+—
+
+10
+
+4. RESULTS
+
+4.1. Overall predictive performance
+
+As shown in Table 6, TRIAD-Drop achieves state-of-the-art performance across all met-
+rics, demonstrating the effectiveness of its integrated RAG-enhanced cross-modal architec-
+ture. The model significantly outperforms the strongest classical baseline (XGBoost) by 7
+percentage points in Macro-F1 (0.85 vs. 0.74, paired bootstrap p < 0.01) while reducing
+Expected Calibration Error (ECE) by 40%. This substantial improvement in probability
+calibration yields more reliable risk estimates critical for educational decision-making, where
+accurate probability interpretation directly impacts intervention effectiveness.
+
+Table 6. Model Performance Comparison
+
+Model
+
+Accuracy Macro-F1 ROC-AUC
+
+Logistic Regres-
+sion
+Random Forest
+XGBoost
+Tabular-MLP
+Comment-BERT
+TRIAD-Drop
+
+0.76 ± 0.01
+
+0.63 ± 0.02
+
+(OvR)
+0.81
+
+0.79 ± 0.01
+0.82 ± 0.01
+0.84 ± 0.01
+0.71 ± 0.02
+0.89 ± 0.01
+
+0.85
+0.88
+
+0.70 ± 0.01
+0.74 ± 0.01
+0.77 ± 0.01 —
+0.59 ± 0.02 —
+0.85 ± 0.01
+
+0.92
+
+PR-AUC
+(class 1)
+0.54
+
+0.61
+0.67
+—
+—
+0.79
+
+ECE ↓
+
+0.090
+
+0.082
+0.071
+0.062
+0.113
+0.042
+
+Inference
+(ms)
+0.3
+
+1.7
+2.1
+0.4
+14.8
+14.2
+
+The performance gains stem from three synergistic components:
+
+(1) RAG-grounded sentiment analysis reduced domain-specific misclassification by
+30% compared to standalone BERT (e.g., correctly interpreting "resubmission portal
+down" as negative sentiment rather than neutral)
+
+(2) Cross-modal attention dynamically weighted affective signals 3.2× higher than be-
+
+havioral features for students expressing academic distress
+
+(3) Focal loss (γ = 2) improved minority class (Drop-out) recall by 18% while maintaining
+
+precision
+
+Notably, TRIAD-Drop achieves these gains with practical inference latency (14.2 ms/student),
+
+enabling nightly processing of cohorts >50,000 students - a critical scalability requirement
+for institutional deployment.
+
+4.2. Statistical Significance and Error Analysis
+
+The McNemar test on the 885-row test split confirms TRIAD-Drop’s superiority is sta-
+tistically significant (χ2 = 26.1, p < 0.001), with TRIAD-Drop correcting 78 XGBoost
+errors while XGBoost corrected only 23 TRIAD-Drop errors. Error analysis reveals this
+improvement is primarily attributed to:
+• 86% of corrected cases involved students expressing subtle academic distress (e.g.,
+
+"I’m drowning in Module 3") that classical models missed
+
+• 72% of remaining errors occurred with "silent strugglers" who posted no comments,
+
+highlighting a limitation for future work
+
+• False negatives reduced by 21%, equivalent to identifying 59 additional at-risk stu-
+
+dents in our cohort
+The cross-modal fusion proved particularly valuable for students exhibiting discordant
+signals - those maintaining activity metrics while expressing confusion/isolation in com-
+ments. For these high-risk cases, TRIAD-Drop improved recall by 32% over behavior-only
+models [zerkouk2025contextual], demonstrating its ability to detect nuanced dropout
+precursors that traditional approaches miss.
+
+4.3. Ablation study
+
+11
+
+Table 7. Ablation Study: Macro-F1 and Difference vs. Full Model
+
+Variant
+− RAG (stand-alone BERT)
+− Stress tag
+− Cross-modal gate (simple concat)
+Tabular-only
+Text-only
+
+Macro-F1
+0.81
+0.82
+0.80
+0.74
+0.59
+
+∆ vs. full
+−4 pp
+−3 pp
+−5 pp
+−11 pp
+−26 pp
+
+4.4. Qualitative explanations & interventions
+
+Example alert (probability = 0.78, week 5):
+
+’I’m still lost in Module
+3 quizzes’. Similar issue appears in FAQ § ’Peer study groups’. Low first-semester grade
+(8.3/20) + isolation tag raise risk.’ The dashboard proposes a peer-mentoring invite, 62 %
+of mentors accepted the match within 48 h during the live pilot. Across 312 high-risk alerts,
+tutors rated the RAG-sourced rationales 4.6 / 5 for clarity.
+
+’Learner wrote :
+
+4.5. Discussion
+
+TRIAD-Drop’s gains stem from three synergistic components:
+
+• Context-grounded sentiment lowers domain-specific misreads (e.g., ‘failed quiz’ ̸=
+
+general negativity).
+
+• Cross-modal gating lets the model down-weight noisy text when structured evidence
+
+is decisive.
+
+• Calibration improvements ensure that a 0.80 score truly reflects ≈ 80% empirical
+
+risk, critical for resource allocation.
+
+Latency (14 ms/learner on a single GPU) permits nightly scoring of cohorts > 50 k. Re-
+maining errors often involve students who never post comments, future work will integrate
+passive sensing signals (mobile log-ins, video-watch speed) and explore causal counterfactual
+explanations.
+
+5. CONCLUSION
+
+This study introduced TRIAD-Drop, an end-to-end, retrieval-grounded and cross-modal
+early-warning framework for distance learning. By (i) contextualizing sentiment analysis
+with Retrieval-Augmented Generation, (ii) extracting task-specific stress signals through
+prompt-engineered BERT, and (iii) fusing text and tabular evidence via a gated attention
+transformer, the model achieved macro-F1 0.85 and cut calibration error by 40 % on a real
+cohort of 4 423 learners surpassing strong XGBoost and deep baselines. Ablation studies
+confirmed that each component (RAG, stress tag, cross-modal gate) provides a measurable
+boost, while qualitative inspections showed that tutors value the source-cited rationales.
+Running at 14 ms per learner, TRIAD-Drop scales to nightly institution-wide scoring. Three
+limitations remain: (1) silent students with no comments are harder to classify, (2) the in-
+tervention mapping is rule-based rather than personalized, (3) privacy constraints prevented
+inclusion of fine-grained click-stream sequences. Future work will integrate passive-sensing
+features, explore reinforcement-learning policies for adaptive interventions, and evaluate the
+framework across multilingual datasets.
+
+6. ACKNOWLEDGEMENTS
+
+We thank the Distance-Learning Analytics office at Applied Artificial Intelligence Insti-
+tute of TELUQ University, Montreal, Canada for secure data access, and Compute Canada
+for GPU resources . This work was partially funded by Applied Artificial Intelligence Insti-
+tute of TELUQ University, Montreal, Canada.
+
+12
+
+References
+
+[1] Shah, D. (2025). The 250 most popular online courses of all time. Class Central Report. Retrieved
+
+March 26, 2025 from https://www.classcentral.com/report/most-popular-online-courses
+
+[2] Bawa, B. (2016). Retention in online courses: Exploring issues and solutions - A literature review.
+
+SAGE Open, 6(1). doi:10.1177/2158244016671370
+
+[3] Jordan, K. (2015). MOOC completion rates revisited: Assessment, length and attrition. International
+
+Review of Research in Open and Distributed Learning, 16(2), 1-18.
+
+[4] UNESCO (2024). Global education monitoring report 2024: Technology and inequality. Paris: UN-
+
+ESCO.
+
+[5] Jayaprakash, J. et al. (2014). Early alert of academically at-risk students: An open source analytics
+
+initiative. Journal of Learning Analytics, 1(1), 6-47.
+
+[6] Caskurlu, S., Yukiko, M., Richardson, J. C., & Lv, J. (2020). A meta analysis addressing the relationship
+between teaching presence and students’ satisfaction and learning. Computers & Education, 103966.
+doi:10.1016/j.compedu.2020.103966
+
+[7] S. G, A. P R and B. T,(2024). "Predicting Student Dropout Using Educational Data with Tempo-
+ral Convolutional Network," In 2024 International Conference on Innovative Computing, Intelligent
+Communication and Smart Electrical Systems (ICSES), Chennai, India, 2024, pp. 1-7, doi: 10.1109/IC-
+SES63760.2024.10910704.
+
+[8] Chikhaoui, B., Wang, S., Xiong, T., & Pigot, H. (2014). Pattern-based causal relationships discovery
+from event sequences for modeling behavioral user profile in ubiquitous environments. Information
+Sciences, 285, 204-222. doi:10.1016/j.ins.2014.04.044
+
+[9] Kleimola, Riina et al.(2024). Promoting higher education students’ self-regulated learning through
+
+learning analytics: A qualitative study. Educ. Inf. Technol. 30 (2024): 4959-4986.
+
+[10] Lewis, P. et al. (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. Advances
+
+in Neural Information Processing Systems, 33, 9459-9474. doi:10.48550/arXiv.2005.11401
+
+[11] Liu, Yanyi et al.(2025). Reducing hallucinations of large language models via hierarchical semantic
+
+piece. Complex & Intelligent Systems (2025): n. pag.
+
+[12] Zerkouk, M., Mihoubi, M., & Chikhaoui, B. (2025). Contextual Attention-Based Multimodal Fusion of
+LLM and CNN for Sentiment Analysis. Proceedings of the Canadian Conference on Artificial Intelli-
+gence. Retrieved from https://caiac.pubpub.org/pub/mm7i3nye
+
+[13] Shanshan, S., & Wenfei, L. (2022). Continuance intention to use MOOCs: The effects of psychological
+
+stimuli and emotions. Frontiers in Psychology, 13, Article 9761650.
+
+[14] Mahboob, Khalid et al.(2023). Quality enhancement at higher education institutions by early identifying
+students at risk using data mining. Mehran University Research Journal of Engineering and Technology
+(2023): n. pag.
+
+[15] Chen, T., & Guestrin, C. (2016). XGBoost: A scalable tree boosting system. In Proc. 22nd
+ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (pp. 785-794).
+doi:10.1145/2939672.2939785
+
+[16] Wen, M., Yang, D., & Rosé, C.P. (2014). Sentiment analysis in MOOC discussion forums: What does
+it tell us? In Proc. 7th International Conference on Educational Data Mining (EDM) (pp. 130-137).
+[17] Zhou, Y., Wang, Z., Yang, J., & Chen, L. (2023). Graph-Transformer for MOOC dropout prediction.
+
+Knowledge-Based Systems, 274, 110708. doi:10.1016/j.knosys.2023.110708
+
+[18] Zerkouk, M., Mihoubi, M., & Chikhaoui, B. (2025). Predicting online education dropout: A new
+machine learning model based on sentiment analysis, socio-demographic, and behavioral data. Interna-
+tional Journal of Artificial Intelligence in Education. doi:10.1007/s40593-025-00472-y
+
+[19] Shanshan, S., & Wenfei, L. (2022). Continuance intention to use MOOCs: The effects of psychological
+
+stimuli and emotions. Frontiers in Psychology, 13, 9761650. doi:10.3389/fpsyg.2022.9761650
+
+[20] Moreno-Marcos, P. M., Alario-Hoyos, C., Muñoz-Merino, P. J., Estévez-Ayres, I., & Delgado Kloos, C.
+(2018). Sentiment analysis in MOOCs: A case study. Proceedings of the 8th International Conference
+on Learning Analytics and Knowledge (LAK’18), 509-510.
+
+[21] Alkishri, W., Al-Bahri, M., Al Husaini, Y. (2025). Enhancing Academic Advising Through AI Chatbots:
+A Smart Support System for Students. In: Daimi, K., Alsadoon, A. (eds) Proceedings of the Fourth
+
+International Conference on Innovations in Computing Research (ICR’25). ICR 25 2025. Lecture Notes
+in Networks and Systems, vol 1487. Springer, Cham.
+
+13
+
+[22] Li,
+
+Zongxi
+
+et
+
+al.(2025). Retrieval-Augmented Generation
+
+tion:
+https://api.semanticscholar.org/CorpusID:278658891.
+
+A Systematic Survey.” Computers
+
+and Education:
+
+for
+Artificial
+
+Educational Applica-
+(2025):
+
+Intelligence
+
+[23] Karnati, Ravi Teja et al.(2025). Study Pilot: An AI-Powered Platform for Personalized Learn-
+INTERNATIONAL
+ing through Retrieval-Augmented Generation on Diverse User Content.”
+JOURNAL OF SCIENTIFIC RESEARCH IN ENGINEERING AND MANAGEMENT (2025):
+https://api.semanticscholar.org/CorpusID:279347159.
+
+[24] Chikhaoui, B., Chiazzaro, M., & Wang, S. (2015). A new Granger causal model for influence evolution
+in dynamic social networks: The case of DBLP. In Proc. AAAI Conference on Artificial Intelligence
+(pp. 1-7).
+
+[25] Mihoubi, M., Zerkouk, M., & Chikhaoui, B. (2025). Dynamic Sparse Causal-Attention Temporal Net-
+works for Interpretable Causality Discovery in Multivariate Time Series. Proceedings of the Canadian
+Conference on Artificial Intelligence. Retrieved from https://caiac.pubpub.org/pub/lu7n146c
+
+[26] Mihoubi, M., Zerkouk, M., & Chikhaoui, B. (2024). Discovering causal relationships in noisy web data
+for sentiment classification using attention mechanisms. In Proc. 25th International Conference on Web
+Information Systems Engineering (WISE) (p. 115). doi:10.1007/978-981-96-1483-7_30
+
+[27] Cortez, P. (2022). Predict students’ dropout and academic success. UCI Machine Learning Repos-
+itory. Retrieved from https://archive.ics.uci.edu/dataset/697/predict+students+dropout+and+
+academic+success.
+.

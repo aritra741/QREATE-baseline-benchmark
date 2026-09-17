@@ -309,6 +309,8 @@ def score_split(
     structure = []
     cell = []
     query_scores = []
+    cell20 = []
+    query20 = []
     for row in test_rows:
         sql = row["sql"]
         if "pred_sql" in row:
@@ -352,14 +354,28 @@ def score_split(
                 )
                 c = float(cell_map[cell_key])
                 q = float(query_map[query_key])
+                cell20_key = next(
+                    (key for key in cell_map if abs(float(key) - 0.20) < 1e-9),
+                    None,
+                )
+                query20_key = next(
+                    (key for key in query_map if abs(float(key) - 0.20) < 1e-9),
+                    None,
+                )
+                c20 = float(cell_map[cell20_key]) if cell20_key else c
+                q20 = float(query_map[query20_key]) if query20_key else q
                 item.update({
                     "structure_f2": s,
                     "cell_f1_05": c,
                     "query_score_05": q,
+                    "cell_f1_20": c20,
+                    "query_score_20": q20,
                 })
                 structure.append(s)
                 cell.append(c)
                 query_scores.append(q)
+                cell20.append(c20)
+                query20.append(q20)
             except Exception as exc:  # noqa: BLE001
                 item["metric_error"] = str(exc)
         per_query.append(item)
@@ -375,6 +391,8 @@ def score_split(
         "mean_structure_f2": mean(structure),
         "mean_cell_f1_05": mean(cell),
         "mean_query_score_05": mean(query_scores),
+        "mean_cell_f1_20": mean(cell20),
+        "mean_query_score_20": mean(query20),
         "per_query": per_query,
     }
 

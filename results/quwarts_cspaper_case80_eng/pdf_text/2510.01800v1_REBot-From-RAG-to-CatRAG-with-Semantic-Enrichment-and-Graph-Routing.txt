@@ -1,0 +1,873 @@
+5
+2
+0
+2
+
+t
+c
+O
+2
+
+]
+I
+
+A
+.
+s
+c
+[
+
+1
+v
+0
+0
+8
+1
+0
+.
+0
+1
+5
+2
+:
+v
+i
+X
+r
+a
+
+REBot: From RAG to CatRAG with Semantic
+Enrichment and Graph Routing
+
+Thanh Ma, Tam-Tri La, Nghi-Minh Nguyen, Van-Khanh Pham Luu,
+Thu-Lam Le Huu, and Huu-Hoa Nguyen∗
+
+{mtthanh,nhhoa}@ctu.edu.vn
+{tamb2203579,nghib2203570,vanb2203592,thub2206018}@student.ctu.edu.vn
+∗ corresponding author
+
+Abstract. Academic regulation advising is vital for helping students
+interpret and comply with institutional policies, yet building effective
+systems requires domain-specific regulatory resources. To address this
+challenge, we propose REBot, an LLM-enhanced advisory chatbot pow-
+ered by CatRAG, a hybrid retrieval–reasoning framework that integrates
+RAG with GraphRAG. We introduce CatRAG that unifies dense re-
+trieval and graph-based reasoning, supported by a hierarchical, category-
+labeled knowledge graph enriched with semantic features for domain
+alignment. A lightweight intent classifier routes queries to the appro-
+priate retrieval modules, ensuring both factual accuracy and contex-
+tual depth. We construct a regulation-specific dataset and assess REBot
+on classification and question-answering tasks, achieving state-of-the-art
+performance with an F1-score of 98.89%. Finally, we implement a web
+application that demonstrates the practical value of REBot in real-world
+academic advising scenarios.
+
+Keywords: Regulation Advisor · Artificial Intelligence · Chatbot · Text
+Classification · Knowledge Graph · RAG · GraphRAG
+
+1
+
+Introduction
+
+Addressing student inquiries regarding university regulations remains a persis-
+tent challenge for many Vietnamese universities and institutes. At Can Tho
+University (CTU), such information is primarily disseminated through official
+sources including the student handbook, departmental websites, and PDF docu-
+ments. Consequently, students often face difficulties in locating precise answers,
+leading to uncertainty about critical academic procedures and policies. Com-
+mon questions include: ’What is the maximum study duration?’, ’What are the
+requirements for receiving a university scholarship?’, or ’How can I change my
+major?’ To find answers, students may either consult multiple documents or seek
+assistance from the relevant department, both of which can be time-consuming
+and inefficient. Frequent policy updates further complicate maintaining aware-
+ness of the latest regulations.
+
+Artificial intelligence (AI) has been widely adopted in chatbot-based advi-
+sory systems. In Vietnam, Phuoc et al. [4] employed Rasa to build a regulation
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+Thanh Ma et al.
+
+management chatbot capable of intent detection, entity extraction, and dialogue
+management; while effective for FAQs, its heavy reliance on a small dataset lim-
+ited robustness for unseen queries. Similarly, Luong and Luong [14] developed
+an NLP/ML chatbot for student services, providing fast responses but strug-
+gling with policy-specific reasoning. Recent advances in large language models
+(LLMs) [1, 18, 22] such as ChatGPT and Gemini overcome these issues by mod-
+eling complex semantics and sustaining multi-turn dialogue, offering valuable
+insights for academic advisory systems. Complementary techniques have also
+emerged: Retrieval-Augmented Generation (RAG) improves factual grounding
+but falters with ambiguous queries, whereas Knowledge Graphs (KGs) capture
+structured policy relations but lack generative flexibility. To address these gaps,
+we integrate both in GraphRAG, achieving precise, context-aware, and explain-
+able responses to complex regulation-related questions.
+
+We present REBot, an LLM-powered chatbot that offers CTU students [15]
+fast, accurate, and up-to-date answers on academic regulations. At its core
+is CatRAG, a hybrid framework combining RAG for factual reliability with
+GraphRAG for structured contextual reasoning. To meet the dual need for di-
+rect responses and explanatory context, CatRAG integrates NER for semantic
+enrichment and a routing classifier for precise subgraph selection, enhancing both
+accuracy and efficiency. Our contributions include: (1) a curated CTU Academic
+Regulation Dataset optimized for retrieval; (2) a three-tier Knowledge Graph
+linking categories, chunks, and entities for explainable reasoning; (3) an intent
+classifier for query routing; (4) CatRAG, a category-guided extension of RAG
+with new Construct and Query algorithms; and (5) the REBot web application,
+enabling real-time access to regulation guidance.
+
+The primary goal of GraphRAG is not simply retrieving top-ranked answers,
+as in conventional RAG, but supplying surrounding contextual knowledge that
+enriches responses and yields more comprehensive advice. Yet, applied in isola-
+tion, GraphRAG often underperforms standard RAG [7]. Our approach therefore
+seeks both to generate accurate answers and to integrate relevant context, en-
+hancing the overall quality of academic advising.
+
+2 Background
+
+2.1 Academic Regulations Inquiry
+
+Academic regulations vary across universities, each with distinct administrative
+structures and formats. At Can Tho University, regulations are issued under
+official decisions and published online1, yet the documents remain fragmented,
+unstructured, and written in formal administrative language, making efficient
+retrieval difficult for students. To address this, we propose an AI-powered chat-
+bot tailored for CTU, leveraging four core techniques: query-oriented text clas-
+sification, Named Entity Recognition (NER), Retrieval-Augmented Generation
+(RAG), and GraphRAG. These components are elaborated in the following sec-
+tions.
+1 https://dsa.ctu.edu.vn/noi-quy-quy-che/quy-che-hoc-vu.html
+
+REBot: Category-guided GraphRAG for Academic Regulation Advising
+
+3
+
+2.2 Query-Oriented Text Classification for Academic Regulations
+
+Classifying student queries into thematic categories is essential for improving
+access to academic regulations. While traditional methods (e.g., Na¨ıve Bayes,
+KNN, SVM) are widely used [17, 13], they struggle with the linguistic complex-
+ity of natural language. In this work, we take advantage of deep learning models
+(e.g., fasttext) for the classification model. Formally, given queries X and cat-
+egories Y = {𝑦1, . . . , 𝑦 𝑘 }, a classifier Φ : X → Y maps each query to its most
+relevant category, enabling intent inference and accurate responses. To ensure
+coverage, regulatory data are extracted from dispersed PDFs and continuously
+updated from CTU’s official sources.
+
+2.3 Semantic Enrichment with NER
+
+Named Entity Recognition (NER) is a central task in information extraction,
+identifying entities such as people, organizations, and locations [6, 2]. A typi-
+cal NER pipeline involves segmentation, tokenization, POS tagging, and entity
+detection, transforming unstructured text into structured representations [11].
+In this study, we highlight POS tagging as it provides syntactic cues that con-
+strain entity search, reduce false positives, and improve accuracy [3, 16]. For
+Vietnamese, we employ Underthesea 2, a robust deep learning toolkit with effi-
+cient POS tagging [20]. Formally, given a token sequence T = (𝑡1, . . . , 𝑡𝑛), the
+NER function maps e = N (T ) = (𝑒1, . . . , 𝑒𝑛),
+𝑒𝑖 ∈ E, where E is the entity
+label set. This formulation underscores POS tagging as a vital step that en-
+hances NER efficiency and accuracy, thereby improving chatbot responses. The
+integration of RAG and GraphRAG as the framework’s core will be detailed in
+the following sections.
+
+2.4 Baseline/General Responses using RAG
+
+Large language models (LLMs), while fluent and generalizable, are prone to AI
+hallucination 3. Retrieval-augmented methods mitigate this by grounding gen-
+eration in external knowledge such as corpora, PDFs, or databases. Formally,
+given a corpus D = {𝐷1, . . . , 𝐷 𝑛} segmented into chunks C = {𝑐1, . . . , 𝑐𝑚}, an
+embedding function 𝑓emb maps each chunk into R𝑑, producing a vector store
+V = {(𝑐 𝑗 , 𝑓emb (𝑐 𝑗 )) | 𝑐 𝑗 ∈ C}, which supports efficient similarity-based re-
+trieval. We adopt RAG as the primary mechanism, as it anchors responses in
+semantically relevant evidence, reducing hallucination and improving factual re-
+liability [12]. This retrieval–generation paradigm provides the foundation for
+GraphRAG, which further extends capability with structured graph knowledge.
+
+2 https://github.com/undertheseanlp/underthesea
+3 https://cloud.google.com/discover/what-are-ai-hallucinations
+
+4
+
+Thanh Ma et al.
+
+2.5 Enhanced/Extended Responses using GraphRAG
+
+GraphRAG [8] extends RAG by integrating structured knowledge from knowl-
+edge graphs (KGs) into retrieval and generation. Unlike standard RAG, which
+relies on unstructured corpus, GraphRAG enables entity-centric reasoning and
+multi-hop traversal over relational structures [10, 12]. As an overview, Figure 1
+illustrates the structure of our knowledge graph; its formal definition and role
+within CatRAG will be detailed in the algorithm section. This structure supports
+fact retrieval, symbolic reasoning, and semantic search [9, 23, 21], thereby en-
+hancing factual consistency and verifiability [24, 5]. Hence, we adopt GraphRAG
+for extended responses for it enriches search with structured, entity-level knowl-
+edge, allowing deeper reasoning beyond unstructured retrieval alone.
+
+Fig. 1: Knowledge graph of REBot with 250 nodes
+
+In REBot, this design allows the system to provide domain-specific, context-
+aware, and verifiable responses. The subgraph retrieval ensures that answers are
+grounded not only in relevant documents but also in the correct entity rela-
+tionships, which is essential for regulation-focused dialogue. The next section
+explains details about our REBot framework.
+
+3 REBot Framework
+
+We present REBot, a framework for precise, context-aware responses, initially
+built to support CTU students with academic regulations. By combining seman-
+tic query analysis with domain-specific context, it offers accurate and adaptable
+answers, paving the way for universal next-generation chatbot systems.
+
+The framework comprises five interrelated components: (1) Knowledge Ex-
+traction, where PDFs are processed with Docling4 for accurate text parsing,
+
+4 https://github.com/docling-project/docling
+
+REBot: Category-guided GraphRAG for Academic Regulation Advising
+
+5
+
+Fig. 2: The REBot framework
+
+cleaned, segmented, and enriched via NER and relation extraction with Under-
+thesea5, then embedded using PhoBERTv2 [19] for reliable Vietnamese represen-
+tations; (2) Student Affairs Classification (Φ), in which queries are categorized
+into five regulation domains using fastText [25], chosen for its efficiency and ac-
+curacy on short Vietnamese texts; (3) REBot Knowledge Graph, a Neo4j vector-
+enabled database organizing knowledge into five domain graphs with three lay-
+ers (categories, contexts, entities), capturing complex student–affairs relations;
+(4) Vectorization and Embeddings, where LlamaIndex6 builds a vector index
+for RAG, combined with PhoBERTv2 embeddings for semantic similarity, and
+GraphRAG integration to unify vector retrieval with graph structures; and (5)
+Response Refinement, where Mistral7 and ChatGPT8 refine retrieved content
+into fluent, context-aware answers.
+
+4 CatRAG Algorithm
+
+CatRAG is the core idea of this study. It extends RAG by combining dense
+semantic retrieval from a vector store with symbolic reasoning over a regulation-
+specific knowledge graph. The prefix “Cat” highlights its category-guided design,
+where a classifier routes queries to relevant domains, i.e., enrollment, gradua-
+tion, assessment (see Table 1). In CatRAG, documents are chunked, linked to
+entities, and organized into subgraphs, unifying unstructured and structured re-
+trieval for academic advising. First of all, we formalize CatRAG by introducing
+the Regulation-Enriched Graph (REG), a structured representation of academic
+regulations. REG maps regulation chunks into entities and triplets, while the
+classification model Φ partitions the graph into category-specific subgraphs. Its
+definition is as follows:
+
+5 https://github.com/undertheseanlp/underthesea
+6 https://www.llamaindex.ai/
+7 https://console.mistral.ai/api-keys
+8 https://platform.openai.com/docs/api-reference
+
+6
+
+Thanh Ma et al.
+
+Definition 1 (REG). Let C = {𝑐1, . . . , 𝑐 𝑀 } be a set of document chunks. A
+REG is a labeled graph 𝐺 = (E, R), where E is the set of entities extracted from
+C, and R ⊆ E × P × E is the set of relations. Each relation 𝑟 ∈ R is a triplet
+(𝑒𝑖, 𝑝, 𝑒 𝑗 ) with predicate 𝑝 ∈ P linking entities 𝑒𝑖, 𝑒 𝑗 ∈ E. Furthermore, 𝐺 is
+partitioned into subgraphs {𝑔𝑦 }, each corresponding to a category label predicted
+by Φ.
+
+Before presenting the two CatRAG algorithms, we outline the preprocessing
+pipeline that ensures domain-specific accuracy: (i) extracting text from PDFs
+with Docling and OCR, (ii) normalizing text via lowercasing, stopword removal,
+and LLM-based correction, and (iii) enriching semantics with a custom regula-
+tion dictionary containing 46 abbreviation–full term pairs in the academic do-
+main. Togerther, these steps enhance entity extraction for the knowledge graph
+and similarity matching in the vector store. The next subsections detail CatRAG-
+Construct and CatRAG-Query.
+
+4.1 CatRAG-Construct Algorithm
+
+CatRAG-Construct builds a hybrid knowledge base by indexing chunks in a
+vector store and linking them to a category-guided knowledge graph. Documents
+are chunked, embedded with 𝑓emb into V for fast semantic retrieval, while each
+chunk is classified by Φ and attached to its category node in 𝐺 to ensure domain
+locality. Entities extracted via N are linked to chunks, and relations are added
+by an LLM to form typed edges, yielding explainable graph-structured evidence
+aligned with the vector index. This design leverages dense retrieval for recall
+and graph structure for precision, provenance, and reasoning, with the category
+layer narrowing the search space and preventing domain leakage.
+
+Algorithm 1: CatRAG-Construct
+
+Input : D = {𝐷1 , . . . , 𝐷𝑛 }: Corpus of documents; C = {𝑐1 , . . . , 𝑐𝑀 }: Corpus of document chunks;
+
+𝑓emb : T → R𝑑
+: Embedding function mapping text to 𝑑-dimensional vectors; 𝐺: Knowledge
+graph; V: Vector store; N: Named entity recognition-POS tagging model; Φ: Text classifier
+model; LLM: Large language model for relation extraction
+
+Output: 𝐺, V
+
+V ← ∅, 𝐺 ← ∅
+for 𝐷 ∈ D do
+
+for 𝑐 ∈ C do
+
+segment 𝐷 into chunks {𝑐1 , . . . , 𝑐𝑘 } and add to C
+
+v𝑐 ← 𝑓emb (𝑐text )
+store (𝑐id , 𝑐text , v𝑐 ) in V
+𝑙𝑎𝑏𝑒𝑙𝑐 ← Φ(𝑐text )
+attach 𝑐 to category 𝑙𝑎𝑏𝑒𝑙𝑐 in 𝐺
+𝑇 ← tokenize(𝑐text )
+E𝑐 ← N (𝑇 )
+for 𝑒 ∈ E𝑐 do
+
+1 begin
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+
+add node 𝑒 to 𝐺; create edge (𝑐) -[:MENTIONS] − (𝑒)
+
+R𝑐 ← LLM.extract_relations(𝑐text , E𝑐 )
+for (𝑒𝑖 , 𝑝, 𝑒 𝑗 ) ∈ R𝑐 do
+
+add edge (𝑒𝑖 ) -[:RELATED_TO {predicate}=p, chunk_id = 𝑐id ] − (𝑒 𝑗 ) to 𝐺
+
+17
+
+return 𝐺, V
+
+In terms of complexity, preprocessing and chunking are linear in corpus size;
+embedding 𝑀 chunks costs 𝑂 (𝑀 𝑑); classification adds 𝑂 (𝑀 𝐶Φ); NER adds
+
+REBot: Category-guided GraphRAG for Academic Regulation Advising
+
+7
+
+𝑂 ((cid:205)𝑐 |𝑐|); and LLM-based relation extraction contributes (cid:205)𝑐 𝐶RE(|𝑐|), typically
+dominant. Space usage is 𝑂 (𝑀 𝑑) for the vector index and 𝑂 (|𝑉 | + |𝐸 |) for the
+graph. Practical considerations include choosing chunk size to balance recall vs.
+redundancy, rate-limiting LLM relation extraction, and enforcing schema/typing
+to control graph sparsity and noise.
+
+4.2 CatRAG-Query Algorithm
+
+The core idea of CatRAG-Query (Algorithm 2) is to unify vector-based retrieval
+with category-guided graph retrieval, balancing recall efficiency with domain-
+specific precision. A user query is embedded and classified into an academic
+category, then matched against top-𝑘vec results from the global vector store and
+top-𝑘graph chunks from the corresponding knowledge subgraph. Entities and re-
+lations are expanded to enrich evidence, which is passed with the query to an
+LLM for final answer generation. This hybrid design addresses the limits of vec-
+tor retrieval (low explainability) and pure graph retrieval (over-restrictiveness),
+yielding context-aware, accurate, and explainable responses.
+
+vector store, 𝐺: knowledge graph, partitioned into labeled subgraphs {𝑔𝑦 }, Φ: classification
+model mapping text to labels, LLM: large language model for context synthesis, 𝑘vec : number of
+top vector matches.
+
+: embedding function mapping text to 𝑑-dimensional vectors, V:
+
+Algorithm 2: CatRAG-Query
+Input : 𝑞: user query, 𝑓emb : T → R𝑑
+
+Output: 𝑟𝑒 𝑝: generated answer
+
+1 begin
+2
+3
+4
+5
+
+v𝑞 ←− 𝑓emb (𝑞)
+𝑙𝑎𝑏𝑒𝑙𝑞 ←− Φ(𝑞)
+Cvec ←− TopK(V, v𝑞 , 𝑘vec )
+Cgraph ←− ∅, Egraph ←− ∅, Rgraph ←− ∅
+for 𝑔𝑦 ∈ 𝐺 do
+
+if 𝑦 = 𝑙𝑎𝑏𝑒𝑙𝑞 then
+
+6
+7
+8
+
+9
+10
+
+11
+
+12
+
+13
+
+14
+15
+
+Cgraph ←− TopKChunks(𝑔𝑦 , v𝑞 , 𝑘graph )
+for 𝑐 ∈ Cgraph do
+
+Egraph ←− Egraph ∪ Entities(𝑐)
+Rgraph ←− Rgraph ∪ Relations(Egraph , 𝑔𝑦 )
+
+Cfinal ←− Cvec ∪ Cgraph
+𝑐𝑜𝑛𝑡𝑒𝑥𝑡 ←− concat(Cfinal , Egraph , Rgraph )
+𝑟𝑒 𝑝 ←− LLM.generate(𝑞, 𝑐𝑜𝑛𝑡𝑒𝑥𝑡 )
+return 𝑟𝑒 𝑝
+
+In terms of complexity, query embedding and classification are linear in the
+query length, vector and graph retrieval require 𝑂 (𝑁𝑣 𝑑 + 𝑛𝑦 𝑑) with brute-force
+search (or 𝑂 (log 𝑁𝑣 + log 𝑛𝑦) with approximate nearest neighbor search), and
+entity expansion costs 𝑂 (𝑘graph( ¯𝑒+¯𝑟)), where ¯𝑒 and ¯𝑟 denote the average numbers
+of entities and relations per chunk. The LLM generation cost 𝐶gen(𝐿) usually
+dominates in practice. A key consideration is that large vector stores or dense
+subgraphs can significantly increase retrieval overhead, while excessive entity
+expansion may inflate the context length and thus raise the LLM cost. Hence,
+careful tuning of 𝑘vec, 𝑘graph, and context size is crucial to balance efficiency and
+answer quality.
+
+8
+
+Thanh Ma et al.
+
+5 Dataset and Experimental Result
+
+5.1 Dataset and Implementation Environment
+
+We compiled two distinct datasets to support our study. The first dataset com-
+prises 1,319 question–answer (Q&A) pairs, carefully curated to evaluate the
+chatbot’s ability to address inquiries related to academic regulations. The sec-
+ond dataset contains 3,256 questions developed for training a FastText-based
+classification model. This classification dataset was divided into training and
+testing subsets using an 80:20 split. Most of the data were sourced from the offi-
+cial departmental websites of Can Tho University9 and other reputable sources.
+To ensure reliability, all datasets underwent rigorous manual verification. Fur-
+thermore, all responses were authored by academic support experts at Can Tho
+University. The training data and source code of our implementation are pub-
+licly available on GitHub10. The experiments were conducted on a computer
+equipped with an Intel(R) Core (TM) i5-12500H 4.5 GHz processor, 16 GB of
+RAM, 6 GB of vRAM and running Windows 11 OS. Next, we will present the
+experimental results of our approach in the subsequent subsection.
+
+Table 1: Collected Dataset for REBot.
+
+ID Name
+
+Number of
+Samples
+
+Note
+
+Specialized Domains Classification
+
+1 Study and Training
+2 Education
+3 Domitory
+4 Discipline and Scholarships
+5 Graduation
+6 Other
+
+474
+611
+655
+477
+485
+550
+
+Total:
+
+3,252
+
+Học tập và rèn luyện
+Đào tạo
+Ký túc xá
+Khen thưởng và kỷ luật
+Tốt nghiệp
+Khác
+
+REBot Q&A Evaluation
+
+1 Truth
+2 Other
+
+Total:
+
+909
+404
+
+1,313
+
+Knowledge related to CTU academic regulation
+
+Knowledge outside of CTU academic regulation
+
+5.2 Quantitative Results
+
+We instruct REBot motivated from two architectural variants: the standard RAG
+and the graph-enhanced CatRAG (see Figure 2). As previously outlined, (1) the
+system utilizes phobert-base-v2 as the embedding model and retrieves the top
+five most relevant chunks to provide contextual input for the generative model.
+(2) For the CatRAG variant, a similarity threshold of 0.7 is applied when lever-
+aging the knowledge graph to ensure semantically relevant node connections.
+
+9 https://www.ctu.edu.vn/don-vi-truc-thuoc.html
+10 https://github.com/tamB2203579/GraphRAG
+
+REBot: Category-guided GraphRAG for Academic Regulation Advising
+
+9
+
+Table 2: Comparison of CatRAG (CR) and RAG (R) across thresholds
+
+Provider Threshold Accuracy
+
+Precision
+
+Recall
+
+F1 Score
+
+Eval. Time
+
+(CR | R)
+
+(CR | R)
+
+(CR | R)
+
+(CR | R)
+
+(CR | R)
+
+OpenAI
+
+Mistral AI
+
+0.6
+0.7
+0.8
+
+0.6
+0.7
+0.8
+
+98.48 | 98.17 99.33 | 98.78 98.46 | 98.56 98.89 | 98.67
+95.58 | 93.75 95.11 | 92.32 98.39 | 98.46 96.72 | 95.29 2h10m12s | 2h10m12s
+88.58 | 86.44 84.87 | 81.65 98.20 | 98.26 91.05 | 89.19
+
+– | –
+
+– | –
+
+98.25 | 98.55 99.11 | 99.33 98.35 | 98.57 98.73 | 98.95
+95.66 | 93.99 95.33 | 92.67 98.28 | 98.47 96.79 | 95.48 1h52m47s | 1h47m17s
+85.00 | 82.86 79.76 | 76.42 97.95 | 98.14 87.92 | 85.93
+
+– | –
+
+– | –
+
+Table 3: Computation Time of CatRAG and RAG (average of 10 runs).
+
+ID
+
+Model Name
+
+CatRAG (s) RAG (s)
+
+gpt-4o-mini (OpenAI)
+
+1
+2 mistral-small-2506 (Mistral)
+
+7.2577
+7.0232
+
+5.1076
+4.7692
+
+Table 4: Results of Specialized Domain/Topic Classification.
+
+ID
+
+Models
+
+Parameters
+
+Acc Prec Rec
+(%)
+(%)
+(%)
+
+F1 Time (seconds)
+(%) Training Testing
+
+KNN
+
+1 Multinomial NB
+2
+3 Logistic Regression
+4
+5
+6
+
+SVM
+Random Forest
+FastText
+
+𝑎𝑙 𝑝ℎ𝑎 = 0.1
+𝑘 = 101
+𝐶 = 10,𝑡𝑜𝑙 = 0.0001
+
+87.12 87.16 87.12 86.78
+83.74 85.61 83.74 82.07
+93.87 93.95 93.87 93.81
+𝐶 = 1,𝑡𝑜𝑙 = 0.0001, 𝑙𝑜𝑠𝑠 = ℎ𝑖𝑛𝑔𝑒 91.41 91.23 91.41 91.02
+94.79 94.92 94.79 94.66
+95.75 95.76 95.75 95.67 2.2775
+
+𝑛_𝑒𝑠𝑡𝑖𝑚𝑎𝑡𝑜𝑟 𝑠 = 300
+𝑒 𝑝𝑜𝑐ℎ𝑒𝑠 = 100, 𝑁 𝑔𝑟 𝑎𝑚𝑠 = 3
+
+0.03
+0.03
+1.16
+0.16
+0.79
+
+0.01
+0.183
+0.009
+0.010
+0.186
+0.056
+
+The experiments are conducted using two generative AI models: gpt-4o-mini
+and mistral-small-2506. To assess the performance of both architectures under
+different threshold configurations, we employ four core evaluation metrics: Ac-
+curacy, Precision, Recall, and F1 Score. Among these, the F1 Score is prioritized
+as the primary criterion for model selection due to its balanced integration of
+Precision and Recall.
+
+The results of both architectures are presented in Table 2. Among the config-
+urations, CatRAG combined with gpt-4o-mini demonstrates the most impressive
+performance, consistently outperforming its RAG counterpart across all thresh-
+old settings. Notably, it achieves a near 98.9% F1 Score at a threshold of 0.6,
+while still maintaining over 90% F1 Score at a threshold of 0.8, indicating strong
+robustness across different sensitivity levels. In contrast, Mistral AI exhibits more
+variability across thresholds. While the performance at thresholds 0.6 and 0.7
+is comparatively lower, it achieves a notable improvement at threshold 0.8, sug-
+gesting that the model performs better when operating under stricter filtering
+conditions. Note that, we conduct a gridsearch from 0.1 to 1.0. Then, [0.6, 0.8]
+obtained the high accuracy.
+
+Table 3 shows that CatRAG consistently incurs longer response times than
+standard RAG due to graph-based retrieval and node similarity computation.
+For instance, with gpt-4o-mini, CatRAG averages 7.26 s per query versus 5.11
+
+10
+
+Thanh Ma et al.
+
+s for RAG, and with mistral-small-2506, 7.02 s versus 4.77 s. Despite this ∼2 s
+overhead, latency remains acceptable for real-time use given CatRAG’s enhanced
+retrieval capability. Table 4 reports classification results, where Random Forest
+(94.79% accuracy, 94.66% F1) and Logistic Regression (93.87%, 93.81%) perform
+strongly among traditional models, but KNN lags (83.74%, 82.07%). FastText
+achieves the best performance (95.75% accuracy, 95.67% F1), demonstrating
+superior ability to capture semantic features while maintaining efficiency.
+
+5.3 Qualitative Result
+
+The questions and answers are expressed with clarity and effectively address
+users’ needs. Illustrative examples are presented as follows:
+
+– Question 1: Input: How many semesters are there in an academic year?
+
+Output: An academic year at Can Tho University consists of three semesters, called semester 1, semester 2, and semester 3.
+Each semester lasts 15 weeks, including time for teaching, examinations, and result processing.
+
+– Question 2:
+
+Input: What are the foreign language graduation requirements for students?
+Output: The foreign language graduation requirements at Can Tho University include:
+
+1. Meeting language proficiency standards: Students must reach the required foreign language level according to their training
+
+program. Specifically:
+
+• Students of cohort 45 and later must have a foreign language certificate at level 3/6 according to the Vietnamese
+
+6-level language proficiency framework or equivalent.
+
+• Students of cohort 44 and earlier must have a French certificate level 2 or above, or an equivalent English certificate.
+2. Participation in intensive language programs: Students need to join intensive language programs organized by the university
+
+to improve their foreign language skills to the minimum required level.
+
+3. Exemption from language courses: Some students may be exempt from basic language courses if they hold an appropriate
+certificate or passed the language proficiency test at the beginning of the course, as decided by the language proficiency
+council.
+
+In summary, to graduate, students must complete the foreign language requirements of their training program.
+
+In this paper, we distilled four key questions reflecting practical concerns
+of Can Tho University students. The responses were largely accurate and con-
+textually enriched, though certain details require further refinement. Overall,
+the information is sufficient for users to draw informed conclusions. Finally, we
+present the REBot interface and discuss its broader implications.
+
+5.4 Application and Discussion
+
+After training the AI models, we deploy the framework on a web-based platform
+integrated with the REBot interface (Figure 3). The system is implemented using
+modern libraries and frameworks, including React (19.0.0), ViteJS (6.3.1), and
+Bootstrap (5.3).
+
+REBot demonstrates effective real-time conversational interaction with stu-
+dents; however, several limitations remain. (1) GraphRAG-based retrieval can
+introduce excessive context, leading to incoherent or inaccurate responses. (2)
+dataset classification requires improvement for handling long-context queries.
+(3) the current average response time of about seven seconds is a significant
+bottleneck. As future work, we plan to optimize retrieval strategies and reduce
+latency, while expanding the dataset vertically to capture finer-grained regula-
+tory details within each academic domain (e.g., specific course requirements, ex-
+ceptions, procedural workflows). Finally, we will be refining the domain-specific
+dictionary, enhancing classification models, and incorporating adaptive retrieval
+with reranking for contextual precision.
+
+REBot: Category-guided GraphRAG for Academic Regulation Advising
+
+11
+
+Fig. 3: The Interface of our REBot System
+
+6 Conclusion
+
+This study presents the effectiveness of a retrieval-augmented chatbot system
+using standard Retrieval-Augmented Generation (RAG) and knowledge-graph-
+enhanced GraphRAG to provide accurate and detailed responses to student ques-
+tions at Can Tho University. Quantitative tests indicate that CatRAG, combined
+with a compact generative model, achieves top performance with an F1-score
+98.89%, while keeping computation times practical for real-time use. Qualita-
+tive reviews confirm the system’s value in offering clear, in-depth explanations
+that go beyond simple queries to improve user understanding. By incorporat-
+ing advanced embedding techniques and knowledge graphs, this approach beats
+traditional methods and lays the groundwork for flexible, domain-focused AI
+helpers in education.
+
+Acknowledgements: This research is part of Can Tho University’s scientific
+research program under the code THS2025-69.
+
+References
+
+1. A survey on large language model (llm) security and privacy: The good, the bad,
+
+and the ugly. High-Confidence Computing 4(2), 100211 (2024)
+
+2. Al-Moslmi, T., Gallofré Oca˜na, M., L. Opdahl, A., Veres, C.: Named entity ex-
+traction for knowledge graphs: A literature overview. IEEE Access 8, 32862–32881
+(2020)
+
+3. Chiche, A., Yitagesu, B.: Part of speech tagging: a systematic review of deep learn-
+
+ing and machine learning approaches. Journal of Big Data 9(1), 10 (2022)
+
+4. Doan, H., Le, V., van, K.: Xây dựng khung ứng dụng ai chatbot trong lĩnh vực
+quy chế đào tạo. Hue University Journal of Science: Techniques and Technology
+131, 39–52 (06 2023)
+
+12
+
+Thanh Ma et al.
+
+5. Fatemi, B., Halcrow, J., Perozzi, B.: Talk like a graph: Encoding graphs for large
+
+language models. arXiv preprint arXiv:2310.04560 (2023)
+
+6. Goyal, A., Gupta, V., Kumar, M.: Recent named entity recognition and classifica-
+tion techniques: a systematic review. Computer Science Review 29, 21–43 (2018)
+7. Han, H., Shomer, H., Wang, Y., Lei, Y., Guo, K., Hua, Z., Long, B., Liu, H., Tang,
+J.: Rag vs. graphrag: A systematic evaluation and key insights. arXiv preprint
+arXiv:2502.11371 (2025)
+
+8. Han, H., Wang, Y., Shomer, H., Guo, K., Ding, J., Lei, Y., Halappanavar, M.,
+Rossi, R.A., Mukherjee, S., Tang, X., et al.: Retrieval-augmented generation with
+graphs (graphrag). arXiv preprint arXiv:2501.00309 (2024)
+
+9. Hogan, A., Blomqvist, E., Cochez, M., et al, D.: Knowledge graphs. ACM Com-
+
+puting Surveys 54(4), 1–37 (Jul 2021)
+
+10. Hu, Y., Lei, Z., Zhang, Z., Pan, B., Ling, C., Zhao, L.: Grag: Graph retrieval-
+
+augmented generation. arXiv preprint arXiv:2405.16506 (2024)
+
+11. Huyen, N.T.M., Luong, V.X.: Vlsp 2016 shared task: Named entity recognition.
+Proceedings of Vietnamese Speech and Language Processing (VLSP) (2016)
+12. Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., K¨uttler, H.,
+Lewis, M., tau Yih, W., Rockt¨aschel, T., Riedel, S., Kiela, D.: Retrieval-augmented
+generation for knowledge-intensive nlp tasks (2021)
+
+13. Li, Q., Peng, H., Li, J., Xia, C., Yang, R., Sun, L., Yu, P.S., He, L.: A survey on text
+classification: From traditional to deep learning. ACM Transactions on Intelligent
+Systems and Technology (TIST) 13(2), 1–41 (2022)
+
+14. Luong, H., Luong, K.: A chatbot-based academic advising model for student in
+information technology: A case study. Saudi Journal of Engineering and Technology
+10(3), 93–100 (2025)
+
+15. Ma, T., Chau, T.K., Thai, P.A., Tram, T.M., Huynh, K., Tran-Nguyen, M.T.:
+Racos: Ai-routed chat-voice admission consulting support system. In: International
+Conference on Intelligent Systems and Data Science. pp. 295–310. Springer (2024)
+16. Minh, P.Q.N.: A feature-rich vietnamese named-entity recognition model (2018),
+
+https://arxiv.org/abs/1803.04375
+
+17. Miro´nczuk, M.M., Protasiewicz, J.: A recent overview of the state-of-the-art ele-
+ments of text classification. Expert Systems with Applications 106, 36–54 (2018)
+18. Nazir, A., Wang, Z.: A comprehensive survey of chatgpt: Advancements, applica-
+
+tions, prospects, and challenges. Meta-Radiology 1(2), 100022 (2023)
+
+19. Nguyen, D.Q., Nguyen, A.T.: Phobert: Pre-trained language models for viet-
+
+namese. arXiv preprint arXiv:2003.00744 (2020)
+
+20. Nguyen, D.Q., Vu, T., Nguyen, D.Q., Dras, M., Johnson, M.: From word segmen-
+tation to pos tagging for vietnamese. arXiv preprint arXiv:1711.04951 (2017)
+21. Pan, S., Luo, L., Wang, Y., Chen, C., Wang, J., Wu, X.: Unifying large language
+models and knowledge graphs: A roadmap. IEEE Transactions on Knowledge and
+Data Engineering 36(7), 3580–3599 (2024)
+
+22. Pande, A., Patil, R., Mukkemwar, R., Panchal, R., Bhoite, S.: Comprehensive
+study of google gemini and text generating models: Understanding capabilities
+and performance (11 2024)
+
+23. Peng, C., Xia, F., Naseriparsa, M., Osborne, F.: Knowledge graphs: Opportunities
+
+and challenges. Artificial Intelligence Review 56(11), 13071–13102 (2023)
+
+24. Sun, J., Xu, C., Tang, L., Wang, S., Lin, C., Gong, Y., Ni, L.M., Shum, H.Y., Guo,
+J.: Think-on-graph: Deep and responsible reasoning of large language model on
+knowledge graph. arXiv preprint arXiv:2307.07697 (2023)
+
+25. Yao, T., Zhai, Z., Gao, B.: Text classification model based on fasttext. ICAIIS’20
+
+pp. 154–157 (2020)

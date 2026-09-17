@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -27,6 +28,7 @@ class TokenLedger:
     seed: int = 0
     spent: int = 0
     records: list[SpendRecord] = field(default_factory=list)
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
     def remaining(self) -> int:
         return self.theta - self.spent
@@ -34,12 +36,13 @@ class TokenLedger:
     def spend(self, tokens: int, purpose: str, **metadata: Any) -> None:
         if tokens < 0:
             raise ValueError("tokens must be non-negative")
-        if self.spent + tokens > self.theta:
-            raise BudgetExhausted(
-                f"spend {tokens} for {purpose} exceeds remaining {self.remaining()}"
-            )
-        self.spent += tokens
-        self.records.append(SpendRecord(purpose=purpose, tokens=tokens, metadata=dict(metadata)))
+        with self._lock:
+            if self.spent + tokens > self.theta:
+                raise BudgetExhausted(
+                    f"spend {tokens} for {purpose} exceeds remaining {self.remaining()}"
+                )
+            self.spent += tokens
+            self.records.append(SpendRecord(purpose=purpose, tokens=tokens, metadata=dict(metadata)))
 
     def snapshot(self) -> dict[str, Any]:
         return {

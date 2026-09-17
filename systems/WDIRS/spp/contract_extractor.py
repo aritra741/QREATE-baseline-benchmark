@@ -17,7 +17,7 @@ import re
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
-from threading import Event
+from threading import Event, Lock
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from json_repair import repair_json
@@ -32,6 +32,7 @@ from spp.workload_contract import (
     RelationshipContract,
     WorkloadContract,
 )
+from extractor import is_transient_llm_error
 from token_counter import count_tokens
 
 
@@ -559,6 +560,8 @@ class ContractExtractor:
         )
         self._budget_exhausted = False
         self._pending_target: Optional[str] = None
+        self.transient_failures: List[Dict[str, Any]] = []
+        self._transient_lock = Lock()
         self._mapping_escrow_reservation_id: Optional[str] = None
         self._document_text = {
             document.document_id: document.text for document in self.documents
@@ -1389,6 +1392,33 @@ class ContractExtractor:
             )
         return rows
 
+    def _record_transient_failure(
+        self,
+        *,
+        target: str,
+        phase: str,
+        unit: DocumentUnit,
+        error: BaseException,
+    ) -> None:
+        payload = {
+            "target": target,
+            "phase": phase,
+            "document_id": unit.document_id,
+            "unit_id": unit.unit_id,
+            "error_type": type(error).__name__,
+            "error": str(error),
+        }
+        with self._transient_lock:
+            self.transient_failures.append(payload)
+        logger.warning(
+            "Skipping LLM unit after connection/timeout failure: "
+            "target=%s phase=%s document=%s error=%s",
+            target,
+            phase,
+            unit.document_id,
+            error,
+        )
+
     def _budgeted_rows(
         self,
         *,
@@ -1411,6 +1441,16 @@ class ContractExtractor:
             self._budget_exhausted = True
             self._pending_target = target
             return None
+        except Exception as exc:
+            if is_transient_llm_error(exc):
+                self._record_transient_failure(
+                    target=target,
+                    phase=phase,
+                    unit=unit,
+                    error=exc,
+                )
+                return []
+            raise
 
     def _run_row_jobs(
         self,
@@ -1691,8 +1731,10 @@ class ContractExtractor:
         self,
         contract: WorkloadContract,
         entity_records: Sequence[ExtractionRecord],
+        *,
+        existing_records: Sequence[ExtractionRecord] = (),
     ) -> Tuple[ExtractionRecord, ...]:
-        """Extract one contract field per prompt after entity discovery."""
+        """Extract only fields not already supplied by shared bulk evidence."""
 
         identities: Dict[Tuple[str, str], List[str]] = defaultdict(list)
         for record in entity_records:
@@ -1703,6 +1745,17 @@ class ContractExtractor:
         result: List[ExtractionRecord] = []
         if self._budget_exhausted:
             return ()
+        existing_keys = {
+            (
+                _symbol_key(record.entity),
+                _symbol_key(record.attribute),
+                record.document_id,
+            )
+            for record in existing_records
+            if record.attribute
+            and record.value not in (None, "")
+            and record.document_id
+        }
         heading_keys = {
             (
                 _symbol_key(record.entity),
@@ -1770,11 +1823,15 @@ class ContractExtractor:
                     *dict(attribute.query_hints).values(),
                 )
                 for source_unit in units:
-                    if (
+                    record_key = (
                         _symbol_key(owner),
                         _symbol_key(attribute.name),
                         source_unit.document_id,
-                    ) in heading_keys:
+                    )
+                    if (
+                        record_key in heading_keys
+                        or record_key in existing_keys
+                    ):
                         continue
                     unit = self._focused_unit(source_unit, terms=terms)
                     known = tuple(
@@ -3276,7 +3333,9 @@ class ContractExtractor:
         extracted_attributes = tuple(
             record
             for record in self.extract_attributes(
-                contract, entity_records
+                contract,
+                entity_records,
+                existing_records=supplemental_mapping_records,
             )
             if (
                 _symbol_key(record.entity),
@@ -3294,7 +3353,10 @@ class ContractExtractor:
             *self._derive_calculated_attributes(
                 contract,
                 entity_records,
-                direct_attribute_records,
+                (
+                    *direct_attribute_records,
+                    *supplemental_mapping_records,
+                ),
             ),
         )
         # Bulk extraction and contract extraction share one mapping pass. Keep

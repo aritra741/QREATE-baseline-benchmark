@@ -122,6 +122,7 @@ def freeze_serving_bundle(
     *,
     evidence_manifest: Optional[dict] = None,
     synthesis_manifest_sha256: Optional[str] = None,
+    resume: bool = False,
 ) -> Path:
     """Copy selected DBs and atomically seal a reproducible serving bundle."""
     output_dir = Path(output_dir).expanduser().resolve()
@@ -130,7 +131,9 @@ def freeze_serving_bundle(
             "portfolio construction token count does not match global ledger"
         )
     if output_dir.exists() and any(output_dir.iterdir()):
-        raise FileExistsError(f"serving bundle is not empty: {output_dir}")
+        if not resume:
+            raise FileExistsError(f"serving bundle is not empty: {output_dir}")
+        shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     db_dir = output_dir / "databases"
     db_dir.mkdir()

@@ -1,0 +1,221 @@
+{
+  "dataset": "Finan",
+  "model": "qwen/qwen-2.5-7b-instruct",
+  "seed": 42,
+  "theta": 345457,
+  "tokens_spent": 595,
+  "logical_entities": [
+    "finance"
+  ],
+  "logical_attributes": [
+    "finance.auditor",
+    "finance.business_segments_num",
+    "finance.cash_reserves",
+    "finance.dividend_per_share",
+    "finance.earnings_per_share",
+    "finance.exchange_code",
+    "finance.major_equity_changes",
+    "finance.net_profit_or_loss",
+    "finance.principal_activities",
+    "finance.remuneration_policy",
+    "finance.revenue",
+    "finance.the_highest_ownership_stake",
+    "finance.total_assets",
+    "finance.total_debt"
+  ],
+  "mode": "rematerialize",
+  "n_configs": 1,
+  "expressions": [
+    "activity_family->['finance.principal_activities']",
+    "auditor_family->['finance.auditor']",
+    "cash_band->['finance.cash_reserves']",
+    "debt_band->['finance.total_debt']",
+    "dividend_status->['finance.dividend_per_share']",
+    "eps_status->['finance.earnings_per_share']",
+    "exchange_family->['finance.exchange_code']",
+    "liquidity_status->['finance.cash_reserves', 'finance.total_debt']",
+    "ownership_band->['finance.the_highest_ownership_stake']",
+    "pay_policy->['finance.remuneration_policy']",
+    "profit_status->['finance.net_profit_or_loss']",
+    "revenue_band->['finance.revenue']",
+    "segment_band->['finance.business_segments_num']",
+    "segment_status->['finance.business_segments_num']"
+  ],
+  "cache_hit_rate": 1.0,
+  "n_test": 16,
+  "mean_official_accuracy": 0.27290101612845474,
+  "mean_structure_f2": 0.35853298999850725,
+  "mean_cell_f1_05": 0.011979166666666666,
+  "mean_query_score_05": 0.00808306277056277,
+  "per_query": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "pack": "finan_multiagg20",
+      "official_accuracy": 0.5067026990657524,
+      "gold_rows": 2,
+      "pred_rows": 2,
+      "structure_f2": 1.0,
+      "cell_f1_05": 0.125,
+      "query_score_05": 0.125
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "pack": "finan_filter20",
+      "official_accuracy": 0.5138888888888888,
+      "gold_rows": 2,
+      "pred_rows": 1,
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "pack": "finan_filter20",
+      "official_accuracy": 0.0,
+      "gold_rows": 2,
+      "pred_rows": 0,
+      "structure_f2": 0.0,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "pack": "finan_multiagg20",
+      "official_accuracy": 0.0,
+      "gold_rows": 6,
+      "pred_rows": 0,
+      "structure_f2": 0.0,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "pack": "finan_multiagg20",
+      "official_accuracy": 0.06798653831674506,
+      "gold_rows": 19,
+      "pred_rows": 1,
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_05": 0.06666666666666667,
+      "query_score_05": 0.00432900432900433
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "pack": "finan_agg20",
+      "official_accuracy": 0.5447154471544715,
+      "gold_rows": 2,
+      "pred_rows": 1,
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "pack": "finan_groupby20",
+      "official_accuracy": 0.5848210325708418,
+      "gold_rows": 12,
+      "pred_rows": 6,
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "pack": "finan_agg20",
+      "official_accuracy": 0.8006738840072173,
+      "gold_rows": 6,
+      "pred_rows": 5,
+      "structure_f2": 0.8620689655172415,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "pack": "finan_multiagg20",
+      "official_accuracy": 0.28333947928810543,
+      "gold_rows": 2,
+      "pred_rows": 1,
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "pack": "finan_agg20",
+      "official_accuracy": 0.3022906262037548,
+      "gold_rows": 5,
+      "pred_rows": 1,
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "pack": "finan_agg20",
+      "official_accuracy": 0.329767383290977,
+      "gold_rows": 2,
+      "pred_rows": 1,
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "pack": "finan_filter20",
+      "official_accuracy": 0.0,
+      "gold_rows": 5,
+      "pred_rows": 0,
+      "structure_f2": 0.0,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "pack": "finan_filter20",
+      "official_accuracy": 0.0,
+      "gold_rows": 5,
+      "pred_rows": 0,
+      "structure_f2": 0.0,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "pack": "finan_filter20",
+      "official_accuracy": 0.0,
+      "gold_rows": 2,
+      "pred_rows": 1,
+      "structure_f2": 0.0,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "pack": "finan_agg20",
+      "official_accuracy": 0.18222222222222229,
+      "gold_rows": 2,
+      "pred_rows": 1,
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q14",
+      "pack": "finan_agg20",
+      "official_accuracy": 0.25000805704629914,
+      "gold_rows": 5,
+      "pred_rows": 1,
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_05": 0.0,
+      "query_score_05": 0.0
+    }
+  ],
+  "rewrite_failures": 2,
+  "train": {
+    "n_train": 64,
+    "mean_official_accuracy": 0.2789917935349589,
+    "mean_structure_f2": 0.31128829378354467,
+    "mean_cell_f1_05": 0.012612358706108705,
+    "mean_query_score_05": 0.00756153714029507,
+    "rewrite_failures": 2
+  }
+}

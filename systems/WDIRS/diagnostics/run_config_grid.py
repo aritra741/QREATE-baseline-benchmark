@@ -85,7 +85,7 @@ def load_ground_truth(dataset: str) -> Dict[str, List[dict]]:
         with open(csv_file, "r", encoding="utf-8") as f:
             rows = [
                 {
-                    str(key).strip(): (
+                    str(key).strip().lower(): (
                         value.strip() if isinstance(value, str) else value
                     )
                     for key, value in row.items()
@@ -113,6 +113,22 @@ def load_ground_truth(dataset: str) -> Dict[str, List[dict]]:
                 team_row["ownership"] = canonical_owner
                 n_aligned += 1
         print(f"  aligned {n_aligned} Player team-owner ground-truth keys")
+
+    if dataset.strip().lower() == "cspaper":
+        n_filled = 0
+        for row in ground_truth.get("cspaper", []):
+            if row.get("baseline_amount") not in (None, ""):
+                continue
+            baseline = row.get("baseline") or ""
+            parts = [
+                part.strip()
+                for part in str(baseline).replace(";", "||").split("||")
+                if part.strip() and part.strip().lower() not in {"null", "none", "n/a"}
+            ]
+            if parts:
+                row["baseline_amount"] = len(parts)
+                n_filled += 1
+        print(f"  derived baseline_amount for {n_filled} CSPaper gold rows")
 
     return ground_truth
 

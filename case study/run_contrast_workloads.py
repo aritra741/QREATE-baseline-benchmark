@@ -70,10 +70,18 @@ def prepare_isolated_dirs(
     workload_id: str,
     *,
     force: bool,
+    resume: bool = False,
 ) -> tuple[Path, Path]:
+    if force and resume:
+        raise ValueError("--force and --resume cannot be combined")
     safe_id = workload_id.replace("/", "_")
     output_dir = (output_root / "results" / safe_id).resolve()
     scratch_parent = (output_root / "scratch" / safe_id).resolve()
+
+    if resume:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        scratch_parent.mkdir(parents=True, exist_ok=True)
+        return output_dir, scratch_parent
 
     if output_dir.exists():
         if any(output_dir.iterdir()):
@@ -125,11 +133,19 @@ def build_command(
         str(args.bulk_column_batch_size),
         "--bulk-min-column-coverage",
         str(args.bulk_min_column_coverage),
+        "--intent-workers",
+        str(1 if args.controlled_prefix else max(1, int(args.workers))),
     ]
+    if getattr(args, "resume", False):
+        command.append("--resume")
     if args.model:
         command.extend(["--model", args.model])
     if args.base_url:
         command.extend(["--base-url", args.base_url])
+    if args.api_key_env:
+        command.extend(["--api-key-env", args.api_key_env])
+    if args.disable_thinking:
+        command.append("--disable-thinking")
     if args.seed is not None:
         command.extend(["--seed", str(args.seed)])
     if args.controlled_prefix:
@@ -186,6 +202,7 @@ def evaluate_command(
 def isolated_env(
     scratch_parent: Path,
     *,
+    workers: int = 8,
     controlled_prefix: bool = False,
 ) -> dict[str, str]:
     env = os.environ.copy()
@@ -201,10 +218,12 @@ def isolated_env(
     env["TMPDIR"] = str(cache_root / "tmp")
     env["TMP"] = env["TMPDIR"]
     env["TEMP"] = env["TMPDIR"]
+    env["PYTHONUNBUFFERED"] = "1"
+    worker_count = 1 if controlled_prefix else max(1, int(workers))
+    env["MAX_PARALLEL_REQUESTS"] = str(worker_count)
+    env["SPP_CONTRACT_MAX_WORKERS"] = str(worker_count)
+    env["SPP_INTENT_MAX_WORKERS"] = str(worker_count)
     if controlled_prefix:
-        env["MAX_PARALLEL_REQUESTS"] = "1"
-        env["SPP_CONTRACT_MAX_WORKERS"] = "1"
-        env["SPP_INTENT_MAX_WORKERS"] = "1"
         env["SPP_APPEND_ONLY_EVIDENCE"] = "1"
         env["SPP_CONTROLLED_PREFIX"] = "1"
     (cache_root / "tmp").mkdir(parents=True, exist_ok=True)
@@ -236,10 +255,11 @@ def run_one(
         record["budget_fraction"] = float(row.get("budget_fraction") or 0)
 
     try:
-        output_dir, scratch_parent = prepare_isolated_dirs(
+        output_dir, scratch_parent =         prepare_isolated_dirs(
             output_root,
             workload_id,
             force=args.force,
+            resume=bool(getattr(args, "resume", False)),
         )
     except FileExistsError as exc:
         record.update(
@@ -277,11 +297,13 @@ def run_one(
     log_path.parent.mkdir(parents=True, exist_ok=True)
     env = isolated_env(
         scratch_parent,
+        workers=args.workers,
         controlled_prefix=args.controlled_prefix,
     )
     print(f"\n=== {workload_id} ({row.get('dataset')} → {row.get('source_dataset')}) ===", flush=True)
     print(" ".join(command), flush=True)
-    with log_path.open("w", encoding="utf-8") as log_handle:
+    log_mode = "a" if getattr(args, "resume", False) and log_path.exists() else "w"
+    with log_path.open(log_mode, encoding="utf-8") as log_handle:
         log_handle.write("COMMAND:\n" + " ".join(command) + "\n\n")
         log_handle.flush()
         completed = subprocess.run(
@@ -478,15 +500,42 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--model", default="qwen2.5:7b-instruct")
     parser.add_argument("--base-url")
+    parser.add_argument(
+        "--api-key-env",
+        default=None,
+        help="Environment variable containing the hosted-provider API key.",
+    )
+    parser.add_argument(
+        "--disable-thinking",
+        action="store_true",
+        help="Send DeepSeek-compatible non-thinking mode.",
+    )
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--controlled-prefix", action="store_true")
     parser.add_argument("--replay-root", type=Path, default=None)
     parser.add_argument("--bulk-column-batch-size", type=int, default=10)
     parser.add_argument("--bulk-min-column-coverage", type=float, default=0.0)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=8,
+        help=(
+            "Concurrent LLM calls for bulk extraction, contract extraction, "
+            "and intent analysis. Forced to 1 with --controlled-prefix."
+        ),
+    )
     parser.add_argument("--intent-only", action="store_true")
     parser.add_argument("--max-documents-per-entity", type=int, default=None)
     parser.add_argument("--max-document-characters", type=int, default=8000)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "Reuse an existing --output-root (bulk cache + evidence sqlite). "
+            "Only uncached LLM calls are dispatched."
+        ),
+    )
     parser.add_argument("--continue-on-error", action="store_true")
     parser.add_argument("--skip-eval", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -512,6 +561,8 @@ def refresh_inventory(csv_path: Path) -> Path:
 
 def main() -> int:
     args = parse_args()
+    if args.resume and args.force:
+        raise SystemExit("--resume and --force are mutually exclusive")
     if args.controlled_prefix and args.seed is None:
         raise SystemExit("--controlled-prefix requires --seed")
     if args.regenerate_workloads:

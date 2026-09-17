@@ -1,0 +1,297 @@
+5
+2
+0
+2
+
+b
+e
+F
+6
+
+]
+I
+
+A
+.
+s
+c
+[
+
+1
+v
+8
+4
+9
+3
+0
+.
+2
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Enhancing Online Learning Efficiency Through Heterogeneous
+Resource Integration with a Multi-Agent RAG System
+Devansh Srivastav
+Hasan Md Tusfiqur Alam
+German Research Center for Artificial
+German Research Center for Artificial
+Intelligence (DFKI)
+Intelligence (DFKI)
+Saarbrücken, Germany
+Saarbrücken, Germany
+hasan.alam@dfki.de
+Saarland University
+Saarbrücken, Germany
+devansh.srivastav@dfki.de
+
+Afsaneh Asaei
+Digital Product School of
+UnternehmerTUM (Center for
+Innovation and Business Creation at
+Technical University of Munich)
+Munich, Germany
+asaei@unternehmertum.de
+
+Mahmoud Fazeli
+CROWDCONSULTANTS
+Berlin, Germany
+mahmoud.fazeli@crowdconsultants.com
+
+Tanisha Sharma
+Microsoft
+Hyderabad, India
+tansharma@microsoft.com
+
+Daniel Sonntag
+German Research Center for Artificial
+Intelligence (DFKI)
+Saarbrücken, Germany
+University of Oldenburg
+Oldenburg, Germany
+daniel.sonntag@dfki.de
+
+Abstract
+Efficient online learning requires seamless access to diverse re-
+sources such as videos, code repositories, documentation, and gen-
+eral web content. This poster paper introduces early-stage work
+on a Multi-Agent Retrieval-Augmented Generation (RAG) System
+designed to enhance learning efficiency by integrating these het-
+erogeneous resources. Using specialized agents tailored for specific
+resource types (e.g., YouTube tutorials, GitHub repositories, doc-
+umentation websites, and search engines), the system automates
+the retrieval and synthesis of relevant information. By streamlining
+the process of finding and combining knowledge, this approach
+reduces manual effort and enhances the learning experience. A
+preliminary user study confirmed the system’s strong usability and
+moderate-high utility, demonstrating its potential to improve the
+efficiency of knowledge acquisition.
+
+CCS Concepts
+• Information systems → Search interfaces; Question answer-
+ing; Information extraction; Expert search; Language models.
+
+Keywords
+Multi-Agent Systems, Retrieval-Augmented Generation (RAG), On-
+line Learning Efficiency, Resource Integration, Technology Accep-
+tance Model (TAM), User-Centric Design, Semantic Search, Hetero-
+geneous Data Sources, Knowledge Retrieval Optimization, Usability
+and Utility in Learning Systems
+
+and understanding concepts [1, 4]. However, navigating and syn-
+thesizing information across these disparate sources can be a time-
+intensive and inefficient process, creating barriers to efficient online
+learning [8]. The challenges associated with multi-source learning
+are especially evident in technical domains, where the need to
+quickly find accurate and relevant information is critical. For in-
+stance, a developer exploring a new framework might consult a
+YouTube tutorial for an overview, reference a GitHub repository
+for implementation details, examine the official documentation for
+deeper insights, and conduct general web searches for troubleshoot-
+ing. Manually searching, cross-referencing, and consolidating infor-
+mation from these varied sources often leads to cognitive overload
+and suboptimal learning experiences.
+
+To address these challenges, this poster paper proposes a Multi-
+Agent RAG system that automates the retrieval and synthesis of
+information from diverse online resources. By leveraging special-
+ized agents tailored for specific resource types—such as YouTube
+tutorials, GitHub repositories, documentation websites, and gen-
+eral web searches—the system streamlines the process of finding,
+integrating, and utilizing knowledge. This approach reduces the
+manual effort required for cross-referencing and consolidating in-
+formation, enabling users to focus on learning and problem-solving
+rather than on navigating disparate sources. The system aims to en-
+hance the learning experience by providing a unified, user-friendly
+interface for targeted, real-time inquiries, making it a valuable tool
+for learners and developers in technical domains.
+
+1 Introduction
+In an increasingly interconnected world, the ability to access, inte-
+grate, and utilize diverse online resources is essential for effective
+learning and knowledge acquisition [6, 9]. With the rapid growth
+of digital platforms, learners often rely on a combination of het-
+erogeneous resources, such as video tutorials, code repositories,
+documentation websites, and search engines, to acquire new skills
+
+2 System Architecture and Implementation
+The proposed system uses a Multi-Agent RAG system with GPT-4o
+[3] as the underlying LLM. The flow, as shown in Fig. 1, begins
+with a central Manager Agent that coordinates task delegation
+across four specialized agents, each tailored to handle a specific
+type of resource: YouTube Video, GitHub Repository, Documenta-
+tion Website, and a Generic Search Engine. These agents operate
+
+ 
+ 
+ 
+ 
+ 
+ 
+Srivastav et al.
+
+dynamically based on the user’s query. The user interface (UI) for
+the system is implemented using Streamlit [5], and it allows users
+to specify the URLs of the YouTube tutorial, GitHub repository,
+and documentation webpage as inputs. Additionally, the types of
+GitHub content to include such as code, issues, or pull requests, can
+be specified, allowing the system’s focus to be tailored to specific
+needs. Users can then conversationally interact with the system,
+asking targeted questions about the provided resources as shown
+in Fig. 3. This functionality empowers users to focus their queries
+on preselected sources, reducing irrelevant results and improving
+the relevance and accuracy of responses. The real-time interaction
+capabilities of the UI ensure that users receive immediate feedback
+on their questions, enhancing the overall user experience. The sim-
+plicity and intuitiveness of the system make it accessible to users
+with varying levels of technical expertise, lowering the barrier to
+entry for non-technical audiences.
+
+3 Preliminary Evaluation
+To evaluate the system’s usability and utility, a user study was con-
+ducted involving 15 participants aged 21 to 29 (mean age = 24 years;
+SD = 2.26), all of whom were master’s-level students pursuing com-
+puter science-related courses. These participants were selected due
+to their familiarity with the process of learning new programming
+languages or frameworks using various online resources such as
+YouTube tutorials, GitHub repositories, and documentation web-
+sites. This familiarity enabled them to assess whether the proposed
+system adds value to their learning process by streamlining the
+integration and retrieval of information from these resources. The
+study used the Technology Acceptance Model (TAM) [2] question-
+naire to assess technology acceptance through two key constructs:
+Perceived Usefulness (PU) and Perceived Ease of Use (PEU). The
+box plot of PU, PEU, and TAM Scores in Fig. 2a reveals consider-
+able variability in PU ratings compared to PEU. The average PU
+score, scaled to a 0–100 range [7], was 75, indicating moderate-high
+utility. The wider spread of PU scores indicates that while some
+participants perceive the system as highly useful, others find its
+utility less apparent highlighting that the system may not fully
+align with the user’s needs or expectations. This variability sug-
+gests the potential for targeted improvements to better meet the
+requirements of all users. In contrast, the average PEU score was
+91.11, with the box plot showing a tighter distribution of scores.
+This consistency suggests that participants broadly agree on the
+system’s strong usability. The TAM score histogram in Fig. 2b re-
+vealed most users scored above 80 with the overall TAM scores,
+averaging 83.06. This reflects the combined influence of the PU
+and PEU constructs. While the high PEU scores contribute signifi-
+cantly to the favourable TAM scores, the variability in PU remains
+a critical factor for consideration.
+
+4 Conclusion and Future Work
+The proposed Multi-Agent RAG system automates the retrieval and
+synthesis of relevant information, effectively integrating resources
+such as YouTube tutorials, GitHub repositories, documentation
+websites, and general web content. By streamlining the process
+of finding and combining knowledge, the system reduces manual
+effort and enhances the learning experience. Evaluation results
+
+Figure 1: Working Flow of the Multi-Agent RAG System
+
+independently, leveraging resource-specific tools and APIs to re-
+trieve relevant information. The Manager Agent synthesizes out-
+puts from these agents, combining them into a cohesive response
+to address the user’s query. This modular design ensures scalability
+and adaptability, allowing for seamless integration of additional
+agents or tools as needed to meet evolving requirements.
+
+Data from sources like YouTube transcripts, GitHub repositories,
+and documentation websites is preprocessed to extract relevant text.
+Embeddings are generated using GPT-4o, to capture the semantic
+structure of the text. These embedding vectors, along with meta-
+data such as source URLs and timestamps, are stored in ChromaDB,
+enabling precise semantic searches and contextually relevant re-
+sults. For general web content, the system retrieves information
+
+(a) PU and PEU score distribution
+
+(b) TAM score distribution for 15 participants.
+
+Figure 2: Analysis of the user study using TAM
+
+Enhancing Online Learning Efficiency...
+
+Figure 3: User Interface of the proposed system.
+
+highlight strong usability, with high perceived ease of use reflect-
+ing the system’s accessible and user-friendly interface. While the
+system demonstrates considerable utility, variability in perceived
+usefulness indicates a need for better alignment with user expecta-
+tions and task-specific needs.
+
+Future work will focus on making the retrieval system dynamic,
+enabling it to determine when specialized agents are necessary to
+improve response times and reduce computational overhead. It will
+also involve testing with participants less familiar with technical
+environments to evaluate the system’s acceptance across varying
+expertise levels, expanding resource integration to include domain-
+specific platforms like Stack Overflow, broadening its applicability
+to both technical and non-technical domains, and personalization
+to tailor responses to individual preferences, enhancing usability
+and user satisfaction.
+
+References
+[1] Omar Alghamdi, Sarah Clinch, Mohammad Alhamadi, and Caroline Jay. 2023.
+Novice programmers strategies for online resource use and their impact on source
+
+code. In 2023 IEEE/ACM 16th International Conference on Cooperative and Human
+Aspects of Software Engineering (CHASE). IEEE, 92–104.
+
+[2] Fred D Davis et al. 1989. Technology acceptance model: TAM. Al-Suqri, MN,
+Al-Aufi, AS: Information Seeking Behavior and Technology Adoption 205 (1989),
+219.
+
+[3] Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh,
+Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, et al. 2024.
+Gpt-4o system card. arXiv preprint arXiv:2410.21276 (2024).
+
+[4] Moneeba Iftikhar, Sohail Riaz, and Zahid Yousaf. 2019. Impact of YouTube Tutorials
+in Skill Development among University Students of Lahore. Pakistan Journal of
+Distance and Online Learning 5, 2 (2019), 125–138.
+
+[5] Mohammad Khorasani, Mohamed Abdou, and J Hernández Fernández. 2022. Web
+Application Development with Streamlit. Software Development (2022), 498–507.
+[6] Maja Lebenicnik, Ian Pitt, and Andreja Istenic Starcic. 2015. Use of online learning
+resources in the development of learning environments at the intersection of
+formal and informal learning. The student as autonomous designer. ceps Journal
+5, 2 (2015), 95–113.
+
+[7] James R Lewis. 2019. Comparison of Four TAM Item Formats: Effect of Response
+
+Option Labels and Order. Journal of Usability Studies 14, 4 (2019).
+
+[8] Alexander Skulmowski and Kate Man Xu. 2022. Understanding cognitive load
+in digital and online learning: A new perspective on extraneous cognitive load.
+Educational psychology review 34, 1 (2022), 171–196.
+
+[9] Kairit Tammets, Edna Milena Sarmiento-Márquez, Manisha Khulbe, Mart Laanpere,
+and Tobias Ley. 2022. Integrating digital learning resources in classroom teaching:
+Effects on teaching practices and student perceptions. In European conference on
+technology enhanced learning. Springer, 379–392.

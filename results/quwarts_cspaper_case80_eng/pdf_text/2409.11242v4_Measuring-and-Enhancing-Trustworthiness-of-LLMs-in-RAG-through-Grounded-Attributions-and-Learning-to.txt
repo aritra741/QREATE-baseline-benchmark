@@ -1,0 +1,13818 @@
+5
+2
+0
+2
+
+r
+p
+A
+4
+2
+
+]
+L
+C
+.
+s
+c
+[
+
+4
+v
+2
+4
+2
+1
+1
+.
+9
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+Published as a conference paper at ICLR 2025
+
+MEASURING AND ENHANCING TRUSTWORTHINESS OF
+LLMS IN RAG THROUGH GROUNDED ATTRIBUTIONS
+AND LEARNING TO REFUSE
+
+Maojia Song*, Shang Hong Sim*, Rishabh Bhardwaj
+Singapore University of Technology and Design
+{maojia song, shanghong sim, rishabh bhardwaj}@mymail.sutd.edu.sg
+
+Hai Leong Chieu
+DSO National Laboratories
+chaileon@dso.org.sg
+
+Navonil Majumder, Soujanya Poria
+Singapore University of Technology and Design
+{navonil majumder, sporia}@sutd.edu.sg
+
+ABSTRACT
+
+LLMs are an integral component of retrieval-augmented generation (RAG) sys-
+tems. While many studies focus on evaluating the overall quality of end-to-end
+RAG systems, there is a gap in understanding the appropriateness of LLMs for
+the RAG task. To address this, we introduce TRUST-SCORE, a holistic metric that
+evaluates the trustworthiness of LLMs within the RAG framework. Our results
+show that various prompting methods, such as in-context learning, fail to effec-
+tively adapt LLMs to the RAG task as measured by TRUST-SCORE. Consequently,
+we propose TRUST-ALIGN, a method to align LLMs for improved TRUST-SCORE
+performance. 26 out of 27 models aligned using TRUST-ALIGN substantially out-
+perform competitive baselines on ASQA, QAMPARI, and ELI5. Specifically, in
+LLaMA-3-8b, TRUST-ALIGN outperforms FRONT on ASQA (↑12.56), QAM-
+PARI (↑36.04), and ELI5 (↑17.69). TRUST-ALIGN also significantly enhances
+models’ ability to correctly refuse and provide quality citations. We also demon-
+strate the effectiveness of TRUST-ALIGN across different open-weight models,
+including the LLaMA series (1b to 8b), Qwen-2.5 series (0.5b to 7b), and Phi3.5
+(3.8b). We release our code at https://github.com/declare-lab/
+trust-align.
+
+1
+
+INTRODUCTION
+
+LLMs are widely used for information retrieval but often produce hallucinations—factually incor-
+rect yet convincing responses (Ji et al., 2023), undermining their reliability. A common mitigation
+is Retrieval-Augmented Generation (RAG), which integrates external knowledge to improve correct
+token generation, reducing perplexity (Khandelwal et al., 2019) and enhancing downstream tasks
+like machine translation (Zheng et al., 2021) and classification (Bhardwaj et al., 2023). Connect-
+ing LLMs to external documents via retrieval also improves response quality (Shuster et al., 2021;
+B´echard & Ayala, 2024), further enhanced by attribution mechanisms (Gao et al., 2023b; Hsu et al.,
+2024).
+
+In this paper, we investigate LLMs’ ability to ground responses in provided documents instead of
+relying on their parametric knowledge from training. A response is considered grounded if it cor-
+rectly answers using only the attached documents, with in-text citations supporting its claims. Key
+aspects include LLMs’ refusal capability—whether they abstain from answering when documents
+lack sufficient information. Additionally, we analyze their overall tendency to answer, the fraction
+of claims grounded in documents, and whether cited sources substantiate generated statements.
+
+To comprehensively understand LLMs’ groundedness, we propose a new metric TRUST-SCORE.
+It assesses an LLM across multiple dimensions: 1) The ability to discern which questions can be
+
+∗Equal contribution.
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+Published as a conference paper at ICLR 2025
+
+answered or refused based on the provided documents (Grounded Refusals); 2) The correctness
+of LLM response for the answerable questions; 3) The extent to which generated statements are
+supported by the corresponding citations; and 4) The relevance of the citations to the statements.
+Unlike existing metrics that primarily assess the overall performance of RAG systems (Gao et al.,
+2023b)—where a weak retriever can significantly decrease the scores—TRUST-SCORE is designed
+to specifically measure the LLM’s performance within a RAG setup, isolating it from the influence
+of retrieval quality.
+
+Our investigation in Section 6.1 shows that many state-of-the-art systems, including GPT-4 and
+Claude-3.5-Sonnet, heavily rely on their parametric knowledge to answer questions (OpenAI, 2023;
+Anthropic, 2024). This reliance limits their suitability for RAG tasks, where models should base re-
+sponses solely on the provided documents, resulting in a low TRUST-SCORE. Additionally, prompt-
+ing approaches intended to enhance model groundability have proven ineffective, as models become
+overly sensitive to the prompt, leading to exaggerated refusals or excessive responsiveness shown
+in Appendix F.4. To enhance the groundedness of LLMs, i.e., achieve a higher TRUST-SCORE, we
+propose an alignment method, TRUST-ALIGN. This approach first constructs an alignment dataset
+consisting of 19K questions, documents, positive (preferred) responses, and negative (unpreferred)
+responses. The dataset covers a range of LLM errors—Inaccurate Answers, Over-Responsiveness,
+Excessive Refusal, Over-Citation, and Improper Citation. We regard these errors as LLM hallucina-
+tions within an RAG framework.
+
+Evaluations on the benchmark datasets ASQA, QAMPARI, and ELI5 show that models trained with
+TRUST-ALIGN outperform the competitive baselines on TRUST-SCORE in 26 out of 27 model fam-
+ily and dataset configurations. Notably, in LLaMA-3-8b, TRUST-ALIGN achieves substantial im-
+provements over Huang et al. (2024b) FRONT, a leading baseline, with respective gains of 12.56%
+(ASQA), 36.04% (QAMPARI), and 17.69% (ELI5). Additionally, TRUST-ALIGN substantially en-
+hances the ability of models to correctly refuse or provide grounded answers in all 27 model family
+and dataset configurations, with LLaMA-3-8b showing increases of 23.87%, 47.95%, and 45.77%
+correct refusals compared to FRONT. Citation groundedness scores also improved in 24 out of 27
+model family and dataset configurations, with notable increases of 22.12%, 38.35%, and 5.55% in
+LLaMA-3-8b compared to FRONT. Due to the gamification of the metric, where parametric knowl-
+edge can artificially inflate the scores, we notice mixed results on answer correctness scores. Specif-
+ically, we observe a notable increase in answer correctness scores for all models in QAMPARI, 5/9
+models in ELI5, and 2/9 models for ASQA.
+
+Our key contributions to this work are as follows:
+
+• We study LLM groundedness problem, where model model responses should be derived from
+retrieved documents (external memory) rather than the parametric knowledge (knowledge stored
+in model parameters).
+
+• To measure LLM’s groundedness under RAG, we introduce TRUST-SCORE, a holistic metric for
+
+quantifying LLM’s grounding errors.
+
+• We propose TRUST-ALIGN, an alignment approach designed to improve the trustworthiness of
+LLMs in RAG (Figure 2). It first creates an alignment dataset of 19K samples with paired posi-
+tive and negative responses, followed by aligning the model using direct preference optimization
+(DPO) (Rafailov et al., 2024b).
+
+Comparison with existing approaches. Current evaluations of RAG focus on the overall system
+performance (Gao et al., 2023b; Xu et al., 2024), conflating the effects of retriever quality and LLM
+performance in the metric scores (Fan et al., 2024). This highlights the need for new ways to mea-
+sure LLM effectiveness in RAG systems without the influence of the retriever. The work by Thakur
+et al. (2024) is closest to ours, as it analyzes the refusal capabilities of LLMs in a RAG context but
+lacks holistic evaluation, as it does not account for both response and citation groundedness. On the
+other hand, Ye et al. (2024); Hsu et al. (2024); Huang et al. (2024b) propose frameworks to improve
+LLM response groundedness but overlook refusal behaviors in their metrics. Ignoring refusal be-
+haviors, retriever influence, citation and answer groundedness weakens the ability of current metrics
+to effectively measure LLM performance in RAG. TRUST-SCORE comprehensively evaluates LLM
+performance, including refusal, citation, and answer groundedness, while TRUST-ALIGN creates a
+corresponding alignment dataset, making the metric and approach more unique and holistic for LLM
+evaluations and alignment in RAG. A more detailed comparison can be found in Appendix C.
+
+2
+
+Published as a conference paper at ICLR 2025
+
+2 PROBLEM DESCRIPTION
+
+2.1 TASK SETUP
+
+Given a question q and a set of retrieved documents D as input, the LLM is instructed to generate
+a response S which consists of a set of citation-grounded statements {s1, . . . , sn}; each statement
+si follows a set of inline citations Ci = {ci,1, ci,2, . . .} referring to the documents in D. If D is not
+sufficient to answer q, the gold response would be a refusal statement1, such as, “I apologize, but
+I couldn’t find an answer to your question in the search results”. Otherwise, the response would
+follow the pattern: “statement1 [1][2] statement2 [3]” where [1][2] and [3] denote the enumeration
+of documents that supports each statement respectively.
+
+Figure 1: TRUST-SCORE calculation shown as a computational graph.
+
+2.2 ON ANSWERABILITY OF A QUESTION
+
+To label if a response should be a refusal or consist of claims, we define the notion of answerability.
+A question q is considered answerable if D contains sufficient information to answer q. Formally,
+we label a question as answerable if a subset of the retrieved documents entails at least one of
+the gold claims; otherwise, q is unanswerable and thus should result in a ground truth refusal. A
+refusal response contains no claims or citations but provides a generic message conveying the LLM’s
+inability to respond to q.
+
+2.3 HALLUCINATION IN LLM IN RAG
+
+We define an LLM’s response as grounded when it correctly answers a question using only the
+information in the documents, and the response can be inferred from the inline citations to those
+documents. When a response is not grounded, it is considered a case of hallucination. We define
+hallucination as an erroneous LLM response, categorized into five types: (1) Inaccurate Answer –
+The generated statements S fail to cover the claims in the gold response, (2) Over-Responsiveness
+– The model answers a question that should result in a refusal, (3) Excessive Refusal – The model
+refuses to answer a question that is answerable, (4) Overcitation – The model generates redundant
+citations, and (5) Improper Citation – The citations provided do not support the statement. Next, we
+introduce a comprehensive metric to concretely measure hallucinations in LLMs, i.e., to assess an
+LLM’s groundedness or trustworthiness2.
+
+1There are many applications where LLM parametric knowledge use is expected and retrieved documents
+serve to improve the LLM’s response. However, in this paper we study the problem of complete grounded-
+ness—i.e., all claims should be documents derivable, making this an IR task.
+
+2In this paper, we use LLM groundedness and trustworthiness interchangeably in the context of RAG.
+
+3
+
+Trust-ScoreResponse TruthfulnessAttribution GroundednessGrounded Refusals (F1 )GRAnswer Correctness (F1 )ACGrounded Citations (F1 )GCSet of answered questions(statements only, no citations /citations only, no statements)Set of answered questionsSet of answerable questionsNumber of elements in the set/Statement andcorresponding citationsAnswer correctness for questionCitation recall for statementCitation precision for citationPublished as a conference paper at ICLR 2025
+
+3 METRICS FOR LLM-IN-RAG
+
+Given a question q and the corresponding ground truth response AG = {ag1, . . . , agn} consisting of
+gold claims, we define the claims obtainable from the provided documents as AD = {ad1, . . . , adn}
+and the claims generated in the response as AR = {ar1, . . . , arn}. We aim to measure two aspects
+of an LLM in RAG: 1) the correctness of the generated claims (Response Truthfulness); and 2) the
+correctness of citations generated (Attribution Groundedness).
+
+Insufficiency of the existing metrics. Gao et al. (2023b) measure Response Truthfulness by first
+computing the per-sample Answer Correctness recall (ACq
+reg) score for gold claims AG, disregarding
+how many of these claims are obtainable from D. This is followed by averaging the recall scores
+across samples to obtain a single score for the dataset. This method introduces inconsistencies:
+models that rely on parametric knowledge (Mp) may generate gold claims not found in D, leading
+to an artificially inflated recall value. In contrast, an ideal LLM (Mi) would rely solely on D to
+generate responses (a desired trait) and would be constrained by an upper recall limit of |AG∩AD|
+,
+which varies depending on the question. This approach presents two key problems: (1) Recall
+Consolidation: Since the measurement range depends on the claims present in D, it is infeasible to
+provide a consistent, consolidated ACreg score across the dataset, (2) Recall Gamification: Mp may
+have a higher upper limit on ACreg (up to 1) because they can generate gold claims not present in D
+(an undesirable trait), unlike Mi that depend entirely on D.
+
+|AG|
+
+Answer Calibration. To address the challenges of recall consolidation and gamification in exist-
+ing evaluation metrics, we propose new metrics that measure sample-wise recall score based on the
+fraction of gold claims ontainable from D. Specifically, this involves computing |AG ∩ AD|, which
+measures the Answer Correctness (AC) recall after calibrating the gold claims. This approach sets a
+maximum recall limit of 1 for all models. For dataset-wide scoring, we consolidate per-sample AC
+scores using two methods: 1) PAC: The average AC score across samples answered by the LLM, i.e.,
+samples where AR ̸= ∅, reflecting a precision oriented perspective; 2) RAC: The average AC score
+across samples that are answerable, i.e., samples where AG ∩ AD ̸= ∅, reflecting a recall oriented
+perspective3. These metrics, illustrated in Fig. 1, are then combined into a single score, F1AC, which
+serves as a comprehensive measure of how well the LLM grounds its claims on the document D.
+This combined metric not only facilitates the consolidation of recall but also addresses issues related
+to recall gamification.
+
+Scoring refusals. An important capability of an LLM in RAG is its ability to identify when a
+response is unanswerable based on the provided documents D. To measure this, we introduce a
+metric called Grounded Refusals. This metric evaluates the model’s refusal performance by calcu-
+lating dataset-wide precision and recall for both ground-truth answerable cases and refusals. These
+values are then combined into their respective F1 scores, F1ref for refusals and F1ans for answerable
+cases. The final score, F1GR, is the average of these two F1 scores, as shown in Figure 1.
+
+Measuring attribution groundedness. While Response Truthfulness metrics like F1AC and F1GR
+evaluate the quality of generated claims, it is equally important to measure how well these statements
+are supported by relevant citations—what we call Attribution Groundedness. To this end, we adopt
+two sub-metrics from (Gao et al., 2023b): Citation Recall (Rcite) and Citation Precision (Pcite). To
+compute Rcite, we first determine if a generated statement si is supported by its cited documents
+si . Then we take the mean
+using an NLI model4, thus obtaining sample-wise recall scores Rcite
+across all samples to obtain the final Rcite score (Figure 1). To compute Pcite, we first score each
+citation ci,j of a statement si, followed by computing the average across citations in a response S
+(sample-wise score). The dataset-wide citation score is computed by averaging the citation scores
+across all the samples. To quantify the Groundedness of Citations, we compute F1GC, the harmonic
+mean of Pcite and Rcite. A detailed breakdown of this metric is provided in Appendix D and Figure 1.
+Thus, we define a new metric TRUST-SCORE = 1
+
+3 (F1GR + F1AC + F1GC).
+
+3Notably, both PAC and RAC sum over samples that are both answered and answerable, differing primarily
+
+in their normalization values.
+
+4An NLI model checks if the cited document entails the statement.
+
+4
+
+Published as a conference paper at ICLR 2025
+
+Responsiveness. To measure the answering tendency of an LLM, we define Responsiveness. It is
+the fraction of answered questions, denoted by the Answered Ratio (AR %), which is calculated as
+AR % =
+|Ag|+|¬Ag| . |Ar|, |Ag|, and |¬Ag| are the number of answered, answerable, and unanswer-
+able questions respectively. A model is expected to show a high AR% for answerable questions and
+a low AR% for unanswerable ones, with the scores expected to align with the dataset distribution.
+
+|Ar|
+
+Figure 2: Overview of the TRUST-ALIGN. Left: The curation of both seed and augmented prompts (Q-
+D pairs) and an example of the answerability labeling process during the retrieval stage. Right: The response
+paired data generation process. First, we obtain positive answers and then select hard negative answers. Finally,
+we align our model via DPO.
+
+4 THE TRUST-ALIGN DATASET
+
+To align LLMs towards trustworthiness, we propose a new approach, TRUST-ALIGN. The approach
+constructs an LLM trustworthiness alignment dataset, where each sample in the dataset consists of
+a question q, a set of retrieved documents D, and a pair of positive (preferred) and negative (un-
+preferred) responses (r+, r−). The positive response corresponds to an answer that encompasses
+expected gold claims for q and corresponding citations referring to the documents. If D is not suf-
+ficient to answer q, r+ is assigned a refusal response, while r− is its non-refusal counterpart. We
+build the dataset in multiple steps: 1) Obtain a set of high-quality and diverse questions, 2) Obtain
+documents for each question, 3) Augmenting (q, D) pairs that cover diverse hallucination types,
+4) Construct positive responses entailing gold claims, and 5) Construct negative (unpreferred) re-
+sponses by prompting a fine-tuned model and observing its hallucinations. We relegate fine-grained
+details about the dataset to Figure 2 and Appendix E.
+
+Collecting quality questions. The dataset construction begins by collecting a set of high-quality
+and diverse questions from the training splits of ASQA, QAMPARI, and ELI5, referred to as seed
+samples. We first divide the questions into k clusters and use Mixtral-8x7B to assign each a quality
+score from 1 to 7, based on how difficult they are to answer without additional information. Clusters
+with scores of 4 or higher are selected. Next, we sample questions from the clusters of each dataset
+to construct approximately 10K questions in the seed set.
+
+Collecting D’s. Next, we collect relevant documents for each question in the seed set by querying
+Wikipedia and Common Crawl, retrieving the top 100 documents. We filter out seed questions where
+relevant documents are not retrieved. We then identify 5 documents that perform as well as the full
+
+5
+
+Top-100documentsFilter top ~3kknowledgeintensivequestionsSeed Prompt CurationAugmented Prompt CurationQuestionTop-100DocsCombinationof 5 docsQuestionCombinationof 5 docsQuestion370kQuestionsDocumentsAug. SetFind differentsets of 5 docscoveringdistinct subsetof claims...ASQAELI5QAMPARIQuestionsGold claim 1Gold claim 2Gold claim 3Answerability LabellingDoc 1[1,1,0]Doc 2[1,1,0]Doc 3[1,0,0]Doc 4[1,0,0]Doc 5[0,0,0][1,1,0]UnionAnswerable2Matt Prater(Gold Claim 2)Positive Answer GenerationLLaMA-2-7b70kResponsesAlignmentDPO-LLaMANegative Answer GenerationTrainableParametersFrozenParametersSeed SetAugmentedSetDocumentOve Johansson(Gold Claim 1)1456QuestionsDocumentsSeed SetRetrieve top 100docs usingWikipedia,SphereGPT-4synthesizer... Matt Prater at 64 yards[Gold Claim 2], ... OveJohansson in a 1976... [Gold Claim 1].... Matt Prater at 64yards [1][3], ... OveJohansson in a 1976...[2][4].Answerable QuestionsUnanswerable QuestionsPositive Answer: “I apologize, but I couldn't find an answer to your question in the search results.”Supervised Finetuning SFTCalculateHallucinationScoreFiltertop-50%Direct PreferenceOptimizationInference10kPositive Answer (r )+QuestionsOracle DocsPositive AnsSeed SetAug. SetQuestionsSet of 5 DocsNegativeAnswer (r )-19kQuestionsSet of 5 DocumentsPositive Answer Negative AnswerAug. SetOnly 40k have ~19kUse TRUE NLI to check if docsupports gold claimRepeat for k=5 docsDoc 1x7Greedily findthe smallestsubset ofdocumentsthat supportclaim usingTRUE NLIPublished as a conference paper at ICLR 2025
+
+100 in terms of EM recall, referring to these as oracle documents for question q.5 Gold claims for
+each q are sourced from the respective datasets.
+
+Augmenting (q,D) set. Using the questions and oracle documents, we create diverse samples (i.e.,
+varying combinations of relevant and irrelevant documents) to trigger multiple hallucinations from
+LLMs (Section 2.3). The document order is shuffled to avoid citation bias. To construct unanswer-
+able questions, we select documents similar to those entailing gold claims but still irrelevant to q.
+This process results in approximately 70K question-document pairs.
+
+Obtaining r+ and r−. To generate preferred responses, by prompting GPT-4, we stitch together
+the gold claims and citations6. For unanswerable questions, we assign a ground truth refusal re-
+sponse. To obtain quality negative (unpreferred) responses, we fine-tune LLaMA-2-7b on the
+source datasets, creating Msf t. Testing Msf t on the 70K dataset identified 40K responses with
+hallucinations. Table 1 shows hallucination severity (ei) and frequency (wi). To obtain good neg-
+ative samples, we first rank each of the 40K responses according to their severity score eq, where
+eq = (cid:80)
+i ei · wi. We then select the top 50%7 of the corresponding samples for both answerable and
+unanswerable responses. We perform DPO using this set of 19k samples to obtain the final aligned
+model.
+
+5 EXPERIMENTAL SETUP
+
+Models studied. To comprehensively mea-
+sure performance of open-source models,
+we perform TRUST-SCORE computations on
+vanilla and TRUST-ALIGNed version of a range
+of open-weight models such as LLaMA series
+(LLaMA-2-7b, LLaMA-2-13b, LLaMA-2-13b,
+etc.), Qwen series (Qwen-2.5-0.5b, Qwen-2.5-
+7b, etc.) and Phi3.5-mini. See Appendix H.1
+for more details.
+
+Table 1: Fraction of each hallucination amongst all the
+observed hallucinations in Msf t (40,985), with possi-
+ble overlap. wi shows the severity computation of each
+hallucination. Icondition = 1 if condition is True otherwise
+it is 0. See Fig. 5 for the detailed breakdown of the last
+three errors.
+
+Hallucination Type (HT) Frequency (wi)
+0.50
+Unwarranted Refusal
+0.50
+Over Responsiveness
+0.34
+Overcitation
+0.26
+Improper Citation
+0.40
+Inaccurate Claims
+
+8,786
+13,067
+12,656
+9,592
+14,783
+
+Severity (ei)
+I(Ag̸=∅,Ar=∅)
+I(Ag=∅,Ar̸=∅)
+1 - CP
+1 - CR
+1 - F1AC
+
+Evaluation datasets. We evaluate on the
+test-set of attributable factoid and long-form
+question-answering tasks from ASQA (Stelmakh et al., 2023), QAMPARI (Amouyal et al., 2023),
+and ELI5 (Fan et al., 2019). Additionally, we include ExpertQA (Malaviya et al., 2024) for OOD
+evaluations. For each question, we append the top 5 retrieved documents. For ELI5 and ExpertQA,
+the ground truth answers are decomposed into three claims. The dataset statistics are detailed in
+Appendix H.2.
+
+Baselines. Models8 trained with TRUST-ALIGN are compared against the following baselines:
+
+• ICL (Gao et al., 2023b): Prepends two demonstrations to each query, consisting of an example
+
+query, top-5 retrieved documents, and an inline cited answer
+
+• PostCite (Gao et al., 2023b): Generates an uncited answer in a closed-book setting, then retrieves
+
+most similar documents from top-5 documents using GTR for citations.
+
+• PostAttr (Gao et al., 2023b): Similar to POSTCITE, produces an uncited response in a closed-book
+setting, but uses the TRUE-NLI model to find the best matching citation among top-5 documents.
+• Self-RAG (Asai et al., 2024): Trains the LLM to retrieve relevant documents on demand using
+reflection tokens, enhancing generation quality. We evaluated the provided 7b and 13b model
+checkpoints from HF using the default settings.
+
+• FRONT (Huang et al., 2024b): Uses a fine-grained attribution framework to improve grounding
+and citation quality. We followed the provided instructions to train a 7b model for comparison.
+
+5Clustering and document retrieval details are in Appendix E.
+6Prompt template can be found at Table 23.
+7See Appendix F.8 for more details on this hyperparameter.
+8All models used are instruct tuned or chat versions.
+
+6
+
+Published as a conference paper at ICLR 2025
+
+6 RESULTS AND ANALYSIS
+
+Table 2: LLaMA family evaluated on the ASQA, QAMPARI, and ELI5 datasets. Best values within
+each family are highlighted ). AR% := Answered Ratio in %; F1AC := Answer Correctness F1;
+F1GR := Grounded Refusals F1; F1GC := Grounded Citations F1; TRUST := TRUST-SCORE; Resp.
+:= Responsiveness; Att-Grd. := Attribution Groundedness.
+
+Model
+
+Type
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+FRONT
+
+LLaMA-2
+
+-7b
+
+LLaMA-2
+
+-13b
+
+LLaMA-3.2
+
+-1b
+
+ASQA (610 answerable, 338 unanswerable)
+
+QAMPARI (295 answerable, 705 unanswerable)
+
+ELI5 (207 answerable, 793 unanswerable)
+
+Resp.
+
+AR (%)
+
+0.00
+10.44
+10.44
+100.00
+100.00
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Truthfullness Att-Grd.
+
+TRUST AR (%)
+
+Truthfullness Att-Grd.
+
+TRUST AR (%)
+
+Truthfullness Att-Grd.
+
+TRUST
+
+F1AC
+0.00
+0.07
+0.07
+45.19
+60.47
+
+F1GR
+26.28
+35.23
+35.23
+39.15
+39.15
+
+F1GC
+0.00
+0.00
+0.00
+63.49
+68.86
+
+8.76
+11.77
+11.77
+49.28
+56.16
+
+0.00
+34.40
+34.40
+96.00
+100.00
+
+F1AC
+0.00
+0.00
+0.00
+6.81
+17.27
+
+F1GR
+41.35
+57.34
+57.34
+28.23
+22.78
+
+F1GC
+0.00
+9.50
+3.78
+19.95
+24.26
+
+13.78
+22.28
+20.37
+18.33
+21.44
+
+0.50
+0.90
+0.90
+73.50
+100.00
+
+F1AC
+0.00
+1.86
+1.86
+14.94
+21.66
+
+F1GR
+46.71
+44.98
+44.98
+40.20
+17.15
+
+F1GC
+0.00
+5.04
+0.00
+13.80
+52.72
+
+15.57
+17.29
+15.61
+22.98
+30.51
+
+TRUST-ALIGN (DPO)
+
+65.30
+
+52.48
+
+66.12
+
+83.94
+
+67.51
+
+32.30
+
+32.03
+
+71.67
+
+49.42
+
+51.04
+
+21.60
+
+22.54
+
+63.27
+
+47.35
+
+44.39
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+17.41
+90.51
+90.51
+100.00
+
+60.23
+43.57
+45.78
+79.11
+
+21.52
+2.21
+2.21
+48.52
+
+35.95
+0.59
+0.48
+48.22
+
+41.40
+49.91
+49.91
+39.15
+
+50.94
+50.22
+48.42
+54.48
+
+13.83
+1.53
+0.17
+69.79
+
+9.96
+0.24
+0.00
+48.29
+
+25.58
+17.88
+17.43
+52.49
+
+32.28
+17.02
+16.30
+50.33
+
+26.50
+100.00
+100.00
+72.70
+
+19.20
+41.20
+34.00
+98.60
+
+0.44
+0.00
+0.00
+2.71
+
+6.32
+0.32
+0.63
+7.57
+
+59.57
+22.78
+22.78
+48.58
+
+52.64
+49.79
+48.43
+24.54
+
+0.00
+8.05
+2.95
+26.91
+
+0.38
+1.61
+0.21
+15.32
+
+20.00
+10.28
+8.58
+26.07
+
+19.78
+17.24
+16.42
+15.81
+
+46.40
+76.60
+76.60
+22.10
+
+88.40
+18.40
+18.40
+97.20
+
+19.97
+2.27
+2.27
+12.77
+
+12.87
+2.04
+2.04
+16.11
+
+54.81
+38.05
+38.05
+58.68
+
+27.10
+50.88
+50.88
+20.76
+
+4.73
+0.72
+0.09
+24.54
+
+5.23
+1.02
+0.07
+30.19
+
+26.50
+13.68
+13.47
+32.00
+
+15.07
+17.98
+17.66
+22.35
+
+TRUST-ALIGN (DPO)
+
+41.67
+
+38.64
+
+58.61
+
+79.35
+
+58.87
+
+20.00
+
+27.22
+
+67.92
+
+49.42
+
+48.19
+
+9.60
+
+13.20
+
+59.35
+
+48.21
+
+40.25
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+LLaMA-3.2
+
+-3b
+
+1.27
+47.26
+47.15
+95.25
+
+2.04
+31.03
+29.76
+63.19
+
+27.98
+56.59
+56.71
+49.45
+
+53.95
+22.99
+4.69
+57.46
+
+27.99
+36.87
+30.39
+56.70
+
+34.10
+39.60
+42.00
+92.70
+
+16.06
+6.34
+5.10
+12.99
+
+59.65
+55.22
+53.74
+32.89
+
+12.87
+6.83
+0.27
+19.19
+
+29.53
+22.80
+19.70
+21.69
+
+21.90
+92.80
+92.80
+86.90
+
+18.55
+18.12
+18.48
+19.95
+
+55.56
+25.14
+25.14
+32.21
+
+30.70
+4.44
+0.53
+41.97
+
+34.94
+15.90
+14.72
+31.38
+
+TRUST-ALIGN (DPO)
+
+77.85
+
+59.82
+
+66.38
+
+84.21
+
+70.14
+
+48.20
+
+29.13
+
+70.85
+
+45.65
+
+48.54
+
+17.50
+
+18.33
+
+62.79
+
+55.87
+
+45.66
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+LLaMA-3
+
+-8b
+
+1.48
+77.53
+77.53
+99.05
+
+3.01
+32.98
+32.98
+62.25
+
+28.58
+53.31
+53.31
+41.62
+
+86.50
+28.01
+5.95
+66.14
+
+39.36
+38.10
+30.75
+56.67
+
+3.90
+87.00
+87.00
+100.00
+
+5.92
+6.10
+6.10
+13.53
+
+48.60
+34.52
+34.52
+22.78
+
+20.24
+8.42
+1.64
+20.42
+
+24.92
+16.35
+14.09
+18.91
+
+0.00
+62.00
+62.00
+99.50
+
+0.00
+20.80
+20.80
+18.99
+
+44.23
+45.88
+45.88
+17.85
+
+0.00
+8.06
+1.25
+44.69
+
+14.74
+24.91
+22.64
+27.18
+
+TRUST-ALIGN (DPO)
+
+56.43
+
+53.94
+
+65.49
+
+88.26
+
+69.23
+
+22.40
+
+35.35
+
+70.73
+
+58.77
+
+54.95
+
+15.50
+
+20.81
+
+63.57
+
+50.24
+
+44.87
+
+TRUST-ALIGN boosts trustworthiness over baseline methods. As shown in Table 2 and Ta-
+ble 3, TRUST-ALIGNed models demonstrate substantial improvements on TRUST-SCORE over the
+baselines in 26 out of 27 model family and dataset configurations. Specifically, with LLaMA-3-8b,
+TRUST-ALIGN outperforms FRONT by 12.56% (ASQA), 36.04% (QAMPARI), and 17.69% (ELI5)
+on TRUST-SCORE. This suggests that TRUST-ALIGNed models are more capable of generating re-
+sponses grounded in the documents.
+
+TRUST-ALIGN improves models’ refusal capability. Across all 27 configurations, TRUST-
+ALIGN yields substantial improvements in F1GR.
+In LLaMA-3-8b, TRUST-ALIGN outperforms
+FRONT by 23.87% (ASQA), 47.95% (QAMPARI), and 45.72% (ELI5). This indicates that TRUST-
+ALIGN substantially enhances models’ ability to correctly refuse or provide answers.
+
+TRUST-ALIGN enhances models’ citation quality. F1GC is substantially improved over base-
+lines in 24 out of 27 model family and dataset configurations after the application of TRUST-ALIGN.
+Specifically, with LLaMA-3-8b, TRUST-ALIGN outperforms FRONT on F1GC by 22.12% (ASQA),
+38.35% (QAMPARI), and 5.55% (ELI5). This demonstrates that aligning with TRUST-ALIGN im-
+proves the model’s ability to provide citations that sufficiently and precisely support claims.
+
+TRUST-ALIGN has mixed effects on F1AC. We observe that applying TRUST-ALIGN yields a
+notable increase in F1AC for QAMPARI (9/9) but mixed performance on ELI5 (5/9) and ASQA
+(2/9). The mixed performance in ASQA and ELI5 can be explained by the composition of F1AC,
+which is derived from PAC and RAC (Eq. (9)).
+
+Taking LLaMA-3.2-3b on ASQA as an example (Appendix I), TRUST-ALIGN models generally
+achieve higher PAC compared to baselines (54.63% for TRUST-ALIGN vs. 52.94% for FRONT)
+despite having a lower AR% (77.85% for TRUST-ALIGN vs. 95.25% for FRONT). This suggests
+that our models have a higher expected value for ACq (per-sample AC recall), as the denominator
+depends on the number of answered questions. This trend is observed across models and datasets.
+
+7
+
+Published as a conference paper at ICLR 2025
+
+However, in ASQA and ELI5, our models underperform in F1AC due to the overwhelmingly ad-
+verse impact of RAC. The recall of answerable questions (Rans) is lower for our model compared to
+baselines (89.02% for TRUST-ALIGN vs. 98.69% for FRONT), which rarely refuse questions. As
+a result, fewer terms are summed in the numerator of RAC, while the denominator remains constant
+(the number of answerable questions). This leads to a lower overall F1AC score. To further analyze
+the baseline models’ performance, we investigated how much of their answering ability relies on
+parametric knowledge versus document-based information (Section 6.1 and Appendix F.3).
+
+Table 3: Qwen2.5 and Phi3.5 families evaluated on the three datasets.
+
+Model
+
+Type
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+Qwen-2.5
+-0.5b
+
+ASQA (610 answerable, 338 unanswerable)
+
+QAMPARI (295 answerable, 705 unanswerable)
+
+ELI5 (207 answerable, 793 unanswerable)
+
+Resp.
+
+AR (%)
+
+29.85
+46.10
+46.10
+100.00
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Truthfullness Att-Grd.
+
+TRUST AR (%)
+
+Truthfullness Att-Grd.
+
+TRUST AR (%)
+
+Truthfullness Att-Grd.
+
+TRUST
+
+F1AC
+20.96
+8.55
+8.55
+42.83
+
+F1GR
+47.19
+50.84
+50.84
+39.15
+
+F1GC
+0.35
+8.23
+2.23
+45.87
+
+22.83
+22.54
+20.54
+42.62
+
+11.40
+17.00
+17.00
+99.30
+
+F1AC
+2.45
+0.67
+0.67
+11.52
+
+F1GR
+50.67
+52.51
+52.51
+23.23
+
+F1GC
+0.00
+5.72
+0.90
+15.90
+
+17.71
+19.63
+18.03
+16.88
+
+82.30
+89.80
+89.80
+99.90
+
+F1AC
+13.73
+9.87
+9.87
+13.74
+
+F1GR
+33.14
+27.10
+27.10
+17.29
+
+F1GC
+0.37
+4.10
+0.68
+27.95
+
+15.75
+13.69
+12.55
+19.66
+
+TRUST-ALIGN (DPO)
+
+71.84
+
+50.59
+
+61.28
+
+52.40
+
+54.76
+
+17.90
+
+15.76
+
+61.84
+
+29.73
+
+35.78
+
+21.70
+
+13.68
+
+60.79
+
+22.72
+
+32.40
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+Qwen-2.5
+-1.5b
+
+98.52
+71.73
+71.73
+99.26
+
+50.55
+16.36
+16.36
+57.74
+
+41.74
+52.46
+52.46
+41.36
+
+6.69
+15.40
+4.45
+55.70
+
+32.99
+28.07
+24.42
+51.60
+
+85.00
+11.20
+11.20
+98.80
+
+15.60
+3.44
+3.44
+16.05
+
+41.27
+51.11
+51.11
+24.45
+
+8.61
+13.95
+1.07
+11.60
+
+21.83
+22.83
+18.54
+17.37
+
+99.40
+91.50
+91.50
+99.90
+
+20.56
+15.63
+15.63
+19.57
+
+17.78
+26.71
+26.71
+17.29
+
+4.99
+5.17
+0.62
+37.70
+
+14.44
+15.84
+14.32
+24.85
+
+TRUST-ALIGN (DPO)
+
+72.57
+
+52.68
+
+62.38
+
+66.81
+
+60.62
+
+20.00
+
+23.80
+
+68.46
+
+50.98
+
+47.75
+
+33.60
+
+19.03
+
+57.91
+
+31.63
+
+36.19
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+Qwen-2.5
+
+-3b
+
+27.43
+8.76
+8.76
+97.47
+
+37.72
+9.58
+9.58
+55.15
+
+51.36
+35.30
+35.30
+44.01
+
+51.72
+10.94
+36.29
+62.72
+
+46.93
+18.61
+27.06
+53.96
+
+22.30
+0.10
+0.10
+79.10
+
+23.17
+0.00
+0.00
+20.69
+
+63.27
+41.31
+41.31
+48.62
+
+41.20
+0.00
+25.00
+25.67
+
+42.55
+13.77
+22.10
+31.66
+
+68.80
+49.70
+49.70
+93.60
+
+29.12
+21.73
+21.73
+18.69
+
+46.31
+48.49
+48.49
+25.37
+
+34.34
+7.56
+1.31
+37.40
+
+36.59
+25.93
+23.84
+27.15
+
+TRUST-ALIGN (DPO)
+
+49.47
+
+55.19
+
+63.76
+
+78.64
+
+65.86
+
+48.10
+
+35.69
+
+70.31
+
+45.64
+
+50.55
+
+13.50
+
+22.52
+
+64.38
+
+42.01
+
+42.97
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+Qwen-2.5
+
+-7b
+
+92.09
+91.46
+91.46
+86.39
+
+58.94
+27.52
+27.52
+64.58
+
+54.34
+45.93
+45.93
+60.08
+
+75.46
+4.19
+17.92
+58.27
+
+62.91
+25.88
+30.46
+60.98
+
+56.30
+26.70
+26.70
+84.70
+
+28.92
+8.59
+8.59
+17.02
+
+63.67
+60.16
+60.16
+42.85
+
+39.28
+1.05
+13.55
+24.48
+
+43.96
+23.27
+27.43
+28.12
+
+82.70
+95.60
+95.60
+57.60
+
+28.27
+21.82
+21.82
+28.27
+
+37.13
+22.23
+22.23
+54.14
+
+44.13
+7.03
+0.96
+56.61
+
+36.51
+17.03
+15.00
+46.34
+
+TRUST-ALIGN (DPO)
+
+59.49
+
+55.04
+
+66.22
+
+83.57
+
+68.28
+
+32.10
+
+30.11
+
+70.68
+
+53.48
+
+51.42
+
+21.00
+
+24.30
+
+63.79
+
+47.02
+
+45.04
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+Phi3.5
+-mini
+
+63.19
+23.10
+23.10
+99.79
+
+50.24
+14.98
+14.98
+63.30
+
+51.95
+41.38
+41.38
+39.79
+
+42.64
+9.40
+1.24
+71.63
+
+48.28
+21.92
+19.20
+58.24
+
+70.20
+76.90
+76.90
+100.00
+
+11.91
+3.57
+3.57
+11.97
+
+43.90
+42.36
+42.36
+22.78
+
+12.26
+4.49
+0.46
+21.50
+
+22.69
+16.81
+15.46
+18.75
+
+81.50
+84.50
+84.50
+96.60
+
+27.59
+20.50
+21.26
+21.46
+
+37.17
+30.81
+30.81
+21.35
+
+30.14
+4.67
+0.68
+61.41
+
+31.63
+18.66
+17.58
+34.74
+
+TRUST-ALIGN (DPO)
+
+66.56
+
+52.23
+
+64.20
+
+85.36
+
+67.26
+
+30.10
+
+36.42
+
+73.95
+
+53.40
+
+54.59
+
+24.90
+
+23.39
+
+67.62
+
+47.42
+
+46.14
+
+TRUST-ALIGN generalizes across model families and sizes. Table 3 demonstrates that TRUST-
+ALIGN improves the models’ TRUST-SCORE across various sizes and architectures. In small mod-
+els like Qwen-2.5-0.5b, TRUST-ALIGN significantly outperforms ICL baselines, achieving notable
+gains in ASQA (22.83% → 54.76%). Similarly, for larger models such as Qwen-2.5-7b, TRUST-
+ALIGN delivers substantial improvements, as seen in ASQA (62.91% → 68.28%), highlighting its
+scalability. The largest gains are observed in smaller models; for example, Phi3.5-mini shows re-
+markable improvements over ICL: 18.98% (ASQA), 31.90% (QAMPARI), and 14.51% (ELI5).
+
+Models aligned with DPO generally outperform those trained with SFT. Table 4 shows that
+DPO models outperform SFT models on TRUST-SCORE in 26 out of 27 model family and dataset
+configurations. In LLaMA-3.2-3b, DPO yields substantial improvements on ASQA (6.70%), QAM-
+PARI (3.09%), and ELI5 (1.71%). Additionally, DPO models also attain substantially better F1GC
+compared to SFT on 25 out of 27 configurations, with substantial improvements on ASQA (8.58%),
+QAMPARI (7.62%), and ELI5 (2.54%) for LLaMA-3.2-3b. This highlights DPO’s effectiveness in
+enhancing citation quality. While results on F1AC and F1GR are mixed, DPO yields better overall
+TRUST-SCORE scores.
+
+6.1 ANALYSIS
+
+Data ablation. Table 5 shows that adding samples targeting each of the five hallucination types
+improves TRUST-SCORE by 1.50% (ASQA), 1.78% (QAMPARI), and 2.23% (ELI5). We observe
+that removing data corresponding to each hallucination type causes a notable decrease in TRUST-
+SCORE, suggesting the importance of each subtype. In particular, removing refusal-related hallu-
+cinations adversely affects F1GR: ↓2.79% (ASQA), ↓0.48% (QAMPARI), underscoring the impor-
+tance of incorporating refusal-related data to improve a model’s ability to discern when to provide
+an answer.
+
+8
+
+Published as a conference paper at ICLR 2025
+
+Table 4: Performance of models with only SFT applied as compared to TRUST-ALIGN models. Best
+values within each family are bolded).
+
+ASQA (610 answerable, 338 unanswerable)
+
+QAMPARI (295 answerable, 705 unanswerable)
+
+ELI5 (207 answerable, 793 unanswerable)
+
+Model
+
+Type
+
+LLaMA-2
+
+-7b
+
+SFT
+TRUST-ALIGN (DPO)
+
+LLaMA-3.2
+
+-1b
+
+SFT
+TRUST-ALIGN (DPO)
+
+LLaMA-3.2
+
+-3b
+
+SFT
+TRUST-ALIGN (DPO)
+
+LLaMA-3
+
+-8b
+
+SFT
+TRUST-ALIGN (DPO)
+
+Qwen-2.5
+-0.5b
+
+SFT
+TRUST-ALIGN (DPO)
+
+Qwen-2.5
+-1.5b
+
+SFT
+TRUST-ALIGN (DPO)
+
+Qwen-2.5
+
+-3b
+
+SFT
+TRUST-ALIGN (DPO)
+
+Qwen-2.5
+
+-7b
+
+SFT
+TRUST-ALIGN (DPO)
+
+Phi3.5
+-mini
+
+SFT
+TRUST-ALIGN (DPO)
+
+Resp.
+
+AR (%)
+
+80.17
+65.30
+
+63.82
+41.67
+
+68.04
+77.85
+
+68.99
+56.43
+
+83.44
+71.84
+
+78.27
+72.57
+
+75.21
+49.47
+
+65.30
+59.49
+
+66.46
+66.56
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Truthfullness Att-Grd.
+
+TRUST AR (%)
+
+Truthfullness Att-Grd.
+
+TRUST AR (%)
+
+Truthfullness Att-Grd.
+
+TRUST
+
+F1AC
+53.21
+52.48
+
+F1GR
+63.43
+66.12
+
+45.61
+38.64
+
+63.91
+58.61
+
+49.23
+59.82
+
+65.47
+66.38
+
+52.35
+53.94
+
+66.06
+65.49
+
+38.71
+50.59
+
+58.03
+61.28
+
+44.23
+52.68
+
+58.75
+62.38
+
+47.26
+55.19
+
+60.61
+63.76
+
+50.73
+55.04
+
+64.50
+66.22
+
+51.92
+52.23
+
+64.34
+64.20
+
+F1GC
+79.61
+83.94
+
+73.10
+79.35
+
+75.63
+84.21
+
+80.95
+88.26
+
+57.47
+52.40
+
+71.08
+66.81
+
+73.09
+78.64
+
+82.07
+83.57
+
+82.77
+85.36
+
+F1AC
+33.76
+32.03
+
+F1GR
+71.13
+71.67
+
+27.98
+27.22
+
+68.20
+67.92
+
+28.09
+29.13
+
+70.22
+70.85
+
+33.85
+35.35
+
+71.11
+70.73
+
+16.02
+15.76
+
+61.35
+61.84
+
+23.89
+23.80
+
+69.66
+68.46
+
+28.80
+35.69
+
+68.12
+70.31
+
+33.58
+30.11
+
+70.10
+70.68
+
+35.04
+36.42
+
+73.93
+73.95
+
+31.60
+32.30
+
+26.00
+20.00
+
+27.60
+48.20
+
+24.20
+22.40
+
+18.50
+17.90
+
+25.50
+20.00
+
+27.20
+48.10
+
+31.70
+32.10
+
+29.10
+30.10
+
+F1GC
+46.37
+49.42
+
+37.96
+49.42
+
+38.03
+45.65
+
+48.01
+58.77
+
+27.82
+29.73
+
+37.68
+50.98
+
+37.34
+45.64
+
+49.08
+53.48
+
+49.38
+53.40
+
+65.42
+67.51
+
+60.87
+58.87
+
+63.44
+70.14
+
+66.45
+69.23
+
+51.40
+54.76
+
+58.02
+60.62
+
+60.32
+65.86
+
+65.77
+68.28
+
+66.34
+67.26
+
+F1AC
+21.58
+22.54
+
+F1GR
+63.30
+63.27
+
+14.56
+13.20
+
+63.93
+59.35
+
+15.92
+18.33
+
+62.59
+62.79
+
+22.57
+20.81
+
+65.06
+63.57
+
+10.50
+13.68
+
+57.19
+60.79
+
+14.14
+19.03
+
+55.35
+57.91
+
+14.85
+22.52
+
+61.47
+64.38
+
+20.78
+24.30
+
+64.25
+63.79
+
+22.50
+23.39
+
+65.70
+67.62
+
+29.50
+21.60
+
+20.50
+9.60
+
+14.70
+17.50
+
+23.60
+15.50
+
+35.50
+21.70
+
+41.30
+33.60
+
+34.50
+13.50
+
+25.50
+21.00
+
+24.50
+24.90
+
+F1GC
+39.59
+47.35
+
+37.28
+48.21
+
+53.33
+55.87
+
+46.85
+50.24
+
+19.57
+22.72
+
+27.69
+31.63
+
+35.87
+42.01
+
+46.89
+47.02
+
+46.79
+47.42
+
+50.42
+51.04
+
+44.71
+48.19
+
+45.45
+48.54
+
+50.99
+54.95
+
+35.06
+35.78
+
+43.74
+47.75
+
+44.75
+50.55
+
+50.92
+51.42
+
+52.78
+54.59
+
+41.49
+44.39
+
+38.59
+40.25
+
+43.95
+45.66
+
+44.83
+44.87
+
+29.09
+32.40
+
+32.39
+36.19
+
+37.40
+42.97
+
+43.97
+45.04
+
+45.00
+46.14
+
+Table 5: Ablations of data synthesis techniques for LLaMA-2-7b on three evaluation datasets using refusal
+prompting; The original error types in Section 2.3 were summarized into three main classes: answer-related
+(Inaccurate Answer), citation-related (Overcitation, Improper Citation), refusal-related (Over Responsiveness,
+Excessive Refusal).
+
+ASQA
+
+QAMPARI
+
+ELI5
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Truthfullness Att-Grd.
+
+TRUST AR (%)
+
+Truthfullness Att-Grd.
+
+TRUST AR (%)
+
+Truthfullness Att-Grd.
+
+TRUST
+
+F1AC
+52.48
+
+53.54
+53.29
+52.55
+53.55
+54.91
+
+F1GR
+66.12
+
+63.33
+63.7
+63.88
+63.33
+65.29
+
+F1GC
+83.94
+
+81.15
+81.2
+81.51
+81.85
+78.47
+
+67.51
+
+66.01
+66.06
+65.98
+66.24
+66.22
+
+31.10
+
+32.20
+33.40
+33.10
+31.10
+25.90
+
+F1AC
+32.09
+
+33.14
+33.56
+34.13
+34.40
+30.77
+
+F1GR
+71.83
+
+70.82
+71.36
+71.40
+71.35
+70.29
+
+F1GC
+51.33
+
+45.94
+46.17
+46.91
+48.12
+48.87
+
+51.75
+
+49.97
+50.36
+50.81
+51.29
+49.98
+
+21.60
+
+29.50
+27.60
+26.70
+28.30
+23.50
+
+F1AC
+22.54
+
+23.98
+23.47
+22.65
+22.93
+17.27
+
+F1GR
+63.27
+
+63.30
+63.56
+64.33
+64.05
+62.24
+
+F1GC
+48.43
+
+40.28
+38.28
+42.81
+41.18
+42.38
+
+44.75
+
+42.52
+41.77
+43.26
+42.72
+40.63
+
+Resp.
+
+AR (%)
+
+65.30
+
+79.43
+77.74
+77.32
+79.11
+70.36
+
+DPO-LLaMA-2-7b
+
+TRUST-ALIGN w/o. augmented instructions
+TRUST-ALIGN w/o. answer HT
+TRUST-ALIGN w/o. citation HT
+TRUST-ALIGN w/o. refusal HT
+GPT-4 as critic
+
+We validated our data construction approach against the GPT-4-as-critic pipeline (Li et al., 2024a;
+Huang et al., 2024b), where GPT-4 iteratively identifies and corrects errors to generate positive and
+negative responses (details in Appendix G). In LLaMA-2-7b, TRUST-ALIGN outperforms GPT-4
+critic on TRUST-SCORE, with gains of 1.29% (ASQA), 1.77% (QAMPARI), and 4.12% (ELI5).
+
+Importance of refusal samples in TRUST-ALIGN. To
+verify the importance of refusal samples in our pipeline,
+we removed all unanswerable questions from the training
+set, creating a dataset without refusals. Table 6 shows
+a significant drop in TRUST-SCORE scores without re-
+fusals, including declines of 10.2% (LLaMA-3-8b) and
+11.41% (LLaMA-2-7b). Notably, F1GR decreases by 26.34% (LLaMA-3-8b) and 26.97% (LLaMA-
+2-7b), and F1GC by 6.87% (LLaMA-3-8b) and 6.57% (LLaMA-2-7b).
+
+Table 6: Effect of adding refusal sam-
+ples on the ASQA.
+
+TRUST-ALIGN Models AR% F1AC
+51.79
+DPO-LLaMA-2-7b
+56.54
+DPO-LLaMA-3-8b
+
+F1GC TRUST
+56.10
+77.37
+59.03
+81.39
+
+DPO-LLaMA-2-7b
+DPO-LLaMA-3-8b
+
+F1GR
+39.15
+39.15
+
+Only Answerable
+
+With Refusal
+
+66.12
+65.49
+
+65.30
+56.43
+
+52.48
+53.94
+
+83.94
+88.26
+
+67.51
+69.23
+
+100
+100
+
+We also observe that in LLaMA-3-8b, F1AC is higher in the answerable-only setting compared to
+with refusals setting. This occurs because RAC favors over-responsive models, which artificially
+inflates F1AC, as discussed in main results. The resulting models answer all questions (AR% of
+100%), even without supporting documents, suggesting an increased reliance on ungrounded para-
+metric knowledge, as discussed in Section 6.1.
+
+Out-of-domain analysis. Following Huang et al. (2024a), we use ExpertQA (Malaviya et al.,
+2024) to assess our model’s generalizability. As shown in Table 7, TRUST-ALIGN model outper-
+forms FRONT on TRUST-SCORE across all 27 open-source model family and dataset configurations.
+We also observe that the open-source ICL models perform significantly worse on TRUST-SCORE as
+compared to the closed-source ICL models, with a 9.79% gap between LLaMA-3-8b and GPT-
+4. TRUST-ALIGN not only closes this gap but establishes a lead: TRUST-ALIGNed LLaMA-3-8b
+achieves the highest TRUST score of 54.85%, surpassing 54.69% of GPT-4.
+
+9
+
+Published as a conference paper at ICLR 2025
+
+Table 7: Generalization test results on ExpertQA using refusal prompting.
+
+Model
+
+Type
+
+AR (%)
+
+LLaMA-2
+
+-7b
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+0.51
+5.62
+5.62
+100
+
+F1AC
+0.00
+4.85
+4.85
+9.33
+
+F1GR
+41.01
+44.27
+44.27
+23.92
+
+F1GC TRUST
+16.84
+9.52
+18.12
+5.23
+17.13
+2.26
+36.00
+74.75
+
+TRUST-ALIGN (DPO)
+
+20.01
+
+25.03
+
+67.91
+
+62.46
+
+51.8
+
+LLaMA-3.2
+
+-1b
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+90
+30.84
+48.41
+95.62
+
+21.55
+5.48
+8.24
+20.83
+
+32.83
+49.1
+47.72
+29.26
+
+9.04
+2.67
+1.5
+37.45
+
+21.14
+19.08
+19.15
+29.18
+
+TRUST-ALIGN (DPO)
+
+15.44
+
+20.32
+
+64.87
+
+62.1
+
+49.1
+
+LLaMA-3.2
+
+-3b
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+58.74
+82.85
+82.85
+83.36
+
+33.5
+25.68
+25.45
+27.24
+
+51.21
+38.11
+38.58
+43.34
+
+38.37
+5.29
+3.4
+50.91
+
+41.03
+23.03
+22.48
+40.5
+
+TRUST-ALIGN (DPO)
+
+7.24
+
+11.72
+
+56.93
+
+78.35
+
+49.0
+
+LLaMA-3
+
+-8b
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+0.65
+15.68
+15.68
+99.26
+
+2.82
+14.06
+14.06
+30.34
+
+42.5
+50.08
+50.08
+24.92
+
+69.46
+7.09
+6.29
+56.7
+
+38.26
+23.74
+23.47
+37.32
+
+TRUST-ALIGN (DPO)
+
+16.41
+
+27.36
+
+67.07
+
+70.11
+
+54.85
+
+GPT-3.5
+
+GPT-4
+
+GPT-4o
+
+ICL
+
+ICL
+
+ICL
+
+59.47
+
+36.65
+
+56.39
+
+63.93
+
+52.32
+
+72.20
+
+41.32
+
+52.91
+
+69.83
+
+54.69
+
+66.07
+
+42.62
+
+64.4
+
+54.61
+
+51.24
+
+TRUST-ALIGN (SFT)
+
+36.84
+
+28.85
+
+71.68
+
+61.98
+
+53.82
+
+Claude-3.5
+
+ICL
+
+73.95
+
+11.68
+
+51.91
+
+10.7
+
+24.76
+
+Model
+
+Type
+
+Qwen-2.5
+-0.5b
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+AR (%)
+
+78.24
+51.41
+51.41
+99.86
+
+F1AC
+21.42
+13.32
+13.32
+18.27
+
+F1GR
+38.71
+48.08
+48.08
+24.05
+
+F1GC TRUST
+20.19
+0.44
+22.33
+5.6
+20.96
+1.49
+25.65
+34.62
+
+TRUST-ALIGN (DPO)
+
+32.96
+
+18.16
+
+63.31
+
+35.07
+
+38.85
+
+Qwen-2.5
+-1.5b
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+98.34
+62.19
+62.19
+99.59
+
+30.67
+22.22
+22.22
+29.15
+
+26.09
+48.66
+48.66
+24.6
+
+6.89
+16.92
+13.15
+50.22
+
+21.22
+29.27
+28.01
+34.66
+
+TRUST-ALIGN (DPO)
+
+30.2
+
+25.06
+
+68.38
+
+51.44
+
+48.29
+
+Qwen-2.5
+
+-3b
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+68.88
+0.05
+0.05
+95.48
+
+35.14
+0
+0
+25.67
+
+49.65
+40.66
+40.66
+29.86
+
+42.67
+0
+0
+44.48
+
+42.49
+13.55
+13.55
+33.34
+
+TRUST-ALIGN (DPO)
+
+17.15
+
+20.97
+
+65.79
+
+60.25
+
+49.0
+
+Qwen-2.5
+
+-7b
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+84.56
+42.14
+42.14
+65.51
+
+36.33
+25.58
+25.58
+32.41
+
+42.28
+54.9
+54.9
+55.56
+
+56.09
+13.77
+12.46
+67.35
+
+44.9
+31.42
+30.98
+51.77
+
+TRUST-ALIGN (DPO)
+
+24.99
+
+25.57
+
+69.16
+
+62.7
+
+52.48
+
+Phi3.5
+-mini
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+85.15
+52.01
+52.01
+97.37
+
+37.49
+27.96
+27.96
+28.19
+
+40.22
+53.64
+53.64
+27.5
+
+36.14
+7.39
+5.7
+65.82
+
+37.95
+29.66
+29.1
+40.5
+
+TRUST-ALIGN (DPO)
+
+26.05
+
+27.69
+
+69.56
+
+61.6
+
+52.95
+
+In LLaMA-3-8B, TRUST-ALIGN outperforms ICL on F1GR by 16.59% and substantially outper-
+forms GPT-3.5 and Claude 3.5 in both F1GC and F1GR. Although GPT-3.5 and GPT-4 achieve
+higher F1AC scores, indicating better answer coverage, they rely heavily on parametric knowledge
+(Section 6.1 and Appendix F.3). This leads to less grounded and less trustworthy responses, as re-
+flected in lower TRUST-SCORE scores compared to TRUST-ALIGN. Similar trends are observed in
+other model families.
+
+Studying parametric knowledge access. For an LLM-in-RAG task, it is important to study the
+tendency of LLM towards grounding its knowledge on the provided documents. To partially quantify
+this, we compute the answer correctness score for questions that are unanswerable by the provided
+documents (defined as Sparam); thus a fraction of cases where AG∩AD = ∅ but AG ̸= ∅ (more details
+on the metric in Appendix F.2). In Table 10, our analysis reveals that responsive models (high AR%)
+tend to rely on parametric knowledge more frequently (high Sparam). Notably, closed-source models
+like GPT-4 exhibit higher parametric knowledge usage compared to open-source and TRUST-ALIGN
+models. However, Sparam only partially captures the models’ utilization of parametric knowledge.
+For instance, it does not account for cases where the document contains the answer, and the model
+still relies on parametric knowledge to generate the correct answer (also present in the document).
+This phenomenon is evident in Table 12, where on ASQA, GPT-4 achieves a significantly higher
+F1AC than our models, yet its attribution groundedness score F1GC is five points lower.
+
+7 CONCLUSION
+
+In this study, we introduced a new holistic metric to evaluate the suitability of LLMs for RAG appli-
+cations, where they are expected to ground their responses in the provided documents. We proposed
+TRUST-SCORE, which comprehensively measures the quality of answers, citations, and refusal per-
+formance of an LLM. Additionally, we presented TRUST-ALIGN, a method that uses a constructed
+dataset to align models for improved TRUST-SCORE performance. By applying Direct Preference
+Optimization (DPO) techniques, we trained LLaMA-2-7b and LLaMA-3-8b on this dataset, signifi-
+cantly reducing hallucinations in an RAG environment. Our approach, TRUST-ALIGN, demonstrates
+performance comparable to major closed-source models like GPT-4.
+
+10
+
+Published as a conference paper at ICLR 2025
+
+ACKNOWLEDGEMENT
+
+This research/project is supported by the National Research Foundation, Singapore under its AI
+Singapore Programme (AISG Award No: AISG3-GV-2023-010). This work is also supported by
+the Microsoft Research Accelerate Foundation Models Academic Research program.
+
+REFERENCES
+
+Marah Abdin, Jyoti Aneja, Hany Awadalla, Ahmed Awadallah, Ammar Ahmad Awan, Nguyen
+Bach, Amit Bahree, Arash Bakhtiari, Jianmin Bao, Harkirat Behl, Alon Benhaim, Misha Bilenko,
+Johan Bjorck, S´ebastien Bubeck, Martin Cai, Qin Cai, Vishrav Chaudhary, Dong Chen, Dong-
+dong Chen, Weizhu Chen, Yen-Chun Chen, Yi-Ling Chen, Hao Cheng, Parul Chopra, Xiyang
+Dai, Matthew Dixon, Ronen Eldan, Victor Fragoso, Jianfeng Gao, Mei Gao, Min Gao, Amit
+Garg, Allie Del Giorno, Abhishek Goswami, Suriya Gunasekar, Emman Haider, Junheng Hao,
+Russell J. Hewett, Wenxiang Hu, Jamie Huynh, Dan Iter, Sam Ade Jacobs, Mojan Javaheripi, Xin
+Jin, Nikos Karampatziakis, Piero Kauffmann, Mahoud Khademi, Dongwoo Kim, Young Jin Kim,
+Lev Kurilenko, James R. Lee, Yin Tat Lee, Yuanzhi Li, Yunsheng Li, Chen Liang, Lars Liden,
+Xihui Lin, Zeqi Lin, Ce Liu, Liyuan Liu, Mengchen Liu, Weishung Liu, Xiaodong Liu, Chong
+Luo, Piyush Madan, Ali Mahmoudzadeh, David Majercak, Matt Mazzola, Caio C´esar Teodoro
+Mendes, Arindam Mitra, Hardik Modi, Anh Nguyen, Brandon Norick, Barun Patra, Daniel Perez-
+Becker, Thomas Portet, Reid Pryzant, Heyang Qin, Marko Radmilac, Liliang Ren, Gustavo
+de Rosa, Corby Rosset, Sambudha Roy, Olatunji Ruwase, Olli Saarikivi, Amin Saied, Adil Salim,
+Michael Santacroce, Shital Shah, Ning Shang, Hiteshi Sharma, Yelong Shen, Swadheen Shukla,
+Xia Song, Masahiro Tanaka, Andrea Tupini, Praneetha Vaddamanu, Chunyu Wang, Guanhua
+Wang, Lijuan Wang, Shuohang Wang, Xin Wang, Yu Wang, Rachel Ward, Wen Wen, Philipp
+Witte, Haiping Wu, Xiaoxia Wu, Michael Wyatt, Bin Xiao, Can Xu, Jiahang Xu, Weijian Xu, Ji-
+long Xue, Sonali Yadav, Fan Yang, Jianwei Yang, Yifan Yang, Ziyi Yang, Donghan Yu, Lu Yuan,
+Chenruidong Zhang, Cyril Zhang, Jianwen Zhang, Li Lyna Zhang, Yi Zhang, Yue Zhang, Yunan
+Zhang, and Xiren Zhou. Phi-3 technical report: A highly capable language model locally on your
+phone, 2024. URL https://arxiv.org/abs/2404.14219.
+
+Samuel Joseph Amouyal, Tomer Wolfson, Ohad Rubin, Ori Yoran, Jonathan Herzig, and Jonathan
+Berant. Qampari: An open-domain question answering benchmark for questions with many an-
+swers from multiple paragraphs, 2023. URL https://arxiv.org/abs/2205.12665.
+
+Anthropic.
+
+Introducing claude 3.5 sonnet. Anthropic News, 2024. URL https://www.
+
+anthropic.com/news/claude-3-5-sonnet.
+
+Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and Hannaneh Hajishirzi. Self-RAG: Learning
+to retrieve, generate, and critique through self-reflection. In The Twelfth International Confer-
+ence on Learning Representations, 2024. URL https://openreview.net/forum?id=
+hSyW5go0v8.
+
+Patrice B´echard and Orlando Marquez Ayala. Reducing hallucination in structured outputs via
+
+retrieval-augmented generation. arXiv preprint arXiv:2404.08189, 2024.
+
+Rishabh Bhardwaj, Yingting Li, Navonil Majumder, Bo Cheng, and Soujanya Poria. knn-cm: A non-
+parametric inference-phase adaptation of parametric text classifiers. In Findings of the Association
+for Computational Linguistics: EMNLP 2023, pp. 13546–13557, 2023.
+
+Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhari-
+wal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agarwal,
+Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh, Daniel M.
+Ziegler, Jeffrey Wu, Clemens Winter, Christopher Hesse, Mark Chen, Eric Sigler, Mateusz
+Litwin, Scott Gray, Benjamin Chess, Jack Clark, Christopher Berner, Sam McCandlish, Alec
+Radford, Ilya Sutskever, and Dario Amodei. Language models are few-shot learners, 2020. URL
+https://arxiv.org/abs/2005.14165.
+
+Jan Buchmann, Xiao Liu, and Iryna Gurevych. Attribute or abstain: Large language models as long
+
+document assistants, 2024. URL https://arxiv.org/abs/2407.07799.
+
+11
+
+Published as a conference paper at ICLR 2025
+
+Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha
+Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, Anirudh Goyal, Anthony
+Hartshorn, Aobo Yang, Archi Mitra, Archie Sravankumar, Artem Korenev, Arthur Hinsvark,
+Arun Rao, Aston Zhang, Aurelien Rodriguez, Austen Gregerson, Ava Spataru, Baptiste Roziere,
+Bethany Biron, Binh Tang, Bobbie Chern, Charlotte Caucheteux, Chaya Nayak, Chloe Bi, Chris
+Marra, et al. The llama 3 herd of models, 2024. URL https://arxiv.org/abs/2407.
+21783.
+
+Angela Fan, Yacine Jernite, Ethan Perez, David Grangier, Jason Weston, and Michael Auli. Eli5:
+Long form question answering, 2019. URL https://arxiv.org/abs/1907.09190.
+
+Wenqi Fan, Yujuan Ding, Liangbo Ning, Shijie Wang, Hengyun Li, Dawei Yin, Tat-Seng Chua, and
+Qing Li. A survey on rag meeting llms: Towards retrieval-augmented large language models. In
+Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining,
+pp. 6491–6501, 2024.
+
+Luyu Gao, Zhuyun Dai, Panupong Pasupat, Anthony Chen, Arun Tejasvi Chaganty, Yicheng Fan,
+Vincent Zhao, Ni Lao, Hongrae Lee, Da-Cheng Juan, and Kelvin Guu. RARR: Researching
+and revising what language models say, using language models. In Anna Rogers, Jordan Boyd-
+Graber, and Naoaki Okazaki (eds.), Proceedings of the 61st Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers), pp. 16477–16508, Toronto, Canada, July
+2023a. Association for Computational Linguistics. doi: 10.18653/v1/2023.acl-long.910. URL
+https://aclanthology.org/2023.acl-long.910.
+
+Tianyu Gao, Howard Yen, Jiatong Yu, and Danqi Chen. Enabling large language models to generate
+
+text with citations, 2023b.
+
+Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia, Jinliu Pan, Yuxi Bi, Yi Dai, Jiawei Sun, and
+Haofen Wang. Retrieval-augmented generation for large language models: A survey. arXiv
+preprint arXiv:2312.10997, 2023c.
+
+Or Honovich, Roee Aharoni, Jonathan Herzig, Hagai Taitelbaum, Doron Kukliansy, Vered Cohen,
+Thomas Scialom, Idan Szpektor, Avinatan Hassidim, and Yossi Matias. TRUE: Re-evaluating
+factual consistency evaluation. In Song Feng, Hui Wan, Caixia Yuan, and Han Yu (eds.), Pro-
+ceedings of the Second DialDoc Workshop on Document-grounded Dialogue and Conversational
+Question Answering, pp. 161–175, Dublin, Ireland, May 2022. Association for Computational
+Linguistics. doi: 10.18653/v1/2022.dialdoc-1.19. URL https://aclanthology.org/
+2022.dialdoc-1.19.
+
+I-Hung Hsu, Zifeng Wang, Long T. Le, Lesly Miculicich, Nanyun Peng, Chen-Yu Lee, and Tomas
+Pfister. Calm: Contrasting large and small language models to verify grounded generation, 2024.
+URL https://arxiv.org/abs/2406.05365.
+
+Chengyu Huang, Zeqiu Wu, Yushi Hu, and Wenya Wang. Training language models to generate text
+
+with citations via fine-grained rewards, 2024a.
+
+Lei Huang, Xiaocheng Feng, Weitao Ma, Yuxuan Gu, Weihong Zhong, Xiachong Feng, Weijiang
+Yu, Weihua Peng, Duyu Tang, Dandan Tu, and Bing Qin. Learning fine-grained grounded cita-
+tions for attributed large language models. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar
+(eds.), Findings of the Association for Computational Linguistics ACL 2024, pp. 14095–14113,
+Bangkok, Thailand and virtual meeting, August 2024b. Association for Computational Linguis-
+tics. URL https://aclanthology.org/2024.findings-acl.838.
+
+Bin Ji, Huijun Liu, Mingzhe Du, and See-Kiong Ng. Chain-of-thought improves text genera-
+tion with citations in large language models. Proceedings of the AAAI Conference on Arti-
+ficial Intelligence, 38(16):18345–18353, Mar. 2024. doi: 10.1609/aaai.v38i16.29794. URL
+https://ojs.aaai.org/index.php/AAAI/article/view/29794.
+
+Ziwei Ji, Nayeon Lee, Rita Frieske, Tiezheng Yu, Dan Su, Yan Xu, Etsuko Ishii, Ye Jin Bang,
+Andrea Madotto, and Pascale Fung. Survey of hallucination in natural language generation. ACM
+Computing Surveys, 55(12):1–38, March 2023. ISSN 1557-7341. doi: 10.1145/3571730. URL
+http://dx.doi.org/10.1145/3571730.
+
+12
+
+Published as a conference paper at ICLR 2025
+
+Zhengbao Jiang, Frank F Xu, Luyu Gao, Zhiqing Sun, Qian Liu, Jane Dwivedi-Yu, Yiming Yang,
+Jamie Callan, and Graham Neubig. Active retrieval augmented generation. arXiv preprint
+arXiv:2305.06983, 2023.
+
+Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick Lewis, Ledell Wu, Sergey Edunov, Danqi
+Chen, and Wen-tau Yih. Dense passage retrieval for open-domain question answering. In Bonnie
+Webber, Trevor Cohn, Yulan He, and Yang Liu (eds.), Proceedings of the 2020 Conference on
+Empirical Methods in Natural Language Processing (EMNLP), pp. 6769–6781, Online, Novem-
+ber 2020. Association for Computational Linguistics. doi: 10.18653/v1/2020.emnlp-main.550.
+URL https://aclanthology.org/2020.emnlp-main.550.
+
+Muhammad Khalifa, David Wadden, Emma Strubell, Honglak Lee, Lu Wang, Iz Beltagy, and Hao
+
+Peng. Source-aware training enables knowledge attribution in language models, 2024.
+
+Urvashi Khandelwal, Omer Levy, Dan Jurafsky, Luke Zettlemoyer, and Mike Lewis. Generalization
+through memorization: Nearest neighbor language models. arXiv preprint arXiv:1911.00172,
+2019.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal,
+Heinrich K¨uttler, Mike Lewis, Wen tau Yih, Tim Rockt¨aschel, Sebastian Riedel, and Douwe
+Kiela. Retrieval-augmented generation for knowledge-intensive nlp tasks, 2021.
+
+Dongfang Li, Zetian Sun, Xinshuo Hu, Zhenyu Liu, Ziyang Chen, Baotian Hu, Aiguo Wu, and Min
+Zhang. A survey of large language models attribution. arXiv preprint arXiv:2311.03731, 2023.
+
+Dongfang Li, Zetian Sun, Baotian Hu, Zhenyu Liu, Xinshuo Hu, Xuebo Liu, and Min Zhang. Im-
+proving attributed text generation of large language models via preference learning. In Lun-Wei
+Ku, Andre Martins, and Vivek Srikumar (eds.), Findings of the Association for Computational
+Linguistics ACL 2024, pp. 5079–5101, Bangkok, Thailand and virtual meeting, August 2024a.
+Association for Computational Linguistics. URL https://aclanthology.org/2024.
+findings-acl.301.
+
+Weitao Li, Junkai Li, Weizhi Ma, and Yang Liu. Citation-enhanced generation for llm-based chat-
+
+bots, 2024b.
+
+Nelson Liu, Tianyi Zhang, and Percy Liang. Evaluating verifiability in generative search en-
+In Houda Bouamor, Juan Pino, and Kalika Bali (eds.), Findings of the Association for
+gines.
+Computational Linguistics: EMNLP 2023, pp. 7001–7025, Singapore, December 2023. As-
+doi: 10.18653/v1/2023.findings-emnlp.467. URL
+sociation for Computational Linguistics.
+https://aclanthology.org/2023.findings-emnlp.467.
+
+Chaitanya Malaviya, Subin Lee, Sihao Chen, Elizabeth Sieber, Mark Yatskar, and Dan Roth. Ex-
+pertqa: Expert-curated questions and attributed answers, 2024. URL https://arxiv.org/
+abs/2309.07852.
+
+Yu Meng, Mengzhou Xia, and Danqi Chen. SimPO: Simple preference optimization with a
+
+reference-free reward. arXiv preprint arXiv:2405.14734, 2024.
+
+Jacob Menick, Maja Trebacz, Vladimir Mikulik, John Aslanides, Francis Song, Martin Chadwick,
+Mia Glaese, Susannah Young, Lucy Campbell-Gillingham, Geoffrey Irving, et al. Teaching lan-
+guage models to support answers with verified quotes. arXiv preprint arXiv:2203.11147, 2022.
+
+Reiichiro Nakano, Jacob Hilton, Suchir Balaji, Jeff Wu, Long Ouyang, Christina Kim, Christo-
+pher Hesse, Shantanu Jain, Vineet Kosaraju, William Saunders, et al. Webgpt: Browser-assisted
+question-answering with human feedback. arXiv preprint arXiv:2112.09332, 2021.
+
+Jianmo Ni, Chen Qu, Jing Lu, Zhuyun Dai, Gustavo Hernandez Abrego, Ji Ma, Vincent Zhao,
+Yi Luan, Keith Hall, Ming-Wei Chang, and Yinfei Yang. Large dual encoders are generaliz-
+In Yoav Goldberg, Zornitsa Kozareva, and Yue Zhang (eds.), Proceedings of
+able retrievers.
+the 2022 Conference on Empirical Methods in Natural Language Processing, pp. 9844–9855,
+Abu Dhabi, United Arab Emirates, December 2022. Association for Computational Linguis-
+tics. doi: 10.18653/v1/2022.emnlp-main.669. URL https://aclanthology.org/2022.
+emnlp-main.669.
+
+13
+
+Published as a conference paper at ICLR 2025
+
+OpenAI. Chatgpt, 2023. URL https://openai.com/index/chatgpt/. Accessed: 2024-
+
+09-01.
+
+OpenAI, Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Floren-
+cia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, Red
+Avila, Igor Babuschkin, Suchir Balaji, Valerie Balcom, Paul Baltescu, Haiming Bao, Moham-
+mad Bavarian, Jeff Belgum, Irwan Bello, Jake Berdine, Gabriel Bernadett-Shapiro, Christopher
+Berner, Lenny Bogdonoff, Oleg Boiko, Madelaine Boyd, Anna-Luisa Brakman, Greg Brockman,
+Tim Brooks, Miles Brundage, Kevin Button, Trevor Cai, Rosie Campbell, et al. Gpt-4 technical
+report, 2024. URL https://arxiv.org/abs/2303.08774.
+
+Long Ouyang, Jeff Wu, Xu Jiang, Diogo Almeida, Carroll L. Wainwright, Pamela Mishkin, Chong
+Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, John Schulman, Jacob Hilton, Fraser Kel-
+ton, Luke Miller, Maddie Simens, Amanda Askell, Peter Welinder, Paul Christiano, Jan Leike,
+and Ryan Lowe. Training language models to follow instructions with human feedback, 2022.
+URL https://arxiv.org/abs/2203.02155.
+
+Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Dmytro Okhonko, Samuel Broscheit,
+Gautier Izacard, Patrick Lewis, Barlas O˘guz, Edouard Grave, Wen-tau Yih, et al.
+The
+web is your oyster-knowledge-intensive nlp against a very large web corpus. arXiv preprint
+arXiv:2112.09924, 2021.
+
+Ori Press, Andreas Hochlehnert, Ameya Prabhu, Vishaal Udandarao, Ofir Press, and Matthias
+Bethge. Citeme: Can language models accurately cite scientific claims?, 2024. URL https:
+//arxiv.org/abs/2407.12861.
+
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher D. Manning, and
+Chelsea Finn. Direct preference optimization: Your language model is secretly a reward model,
+2024a. URL https://arxiv.org/abs/2305.18290.
+
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Christopher D Manning, Stefano Ermon, and Chelsea
+Finn. Direct preference optimization: Your language model is secretly a reward model. Advances
+in Neural Information Processing Systems, 36, 2024b.
+
+Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi
+Zhou, Wei Li, and Peter J Liu. Exploring the limits of transfer learning with a unified text-to-text
+transformer. Journal of machine learning research, 21(140):1–67, 2020.
+
+Hannah Rashkin, Vitaly Nikolaev, Matthew Lamm, Lora Aroyo, Michael Collins, Dipanjan Das,
+Slav Petrov, Gaurav Singh Tomar, Iulia Turc, and David Reitter. Measuring attribution in natural
+language generation models, 2022. URL https://arxiv.org/abs/2112.12870.
+
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. Proximal policy
+
+optimization algorithms, 2017. URL https://arxiv.org/abs/1707.06347.
+
+Freda Shi, Xinyun Chen, Kanishka Misra, Nathan Scales, David Dohan, Ed H. Chi, Nathanael
+Sch¨arli, and Denny Zhou. Large language models can be easily distracted by irrelevant context.
+In Andreas Krause, Emma Brunskill, Kyunghyun Cho, Barbara Engelhardt, Sivan Sabato, and
+Jonathan Scarlett (eds.), Proceedings of the 40th International Conference on Machine Learning,
+volume 202 of Proceedings of Machine Learning Research, pp. 31210–31227. PMLR, 23–29 Jul
+2023. URL https://proceedings.mlr.press/v202/shi23a.html.
+
+Kurt Shuster, Spencer Poff, Moya Chen, Douwe Kiela, and Jason Weston. Retrieval augmentation
+
+reduces hallucination in conversation. arXiv preprint arXiv:2104.07567, 2021.
+
+Aviv Slobodkin, Eran Hirsch, Arie Cattan, Tal Schuster, and Ido Dagan. Attribute first, then gener-
+
+ate: Locally-attributable grounded text generation, 2024.
+
+Yixiao Song, Yekyung Kim, and Mohit Iyyer. Veriscore: Evaluating the factuality of verifiable
+claims in long-form text generation, 2024. URL https://arxiv.org/abs/2406.19276.
+
+Ivan Stelmakh, Yi Luan, Bhuwan Dhingra, and Ming-Wei Chang. Asqa: Factoid questions meet
+
+long-form answers, 2023. URL https://arxiv.org/abs/2204.06092.
+
+14
+
+Published as a conference paper at ICLR 2025
+
+Nandan Thakur, Luiz Bonifacio, Xinyu Zhang, Odunayo Ogundepo, Ehsan Kamalloo, David
+Alfonso-Hermelo, Xiaoguang Li, Qun Liu, Boxing Chen, Mehdi Rezagholizadeh, and Jimmy
+Lin. Nomiracl: Knowing when you don’t know for robust multilingual retrieval-augmented gen-
+eration, 2024. URL https://arxiv.org/abs/2312.11361.
+
+Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei, Niko-
+lay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, Dan Bikel, Lukas Blecher,
+Cristian Canton Ferrer, Moya Chen, Guillem Cucurull, David Esiobu, Jude Fernandes, Jeremy
+Fu, Wenyin Fu, Brian Fuller, Cynthia Gao, Vedanuj Goswami, Naman Goyal, Anthony Hartshorn,
+Saghar Hosseini, Rui Hou, Hakan Inan, Marcin Kardas, Viktor Kerkez, Madian Khabsa, Isabel
+Kloumann, Artem Korenev, Punit Singh Koura, Marie-Anne Lachaux, Thibaut Lavril, Jenya Lee,
+Diana Liskovich, Yinghai Lu, Yuning Mao, Xavier Martinet, Todor Mihaylov, Pushkar Mishra,
+Igor Molybog, Yixin Nie, Andrew Poulton, Jeremy Reizenstein, Rashi Rungta, Kalyan Saladi,
+Alan Schelten, Ruan Silva, Eric Michael Smith, Ranjan Subramanian, Xiaoqing Ellen Tan, Binh
+Tang, Ross Taylor, Adina Williams, Jian Xiang Kuan, Puxin Xu, Zheng Yan, Iliyan Zarov, Yuchen
+Zhang, Angela Fan, Melanie Kambadur, Sharan Narang, Aurelien Rodriguez, Robert Stojnic,
+Sergey Edunov, and Thomas Scialom. Llama 2: Open foundation and fine-tuned chat models,
+2023. URL https://arxiv.org/abs/2307.09288.
+
+Sirui Xia, Xintao Wang, Jiaqing Liang, Yifei Zhang, Weikang Zhou, Jiaji Deng, Fei Yu, and Yanghua
+Xiao. Ground every sentence: Improving retrieval-augmented llms with interleaved reference-
+claim generation, 2024. URL https://arxiv.org/abs/2407.01796.
+
+Fangyuan Xu, Weijia Shi, and Eunsol Choi. Recomp: Improving retrieval-augmented lms with
+compression and selective augmentation, 2023. URL https://arxiv.org/abs/2310.
+04408.
+
+Yilong Xu, Jinhua Gao, Xiaoming Yu, Baolong Bi, Huawei Shen, and Xueqi Cheng. Aliice: Eval-
+uating positional fine-grained citation generation, 2024. URL https://arxiv.org/abs/
+2406.13375.
+
+An Yang, Baosong Yang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Zhou, Chengpeng Li,
+Chengyuan Li, Dayiheng Liu, Fei Huang, Guanting Dong, Haoran Wei, Huan Lin, Jialong Tang,
+Jialin Wang, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Ma, Jin Xu, Jingren Zhou, Jinze Bai,
+Jinzheng He, Junyang Lin, Kai Dang, Keming Lu, Keqin Chen, Kexin Yang, Mei Li, Mingfeng
+Xue, Na Ni, Pei Zhang, Peng Wang, Ru Peng, Rui Men, Ruize Gao, Runji Lin, Shijie Wang, Shuai
+Bai, Sinan Tan, Tianhang Zhu, Tianhao Li, Tianyu Liu, Wenbin Ge, Xiaodong Deng, Xiaohuan
+Zhou, Xingzhang Ren, Xinyu Zhang, Xipin Wei, Xuancheng Ren, Yang Fan, Yang Yao, Yichang
+Zhang, Yu Wan, Yunfei Chu, Yuqiong Liu, Zeyu Cui, Zhenru Zhang, and Zhihao Fan. Qwen2
+technical report. arXiv preprint arXiv:2407.10671, 2024.
+
+Xi Ye, Ruoxi Sun, Sercan ¨O. Arik, and Tomas Pfister. Effective large language model adaptation for
+
+improved grounding and citation generation, 2024.
+
+Ori Yoran, Tomer Wolfson, Ori Ram, and Jonathan Berant. Making retrieval-augmented language
+models robust to irrelevant context, 2024. URL https://arxiv.org/abs/2310.01558.
+
+Jingyu Zhang, Marc Marone, Tianjian Li, Benjamin Van Durme, and Daniel Khashabi. Verifiable
+
+by design: Aligning language models to quote from pre-training data, 2024a.
+
+Weijia Zhang, Mohammad Aliannejadi, Yifei Yuan, Jiahuan Pei, Jia-Hong Huang, and Evangelos
+Kanoulas. Towards fine-grained citation evaluation in generated text: A comparative analysis of
+faithfulness metrics, 2024b. URL https://arxiv.org/abs/2406.15264.
+
+Xin Zheng, Zhirui Zhang, Junliang Guo, Shujian Huang, Boxing Chen, Weihua Luo, and Jiajun
+Chen. Adaptive nearest neighbor machine translation. arXiv preprint arXiv:2105.13022, 2021.
+
+15
+
+Published as a conference paper at ICLR 2025
+
+Table of Contents
+
+A Nuances of answerability
+
+B Answerability: A Case Study
+
+C Related Works
+
+C.1 Attributable Retrieval Augmented Generation .
+.
+C.2 Enhance grounded text generation in attributed Large Language Models .
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+D Metrics
+
+D.1 Response Truthfulness .
+.
+D.2 Attribution Groundedness .
+
+.
+
+E The TRUST-ALIGN Dataset
+
+E.1 Collecting Quality Questions
+E.2 Collecting D’s .
+.
+.
+E.3 Augmenting (q,D) set
+.
+E.4 Obtaining r+ .
+.
+.
+E.5 Obtaining r− .
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+
+.
+
+.
+
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+F Additional Analysis
+
+.
+
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+F.1 Revised metrics are less biased .
+.
+.
+F.2 Utilization of Parametric Knowledge .
+F.3 The Source of LLM Hallucinations .
+.
+.
+F.4 TRUST-ALIGN enhances trustworthiness more robustly than prompting .
+.
+F.5 Comparison with Closed-source Models
+.
+.
+F.6 Adaptability with Different Alignment Techniques .
+.
+.
+F.7 Evaluation Data Creation Without using TRUE .
+.
+.
+.
+F.8 Effect of data size on DPO performance .
+.
+.
+.
+.
+F.9 Fine-tuning GPT-4o .
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+.
+
+.
+.
+
+.
+.
+
+.
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+G GPT-4 based Data Pipeline
+
+H Experimental Setup
+
+H.1 Implementation details
+.
+H.2 Dataset details .
+.
+.
+.
+.
+H.3 Baselines .
+.
+H.4 Refusal Detection .
+
+.
+.
+
+.
+
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+
+I Detailed Results
+
+J Prompt Templates
+
+16
+
+17
+
+17
+
+18
+18
+18
+
+19
+19
+20
+
+21
+21
+21
+22
+22
+23
+
+24
+24
+25
+25
+26
+27
+28
+29
+30
+30
+
+30
+
+31
+31
+31
+32
+32
+
+33
+
+33
+
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+Published as a conference paper at ICLR 2025
+
+A NUANCES OF ANSWERABILITY
+
+Determining answerability can be challenging. To determine answerability, we use a system that
+evaluates the entailment of gold claims against provided documents, referred to as the Natural Lan-
+guage Inference (NLI) system. An NLI system can range from a simple exact match (EM) identifier
+to an LLM or even a human evaluator, with answerability determined based on q, D and biases of
+the NLI9. These biases can be useful in specific RAG applications, such as solving mathematical
+problems where the documents provide a formula and the question assigns values to variables. The
+choice of NLI depends on whether the RAG system requires the LLM to have mathematical under-
+standing. Ideally, to prevent improper evaluations, the NLI model used to construct the gold
+claims should also be used to evaluate the LLM responses.
+
+In this paper, our focus is on evaluating the generic comprehension capabilities of LLMs without
+specialized knowledge. Thus, we use two NLI mechanisms: 1) identifying whether an exact match
+of claims is present in the gold claims, and 2) using a Machine Learning (ML) model to deter-
+mine if the documents can entail the gold claims. The ML-based NLI model is used for multiple
+purposes, such as alignment dataset construction (data/training) and evaluating generated responses
+(metric/testing). For this, we adopt the NLI model from Rashkin et al. (2022). ϕ(cij, si) = 1 if cij
+(premise) entails si (hypothesis); otherwise, 0. To determine answerability, we employ the TRUE-
+based method (Honovich et al., 2022) to assess whether a gold claim can be entailed by a given
+document.
+
+The knowledge grounding problem. Typically, LLMs are designed to perform question-
+answering tasks, where response generation heavily relies on the parametric (internal) knowledge
+acquired during their pre-training, tuning, and alignment phases (OpenAI, 2023; Anthropic, 2024).
+Thus, most of their knowledge is grounded in parametric memory. This makes them inherently
+less suitable for RAG applications, where the knowledge generated by the LLM is expected to be
+grounded in input documents. RAG is analogous to a reading comprehension task, where the an-
+swers must come from the provided passage (documents in RAG) rather than the prior knowledge of
+the person taking the test. Thus, any reliance on parametric knowledge can result in statements that
+are not fully grounded in the documents, including providing answers to unanswerable questions.
+Our investigation shows that state-of-the-art models, such as GPT-4 and Claude-3.5-Sonnet, overtly
+rely on parametric knowledge even when used in a RAG setting.10
+
+B ANSWERABILITY: A CASE STUDY
+
+Prior works (Liu et al., 2023; Gao et al., 2023b; Ye et al., 2024; Huang et al., 2024a; Li et al.,
+2024a) have employed substring matching to indicate entailment. While this syntactic approach is
+fast, it often proves inadequate in complex, long contexts. A case study is presented in Table 8. To
+address the limitations of this superficial entailment, we adopt a TRUE-based method (Honovich
+et al., 2022), which combines the strengths of both syntactic and semantic approaches. Specifically,
+we enhance the process by using the TRUE model, a T5-11B model (Raffel et al., 2020) fine-tuned
+for the NLI task, to verify, from a semantic perspective, whether a substring match corresponds to
+meaningful entailment within document passages. The input to the TRUE model is the concatenation
+of a premise and a hypothesis, and the output is an entailment score between 0 and 1, indicating the
+degree to which the premise entails the hypothesis. We treat the corresponding documents as the
+premise, and to minimize ambiguity, the associated question is concatenated with each gold answer
+as the hypothesis. In cases where the TRUE model does not yield a positive entailment score despite
+a substring match, we rely on the TRUE judgment as the final label. However, if the substring match
+fails, we bypass TRUE calculation, thus reducing the computational cost of relying solely on TRUE
+for semantic entailment.
+
+9For EM, the bias is that a q is answerable if an exact match for claims is present in D.
+10We show a detailed analysis in Appendices F.2 and F.3.
+
+17
+
+Published as a conference paper at ICLR 2025
+
+Table 8: Case study showcasing the limitations of substring matching and necessity of TRUE judge-
+ment.
+
+How many state parks are there in Virginia?
+38
+
+Question
+Gold Answer
+Retrieved document Virginia has 30 National Park Service units, such as Great Falls Park and
+the Appalachian Trail, and one national park, the Shenandoah National
+Park. With over 500 miles of trails, including 38 miles of the iconic
+Appalachian Trail, it’s a paradise for hikers, nature lovers, and those
+seeking serene mountain landscapes.
+Substring is matched and as such the question is answerable.
+Not entailed as such the question is unanswerable given the document.
+
+Substring match
+TRUE Judgement
+
+C RELATED WORKS
+
+C.1 ATTRIBUTABLE RETRIEVAL AUGMENTED GENERATION
+
+Retrieval Augmented Generation (RAG) has been widely studied for reducing the knowledge gap
+and providing more referenced information to enhance answer generation (Karpukhin et al., 2020;
+Lewis et al., 2021; Gao et al., 2023c). However, LLMs are prone to being misled by irrelevant
+information, leading to hallucinations and less factual outputs (Shi et al., 2023; Yoran et al., 2024;
+Xu et al., 2023). This challenge has spurred research into attributable RAG, which aims to verify
+model outputs by identifying supporting sources. Rashkin et al. (2022) first introduced the concept
+of Attributable to Identified Sources (AIS) to evaluate attribution abilities. Subsequently, Gao et al.
+(2023b) adapted this approach to verify generated content with citations, improving the reliability
+of RAG systems. Simultaneously, Press et al. (2024) and Song et al. (2024) explored related as-
+pects: citation attribution for paper identification and the verifiability of long-form generated text,
+respectively. Further fine-grained evaluations have been examined, such as assessing the degree
+of support (Zhang et al., 2024b) and the granularity of claims (Xu et al., 2024). Recent studies
+(Buchmann et al., 2024; Hsu et al., 2024) have also investigated attribution ability by disentangling
+the confounding effects of retrievers and LLMs. Unlike existing works, we design TRUST-SCORE
+to prioritize trustworthiness in LLMs by ensuring that generated responses are strictly grounded in
+the provided documents, thereby minimizing the generation of unverifiable content. This focus on
+verifiable accuracy strengthens the reliability of LLM outputs and enhances user trust.
+
+C.2 ENHANCE GROUNDED TEXT GENERATION IN ATTRIBUTED LARGE LANGUAGE MODELS
+
+To enhance grounded text generation, various attributed LLMs have been proposed, falling into two
+main paradigms: training-free and training-based. For training-free methods: 1) In-context learning
+(Gao et al., 2023b) is used to generate in-line citations with few-shot demonstrations. 2) Post-hoc
+attribution (Gao et al., 2023a; Li et al., 2024b) first generates an initial response and then retrieves ev-
+idence as attribution. 3) Ji et al. (2024) demonstrate that using chain-of-thought reasoning improves
+the quality of text generated with citations. For training-based methods: 1) Asai et al. (2024); Slo-
+bodkin et al. (2024); Xia et al. (2024); Ye et al. (2024) apply supervised fine-tuning (SFT) to LLMs,
+training them to identify useful information from documents and guide cited text generation with
+them. 2) Beyond simple SFT, recent studies model the task as preference learning, employing Re-
+inforcement Learning with Human Feedback (RLHF) (Ouyang et al., 2022) and Direct Preference
+Optimization (DPO) (Rafailov et al., 2024a). Huang et al. (2024a) proposed a method to improve at-
+tribution generation using fine-grained rewards and Proximal Policy Optimization (PPO) (Schulman
+et al., 2017), while Li et al. (2024a); Huang et al. (2024b) introduced the modified DPO framework
+to enhance fine-grained attribution abilities. 3) While many approaches rely on external documents
+provided by the user or retrieved during generation, Khalifa et al. (2024); Zhang et al. (2024a) fo-
+cus on tuning LLMs to cite sources from pre-training data using learned parametric knowledge.
+In contrast to previous approaches, we introduce TRUST-ALIGN, which advances alignment data
+generation through a multi-step process that disentangles answer generation from citation quality.
+This separation enables TRUST-ALIGN to simultaneously improve the quality of answer generation,
+citation accuracy, and refusal precision. Additionally, TRUST-ALIGN addresses a broader range of
+
+18
+
+Published as a conference paper at ICLR 2025
+
+hallucination errors, including inappropriate refusals, thereby enhancing the overall trustworthiness
+and reliability of the model’s outputs.
+
+D METRICS
+
+In this section, we elaborate on how we compute metrics that are components of TRUST-SCORE.
+
+D.1 RESPONSE TRUTHFULNESS
+
+Truthfulness captures the model’s ability to answer or refuse a question correctly by computing
+the grounded refusal (F1GR) and the factual accuracy by computing the answer-calibrated answer
+correctness score (F1AC).
+
+Grounded Refusal [F1GR]: A macro-averaged F1 score that measures the LLM’s ability in cor-
+rectly refusing to answer a question (F1ref) and correctly providing an answer when required (F1ans).
+
+• F1ref: This metric evaluates a model’s ability to correctly refuse unanswerable questions.
+We calculate it based on how accurately the model identifies and refuses these questions.
+Let Ag and ¬Ag represent the sets of ground truth answerable and unanswerable questions,
+respectively, and Ar and ¬Ar denote the sets of questions where the model provided an
+answer and refused to answer, respectively. F1ref is computed from precision Pref and recall
+Rref:
+
+Pref =
+
+Rref =
+
+F1ref =
+
+|¬Ar ∩ ¬Ag|
+|¬Ar|
+|¬Ar ∩ ¬Ag|
+|¬Ag|
+2Pref · Rref
+Pref + Rref
+
+,
+
+(1)
+
+(2)
+
+(3)
+
+where Pref measures the proportion of correctly refused unanswerable questions among
+all refused questions, and Rref measures the proportion of correctly refused unanswerable
+questions out of all unanswerable questions. Here, | · | denote the cardinality of the set, thus
+Pref, Rref, and F1ref are scalar values.
+
+• F1ans: This metric evaluates a model’s ability to correctly answer answerable questions.
+It is computed based on the precision Pans and recall Rans for non-refusal responses to
+answerable questions:
+
+Pans =
+
+Rans =
+
+F1ans =
+
+|Ar ∩ Ag|
+|Ar|
+|Ar ∩ Ag|
+|Ag|
+2Pans · Rans
+Pans + Rans
+
+(4)
+
+(5)
+
+(6)
+
+F1GR (Grounded Refusals) provides an overall assessment of the model’s refusal capabilities by
+computing the macro-average of F1ref and F1ans:
+
+F1GR =
+
+1
+2
+
+(F1ref + F1ans)
+
+(7)
+
+F1ref evaluates the model’s ability to correctly refuse unanswerable questions, while F1ans assesses
+its ability to correctly answer answerable ones. By penalizing both incorrect refusals and incor-
+rect non-refusals, F1GR offers a balanced evaluation of the model’s over-responsiveness and under-
+responsiveness
+
+19
+
+Published as a conference paper at ICLR 2025
+
+Answer Correctness (Answer Calibrated) [F1AC]: Given a question q and the corresponding
+gold claims AG = {ag1, . . . , agn}, we define the claims obtainable from the provided documents
+as AD = {ad1, . . . , adn} and the claims generated in the response r as AR = {ar1, . . . , arn}. ACq
+disregards the claims that cannot be inferred from D (answer calibration), and the exact match recall
+scores is computed on the remaining claims, i.e., AG ∩ AD:
+
+ACqi =
+
+|AG ∩ AD ∩ AR|
+|AG ∩ AD|
+
+For the whole dataset with multiple questions {q1 . . . qk}, one can compute the average:
+
+AC =
+
+1
+k
+
+(cid:88)
+
+ACqi
+
+qi∈Ag∩Ar
+
+(8)
+
+(9)
+
+Where Ag denote the set of questions that are answerable using the provided documents, fully or
+partially; Ar denote the set of questions that are answered by the model (non-refusal). There are two
+variants of AC we study— precision-oriented PAC with denominator k = |Ar| (number of answered
+questions). Second variant, recall-oriented RAC with denominator k = |Ag| (number of answerable
+questions). Here | · | denotes the cardinality of the set. We denote the aggregated score by
+
+F1AC =
+
+2 PAC · RAC
+PAC + RAC
+
+.
+
+(10)
+
+The primary reason for adjusting the conventional Answer Correctness (AC) metric to account for
+the presence of answers in retrieved documents is to avoid rewarding models for generating correct
+answers without locating them in the provided documents. This approach discourages models from
+relying solely on their pre-trained knowledge to answer questions, instead encouraging them to find
+and ground their answers within the provided documents.
+
+D.2 ATTRIBUTION GROUNDEDNESS
+
+Attribution or citation groundedness measures the relevance of generated citations to their corre-
+sponding statements, both individually and collectively. A citation ci,j is deemed ”relevant” when
+the statement it cites can be inferred from the cited document. The collective importance of ci-
+tations is assessed using a statement-wise recall metric, while the individual importance of each
+citation is evaluated using a precision metric. Given that a generated response r consists of multiple
+statements S and their corresponding citations C, we first compute statement-wise citation recall
+and per-citation precision. These scores are then averaged to obtain sample-wise scores, which are
+finally averaged to produce dataset-wide scores.
+
+Grounded Citation F1 [F1GC]: For a given statement si, statement-wise citation recall is com-
+puted by:
+
+Rsi
+
+cite = ϕ({ci,1, . . . , ci,j}, si)
+
+(11)
+
+where ϕ({ci,1, . . . , ci,j}, si) → {0, 1} is a function that determines whether the concatenation of all
+cited documents fully supports the statement si. Next, we compute precision for a generated citation
+ci,j for statement si as:
+
+Pcj
+cite = ϕ(ci,j, si)
+
+OR ¬ϕ({ci,k | k ̸= j}, si)
+
+(12)
+
+Thus, citation precision is 0 if and only if the cited document ci,j does not entail the statement si,
+while all other citations collectively entail si without ci,j.
+
+20
+
+Published as a conference paper at ICLR 2025
+
+As an aggregate measure, we report F1GC, which computes the F1 score using cumulative precision
+and recall over the answered questions only (non-refusals):
+
+Rcite =
+
+1
+|Ar|
+
+Pcite =
+
+1
+|Ar|
+
+(cid:88)
+
+S∈As
+r
+(cid:88)
+
+1
+|S|
+
+1
+|C|
+
+(cid:88)
+
+si∈S
+(cid:88)
+
+Rsi
+cite
+
+Pcj
+cite
+
+(13)
+
+(14)
+
+C∈Ac
+r
+2 · Pcite · Rcite
+Pcite + Rcite
+Where Ar denotes the number of samples answered by the model, S denotes the set of statements
+in a generated response, and As
+r denotes the set of responses (including only statements, ignoring
+citations) in the dataset. Similarly, C denotes the set of citations in a generated response, and Ac
+r
+denotes the set of responses (including only citations, ignoring statements) in the dataset.
+
+F1GC =
+
+(15)
+
+cj ∈C
+
+TRUST-SCORE: Finally, we combine the metrics to produce a single trustworthiness score, which
+allows us to rank models based on their trustworthiness. This score is calculated as the average of
+each component metric.
+
+TRUST-SCORE =
+
+1
+3
+
+(F1GR + F1AC + F1GC)
+
+(16)
+
+E THE TRUST-ALIGN DATASET
+
+To align LLMs towards trustworthiness, we propose a new approach, TRUST-ALIGN. The approach
+constructs an LLM trustworthiness alignment dataset, where each sample in the dataset consists
+of a question q, a set of retrieved documents D, and a pair of positive (preferred) and negative
+(unpreferred) responses (r+, r−). The positive response corresponds to an answer that encompasses
+expected gold claims for q and corresponding citations referring to the documents.
+If D is not
+sufficient to answer q, r+ is assigned a refusal response, while r− is its non-refusal counterpart.
+We build the dataset in multiple steps: 1) Obtain a set of high-quality and diverse questions, 2)
+Obtain documents for each question, 3) Augmenting (q, D) pairs that cover diverse hallucination
+types, 4) Construct positive responses entailing gold claims, and 5) Construct negative (unpreferred)
+responses by prompting a fine-tuned model and observing its hallucinations.
+
+E.1 COLLECTING QUALITY QUESTIONS
+
+The dataset construction process begins with gathering a diverse set of high-quality, challenging
+questions from the training splits of source datasets, including ASQA, QAMPARI, and ELI5. To
+collect seed samples, we first divide the questions in a dataset into k clusters using a Hugginface
+pipeline11. After identifying the diverse clusters, we use Mixtral-8x7B with the prompt described in
+Table 24 to assign each a quality score ranging from 1 to 7. The quality of a cluster is determined
+by how difficult it is to answer the questions without requiring additional information i.e. a higher
+score corresponds to a high difficulty. We then select clusters with a quality score of 4 or higher and
+sample the desired number of questions from these top clusters. Suppose we have three clusters,
+C1, C2, C3, with respective sizes N1, N2, N3, where Nc = N1 + N2 + N3. To sample Ns questions
+from the clusters, we sample Ns× Ci
+questions from cluster Ci. If this number exceeds the available
+Nc
+questions in the cluster, we randomly sample the remaining questions from the filtered-out clusters
+(those with a quality score below 4). This process ensures that the seed set prioritizes both high
+quality and diversity. For this paper, we set Ns to 3K, 3K, and 4K for ASQA, QAMPARI, and ELI5,
+respectively, resulting in approximately 10K questions in the seed set.
+
+E.2 COLLECTING D’S
+
+For each seed question q that is obtained from ASQA and QAMPARI, we used gtr-t5-xxl (Ni
+et al., 2022) to retrieve the top 100 relevant documents D from the 2018-12-20 Wikipedia snapshot.
+
+11https://github.com/huggingface/text-clustering/
+
+21
+
+Published as a conference paper at ICLR 2025
+
+For the ELI5 dataset, we employed BM25 in conjunction with Sphere (Piktus et al., 2021), a filtered
+version of Common Crawl, as it better encompasses the wide range of topics present in ELI5. We
+filter seed questions for which the retriever fails to retrieve relevant documents.
+
+We utilize TRUE-NLI to derive the entailment pattern for each document. This pattern represents
+the set of gold claims that the document supports. The TRUE model takes as input a concatenation
+of a premise and a hypothesis, producing an entailment score (0 or 1) that indicates whether the
+premise entails the hypothesis.
+In our approach, the documents serve as the premise, while the
+hypothesis is formed by combining the relevant question with each corresponding gold claim to
+reduce ambiguity. We take the union of the entailment patterns across documents to assess the
+answerability of each question—if the pattern contains at least one supporting claim, the question is
+considered answerable.
+
+Following Gao et al. (2023b), we identify 5 documents that are equally effective for the model
+as the 100 documents in terms of achieving the Exact Match (EM) recall value; we refer to such
+documents as oracle documents for question q. Notably, to compute EM, gold claims are obtained
+from respective source datasets.
+
+E.3 AUGMENTING (q,D) SET
+
+Now that we have the questions and the most relevant (oracle) documents, our goal is to create sam-
+ples of diverse types (i.e., different proportions of relevant documents for the same question) that
+can trigger multiple hallucinations from LLMs (Section 2.3). As illustrated in Fig. 3, for answerable
+questions, we first utilize the identified entailment patterns to generate all possible combinations of
+documents, then select k combinations that cover diverse patterns. To create samples with unan-
+swerable questions, we select documents that are similar to gold-claim-entailing documents but do
+not entail any gold claims. To minimize the risk of introducing bias in citation indices, we shuffle the
+order of documents in each sample. As a result, we generate approximately 70K question-document
+pairs.
+
+After obtaining (q, D) pairs for the alignment dataset, we obtain positive and negative responses
+(r+, r−) for each pair—an essential component of the dataset signaling the model’s preferred and
+unpreferred responses. To achieve this, we introduce a response generation pipeline.
+
+E.4 OBTAINING r+
+
+We develop an automated data labeling pipeline that synthesizes natural responses from gold claims
+and maps each statement to the corresponding documents for embedded in-line citations. The gold
+claims are obtained from the source datasets (ASQA, QAMPARI, ELI5) and calibrated to the pro-
+vided documents, i.e., filtering out claims that cannot be derived from D. We first split the questions
+into answerable and unanswerable samples based on whether the provided documents entail the
+gold claims. For an answerable sample, consisting of a question q, a set of documents D, and a list
+of (calibrated) gold claims, we prompt GPT-4 to generate a natural response by stitching together
+the gold claims using a template (Table 23). Please refer to the subsection below for more details
+
+Figure 3: Document recombination process in augmented prompt curation.
+
+22
+
+Document RecombinationDoc 1[1,0,0]Doc 4[1,0,1]Get all entailmentpatternsDoc 5[0,0,0]Doc 6[0,0,0]Doc 7[0,0,0]Doc 3[0,0,1]Doc 1[1,0,0]Doc 1[1,0,0]Doc 2[1,0,0]Doc 3[0,0,1]Doc 1[1,0,0]Doc 2[1,0,0]Doc 4[1,0,1]Doc 1[1,0,0]Doc 3[0,0,1]Doc 1[1,0,0]Doc 3[0,0,1]Doc 2[1,0,0]Doc 5Doc 91Doc 70Doc 75Doc 11Doc 6Doc 97Doc 77Doc 86Doc 32Doc 27Doc 81Doc 66Doc 53Doc 44Doc 2[1,0,0][1,0,1][1,0,0][0,0,1]...Valid DocumentsInvalid DocumentsSelect k combinationscovering all entailmentpatternsPool of 96 invaliddocumentsPool of 50 invaliddocumentsFind docsmost similarto questionFor each group, fill remainingplaces with invalid docsmost similar to the existingvalid docs Doc 3[0,0,1]Doc 2[1,0,0]Doc 3[0,0,1]Published as a conference paper at ICLR 2025
+
+on how the prompt is structured for each dataset. The prompt template asks GPT-4 to label each
+gold claim used with its index from the provided list (e.g., ”[Gold Claim X]”), allowing for later
+matching of claims to documents. For unanswerable questions, a refusal response is assigned. To
+generate citations corresponding to each statement generated, we map the ”[Gold Claim X]” labels
+to the appropriate documents. First, we extract all such labels from a sentence (which may contain
+multiple claims and labels). Then, we greedily identify the smallest combination of documents that
+covers these claims, minimizing over-citation. Details of this process is illustrated in Fig. 4.
+
+Figure 4: Claim-document-mapping process.
+
+Details on prompt structure for each dataset. For ASQA, we include the question q, a list of
+(calibrated) gold claims, and their corresponding supporting documents D as additional context. For
+ELI5, we follow Gao et al. (2023b) by decomposing each labeled response into three claims, which
+serve as a set of ground truth answers. Since the claim labels already provide sufficient context,
+we only fit the question and calibrated claims into the template. For QAMPARI, since its response
+format aligns with its labeled ground truth format (a list of entities), no additional action is required.
+
+E.5 OBTAINING r−
+
+To create high-quality preference data, we aim to obtain quality negative (unpreferred) responses.
+We first fine-tune LLaMA-2-7b on the training set of the source datasets12, creating Msf t. We then
+test Msf t on the above-obtained dataset with approximately 70K questions and identify that 40K
+responses exhibit hallucinations. Table 9 shows the severity computation (ei) and the frequency
+of each hallucination type (wi). Thus, we can compute hallucination severity for each sample as
+eq = (cid:80)
+
+i ei · wi.
+
+Table 9: Fraction of each hallucination amongst all the observed hallucinations in Msf t (40,985), with possi-
+ble overlap. wi shows the severity computation of each hallucination. Icondition = 1 if condition is True otherwise
+it is 0. See Fig. 5 for the detailed breakdown of the last three errors.
+
+Hallucination type
+
+Unwarranted Refusal
+Over Responsiveness
+Overcitation
+Improper Citation
+Inaccurate Claims
+
+Frequency (wi)
+0.50
+8,786
+0.50
+13,067
+0.34
+12,656
+0.26
+9,592
+0.40
+14,783
+
+Severity (ei)
+I(Ag̸=∅,Ar=∅)
+I(Ag=∅,Ar̸=∅)
+1 - CP
+1 - CR
+1 - F1AC
+
+To obtain good negative samples, we first rank each of the 40K responses according to their severity
+score eq. We then select the top 50% of the corresponding samples for both answerable and unan-
+swerable responses. Thus, we demonstrate the alignment data construction phase of TRUST-
+ALIGN, i.e., obtaining 19K samples with all the desired attributes (q, D, r+, r−). We perform
+DPO using this set of 19k samples to obtain the final aligned model.
+
+12Seed questions, corresponding oracle documents, and the gold answers (r+) are concatenated together
+
+using the refusal prompt in Table 25.
+
+23
+
+Claim-document mappingMatt PraterOve JohanssonDoc 1[1,0,1]Doc 4[1,0,0]Doc 5[0,0,0]Doc 2[1,0,1]Doc 3[1,0,0]UnionRonaldo CristianoMatt PraterOve Johansson[1,0,1]CalibrationGet Mapper[1,0,1][Gold Claim 1][Gold Claim 3]... Matt Prater at 64 yards[Gold Claim 2]. ... Ove Johanssonin a 1976... [Gold Claim 1].GPT-4synthesizer{'1':0,'2':2}SentencetokenizerMatt Prater at 64yards[Gold Claim 2]Extractclaim label[Gold Claim 2][2][Gold Claim 2][Gold Claim 1][Gold Claim 2]ans_idx = {2}Map tooriginalclaim idx{'1':0,'2':2}Check doc combinations cancover minimally in greedyfashionTransformedclaim idxDoc 1[1,0,1]Matt Prater at 64yards [1]Published as a conference paper at ICLR 2025
+
+Figure 5: Statistics of hallucinations from the output of LLaMA-2-7b SFT model prompted using
+70K (q, D) samples obtained in Step-2 of TRUST-ALIGN.
+
+F ADDITIONAL ANALYSIS
+
+F.1 REVISED METRICS ARE LESS BIASED
+
+Figure 6: Comparison of AC regular and AC calibrated (F1AC) across models on ASQA. EM regu-
+lar/calibrated is synonymous with AC regular/calibrated.
+
+Fig. 6 shows the performance of our models on EM regular and EM calibrated.
+In ASQA, our
+measure of Answer Correctness (AC) was Exact Match (EM) and thus EM regular/calibrated is
+synonymous with AC regular/calibrated. As seen across the models, AC regular tends to unduly
+penalize our models for refusals, resulting in baselines performing disproportionately better than
+our models. By measuring AC on both the answerable and answered set for F1AC, we arrive at an
+AC metric that is more fair in the presence of refusals. By correcting for the bias toward answering at
+all costs, we are able to reveal more balanced perspective on model performance as demonstrated by
+a reduction in the performance gap (e.g. in LLaMA-2-7b, LLaMA-3-8b, LLaMA-3.2-1b, LLaMA-
+3.2-3b) or even revealing our model’s stronger performance as compared to baseline (e.g. Phi-3.5
+
+24
+
+638427651458169828646636Inaccurate AnswerImproper CitationOvercitationOverlap of Inaccurate Answer, Improper Citation, Overcitation Errors in Augmented Set (# of hallucinations in these three categories = 19132, # Over Responsiveness hallucinations = 13067, # Excessive Refusal hallucinations = 8786, # of samples with no error: 28518, Total # of samples = 69503)L-2-7bEM regL-2-7bEM calibL-3-8bEM regL-3-8bEM calibL-3.2-1bEM regL-3.2-1bEM calibL-3.2-3bEM regL-3.2-3bEM calibP-3.5-mini EMregP-3.5-mini EMcalibQ-2.5-0.5b EMregQ-2.5-0.5b EMcalibQ-2.5-1.5b EMregQ-2.5-1.5b EMcalibQ-2.5-3bEM regQ-2.5-3bEM calibQ-2.5-7bEM regQ-2.5-7bEM calibModels0102030405060EM ScoreDPOBaselinePublished as a conference paper at ICLR 2025
+
+mini, Qwen-2.5-1.5b, Qwen2.5-3b). The ability to grade the model more fairly underscores the need
+for our calibrated metrics.
+
+F.2 UTILIZATION OF PARAMETRIC KNOWLEDGE
+
+For an LLM used for an RAG task, it is important to study the tendency of LLM towards grounding
+its knowledge on the provided documents. To partially quantify this, we compute an uncalibrated
+answer correctness (AC) score for questions that are unanswerable by the provided documents; thus
+AG ∩ AD = ∅ but AG ̸= ∅,
+
+Sparam =
+
+1
+|Nr|
+
+(cid:88)
+
+qi∈Nr
+
+|(AR − (AR ∩ AD)) ∩ AG|
+|AR|
+
+(17)
+
+Where, AG, AD, and AR are claims in the ground truth answer, claims present in the documents,
+and the claims generated in the response, respectively. Nr is the number of answered questions.
+
+In Table 10, our analysis reveals that responsive models tend to rely on parametric knowledge more
+frequently. Notably, closed-source models like GPT-4 exhibit higher parametric knowledge usage
+compared to our models. However, this metric only partially captures the models’ utilization of
+parametric knowledge. For instance, cases where models correctly generate gold claims without
+proper grounding may also indicate reliance on parametric knowledge. This phenomenon is evident
+in Table 12, where on ASQA, GPT-4 achieves a significantly higher F1AC than our models, yet its
+attribution groundedness score F1GC is five points lower.
+
+Table 10: Detection of parametric knowledge usage under refusal prompting.
+
+Model
+
+ICL-LLaMA-2 7B
+ICL-LLaMA-3 8B
+ICL-GPT-3.5
+ICL-GPT-4
+ICL-Claude-3.5
+
+TRUST-ALIGN (DPO-LLaMA-2-7B)
+TRUST-ALIGN (DPO-LLaMA-3-8B)
+
+ASQA
+
+QAMPRARI
+
+ELI5
+
+AR (%)
+
+0.00
+1.48
+71.20
+86.81
+84.60
+
+65.30
+56.42
+
+Sparam AR (%)
+0.00
+1.79
+9.74
+12.71
+12.99
+
+0.00
+3.90
+65.30
+73.40
+69.80
+
+Sparam AR (%)
+0.00
+16.92
+11.45
+13.05
+12.55
+
+0.50
+0.00
+49.00
+61.50
+59.00
+
+8.15
+8.65
+
+31.10
+23.10
+
+8.45
+8.97
+
+21.60
+15.50
+
+Sparam
+0.00
+0.00
+7.89
+9.05
+1.76
+
+5.56
+7.26
+
+F.3 THE SOURCE OF LLM HALLUCINATIONS
+
+Model errors can be categorized into two primary sources:
+
+1. Parametric knowledge-based hallucination: Errors arising from the model’s internal
+
+knowledge representation.
+
+2. Information extraction failures: Inability to accurately extract relevant information from
+
+provided documents.
+
+To quantify these error types, we employ the following methodology:
+
+• For the non-refused questions with errors, calculate the proportion of the incorrect answers
+
+that are:
+
+◦ Present in the provided documents
+◦ Absent from the provided documents
+
+For answers absent from the documents, we can attribute the error to parametric knowledge-based
+hallucination. For answers present in the documents, the specific source of the error remains inde-
+terminate as it can be attributed to both.
+
+The substring matching (Gao et al., 2023b) is used here for searching for the existence of incorrect
+answers in the documents. As the model’s response only on QAMPARI can be decomposed into
+atomic facts, we chose to perform this analysis on it. Specifically, for every answered question,
+
+25
+
+Published as a conference paper at ICLR 2025
+
+we calculate the proportion of incorrect answers present in or absent from the documents using the
+equations below:
+
+Presence =
+
+Absence =
+
+1
+|Ne|
+
+1
+|Ne|
+
+(cid:88)
+
+qi∈Ae
+
+(cid:88)
+
+qi∈Ae
+
+|Ae
+
+|Ae
+
+R ∩ AD|
+|Ae
+R|
+R − (Ae
+R ∩ AD)|
+|Ae
+R|
+
+(18)
+
+(19)
+
+Where Ae denotes the set of answerable questions that answered by the model with one or more
+incorrect answers; AD, Ae
+R are facts present in the documents and erroneous facts generated in the
+response, respectively.
+
+The findings are presented in Table 11. Our analysis reveals that, with the exception of LLaMA-2
+7B which provides no responses, all other ICL-based models exhibit a higher tendency to pro-
+duce erroneous answers based on their parametric knowledge compared to our models. Notably,
+Claude-3.5 demonstrates a more frequent reliance on its parametric knowledge, which elucidates its
+significantly lower TRUST-SCORE score in Table 12.
+
+In summary, our investigation indicates that baseline models, including GPT-4 and GPT-3.5, are
+more susceptible to hallucinations stemming from their parametric knowledge.
+
+Table 11: The proportions of erroneous answers present in or absent from the documents.
+
+Model
+
+ICL-LLaMA-2 7B
+ICL-LLaMA-3 8B
+ICL-GPT-3.5
+ICL-GPT-4
+ICL-Claude-3.5
+
+TRUST-ALIGN (DPO-LLaMA-2-7B)
+TRUST-ALIGN (DPO-LLaMA-3-8B)
+
+QAMPARI
+
+Presence (%) Absence (%)
+
+0.00
+84.41
+85.04
+89.3
+72.18
+
+93.26
+95.63
+
+0.00
+15.59
+14.96
+10.7
+27.82
+
+6.74
+4.37
+
+F.4 TRUST-ALIGN ENHANCES TRUSTWORTHINESS MORE ROBUSTLY THAN PROMPTING
+
+Aligning with TRUST-ALIGN leads to more significant improvements in TRUST-SCORE compared
+to using prompting alone. While adding a refusal prompt has inconsistent effects on TRUST-SCORE
+and its subcomponents, it tends to be more beneficial in more capable models, such as LLaMA-2-
+13b and LLaMA-3-8b.
+
+Relying solely on prompting to teach refusal is ineffective, as models’ responsiveness becomes
+overly sensitive to the prompt. Under the default prompt, models rarely refuse (AR% close to
+100), while adding a refusal prompt in ICL drastically reduces AR%, often to near zero, indicating
+indiscriminate refusal. This lack of nuanced refusal ability is also seen in post hoc methods. At
+both extremes, TRUST-SCORE scores suffer due to errors in correctly refusing questions and lower
+citation groundedness scores. In contrast, TRUST-ALIGN enables models to identify and correctly
+answer appropriate questions, resulting in AR% closer to the maximum answerable percentage and
+improvements in F1GR.
+
+It’s important to note that responsiveness should not be the primary metric for comparing RAG
+systems when the retrieved documents are the same. The TRUST score rewards accurate answers,
+appropriate refusals, and correct citations while penalizing failures. Systems with low responsive-
+ness will score poorly on TRUST, regardless of their overall response rate.
+
+As shown in Table 19, Table 20, and Table 21, for PostCite, PostAttr, and Self-RAG, adding a refusal
+prompt results in minimal changes in TRUST-SCORE (e.g., ASQA Self-RAG with LLaMA-2-13b:
+51.69% vs. 52.49%). Subcomponent analysis shows little difference in F1GR (42.74% vs. 39.15%),
+indicating that the refusal prompt does not effectively help models distinguish between answerable
+and unanswerable questions. These findings highlight the instability of relying on prompting to
+enhance trustworthiness and underscore the robustness of our system in achieving this goal.
+
+26
+
+Published as a conference paper at ICLR 2025
+
+F.5 COMPARISON WITH CLOSED-SOURCE MODELS
+
+We continue our comparison of trustworthiness against competitive closed-source models utilizing
+in-context learning techniques. As shown in Table 12, our aligned models outperform GPT-3.5
+(69.23 vs. 67.64) and Claude-3.5 (69.23 vs. 64.36) on the ASQA dataset, and substantially out-
+perform GPT-3.5 (55.31 vs. 38.95), GPT-4 (55.31 vs. 40.35), and Claude-3.5 (55.31 vs. 39.78)
+on QAMPARI. However, the responsiveness of current closed-source models remains much higher
+than that of our models: even with a refusal prompt, ICL-GPT-4 still answers a significant fraction
+of questions (86.81% on ASQA, 73.40% on QAMPARI). As discussed in Section 6, this tendency
+allows GPT-4 to achieve higher F1AC scores on ASQA, but it negatively impacts its attribution
+groundedness: its F1GC scores on both datasets are lower than those of our models. Similarly, GPT-
+4’s F1GR scores on both datasets are also lower. On QAMPARI, the F1AC scores of all closed-source
+models are lower than those of our models.
+
+Moreover, there still remains a gap between our models and the closed-source models on the ELI5
+dataset. Our models’ TRUST-SCORE is 2.45 points lower than that of the advanced ICL-GPT-4,
+and specifically, the F1AC and F1GC scores are lower. For higher F1AC, as discussed in Section 6,
+it is due to a higher number of its answered answerable questions with comparable EMα
+AC. As
+for higher F1GC, We hypothesize that this gap could be attributed to the information density of the
+extracted claims utilized in constructing the alignment data (Section 4). Specifically, the three claims
+derived from the decomposition process may either be redundant or inadequate to fully encapsulate
+the information inherent in the original labelled response. In some cases, the decomposed claims
+may even fail to align with the original facts. First, insufficient information can lead the model
+to learn to extract fewer facts from the document, thereby reducing the answerability by covering
+fewer correct answers after training. Second, redundant information can impair grounded citation
+learning, as it repeats the same information across different claims, making the model less capable
+of performing precise citations from the corresponding documents. This issue is illustrated in the
+case study presented in Table 13.
+
+This experiment reveals that proprietary models demonstrate greater responsiveness compared to
+our models. While GPT-4 achieves superior F1AC scores, it underperforms in terms of F1GC and
+F1GR, suggesting limitations in its ability to ground responses and refuse unanswerable questions.
+Overall, GPT-3.5 and GPT-4 outperform our models in utilizing retrieved documents for long-
+form question answering, primarily due to the limited capacity of our base model.
+
+Table 12: Our models vs closed source: AR% := Answered Ratio in %; F1AC := Answer Correctness
+F1 (Calibrated); F1GR := Grounded refusals F1; F1GC := Grounded Citation F1; TRUST := TRUST
+score. R := Refusal prompt is used. D := Default prompt is used.
+
+Responsiveness
+
+Trustworthiness
+
+Responsiveness
+
+Trustworthiness
+
+Responsiveness
+
+Trustworthiness
+
+ASQA
+
+QAMPARI
+
+ELI5
+
+AR (%)
+
+Prompt
+
+Truthfullness Attr. Grdness
+
+F1AC
+
+F1GR
+
+F1GC
+
+TRUST
+
+AR (%)
+
+Truthfullness Attr. Grdness
+
+TRUST
+
+AR (%)
+
+Truthfullness Attr. Grdness
+
+F1AC
+
+F1GR
+
+F1GC
+
+TRUST
+
+F1GC
+
+F1GR
+F1AC
+Closed-source Models
+58.49
+26.57
+55.46
+30.13
+58.10
+28.40
+
+31.80
+35.45
+32.83
+
+21.22
+30.02
+0.00
+
+29.54
+20.30
+40.03
+26.19
+0.00
+57.40
+TRUST-ALIGN Models
+71.83
+32.09
+35.94
+71.11
+
+51.33
+58.87
+
+38.95
+40.35
+39.78
+
+23.69
+32.08
+19.13
+
+51.75
+55.31
+
+49.00
+61.50
+59.00
+
+93.50
+82.80
+56.60
+
+21.60
+15.50
+
+32.38
+33.05
+11.34
+
+23.88
+29.09
+11.56
+
+58.27
+53.11
+54.00
+
+24.68
+37.02
+56.03
+
+22.54
+22.81
+
+63.27
+64.00
+
+57.29
+61.84
+12.43
+
+46.28
+48.33
+11.22
+
+48.43
+53.84
+
+49.31
+49.33
+25.92
+
+31.61
+38.15
+26.27
+
+44.75
+46.88
+
+ICL-GPT-3.5
+ICL-GPT-4
+ICL-Claude-3.5
+
+ICL-GPT-3.5
+ICL-GPT-4
+ICL-Claude-3.5
+
+DPO-LLaMA-2-7b
+DPO-LLaMA-3-8b
+
+R
+R
+R
+
+D
+D
+D
+
+R
+R
+
+71.20
+86.81
+84.60
+
+94.41
+92.72
+82.49
+
+65.30
+56.43
+
+52.91
+62.96
+59.97
+
+55.03
+62.37
+54.20
+
+66.07
+61.85
+64.77
+
+52.48
+54.17
+66.49
+
+52.48
+53.94
+
+66.12
+65.49
+
+83.94
+84.35
+68.35
+
+78.04
+79.70
+58.88
+
+83.94
+88.26
+
+67.64
+69.72
+64.36
+
+61.85
+65.41
+59.86
+
+67.51
+69.23
+
+65.30
+73.40
+69.80
+
+94.50
+87.70
+69.90
+
+31.10
+23.10
+
+27
+
+Published as a conference paper at ICLR 2025
+
+Table 13: A case study of the failure of decomposition.
+
+Insufficient case
+
+Why do burns blister and why do burn wounds remain warm
+
+Burn blisters occur when the second layer of the skin is
+
+Question:
+long after the injury occurred?
+Label:
+damaged, they occur to protect the underlying skin layers from more
+damage and infection.
+bandage, so never pop them. The skin remain warm because of the
+increased blood in the area to repair and replace the damaged skin.
+
+You could see it as the bodys/skins natural
+
+Decomposed claims:
+1.
+2.
+to repair and replace damaged skin.
+
+Burn blisters occur when the second layer of skin is damaged.
+Burn wounds remain warm due to increased blood flow to the area
+
+Protection and Infection: The first claim does not mention that
+
+Missing points:
+1.
+the blisters protect the underlying skin from more damage and
+infection, which is a significant part of the explanation in the
+answer.
+2.
+which is a preventive measure not mentioned in the claims.
+
+The answer advises against popping blisters,
+
+Never Pop Them:
+
+Redundant case
+
+How do fitness trackers know that you actually sleeping
+
+Question:
+but not just laying there resting, being awake?
+Label:
+mixture of heart rate and how long you haven’t moved to determine how
+you’ve slept
+
+Your heart beats slows down when you sleep, they will use a
+
+1. The combined factors of heart rate and
+
+Decomposed claims:
+inactivity determine sleep assessment.
+2.
+sleep.
+3.
+trackers monitor.
+
+Fitness trackers consider the duration of inactivity to assess
+
+A slowed heart rate is an indicator of sleep that fitness
+
+Redundant point:
+statement, and the last two claims just expand it and give more
+details
+
+The first claim has already summarised the core
+
+F.6 ADAPTABILITY WITH DIFFERENT ALIGNMENT TECHNIQUES
+
+To demonstrate the robustness of our synthesized alignment data across different training methods,
+Table 14 also includes the performance of SFT and SIMPO (Meng et al., 2024) methods. Compared
+to the SFT baseline, which only utilizes the positive data points in the alignment pairs to fine-tune
+the base model, preference optimization methods, such as DPO and SIMPO, consistently show per-
+formance improvements, highlighting the versatility of our data pipeline. Unlike the SFT approach,
+DPO and SIMPO demonstrate improved TRUST scores, albeit with a reduction in responsiveness.
+This decrease in responsiveness is actually a favorable outcome, as it indicates that the models are
+less likely to attempt to answer questions for which they lack sufficient information.
+
+Table 14: Results using different alignment methods on the ASQA dataset.
+
+Alignment TRUST-ALIGN Model Responsiveness (AR%)
+
+DPO
+
+SIMPO
+
+LLaMA-2-7b
+LLaMA-3-8b
+LLaMA-2-7b
+LLaMA-3-8b
+
+65.30
+56.43
+72.47
+57.38
+
+28
+
+F1AC
+52.48
+53.94
+53.19
+49.84
+
+F1GR
+66.12
+65.49
+66.44
+64.13
+
+F1GC TRUST
+67.51
+83.94
+69.23
+88.26
+67.28
+82.21
+66.94
+86.86
+
+Published as a conference paper at ICLR 2025
+
+F.7 EVALUATION DATA CREATION WITHOUT USING TRUE
+
+The determination of question answerability in our dataset is based on a combination of substring
+matching and TRUE criteria, as detailed in Section 2. Additionally, we developed an alternative ver-
+sion of the evaluation data that relies solely on substring matching, disregarding the TRUE criterion.
+This relaxation of answerability constraints results in an increased number of answerable questions.
+The findings from this analysis are presented in Table 15. It is worth noting that the overall trends
+observed in this analysis align with those reported in Table 2, which employs the combined approach
+of substring matching followed by TRUE verification.
+
+Table 15: Results on ASQA, QAMPARI evaluation datasets where the data are created without
+using TRUE; AR% := Answered Ratio in %; F1AC := Answer Correctness F1 (Calibrated); F1GR
+:= Grounded refusals F1; F1GC := Citation Grounded F1; TRUST := TRUST-SCORE. R := Refusal
+prompt is used. D := Default prompt is used.
+
+ASQA (779 answerable, 169 unanswerable)
+
+QAMPARI (586 answerable, 414 unanswerable)
+
+Responsiveness
+
+Trustworthiness
+
+Responsiveness
+
+Trustworthiness
+
+AR (%)
+
+Prompt
+
+Truthfullness Attr. Grdness
+
+F1AC
+
+F1GR
+
+F1GC
+
+TRUST
+
+AR (%)
+
+Truthfullness Attr. Grdness
+
+F1AC
+
+F1GR
+
+F1GC
+
+TRUST
+
+LLaMA-2-7b
+5.04
+8.35
+8.35
+51.00
+
+0.00
+34.40
+34.40
+96.00
+
+50.00
+19.42
+19.59
+50.03
+LLaMA-2-13b
+21.55
+19.99
+19.54
+54.33
+
+93.60
+56.30
+51.10
+96.20
+
+26.50
+100.00
+100.00
+72.70
+
+36.91
+18.34
+18.36
+53.65
+
+97.80
+63.00
+58.50
+96.30
+
+LLaMA-3-8b
+
+36.12
+39.03
+31.68
+
+3.90
+87.00
+87.00
+
+61.81
+34.93
+29.86
+
+70.80
+92.00
+93.00
+TRUST-ALIGN Models
+32.30
+22.40
+
+64.80
+64.87
+
+0.00
+0.00
+0.00
+9.64
+
+13.31
+0.00
+0.00
+12.13
+
+0.63
+0.00
+0.00
+4.90
+
+0.05
+0.00
+0.00
+6.04
+
+4.77
+9.90
+9.90
+
+7.48
+3.35
+3.32
+
+29.28
+52.57
+52.57
+44.15
+
+43.37
+52.85
+52.45
+40.83
+
+53.67
+36.95
+36.95
+60.20
+
+41.05
+53.22
+52.31
+41.17
+
+35.42
+47.98
+47.98
+
+61.03
+45.43
+46.03
+
+27.80
+26.57
+
+63.60
+56.84
+
+0.00
+9.50
+3.78
+19.95
+
+3.88
+7.73
+4.70
+15.44
+
+0.00
+8.05
+2.95
+26.91
+
+0.00
+7.14
+4.56
+21.06
+
+20.24
+8.42
+1.64
+
+4.81
+11.14
+5.65
+
+49.42
+58.77
+
+9.76
+20.69
+18.78
+24.58
+
+20.19
+20.19
+19.05
+22.80
+
+18.10
+15.00
+13.30
+30.67
+
+13.70
+20.12
+18.96
+22.76
+
+20.14
+22.10
+19.84
+
+24.44
+19.97
+18.33
+
+46.94
+47.39
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+
+ICL
+PostCite
+PostAttr
+
+DPO-LLaMA-2-7b
+DPO-LLaMA-3-8b
+
+R
+R
+R
+R
+
+D
+D
+D
+D
+
+R
+R
+R
+R
+
+D
+D
+D
+D
+
+R
+R
+R
+
+D
+D
+D
+
+R
+R
+
+0.00
+10.44
+10.44
+100.00
+
+94.30
+88.71
+87.24
+98.00
+
+17.41
+90.51
+90.51
+100.00
+
+97.57
+89.77
+89.24
+97.68
+
+1.48
+77.53
+77.53
+
+89.66
+97.26
+97.47
+
+65.30
+56.43
+
+0.00
+0.13
+0.13
+44.40
+
+51.13
+2.64
+2.71
+47.22
+
+19.29
+2.04
+2.04
+48.10
+
+51.18
+0.07
+0.07
+49.10
+
+2.12
+34.32
+34.32
+
+58.83
+37.48
+37.44
+
+15.13
+24.91
+24.91
+45.11
+
+54.01
+54.63
+55.63
+46.27
+
+31.22
+56.40
+56.40
+45.11
+
+50.16
+54.96
+55.01
+48.47
+
+17.09
+54.76
+54.76
+
+64.47
+49.41
+48.95
+
+47.85
+48.18
+
+61.60
+57.60
+
+0.00
+0.00
+0.00
+63.49
+
+44.86
+0.98
+0.43
+56.59
+
+14.14
+1.53
+0.17
+69.79
+
+9.40
+0.00
+0.00
+63.39
+
+89.14
+28.01
+5.95
+
+62.12
+17.89
+3.18
+
+84.95
+88.84
+
+29
+
+Published as a conference paper at ICLR 2025
+
+F.8 EFFECT OF DATA SIZE ON DPO PERFORMANCE
+
+Figure 7: Influence of the proportion of augmented training samples on TRUST-SCORE in LLaMA-
+3-8b.
+
+During the bulk of our experiments, we chose to utilize the top 50% of augmented samples to form
+the training dataset for DPO alignment due to cost-effectiveness. Here, we investigate whether vary-
+ing the quantity and difficulty of the samples would influence the final model performance. Fig. 7
+shows how the amount of training samples affect the final performance of TRUST-ALIGN model.
+Notably, selecting the top 25% of augmented samples achieved the highest performance on QAM-
+PARI (57.73) and ELI5 (47.55). The absence of a clear trend suggesting that ”more data is better”
+can be attributed to the nature of the data itself. Although document recombination can gener-
+ate a large number of samples, those with lower hallucination severity scores tend to have limited
+complexity and high information redundancy. As a result, these additional samples do not provide
+substantial new or challenging information for the model to learn from, limiting their effectiveness
+in improving model performance. When training with the top 50% of augmented samples, the model
+may be experiencing overfitting, which could explain the observed decline in performance. There-
+fore, it is likely that even better performance could be attained by carefully tuning the amount of
+augmented data used. This finding underscores a limitation of our pipeline, revealing that the diver-
+sity of document content plays a crucial role in determining the quality of the augmented samples.
+
+F.9 FINE-TUNING GPT-4O
+
+We fine-tuned GPT-4o using our SFT dataset. The results reported in Table 16 indicate the consistent
+improvement in trustworthiness scores of GPT-4o as a result of supervised fine-tuning.
+
+Table 16: Performance of supervised fine-tuned GPT-4o.
+
+ASQA (610 answerable, 338 unanswerable)
+
+QAMPARI (295 answerable, 705 unanswerable)
+
+ELI5 (207 answerable, 793 unanswerable)
+
+Model
+
+Type
+
+Resp.
+
+AR (%)
+
+GPT-4o
+
+ICL
+TRUST-ALIGN (SFT)
+
+84.49
+74.26
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Resp.
+
+Trustworthiness
+
+Truthfullness Att-Grd.
+
+F1AC
+62.92
+59.22
+
+F1GR
+61.40
+68.62
+
+F1GC
+73.66
+87.54
+
+TRUST AR (%)
+
+65.88
+72.09
+
+60.40
+34.6
+
+Truthfullness Att-Grd.
+
+F1AC
+14.29
+41.56
+
+F1GR
+75.20
+77.15
+
+F1GC
+20.43
+53.64
+
+TRUST AR (%)
+
+33.69
+56.99
+
+66.1
+25.5
+
+Truthfullness Att-Grd.
+
+F1AC
+35.25
+24.1
+
+F1GR
+68.33
+68.34
+
+F1GC
+37.71
+56.09
+
+TRUST
+
+41.58
+48.99
+
+G GPT-4 BASED DATA PIPELINE
+
+For the GPT-4 data pipeline, we employ GPT-4 to simulate a critic that performs two key tasks in
+succession. First, it identifies and revises mistakes or supplements missing information in the given
+response based on correct answers. Second, it validates the attribution of statement-level citations
+and corrects them accordingly. The detailed instruction is provided in Table 26.
+
+Coverage critiques. To ensure that the correct answers are accurately reflected in the given re-
+sponse, we prompt GPT-4 with the corresponding question, correct answers, and reference facts
+(documents that support the provided correct answers) as context. GPT-4 is then asked to locate
+specific mistakes or identify any missing correct answers in the given response. After identifying
+
+30
+
+10.025.050.0Proportion of Augmented Samples(%)4045505560657075TRUST SCORE68.7768.9669.2354.3957.7354.9545.6547.5544.87ASQAQAMPARIELI5Published as a conference paper at ICLR 2025
+
+coverage-related issues, GPT-4 is instructed to minimally revise the original response to correct
+these issues based on the detected problems. This minimal revision approach is intended to generate
+more precise data for alignment learning.
+
+Citation critiques. Based on the revised content, we further tokenize it into individual statements
+to enable a more fine-grained citation check in later stages. We format all documents in the in-
+struction as holistic facts and instruct GPT-4 to determine the attribution of each statement relative
+to these facts. We define three levels of attribution: SUPPORT, OPPOSE, and IRRELEVANT. We
+then compare GPT-4’s attribution results to the original attributions in the response, modifying the
+original attributions wherever they do not align with GPT-4’s critiques. Finally, we concatenate all
+citation-revised statements to form the final revised response.
+
+H EXPERIMENTAL SETUP
+
+H.1
+
+IMPLEMENTATION DETAILS
+
+For all experiments involving our tuned models and baselines, we provided the top 5 retrieved doc-
+uments as context and used decoding temperatures of 0.1 and 0.5, respectively, with other settings
+consistent with those in Gao et al. (2023b). We evaluated three representative open-source model
+families: the LLaMA series 13(Touvron et al., 2023; Dubey et al., 2024), the Qwen series 14 (Yang
+et al., 2024), and Phi-3.5-mini (Abdin et al., 2024), and three proprietary model families: GPT-4
+(OpenAI et al., 2024), GPT-3.5 (Brown et al., 2020) 15, and Claude-3.5-Sonnet 16. We perform the
+full parameter fine-tuning for better performance. For supervised fine-tuning (SFT), we trained the
+models for 2 epochs with a learning rate of 2e-5. For direct preference optimization (DPO) align-
+ment, we trained the models for 2 epochs with a beta value of 0.5. All experiments were conducted
+on NVIDIA A40 40G GPUs.
+
+H.2 DATASET DETAILS
+
+Following Liu et al. (2023); Gao et al. (2023b), to form D, we divide large text documents into
+100-word passages and limit the number of citations Ci for each claim to a maximum of three. If the
+response is empty, it is excluded from evaluation. We provide statistics of our evaluation in Table 17.
+
+Table 17: Statistics of the evaluation dataset.
+
+ASQA QAMPARI ELI5 ExpertQA
+
+Total # of Samples
+# Answerable Samples
+# Unanswerable Samples
+
+948
+610
+338
+
+1000
+295
+705
+
+1000
+207
+793
+
+2169
+682
+1487
+
+ASQA (Stelmakh et al., 2023). This long-form factoid dataset features ambiguous queries from
+AmbigQA (Li et al., 2023), requiring multiple short answers to address different aspects. It includes
+comprehensive long-form answers that combine these short responses.
+
+QAMPARI (Amouyal et al., 2023). This factoid QA dataset is derived from Wikipedia, with
+answers consisting of lists of entities gathered from various passages.
+
+ELI5 (Fan et al., 2019). This dataset is a long-form QA collection based on the Reddit forum
+“Explain Like I’m Five” (ELI5). Most ELI5 questions require the model to utilize knowledge from
+multiple passages to formulate a complete answer. The ELI5 dataset is frequently used in related
+research due to its challenging nature (Nakano et al., 2021; Menick et al., 2022; Jiang et al., 2023).
+
+13LLaMA-2-7b, LLaMA-2-13b, LLaMA-2-70b, LLaMA-3.2-1b, LLaMA-3.2-3b, LLaMA-3-8b
+14Qwen-2.5-0.5b, Qwen-2.5-1.5b, Qwen-2.5-3b, Qwen-2.5-7b
+15We utilize the latest version on the AzureOpenAI Service: https://learn.microsoft.com/
+
+en-us/azure/ai-services/openai/concepts/models
+
+16https://www.anthropic.com/news/claude-3-5-sonnet
+
+31
+
+Published as a conference paper at ICLR 2025
+
+ExpertQA (Malaviya et al., 2024). This dataset spans various topics and requires domain-
+specific knowledge to solve long-form questions. To further verify the generalizability of our ap-
+proach, we test our best model and some of the baselines on this unseen dataset.
+
+H.3 BASELINES
+
+Table 18: A case study illustrating the necessity of GPT-4o matching for detecting refusals in models
+prompted with default prompt.
+
+Question:
+
+Who killed the man in thelma and louise?
+
+"In the movie ¨Thelma and Louise,¨the man who is killed is not
+The
+
+Answer:
+explicitly identified as being killed by any specific character.
+movie ends with a shootout and a crash, and it is unclear who
+survives or who is responsible for the deaths. The search results
+you provided do not provide any clear answers to this question.
+
+Fuzzy match judgement: Not refusal
+Human judgement:
+GPT-4o judgement:
+
+Refusal
+
+Refusal
+
+H.3.1
+
+IN-CONTEXT LEARNING (ICL)
+
+Following Gao et al. (2023b), we prepend with two demonstrations, each consisting of a query, top-5
+retrieved passages, and an answer with inline citations.
+
+H.3.2 POST-HOC SEARCH (POSTCITE)
+
+Following Gao et al. (2023b), we first prompt the model under a closed book setting i.e. without
+any retrieved passages, to obtain an uncited answer. Then, GTR is used to find the best matching
+citation among the top-5 retrieved passages for every statement.
+
+H.3.3 POST-HOC ATTRIBUTE (POSTATTR)
+
+Similar to PostCite, we first obtain model response under a closed book setting. Then we use the
+TRUE NLI model to find the best matching citation among top-5 retrieved passages.
+
+H.3.4 SELF-RAG
+
+Self-RAG trains the LLM to retrieve documents on demand using special reflection tokens and
+enhances generation quality through self-reflection. We compare our results against the 7b and 13b
+models released, using the default settings as described in (Asai et al., 2024).
+
+H.3.5 FRONT
+
+FRONT (Huang et al., 2024b) utilizes a fine-grained attribution training framework that first grounds
+specific supporting quotes, and then generates responses with citations based on those quotes. It
+tunes the LLM with automatically collected data based on ChatGPT and quality filtering. We repro-
+duce its 7b model for the evaluation.
+
+H.4 REFUSAL DETECTION
+
+We employed two methods to measure refusals robustly. In a refusal prompt, models were explic-
+itly instructed to respond only with the phrase: ”I apologize, but I couldn’t find an answer to your
+question in the search results.” without providing any further explanation. As the models generally
+complied with this pattern, we were able to apply fuzzy matching17 to detect the phrase above indi-
+cating refusal. For models responding to a default prompt, refusals did not adhere to a fixed pattern,
+
+17Fuzz Partial Ratio was used to mitigate the impact of string length.
+
+32
+
+Published as a conference paper at ICLR 2025
+
+making detection more challenging. Two human annotators verified that fuzzy matching yielded
+poor performance Table 18. Hence, GPT-4o was employed as an evaluator to classify whether an
+answer should be considered a refusal. The specific prompt used is provided in Table 27.
+
+I DETAILED RESULTS
+
+Table 19, Table 20, Table 21 and Table 22 show the full results of our experiments.
+
+J PROMPT TEMPLATES
+
+Table 23, Table 24, Table 25, Table 26 and Table 27 show the prompts used in our experiments.
+
+33
+
+Published as a conference paper at ICLR 2025
+
+Table 19: Detailed ASQA results.
+
+Prompt
+
+AR% ACreg
+
+PAC
+
+RAC
+
+F1AC
+
+Rref
+
+Pref
+
+F1ref
+
+Rans
+
+Pans
+
+F1ans
+
+F1GR
+
+Rcite
+
+Pcite
+
+F1GC
+
+TRUST-SCORE
+
+Qwen-2.5-0.5b
+
+50.25
+45.70
+45.70
+0.00
+
+37.98
+47.27
+45.32
+
+32.30
+48.03
+48.03
+100.00
+
+89.67
+79.67
+84.92
+
+Qwen-2.5-1.5b
+
+5.11
+35.31
+35.31
+4.06
+
+41.18
+48.49
+47.06
+
+99.18
+73.61
+73.61
+100.00
+
+84.59
+81.15
+85.08
+
+Qwen-2.5-3b
+
+55.36
+52.70
+52.70
+9.39
+
+45.03
+58.75
+54.08
+
+33.77
+10.16
+10.16
+98.85
+
+82.62
+60.82
+71.80
+
+Qwen-2.5-7b
+
+28.57
+15.75
+15.75
+39.83
+
+53.97
+58.17
+58.74
+
+97.38
+92.13
+92.13
+94.10
+
+75.57
+71.48
+70.66
+
+Phi3.5-mini
+
+38.72
+48.73
+48.73
+1.18
+
+53.35
+53.13
+55.84
+
+64.59
+23.11
+23.11
+100.00
+
+76.56
+76.56
+77.54
+
+LLaMA-2-7b
+
+52.57
+51.56
+51.56
+0.00
+0.00
+
+19.90
+24.72
+26.58
+4.48
+
+47.15
+56.07
+54.10
+
+0.00
+10.98
+10.98
+100.00
+100.00
+
+97.54
+91.48
+90.16
+98.20
+
+89.51
+76.72
+82.46
+
+LLaMA-2-13b
+
+52.10
+22.43
+22.43
+0.00
+
+9.42
+23.45
+25.45
+7.22
+
+19.51
+93.11
+93.11
+100.00
+
+99.02
+92.46
+92.46
+98.52
+
+69.61
+67.05
+67.05
+64.35
+
+69.15
+71.37
+70.96
+
+64.78
+66.03
+66.03
+64.82
+
+69.54
+71.95
+71.59
+
+79.23
+74.70
+74.70
+65.26
+
+70.69
+79.10
+74.62
+
+68.04
+64.82
+64.82
+70.09
+
+74.47
+77.30
+77.80
+
+65.78
+64.38
+64.38
+64.48
+
+74.13
+74.01
+75.44
+
+0.00
+67.68
+67.68
+64.35
+64.35
+
+66.55
+66.35
+66.51
+64.48
+
+71.84
+75.61
+74.41
+
+72.12
+66.20
+66.20
+64.35
+
+65.30
+66.27
+66.67
+64.90
+
+LLaMA-3.2-1b
+
+38.88
+46.28
+43.19
+34.70
+
+53.74
+56.12
+57.29
+
+60.98
+45.41
+45.90
+82.79
+
+73.77
+50.33
+62.30
+
+65.15
+67.07
+64.52
+67.33
+
+74.38
+77.72
+77.55
+
+LLaMA-3.2-3b
+
+52.75
+51.55
+51.73
+19.32
+
+54.29
+52.19
+55.33
+
+1.64
+53.44
+53.44
+98.69
+
+78.85
+89.02
+73.11
+
+LLaMA-3-8b
+
+52.99
+33.76
+33.76
+
+31.65
+8.79
+7.73
+4.61
+
+2.13
+80.33
+80.33
+
+95.25
+98.36
+98.36
+99.84
+
+83.33
+72.77
+72.93
+66.67
+
+74.57
+73.58
+75.34
+
+92.86
+66.67
+66.67
+
+68.35
+65.08
+64.94
+64.86
+
+74.77
+77.76
+77.51
+
+80.16
+68.20
+68.36
+
+54.75
+58.32
+58.02
+Closed-source Models
+54.01
+42.33
+47.52
+
+82.30
+95.57
+94.92
+
+74.37
+70.84
+72.19
+
+24.55
+28.01
+50.79
+
+99.18
+98.03
+93.77
+
+67.60
+68.03
+73.15
+
+44.12
+55.97
+55.97
+78.31
+
+78.09
+75.29
+77.31
+
+78.37
+69.61
+69.61
+78.66
+
+76.33
+76.27
+77.75
+
+47.36
+17.89
+17.89
+78.62
+
+76.19
+68.77
+73.18
+
+80.11
+76.10
+76.10
+80.34
+
+75.02
+74.28
+74.05
+
+65.18
+34.02
+34.02
+78.41
+
+75.32
+75.26
+76.48
+
+0.00
+18.90
+18.90
+78.31
+78.31
+
+79.12
+76.91
+76.55
+77.84
+
+79.71
+76.16
+78.23
+
+30.71
+77.38
+77.38
+78.31
+
+78.70
+77.21
+77.47
+78.26
+
+63.00
+54.15
+53.64
+74.26
+
+74.07
+61.09
+69.09
+
+3.22
+61.63
+61.68
+79.58
+
+76.65
+80.56
+74.21
+
+4.17
+72.86
+72.86
+
+79.59
+78.33
+78.23
+78.63
+
+77.37
+72.66
+72.65
+
+78.13
+81.37
+82.01
+
+80.40
+80.32
+82.18
+
+47.19
+50.84
+50.84
+39.15
+
+58.03
+61.28
+61.32
+
+41.74
+52.46
+52.46
+41.36
+
+58.75
+62.38
+62.41
+
+51.36
+35.30
+35.30
+44.01
+
+60.61
+63.76
+63.63
+
+54.34
+45.93
+45.93
+60.08
+
+64.50
+66.22
+66.40
+
+51.95
+41.38
+41.38
+39.79
+
+64.34
+64.20
+66.16
+
+26.28
+35.23
+35.23
+39.15
+39.15
+
+49.51
+50.82
+51.56
+41.16
+
+63.43
+66.12
+66.16
+
+41.40
+49.91
+49.91
+39.15
+
+44.06
+50.33
+51.46
+42.74
+
+50.94
+50.22
+48.42
+54.48
+
+63.91
+58.61
+63.19
+
+27.98
+56.59
+56.71
+49.45
+
+65.47
+66.38
+64.77
+
+28.58
+53.31
+53.31
+
+55.62
+43.56
+42.98
+41.62
+
+66.06
+65.49
+65.33
+
+66.07
+61.85
+64.77
+
+52.48
+54.17
+66.49
+
+0.35
+8.23
+2.23
+47.55
+
+61.93
+52.98
+59.25
+
+5.47
+15.40
+4.45
+53.48
+
+75.67
+68.06
+76.30
+
+42.49
+10.94
+36.29
+64.80
+
+75.99
+78.77
+81.63
+
+77.62
+4.19
+17.92
+61.45
+
+85.79
+84.33
+87.60
+
+40.49
+9.40
+1.24
+74.60
+
+87.38
+87.88
+87.13
+
+0.00
+0.00
+0.00
+59.27
+68.45
+
+44.21
+0.98
+0.43
+50.69
+
+83.36
+85.35
+84.37
+
+10.94
+1.53
+0.17
+66.42
+
+7.22
+0.00
+0.00
+58.31
+
+7.92
+0.24
+0.00
+47.15
+
+77.55
+80.93
+80.41
+
+53.47
+22.99
+4.69
+60.04
+
+80.23
+85.00
+83.95
+
+92.86
+28.01
+5.95
+
+61.40
+17.89
+3.18
+65.89
+
+86.09
+88.93
+85.64
+
+84.66
+85.82
+67.29
+
+78.13
+79.48
+57.41
+
+0.35
+8.23
+2.23
+44.30
+
+53.61
+51.84
+57.56
+
+8.62
+15.40
+4.45
+58.11
+
+67.01
+65.61
+74.72
+
+66.08
+10.94
+36.29
+60.78
+
+70.40
+78.52
+79.19
+
+73.42
+4.19
+17.92
+55.41
+
+78.67
+82.83
+85.17
+
+45.03
+9.40
+1.24
+68.89
+
+78.62
+82.99
+81.63
+
+0.00
+0.00
+0.00
+68.35
+69.27
+
+43.14
+0.98
+0.43
+64.05
+
+76.18
+82.57
+82.07
+
+18.81
+1.53
+0.17
+73.52
+
+13.25
+0.00
+0.00
+69.44
+
+13.42
+0.24
+0.00
+49.48
+
+69.13
+77.84
+77.68
+
+54.44
+22.99
+4.69
+55.09
+
+71.52
+83.43
+77.08
+
+80.95
+28.01
+5.95
+
+61.77
+17.89
+3.18
+66.40
+
+76.38
+87.60
+84.71
+
+83.24
+82.93
+69.43
+
+77.95
+79.92
+60.44
+
+0.35
+8.23
+2.23
+45.87
+
+57.47
+52.40
+58.39
+
+6.69
+15.40
+4.45
+55.70
+
+71.08
+66.81
+75.50
+
+51.72
+10.94
+36.29
+62.72
+
+73.09
+78.64
+80.39
+
+75.46
+4.19
+17.92
+58.27
+
+82.07
+83.57
+86.37
+
+42.64
+9.40
+1.24
+71.63
+
+82.77
+85.36
+84.29
+
+0.00
+0.00
+0.00
+63.49
+68.86
+
+43.67
+0.98
+0.43
+56.59
+
+79.61
+83.94
+83.20
+
+13.83
+1.53
+0.17
+69.79
+
+9.35
+0.00
+0.00
+63.39
+
+9.96
+0.24
+0.00
+48.29
+
+73.10
+79.35
+79.02
+
+53.95
+22.99
+4.69
+57.46
+
+75.63
+84.21
+80.37
+
+86.50
+28.01
+5.95
+
+61.59
+17.89
+3.18
+66.14
+
+80.95
+88.26
+85.17
+
+83.94
+84.35
+68.35
+
+78.04
+79.70
+58.88
+
+22.83
+22.54
+20.54
+42.62
+
+51.40
+54.76
+54.20
+
+32.99
+28.07
+24.42
+51.60
+
+58.02
+60.63
+62.29
+
+46.93
+18.61
+27.06
+53.96
+
+60.32
+65.86
+64.47
+
+62.91
+25.88
+30.46
+60.98
+
+65.77
+68.28
+68.42
+
+48.28
+21.92
+19.20
+58.24
+
+66.34
+67.26
+68.23
+
+8.76
+11.77
+11.77
+49.28
+56.16
+
+47.85
+18.03
+18.10
+48.19
+
+65.42
+67.51
+67.77
+
+25.58
+17.88
+17.43
+52.49
+
+34.19
+16.79
+17.17
+51.69
+
+32.28
+17.02
+16.30
+50.33
+
+60.87
+58.87
+62.19
+
+27.99
+36.87
+30.39
+56.70
+
+63.44
+70.14
+65.04
+
+39.36
+38.10
+30.75
+
+58.50
+32.08
+26.97
+56.67
+
+66.45
+69.23
+68.96
+
+67.64
+69.72
+64.36
+
+61.85
+65.41
+59.86
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+FRONT
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+GPT-3.5
+GPT-4
+Claude-3.5
+
+GPT-3.5
+GPT-4
+Claude-3.5
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+R
+
+D
+D
+D
+D
+
+R
+R
+R
+
+R
+R
+R
+R
+
+D
+D
+D
+D
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+
+D
+D
+D
+R
+
+R
+R
+R
+
+R
+R
+R
+
+D
+D
+D
+
+29.85
+46.10
+46.10
+100.00
+
+83.44
+71.84
+77.00
+
+98.52
+71.73
+71.73
+99.26
+
+78.27
+72.57
+76.48
+
+27.43
+8.76
+8.76
+97.47
+
+75.21
+49.47
+61.92
+
+92.09
+91.46
+91.46
+86.39
+
+65.30
+59.49
+58.44
+
+63.19
+23.10
+23.10
+99.79
+
+66.46
+66.56
+66.14
+
+0.00
+10.44
+10.44
+100.00
+100.00
+
+94.30
+88.71
+87.24
+98.00
+
+80.17
+65.30
+71.31
+
+17.41
+90.51
+90.51
+100.00
+
+97.57
+89.77
+89.24
+97.68
+
+60.23
+43.57
+45.78
+79.11
+
+63.82
+41.67
+51.69
+
+1.27
+47.26
+47.15
+95.25
+
+68.04
+77.85
+62.45
+
+1.48
+77.53
+77.53
+
+89.66
+97.26
+97.47
+99.05
+
+68.99
+56.43
+56.75
+
+71.20
+86.81
+84.60
+
+94.41
+92.72
+82.49
+
+7.26
+4.72
+4.72
+27.19
+
+20.12
+25.98
+22.03
+
+32.70
+9.80
+9.80
+38.16
+
+23.09
+27.57
+25.08
+
+33.55
+13.58
+13.58
+34.56
+
+24.28
+23.72
+22.07
+
+35.79
+20.91
+20.91
+41.77
+
+24.25
+25.15
+23.56
+
+38.58
+21.76
+21.76
+41.59
+
+24.75
+24.81
+25.46
+
+12.78
+8.49
+8.49
+28.87
+40.72
+
+32.29
+1.91
+1.91
+30.11
+
+29.21
+25.04
+27.17
+
+9.17
+1.88
+1.88
+30.82
+
+33.31
+0.06
+0.06
+31.36
+
+33.07
+1.04
+0.76
+27.23
+
+21.19
+15.06
+17.93
+
+0.63
+16.56
+15.76
+40.68
+
+23.75
+31.81
+23.28
+
+0.69
+22.15
+22.15
+
+36.41
+27.65
+27.65
+41.78
+
+25.22
+23.53
+25.06
+
+27.30
+37.93
+36.29
+
+34.67
+41.13
+32.68
+
+33.06
+10.24
+10.24
+35.19
+
+34.28
+47.95
+39.36
+
+41.78
+15.51
+15.51
+47.58
+
+40.30
+49.70
+45.08
+
+63.11
+39.96
+39.96
+45.78
+
+43.85
+63.48
+50.36
+
+50.06
+23.44
+23.44
+56.34
+
+50.36
+57.28
+55.14
+
+50.70
+28.36
+28.36
+52.06
+
+51.10
+51.36
+53.51
+
+0.00
+0.25
+0.25
+37.13
+49.69
+
+42.06
+1.98
+2.01
+38.63
+
+47.96
+52.10
+51.32
+
+50.54
+1.89
+1.89
+39.87
+
+40.57
+0.03
+0.03
+40.53
+
+37.17
+0.73
+0.58
+43.72
+
+45.80
+49.16
+49.80
+
+52.78
+36.64
+35.18
+52.94
+
+47.89
+54.63
+50.74
+
+67.14
+30.17
+30.17
+
+49.83
+28.91
+28.84
+51.34
+
+50.59
+57.72
+60.15
+
+50.36
+54.81
+52.79
+
+46.27
+52.58
+47.64
+
+15.34
+7.34
+7.34
+54.69
+
+44.45
+53.53
+47.10
+
+63.98
+17.30
+17.30
+73.40
+
+49.02
+56.05
+53.57
+
+26.90
+5.44
+5.44
+69.35
+
+51.25
+48.81
+48.46
+
+71.64
+33.31
+33.31
+75.64
+
+51.10
+52.96
+50.08
+
+49.78
+10.18
+10.18
+80.74
+
+52.77
+53.13
+55.00
+
+0.00
+0.04
+0.04
+57.71
+77.22
+
+62.79
+2.73
+2.73
+59.41
+
+59.76
+52.87
+56.87
+
+13.67
+2.66
+2.66
+61.96
+
+62.35
+0.04
+0.04
+61.73
+
+34.80
+0.49
+0.41
+53.76
+
+45.42
+31.83
+40.01
+
+1.04
+26.91
+25.78
+78.37
+
+50.64
+66.09
+49.24
+
+1.54
+36.36
+36.36
+
+70.17
+43.69
+43.69
+79.03
+
+54.24
+50.63
+53.05
+
+55.72
+73.95
+69.41
+
+67.88
+76.65
+62.86
+
+20.96
+8.55
+8.55
+42.83
+
+38.71
+50.59
+42.88
+
+50.55
+16.36
+16.36
+57.74
+
+44.24
+52.69
+48.96
+
+37.72
+9.58
+9.58
+55.15
+
+47.26
+55.19
+49.39
+
+58.94
+27.52
+27.52
+64.58
+
+50.73
+55.04
+52.49
+
+50.24
+14.98
+14.98
+63.30
+
+51.92
+52.23
+54.25
+
+0.00
+0.07
+0.07
+45.19
+60.47
+
+50.38
+2.30
+2.32
+46.82
+
+53.21
+52.48
+53.95
+
+21.52
+2.21
+2.21
+48.52
+
+49.16
+0.04
+0.04
+48.93
+
+35.95
+0.59
+0.48
+48.22
+
+45.61
+38.64
+44.37
+
+2.04
+31.03
+29.76
+63.19
+
+49.23
+59.82
+49.98
+
+3.01
+32.98
+32.98
+
+58.28
+34.80
+34.75
+62.25
+
+52.35
+53.94
+56.38
+
+52.91
+62.96
+59.97
+
+55.03
+62.37
+54.20
+
+74.56
+57.40
+57.40
+0.00
+
+27.81
+42.31
+37.28
+
+2.66
+31.66
+31.66
+2.07
+
+33.14
+42.90
+39.05
+
+84.02
+93.79
+93.79
+5.03
+
+38.17
+71.01
+55.92
+
+17.46
+9.76
+9.76
+27.51
+
+53.25
+62.13
+63.61
+
+39.35
+76.92
+76.92
+0.59
+
+51.78
+51.48
+54.44
+
+100.00
+90.53
+90.53
+0.00
+0.00
+
+11.54
+16.27
+18.05
+2.37
+
+36.69
+55.33
+48.82
+
+86.39
+14.20
+14.20
+0.00
+
+5.03
+15.09
+16.57
+3.85
+
+41.12
+59.76
+54.44
+27.51
+
+54.14
+73.96
+67.46
+
+99.41
+63.91
+64.20
+10.95
+
+51.48
+42.31
+56.80
+
+99.70
+27.51
+27.51
+
+20.41
+4.73
+4.14
+2.37
+
+51.18
+64.79
+64.20
+
+48.82
+28.99
+34.02
+
+14.20
+16.86
+37.87
+
+37.89
+37.96
+37.96
+0.00
+
+59.87
+53.56
+57.80
+
+64.29
+39.93
+39.93
+100.00
+
+54.37
+55.77
+59.19
+
+41.28
+36.65
+36.65
+70.83
+
+54.89
+50.10
+52.35
+
+78.67
+40.74
+40.74
+72.09
+
+54.71
+54.69
+54.57
+
+38.11
+35.67
+35.67
+100.00
+
+55.03
+54.89
+57.32
+
+35.65
+36.04
+36.04
+0.00
+0.00
+
+72.22
+51.40
+50.41
+42.11
+
+65.96
+56.84
+60.66
+
+37.29
+53.33
+53.33
+0.00
+
+73.91
+52.58
+54.90
+59.09
+
+36.87
+37.76
+35.80
+46.97
+
+53.35
+45.21
+49.78
+
+35.90
+43.20
+43.31
+82.22
+
+57.43
+68.10
+53.93
+
+36.08
+43.66
+43.66
+
+70.41
+61.54
+58.33
+88.89
+
+58.84
+53.03
+52.93
+
+60.44
+78.40
+78.77
+
+90.57
+82.61
+77.11
+
+34
+
+Published as a conference paper at ICLR 2025
+
+Table 20: Detailed QAMPARI results.
+
+Rans
+
+Pans
+
+F1ans
+
+F1GR
+
+Rcite
+
+Pcite
+
+F1GC
+
+TRUST-SCORE
+
+Prompt
+
+AR% ACreg
+
+PAC
+
+RAC
+
+F1AC
+
+Rref
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+DPO
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+DPO
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+DPO
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+FRONT
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+DPO
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+DPO
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+GPT-3.5
+GPT-4
+Claude-3.5
+
+GPT-3.5
+GPT-4
+Claude-3.5
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+R
+
+D
+D
+D
+D
+
+R
+R
+R
+
+R
+R
+R
+R
+
+D
+D
+D
+D
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+
+D
+D
+D
+R
+
+R
+R
+R
+
+R
+R
+R
+
+D
+D
+D
+
+11.40
+17.00
+17.00
+99.30
+
+18.50
+17.90
+17.40
+
+85.00
+11.20
+11.20
+98.80
+
+25.50
+20.00
+18.40
+
+22.30
+0.10
+0.10
+79.10
+
+27.20
+48.10
+17.50
+
+56.30
+26.70
+26.70
+84.70
+
+31.70
+32.10
+29.00
+
+70.20
+76.90
+76.90
+100.00
+
+29.10
+30.10
+30.10
+
+0.00
+34.40
+34.40
+96.00
+100.00
+
+93.60
+56.30
+51.10
+96.20
+
+31.60
+32.30
+31.50
+
+26.50
+100.00
+100.00
+72.70
+
+97.80
+63.00
+58.50
+96.30
+
+19.20
+41.20
+34.00
+98.60
+
+26.00
+20.00
+21.90
+
+34.10
+39.60
+42.00
+92.70
+
+27.60
+48.20
+18.30
+
+3.90
+87.00
+87.00
+
+70.80
+92.00
+93.00
+100.00
+
+24.20
+22.40
+24.40
+
+65.30
+73.40
+69.80
+
+94.50
+87.70
+69.90
+
+4.39
+0.92
+0.92
+7.47
+
+20.78
+20.86
+23.95
+
+10.51
+6.24
+6.24
+10.42
+
+25.77
+29.45
+36.89
+
+26.91
+0.00
+0.00
+14.20
+
+30.02
+28.79
+40.53
+
+22.04
+9.04
+9.04
+11.47
+
+32.41
+28.89
+32.02
+
+8.46
+2.47
+2.47
+7.75
+
+35.28
+36.06
+35.32
+
+0.00
+0.00
+0.00
+4.45
+11.18
+
+5.49
+0.00
+0.00
+5.04
+
+32.63
+30.64
+32.50
+
+0.47
+0.00
+0.00
+1.90
+
+0.00
+0.00
+0.00
+2.39
+
+8.01
+0.27
+0.59
+4.92
+
+29.87
+33.69
+34.83
+
+14.98
+5.53
+4.34
+8.56
+
+29.06
+23.48
+39.01
+
+25.36
+4.08
+4.08
+
+4.12
+1.60
+1.58
+8.76
+
+37.56
+40.95
+43.56
+
+19.29
+21.12
+20.20
+
+13.32
+17.50
+0.00
+
+1.70
+0.53
+0.53
+25.14
+
+13.03
+12.66
+14.13
+
+30.28
+2.37
+2.37
+34.88
+
+22.27
+19.97
+23.01
+
+20.34
+0.00
+0.00
+38.07
+
+27.68
+46.94
+24.04
+
+42.05
+8.18
+8.18
+32.94
+
+34.83
+31.44
+31.48
+
+20.14
+6.45
+6.45
+26.27
+
+34.80
+36.79
+36.04
+
+0.00
+0.00
+0.00
+14.49
+37.89
+
+17.51
+0.00
+0.00
+16.45
+
+34.96
+33.55
+34.70
+
+0.42
+0.00
+0.00
+4.69
+
+0.00
+0.00
+0.00
+7.80
+
+5.22
+0.38
+0.67
+16.44
+
+26.32
+22.84
+25.85
+
+17.31
+7.43
+6.17
+26.90
+
+27.19
+38.36
+24.20
+
+3.35
+12.05
+12.05
+
+9.89
+5.24
+5.24
+29.68
+
+30.81
+31.09
+36.03
+
+42.69
+52.55
+47.79
+
+42.68
+52.01
+0.00
+
+2.45
+0.67
+0.67
+11.52
+
+16.02
+15.76
+17.77
+
+15.61
+3.44
+3.44
+16.05
+
+23.89
+23.80
+28.34
+
+23.17
+0.00
+0.00
+20.69
+
+28.80
+35.69
+30.18
+
+28.92
+8.59
+8.59
+17.02
+
+33.58
+30.11
+31.75
+
+11.92
+3.57
+3.57
+11.97
+
+35.04
+36.42
+35.68
+
+0.00
+0.00
+0.00
+6.81
+17.27
+
+8.36
+0.00
+0.00
+7.72
+
+33.76
+32.03
+33.56
+
+0.44
+0.00
+0.00
+2.71
+
+0.00
+0.00
+0.00
+3.66
+
+6.32
+0.32
+0.63
+7.57
+
+27.98
+27.22
+29.68
+
+16.06
+6.34
+5.10
+12.99
+
+28.09
+29.13
+29.87
+
+5.92
+6.10
+6.10
+
+5.82
+2.45
+2.43
+13.53
+
+33.85
+35.35
+39.44
+
+26.57
+30.13
+28.40
+
+20.30
+26.19
+0.00
+
+90.07
+84.82
+84.82
+0.57
+
+87.80
+88.65
+88.94
+
+19.86
+90.50
+90.50
+1.56
+
+85.67
+90.07
+91.49
+
+85.11
+99.86
+99.86
+28.65
+
+83.26
+66.81
+92.34
+
+55.74
+79.15
+79.15
+21.13
+
+80.43
+80.43
+83.83
+
+31.35
+25.67
+25.67
+0.00
+
+84.96
+84.11
+84.82
+
+100.00
+70.21
+70.21
+5.25
+0.00
+
+8.23
+45.67
+50.21
+4.40
+
+81.13
+80.85
+81.13
+
+79.01
+0.00
+0.00
+32.91
+
+3.12
+39.01
+43.69
+4.40
+
+82.55
+59.15
+65.11
+1.70
+
+84.40
+89.79
+89.22
+
+71.91
+64.11
+60.99
+9.93
+
+84.11
+67.09
+91.49
+
+97.87
+14.04
+14.04
+
+35.60
+8.37
+7.80
+0.00
+
+87.66
+89.08
+88.37
+
+45.25
+37.30
+41.70
+
+6.81
+17.45
+41.13
+
+71.67
+72.05
+72.05
+57.14
+
+75.95
+76.13
+75.91
+
+93.33
+71.85
+71.85
+91.67
+
+81.07
+79.38
+79.04
+
+77.22
+70.47
+70.47
+96.65
+
+80.63
+90.75
+78.91
+
+89.93
+76.13
+76.13
+97.39
+
+83.02
+83.51
+83.24
+
+74.16
+78.35
+78.35
+0.00
+
+84.49
+84.84
+85.55
+
+70.50
+75.46
+75.46
+92.50
+0.00
+
+90.63
+73.68
+72.39
+81.58
+
+83.63
+84.19
+83.50
+
+75.78
+0.00
+0.00
+84.98
+
+100.00
+74.32
+74.22
+83.78
+
+72.03
+70.92
+69.55
+85.71
+
+80.41
+79.12
+80.54
+
+76.93
+74.83
+74.14
+95.89
+
+81.91
+91.31
+78.95
+
+71.80
+76.15
+76.15
+
+85.96
+73.75
+78.57
+0.00
+
+81.53
+80.93
+82.41
+
+91.93
+98.87
+97.35
+
+87.27
+100.00
+96.35
+
+F1ref
+
+Pref
+Qwen-2.5-0.5b
+
+79.82
+77.92
+77.92
+1.12
+
+81.45
+81.91
+81.91
+
+14.92
+21.36
+21.36
+98.98
+
+33.56
+33.56
+32.54
+
+Qwen-2.5-1.5b
+
+32.75
+80.10
+80.10
+3.07
+
+83.31
+84.39
+84.81
+
+96.61
+15.25
+15.25
+99.66
+
+52.20
+44.07
+42.03
+
+Qwen-2.5-3b
+
+80.97
+82.63
+82.63
+44.20
+
+81.93
+76.96
+85.10
+
+40.00
+0.00
+0.00
+97.63
+
+52.20
+83.73
+41.02
+
+Qwen-2.5-7b
+
+68.83
+77.61
+77.61
+34.73
+
+81.70
+81.94
+83.53
+
+85.08
+40.68
+40.68
+98.64
+
+60.68
+62.03
+59.66
+
+Phi3.5-mini
+
+44.07
+38.68
+38.68
+0.00
+
+84.72
+84.47
+85.19
+
+73.90
+83.05
+83.05
+100.00
+
+62.71
+64.07
+65.76
+
+LLaMA-2-7b
+
+82.70
+72.74
+72.74
+9.93
+0.00
+
+15.08
+56.39
+59.30
+8.34
+
+82.36
+82.49
+82.30
+
+0.00
+45.42
+45.42
+98.98
+100.00
+
+97.97
+61.02
+54.24
+97.63
+
+62.03
+63.73
+61.69
+
+LLaMA-2-13b
+
+77.36
+0.00
+0.00
+47.44
+
+6.05
+51.16
+55.00
+8.36
+
+39.66
+100.00
+100.00
+86.10
+
+100.00
+67.80
+63.73
+97.97
+
+LLaMA-3.2-1b
+
+76.93
+64.50
+67.25
+3.34
+
+82.35
+84.12
+84.66
+
+23.39
+42.03
+31.86
+99.32
+
+50.85
+43.39
+48.47
+
+LLaMA-3.2-3b
+
+74.34
+69.06
+66.93
+17.99
+
+83.00
+77.35
+84.76
+
+48.47
+48.47
+49.15
+98.98
+
+55.59
+84.75
+41.69
+
+LLaMA-3-8b
+
+82.83
+23.71
+23.71
+
+50.35
+15.03
+14.19
+0.00
+
+84.48
+84.81
+85.28
+
+8.14
+89.49
+89.49
+
+86.10
+92.88
+94.92
+100.00
+
+52.54
+49.83
+54.92
+
+38.60
+37.06
+37.06
+29.41
+
+53.51
+55.31
+55.17
+
+33.53
+40.18
+40.18
+29.76
+
+60.39
+65.00
+67.39
+
+52.91
+0.00
+0.00
+36.41
+
+56.62
+51.35
+69.14
+
+44.58
+44.94
+44.94
+34.36
+
+56.47
+57.01
+60.69
+
+31.05
+31.86
+31.86
+29.50
+
+63.57
+62.79
+64.45
+
+0.00
+38.95
+38.95
+30.42
+29.50
+
+30.88
+31.97
+31.31
+29.94
+
+57.91
+58.20
+57.78
+
+44.15
+29.50
+29.50
+34.94
+
+30.16
+31.75
+32.14
+30.01
+
+35.94
+30.10
+27.65
+29.72
+
+57.69
+64.00
+65.30
+
+41.94
+36.11
+34.52
+31.50
+
+59.42
+51.87
+67.21
+
+61.54
+30.34
+30.34
+
+35.88
+29.78
+30.11
+29.50
+
+64.05
+65.63
+66.39
+
+Closed-source Models
+
+60.65
+54.17
+58.39
+
+12.63
+29.71
+57.65
+
+90.51
+98.98
+97.29
+
+97.63
+100.00
+96.27
+
+40.89
+39.78
+41.12
+
+30.48
+33.64
+40.63
+
+21.52
+27.10
+27.10
+45.34
+
+41.25
+41.77
+40.94
+
+49.78
+22.11
+22.11
+45.83
+
+56.00
+52.53
+51.77
+
+45.56
+0.00
+0.00
+53.04
+
+54.32
+63.66
+51.49
+
+58.51
+42.70
+42.70
+50.96
+
+58.50
+59.42
+60.17
+
+43.73
+46.05
+46.05
+45.56
+
+63.14
+63.42
+65.10
+
+0.00
+41.94
+41.94
+46.53
+45.56
+
+46.95
+41.96
+39.70
+45.82
+
+59.90
+60.84
+59.67
+
+41.79
+45.56
+45.56
+49.71
+
+46.35
+43.24
+42.73
+45.95
+
+28.34
+35.08
+29.61
+45.75
+
+54.05
+51.72
+55.64
+
+44.97
+41.39
+40.56
+47.79
+
+57.44
+64.35
+51.46
+
+14.37
+45.32
+45.32
+
+50.65
+45.10
+45.71
+45.56
+
+57.73
+56.65
+60.11
+
+56.33
+56.75
+57.80
+
+46.45
+50.34
+57.14
+
+50.67
+52.51
+52.51
+23.23
+
+61.35
+61.84
+61.42
+
+41.27
+51.11
+51.11
+24.45
+
+69.66
+68.46
+68.29
+
+63.27
+41.31
+41.31
+48.62
+
+68.12
+70.31
+68.29
+
+63.67
+60.16
+60.16
+42.85
+
+70.10
+70.68
+71.85
+
+43.90
+42.36
+42.36
+22.78
+
+73.93
+73.95
+75.14
+
+41.35
+57.34
+57.34
+28.23
+22.78
+
+31.02
+49.18
+49.50
+27.08
+
+71.13
+71.67
+70.99
+
+59.57
+22.78
+22.78
+48.58
+
+26.20
+47.20
+48.86
+27.15
+
+52.64
+49.79
+48.43
+24.54
+
+68.20
+67.92
+70.15
+
+59.65
+55.22
+53.74
+32.89
+
+70.22
+70.85
+68.11
+
+48.60
+34.52
+34.52
+
+50.50
+30.07
+29.95
+22.78
+
+71.11
+70.73
+72.70
+
+58.49
+55.46
+58.10
+
+29.54
+40.03
+57.40
+
+0.00
+5.72
+0.90
+15.08
+
+27.35
+29.70
+31.98
+
+8.47
+13.95
+1.07
+10.34
+
+37.41
+50.79
+51.65
+
+40.21
+0.00
+25.00
+25.21
+
+37.12
+45.51
+47.67
+
+38.82
+1.05
+13.55
+24.48
+
+48.93
+53.48
+55.71
+
+10.66
+4.49
+0.46
+19.15
+
+49.13
+53.26
+52.21
+
+0.00
+9.50
+3.78
+17.92
+24.20
+
+3.83
+7.73
+4.70
+13.25
+
+46.25
+49.34
+52.01
+
+0.00
+8.05
+2.95
+25.73
+
+0.00
+7.14
+4.56
+19.46
+
+0.26
+1.61
+0.21
+14.77
+
+37.92
+49.42
+49.31
+
+12.19
+6.83
+0.27
+18.47
+
+37.83
+45.43
+49.79
+
+17.22
+8.42
+1.64
+
+4.45
+11.14
+5.65
+20.77
+
+47.78
+58.58
+61.03
+
+30.75
+34.44
+32.23
+
+20.97
+29.66
+0.00
+
+0.00
+5.72
+0.90
+16.82
+
+28.31
+29.75
+32.36
+
+8.76
+13.95
+1.07
+13.20
+
+37.96
+51.17
+52.25
+
+42.25
+0.00
+25.00
+26.16
+
+37.56
+45.77
+47.74
+
+39.76
+1.05
+13.55
+24.48
+
+49.23
+53.48
+56.15
+
+14.43
+4.49
+0.46
+24.49
+
+49.63
+53.55
+52.82
+
+0.00
+9.50
+3.78
+22.50
+24.32
+
+3.93
+7.73
+4.70
+18.50
+
+46.49
+49.50
+52.19
+
+0.00
+8.05
+2.95
+28.20
+
+0.00
+7.14
+4.56
+22.95
+
+0.71
+1.61
+0.21
+15.91
+
+38.01
+49.42
+49.31
+
+13.63
+6.83
+0.27
+19.96
+
+38.24
+45.88
+50.15
+
+24.53
+8.42
+1.64
+
+5.23
+11.14
+5.65
+20.07
+
+48.24
+58.96
+61.10
+
+32.92
+36.51
+33.46
+
+21.47
+30.39
+0.00
+
+0.00
+5.72
+0.90
+15.90
+
+27.82
+29.73
+32.17
+
+8.61
+13.95
+1.07
+11.60
+
+37.68
+50.98
+51.95
+
+41.20
+0.00
+25.00
+25.67
+
+37.34
+45.64
+47.71
+
+39.28
+1.05
+13.55
+24.48
+
+49.08
+53.48
+55.93
+
+12.26
+4.49
+0.46
+21.50
+
+49.38
+53.40
+52.52
+
+0.00
+9.50
+3.78
+19.95
+24.26
+
+3.88
+7.73
+4.70
+15.44
+
+46.37
+49.42
+52.10
+
+0.00
+8.05
+2.95
+26.91
+
+0.00
+7.14
+4.56
+21.06
+
+0.38
+1.61
+0.21
+15.32
+
+37.96
+49.42
+49.31
+
+12.87
+6.83
+0.27
+19.19
+
+38.03
+45.65
+49.97
+
+20.24
+8.42
+1.64
+
+4.81
+11.14
+5.65
+20.42
+
+48.01
+58.77
+61.06
+
+31.80
+35.45
+32.83
+
+21.22
+30.02
+0.00
+
+17.71
+19.63
+18.03
+16.88
+
+35.06
+35.78
+37.12
+
+21.83
+22.83
+18.54
+17.37
+
+43.74
+47.75
+49.53
+
+42.55
+13.77
+22.10
+31.66
+
+44.75
+50.55
+48.73
+
+43.96
+23.27
+27.43
+28.12
+
+50.92
+51.42
+53.18
+
+22.69
+16.81
+15.46
+18.75
+
+52.78
+54.59
+54.45
+
+13.78
+22.28
+20.37
+18.33
+21.44
+
+14.42
+18.97
+18.07
+16.75
+
+50.42
+51.04
+52.22
+
+20.00
+10.28
+8.58
+26.07
+
+8.73
+18.11
+17.81
+17.29
+
+19.78
+17.24
+16.42
+15.81
+
+44.71
+48.19
+49.71
+
+29.53
+22.80
+19.70
+21.69
+
+45.45
+48.54
+49.32
+
+24.92
+16.35
+14.09
+
+20.38
+14.55
+12.68
+18.91
+
+50.99
+54.95
+57.73
+
+38.95
+40.35
+39.78
+
+23.69
+32.08
+19.13
+
+35
+
+Published as a conference paper at ICLR 2025
+
+Table 21: Detailed ELI5 results.
+
+Pans
+
+F1ans
+
+F1GR
+
+Rcite
+
+Pcite
+
+F1GC
+
+TRUST-SCORE
+
+21.99
+21.38
+21.38
+20.72
+
+30.42
+37.33
+34.85
+
+20.72
+21.86
+21.86
+20.72
+
+28.81
+31.25
+34.54
+
+26.45
+23.54
+23.54
+22.01
+
+35.36
+51.85
+47.43
+
+24.55
+21.23
+21.23
+30.03
+
+40.78
+42.38
+44.44
+
+24.17
+21.42
+21.42
+21.22
+
+43.27
+45.78
+42.98
+
+F1ref
+
+Rans
+Qwen-2.5-0.5b
+87.44
+92.75
+92.75
+100.00
+
+31.13
+19.44
+19.44
+0.25
+
+75.94
+83.38
+81.23
+
+52.17
+39.13
+44.44
+Qwen-2.5-1.5b
+99.52
+96.62
+96.62
+100.00
+
+1.25
+17.77
+17.77
+0.25
+
+72.32
+77.14
+79.79
+
+51.95
+63.73
+63.73
+14.70
+
+57.49
+50.72
+50.72
+Qwen-2.5-3b
+87.92
+56.52
+56.52
+99.52
+
+78.73
+87.82
+86.65
+
+34.99
+9.56
+9.56
+64.09
+
+58.94
+33.82
+40.10
+Qwen-2.5-7b
+98.07
+98.07
+98.07
+83.57
+
+83.49
+84.90
+85.64
+
+35.79
+27.22
+27.22
+7.74
+
+50.24
+43.00
+42.51
+phi3.5-mini
+95.17
+87.44
+87.44
+99.03
+
+84.50
+85.23
+84.60
+
+88.70
+88.12
+88.12
+43.67
+0.00
+
+51.21
+55.07
+48.79
+LLaMA-2-7b
+2.42
+0.97
+0.97
+83.57
+100.00
+
+100.00
+22.22
+22.22
+23.54
+20.70
+
+10.48
+26.83
+26.44
+4.67
+
+98.55
+84.06
+83.57
+99.03
+
+81.58
+84.46
+83.69
+
+54.59
+43.00
+47.34
+LLaMA-2-13b
+64.73
+85.51
+85.51
+36.23
+
+69.68
+39.73
+39.73
+82.32
+
+21.41
+20.74
+20.60
+20.94
+
+38.31
+41.20
+40.50
+
+28.88
+23.11
+23.11
+33.94
+
+7.49
+84.85
+85.86
+3.94
+
+98.07
+3.86
+7.25
+98.07
+LLaMA-3.2-1b
+88.89
+19.81
+19.81
+99.52
+
+20.46
+80.80
+80.80
+6.58
+
+21.04
+11.43
+22.39
+20.71
+
+20.81
+22.28
+22.28
+21.19
+
+85.14
+87.68
+86.89
+
+42.51
+22.71
+30.92
+LLaMA-3.2-3b
+30.92
+96.62
+96.62
+97.10
+
+81.07
+15.03
+15.03
+27.06
+
+86.76
+85.78
+88.81
+
+88.46
+55.24
+55.24
+1.25
+
+32.85
+36.71
+12.56
+LLaMA-3-8b
+0.00
+72.95
+72.95
+100.00
+
+29.57
+2.49
+2.24
+
+93.24
+99.52
+99.03
+
+42.93
+48.96
+46.38
+
+29.22
+21.55
+21.55
+23.13
+
+46.26
+43.43
+63.41
+
+0.00
+24.35
+24.35
+20.80
+
+22.81
+20.83
+20.73
+
+42.80
+47.10
+46.88
+
+48.79
+84.52
+35.27
+86.81
+86.71
+36.23
+Closed-source Models
+76.81
+70.91
+88.89
+61.46
+85.99
+63.34
+
+32.45
+29.92
+30.17
+
+13.99
+34.82
+66.01
+
+97.58
+98.07
+85.99
+
+21.60
+24.52
+31.45
+
+35.15
+34.75
+34.75
+34.33
+
+38.43
+38.21
+39.07
+
+34.30
+35.65
+35.65
+34.33
+
+38.39
+38.67
+41.10
+
+40.67
+33.24
+33.24
+36.05
+
+44.20
+40.94
+43.46
+
+39.26
+34.91
+34.91
+44.19
+
+45.02
+42.69
+43.46
+
+38.55
+34.41
+34.41
+34.95
+
+46.90
+50.00
+45.70
+
+4.72
+1.85
+1.85
+36.73
+34.30
+
+35.17
+33.27
+33.05
+34.57
+
+45.02
+42.08
+43.65
+
+39.94
+36.38
+36.38
+35.05
+
+34.64
+5.78
+10.95
+34.20
+
+33.73
+20.97
+20.97
+34.94
+
+42.72
+31.02
+37.10
+
+30.05
+35.24
+35.24
+37.36
+
+38.42
+39.79
+20.97
+
+0.00
+36.52
+36.52
+34.44
+
+36.66
+34.45
+34.28
+
+45.60
+40.33
+40.87
+
+45.62
+44.77
+44.67
+
+35.38
+39.23
+46.05
+
+33.14
+27.10
+27.10
+17.29
+
+57.19
+60.79
+60.15
+
+17.78
+26.71
+26.71
+17.29
+
+55.35
+57.91
+60.44
+
+46.31
+48.49
+48.49
+25.37
+
+61.47
+64.38
+65.05
+
+37.13
+22.23
+22.23
+54.14
+
+64.25
+63.79
+64.55
+
+37.17
+30.81
+30.81
+21.35
+
+65.70
+67.62
+65.15
+
+46.71
+44.98
+44.98
+40.20
+17.15
+
+22.82
+30.05
+29.74
+19.62
+
+63.30
+63.27
+63.67
+
+54.81
+38.05
+38.05
+58.68
+
+21.06
+45.31
+48.41
+19.07
+
+27.10
+50.88
+50.88
+20.76
+
+63.93
+59.35
+61.99
+
+55.56
+25.14
+25.14
+32.21
+
+62.59
+62.79
+54.89
+
+44.23
+45.88
+45.88
+17.85
+
+33.11
+18.47
+18.26
+
+65.06
+63.57
+63.79
+
+58.27
+53.11
+54.00
+
+24.68
+37.02
+56.03
+
+0.30
+4.10
+0.68
+29.86
+
+22.11
+23.89
+25.60
+
+5.07
+5.17
+0.62
+37.08
+
+32.10
+32.54
+38.43
+
+29.64
+7.56
+1.31
+39.00
+
+39.81
+42.96
+50.38
+
+45.61
+7.03
+0.96
+59.31
+
+50.56
+47.30
+50.21
+
+29.35
+4.67
+0.68
+64.31
+
+51.78
+50.40
+49.08
+
+0.00
+5.04
+0.00
+12.34
+52.44
+
+15.73
+4.90
+0.93
+9.01
+
+45.25
+48.46
+47.59
+
+3.79
+0.72
+0.09
+22.09
+
+2.45
+4.73
+0.71
+5.71
+
+4.05
+1.02
+0.07
+30.82
+
+41.83
+48.96
+42.45
+
+32.21
+4.44
+0.53
+41.90
+
+59.18
+57.14
+60.98
+
+0.00
+8.06
+1.25
+44.90
+
+31.32
+6.33
+1.02
+
+51.77
+50.75
+54.17
+
+56.57
+61.33
+11.64
+
+46.46
+48.20
+10.22
+
+0.49
+4.10
+0.68
+26.28
+
+17.56
+21.66
+24.07
+
+4.90
+5.17
+0.62
+38.35
+
+24.35
+30.78
+37.08
+
+40.81
+7.56
+1.31
+35.92
+
+32.64
+41.10
+45.76
+
+42.76
+7.03
+0.96
+54.15
+
+43.71
+46.75
+49.79
+
+30.98
+4.67
+0.68
+58.77
+
+42.68
+44.78
+41.80
+
+0.00
+5.04
+0.00
+15.65
+53.01
+
+16.92
+4.90
+0.93
+12.05
+
+35.19
+46.29
+44.60
+
+6.28
+0.72
+0.09
+27.60
+
+3.25
+4.73
+0.71
+8.06
+
+7.38
+1.02
+0.07
+29.58
+
+33.62
+47.48
+40.12
+
+29.34
+4.44
+0.53
+42.04
+
+48.53
+54.66
+57.72
+
+0.00
+8.06
+1.25
+44.48
+
+30.74
+6.33
+1.02
+
+42.79
+49.74
+53.80
+
+58.03
+62.35
+13.34
+
+46.10
+48.47
+12.43
+
+0.37
+4.10
+0.68
+27.95
+
+19.57
+22.72
+24.81
+
+4.99
+5.17
+0.62
+37.70
+
+27.69
+31.63
+37.75
+
+34.34
+7.56
+1.31
+37.40
+
+35.87
+42.01
+47.96
+
+44.13
+7.03
+0.96
+56.61
+
+46.89
+47.02
+50.00
+
+30.14
+4.67
+0.68
+61.41
+
+46.79
+47.42
+45.15
+
+0.00
+5.04
+0.00
+13.80
+52.72
+
+16.30
+4.90
+0.93
+10.31
+
+39.59
+47.35
+46.05
+
+4.73
+0.72
+0.09
+24.54
+
+2.80
+4.73
+0.71
+6.68
+
+5.23
+1.02
+0.07
+30.19
+
+37.28
+48.21
+41.25
+
+30.70
+4.44
+0.53
+41.97
+
+53.33
+55.87
+59.31
+
+0.00
+8.06
+1.25
+44.69
+
+31.03
+6.33
+1.02
+
+46.85
+50.24
+53.98
+
+57.29
+61.84
+12.43
+
+46.28
+48.33
+11.22
+
+15.75
+13.69
+12.55
+19.66
+
+29.09
+32.40
+31.72
+
+14.44
+15.84
+14.32
+24.85
+
+32.39
+36.19
+39.34
+
+36.59
+25.93
+23.84
+27.15
+
+37.40
+42.97
+44.04
+
+36.51
+17.03
+15.00
+46.34
+
+43.97
+45.04
+45.37
+
+31.63
+18.66
+17.58
+34.74
+
+45.00
+46.14
+44.69
+
+15.57
+17.29
+15.61
+22.98
+30.51
+
+19.65
+15.63
+14.20
+14.36
+
+41.49
+44.39
+44.25
+
+26.50
+13.68
+13.47
+32.00
+
+14.93
+17.89
+17.59
+12.65
+
+15.07
+17.98
+17.66
+22.35
+
+38.59
+40.25
+39.73
+
+34.94
+15.90
+14.72
+31.38
+
+43.95
+45.66
+40.53
+
+14.74
+24.91
+22.64
+27.18
+
+29.28
+14.60
+12.76
+
+44.83
+44.87
+47.55
+
+49.31
+49.33
+25.92
+
+31.61
+38.15
+26.27
+
+Prompt
+
+AR% ACreg
+
+PAC
+
+RAC
+
+F1AC
+
+Rref
+
+Pref
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+FRONT
+
+ICL
+PostCite
+PostAtr
+Self-RAG
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+Self-RAG
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+ICL
+PostCite
+PostAttr
+
+SFT
+TRUST-ALIGN (DPO)
+TRUST-ALIGN (DPO-25%)
+
+GPT-3.5
+GPT-4
+Claude-3.5
+
+GPT-3.5
+GPT-4
+Claude-3.5
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+R
+
+D
+D
+D
+D
+
+R
+R
+R
+
+R
+R
+R
+R
+
+D
+D
+D
+D
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+R
+R
+R
+
+R
+R
+R
+R
+
+D
+D
+D
+
+R
+R
+R
+
+R
+R
+R
+
+D
+D
+D
+
+82.30
+89.80
+89.80
+99.90
+
+35.50
+21.70
+26.40
+
+99.40
+91.50
+91.50
+99.90
+
+41.30
+33.60
+30.40
+
+68.80
+49.70
+49.70
+93.60
+
+34.50
+13.50
+17.50
+
+82.70
+95.60
+95.60
+57.60
+
+25.50
+21.00
+19.80
+
+81.50
+84.50
+84.50
+96.60
+
+24.50
+24.90
+23.50
+
+0.50
+0.90
+0.90
+73.50
+100.00
+
+95.30
+83.90
+84.00
+97.90
+
+29.50
+21.60
+24.20
+
+46.40
+76.60
+76.60
+22.10
+
+96.50
+7.00
+6.70
+98.00
+
+88.40
+18.40
+18.40
+97.20
+
+20.50
+9.60
+13.80
+
+21.90
+92.80
+92.80
+86.90
+
+14.70
+17.50
+4.10
+
+0.00
+62.00
+62.00
+99.50
+
+84.60
+98.90
+98.90
+
+23.60
+15.50
+16.00
+
+49.00
+61.50
+59.00
+
+93.50
+82.80
+56.60
+
+5.40
+7.10
+7.10
+6.93
+
+2.23
+1.83
+1.70
+
+12.00
+12.23
+12.23
+9.63
+
+3.50
+3.57
+3.57
+
+11.77
+13.73
+13.73
+8.47
+
+2.83
+2.20
+2.33
+
+12.20
+19.87
+19.87
+7.97
+
+3.00
+3.30
+3.10
+
+13.03
+18.73
+18.73
+9.03
+
+3.30
+3.47
+3.33
+
+2.63
+6.33
+6.33
+6.80
+9.57
+
+12.03
+8.13
+8.13
+8.13
+
+3.80
+3.30
+3.63
+
+6.90
+2.27
+2.27
+2.40
+
+13.07
+0.57
+0.57
+9.73
+
+5.87
+3.43
+3.50
+6.63
+
+2.00
+1.27
+1.63
+
+3.83
+16.33
+16.33
+7.73
+
+1.67
+2.23
+0.50
+
+0.00
+10.80
+10.80
+9.17
+
+11.90
+17.40
+17.40
+
+3.27
+2.77
+3.10
+
+8.47
+10.50
+2.87
+
+14.33
+15.00
+3.40
+
+8.59
+6.07
+6.07
+8.29
+
+8.31
+13.36
+9.09
+
+12.42
+9.58
+9.58
+11.81
+
+10.61
+15.38
+16.67
+
+18.94
+15.39
+15.39
+11.41
+
+11.88
+28.52
+20.86
+
+17.67
+13.27
+13.27
+19.21
+
+18.82
+24.13
+22.05
+
+17.30
+12.76
+13.23
+13.03
+
+20.75
+21.42
+22.34
+
+0.00
+22.22
+22.22
+9.57
+13.07
+
+12.07
+7.45
+7.44
+7.97
+
+18.36
+22.07
+21.35
+
+14.44
+1.44
+1.44
+12.37
+
+12.71
+7.14
+7.46
+7.38
+
+7.94
+2.17
+2.17
+9.77
+
+14.63
+20.83
+19.93
+
+18.04
+11.08
+11.30
+12.35
+
+19.16
+20.00
+22.36
+
+0.00
+13.87
+13.87
+11.47
+
+14.74
+11.49
+11.49
+
+21.19
+24.30
+28.54
+
+23.03
+22.09
+7.66
+
+14.58
+18.18
+7.89
+
+34.14
+26.33
+26.33
+40.02
+
+14.25
+14.01
+11.59
+
+59.66
+42.35
+42.35
+57.00
+
+21.18
+24.96
+24.48
+
+62.96
+36.96
+36.96
+51.61
+
+19.81
+18.60
+17.63
+
+70.61
+61.27
+61.27
+53.46
+
+23.19
+24.48
+21.10
+
+68.12
+52.09
+54.03
+60.79
+
+24.56
+25.76
+25.36
+
+0.00
+0.97
+0.97
+33.98
+63.12
+
+55.56
+30.19
+30.19
+37.68
+
+26.17
+23.03
+24.96
+
+32.37
+5.31
+5.31
+13.20
+
+59.26
+2.42
+2.42
+34.94
+
+33.90
+1.93
+1.93
+45.89
+
+14.49
+9.66
+13.29
+
+19.08
+49.68
+50.64
+51.85
+
+13.61
+16.91
+4.43
+
+0.00
+41.55
+41.55
+55.15
+
+60.23
+54.91
+54.91
+
+24.15
+18.20
+22.06
+
+54.51
+65.62
+21.82
+
+65.86
+72.71
+21.58
+
+13.73
+9.87
+9.87
+13.74
+
+10.50
+13.68
+10.19
+
+20.56
+15.63
+15.63
+19.57
+
+14.14
+19.03
+19.83
+
+29.12
+21.73
+21.73
+18.69
+
+14.85
+22.52
+19.11
+
+28.27
+21.82
+21.82
+28.27
+
+20.78
+24.30
+21.57
+
+27.59
+20.50
+21.26
+21.46
+
+22.50
+23.39
+23.76
+
+0.00
+1.86
+1.86
+14.94
+21.66
+
+19.83
+11.95
+11.94
+13.16
+
+21.58
+22.54
+23.02
+
+19.97
+2.27
+2.27
+12.77
+
+20.93
+3.62
+3.66
+12.19
+
+12.87
+2.04
+2.04
+16.11
+
+14.56
+13.20
+15.95
+
+18.55
+18.12
+18.48
+19.95
+
+15.92
+18.33
+7.40
+
+0.00
+20.80
+20.80
+18.99
+
+23.69
+19.00
+19.00
+
+22.57
+20.81
+24.89
+
+32.38
+33.05
+11.34
+
+23.88
+29.09
+11.56
+
+19.04
+10.97
+10.97
+0.13
+
+68.85
+82.85
+78.31
+
+0.63
+9.84
+9.84
+0.13
+
+62.93
+70.87
+74.91
+
+36.19
+52.08
+52.08
+7.94
+
+71.88
+91.80
+88.40
+
+21.31
+5.04
+5.04
+49.18
+
+80.96
+84.74
+86.13
+
+22.07
+16.27
+16.27
+4.04
+
+82.47
+82.98
+83.10
+
+100.00
+99.12
+99.12
+29.13
+0.00
+
+5.55
+16.14
+15.89
+2.40
+
+77.05
+83.98
+81.84
+
+58.39
+25.73
+25.73
+81.59
+
+3.91
+92.18
+93.44
+2.02
+
+11.73
+81.97
+81.97
+3.40
+
+85.25
+93.82
+90.67
+
+80.45
+8.20
+8.20
+15.76
+
+90.04
+87.52
+98.11
+
+85.31
+85.29
+85.29
+100.00
+
+84.65
+83.91
+84.38
+
+83.33
+91.76
+91.76
+100.00
+
+85.01
+84.64
+85.34
+
+91.99
+82.11
+82.11
+98.44
+
+87.02
+84.16
+84.97
+
+97.69
+90.91
+90.91
+91.98
+
+86.17
+85.06
+85.16
+
+94.59
+83.23
+83.23
+94.12
+
+86.62
+87.62
+86.14
+
+79.70
+79.31
+79.31
+87.17
+0.00
+
+93.62
+79.50
+78.75
+90.48
+
+86.67
+84.95
+85.62
+
+86.38
+87.18
+87.18
+83.06
+
+88.57
+78.60
+79.42
+80.00
+
+80.17
+79.66
+79.66
+96.43
+
+85.03
+82.30
+83.41
+
+81.69
+90.28
+90.28
+95.42
+
+83.70
+84.12
+81.13
+
+100.00
+40.86
+40.86
+0.63
+
+79.30
+85.26
+85.26
+100.00
+
+17.65
+1.26
+1.13
+
+82.98
+89.66
+89.28
+
+58.26
+45.65
+48.05
+
+7.57
+21.19
+51.07
+
+90.91
+90.91
+81.82
+
+86.13
+84.14
+84.29
+
+90.59
+94.03
+92.93
+
+92.31
+97.67
+93.32
+
+36
+
+Published as a conference paper at ICLR 2025
+
+Table 22: Detailed ExpertQA results.
+
+Prompt AR% ACreg
+
+PAC
+
+RAC
+
+F1AC
+
+Rref
+
+Pref
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+TRUST-ALIGN (DPO)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+TRUST-ALIGN (DPO)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+TRUST-ALIGN (DPO)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+TRUST-ALIGN (DPO)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+TRUST-ALIGN (DPO)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+TRUST-ALIGN (DPO)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+TRUST-ALIGN (DPO)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+TRUST-ALIGN (DPO)
+
+ICL
+PostCite
+PostAttr
+FRONT
+
+TRUST-ALIGN (DPO)
+
+GPT-3.5
+GPT-4
+Claude-3.5
+
+R
+R
+R
+R
+
+R
+
+R
+R
+R
+R
+
+R
+
+R
+R
+R
+R
+
+R
+
+R
+R
+R
+R
+
+R
+
+R
+R
+R
+R
+
+R
+
+R
+R
+R
+R
+
+R
+
+R
+R
+R
+R
+
+R
+
+R
+R
+R
+R
+
+R
+
+R
+R
+R
+R
+
+R
+
+R
+R
+R
+
+78.24
+51.41
+51.41
+99.86
+
+10.14
+7.93
+7.93
+9.56
+
+15.02
+10.73
+10.73
+12.01
+
+37.37
+17.55
+17.55
+38.15
+
+21.42
+13.32
+13.32
+18.27
+
+21.59
+48.69
+48.69
+0.13
+
+68.01
+68.69
+68.69
+66.67
+
+32.96
+
+4.1
+
+17.74
+
+18.6
+
+18.16
+
+75.52
+
+77.24
+
+98.34
+62.19
+62.19
+99.59
+
+20.3
+14.64
+14.64
+16.23
+
+20.24
+16.73
+16.73
+19.17
+
+63.29
+33.09
+33.09
+60.73
+
+30.67
+22.22
+22.22
+29.15
+
+2.08
+40.28
+40.28
+0.61
+
+86.11
+73.05
+73.05
+100
+
+30.2
+
+5.71
+
+25.57
+
+24.56
+
+25.06
+
+81.24
+
+79.79
+
+68.88
+0.05
+0.05
+95.48
+
+20.43
+6.26
+6.26
+13.6
+
+25.59
+0.00
+0.00
+17.06
+
+56.06
+0.00
+0.00
+51.81
+
+35.14
+0.00
+0.00
+25.67
+
+35.98
+99.93
+99.93
+5.85
+
+79.26
+68.54
+68.54
+88.78
+
+17.15
+
+3.53
+
+29.7
+
+16.2
+
+20.97
+
+92.06
+
+76.18
+
+84.56
+42.14
+42.14
+65.51
+
+20.18
+13.76
+13.76
+12.36
+
+24.92
+22.34
+22.34
+23.99
+
+67.01
+29.94
+29.94
+49.98
+
+36.33
+25.58
+25.58
+32.41
+
+20.24
+61.6
+61.6
+42.77
+
+89.85
+72.99
+72.99
+85.03
+
+24.99
+
+5.51
+
+28.87
+
+22.95
+
+25.57
+
+86.48
+
+79.04
+
+85.15
+52.01
+52.01
+97.37
+
+23.12
+21.89
+21.89
+14.25
+
+25.66
+22.43
+22.43
+18.65
+
+69.5
+37.1
+37.1
+57.75
+
+37.49
+27.96
+27.96
+28.19
+
+18.43
+52.12
+52.12
+3.43
+
+85.09
+74.45
+74.45
+89.47
+
+26.05
+
+5.52
+
+30.56
+
+25.32
+
+27.69
+
+85.74
+
+79.49
+
+0.51
+5.62
+5.62
+100
+
+2.75
+14.62
+14.62
+4.17
+
+0.00
+15.98
+15.98
+6.13
+
+0.00
+2.86
+2.86
+19.5
+
+0.00
+4.85
+4.85
+9.33
+
+99.46
+94.28
+94.28
+0.00
+
+68.54
+68.49
+68.49
+0.00
+
+20.01
+
+4.34
+
+32.18
+
+20.48
+
+25.03
+
+90.45
+
+77.52
+
+90
+30.84
+48.41
+95.62
+
+13.97
+12.09
+10.97
+10.27
+
+14.54
+5.53
+6.79
+13.84
+
+41.62
+5.43
+10.46
+42.08
+
+21.55
+5.48
+8.24
+20.83
+
+10.56
+68.59
+51.04
+5.38
+
+72.35
+68
+67.83
+84.21
+
+15.44
+
+3.14
+
+30.85
+
+15.15
+
+20.32
+
+93.28
+
+75.63
+
+58.74
+82.85
+82.85
+83.36
+
+17.46
+24.16
+24.75
+12.03
+
+25.72
+17.71
+17.56
+18.76
+
+48.04
+46.68
+46.26
+49.73
+
+33.5
+25.68
+25.45
+27.24
+
+44.86
+18.29
+18.63
+21.72
+
+74.53
+73.12
+74.46
+89.47
+
+7.24
+
+1.34
+
+31.32
+
+7.21
+
+11.72
+
+98.05
+
+72.47
+
+0.65
+15.68
+15.68
+99.26
+
+0.28
+4.87
+4.87
+16.67
+
+70.24
+21.13
+21.13
+19.97
+
+1.44
+10.53
+10.53
+63.05
+
+2.82
+14.06
+14.06
+30.34
+
+99.87
+85.27
+85.27
+0.94
+
+68.91
+69.33
+69.33
+87.5
+
+F1ref
+
+Pans
+
+Rans
+Qwen-2.5-0.5b
+77.86
+51.61
+51.61
+99.85
+
+31.29
+31.57
+31.57
+31.44
+
+32.77
+56.99
+56.99
+0.27
+
+76.37
+
+49.09
+
+51.47
+Qwen-2.5-1.5b
+99.27
+67.6
+67.6
+100
+
+31.74
+34.17
+34.17
+31.57
+
+4.07
+51.93
+51.93
+1.2
+
+80.51
+
+49.49
+81.31
+81.31
+10.98
+
+83.37
+
+33.04
+66.81
+66.81
+56.91
+
+57.4
+
+55.13
+Qwen-2.5-3b
+79.47
+0.00
+0.00
+98.39
+
+36.28
+0.00
+0.00
+32.4
+
+68.28
+
+37.24
+Qwen-2.5-7b
+95.01
+50.29
+50.29
+83.58
+
+35.33
+37.53
+37.53
+40.11
+
+82.59
+
+30.29
+61.31
+61.31
+6.61
+
+50
+phi3.5-mini
+92.96
+61
+61
+99.12
+
+62.92
+
+34.33
+36.88
+36.88
+32.01
+
+82.5
+
+62.48
+
+51.76
+LLaMA-2-7b
+0.44
+5.43
+5.43
+100
+
+27.27
+30.33
+30.33
+31.44
+
+81.15
+79.34
+79.34
+0.00
+
+83.49
+
+67.28
+
+42.82
+LLaMA-3.2-1b
+91.2
+29.62
+47.21
+97.8
+
+31.86
+30.19
+30.67
+32.16
+
+18.43
+68.3
+58.25
+10.11
+
+83.53
+
+70.15
+
+34.46
+LLaMA-3.2-3b
+66.57
+85.34
+86.07
+94.43
+
+35.64
+32.39
+32.67
+35.62
+
+56
+29.26
+29.8
+34.96
+
+83.34
+
+81.53
+
+18.77
+LLaMA-3-8b
+1.76
+17.74
+17.74
+99.71
+
+85.71
+35.59
+35.59
+31.58
+
+81.55
+76.48
+76.48
+1.86
+
+F1ans
+
+F1GR
+
+Rcite
+
+Pcite
+
+F1GC
+
+TRUST-SCORE
+
+44.64
+39.18
+39.18
+47.82
+
+38.71
+48.08
+48.08
+24.05
+
+0.33
+5.53
+1.4
+36.72
+
+0.69
+5.67
+1.58
+32.75
+
+0.44
+5.6
+1.49
+34.62
+
+50.25
+
+63.31
+
+35.55
+
+34.6
+
+35.07
+
+48.1
+45.4
+45.4
+47.99
+
+26.09
+48.66
+48.66
+24.6
+
+6.59
+15.32
+11.41
+49.36
+
+7.22
+18.89
+15.53
+51.12
+
+6.89
+16.92
+13.15
+50.22
+
+56.25
+
+68.38
+
+52.25
+
+50.65
+
+51.44
+
+49.82
+0.00
+0.00
+48.75
+
+49.65
+40.66
+40.66
+29.86
+
+35.53
+0.00
+0.00
+46.28
+
+53.4
+0.00
+0.00
+42.81
+
+42.67
+0.00
+0.00
+44.48
+
+20.19
+22.33
+20.96
+25.65
+
+38.85
+
+21.22
+29.27
+28.01
+34.66
+
+48.29
+
+42.49
+13.55
+13.55
+33.34
+
+48.2
+
+65.79
+
+61.29
+
+59.25
+
+60.25
+
+49
+
+51.51
+42.98
+42.98
+54.21
+
+42.28
+54.9
+54.9
+55.56
+
+55.82
+13.31
+11.92
+70.72
+
+56.36
+14.27
+13.06
+64.28
+
+56.09
+13.77
+12.46
+67.35
+
+55.72
+
+69.16
+
+63.38
+
+62.04
+
+62.7
+
+50.14
+45.97
+45.97
+48.39
+
+40.22
+53.64
+53.64
+27.5
+
+35.06
+7.52
+5.75
+68.61
+
+37.28
+7.26
+5.64
+63.24
+
+36.14
+7.39
+5.7
+65.82
+
+56.62
+
+69.56
+
+65.13
+
+58.44
+
+61.6
+
+0.87
+9.2
+9.2
+47.84
+
+41.01
+44.27
+44.27
+23.92
+
+9.09
+5.26
+2.27
+78.99
+
+10
+5.19
+2.25
+70.93
+
+9.52
+5.23
+2.26
+74.75
+
+52.33
+
+67.91
+
+63.98
+
+61.02
+
+62.46
+
+47.23
+29.9
+37.18
+48.4
+
+32.83
+49.1
+47.72
+29.26
+
+7.16
+2.6
+1.45
+38.04
+
+12.25
+2.75
+1.54
+36.87
+
+9.04
+2.67
+1.5
+37.45
+
+46.21
+
+64.87
+
+62.74
+
+61.48
+
+62.1
+
+46.42
+46.95
+47.36
+51.73
+
+51.21
+38.11
+38.58
+43.34
+
+35.09
+5.34
+3.39
+51.21
+
+42.34
+5.24
+3.4
+50.62
+
+38.37
+5.29
+3.4
+50.91
+
+44.9
+31.42
+30.98
+51.77
+
+52.48
+
+37.95
+29.66
+29.1
+40.5
+
+52.95
+
+16.84
+18.12
+17.13
+36
+
+51.8
+
+21.14
+19.08
+19.15
+29.18
+
+49.1
+
+41.03
+23.03
+22.48
+40.5
+
+30.51
+
+56.93
+
+80.25
+
+76.54
+
+78.35
+
+49
+
+3.45
+23.68
+23.68
+47.97
+
+42.5
+50.08
+50.08
+24.92
+
+68.93
+7.15
+6.29
+57.2
+
+70
+7.03
+6.28
+56.21
+
+69.46
+7.09
+6.29
+56.7
+
+17.29
+
+4.38
+
+39.89
+
+20.82
+
+27.36
+
+93.48
+
+76.67
+
+59.47
+72.20
+73.95
+
+24.53
+25.92
+6.19
+
+28.01
+29.66
+8.32
+
+52.98
+68.11
+19.57
+
+36.65
+41.32
+11.68
+
+48.02
+35.98
+34.03
+
+81.23
+88.72
+89.56
+
+84.24
+72.75
+37.98
+Closed-source Models
+40.08
+75.81
+60.36
+39.21
+90.03
+51.2
+38.84
+91.35
+49.32
+
+49.9
+
+67.07
+
+70.55
+
+69.67
+
+70.11
+
+52.43
+54.63
+54.51
+
+56.39
+52.91
+51.91
+
+63.19
+70
+9.76
+
+64.68
+69.66
+11.84
+
+63.93
+69.83
+10.7
+
+37
+
+38.26
+23.74
+23.47
+37.32
+
+54.85
+
+52.32
+54.69
+24.76
+
+Published as a conference paper at ICLR 2025
+
+Table 23: GPT-4 prompting templates used for generating natural response based on gold claims for
+ASQA and ELI5.
+
+Type
+
+Template
+
+ASQA Please provide a high-quality answer to the given
+
+For
+
+The answer must
+
+Ensure the answer is coherent
+
+question using the provided document.
+include all the answer labels, and each answer label used
+should be marked with its index immediately after it in
+the format [Answer Label X], where X is the index of the
+answer label in the provided list starting from 1.
+example, [Answer Label 1].
+and natural and does not exceed four statements.
+cannot make up any factual information based on your
+imagination: The additional information added from
+the given document should be relevant to the question
+and grounded by the document, but must not contain any
+factual information that cannot be inferred from the
+given answer labels.
+mention a specific year, you cannot introduce a specific
+year in the final answer).
+Question:
+Document:
+{answers}
+Output:
+
+(e.g., if the answer label does not
+
+{question}
+{passage}
+
+You
+
+ELI5
+
+The response needs to
+
+Ensure that the response
+
+Given a problem and some claims as answer tags, please
+generate a high-quality response.
+follow the following requirements:
+1. Use only all of the claims:
+contains and only contains information from the given
+claims, without introducing any new information.
+Guarantee covering all claims in the response.
+2. Each statement must contain valuable information:
+Every statement must either directly originate from the
+claims or infer from the claims, avoiding any irrelevant
+and unuseful information included in the response.
+can use each claim only for one time.
+3. Condense and combine:
+between claims, merge them into a comprehensive statement
+to make the response more concise.
+claims both mention similar aspect of health benefits,
+they can be merged into one statement.
+4. Fluent and natural:
+the response are coherent and natural, using connecting
+words and maintaining logical order between statements.
+5. Answer tags in response:
+immediately after the corresponding content in the
+response with the format [Claim X], where X is the index
+of the claim in the provided list starting from 1.
+example, [Claim 1].
+Question:
+{claims}
+Generated Response:
+
+Ensure that the statements in
+
+If there are similarities
+
+Indicate each claim
+
+For example, if two
+
+{question}
+
+For
+
+You
+
+38
+
+Published as a conference paper at ICLR 2025
+
+Table 24: Prompt used for acquiring domain labels and knowledge demanding score.
+
+Prompt
+
+Identify a single short topic they share
+
+Philosophy, Lifestyle, Linear Algebra, Biochemistry, Economics, etc.
+
+The examples below are questions from the same cluster.
+in common, for example:
+Additionally, evaluate if the topics in the examples are broadly suitable as knowledge-demanding
+questions that require additional research or grounding.
+irrelevant content, such as sex, explicit violence, ads & scams, and other NSFW subjects.
+a wide range of content, including scientific, educational, historical, cultural, and practical
+applications.
+or search materials:
+without needing any additional information lookup; a score of 5 means the topic requires a combination
+of common sense and additional lookup, roughly an equal split between the two; a score of 7 indicates
+that answering the question directly would be difficult, and without additional information, the answer
+would likely be incorrect.
+rating:
+
+Provide a rating from 1 to 7 based on the topic’s dependence on additional knowledge
+
+a score of 1 indicates the question can be answered with common sense alone,
+
+Exclude any sensitive, inappropriate, or
+
+The output format should be like this:
+
+the topic, Demanding value
+
+Consider
+
+score.
+
+Topic:
+
+Table 25: Two types of instruction templates used as model input; answers are included only for
+tuning purposes.
+
+Type
+
+Prompt
+
+Default Instruction: Write an accurate, engaging, and concise
+
+Use an unbiased and journalistic
+
+answer for the given question using only the provided
+search results (some of which might be irrelevant) and
+cite them properly.
+tone. Always cite for any factual claim.
+several search results, use [1][2][3]. Cite at least one
+document and at most three documents in each statement.
+If multiple documents support the statement, only cite a
+minimum sufficient subset of the documents.
+Document [1]:
+Document [2]:
+...
+Question: {question}
+Answer: {answer}
+
+{passage1}
+{passage2}
+
+When citing
+
+Refusal {Default
+
++
+
+Instruction}
+
+If none of the provided documents
+contains the answer, only respond with ‘‘I apologize, but
+I couldn’t find an answer to your question in the search
+results.’’ Do not add further explanation as to why an
+answer cannot be provided; just state the response above
+as-is.
+Document [1]:
+Document [2]:
+...
+Question: {question}
+Answer: {answer}
+
+{passage1}
+{passage2}
+
+39
+
+Published as a conference paper at ICLR 2025
+
+Table 26: The prompts used for GPT-4 based critic.
+
+Coverage Critic Prompt
+
+Please follow these steps to process the candidate answer:
+
+Carefully read and understand the given Question, the list of correct answers, and the candidate
+
+[INSTRUCTION]
+You will be given Question and the corresponding correct answers, along with a candidate answer and
+reference facts.
+1.
+answer.
+For each given correct answer, first determine if there is a conflict with the candidate answer:
+2.
+- If there is no conflict, and it is included in the candidate answer, extract the matched term from the
+candidate answer and classify them as "upvote".
+- If there is a conflict, identify the specific conflicting span within the candidate answer (accurately
+pinpoint the details), classify it as "downvote", then only minimally modify the conflicting part of
+the candidate answer to correct it according to the corresponding correct answer (using context from the
+reference fact).
+- If there is a conflict, but it is not included in the candidate answer, extend the candidate answer
+to include the correct answer (using material from the corresponding part of the reference facts), and
+classify the extended portion as "revise".
+3.
+includes all correct answers and has no conflicts (if no modification is needed, output the original
+one).
+
+At the end of your response, provide the following:
+
+- The final revised candidate answer that
+
+Classify the modified span as "revise".
+
+[TASK]
+Question:
+Correct Answers:
+Candidate Answer:
+Reference Facts:
+
+{QUESTION}
+
+{SHORT ANS}
+
+{CANDIDATE}
+
+{FACT}
+
+Citation Critic Prompt
+
+"SUPPORT" means the FACT directly participates in supporting the factuality of the CLAIM. The CLAIM
+
+"OPPOSE" means the FACT contributes to prove the CLAIM contains at least one factual error.
+"IRRELEVANT" means the FACT does not contribute directly to either SUPPORT or OPPOSE the given
+
+[INSTRUCTION]
+Given a question and a list of CLAIMs, use the provided FACTs to determine which numbered FACTs togeter
+SUPPORT, OPPOSE, or are IRRELEVANT to each CLAIM. Follow these to give your judgement:
+1.
+should be strongly implied by the FACT.
+2.
+3.
+CLAIM.
+4.
+5.
+6.
+7.
+first.
+8.
+each CLAIM, separately list the index of each FACT for "SUPPORT", "OPPOSE", and "IRRELEVANT", with the
+format [FACT X], where X is the index of the FACT starting from 1.
+CLAIMs and three FACTs in total:
+2]/n/n2.
+"NONE".
+
+Carefully read the given question and FACTs to ensure you have a clear understanding of them.
+For each CLAIM, analyze its content to show all factual arguments and assertions.
+Look into the details of each FACT, and find factual-related points of each FACT.
+Before determining your final judgement for all CLAIMs at the end, state your reasoning and evidence
+
+SUPPORT: [FACT 1][FACT 3], OPPOSE: NONE, IRRELEVANT: [FACT
+If no FACT, then just give
+
+In your final judgement, give a numbered list with each line corresponding to a CLAIM. Then, for
+
+SUPPORT: NONE, OPPOSE: [FACT 2], IRRELEVANT: [FACT 1][FACT 3]".
+
+For example, suppose we have two
+
+"/n/n1.
+
+[TASK]
+Question:
+CLAIM: {CLAIM PLACEHOLDER}
+{FACT PLACEHOLDER}
+FACTs:
+
+{QUESTION}
+
+40
+
+Published as a conference paper at ICLR 2025
+
+Table 27: The prompts used for GPT-4o based evaluator for refusal detection.
+
+GPT Evaluator Prompt
+
+You are an intelligent evaluator.
+
+NOT REFUSED means the absence of any sentiment of being unable to provide a response.
+
+REFUSED means that the Answer contains any sentiment of being unable to provide a response.
+
+Instruction:
+Given a pair of Question and Answer, your task is to
+determine if the Answer is classified as REFUSED or NOT REFUSED. Please follow these steps to produce
+your judgement:
+1.
+regardless of whether the Answer then contains information to answer the question.
+2.
+attempts to address the Question.
+3.
+4.
+(by extracting minimal subspan of Answer accurately) first.
+5.
+6.
+- Reasoning:
+- Span:
+- Judgement:
+
+Carefully read and understand the Question and Answer.
+Before determining your final judgement of REFUSED or NOT REFUSED, state your reasoning and evidence
+
+For each Answer, determine if it is REFUSED or NOT REFUSED.
+At the end of your response, return the following:
+
+minimal subspan of Answer accurately extracted that supports reasoning
+
+Why do you think this should be classified as REFUSED or NOT REFUSED.
+
+whether it should be classified as REFUSED or NOT REFUSED.
+
+The Answer
+
+This is
+
+Question:
+Answer:
+Reasoning:
+Span:
+Judgement:
+
+REFUSED
+
+Who set the record for longest field goal?
+
+I apologize, but I couldn’t find an answer to your question in the search results.
+
+The answer contains a sentiment of being unable to provide a response to the question.
+
+"I apologize, but I couldn’t find an answer to your question in the search results."
+
+In the movie "Thelma and Louise," the man who is killed isn’t clearly linked to any particular
+The film concludes with a shootout and a crash, leaving it uncertain who survives or who is
+
+The search results you shared don’t offer any definitive answers to this
+
+The answer contains a sentiment of being unable to provide a definitive response and
+
+Who killed the man in thelma and louise?
+
+Question:
+Answer:
+character.
+accountable for the deaths.
+question.
+Reasoning:
+expresses uncertainty about the information.
+Span:
+shared don’t offer any definitive answers to this question."
+Judgement:
+
+REFUSED
+
+"leaving it uncertain who survives or who is accountable for the deaths.
+
+The search results you
+
+Who played galen in planet of the apes?
+
+When did the us break away from England?
+
+When the US left England is not explicitly stated.
+
+The answer explicitly states that the information requested is "not explicitly stated,"
+
+Question:
+Answer:
+question.
+Question:
+Reasoning:
+which indicates a sentiment of being unable to provide a response.
+provide an answer to your question" further reinforces the refusal, as it directly communicates the
+inability to answer the question.
+is that the answer cannot be provided, which classifies it as a refusal.
+Span:
+question."
+Judgement:
+
+"When the US left England is not explicitly stated.
+
+The statement "Hence I cannot
+
+Hence I cannot provide an answer to your
+
+Despite the presence of some additional context, the overall message
+
+Hence I cannot provide an answer to your
+
+REFUSED
+
+Which is the most rainy place on earth?
+
+Several places on Earth claim to be the most rainy, such as Llor´o, Colombia, which reported an
+
+Question:
+Answer:
+average annual rainfall of 12,717 mm between 1952 and 1989, and L´opez de Micay, Colombia, which reported
+an annual 12,892 mm between 1960 and 2012 [3].
+India with an average annual rainfall of 11,872 mm [3], although nearby town Sohra, India, also known
+as Cherrapunji, holds the record for most rain in a calendar month for July 1861 and most rain in a year
+from August 1860 to July 1861 [1].
+Reasoning:
+provides several examples of places that could be considered the most rainy, along with relevant data
+to support the information.
+Span:
+average annual rainfall of 12,717 mm between 1952 and 1989, and L´opez de Micay, Colombia, which reported
+an annual 12,892 mm between 1960 and 2012.
+with an average annual rainfall of 11,872 mm."
+Judgement:
+
+"Several places on Earth claim to be the most rainy, such as Llor´o, Colombia, which reported an
+
+The answer does not express any sentiment of being unable to provide a response.
+
+However, the official record is held by Mawsynram, India
+
+However, the official record is held by Mawsynram,
+
+NOT REFUSED
+
+It
+
+Question:
+Answer: {A}
+
+{Q}
+
+Return the following:
+Reasoning:
+Span:
+Judgement:
+
+41

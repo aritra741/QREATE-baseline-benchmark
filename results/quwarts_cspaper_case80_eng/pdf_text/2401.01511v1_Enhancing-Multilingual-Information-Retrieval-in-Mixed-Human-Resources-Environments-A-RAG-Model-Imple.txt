@@ -1,0 +1,966 @@
+Enhancing Multilingual Information Retrieval in
+Mixed Human Resources Environments: A RAG
+Model Implementation for Multicultural Enterprise
+
+Rameel Ahmad
+
+Interloop Limited
+rameel.ahmad@interloop.com.pk
+
+4
+2
+0
+2
+
+n
+a
+J
+
+3
+
+]
+
+R
+
+I
+.
+s
+c
+[
+
+1
+v
+1
+1
+5
+1
+0
+.
+1
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+The advent of Large Language Models has revolutionized infor-
+mation retrieval, ushering in a new era of expansive knowledge
+accessibility. While these models excel in providing open-world
+knowledge, effectively extracting answers in diverse linguistic en-
+vironments with varying levels of literacy remains a formidable
+challenge. Retrieval Augmented Generation (RAG) emerges as a
+promising solution, bridging the gap between information avail-
+ability and multilingual comprehension. However, deploying RAG
+models in real-world scenarios demands careful consideration of
+various factors. This paper addresses the critical challenges asso-
+ciated with implementing RAG models in multicultural environ-
+ments. We delve into essential considerations, including data feed-
+ing strategies, timely updates, mitigation of hallucinations, preven-
+tion of erroneous responses, and optimization of delivery speed.
+Our work involves the integration of a diverse array of tools, metic-
+ulously combined to facilitate the seamless adoption of RAG mod-
+els across languages and literacy levels within a multicultural or-
+ganizational context. Through strategic tweaks in our approaches,
+we achieve not only effectiveness but also efficiency, ensuring the
+accelerated and accurate delivery of information in a manner that
+is tailored to the unique requirements of multilingual and multicul-
+tural settings
+
+Categories and Subject Descriptors H.3.1 [Information Storage
+and Retrieval]: Content Analysis and Indexing
+
+Keywords Large Language Models, Retrieval Augmented Gener-
+ation, Multilingual Information Retrieval, Cultural Diversity, Data
+Feeding Strategies, Information Accuracy, Speed Optimization,
+Hallucination Mitigation
+
+1. Problem statement
+While Large Language Models (LLMs) have significantly ad-
+vanced information retrieval, their maturity in handling diverse lin-
+guistic and literacy contexts within a multicultural environment re-
+mains a challenge. Retrieval Augmented Generation (RAG) offers
+
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than ACM
+must be honored. Abstracting with credit is permitted. To copy otherwise, or republish,
+to post on servers or to redistribute to lists, requires prior specific permission and/or a
+fee. Request permissions from permissions@acm.org.
+CONF ’yy, Month d–d, 20yy, City, ST, Country.
+Copyright © 20yy ACM 978-1-nnnn-nnnn-n/yy/mm. . . $15.00.
+http://dx.doi.org/10.1145/nnnnnnn.nnnnnnn
+
+a potential solution, yet real-world adoption necessitates address-
+ing critical considerations. The challenges encompass optimal data
+feeding strategies, timely updates, prevention of hallucinations,
+mitigation of incorrect responses, and the need for accelerated in-
+formation delivery. The task at hand is to develop a comprehen-
+sive approach that effectively integrates diverse tools, ensuring the
+efficient adoption of RAG models in multilingual environments
+within a multicultural organization. This demands strategic tweaks
+to existing approaches, aimed at achieving both effectiveness and
+efficiency in information retrieval for diverse linguistic and literacy
+landscapes.
+
+Introduction
+
+2.
+In the dynamic landscape of information retrieval, the emergence
+of Large Language Models (LLMs) has transformed the accessi-
+bility and processing of knowledge across diverse domains [1, 2].
+However, addressing the intricate challenges of multicultural envi-
+ronments remains a pressing concern for their effective application.
+Consider Interloop Pvt Limited, one of the world’s largest
+hosiery manufacturers, with a workforce of approximately 30,000
+employees. Among them, 10,000 executives are proficient in both
+English and Urdu, while non-executives may have varying literacy
+levels, potentially unable to read and write. Moreover, 85 percent
+of the workforce communicates primarily in Punjabi, adding lin-
+guistic diversity that complicates information retrieval within the
+organization.
+
+To illustrate the urgency and complexity, envision a non-
+executive employee fluent in Punjabi and Urdu, seeking informa-
+tion using a query specific to their linguistic context. Conventional
+language models, designed without such considerations, might
+struggle to comprehend the query accurately. This real-world ex-
+ample underscores the need for advanced models capable of navi-
+gating the intricacies of multilingual communication within diverse
+enterprises like Interloop Pvt Limited.
+
+Overcoming these challenges is not just an academic pursuit but
+a strategic imperative for organizations like Interloop Pvt Limited.
+Effective communication is paramount in such large-scale enter-
+prises, where accurate and efficient information retrieval is criti-
+cal. Consider applications such as multilingual human resources
+support, where timely and precise responses are fundamental for
+positive interactions. In a globalized business environment, effec-
+tive communication is indispensable for collaboration, decision-
+making, and overall organizational efficiency [3, 4].
+
+Thus, the development of solutions that enhance multilingual
+information retrieval becomes imperative for improving the func-
+tionality and efficacy of diverse enterprise applications [1, 2].
+
+ 
+ 
+ 
+ 
+ 
+ 
+LLMs in enterprise applications has spurred interest in leveraging
+their capabilities to address complex multilingual communication
+challenges.
+
+3.2 Multilingual Communication in Enterprises
+
+Efforts to facilitate multilingual communication within enterprises
+have explored various techniques and frameworks. Guu et al. in-
+troduced REALM [8], a retrieval-augmented language model pre-
+training method designed to improve the understanding of docu-
+ments in diverse languages. Similarly, Wang et al. proposed frame-
+works for multilingual communication, emphasizing the impor-
+tance of scalable and adaptable solutions [4]. Our work builds upon
+these concepts, tailoring them to the specific linguistic and literacy
+challenges faced by Interloop Pvt Limited.
+
+3.3 Retrieval-Augmented Generation (RAG) Models
+
+Retrieval-Augmented Generation (RAG) models have shown promise
+in bridging the gap between retrieval-based and generative mod-
+els, offering a hybrid approach to information retrieval. Lee et
+al. introduced RAG, demonstrating its effectiveness in improving
+pre-trained language models by incorporating information retrieval
+components [5]. This approach aligns with our goal of enhancing
+information retrieval in a mixed human resources environment.
+
+3.4 Customizing Language Models for Specific Environments
+
+Customizing language models for specific environments has been
+explored to address context-specific challenges. Zhang et al. pre-
+sented CLIP [9], connecting text and images for improved multi-
+modal understanding. In our work, we extend this idea by customiz-
+ing language models to the unique linguistic and literacy character-
+istics of Interloop Pvt Limited’s workforce.
+
+3.5 Speech-to-Text and Text-to-Speech Integration
+
+Incorporating speech-to-text and text-to-speech capabilities in lan-
+guage models has been pivotal in making information retrieval ac-
+cessible to diverse user preferences. Rajpurkar et al. contributed
+to this field with Squad2.0, emphasizing knowledgeable machines
+through improved speech processing [10]. Our work incorporates
+similar capabilities to accommodate varied literacy levels and com-
+munication preferences within Interloop Pvt Limited.
+
+3.6 Ingestion Strategies and Data Considerations
+
+Chen et al. explored unsupervised data augmentation for consis-
+tency training [7], highlighting the importance of ingestion strate-
+gies in adapting language models to diverse linguistic contexts.
+Similarly, considerations for tailored data strategies, as presented
+by Smith [3], align with our focus on accommodating the linguistic
+and cultural diversity of the Interloop Pvt Limited workforce.
+
+3.7 Delivery Strategies in Enterprise Applications
+
+Delivery strategies in enterprise applications play a crucial role in
+ensuring the effectiveness of information dissemination. The work
+of Wang et al. emphasized thoughtful delivery strategy choices,
+considering communication channels preferred by the workforce
+[4]. In our implementation, we extend this concept, catering to
+the diverse communication preferences prevalent at Interloop Pvt
+Limited.
+
+Implementation
+
+4.
+In our implementation, we handle a substantial dataset comprising
+around 200 documents, including 103 files of Human Resources
+(HR) standard operating procedures (SOPs) and procedures, and
+97 files containing Quality Assurance (QA) documents. Each doc-
+ument ranges from 6 to 7 pages, posing a formidable challenge for
+efficient ingestion and processing.
+
+Figure 1. Architecture for RAG Model
+
+To address the unique challenges posed by the mixed environ-
+ment of human resources at Interloop Pvt Limited, the architecture
+of building the Retrieval Augmented Generation (RAG) model will
+encompass a tailored set of components [5, 6]:
+
+1. Ingestion Strategy: Tailored mechanisms for assimilating and
+processing data into the model, accommodating linguistic di-
+versity and literacy levels [7].
+
+2. Prompts: Customized prompts reflecting the linguistic nuances
+of the workforce, ensuring accurate query understanding [8].
+
+3. Multilingual Capability: To serve a dynamic environment it is
+very important to provide multilingual capability to the model
+so majority can use it. [9].
+
+4. Speech capability: Specialized integration of speech capability
+acknowledging variations in spoken queries across languages
+and literacy levels [10].
+
+5. LLM: Deciding the right Large Language Model to compre-
+hensively address linguistic and literacy complexities [12].
+
+6. Delivery Strategy: A thoughtfully chosen delivery strategy
+aligning with the organizational context. Consideration of com-
+munication channels preferred by the workforce, such as What-
+sApp, the company website, or other mediums [4].
+
+These architectural components, coupled with unique consid-
+erations for the Interloop Pvt Limited environment, contribute to
+constructing a robust RAG model. In Discussion section, we delve
+into specifics, exploring roles, interactions, and presenting a com-
+prehensive approach to enhance multilingual information retrieval
+in this distinct organizational context.
+
+3. Related Work
+The endeavor to enhance multilingual information retrieval within
+diverse organizational contexts has been a subject of active re-
+search. In this section, we review key contributions in the realm
+of language models, multilingual communication, and information
+retrieval strategies, highlighting their relevance to our proposed Re-
+trieval Augmented Generation (RAG) model tailored for the mixed
+human resources environment at Interloop Pvt Limited.
+
+3.1 Large Language Models (LLMs)
+
+Recent years have witnessed the rise of Large Language Mod-
+els (LLMs) as powerful tools for natural language understanding
+and generation [1, 2]. These models, exemplified by BERT [6],
+RoBERTa [6], and GPT [1], exhibit impressive capabilities in cap-
+turing contextual information from vast datasets. The adoption of
+
+4.1
+
+Ingestion Strategy
+
+To address the dataset effectively, the determination of an optimal
+chunking strategy is crucial. This decision involves deciding the
+number of chunks and the criteria for chunking, both of which sig-
+nificantly impact the model’s understanding of the diverse content
+within the documents.
+
+4.1.1 Number of Chunks
+
+The choice of the number of chunks necessitates balancing granu-
+larity and comprehensiveness. Given the length and complexity of
+the documents, a fine-grained approach with smaller chunks may
+risk losing contextual coherence. Conversely, larger chunks may di-
+lute information. Empirical exploration of various chunk sizes aims
+to strike a balance between capturing nuanced information and en-
+suring the model’s ability to comprehend the content coherently.
+
+4.1.2 Chunking Criteria
+
+The criteria for chunking are guided by linguistic and contextual
+factors inherent in HR SOPs and QA documents. Potential strate-
+gies include:
+
+• Paragraph-Based Chunking: Breaking documents into chunks
+based on natural breaks, such as paragraphs, to ensure seman-
+tic coherence within each chunk. However, this approach may
+increase the size of chunks, potentially introducing long, irrele-
+vant details in responses [13].
+
+• Semantic Unit Identification: Identifying key semantic units,
+such as sections or steps within procedures, and creating chunks
+that encapsulate these units.
+
+• Topic Modeling: Leveraging topic modeling techniques to
+identify thematic clusters within documents and creating chunks
+around these identified topics.
+
+• Entity-Based Chunking: Considering the presence of specific
+entities or terms relevant to HR and QA contexts and creating
+chunks around instances of these entities.
+
+Through an iterative process, we refine the chunking strategy,
+considering the unique linguistic and contextual characteristics of
+HR and QA documents. After careful evaluation, the final best
+results were achieved with a chunk size of 1000 and a chunk
+overlap of 200. This setting provided an optimal balance between
+capturing relevant information and maintaining coherent responses.
+
+4.1.3 Comparison of Chunking Strategies
+
+To compare various chunking strategies, we conducted experiments
+with random numbers and parameters to assess their impact on
+model performance. The results are summarized in Table 1 below:
+
+Chunking
+Strategy
+
+Paragraph-
+Based
+Semantic Unit
+Identification
+Topic Model-
+ing
+Entity-Based
+Optimal Set-
+ting
+
+Chunk Size
+
+Coherence
+
+Relevance
+
+50
+
+75
+
+100
+
+60
+1000
+
+Moderate
+
+High
+
+High
+
+Low
+
+Moderate
+High
+
+Moderate
+
+Low
+
+Moderate
+High
+
+Table 1. Comparison of Chunking Strategies
+
+In Table 1, ”Coherence” represents the semantic coherence
+within each chunk, and ”Relevance” assesses the relevance of gen-
+
+erated responses. After careful evaluation, a chunk size of 1000
+with a chunk overlap of 200 was finalized as it provided a good
+balance between capturing relevant information and maintaining
+coherent responses.
+
+In the subsequent sections, we elaborate on the data preprocess-
+ing specifics, highlighting the intricacies of our approach to inges-
+tion, and discussing the seamless integration of these chunks into
+the Retrieval Augmented Generation (RAG) model.
+
+4.2 Prompt
+
+In the exploration of prompt engineering, we experimented with
+standard prompts and chain-of-thought prompts. However, halluci-
+nation persisted as a significant issue. The chain-of-thought prompt
+demonstrated improved performance in calculations, but its effi-
+cacy was hindered by the majority of the data not requiring such
+computations. Additionally, its response time was notably slower.
+Eventually, we arrived at a QA prompt that proved effective in
+mitigating hallucination and provided precise answers only from
+the given document:
+
+”You are a helpful AI assistant. Use the following pieces of
+context to answer the question at the end. If you don’t know
+the answer, just say you don’t know. DO NOT try to make
+up an answer. If the question is not related to the context,
+politely respond that you are tuned to only answer questions
+that are related to the context.”
+
+For contextualized conversations, we employed a condensed
+
+prompt structure:
+
+Given the following conversation and a follow-up question,
+rephrase the follow-up question to be a standalone question.
+Chat History: chat history
+Follow-Up Input: question
+Standalone question:‘’
+
+These prompts were designed to enhance contextual under-
+standing and encourage the model to provide responses that are
+specific to the given context.
+
+4.2.1 Prompt Evaluation
+
+To assess the effectiveness of the chosen QA prompt, we conducted
+prompt evaluation experiments, comparing the performance of dif-
+ferent prompt strategies. The results are summarized in Table 2:
+
+Prompt
+Strategy
+
+Standard
+Prompt
+Chain-of-
+Thought
+Prompt
+[14]
+Final QA
+Prompt
+
+Hallucination Calculation Efficacy Response Time
+
+High
+
+Moderate
+
+N/A
+
+High
+
+Average
+
+Slow
+
+Low
+
+Low
+
+Fast
+
+Table 2. Prompt Strategy Evaluation
+
+In Table 2, ”Hallucination” assesses the extent of hallucinated
+responses, ”Calculation Efficacy” evaluates the effectiveness in
+handling calculations, and ”Response Time” measures the time
+taken for generating responses. The final QA prompt demonstrated
+low hallucination, low calculation efficacy (as intended for non-
+calculative data), and fast response times, making it the most suit-
+able choice for our use case.
+
+These evaluations informed our decision in selecting the final
+QA prompt, emphasizing its efficacy in reducing hallucination and
+providing accurate context-based answers.
+
+4.3 Multilingual Capability
+
+Ensuring the RAG model’s ability to converse in local languages,
+especially Punjabi and Urdu, is crucial for effective communica-
+tion. We conducted tests using written Urdu with both GPT-3.5 and
+GPT-4. The results were mixed, with instances where the model
+provided answers but a majority of the time it struggled to do so.
+To address this, a language detector and translator were deemed
+necessary, along with a back-translator to ensure responses in the
+language the question was asked.
+
+4.3.1 Translation and Language Detector Evaluation
+
+We compared the performance of translation and language detec-
+tion services from Google and Azure. The results, focusing on ac-
+curacy and speed, are summarized in Table 3:
+
+Translation Service Accuracy (%)
+
+Speed (ms)
+
+Google Translator
+Azure Translator
+
+90
+60
+
+50
+100
+
+Table 3. Translation and Language Detection Comparison
+
+In Table 3, ”Accuracy” represents the correctness of transla-
+tions, and ”Speed” indicates the time taken for translation. The
+Google Translator exhibited high accuracy and faster speed com-
+pared to the Azure Translator.
+
+Based on the results, we implemented Google Translator in the
+service, ensuring reliable and swift translation for effective mul-
+tilingual conversations. This choice aimed to enhance the RAG
+model’s performance in providing accurate and contextually appro-
+priate responses in local languages.
+
+4.4 Speech Capability
+
+In an organization with 20,000 non-executives, enabling speech
+capability is imperative for effective utilization of the model. The
+majority of the organization may need to interact using voice,
+making speech-to-text and text-to-speech functionality essential.
+
+As discussed in the previous section, passing the language di-
+rectly to the LLM is not feasible. Therefore, a comprehensive so-
+lution involves integrating a language detector, translator, text-to-
+speech (TTS), and speech-to-text (STT) models. However, the ad-
+dition of these models can significantly impact response time, ne-
+cessitating a strategic approach.
+
+To address this, we implemented Whisper[15]., an x-to-1 trans-
+lator. All languages are translated to English before being passed to
+the LLM. The original language information is stored for contex-
+tual understanding. Once the LLM provides a response, the infor-
+mation is passed to the text-to-speech module.
+
+We evaluated various text-to-speech models, including Azure,
+Google, and Facebook MMS, considering time, cost, and accuracy,
+with a focus on Urdu and English languages. The results guided our
+decision to implement Google Text-to-Speech due to its optimal
+performance.
+
+4.4.1 Text-to-Speech Model Comparison
+
+We compared the performance of Azure, Google, and Facebook
+MMS text-to-speech models, focusing on response time and accu-
+racy. The results are summarized in Table 4:
+
+In Table 4, ”Response Time” represents the time taken for the
+text-to-speech model to generate responses, ”Cost” indicates the
+associated cost per usage, and ”Accuracy” assesses the correctness
+
+Figure 2. Whisper Architecture[15]
+
+TTS Model
+
+Response Time (ms) Cost ($) Accuracy (%)
+
+Azure TTS
+Google TTS
+Facebook MMS
+
+80
+50
+120
+
+0.005
+0.004
+0.006
+
+85
+90
+80
+
+Table 4. Text-to-Speech Model Comparison
+
+and clarity of the generated speech. The results led to the selection
+of Google Text-to-Speech for its optimal balance between time,
+cost, and accuracy in both Urdu and English languages.
+
+4.5 Large Language Model
+
+Large Language Models (LLMs) are integral components in the
+landscape of retrieval augmented generation systems. In this sub-
+section, we explore the structures of GPT-3, GPT-4, LLaMA2,
+LAMBADA, and PALM, comparing their results in the context of
+our enterprise data application.
+
+4.5.1 GPT-3
+
+GPT-3, developed by OpenAI, is a revolutionary autoregressive
+language model. Sporting an impressive 175 billion parameters,
+GPT-3 utilizes the transformer neural network architecture. Its nu-
+merous layers of attention mechanisms enable the model to under-
+stand context and generate coherent and contextually relevant text.
+GPT-3 has become a benchmark in natural language processing,
+demonstrating exceptional performance across various domains.
+
+4.5.2 GPT-4
+
+Building on the success of GPT-3, GPT-4 represents the next evolu-
+tion in large language models. While detailed specifics of the GPT-
+4 architecture might not be fully disclosed at the time of this paper,
+it is anticipated to follow the transformer architecture with an even
+larger number of parameters. The model is expected to showcase
+enhanced capabilities in understanding context, handling nuanced
+language, and improving the coherence of generated responses.
+
+4.5.3 LLaMA2
+
+The Language Model for Many Applications 2 (LLaMA2) is a
+large-scale transformer-based language model developed by Face-
+book AI. With a diverse set of pretraining tasks and extensive train-
+ing data, LLaMA2 exhibits strong performance across various nat-
+ural language understanding and generation tasks. Its architecture
+
+leverages self-supervised learning techniques, allowing it to under-
+stand and generate text with high contextual awareness.
+
+4.5.4 LAMBADA
+
+The LAnguage Model BAsed Data Augmentation (LAMBADA)
+model is designed to enhance data augmentation for low-resource
+languages. Developed by Facebook AI, LAMBADA utilizes a
+transformer architecture. It leverages multilingual data to improve
+language understanding and generation capabilities, particularly
+for languages with limited available training data.
+
+4.5.5 PALM
+
+The Pre-trained Autoencoder Language Model (PALM) is a large-
+scale transformer-based language model developed by Tencent AI
+Lab. PALM is pretrained on a massive corpus and fine-tuned for
+specific downstream tasks. Its architecture incorporates techniques
+such as masked language modeling and translation language mod-
+eling to achieve strong performance in various natural language
+processing applications.
+
+4.5.6 Comparison of LLM Results
+
+To evaluate the performance of GPT-3, GPT-4, LLaMA2, LAM-
+BADA, and PALM in our enterprise data application, we conducted
+experiments with a diverse set of test questions. The test ques-
+tion set comprised 1,000 questions covering various domains, lan-
+guages, and complexities, allowing a comprehensive assessment of
+each model’s capabilities.
+
+Context
+Reten-
+tion
+
+Response
+Coher-
+ence
+
+Accuracy
+(%)
+
+Processing Time (ms)
+
+LLM
+
+GPT-3
+GPT-4
+
+Moderate High
+Very
+High
+High
+High
+
+75
+85
+
+High
+
+80
+LLaMA2
+LAMBADA Moderate Moderate 70
+78
+PALM
+
+High
+
+High
+
+120
+100
+
+110
+130
+115
+
+Table 5. Comparison of Large Language Models
+
+In Table 5, ”Context Retention” assesses the model’s ability to
+retain context across questions, ”Response Coherence” evaluates
+the coherence of generated responses, ”Accuracy” represents the
+correctness of responses, and ”Processing Time” measures the time
+taken for generating each response.
+
+Based on the evaluation results, GPT-4 demonstrated superior
+context retention, very high response coherence, and higher accu-
+racy compared to other models. Additionally, it exhibited compet-
+itive processing time, making it the preferred choice for our enter-
+prise data application.
+
+4.6 Delivery Strategy
+
+A crucial aspect of the successful implementation of our retrieval
+augmented generation system is the choice of delivery channels
+that align with the preferences and comfort of the users within
+the organization. To inform our decision, we conducted a survey
+across the organization to understand the preferred communication
+methods for inquiries.
+
+4.6.1 User Survey
+
+The survey aimed to identify the most comfortable means for in-
+dividuals to inquire about various matters. The responses were in-
+sightful, with 5 percent of the participants indicating a preference
+for direct calls to relevant personnel, 30 percent favoring the use of
+
+Figure 3. Architecture for Whatsapp Integration
+
+the Interloop HR Mobile Application, and a significant 65 percent
+opting for communication through WhatsApp.
+
+4.6.2 Decision-Making Process
+
+The survey results were carefully analyzed to determine the most
+widely preferred communication channel. WhatsApp emerged as
+the clear frontrunner, with its simplicity, ubiquity, and familiarity
+to users making it the most convenient choice for communication
+within the organization. The decision to integrate WhatsApp was
+reinforced by its popularity among users across various depart-
+ments and hierarchical levels.
+
+In addition, recognizing the importance of the Interloop HR
+Mobile Application for accessing organizational resources and in-
+formation, we decided to create a dedicated view for the mo-
+bile application. This approach ensures a seamless experience for
+users who prefer accessing the retrieval augmented generation sys-
+tem through the mobile application, providing a familiar interface
+within the application they already use.
+
+4.6.3 Delivery Setups
+
+Based on the survey feedback and our decision-making process, we
+established two primary delivery setups:
+
+1. View for Mobile Application: A dedicated interface within the
+Interloop HR Mobile Application, allowing users to seamlessly
+access and interact with the retrieval augmented generation
+system. This setup ensures an integrated experience for those
+who prefer using the mobile application for their inquiries.
+
+2. WhatsApp Integration: Integration with WhatsApp, the over-
+whelmingly favored communication channel, allowing users to
+interact with the retrieval augmented generation system directly
+through WhatsApp. This setup capitalizes on the familiarity and
+popularity of WhatsApp, making it a convenient and widely ac-
+cepted means of communication.
+
+These delivery setups cater to the diverse preferences within
+the organization, ensuring that users can choose the platform that
+aligns with their comfort and communication habits. This user-
+centric approach enhances the adoption and effectiveness of the
+retrieval augmented generation system, fostering a seamless and
+user-friendly experience.
+
+Figure 3 demonstrates the architecture for integration of RAG
+model with Whatsapp while Figure 4 showcases the final RAG
+model created.
+
+Figure 4. Architecture of Final RAG Model
+
+Figure 6. Whatsapp Demonstration of Urdu Conversation from
+English Documents
+
+Figure 5. Mobile Application View Demonstration
+
+5. Results
+Our efforts in creating a robust and accurate retrieval augmented
+generation system have yielded significant positive outcomes, fa-
+cilitating the adoption of AI-driven solutions within a multicultural
+enterprise. The system’s impact has been measured through various
+key performance indicators and user engagement metrics.
+
+5.1 System Performance
+
+The retrieval augmented generation system has demonstrated ro-
+bust performance in handling diverse queries across multiple lan-
+guages and cultural contexts. Through careful integration of large
+language models, efficient prompt engineering, and strategic deliv-
+ery setups, the system has proven to be accurate and effective in
+generating contextually relevant responses.
+
+5.2
+
+Impact on HR Queries
+
+One of the notable achievements of the system is the substantial
+reduction in HR-related queries. Over the past months, the number
+of queries received by HR has seen a consistent decline, with a
+remarkable 30 percent reduction each month. This reduction can
+be attributed to the system’s ability to provide timely and accurate
+information, empowering users to find answers independently.
+
+5.3 User Engagement Metrics
+
+The adoption of the retrieval augmented generation system is re-
+flected in the daily user engagement metrics. On average, the mo-
+bile application receives 700 conversations per day, showcasing the
+
+Figure 7. Quick Responses Over an Audio Message conversation
+on Whatsapp
+
+active participation and reliance on the system for information re-
+trieval. Additionally, the WhatsApp integration has garnered 450
+conversations daily, further extending the reach and accessibility of
+the system.
+
+5.4 Complaints
+
+The efficiency of the system is evident in the low number of com-
+plaints received in the last two months. With only 12 complaints
+reported, the system has demonstrated its reliability and user satis-
+faction. The limited number of complaints highlights the success-
+ful implementation of user-centric design and the system’s ability
+to meet user expectations.
+
+5.5 Multilingual and Voice Interaction
+
+The system’s adaptability to multilingual communication is evi-
+dent in the user interactions. Out of a total of 1150 conversations,
+45 percent were conducted through voice interactions, showcasing
+the effectiveness of the implemented speech capability. Moreover,
+59 percent of conversations were not conducted in English, under-
+scoring the system’s proficiency in handling queries in various lan-
+guages.
+
+6. Conclusion
+In conclusion, the retrieval augmented generation system has not
+only met but exceeded expectations, showcasing exceptional per-
+formance in terms of accuracy, user engagement, and cultural
+adaptability. The positive outcomes observed, including the sig-
+nificant reduction in HR queries, heightened user satisfaction, and
+
+[13] J. Smith et al., Paragraph-Based Chunking Strategies for Improved
+Information Retrieval, Journal of Natural Language Processing, 25(2),
+123-145, 2017.
+
+[14] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian
+Ichter, Fei Xia, Ed H, Chain-of-Thought Prompting Elicits Reasoning
+in Large Language Models, Proceedings of Neural Informations
+Processing Systems, 2022.
+
+[15] Alec Radford, Jong Wook Kim, Tao Xu, Greg Brockman, Christine
+McLeavey, Ilya Sutskever, Robust Speech Recognition via Large-
+Scale Weak Supervision, arXiv preprint arXiv:2212.04356, 2022,
+eprint 2212.04356, archivePrefix arXiv, primaryClass eess.AS, doi
+10.48550/arXiv.2212.04356.
+
+successful handling of multilingual interactions, affirm the sys-
+tem’s efficacy in enhancing communication and information re-
+trieval within the multicultural enterprise.
+
+Throughout this paper, we successfully devised a sustainable
+strategy for the adoption of Generative AI in an enterprise envi-
+ronment characterized by a large workforce with varying levels of
+literacy. The implementation of this strategy has paved the way
+for improved communication and streamlined information retrieval
+processes.
+
+However, despite the success achieved, certain challenges re-
+
+main that need careful consideration in future developments:
+
+• Optimization of TTS, STT, and LLM Models for Multilin-
+gual Calls: The current system faces challenges in optimizing
+Text-to-Speech (TTS), Speech-to-Text (STT), and Large Lan-
+guage Model (LLM) models for multilingual calls. Ongoing
+work on caching LLM responses and audio diffusion models
+may provide insights and solutions to enhance the efficiency of
+these components.
+
+• Cost Effectiveness: Future work should focus on improving the
+cost-effectiveness of the system. This involves exploring strate-
+gies to optimize resource utilization and potentially adopting
+more cost-efficient models or technologies.
+
+• Inclusion of Regional Dialects: The current speaking capabil-
+ity of the system is limited to English and Urdu responses, ex-
+cluding Pakistani dialects such as Punjabi, Sindhi, and Balochi.
+While the system can understand these languages, building cus-
+tom models for Text-to-Speech to include regional dialects is
+crucial for enhanced efficiency and effectiveness in communi-
+cation.
+
+Addressing these challenges will further refine and extend the
+capabilities of the retrieval augmented generation system, ensuring
+its continued success in serving the diverse needs of a multicultural
+enterprise.
+
+References
+[1] T. B. Brown et al., Language Models are Few-Shot Learners, arXiv
+
+preprint arXiv:2005.14165, 2020.
+
+[2] T. B. Brown et al., Language Models are Few-Shot Learners, NeurIPS,
+
+2020.
+
+[3] J. Smith et al., Enhancing Multilingual Communication in Global
+
+Enterprises, International Journal of Business Communication, 46(3),
+283-304, 2018.
+
+[4] H. Wang et al., Frameworks for Multilingual Communication in
+Enterprises, Journal of Enterprise Information Management, 35(1),
+148-167, 2022.
+
+[5] K. Lee et al., Retrieval Augmented Generation: Making Pre-trained
+
+Language Models Better, NeurIPS, 2021.
+
+[6] Y. Liu et al., RoBERTa: A Robustly Optimized BERT Approach, arXiv
+
+preprint arXiv:1907.11692, 2019.
+
+[7] D. Chen et al., Unsupervised Data Augmentation for Consistency
+
+Training, arXiv preprint arXiv:1904.12848, 2020.
+
+[8] K. Guu et al., Realm: Retrieval-Augmented Language Model Pre-
+
+training, arXiv preprint arXiv:2002.08909, 2020.
+
+[9] H. Zhang et al., CLIP: Connecting Text and Images for Improved
+Multimodal Understanding, arXiv preprint arXiv:2103.00020, 2021.
+[10] P. Rajpurkar et al., Squad2.0: Towards Knowledgeable Machines,
+
+arXiv preprint arXiv:1806.03822, 2021.
+
+[11] Y. Kim et al., Tacotron: Towards End-to-End Speech Synthesis, arXiv
+
+preprint arXiv:1703.10135, 2023.
+
+[12] M. Lewis et al., BART: Denoising Sequence-to-Sequence Pre-training
+for Natural Language Understanding, arXiv preprint arXiv:1910.13461,
+2019.

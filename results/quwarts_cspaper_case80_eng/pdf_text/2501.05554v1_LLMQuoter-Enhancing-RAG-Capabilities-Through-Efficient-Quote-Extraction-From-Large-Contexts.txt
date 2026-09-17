@@ -1,0 +1,1381 @@
+LLMQuoter: Enhancing RAG Capabilities Through Efficient Quote
+Extraction From Large Contexts
+
+Yuri Fac¸anha Bezerra1, Li Weigang1
+1TransLab, University of Brasilia, Brasilia, Federal District, Brazil
+yurifacanha1994@gmail.com, weigang@unb.br
+
+Keywords:
+
+Knowledge Distillation, Large Language Models, LLM Reasoning, Low-Rank Adaptation, Retrieval-
+Augmented Generation
+
+Abstract:
+
+We introduce LLMQuoter, a lightweight, distillation-based model designed to enhance Retrieval-Augmented
+Generation (RAG) by extracting the most relevant textual evidence for downstream reasoning tasks. Built on
+the LLaMA-3B architecture and fine-tuned with Low-Rank Adaptation (LoRA) on a 15,000-sample subset of
+HotpotQA, LLMQuoter adopts a “quote-first-then-answer” strategy, efficiently identifying key quotes before
+passing curated snippets to reasoning models. This workflow reduces cognitive overhead and outperforms full-
+context approaches like Retrieval-Augmented Fine-Tuning (RAFT), achieving over 20-point accuracy gains
+across both small and large language models. By leveraging knowledge distillation from a high-performing
+teacher model, LLMQuoter achieves competitive results in a resource-efficient fine-tuning setup. It democra-
+tizes advanced RAG capabilities, delivering significant performance improvements without requiring extensive
+model retraining. Our results highlight the potential of distilled quote-based reasoning to streamline complex
+workflows, offering a scalable and practical solution for researchers and practitioners alike.
+
+1 INTRODUCTION
+
+Large Language Models (LLMs) have revolutionized
+natural language processing by enabling robust per-
+formance across diverse tasks such as open-domain
+question answering, summarization, and conversa-
+tional AI. However, as these models grow in size and
+capability, their computational demands and ineffi-
+ciencies in handling large contexts have become an
+active area of research, driving efforts to develop in-
+novative strategies for improvement (Lin et al., 2024;
+Jin et al., 2024; An et al., 2024). This challenge is par-
+ticularly pronounced in scenarios requiring complex
+reasoning and retrieval of specific information from
+extensive textual data.
+
+Retrieval-Augmented Generation (RAG) has be-
+come a powerful paradigm for improving model per-
+formance by seamlessly integrating retrieval mech-
+anisms with generative capabilities. By integrating
+external knowledge sources, RAG enables models to
+access and utilize relevant information dynamically,
+enhancing their domain-specific performance with-
+out necessitating extensive retraining. Despite its
+potential, RAG still faces limitations, especially in
+smaller models, which often struggle to reason effec-
+tively when confronted with large or noisy contexts
+
+To address
+
+(Mirzadeh et al., 2024; Hu et al., 2024a).
+these
+
+limitations, we propose
+LLMQuoter,
+a lightweight model designed to
+enhance RAG workflows by adopting a “quote-
+first-then-answer” strategy.
+Instead of reasoning
+over an entire context, LLMQuoter extracts relevant
+textual snippets that directly support downstream
+reasoning tasks. This approach reduces cognitive
+load on reasoning models, enabling both small and
+large models to achieve superior accuracy with lower
+computational overhead.
+
+Our methodology builds on recent advances in
+knowledge distillation, where compact models are
+trained to emulate the capabilities of high-performing
+teacher models. By leveraging distillation techniques
+and fine-tuning a LLaMA-3B model with Low-Rank
+Adaptation (LoRA) (Hu et al., 2021), we demon-
+strate that LLMQuoter can effectively identify and ex-
+tract key quotes from large contexts. These extracted
+quotes are then passed to reasoning models, enabling
+a “quote-first-then-answer” strategy. This approach
+departs from traditional full-context techniques and
+frameworks like Retrieval-Augmented Fine-Tuning
+(RAFT) (Zhang et al., 2024a), where the model
+quotes, thinks, and answers in a single step. By de-
+coupling these stages, LLMQuoter simplifies the rea-
+
+5
+2
+0
+2
+
+n
+a
+J
+
+9
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+4
+5
+5
+5
+0
+.
+1
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+ 
+ 
+ 
+ 
+ 
+ 
+soning process and reduces cognitive overhead for
+downstream models, offering an alternative and ef-
+ficient pathway for retrieval-augmented generation
+(RAG) pipelines.
+
+This paper evaluates LLMQuoter using the DSPy
+framework (Khattab et al., 2023) for semantic evalua-
+tion, leveraging a 15,000-sample subset of the Hot-
+potQA dataset (Yang et al., 2018). This dataset is
+commonly used for RAG problems and was also uti-
+lized in RAFT, the solution that served as our starting
+point. The results show that LLMQuoter is a stand-
+out solution, holding its own against RAG techniques
+like RAFT. It delivers impressive accuracy gains with-
+out compromising on computational efficiency, mak-
+ing it both effective and resource-friendly. Further-
+more, the lightweight nature of LLMQuoter democ-
+ratizes access to advanced RAG capabilities, provid-
+ing a scalable solution for researchers and practition-
+ers with limited resources. The rest of this paper is
+organized as follows: Section 2 delves into the back-
+ground, covering LLM reasoning, knowledge distilla-
+tion, the RAFT approach, and evaluation methods for
+LLMs. Section 3 outlines the methodology behind the
+proposed solution. In Section 4, we detail the experi-
+mental setup and key insights from the process, while
+Section 5 discusses the results and highlights the ad-
+vantages of quote-based reasoning. Finally, Section
+6 wraps up the paper with conclusions and potential
+avenues for future research.
+
+2 BACKGROUND
+
+2.1 LLM Reasoning
+
+Reasoning remains a core challenge for Large Lan-
+guage Models (LLMs), with both large and small
+models facing distinct limitations. Large models ex-
+cel in generalization but struggle with intricate logi-
+cal reasoning and multi-step problem-solving. Rather
+than genuinely reasoning, they often replicate patterns
+from their training data, which can lead to significant
+performance drops when faced with tasks requiring
+clause integration or minor input variations, as high-
+lighted in the GSM-Symbolic study (Mirzadeh et al.,
+2024). Smaller models, while resource-efficient, suf-
+fer from capacity constraints, making them prone to
+losing context in reasoning-intensive tasks, as demon-
+strated in experiments with MiniCPM, which at-
+tempts to match the reasoning performance of larger
+models (Hu et al., 2024a).
+
+To mitigate these challenges, split-step reasoning
+has emerged as a promising solution. By dividing
+reasoning tasks into distinct phases, such as problem
+
+decomposition and problem-solving, smaller models
+can focus on manageable subtasks, improving their
+generalization and inference efficiency (Wu et al.,
+2024). Advanced techniques like Generative Con-
+text Distillation (GCD) and task-specific fine-tuning
+further enhance reasoning accuracy while preserving
+computational efficiency (Fu et al., 2024b). This ap-
+proach has also been successfully applied in specific
+domains such as sarcasm detection, where frame-
+works like chain-of-contradictions outperform holis-
+tic reasoning approaches, particularly in smaller mod-
+els (Yao et al., 2024).
+
+Self-correction mechanisms provide an additional
+boost to reasoning capabilities. Training pipelines
+that incorporate self-correction, where models gener-
+ate critiques of their incorrect answers, have proven
+effective, particularly when pairing small models with
+strong verifiers (Zhang et al., 2024b). Domain-
+specific approaches, such as multi-modal assistants
+integrating textual and visual
+further
+demonstrate that smaller models can achieve sophis-
+ticated reasoning abilities when tailored strategies are
+employed (Zhu et al., 2024).
+
+reasoning,
+
+These studies underscore the importance of split-
+step reasoning and specialized training frameworks to
+address the limitations of both large and small LLMs.
+By leveraging strategies that combine task decom-
+position, fine-tuning, and self-correction, researchers
+can design models that effectively balance scalabil-
+ity and reasoning performance across diverse applica-
+tions.
+
+2.2 Knowledge Distillation in LLMs
+
+Knowledge distillation has become a vital technique
+for reducing the computational demands of large lan-
+guage models (LLMs) while preserving their ad-
+vanced capabilities. The process transfers knowledge
+from a high-capacity teacher model to a more effi-
+cient student model, enabling smaller models to per-
+form complex tasks such as reasoning, recommenda-
+tion, and maintaining factual accuracy, all with signif-
+icantly lower resource consumption. Techniques like
+Generative Context Distillation (GCD), for instance,
+streamline inference by internalizing prompts rather
+than relying on explicit ones, enhancing efficiency
+(Fu et al., 2024a). Similarly, rationale-based ap-
+proaches help compact models achieve state-of-the-
+art performance in recommendation tasks by improv-
+ing model profiling (Hu et al., 2024b).
+
+The applications of LLM distillation are diverse,
+ranging from mitigating hallucinations to enhancing
+recommendation systems and enabling cost-effective
+deployment. Techniques such as temperature scaling
+
+tract and reference relevant portions of the retrieved
+context. This dual focus enables the model to dy-
+namically identify key parts of the input text, syn-
+thesize their meaning, and produce a well-reasoned
+final answer. By teaching models to reason and quote
+in tandem, RAFT enhances their ability to operate
+effectively in RAG settings, bridging the gap be-
+tween retrieval and generation to deliver more accu-
+rate, context-aware responses.
+In summary, RAFT
+trains a model to perform chain-of-thought (CoT) rea-
+soning, transforming a task structured as context +
+question into a comprehensive output of reasoning,
+relevant quotes, and the final answer (Figure 1).
+
+and intermediate layer matching have been shown to
+reduce hallucination rates while improving accuracy
+(Gogate et al., 2024). In the domain of recommenda-
+tion systems, rationale-based and importance-aware
+ranking distillation techniques allow smaller models
+to effectively learn from user-item interactions, strik-
+ing a balance between computational efficiency and
+performance (Cui et al., 2024). Task-specific strate-
+gies, such as dividing reasoning tasks into problem
+decomposition and solution phases, further improve
+the generalizability and inference efficiency of com-
+pact models (Wu et al., 2024).
+
+Despite its advantages, knowledge distillation
+faces challenges,
+including capacity gaps between
+teacher and student models and semantic divergence
+in embedding spaces. Solutions like collaborative
+embedding distillation and ranking distillation have
+been developed to bridge these gaps, allowing smaller
+models to align more closely with their larger coun-
+terparts in semantic reasoning (Cui et al., 2024).
+As researchers continue to optimize these methods,
+they push the boundaries of LLM distillation, mak-
+ing smaller, efficient models increasingly viable for a
+broad spectrum of AI applications.
+
+2.3 RAFT (RAG + FT)
+
+Figure 1: RAFT inference example(Zhang et al., 2024a)
+
+Retrieval-Augmented Generation (RAG) has emerged
+as a widely adopted technique for domain-specific ap-
+plications, offering an efficient way to leverage pre-
+trained LLMs without requiring extensive retraining.
+RAG is particularly advantageous as it allows models
+to retrieve relevant information from external knowl-
+edge bases or documents, making it an effective ap-
+proach in fields such as healthcare, legal analysis,
+and technical documentation, where large, specialized
+datasets are required (Su et al., 2024; ˙Irican et al.,
+2024). Additionally, RAG is increasingly being uti-
+lized as an external memory mechanism for LLMs
+(Alonso et al., 2024; Jim´enez Guti´errez et al., 2024).
+However, not all models—especially smaller
+ones—are capable of effectively handling large con-
+texts and reasoning simultaneously (Zhang et al.,
+2024b; Chen et al., 2024). Even when provided
+with the appropriate context, these models often fail
+to generate coherent or accurate answers, reveal-
+ing a gap in their ability to integrate retrieval with
+reasoning. To address these limitations, techniques
+like RAFT, Retrieval-Augmented Fine-Tuning, have
+emerged, aiming to fine-tune LLMs specifically for
+RAG in domain scenarios (Zhang et al., 2024a;
+Di Oliveira et al., 2024).
+
+RAFT focuses on training models to “think while
+quoting,” combining reasoning with the ability to ex-
+
+2.4 Semantic Evaluation
+
+Semantic evaluation of Large Language Models
+(LLMs) has emerged as a critical area of research
+as these models continue to excel in tasks such as
+text summarization, question answering, and open-
+domain generation. With their growing sophistica-
+tion, there has been a corresponding rise in prompt-
+based systems designed work with LLM as the prod-
+uct brain (Liu et al., 2024; Garcia et al., 2024; T Wi-
+jesiriwardene, 2024). However, evaluating the ef-
+fectiveness of LLM-generated outputs objectively re-
+mains a significant challenge (Hu and Zhou, 2024).
+Traditional metrics often fall short in capturing the
+nuanced semantics and creative aspects of these mod-
+els’ outputs, necessitating the development of more
+refined evaluation frameworks (Khattab et al., 2023).
+Traditional metrics such as BLEU and ROUGE
+are limited by their reliance on surface-level token
+overlaps, failing to capture the semantic depth and
+creativity of LLM-generated outputs(van Schaik and
+Pugh, 2024). This limitation has driven the de-
+velopment of more robust and adaptable evaluation
+frameworks, including LLMs themselves as evalua-
+tors. Frameworks like GPTScore (Fu et al., 2023) and
+AlpacaEval (Dubois et al., 2024) exemplify this shift:
+
+GPTScore offers granular scoring based on condi-
+tional probabilities but requires access to token-level
+data; and AlpacaEval simplifies comparative evalua-
+tion with a win-rate metric, while also exposing chal-
+lenges like prompt sensitivity.
+
+DSpy and EvalGen represent significant advance-
+ments in automating and structuring LLM evalua-
+tions. EvalGen combines automation with human
+feedback to iteratively refine evaluation criteria, ad-
+dressing the evolving nature of semantic assessment
+and introducing the concept of criteria drift, where
+grading outputs helps refine standards. DSpy adopts
+a “programming, not prompting” philosophy, en-
+abling the programmatic implementation of metrics
+and evaluations using another LLM as a semantic
+judge. This approach abstracts the complexity of
+prompt engineering, allowing for reusable and scal-
+able evaluations across tasks. Together, these frame-
+works address the limitations of traditional metrics
+and lay the groundwork for a rigorous, nuanced, and
+adaptable evaluation landscape for LLMs.
+
+3 METHODOLOGY
+
+With the goal of developing an efficient language
+model for extracting relevant quotes from contexts to
+properly answer questions about it, this section de-
+tails the methodology employed in training and evalu-
+ating the distilled LLM. The process involves leverag-
+ing a high-performing LLM for dataset creation, fine-
+tuning a smaller LLM, and validating the approach
+with task-specific metrics.
+
+We begin with a formalization of the distillation
+problem in Section 3.1, followed by an overview of
+the fine-tuning process in Section 3.2. Finally, the
+evaluation framework and metrics used to validate the
+model’s performance are described, along with a sim-
+ple approach to demonstrate the benefits of extracting
+relevant quotes instead of using the large content it-
+self.
+
+3.1 Problem Formalization
+
+Let us consider a dataset of text samples, denoted by
+D = {(C, Q, A)}, where:
+
+• C: a large text context.
+• Q: a specific question.
+• A: the expected answer.
+
+The task is to train a model capable of extracting rel-
+evant quotes from C that support A in response to Q.
+To achieve this, we employ a distillation process
+in which a large LLM generates high-quality train-
+
+ing data, and a smaller LLM is fine-tuned on this
+dataset to efficiently replicate the behavior of the
+larger model.
+
+3.2 LLM Distillation
+
+The dataset creation process can be formalized as
+follows: Given a high-performance language model
+fhigh, such as ChatGPT or Gemini, the task is to ex-
+tract quotes R from a context C that directly support
+an answer A in response to a question Q. Formally,
+this process can be represented as:
+
+fhigh : (Q, A,C) → R
+
+For each data point (Q, A,C), the high-performance
+model fhigh generates the set of quotes R , which serve
+as the ground truth:
+
+Dgold = {(Q, A,C,R ) | R = fhigh(Q, A,C)}
+
+The result is a high-quality dataset Dgold, consisting
+of tuples (Q, A,C,R ), where R represents the rele-
+vant quotes extracted by fhigh. This dataset is then
+used to train and evaluate the smaller distilled model
+fsmall.
+
+3.3 Fine-Tuning LLM with LoRA
+
+The smaller model fsmall is fine-tuned on the Dgold
+dataset using Low-Rank Adaptation (LoRA) for task-
+specific learning in the extraction of relevant quotes.
+The fine-tuning process is defined as:
+
+fsmall : (Q,C) → R
+
+where Q represents the question, C is the textual con-
+text, and R is the set of relevant quotes generated
+by the fine-tuned model. The training process is de-
+scribed in the following steps:
+1. Input: Data from the Dgold dataset in the form
+of tuples (Q,C), where Q is the question, C is the
+textual context.
+
+2. Output: The fine-tuned model fsmall is optimized
+to predict R , replicating the behavior of the larger
+model fhigh, but without knowing the answer.
+
+3.4 Evaluation Framework and Metrics
+
+The model’s performance is evaluated using the DSpy
+framework, which computes task-specific metrics tai-
+lored to LLM outputs. Precision and recall are re-
+defined for the quote extraction task using an LLM
+Judge to assess semantic relevance between model
+predictions and ground truth.
+
+Precision measures the proportion of predicted
+that align semantically with the
+
+quotes (Rmodel)
+golden answers (Rgold), defined as:
+
+P =
+
+∑r∈Rmodel Judge(r, Rgold)
+|Rmodel|
+
+where Rmodel is the set of quotes predicted by the
+model, Rgold is the set of golden answers, and
+Judge(r, Rgold) is a scoring function returning values
+from 0 (no match) to 1 (perfect match).
+
+Recall quantifies the proportion of golden answers
+(Rgold) captured by the model’s predictions (Rmodel),
+defined as:
+
+R =
+
+∑r∈Rgold Judge(r, Rmodel)
+|Rgold|
+
+F1-score balances precision and recall and is de-
+
+fined as:
+
+F1 = 2 ·
+
+P · R
+P + R
+
+DSpy-Assisted Validation with LLM Judge: The
+DSpy framework incorporates large language mod-
+els (LLMs) as automated evaluators, enabling robust
+and interpretable metric calculations. This flexibil-
+ity allows DSpy to integrate a wide range of LLMs,
+referred to here as the LLM Judge. This variation
+of precision and recall, tailored for LLM-generated
+outputs and supported by the LLM Judge’s semantic
+judgment, ensures a nuanced evaluation of the quote
+extraction model. The integration of DSpy and the
+Judge provides a systematic, interpretable, and ro-
+bust framework for assessing and iteratively improv-
+ing model performance.
+
+3.5 Proving the Benefit of Using Quotes
+
+fbase represent base models without any fine-
+Let
+tuning to establish a baseline for comparison. Two ex-
+perimental setups are defined to demonstrate the ad-
+vantage of using relevant quotes R instead of the full
+context C:
+
+1. Providing only the gold quotes R from Dgold to
+the base models fbase to answer the questions:
+
+fbase : (Q,Rgold) → Abase
+
+2. Providing the full context C instead of the quotes
+R to the same base models fbase to answer the
+questions:
+
+fbase : (Q,C) → Abase
+
+C is the entire context, and Abase is the base models
+answers.
+
+The accuracy of the answers produced by fbase
+is measured using Semantic Accuracy (Sacc), which
+evaluates the alignment between the model-generated
+answers Abase and the expected answers Agold. Seman-
+tic Accuracy is defined as:
+
+Sacc =
+
+∑a∈Abase Judge(a, Agold)
+|Agold|
+
+where Judge(a, Agold) is a semantic similarity func-
+tion scoring the alignment between a model-
+generated answer a and the ground truth Agold, with
+scores ranging from 0 (no match) to 1 (perfect match).
+
+4 EXPERIMENTS
+
+This section describes the experimental setup used
+to analyze the performance of the proposed method-
+It begins with details of the datasets used
+ology.
+followed by an ex-
+for training and evaluation,
+planation of the training configurations,
+including
+hyper-parameters and computational resources. An
+overview of the entire process, from data distillation
+to evaluation, is illustrated in Figure 2. Finally, the
+experiments designed to validate the effectiveness of
+using relevant quotes instead of full context are pre-
+sented (Figure 3 illustrates the process). The code uti-
+lized in this work is available on GitHub1. Concrete
+examples of the experimental results can be found in
+the appendix for further clarification.
+
+4.1 Datasets
+
+Our method was evaluated on the HotpotQA dataset
+(Yang et al., 2018), an open-domain question-
+answering benchmark derived from Wikipedia, with a
+focus on common knowledge topics such as movies,
+sports, and general trivia. The dataset consists of three
+columns: question, context, and answer, where each
+sample pairs a question with a large textual context
+and its corresponding answer.
+
+Due to resource constraints, a random subset of
+15,000 samples was selected from the original dataset
+to serve as the basis for applying the distillation pro-
+cess. From this subset, 600 samples were set aside for
+evaluation purposes, forming the test set. This test set
+was used to measure the model’s performance during
+the evaluation phase and to validate the benefit of us-
+ing extracted quotes as opposed to the entire context
+
+For both setups, Q represents the question, Rgold is
+the set of gold quotes extracted from the Dgold dataset,
+
+1https://github.com/yurifacanha/LLMQuoter
+
+Figure 2: The LLMQuoter diagram
+
+for answering questions. The remaining 14,400 sam-
+ples were utilized for training and validation during
+the distillation and fine-tuning steps.
+
+Table 1: Summary of dataset characteristics used in the ex-
+periments.
+
+Attribute
+Dataset Name
+Total Samples Used
+Test Set Size
+Training Size
+Source
+Topics
+
+Value
+HotpotQA
+15,000
+600
+14,400
+Wikipedia
+Common knowledge
+
+4.2 Data Distillation
+
+The distillation process was performed using Gem-
+ini Pro 1.5 as the high-performance model ( fhigh)
+and LangChain as the framework for managing the
+pipeline. The process involved generating relevant
+quotes for each sample in both the training and test
+datasets by leveraging the capabilities of Gemini Pro
+1.5.
+
+Gemini Pro 1.5, as one of the most powerful
+models available today, was tasked with extracting
+quotes directly supporting the answer to each ques-
+tion. Given the model’s advanced performance and
+ability to generate high-quality answers, it is reason-
+able to assume that the resulting dataset represents an
+excellent ”gold” standard for the task of quote extrac-
+tion.
+
+After this step, the dataset was finalized, aug-
+mented with a new column containing the extracted
+quotes (R ). This enriched dataset, now comprising
+question (Q), context (C), and quotes (R ), served as
+the foundation for training and evaluating the smaller
+fsmall model.
+
+4.3 Fine-Tuning Process
+
+The fine-tuning process was applied to the smaller
+LLM, LLAMA 3.2 3B, using the Low-Rank Adap-
+tation (LoRA) technique to optimize the model for
+the quote extraction task. LLAMA 3.2 3B was cho-
+sen as the base model due to its balance between
+computational efficiency and task-specific adaptabil-
+ity. The fine-tuning process was completed over a sin-
+gle epoch, ensuring efficient adaptation without over-
+fitting.
+
+The fine-tuning process was conducted on a
+NVIDIA A100-SXM4-40GB GPU, with a maximum
+memory capacity of 39.564 GB. The specific resource
+utilization and training parameters are summarized
+below:
+
+Table 2: Summary of Fine-Tuning Configuration and Re-
+source Usage
+
+Configuration/Metric
+Memory Usage
+Training Memory
+Batch Configuration
+Gradient accumulation steps
+Total effective batch size
+Training Steps
+Trainable Parameters
+Training Time
+
+Value
+3.56GB(peak)
+1.06GB(peak)
+Batch size: 2
+4
+8
+60
+24M aprox
+5 minutes
+
+This setup highlights the efficiency of the LoRA
+approach in adapting a compact model like LLAMA
+3.2 3B for specific tasks with minimal resource usage
+and rapid training over just one epoch (see Table 2).
+
+4.4 Evaluation and Proving the Benefits
+
+The evaluation of the extracted quotes was performed
+using the DSpy framework in conjunction with Ope-
+
+nAI GPT-4.0. GPT-4.0 was selected as it operates
+outside the scope of the training data and methods,
+is recognized as one of the top reasoning models,
+and remains unbiased regarding the problem context.
+By leveraging these tools, the metrics defined in the
+methodology section were concretely implemented
+and materialized for evaluating the system’s perfor-
+mance in a structured and measurable way.
+
+The following signature, referencing the DSpy
+documentation (Khattab et al., 2023), directly imple-
+ments the precision and recall metrics defined in the
+methodology section, providing a clear framework for
+evaluating how well the extracted quotes align with
+the ground truth:
+
+class QuotesPrecisionRecall(dspy.Signature):
+
+"""
+There are quotes from the
+ground truth and quotes from
+the system response.
+You must calculate the recall
+and precision of
+the system response.
+"""
+ground_truth: str = dspy.InputField()
+system_response: str = dspy.InputField()
+recall: float = dspy.OutputField(desc="""
+fraction (out of 1.0) how much quotes
+from the ground truth are present
+in the system response"""")
+precision: float = dspy.OutputField(desc=
+"""fraction (out of 1.0) how much
+quotes from the system response
+are present in the ground truth""")
+
+To validate the benefit of using quotes instead of
+the full context, comparisons were performed across
+several base models ( fbase),
+including LLAMA
+3.2:1B, LLAMA 3.2:3B, GPT-3.5 Turbo. These
+models were evaluated in two configurations: using
+extracted quotes R and using the full context C. The
+accuracy of the answers produced by these models
+was assessed to determine the effectiveness of the
+quote extraction approach. GPT-4.0 was chosen as
+the external LLM Judge again to compute Semantic
+Accuracy (Sacc).
+
+Figure 3: Context X Quotes process
+
+5 RESULTS AND DISCUSSION
+
+This section presents the experimental results ob-
+tained by evaluating the quote extraction model
+(quoter) and validating the benefit of using quotes
+over full context in open-domain question-answering
+tasks. The results demonstrate the effectiveness of
+the proposed method in improving the performance
+of both small and large language models in RAG
+(retrieval-augmented generation) scenarios.
+
+5.1 Evaluation of the Quoter Model
+
+The performance of the quoter model was evaluated
+using the metrics described in Section 4.3. The re-
+call, precision, and F1-score were measured both be-
+fore and after fine-tuning the smaller LLM using the
+LoRA approach. The results are summarized in Table
+3.
+
+Table 3: Performance of the Quoter Model Before and After
+Fine-Tuning
+
+Metric
+Recall
+Precision
+F1-Score
+
+After
+
+Before
+48.3% 68.0%(+19.7%)
+43.6% 71.0%(+27.4%)
+41.3% 69.1%(+27.8%)
+
+The results show significant improvements in all
+three metrics after fine-tuning the quoter model. The
+F1-score increased from 41.3% to 69.1%, demon-
+strating the quoter’s ability to accurately identify rel-
+evant quotes with low computational resources and a
+compact model.
+
+5.2 Benefits of Using Quotes Over Full
+
+Context
+
+To validate the benefit of using quotes instead of full
+context, a comparison was performed using original
+models without any training. Both the gold quotes
+and the full context were provided as inputs to dif-
+ferent models: LLAMA 1B, LLAMA 3B, and GPT-
+3.5 Turbo. The accuracy of the answers generated by
+each model in these two configurations is summarized
+in Table 4.
+
+Table 4: Comparison of Accuracy Between Using Full Con-
+text and Quotes
+
+Model
+LLAMA 1B
+LLAMA 3B
+GPT-3.5 Turbo
+
+Quotes
+
+Context
+24.4% 62.2% (+37.8%)
+57.7% 83.0% (+25.3%)
+75.8% 88.5% (+12.7%)
+
+The results highlight a clear improvement in ac-
+
+curacy when using gold quotes compared to full con-
+text. For instance, LLAMA 1B achieved an accuracy
+of 62.2% with quotes versus 24.4% with full context,
+and GPT-3.5 Turbo achieved 88.5% with quotes ver-
+sus 75.8% with full context. These findings indicate
+that providing a good quoter model can significantly
+enhance the performance of both small and large lan-
+guage models in RAG scenarios.
+
+5.3 Discussion
+
+The results validate the hypothesis that using ex-
+tracted quotes instead of full context significantly im-
+proves model performance in open-domain question-
+answering tasks. This finding aligns with the orig-
+inal RAFT approach, which involves reasoning and
+answering directly over the full context. How-
+ever, our experiments demonstrate that separating the
+tasks—first extracting quotes with a simple quoter
+and then reasoning over the concise data—can lead
+to comparable or better outcomes with lower compu-
+tational overhead.
+
+Table 5: Comparison of RAFT and Full Context Results on
+LLaMA2-7B over HotPotQA dataset
+
+Method
+LLaMA2-7B + Full Context
+RAFT (LLaMA2-7B)
+
+Accuracy
+26.43%
+35.28%
+
+To provide context, RAFT was tested with
+LLaMA2-7B over the full dataset, achieving an ac-
+curacy of 35.28% when reasoning over both context
+and question simultaneously. Using the same model
+(LLaMA2-7B) with only the full context reduced per-
+formance to 26.43% (see Table 5). While our exper-
+iments used a random sample of 15,000 rows from
+the HotpotQA dataset due to resource constraints,
+the results are promising. For instance, even with a
+lightweight 3B quoter model fine-tuned with minimal
+resources on Colab, the quote-based approach signifi-
+cantly boosted accuracy for various downstream mod-
+els.
+
+The comparison highlights that the quoter tech-
+nique is a promising alternative. By offloading the
+task of quote extraction to a small and efficient model,
+we can streamline the reasoning process for larger
+models, avoiding the pitfalls of over-reasoning. The
+”divide and conquer” strategy allows each model to
+focus on its strength: smaller models specialize in
+targeted preprocessing, while larger models excel in
+reasoning over concise, relevant data.
+
+While our study only utilized a subset of the Hot-
+potQA dataset, the results suggest that the quoter
+technique offers a scalable and efficient solution
+
+for enhancing retrieval-augmented generation (RAG)
+pipelines. Notably, the models used with the extracted
+quotes were not fine-tuned to reason better, yet still
+achieved significant improvements in accuracy. This
+highlights the power of the quoter approach in sim-
+plifying the reasoning task by reducing the cognitive
+load on base models, allowing even non-optimized
+models to perform effectively.
+
+This approach could serve as a viable alternative
+to RAFT in scenarios with limited resources, demon-
+strating that a well-trained quoter can democratize ac-
+cess to high-performing NLP solutions. By offloading
+the preprocessing task of identifying relevant infor-
+mation, the quoter enables base models to focus their
+reasoning capabilities on concise, relevant data rather
+than processing large and noisy contexts.
+
+6 CONCLUSIONS AND FUTURE
+
+WORK
+
+This study demonstrates the effectiveness of data
+distillation and lightweight training for enhancing
+Retrieval-Augmented Generation (RAG) systems. By
+leveraging a high-performing teacher model to distill
+relevant quotes and fine-tuning a compact model, we
+achieved significant improvements in model perfor-
+mance. The fine-tuning process required minimal re-
+sources, with just 5 minutes of training on an NVIDIA
+A100 GPU, yet delivered robust results.
+
+The experiments validate that an efficient quoter
+model can substantially enhance RAG performance
+by reducing the cognitive load on the reasoning pro-
+cess. By focusing the model’s efforts on the an-
+swer rather than processing and reasoning over large
+contexts, we eliminate the need for extensive train-
+ing while improving accuracy. This approach aligns
+with the principle of “divide and conquer,” where the
+reasoning task is simplified and made more manage-
+able for even small models. Ultimately, our results
+demonstrate that high-quality quote extraction can de-
+mocratize access to high-performing RAG capabili-
+ties across a range of computational constraints.
+
+While this work has established a strong founda-
+tion for quote-based RAG, several avenues for future
+research remain open:
+
+• Expanded Datasets: Testing the methodology on
+a wider range of datasets, including those with dif-
+ferent domains and levels of complexity, and uti-
+lizing larger samples from each dataset will pro-
+vide a more comprehensive evaluation of the ap-
+proach.
+
+• Reinforcement Learning:
+
+Incorporating rein-
+
+forcement learning techniques, such as Proxi-
+mal Policy Optimization (PPO) or Direct Prefer-
+ence Optimization (DPO), could further refine the
+quote extraction and reasoning steps, enhancing
+the overall system performance.
+
+• Larger Models: Training larger models, such as
+an 8B parameter LLAMA, could offer insights
+into the scalability of the proposed methodology
+and the impact of model size on RAG effective-
+ness.
+
+• Prompt Engineering: Developing advanced
+prompt engineering techniques could optimize the
+quote extraction and reasoning processes, improv-
+ing both accuracy and efficiency.
+
+• Applications Beyond RAG: The methodology
+can be extended to other use cases, such as
+memory-augmented RAG systems, where the
+quoter serves as a lightweight mechanism for
+managing and retrieving relevant
+information
+from large, external knowledge bases.
+
+By exploring these directions, we aim to further
+refine the quote-based RAG pipeline and expand its
+applicability to broader NLP tasks, offering scalable
+and resource-efficient solutions for both research and
+real-world scenarios.
+
+REFERENCES
+
+Alonso, N., Figliolia, T., Ndirango, A., and Millidge, B.
+(2024). Toward conversational agents with context
+and time sensitive long-term memory. arXiv preprint
+arXiv:2406.00057.
+
+An, S., Ma, Z., Lin, Z., Zheng, N., and Lou, J.-G. (2024).
+Make your llm fully utilize the context. arXiv preprint
+arXiv:2404.16811.
+
+Chen, X., Wang, L., Wu, W., Tang, Q., and Liu, Y. (2024).
+Honest ai: Fine-tuning” small” language models to
+say” i don’t know”, and reducing hallucination in rag.
+arXiv preprint arXiv:2410.09699.
+
+Cui, Y., Liu, F., Wang, P., et al. (2024). Dllm2rec: Distil-
+lation from llms to sequential recommenders. arXiv
+preprint arXiv:2405.00338.
+
+Di Oliveira, V., Bezerra, Y. F., Weigang, L., Brom, P. C., and
+Celestino, V. R. (2024). Slim-raft: A novel fine-tuning
+approach to improve cross-linguistic performance for
+mercosur common nomenclature. In WEBIST.
+
+Dubois, Y., Galambosi, B., Liang, P., and Hashimoto,
+T. B. (2024). Length-controlled alpacaeval: A sim-
+ple way to debias automatic evaluators. arXiv preprint
+arXiv:2404.04475.
+
+Fu,
+
+J., Ng, S.-K.,
+Gptscore: Evaluate as you desire.
+arXiv:2302.04166.
+
+Jiang, Z., and Liu, P.
+
+(2023).
+arXiv preprint
+
+Fu, J., Ng, S.-K., Jiang, Z., and Liu, P. (2024a). Generative
+context distillation. arXiv preprint arXiv:2411.15927.
+
+Fu, J., Ng, S.-K., Jiang, Z., and Liu, P. (2024b). Specializ-
+ing smaller language models towards multi-step rea-
+soning. arXiv preprint arXiv:2301.12726.
+
+Garcia, B., Westerfield, L., Yelemali, P., and Gogate,
+N. (2024).
+Improving automated deep phenotyping
+through large language models using retrieval aug-
+mented generation. medRxiv.
+
+Gogate, N. et al. (2024). Reducing llm hallucination using
+knowledge distillation: A case study with mistral large
+and mmlu benchmark. TechRxiv.
+
+Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang,
+S., Wang, L., and Chen, W. (2021). Lora: Low-rank
+adaptation of large language models. arXiv preprint
+arXiv:2106.09685.
+
+Hu, S., Tu, Y., Han, X., et al. (2024a). Minicpm: Unveiling
+the potential of small language models with scalable
+training strategies. arXiv preprint arXiv:2404.06395.
+
+Hu, S., Tu, Y., Han, X., et al. (2024b). Rdrec: Ratio-
+nale distillation for llm-based recommendation. arXiv
+preprint arXiv:2405.10587.
+
+Hu, T. and Zhou, X.-H. (2024). Unveiling llm evaluation
+focused on metrics: Challenges and solutions. arXiv
+preprint arXiv:2404.09135.
+
+˙Irican, B. B., Sivri, M., Kokach, V., Kocac¸ınar, B., and
+Akbulutl, F. P. (2024). Qbot: Domain-specific chat-
+bots with retrieval-augmented generation and vector
+embedding for complex documentation queries.
+In
+2024 Innovations in Intelligent Systems and Applica-
+tions Conference (ASYU).
+
+Jim´enez Guti´errez, B., Shu, Y., Gu, Y., Yasunaga, M., and
+Su, Y. (2024). Hipporag: Neurobiologically inspired
+long-term memory for large language models. arXiv
+e-prints.
+
+Jin, H., Han, X., Yang, J., Jiang, Z., Liu, Z., Chang, C.-
+Y., Chen, H., and Hu, X. (2024). Llm maybe longlm:
+Self-extend llm context window without tuning. arXiv
+preprint arXiv:2401.01325.
+
+Khattab, O., Singhvi, A., Maheshwari, P., Zhang, Z., San-
+thanam, K., Vardhamanan, S., Haq, S., Sharma, A.,
+Joshi, T. T., Moazam, H., Miller, H., Zaharia, M., and
+Potts, C. (2023). Dspy: Compiling declarative lan-
+guage model calls into self-improving pipelines. arXiv
+preprint arXiv:2310.03714.
+
+Lin, B., Zhang, C., Peng, T., Zhao, H., Xiao, W., Sun,
+M., Liu, A., Zhang, Z., Li, L., Qiu, X., et al. (2024).
+Infinite-llm: Efficient llm service for long context with
+distattention and distributed kvcache. arXiv preprint
+arXiv:2401.02669.
+
+Liu, C., Yuan, X., Yu, Z., and Wang, Y. (2024). Texdc:
+Text-driven disease-aware 4d cardiac cine mri images
+generation. In Proceedings of the Asian Conference
+on Computer Vision (ACCV).
+
+Mirzadeh, I., Alizadeh, K., Shahrokhi, H., Tuzel, O., Ben-
+gio, S., and Farajtabar, M. (2024). Gsm-symbolic:
+
+Understanding the limitations of mathematical rea-
+arXiv preprint
+soning in large language models.
+arXiv:2410.05229.
+
+Su, C., Wen, J., Kang, J., Wang, Y., Pan, H., and Hos-
+sain, M. S. (2024). Hybrid rag-empowered multi-
+modal llm for secure healthcare data management:
+A diffusion-based contract theory approach. arXiv
+preprint arXiv:2407.00978.
+
+T Wijesiriwardene, R. W. (2024). Exploring the abilities of
+large language models to solve proportional analogies
+via knowledge-enhanced prompting. arXiv preprint
+arXiv:2412.00869.
+
+van Schaik, T. A. and Pugh, B. (2024). A field guide to auto-
+matic evaluation of llm-generated summaries. In Pro-
+ceedings of the 47th International ACM SIGIR Con-
+ference on Research and Development in Information
+Retrieval, pages 2832–2836.
+
+Wu, Z., Bai, H., Zhang, A., et al. (2024). Divide-or-
+conquer? which part should you distill your llm?
+arXiv preprint arXiv:2402.15000.
+
+Yang, Z., Qi, P., Zhang, S., Bengio, Y., Cohen,
+W. W., Salakhutdinov, R., and Manning, C. D.
+(2018). Hotpotqa: A dataset for diverse, explain-
+able multi-hop question answering. arXiv preprint
+arXiv:1809.09600.
+
+Yao, B., Zhang, Y., Li, Q., and Qin, J. (2024). Is sarcasm de-
+tection a step-by-step reasoning process in large lan-
+guage models? arXiv preprint arXiv:2407.12725.
+
+Zhang, T., Patil, S. G., Jain, N., Shen, S., Zaharia, M., Sto-
+ica, I., and Gonzalez, J. E. (2024a). Raft: Adapting
+language model to domain specific rag. arXiv preprint
+arXiv:2403.10131.
+
+Zhang, Y., Khalifa, M., Logeswaran, L., et al. (2024b).
+Small language models need strong verifiers to self-
+correct reasoning. arXiv preprint arXiv:2404.17140.
+
+Zhu, Y., Zhu, M., Liu, N., et al. (2024).
+
+Llava-phi:
+Efficient multi-modal assistant with small language
+model. arXiv preprint arXiv:2401.02330.
+
+APPENDIX
+
+This section presents examples of inferences drawn
+from the experiments.
+
+Distillation
+
+The input(Q,C,A):
+"""
+Instruction: Given the question,
+the context
+and the expected answer bellow,
+provide relevant quotes from the
+context that support the answer.
+your answer must be just the
+quotes, not the entire context.
+format:
+
+Its population was 8,577,225
+
+##begin_quote##quote##end_quote##
+for each quote.
+do not add anything else other
+than the quotes.
+Your turn:
+Question: Unlike Xuzhou, where is Rugao
+under the adminstration of?
+Context: Rugao () is a county-level city
+under the administration of Nantong,
+Jiangsu province, China, located in
+the Golden Triangle region on the
+northern (left) bank of the Yangtze River.
+Xuzhou, known as Pengcheng in ancient
+times, is a major city in and the fourth
+largest
+prefecture-level city of Jiangsu Province,
+China.
+at the 2010 census whom 2,
+623,066 lived in the built-up (or metro)
+area made of Quanshan, Gulou, Yunlong and
+Tongshan districts.
+It is known for its role as a transportation
+hub in northwestern Jiangsu,
+as it has expressways and railway links
+connecting directly to the provinces of
+Henan and Shandong,
+the neighboring port city of Lianyungang,
+as well as the economic hub Shanghai.
+Answer: Nantong
+Quotes:
+""")
+And the generated quotes(R):
+"""
+##begin_quote## Rugao () is a county-level
+city under the administration of
+Nantong ##end_quote##
+"""
+
+Quote Train Sample
+
+The input(Q,C):
+"""
+Instruction: Given the question
+and the context
+provide relevant quotes from the
+context that support the answer.
+your answer must be just the
+quotes, not the entire context.
+format:
+##begin_quote##quote##end_quote##
+for each quote.
+do not add anything else other than
+the quotes.
+Question: What authority manages
+the regional
+passenger train service that
+runs through
+the same junction as
+West Amesbury Branch Railroad?
+Context: Rapido was the brand name
+for the Canadian National Railway’s
+
+Context: A ‘5086‘ characters context about Dis-
+ney and Pixar films, attractions, and related produc-
+tions, focusing on “Finding Nemo,” “Finding Dory,”
+and Disney’s broader entertainment ventures.
+
+Quotes:
+
+"""
+##begin_quote## The Wild Country is a 1970
+American adventure film produced by Walt
+Disney Pictures and directed by Robert Totten.
+##end_quote##
+##begin_quote## Finding Nemo is a 2003
+American computer-animated
+family film produced
+by Pixar Animation Studios and released
+by Walt Disney Pictures. ##end_quote##
+"""
+
+It’s fascinating to note that the Llama3b trained
+model delivers the same quotes as the golden standard
+in this case. A detailed comparison of the model’s
+performance, based on answers generated using ei-
+ther the provided context or the golden quotes, is pre-
+sented in Table 7.
+
+Train service started in 2009
+
+(CN) express passenger train service
+in the Quebec City{Windsor Corridor.
+"Rapido" service was introduced on
+[..about 100 lines hide..]
+a shorter portion of the line.
+Before regional service was extended
+to Denizli after track upgrades,
+three daily trains in each direction
+would operate as the Basmane-Nazilli
+Regional.
+after the completion of
+the S¸irinyer Tunnel.
+A rail replacement bus service uses
+buses to replace a passenger train
+service either on a
+temporary or permanent basis. The
+train service that is replaced may be
+of any type such as light rail, tram,
+streetcar, commuter rail, regional rail
+or heavy rail, intercity
+passenger service.
+The rail service may be replaced if the
+line is closed due to rail maintenance,
+a breakdown of a train, a rail accident,
+strike action, or if the rail service
+is not economically viable.
+Quotes:
+"""
+The desired output(R):
+"""
+##begin_quote## The Downeaster is a 145 mi
+regional passenger train service, managed
+by the Northern New England Passenger Rail
+Authority (NNEPRA, created by the State of
+Maine), and operated by Amtrak. ##end_quote##
+##begin_quote## The West Amesbury Branch
+Railroad was a railroad that once led form
+Newton Junction, New Hampshire to Merrimac,
+Massachusetts. Although the railroad does
+not exist, the Amtrak "Downeaster" line
+now passes through the Newton Junction
+station, which is now a pizza restaurant,
+and most of the railroad, is now a gravel
+walking trail. ##end_quote##
+"""
+
+Table 6 demonstrates an example of model per-
+formance before and after training in a test sample for
+the question: ”Which film was produced first, Emil
+and the Detectives or Toy Story 2?”
+
+Comparison: Quote x Context
+
+An example illustrating the performance comparison
+between using full context and extracted quotes.
+
+Question:
+
+"""
+Which Walt Disney Pictures
+film was created first,
+Finding Dory or The Wild Country?
+"""
+
+Table 6: Golden quote , before and after train quotes inferences from a test sample
+
+Gold
+
+Before
+
+After
+
+##begin quote## Emil
+and the Detectives is a 1964
+film directed by Peter
+Tewksbury based on the novel
+by German author Erich
+K¨astner. ##end quote##
+##begin quote##
+Toy Story 2 is a 1999 American
+computer-animated
+comedy film produced by Pixar
+Animation Studios
+for Walt Disney Pictures.
+##end quote##
+
+##begin quote##
+”A Bug’s Life”, ”Monsters, Inc.”,
+”Finding Nemo”, ”Cars”,
+”The Incredibles”,”Ratatouille”
+##end quote##
+##begin quote## ”Toy Story 3”
+(2010) is the third
+installment in Pixar’s
+”Toy Story” series,
+and the sequel to 1999’s
+”Toy Story 2”.
+##end quote##
+
+##begin quote## Emil
+and the Detectives is a 1964
+film directed by Peter
+Tewksbury based on the novel
+by German author Erich
+K¨astner. ##end quote##
+##begin quote##
+Toy Story 2 is a 1999 American
+computer-animated
+comedy film produced by Pixar
+Animation Studios
+for Walt Disney Pictures.
+##end quote##
+
+Table 7: Comparison of Q/A results : context x quotes
+
+Model
+gpt3.5-turbo
+llama3.2:1b
+llama3.2:3b
+
+Contex Answer
+Finding Nemo was created first.
+Finding Dory is created first.
+Finding Dory is created first.
+
+Golden Quotes Answer
+The Wild Country
+The Wild Country
+The Wild Country

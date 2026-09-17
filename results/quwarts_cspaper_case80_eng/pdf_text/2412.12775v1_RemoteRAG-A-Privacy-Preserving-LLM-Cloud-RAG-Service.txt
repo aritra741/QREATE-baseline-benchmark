@@ -1,0 +1,2117 @@
+RemoteRAG: A Privacy-Preserving LLM Cloud RAG Service
+
+Yihang Cheng1, Lan Zhang1, Junyang Wang1, Mu Yuan2, Yunhao Yao1
+1University of Science and Technology of China
+2The Chinese University of Hong Kong
+yihangcheng@mail.ustc.edu.cn, zhanglan@ustc.edu.cn, iswangjy@mail.ustc.edu.cn
+
+muyuan@cuhk.edu.hk, yaoyunhao@mail.ustc.edu.cn
+
+4
+2
+0
+2
+
+c
+e
+D
+7
+1
+
+]
+
+R
+
+I
+.
+s
+c
+[
+
+1
+v
+5
+7
+7
+2
+1
+.
+2
+1
+4
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Retrieval-augmented generation (RAG) im-
+proves the service quality of large language
+models by retrieving relevant documents from
+credible literature and integrating them into the
+context of the user query. Recently, the rise of
+the cloud RAG service has made it possible for
+users to query relevant documents conveniently.
+However, directly sending queries to the cloud
+brings potential privacy leakage. In this paper,
+we are the first to formally define the privacy-
+preserving cloud RAG service to protect the
+user query and propose RemoteRAG as a solu-
+tion regarding privacy, efficiency, and accuracy.
+For privacy, we introduce (𝑛, 𝜖)-DistanceDP to
+characterize privacy leakage of the user query
+and the leakage inferred from relevant docu-
+ments. For efficiency, we limit the search range
+from the total documents to a small number
+of selected documents related to a perturbed
+embedding generated from (𝑛, 𝜖)-DistanceDP,
+so that computation and communication costs
+required for privacy protection significantly
+decrease. For accuracy, we ensure that the
+small range includes target documents related
+to the user query with detailed theoretical anal-
+ysis. Experimental results also demonstrate
+that RemoteRAG can resist existing embedding
+inversion attack methods while achieving no
+loss in retrieval under various settings. More-
+over, RemoteRAG is efficient, incurring only
+0.67 seconds and 46.66KB of data transmis-
+sion (2.72 hours and 1.43 GB with the non-
+optimized privacy-preserving scheme) when
+retrieving from a total of 106 documents.
+
+1
+
+Introduction
+
+Large language models (LLMs) have attracted
+widespread attention since the release of ChatGPT
+(OpenAI, 2022a). However, LLM is not without its
+flaws. One major issue is its tendency to generate
+factually incorrect or purely fictional responses, a
+phenomenon known as hallucination (Leiser et al.,
+2024; Yao et al., 2023).
+
+1
+
+To mitigate this problem, retrieval-augmented
+generation (RAG) (Lewis et al., 2020) has been
+proposed to offer credible external knowledge, pro-
+viding significant convenience for numerous tasks.
+RAG aims to understand the input query, extract
+relevant information from external data sources,
+and enhance the quality of the generated answers
+(Borgeaud et al., 2022; Lewis et al., 2020; Li et al.,
+2023). Specifically, RAG allows the retrieval of
+relevant documents which can help understand
+or answer the input query and inserts them into
+the context of prompts to improve the output of
+LLM (Izacard and Grave, 2021).
+Its ability to
+enable LLM to provide answers with credible lit-
+erature makes RAG an important technique in the
+application of LLM, leading to the development
+of many excellent and user-friendly open-source
+RAG projects (LangGenius, 2023; QuivrHQ, 2023;
+Chatchat-Space, 2023).
+
+To leverage the power of RAG, a new concept
+RAG-as-a-Service (RaaS) has been proposed, gath-
+ering significant attention (Geniusee, 2024; Nuclia,
+2024). In RaaS, the RAG service is entirely hosted
+online in the cloud. The user submits requests to
+the cloud with input queries to receive responses
+from RaaS. In this scenario, the cloud serves as the
+maintainer of the RAG service. While the current
+solution facilitates the wide adoption of RaaS, it
+raises serious privacy concerns. The input query
+may contain sensitive information, such as health
+conditions and financial status. Unfortunately, this
+data is not protected and must be uploaded in plain-
+text to the cloud in order to retrieve relevant docu-
+ments. In this study, we aim to tackle a challenging
+question: How can we minimize privacy leakage
+in queries for RaaS while ensuring the accuracy of
+the responses, all with minimal additional costs?
+Targeting the question above, we design a novel
+solution RemoteRAG. For privacy, we propose
+(𝑛, 𝜖)-DistanceDP inspired by differential privacy
+and an embedding perturbation mechanism, so that
+
+ 
+ 
+ 
+ 
+ 
+ 
+the user can control the privacy leakage with a
+privacy budget 𝜖 in 𝑛-dimensional space of embed-
+dings. We further study the potential privacy leak-
+age in averaging the most relevant embeddings and
+find it within the constraint of (𝑛, 𝜖)-DistanceDP
+most of the time. For efficiency, we limit the search
+range from the total documents to a small num-
+ber of selected documents, which are the relevant
+documents to a perturbed embedding generated
+from (𝑛, 𝜖)-DistanceDP. This small search range
+can save a significant amount of computation and
+communication costs used for privacy protection.
+For accuracy, we theoretically analyze the mini-
+mum size of the relevant documents to the per-
+turbed embedding to ensure that they do contain
+target documents for the original query.
+
+Contributions of this paper are listed as follows:
+• To the best of our knowledge, we are the first
+to address the privacy-preserving cloud RAG ser-
+vice problem. We formally define the privacy-
+preserving cloud RAG service and characterize its
+corresponding threat model.
+• We propose RemoteRAG as a solution to the
+privacy-preserving cloud RAG service regarding
+privacy, efficiency, and accuracy. We define (𝑛, 𝜖)-
+DistanceDP to characterize privacy leakage of the
+user query and design a mechanism to generate
+a perturbed embedding for the cloud for privacy,
+as well as to retrieve relevant documents within
+a minimum search range for efficiency. Accuracy
+is ensured by theoretical analysis of the minimum
+range produced by the perturbed embedding.
+• We conduct extensive experiments to demonstrate
+that RemoteRAG can resist existing embedding
+inversion attack methods while achieving no loss
+in retrieval under various settings. The experiment
+results also show the efficiency of RemoteRAG,
+incurring only 0.67 seconds and 46.66KB of data
+transmission (2.72 hours and 1.43 GB with the
+non-optimized privacy-preserving scheme) when
+retrieving from a total of 106 documents.
+
+2 Problem Formulation
+
+We first formally define the problem in developing
+a privacy-preserving LLM cloud RAG service. The
+main notations used in this paper are listed in Table 1
+for ease of reference.
+
+2.1 Problem Setup and Threat Model
+
+One RAG request process involves two sides: a
+cloud and a user. The cloud hosts a substantial
+
+Table 1: Notation table.
+
+Sym. Description
+
+𝑁
+𝜖
+𝑒𝑘
+𝑘
+𝑒𝑘′
+𝑘 ′
+𝑛
+
+Number of RAG documents in the cloud
+Privacy budget
+User query embedding
+Number of top documents related to 𝑒𝑘
+Perturbed embedding
+Number of top documents related to 𝑒𝑘′
+Dimensional space of embeddings
+
+number (𝑁) of documents as a RAG service. The
+user submits a request with a user query, and the
+RAG service in the cloud should retrieve top 𝑘
+relevant documents. An embedding model, shared
+between two sides, enables the user to convert the
+query into an embedding 𝑒𝑘. Additionally, the user
+has a privacy budget 𝜖 intended to measure and
+limit the privacy leakage of the query.
+
+Threat model. We consider this scenario semi-
+honest, where both sides adhere to the protocol but
+the cloud is curious about the private information
+of the user query. During the RAG request process,
+the user should not reveal the semantic information
+of the query beyond the privacy budget 𝜖 allows.
+Apart from the query itself, we should also consider
+the protection of the query embedding and the
+indices of top 𝑘 documents:
+⊲ Protection of the query embedding. Existing at-
+tack methods (Morris et al., 2023; Zhuang et al.,
+2024) have demonstrated that the semantic infor-
+mation can be extracted from the embedding if
+the embedding model is accessible. Consequently,
+safeguarding the semantic information of the query
+necessitates the protection of its embedding as well.
+⊲ Protection of the indices of top 𝑘 documents. The
+embeddings of top 𝑘 documents are situated in
+proximity to the query embedding, which poten-
+tially leads to the leakage of the query embedding.
+Specifically, the average of top 𝑘 document em-
+beddings could be close to the query embedding,
+for which the privacy leakage should be carefully
+studied.
+
+2.2 Design Scope
+
+In RemoteRAG, we examine the potential privacy
+leakage occurring during the data transmission
+between the cloud and the user. Considerations of
+offline RAG services downloaded directly from the
+cloud or internal privacy issues (Zeng et al., 2024)
+specific to RAG are beyond the scope of this paper.
+
+2
+
+Figure 1: The flowchart of RemoteRAG. Module 1 preserves privacy with (𝑛, 𝜖)-DistanceDP and improves efficiency
+by limiting the search range. Module 2 retrieves documents with different choices based on leakage circumstances.
+
+3 System Design
+
+3.1 Overview
+
+The flowchart of RemoteRAG is shown in Figure 1.
+Under the control of (𝑛, 𝜖)-DistanceDP, module 1
+aims to reduce the search range to enhance effi-
+ciency while ensuring accuracy. Module 2 targets
+safely retrieving top 𝑘 relevant documents within
+the limited range from two optional choices under
+different leakage circumstances.
+
+3.2 Range Limitation with Privacy Budget
+
+3.2.1 Generation of Perturbation
+
+Given the requirement that the query embedding
+should not be transmitted to the cloud, we opt to
+send a perturbed embedding instead. To assess the
+potential privacy leakage, we utilize the differential
+privacy (DP) theory to define (𝑛, 𝜖)-DistanceDP in
+𝑛-dimensional space:
+Definition 1 ((𝑛, 𝜖)-DistanceDP). A mechanism 𝐾
+satisfies (𝑛, 𝜖)-DistanceDP if and only if ∀𝑥, 𝑥′ ∈
+R𝑛:
+
+𝐿 (𝐾 (𝑥), 𝐾 (𝑥′)) ≤ 𝜖 ∥𝑥 − 𝑥′∥
+
+where 𝜖 is a given privacy budget, ∥𝑥 − 𝑥′∥ denotes
+𝑃𝑟 (𝐾 ( 𝑥 )=𝑦)
+L2 distance, and 𝐿 (𝐾 (𝑥), 𝐾 (𝑥′)) = ln
+𝑃𝑟 (𝐾 ( 𝑥′ )=𝑦)
+represents the distance between the probabilities
+of any target value 𝑦 drawn from the distributions
+𝐾 (𝑥) and 𝐾 (𝑥′) generated by points 𝑥 and 𝑥′.
+
+To apply (𝑛, 𝜖)-DistanceDP in RemoteRAG, for
+any query embedding 𝑒𝑘, the user generates a per-
+turbed embedding 𝑒𝑘′ using a noise function, which
+should satisfy that from the perspective of 𝑒𝑘′, the
+
+probability of generating the query embedding 𝑒𝑘
+and another random embedding 𝑒 𝑥 around 𝑒𝑘′ with
+the noise function differs by at most a multiplicative
+factor of 𝑒− 𝜖 ∥𝑒𝑘 −𝑒𝑥 ∥ .
+
+The property above can be achieved by utilizing
+the Laplace distribution, as discussed in (Andrés
+et al., 2013; Dwork et al., 2006). The primary
+difference lies in our application within higher
+𝑛-dimensional space. Given the privacy budget
+𝜖 ∈ R+ and the actual point 𝑥0 ∈ R𝑛, the probability
+density function (pdf) of the noise function at any
+other point 𝑥 ∈ R𝑛 is given by:
+
+𝐷 𝑛, 𝜖 (𝑥|𝑥0) ∝ 𝑒− 𝜖 ∥ 𝑥− 𝑥0 ∥
+
+Directly generating a point according to the above
+distribution is challenging. We first focus on the
+radial component 𝑟 = ∥𝑥 − 𝑥0∥, whose marginal
+distribution is given by:
+
+𝐷 𝑛, 𝜖 (𝑟) ∝ 𝑟 𝑛−1𝑒− 𝜖 𝑟
+
+which corresponds exactly to the pdf of the gamma
+distribution with shape parameter 𝑛 and scale
+parameter 1
+𝜖 . Therefore, the radial component
+𝑟 ∼ 𝐷 𝑛, 𝜖 (𝑟) = Gamma(𝑛, 1
+
+𝜖 ).
+
+Next, the direction vector is sampled from a uni-
+form distribution on the 𝑛-dimensional unit sphere.
+This is accomplished by independently sampling
+𝑡𝑖 ∼ 𝑁 (0, 1) from the standard normal distribution
+and then normalizing 𝑡𝑖 by
+
+, 𝑖 ∈ [1, 𝑛].
+
+𝑡𝑖
+√︃(cid:205)𝑛
+
+𝑡 𝑗 2
+
+𝑗=1
+
+Appropriate range for 𝝐. We offer the follow-
+ing guidelines to help choose the privacy budget
+𝜖. Based on the previous analysis, we observe
+
+3
+
+Figure 2: The probability density function of different
+gamma distributions within [0.06, 0.14] range. (𝜖 =
+10𝑛)
+
+that the perturbation 𝑟 ∼ Gamma(𝑛, 1
+𝜖 ), and the
+expected value of it is ¯𝑟 = 𝑛
+𝜖 . Current embed-
+ding models often produce embeddings with a
+large dimension (e.g., 384 for all-MiniLM-L12-v2
+(SentenceTransformers, 2021a), 768 for gtr-t5-base
+(SentenceTransformers, 2022), and 1536 for text-
+embedding-ada-002 (OpenAI, 2022b)). The pdf
+of Gamma(𝑛, 1
+𝜖 ) becomes increasingly steep as the
+dimension 𝑛 increases, as illustrated in Figure 2.
+This implies that the radial components drawn from
+the distribution are likely to cluster around ¯𝑟. Given
+that embeddings are already normalized, a typical
+perturbation should fall within the range of 0.02 to
+0.1, as discussed in Figure 4(a), which corresponds
+to the privacy budget 𝜖 ranging from 10𝑛 to 50𝑛.
+
+3.2.2 Calculation of Search Range
+After generating the perturbation, the user then
+requests the cloud to retrieve top 𝑘 ′ documents
+related to the perturbed embedding 𝑒𝑘′, thereby
+limiting the search range. To maintain accuracy, it
+is crucial to ensure that these 𝑘 ′ documents include
+top 𝑘 documents related to the query embedding 𝑒𝑘.
+This requirement motivates the need to determine
+the appropriate value for 𝑘 ′.
+Lemma 1. Assume that there are 𝑁 embeddings
+uniformly distributed on the surface of the 𝑛-
+dimensional unit sphere. Let 𝛼𝑘 be the polar angle
+of the surface area formed by top 𝑘 embeddings
+related to any given embedding. Then, 𝑘 and 𝛼𝑘
+satisfy the following relationship:
+
+𝑘 = 𝑁 ·
+
+Ω𝑛−1(𝜋)
+Ω𝑛 (𝜋)
+
+·
+
+∫ 𝛼𝑘
+
+0
+
+sin𝑛−2 𝜃 d𝜃
+
+𝑛
+where Ω𝑛 (𝜋) = 2 𝜋
+2
+Γ ( 𝑛
+the unit 𝑛-sphere.
+
+2 ) represents the surface area of
+
+(a) Oblique projection.
+Top 𝑘 ′ documents related to
+𝑒𝑘′ include top 𝑘 documents
+related to 𝑒𝑘.
+
+(b) Orthographic projection.
+𝛼𝑘′ = 𝛼𝑘 + Δ𝛼𝑘.
+
+Figure 3: Illustration in 3D projection.
+
+1), the perturbed angle Δ𝛼𝑘 between 𝑒𝑘 and 𝑒𝑘′
+can be approximately by 𝑟. To ensure that top
+𝑘 ′ documents related to the perturbed embedding
+𝑒𝑘′ include top 𝑘 documents related to the query
+embedding 𝑒𝑘, we further propose Theorem 1 and
+illustrate the principle in Figure 3.
+
+Theorem 1. Under the conditions specified in
+Lemma 1, given two embeddings 𝑒𝑘 and 𝑒𝑘′ with
+the perturbed angle Δ𝛼𝑘, to ensure that top 𝑘 ′
+embeddings related to 𝑒𝑘′ include top 𝑘 embed-
+dings related to 𝑒𝑘, 𝑘 ′ and 𝑘 satisfy the following
+relationship:
+
+Δ𝑘 = 𝑘 ′ − 𝑘 = 𝑁 ·
+
+Ω𝑛−1(𝜋)
+Ω𝑛 (𝜋)
+
+·
+
+∫ 𝛼𝑘′
+
+𝛼𝑘
+
+sin𝑛−2 𝜃 d𝜃
+
+where 𝛼𝑘′ = 𝛼𝑘 + Δ𝛼𝑘.
+
+3.3 Retrieval with Cryptographic Protection
+
+3.3.1 Homomorphic Encryption for Indices
+After limiting the search range to 𝑘 ′ documents, we
+now focus on obtaining the indices of top 𝑘 docu-
+ments for the query embedding 𝑒𝑘. Based on docu-
+mentations of several open-source vector databases
+such as ChromaDB (Chroma, 2022), FAISS (Douze
+et al., 2024), and Elasticsearch (Elastic, 2010), we
+find that only two distance metrics are being used
+by all of them and set to be default: L2 distance
+and cosine distance.
+
+Definition 2 (Distance metrics). Given two normal-
+ized embeddings 𝑒𝑎 and 𝑒𝑏 of the same dimension,
+L2 distance and cosine distance are calculated as
+follows:
+
+𝑑𝑙2(𝑒𝑎, 𝑒𝑏) = ∥𝑒𝑎 − 𝑒𝑏 ∥
+
+From Lemma 1, we can derive the polar angle
+𝛼𝑘 from 𝑘. Since the perturbation is small (𝑟 ≪
+
+𝑑cos(𝑒𝑎, 𝑒𝑏) = 1 −
+
+⟨𝑒𝑎, 𝑒𝑏⟩
+∥𝑒𝑎 ∥ · ∥𝑒𝑏 ∥
+
+= 1 − ⟨𝑒𝑎, 𝑒𝑏⟩
+
+4
+
+0.070.100.1304080120160n=50,=500n=100,=1000n=500,=5000n=1000,=10000n=1500,=15000Further analysis in Theorem 2 reveals that using
+which distance metric does not affect the ranking
+of normalized vectors. Therefore, we only consider
+cosine distance as the standard metric in this paper.
+
+Theorem 2. Given two normalized embeddings
+𝑒𝑎 and 𝑒𝑏 of the same dimension, L2 distance and
+cosine distance have the following relationship:
+
+𝑑𝑙2(𝑒𝑎, 𝑒𝑏) = √︁
+
+2𝑑cos(𝑒𝑎, 𝑒𝑏)
+
+Recall that the query embedding 𝑒𝑘 should not
+be revealed to the cloud. Considering that cosine
+distance involves only linear operations, we propose
+using partially homomorphic encryption (PHE).
+Compared to fully homomorphic encryption, PHE
+is more computationally efficient and sufficient for
+calculating cosine distance.
+
+Specifically, the user encrypts the query em-
+bedding 𝑒𝑘 using PHE and sends the encrypted
+form ⟦𝑒𝑘⟧ to the cloud. The cloud then calculates
+cosine distances ⟦𝑑cos(𝑒𝑘, 𝑒)⟧ = 𝑑cos(⟦𝑒𝑘⟧, 𝑒) in
+encrypted form between ⟦𝑒𝑘⟧ and each document
+embedding 𝑒 related to 𝑒𝑘′. Upon receiving these
+distances, the user decrypts them and sorts the re-
+sults to find the indices of top 𝑘 documents related
+to the query.
+
+3.3.2 Safe Retrieval with Indices
+We then carefully analyze whether these indices are
+safe to be directly sent to the cloud to retrieve the
+corresponding documents.
+
+If the cloud receives these indices, it also means
+that it knows which 𝑘 documents are the closest
+to the user query. The cloud can average these
+document embeddings to construct an embedding
+¯𝑒 which approximates the query embedding 𝑒𝑘.
+Therefore, we should measure how close the two
+embeddings 𝑒𝑘 and ¯𝑒 are.
+Theorem 3. Given a target query embedding 𝑒𝑘 and
+the mean embedding ¯𝑒 of top 𝑘 relevant document
+embeddings, the mean angle 𝜔 between 𝑒𝑘 and ¯𝑒
+satisfies
+
+tan 𝜔 =
+
+tan 𝛼𝑘
+√
+𝑘
+
+Optional 𝒌-out-of-𝒌′ oblivious transfer (OT)
+for safe retrieval. If 𝜔 < Δ𝛼𝑘, ¯𝑒 is even closer
+to the query embedding 𝑒𝑘 than the perturbed em-
+bedding 𝑒𝑘′, therefore requiring further protection.
+In this situation, we suggest using the 𝑘-out-of-𝑘 ′
+OT protocol (Chou and Orlandi, 2015), which al-
+lows a sender (the cloud) with a set of 𝑘 ′ messages
+(documents) to transfer a subset of 𝑘 messages to
+a receiver (the user) while remaining oblivious to
+the specific subset (indices) chosen by the receiver.
+The OT protocol is described in Appendix A.1.
+
+4 Analysis on RemoteRAG
+
+4.1 Security Analysis
+
+RemoteRAG must adhere to the privacy-preserving
+goal outlined in the threat model in Section 2.1.
+The cloud receives the following messages which
+may leak the semantic meaning of the user query:
+Module 1. The cloud receives the perturbed embed-
+ding. The perturbation 𝑟 between the user embed-
+ding and the perturbed embedding is sampled from
+𝜖 ), which satisfies (𝑛, 𝜖)-DistanceDP,
+Gamma(𝑛, 1
+controlled by the privacy budget 𝜖.
+Module 2(a). The cloud receives the encrypted
+form of the query embedding. Without the secret
+key, the cloud cannot reverse engineer the query
+embedding. The computation of cosine distances
+is guaranteed by PHE, which does not leak any
+information either.
+Module 2(b), if 𝜔 ≥ Δ𝛼𝑘. The cloud receives the
+indices of top 𝑘 relevant documents. The pertur-
+bation from the mean embedding of top 𝑘 rele-
+vant document embeddings is within the protection
+scope of the privacy budget 𝜖.
+Module 2(c), if 𝜔 < Δ𝛼𝑘. The cloud and the user
+perform the 𝑘-out-of-𝑘 ′ OT protocol. The property
+of the OT protocol ensures that the indices of top 𝑘
+relevant documents are not visible to the cloud.
+
+From the analysis above, we demonstrate that the
+user receives top 𝑘 documents without disclosing
+any information about the user query under the
+constraint of the given privacy budget 𝜖.
+
+where 𝛼𝑘 is calculated from Lemma 1.
+
+4.2 Communication Analysis
+
+From Theorem 3, we characterize the approx-
+imation between 𝑒𝑘 and ¯𝑒 with the mean angle
+𝜔. Recall that the privacy budget 𝜖 generates a
+𝜖 (i.e. Δ𝛼𝑘 ≈ ¯𝑟 = 𝑛
+perturbation with a mean of 𝑛
+𝜖 ),
+as described in Section 3.2.1. Thus, if 𝜔 ≥ Δ𝛼𝑘,
+¯𝑒 is within the control of the privacy budget 𝜖 and
+the indices require no extra protection.
+
+We analyze communication from two aspects: the
+number of communication rounds and the size of
+communication. We define one communication
+round as the transmission of a message from one
+side to another and back to the original side. The
+size of one number and one document are set to be
+𝛽 units and 𝜂 units, respectively.
+
+5
+
+Table 2: Comparison among RemoteRAG, privacy-ignorant and privacy-conscious services.
+
+Security
+
+User Query
+
+Communication
+Rounds Numbers (𝛽 units) Documents (𝜂 units)
+
+Privacy-ignorant Service
+Privacy-conscious Service
+
+RemoteRAG
+
+(Direct)
+(OT)
+
+✗
+✓
+
+(𝑛, 𝜖)-DistanceDP
+
+1
+2
+
+2
+
+𝑛
+𝑛 + 2𝑁 + 1
+2𝑛 + 𝑘 + 𝑘 ′ + 1
+2(𝑛 + 𝑘 ′ + 1)
+
+𝑘
+𝑁
+
+𝑘
+𝑘 ′
+
+Module 1. There is one message transmitted from
+the user to the cloud (0.5 communication round),
+containing the perturbed embedding 𝑒𝑘′ and the
+corresponding 𝑘 ′. 𝑒𝑘′ is a vector of length 𝑛 with
+𝑛𝛽 units, while 𝑘 ′ is a number occupying 𝛽 units.
+Module 2(a). There is 1 communication round.
+First, the encrypted form ⟦𝑒𝑘⟧ of the query em-
+bedding is sent to the cloud, occupying 𝑛𝛽 units.
+Second, the cloud sends back encrypted cosine
+distances, occupying 𝑘 ′ 𝛽 units.
+Module 2(b), if 𝜔 ≥ Δ𝛼𝑘. There is 1 communica-
+tion round. The user sends the indices (𝑘 𝛽 units) to
+the cloud and the cloud returns the target documents
+(𝑘𝜂 units).
+Module 2(c), if 𝜔 < Δ𝛼𝑘. There are 1.5 communi-
+cation rounds and (𝑘 ′ + 1) 𝛽 + 𝑘 ′𝜂 units of messages
+for the 𝑘-out-of-𝑘 ′ OT protocol. Details can be
+found in Appendix A.1.
+
+By summing these, if 𝜔 ≥ Δ𝛼𝑘, the total number
+of communication rounds is 2.5, and the size of
+communication is (2𝑛 + 𝑘 + 𝑘 ′ + 1) 𝛽 + 𝑘𝜂 units;
+if 𝜔 < Δ𝛼𝑘, the total number of communication
+rounds is 3, and the size of communication is
+2(𝑛 + 𝑘 ′ + 1) 𝛽 + 𝑘 ′𝜂 units.
+
+Practical optimization. The number of commu-
+nication rounds can be further reduced in practice.
+For example, the user can simultaneously send both
+the perturbed embedding and the encrypted form of
+the query embedding to the cloud in a single com-
+munication to reduce 0.5 round for modules 1 and
+2(a). Additionally, the cloud can send the encrypted
+cosine distances and start the OT protocol together
+to reduce another 0.5 round for modules 2(a) and
+2(c). Therefore, no matter whether with module
+2(b) or 2(c), the total number of communication
+rounds can be further reduced to 2.
+
+4.3 Special Cases
+
+There are two special cases by varying the pri-
+vacy budget 𝜖, which serve as two baselines in our
+experiments:
+
+The privacy-ignorant cloud RAG service. A
+privacy-ignorant cloud RAG service does not ac-
+count for user query privacy, requiring the user
+to upload the query embedding and receive top 𝑘
+documents directly. This represents a special case
+of RemoteRAG, achieved by setting 𝜖 → ∞, with
+the perturbation 𝑟 ∼ Gamma(𝑛, 0) (i.e. no pertur-
+bation). The service requires 1 communication
+round with 𝑛𝛽 + 𝑘𝜂 units in this case.
+
+The privacy-conscious cloud RAG service. A
+privacy-conscious cloud RAG service aims to fully
+protect user query privacy. This can be regarded
+as the combination of modules 2(a) and 2(c) in
+RemoteRAG, where 𝑘 ′ = 𝑁. This is another special
+case of RemoteRAG, achieved by setting 𝜖 →
+0, with the perturbation 𝑟 ∼ Gamma(𝑛, ∞) and
+𝑘 ′ = 𝑁 (i.e. cryptographic computation over all 𝑁
+documents). This case requires 2 communication
+rounds with (𝑛 + 2𝑁 + 1) 𝛽 + 𝑁𝜂 units.
+
+The comparison between RemoteRAG and these
+
+two special cases is presented in Table 2.
+
+5 Experiments
+
+We evaluate RemoteRAG under various settings.
+Our key findings are as follows:
+⊲ For privacy, RemoteRAG controls the semantic
+information leakage of the user query with the
+privacy budget. [Section 5.2]
+⊲ For accuracy, RemoteRAG achieves lossless doc-
+ument retrieval. [Section 5.3]
+⊲ For efficiency, RemoteRAG introduces little ex-
+tra computation and communication costs while
+preserving privacy. [Section 5.4]
+
+5.1 Experimental Setup
+
+Datasets and vector database. For the RAG
+dataset, we employ MS MARCO (Nguyen et al.,
+2016). Document embeddings are stored in Chroma
+(Chroma, 2022), serving as the vector database.
+
+Embedding models. We use a total of five
+embedding models to measure the impact of dif-
+
+6
+
+ferent dimensions, including three open-sourced
+embedding models all-MiniLM-L12-v2 (MiniLM)
+(SentenceTransformers, 2021a), all-mpnet-base-v2
+(MPNet) (SentenceTransformers, 2021b), gtr-t5-
+base (T5) (SentenceTransformers, 2022), and two
+OpenAI embedding models text-embedding-ada-
+002 (OpenAI-1) (OpenAI, 2022b), text-embedding-
+3-large (OpenAI-2) (OpenAI, 2024).
+
+Baselines. Given that current RAG research
+does not yet address the privacy issue, we compare
+RemoteRAG with the privacy-ignorant and privacy-
+conscious services as described in Section 4.3.
+
+5.2 Privacy Study
+
+We first examine privacy leakage and control with
+the privacy budget in RemoteRAG. We apply the
+attack method Vec2Text (Morris et al., 2023) and
+use SacreBLEU (Post, 2018) to measure the differ-
+ence between the original query and the sentence
+reconstructed from the query embedding. The
+embedding model is T5.
+
+From an intuitive perspective, we plot the Sacre-
+BLEU metric achieved by Vec2Text against the
+perturbation 𝑟 to see how the perturbation affects
+the attack. From the results in Figure 4(a), we
+observe that the attack performance drops from
+50 to 10 as the perturbation increases from 0 to
+0.2. When the perturbation reaches 0.2, which
+is relatively large, the attack becomes completely
+ineffective. However, this also results in a very
+large 𝑘 ′, leading to unacceptable computation and
+communication costs, as described later in Figure 5.
+From another perspective, we analyze the varia-
+tion in the attack performance against the privacy
+budget 𝜖 to help choose a proper privacy budget.
+The results are shown in Figure 4(b). Overall, the
+performance of the attack improves as 𝜖 increases.
+This is within our expectation, since a larger privacy
+budget means a looser tolerance for privacy leak-
+age, which allows for a smaller perturbation and
+ultimately leads to a better attack performance back
+in Figure 4(a). Additionally, we find that the trend
+change is not linear: the change is sensitive when
+the value of 𝜖 is smaller than 50000 but the attack
+performance is almost the same when the value of
+𝜖 is larger than 100000. This is due to the relation-
+ship between 𝑟 and 𝜖: Since 𝑟 ∼ Gamma(𝑛, 1
+𝜖 ), it
+means ¯𝑟 = 𝑛
+𝜖 , where 𝑛 = 768 (T5). The perturba-
+tion quickly drops from 0.2 to 0.016 as 𝜖 varies
+from 3000 to 50000, and the attack performance
+improves from 10 to 40 in this range.
+
+7
+
+(a) SacreBLEU-𝑟
+
+(b) SacreBLEU-𝜖
+
+Figure 4: The attack performance corresponding to the
+perturbation 𝑟 and the privacy budget 𝜖.
+
+5.3 Accuracy Study
+
+To demonstrate the correctness of theoretical analy-
+sis for the calculation of 𝑘 ′, we conduct experiments
+under various settings: different total numbers 𝑁
+of documents, different numbers 𝑘 of top relevant
+documents, different sizes 𝑟 of the perturbation cho-
+sen by the user, and different embedding models.
+We use recall to evaluate the proportion of top 𝑘
+documents included in the results.
+
+Throughout our experiment, we have not encoun-
+tered a situation where any of the top 𝑘 documents
+are missing from the set of 𝑘 ′ documents. As shown
+in Table 3, recall in all settings is 100%, indicating
+that all top 𝑘 documents are included in the set of
+𝑘 ′ documents computed in module 1 and therefore
+can be correctly selected by module 2.
+
+5.4 Efficiency Study
+
+For efficiency, we measure both computation and
+communication costs as a function of 𝑘 ′ to observe
+the impact of the perturbation on the costs. The
+metrics are running time for computation cost and
+transmission size for communication cost. We fix
+𝑘 = 5 and choose T5 again as the embedding model.
+We provide the results of each module in Figure 5.
+The linear results are consistent with the analysis
+in Table 2. We highlight 𝑘 ′ = 160, 𝑟 = 0.03 in
+Figure 5(c) with the attack performance moderate
+at around 30 shown in Figure 4, and compare the
+results with baselines in Table 4.
+
+Computation cost. From the results in Fig-
+ure 5(a), the most computationally intensive task
+occurs in module 2, which accounts for over 95%
+of the total computation cost. This substantial
+computational expense renders it impractical for
+scenarios involving a large number of documents
+when calculating cosine distances. As indicated
+in Table 4, the privacy-conscious service requires
+2.72 hours in total to process a single user request,
+which is considered unacceptable.
+
+00.050.100.150.20r103050SacreBLEU01234(×105)0103050SacreBLEUTable 3: RemoteRAG achieves no loss in retrieval under various settings in our experiments.
+
+𝑁
+
+𝑘
+
+𝑟
+
+Embedding Model
+
+104/105/106
+
+5/10/15/20
+
+0.03/0.05/0.07/0.1 MiniLM/MPNet/T5/OpenAI-1/OpenAI-2
+
+Recall
+
+100%
+
+100%
+
+100%
+
+100%
+
+(a) Computation cost.
+
+(b) Communication cost.
+
+(c) Cost breakdown (𝑘 ′ = 160).
+
+Figure 5: Efficiency study of each module.
+
+Communication cost. From the results in Fig-
+ure 5(b), module 2(a) has a larger starting point, but
+the transmission size of module 2(c) soon surpasses
+module 2(a) as 𝑘 ′ increases. Numerous basic pa-
+rameters in PHE cause the former while the latter
+is due to the larger size of encrypted documents.
+When 𝑘 ′ is relatively large, the transmission size
+becomes unacceptable. As shown in Table 4, the
+privacy-conscious service incurs a considerable
+transmission size (1.43GB) of 𝑁 documents.
+
+Direct and OT. At last, we compare the results
+using module 2(b) and module 2(c) in Table 4. We
+find little increase in computation cost but large
+increase in communication cost. The cost break-
+down illustrated in Figure 5(c) provides an intuitive
+distribution of costs. OT does not bring much com-
+putation cost (from 0.02% to 2.03% compared to
+Direct), but the necessity to transfer 𝑘 ′ encrypted
+documents increases its transmission size from
+1.85% to 57.69%.
+
+6 Related Work
+
+RAG has garnered significant attention with the
+development of LLM. Numerous researchers and
+companies (Li and Li, 2023; Voyage, 2024; Chen
+et al., 2024; OpenAI, 2022b, 2024) are dedicated
+to training improved embedding models, aiming to
+group documents with similar semantic informa-
+tion more effectively. Some (LlamaIndex, 2023;
+LangChain, 2024; Sophia Yang, 2023) focus on
+chunking strategies to better split literature into
+documents at the appropriate locations and with the
+
+Table 4: Efficiency comparison (𝑘 ′ = 160).
+
+Privacy-ignorant Service
+Privacy-conscious Service
+
+RemoteRAG
+
+(Direct)
+(OT)
+
+Comp.
+
+Comm.
+
+3.15ms
+2.72hr
+
+0.67s
+0.68s
+
+8.00KB
+1.43GB
+
+46.66KB
+108.24KB
+
+proper lengths. Additionally, several works (Zhou
+et al., 2023; Dhuliawala et al., 2023; Ma et al.,
+2023) aim at query optimization to understand and
+transform queries for better retrieval results.
+
+These studies do not overlap with RemoteRAG.
+Instead, they can be directly applied to enhance the
+cloud RAG service or to transform the user query
+to improve the quality of RAG results.
+
+7 Conclusion
+
+In this paper, we are the first to address and for-
+mally define the privacy-preserving cloud RAG
+service problem. We propose RemoteRAG as a
+solution regarding privacy, efficiency, and accuracy.
+(𝑛, 𝜖)-DistanceDP is introduced to characterize the
+privacy leakage of the user query. The perturba-
+tion limits the search range, significantly saving
+computation and communication costs. Theoretical
+analysis ensures the accuracy. Experimental results
+also demonstrate the superiority of RemoteRAG
+in privacy, efficiency, and accuracy, compared to
+privacy-ignorant and privacy-conscious services.
+
+8
+
+0.040.020.000.020.040.0500.0250.0000.0250.050Module 1Module 2(a)Module 2(b)Module 2(c)0100200300k'00.30.60.9Time (s)01002003000.000.020100200300k'04080120Size (KB)Comp.Comm.00.20.40.60.8Time (s)0306090120Size (KB)5.60%34.85%1.85%57.69%1.47%96.48%0.02%2.03%Limitations
+
+References
+
+Limitation of PHE. PHE supports only the addition
+operation. This restricts the variety of similarity
+distances RemoteRAG can calculate. For example,
+FAISS offers to use Lp and Jaccard metrics, which
+may not be easy to use PHE. Besides, RAG may
+also be combined with keyword searching for better
+retrieval results. These require further investigation.
+Proprietary embedding model. Although open-
+source embedding models have already achieved
+great performance, the cloud may still consider
+using its own proprietary embedding model. In this
+scenario, the user cannot calculate the query embed-
+ding locally and therefore cannot directly generate
+the perturbation for protection. This remains a
+challenging problem.
+
+Ethical Considerations
+
+No disclosure risk. The privacy-preserving cloud
+RAG service is a new scenario proposed in this
+paper, which has not been formally used in practice.
+RemoteRAG as the first solution to the potential
+privacy issues in this scenario can promote the
+development of this field with no disclosure risk.
+Open-sourced content in experiments. The
+open-sourced models and datasets used in our ex-
+periments are all downloaded from HuggingFace
+without modification. We believe that using them
+appropriately according to their original purpose
+will not have a direct negative impact.
+
+Compliance with laws and regulations. Re-
+moteRAG is proposed as a solution to potential
+privacy leakage in the privacy-preserving cloud
+RAG service, making it compliant with laws and
+regulations such as GDPR (Voigt and von dem
+Bussche, 2017).
+
+Miguel E. Andrés, Nicolás Emilio Bordenabe, Kon-
+stantinos Chatzikokolakis, and Catuscia Palamidessi.
+2013. Geo-indistinguishability: differential privacy
+for location-based systems. In 2013 ACM SIGSAC
+Conference on Computer and Communications Secu-
+rity, CCS’13, Berlin, Germany, November 4-8, 2013,
+pages 901–914. ACM.
+
+Sebastian Borgeaud, Arthur Mensch, Jordan Hoffmann,
+Trevor Cai, Eliza Rutherford, Katie Millican, George
+van den Driessche, Jean-Baptiste Lespiau, Bogdan
+Damoc, Aidan Clark, Diego de Las Casas, Aurelia
+Guy, Jacob Menick, Roman Ring, Tom Hennigan,
+Saffron Huang, Loren Maggiore, Chris Jones, Albin
+Cassirer, Andy Brock, Michela Paganini, Geoffrey
+Irving, Oriol Vinyals, Simon Osindero, Karen Si-
+monyan, Jack W. Rae, Erich Elsen, and Laurent Sifre.
+2022. Improving language models by retrieving from
+trillions of tokens. In International Conference on
+Machine Learning, ICML 2022, 17-23 July 2022, Bal-
+timore, Maryland, USA, volume 162 of Proceedings
+of Machine Learning Research, pages 2206–2240.
+PMLR.
+
+Chatchat-Space. 2023. Langchain-Chatchat. https:
+//github.com/chatchat-space/Langchain-Cha
+tchat.
+
+Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu
+Lian, and Zheng Liu. 2024. BGE m3-embedding:
+Multi-lingual, multi-functionality, multi-granularity
+text embeddings through self-knowledge distillation.
+CoRR, abs/2402.03216.
+
+Tung Chou and Claudio Orlandi. 2015. The simplest
+protocol for oblivious transfer. In Progress in Cryp-
+tology - LATINCRYPT 2015 - 4th International Con-
+ference on Cryptology and Information Security in
+Latin America, Guadalajara, Mexico, August 23-26,
+2015, Proceedings, volume 9230 of Lecture Notes in
+Computer Science, pages 40–58. Springer.
+
+Chroma. 2022. Chroma. https://github.com/chr
+
+oma-core/chroma.
+
+Shehzaad Dhuliawala, Mojtaba Komeili, Jing Xu,
+Roberta Raileanu, Xian Li, Asli Celikyilmaz, and Ja-
+son Weston. 2023. Chain-of-verification reduces
+hallucination in large language models. CoRR,
+abs/2309.11495.
+
+Matthĳs Douze, Alexandr Guzhva, Chengqi Deng, Jeff
+Johnson, Gergely Szilvasy, Pierre-Emmanuel Mazaré,
+Maria Lomeli, Lucas Hosseini, and Hervé Jégou.
+2024. The faiss library. CoRR, abs/2401.08281.
+
+Cynthia Dwork, Frank McSherry, Kobbi Nissim, and
+Adam D. Smith. 2006. Calibrating noise to sensitivity
+in private data analysis. In Theory of Cryptography,
+Third Theory of Cryptography Conference, TCC 2006,
+New York, NY, USA, March 4-7, 2006, Proceedings,
+volume 3876 of Lecture Notes in Computer Science,
+pages 265–284. Springer.
+
+9
+
+Elastic. 2010. Elasticsearch. https://github.com/e
+
+lastic/elasticsearch.
+
+Geniusee. 2024. RAG as a service. https://genius
+ee.com/retrieval-augmented-generation.
+
+Gautier Izacard and Edouard Grave. 2021. Leveraging
+passage retrieval with generative models for open
+domain question answering. In Proceedings of the
+16th Conference of the European Chapter of the Asso-
+ciation for Computational Linguistics: Main Volume,
+EACL 2021, Online, April 19 - 23, 2021, pages 874–
+880. Association for Computational Linguistics.
+
+LangChain. 2022. LangChain. https://github.com
+
+/langchain-ai/langchain.
+
+LangChain. 2024. How to recursively split text by
+characters. https://python.langchain.com/v0.
+2/docs/how_to/recursive_text_splitter/.
+
+Language Processing, EMNLP 2023, Singapore, De-
+cember 6-10, 2023, pages 12448–12460. Association
+for Computational Linguistics.
+
+Tri Nguyen, Mir Rosenberg, Xia Song, Jianfeng Gao,
+Saurabh Tiwary, Rangan Majumder, and Li Deng.
+2016. MS MARCO: A human generated machine
+reading comprehension dataset. In Proceedings of
+the Workshop on Cognitive Computation: Integrating
+neural and symbolic approaches 2016 co-located with
+the 30th Annual Conference on Neural Information
+Processing Systems (NIPS 2016), Barcelona, Spain,
+December 9, 2016, volume 1773 of CEUR Workshop
+Proceedings. CEUR-WS.org.
+
+Nuclia. 2024. Nuclia, the all-in-one RAG as a service
+platform. https://nuclia.com/rag-as-a-servi
+ce/.
+
+OpenAI. 2022a. Introducing ChatGPT. https://open
+
+LangGenius. 2023. Dify. https://github.com/lan
+
+ai.com/index/chatgpt/.
+
+ggenius/dify.
+
+Florian Leiser, Sven Eckhardt, Valentin Leuthe, Merlin
+Knaeble, Alexander Mädche, Gerhard Schwabe, and
+Ali Sunyaev. 2024. HILL: A hallucination identifier
+for large language models. In Proceedings of the CHI
+Conference on Human Factors in Computing Systems,
+CHI 2024, Honolulu, HI, USA, May 11-16, 2024,
+pages 482:1–482:13. ACM.
+
+Patrick S. H. Lewis, Ethan Perez, Aleksandra Piktus,
+Fabio Petroni, Vladimir Karpukhin, Naman Goyal,
+Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim
+Rocktäschel, Sebastian Riedel, and Douwe Kiela.
+2020. Retrieval-augmented generation for knowledge-
+intensive NLP tasks. In Advances in Neural Infor-
+mation Processing Systems 33: Annual Conference
+on Neural Information Processing Systems 2020,
+NeurIPS 2020, December 6-12, 2020, virtual.
+
+Jiatong Li, Yunqing Liu, Wenqi Fan, Xiao-Yong Wei,
+Hui Liu, Jiliang Tang, and Qing Li. 2023. Em-
+powering molecule discovery for molecule-caption
+translation with large language models: A chatgpt
+perspective. CoRR, abs/2306.06615.
+
+Xianming Li and Jing Li. 2023. Angle-optimized text
+
+embeddings. CoRR, abs/2309.12871.
+
+LlamaIndex. 2023. Evaluating the Ideal Chunk Size for
+a RAG System using LlamaIndex. https://www.ll
+amaindex.ai/blog/evaluating-the-ideal-chu
+nk-size-for-a-rag-system-using-llamainde
+x-6207e5d3fec5.
+
+Xinbei Ma, Yeyun Gong, Pengcheng He, Hai Zhao,
+and Nan Duan. 2023.
+Query rewriting for
+retrieval-augmented large language models. CoRR,
+abs/2305.14283.
+
+John X. Morris, Volodymyr Kuleshov, Vitaly Shmatikov,
+and Alexander M. Rush. 2023. Text embeddings
+reveal (almost) as much as text. In Proceedings of the
+2023 Conference on Empirical Methods in Natural
+
+OpenAI. 2022b. New and improved embedding model.
+https://openai.com/index/new-and-improve
+d-embedding-model/.
+
+OpenAI. 2024. New embedding models and API updates.
+https://openai.com/index/new-embedding-m
+odels-and-api-updates/.
+
+Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer,
+James Bradbury, Gregory Chanan, Trevor Killeen,
+Zeming Lin, Natalia Gimelshein, Luca Antiga, Alban
+Desmaison, Andreas Köpf, Edward Z. Yang, Zachary
+DeVito, Martin Raison, Alykhan Tejani, Sasank Chil-
+amkurthy, Benoit Steiner, Lu Fang, Junjie Bai, and
+Soumith Chintala. 2019. Pytorch: An imperative
+style, high-performance deep learning library. In Ad-
+vances in Neural Information Processing Systems 32:
+Annual Conference on Neural Information Processing
+Systems 2019, NeurIPS 2019, December 8-14, 2019,
+Vancouver, BC, Canada, pages 8024–8035.
+
+Matt Post. 2018. A call for clarity in reporting BLEU
+scores. In Proceedings of the Third Conference on
+Machine Translation: Research Papers, WMT 2018,
+Belgium, Brussels, October 31 - November 1, 2018,
+pages 186–191. Association for Computational Lin-
+guistics.
+
+QuivrHQ. 2023. Quivr. https://github.com/Quivr
+
+HQ/quivr.
+
+SentenceTransformers. 2021a. all-MiniLM-L12-v2. ht
+tps://huggingface.co/sentence-transformer
+s/all-MiniLM-L12-v2.
+
+SentenceTransformers. 2021b. all-mpnet-base-v2. ht
+tps://huggingface.co/sentence-transformer
+s/all-mpnet-base-v2.
+
+SentenceTransformers. 2022. gtr-t5-base. https://hu
+ggingface.co/sentence-transformers/gtr-t
+5-base.
+
+10
+
+Ph.D. Sophia Yang. 2023. Advanced RAG 01: Small-
+to-Big Retrieval. https://towardsdatascience
+.com/advanced-rag-01-small-to-big-retriev
+al-172181b396d4.
+
+Paul Voigt and Axel von dem Bussche. 2017. The
+EU General Data Protection Regulation (GDPR).
+Springer International Publishing.
+
+Voyage. 2024. Embeddings. https://docs.voyagea
+
+i.com/docs/embeddings.
+
+Thomas Wolf, Lysandre Debut, Victor Sanh, Julien
+Chaumond, Clement Delangue, Anthony Moi, Pier-
+ric Cistac, Tim Rault, Rémi Louf, Morgan Funtowicz,
+Joe Davison, Sam Shleifer, Patrick von Platen, Clara
+Ma, Yacine Jernite, Julien Plu, Canwen Xu, Teven Le
+Scao, Sylvain Gugger, Mariama Drame, Quentin
+Lhoest, and Alexander M. Rush. 2020. Transform-
+ers: State-of-the-art natural language processing. In
+Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing: System
+Demonstrations, EMNLP 2020 - Demos, Online,
+November 16-20, 2020, pages 38–45. Association
+for Computational Linguistics.
+
+Jia-Yu Yao, Kun-Peng Ning, Zhen-Hui Liu, Munan
+Ning, and Li Yuan. 2023. LLM lies: Hallucinations
+are not bugs, but features as adversarial examples.
+CoRR, abs/2310.01469.
+
+Shenglai Zeng, Jiankun Zhang, Pengfei He, Yue Xing,
+Yiding Liu, Han Xu, Jie Ren, Shuaiqiang Wang,
+Dawei Yin, Yi Chang, and Jiliang Tang. 2024.
+The good and the bad: Exploring privacy issues
+in retrieval-augmented generation (RAG). CoRR,
+abs/2402.16893.
+
+Denny Zhou, Nathanael Schärli, Le Hou, Jason Wei,
+Nathan Scales, Xuezhi Wang, Dale Schuurmans,
+Claire Cui, Olivier Bousquet, Quoc V. Le, and Ed H.
+Chi. 2023. Least-to-most prompting enables complex
+reasoning in large language models. In The Eleventh
+International Conference on Learning Representa-
+tions, ICLR 2023, Kigali, Rwanda, May 1-5, 2023.
+OpenReview.net.
+
+Shengyao Zhuang, Bevan Koopman, Xiaoran Chu, and
+Guido Zuccon. 2024. Understanding and mitigat-
+ing the threat of vec2text to dense retrieval systems.
+CoRR, abs/2402.12784.
+
+11
+
+Algorithm 1: RemoteRAG: Module 1
+1 Module 1:
+
+// user side
+generate a random perturbation 𝑟 ∼ Gamma(𝑛, 1
+𝜖 )
+generate its direction vector v = {𝑣1, · · · , 𝑣𝑛}, where 𝑣𝑖 =
+
+compute the perturbed embedding 𝑒𝑘′ = 𝑒𝑘 + 𝑟v
+determine 𝑘 ′ from Theorem 1
+// cloud side
+retrieve top 𝑘 ′ documents related to 𝑒𝑘′
+
+2
+
+3
+
+4
+
+5
+
+6
+
+𝑡𝑖
+√︃(cid:205)𝑛
+
+𝑗=1
+
+𝑡 𝑗 2
+
+, 𝑡𝑖 ∈ N (0, 1), 𝑖 ∈ [1, 𝑛]
+
+Algorithm 2: RemoteRAG: Module 2
+1 Module 2:
+
+// user side
+encrypt ⟦𝑒𝑘⟧ using PHE
+// cloud side
+foreach 𝑒 ∈ document embeddings retrieved from Algorithm 1 do
+
+calculate cosine distance in encrypted form ⟦𝑑𝑖⟧ = 𝑑cos(⟦𝑒𝑘⟧, 𝑒)
+
+// user side
+decrypt cosine distances 𝑑𝑖, 𝑖 ∈ [1, 𝑘 ′]
+sort cosine distances to obtain the indices of top 𝑘 documents related to 𝑒𝑘
+if arctan tan 𝛼𝑘√
+≥ 𝑛
+𝑘
+// cloud side
+retrieve 𝑘 documents from the indices
+
+𝜖 (Theorem 3) then
+
+else
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+retrieve 𝑘 documents from the 𝑘-out-of-𝑘 ′ OT protocol
+
+A More Details about RemoteRAG
+
+The detailed steps of RemoteRAG are shown in
+Algorithms 1 and 2.
+
+We did not emphasize the detail of the 𝑘-out-of-
+𝑘 ′ OT protocol in module 2(c) in the main part,
+as it is not the primary contribution of this paper.
+However, for privacy, efficiency, and accuracy, we
+provide the detail and analysis of the 𝑘-out-of-𝑘 ′
+OT protocol used in our experiments below.
+
+𝒌-out-of-𝒌′ Oblivious Transfer Protocol
+A.1
+We implement the 𝑘-out-of-𝑘 ′ OT protocol based
+on Chou and Orlandi (2015). Suppose the indices of
+target messages are 𝑆 = {𝑠1, · · · , 𝑠𝑘 }, the protocol
+is as follows:
+(1) The cloud and the user share a hash function
+Hash, a base number 𝑔 and a prime modulus 𝑝.
+(2) The cloud selects a random number 𝑎, computes
+𝐴 = 𝑔𝑎 mod 𝑝, and sends it to the user.
+(3) The user computes 𝐵𝑖 = 𝐴𝑐𝑖 · 𝑔𝑏𝑖 mod 𝑝, 𝑖 ∈
+
+[1, 𝑘 ′], where 𝑏𝑖 are random numbers and 𝑐𝑖 =
+(cid:40)
+0, 𝑖 ∈ 𝑆
+1, 𝑖 ∉ 𝑆
+
+, and sends them to the cloud.
+
+(4) The cloud constructs 𝑘 ′ secret keys Key𝑖 =
+𝑎 mod 𝑝), 𝑖 ∈ [1, 𝑘 ′], uses them to encrypt
+Hash(𝐵𝑖
+messages ⟦𝑚𝑖⟧ = Enc(𝑚𝑖, Key𝑖), 𝑖 ∈ [1, 𝑘 ′], and
+sends these encrypted messages to the user.
+(5) The user constructs 𝑘 secret keys Key𝑠 𝑗 =
+Hash( 𝐴𝑏𝑠 𝑗 mod 𝑝), 𝑠 𝑗 ∈ 𝑆, and can only decrypt
+target 𝑘 messages 𝑚𝑠 𝑗 = Dec(⟦𝑚𝑠 𝑗 ⟧, Key𝑠 𝑗 ).
+
+Correctness. The objective is to ensure that keys
+used for encrypting and decrypting target messages
+are consistent between both sides, while keys cor-
+responding to other messages remain inconsistent.
+⊲ For 𝑖 = 𝑠 𝑗 ∈ 𝑆, 𝑐𝑖 = 0, the calculation of the key
+𝑎 ≡ ( 𝐴𝑐𝑖 · 𝑔𝑏𝑖 ) 𝑎 ≡
+for 𝑚𝑖 on the cloud side is 𝐵𝑖
+𝑔𝑎𝑏𝑖 mod 𝑝. Conversely, the calculation of the key
+for 𝑚𝑠 𝑗 on the user side is 𝐴𝑏𝑠 𝑗 ≡ 𝑔𝑎𝑏𝑠 𝑗 mod 𝑝.
+This consistency in the calculation of the key on
+both sides enables the user to decrypt 𝑚𝑠 𝑗 .
+
+12
+
+Table 5: Patermeters of different embedding models in our experiments.
+
+Model
+
+License
+
+Model Size Dimension
+
+all-MiniLM-L12-v2 (SentenceTransformers, 2021a) Apache-2.0
+Apache-2.0
+all-mpnet-base-v2 (SentenceTransformers, 2021b)
+Apache-2.0
+gtr-t5-base (SentenceTransformers, 2022)
+Proprietary
+text-embedding-ada-002 (OpenAI, 2022b)
+Proprietary
+text-embedding-3-large (OpenAI, 2024)
+
+33.4M
+109M
+110M
+Proprietary
+Proprietary
+
+384
+768
+768
+1536
+3072
+
+⊲ For 𝑖 ∉ 𝑆, 𝑐𝑖 = 1, the calculation of the key
+𝑎 ≡ ( 𝐴𝑐𝑖 · 𝑔𝑏𝑖 ) 𝑎 ≡
+for 𝑚𝑖 on the cloud side is 𝐵𝑖
+𝑔𝑎 (𝑎+𝑏𝑖 ) mod 𝑝. In contrast, the calculation of the
+key for 𝑚𝑖 on the user side is still 𝐴𝑏𝑖 ≡ 𝑔𝑎𝑏𝑖 mod
+𝑝, if the user insists on generating a key. This
+inconsistency in the calculation of the key on both
+sides prevents the user from decrypting 𝑚𝑠𝑖 .
+
+Security analysis. The cloud receives 𝐵𝑖 =
+𝑔𝑎𝑐𝑖+𝑏𝑖 mod 𝑝, 𝑖 ∈ [1, 𝑘 ′]. Since 𝑏𝑖 is a random
+number generated by the user, the cloud cannot
+derive whether 𝑐𝑖 = 0 or not by the given 𝐵𝑖.
+Therefore, the cloud has no idea of which indices
+the user chooses.
+
+Communication analysis. There are 1.5 rounds
+of communication. First, the cloud sends a random
+number 𝐴, occupying 𝛽 units. Second, the user
+sends 𝐵𝑖, 𝑖 ∈ [1, 𝑘 ′] to the cloud, occupying 𝑘 ′ 𝛽
+units. Third, the user receives encrypted messages
+(documents) from the cloud, occupying 𝑘 ′𝜂 units.
+
+B More Details in Experiments
+
+B.1 Environment
+
+All of our experiments are conducted using PyTorch
+(Paszke et al., 2019), LangChain (LangChain, 2022)
+and HuggingFace (Wolf et al., 2020) on an Ubuntu
+22.04 server. The server is equipped with two 28-
+core Intel(R) Xeon(R) Gold 5420+ processors and
+two Nvidia A40 48GB GPUs.
+
+B.2 Embedding Model Details
+
+We use three open-sourced embedding models and
+two OpenAI proprietary embedding models in our
+experiments. The detailed parameters are shown
+in Table 5. OpenAI has not explicitly stated the
+license and model size for their embedding models.
+
+B.3 Dataset Details
+
+We use MS MARCO (Nguyen et al., 2016) v1.1
+as the dataset in our experiments. To be specific,
+We extract lists of passage_text from the column
+passages. We randomly choose 104, 105, and 106
+
+passage_text to construct 15 vector databases in
+total with five different embedding models. For sim-
+plicity, we make no modifications to these passages
+such as splitting.
+
+B.4 Default Setting
+
+Unless otherwise specified, our experiments used
+the following hyperparameter settings: 𝑁 = 105,
+𝑘 = 5, 𝑘 ′ = 160, and T5 as the embedding model.
+The experimental results shown in all figures and
+tables are the averages of 50 independent experi-
+ments.
+
+B.5 Extra Experimental Results
+
+B.5.1 Relationships among Hyperparameters
+𝒌/𝑵-𝜶𝒌 . We first plot the equation of Lemma 1.
+From Figure 6(a), the result of 𝑘/𝑁 increases
+sharply as 𝛼𝑘 approaches 90°. Additionally, when
+𝑛 grows larger, the increase is even steeper. This
+phenomenon is characteristic of high-dimensional
+space, where random vectors on the surface of the
+unit 𝑛-sphere tend to be almost perpendicular. Con-
+sequently, a relatively small change in 𝛼𝑘 results
+in a significant change in 𝑘/𝑁, meaning that the
+perturbation greatly impacts 𝑘 ′, highlighting the
+importance of selecting a proper privacy budget.
+
+𝝐-𝒌′. We discuss in Section 3.2 that in prac-
+tice, apart from initially setting the privacy budget,
+we can also choose 𝑘 ′ first and then compute the
+corresponding privacy budget. From Figure 6(b),
+we observe that when 𝑘 ′ < 50, the change in 𝜖 is
+relatively large, which corresponds to a small per-
+turbation and high attack performance according
+to Figure 4. The user should avoid considering 𝑘 ′
+as well as the corresponding privacy budget in this
+range, since the protection is too weak, as shown
+in Figure 4. To avoid excessive computation and
+communication costs, an appropriate choice of 𝑘 ′
+would be within the range of [100, 200]. Another
+observation is that a larger 𝜖 is required to preserve
+the same value of 𝑘 ′ for a larger value of 𝑘. This
+can be explained by the fact that, as 𝑘 increases, the
+
+13
+
+(a) 𝑘/𝑁-𝛼𝑘
+
+(b) 𝜖-𝑘 ′
+
+(a) Visualization of top 𝑘.
+
+(b) One rare exception.
+
+Figure 6: Relationships among hyperparameters.
+
+Figure 7: Illustrations in 2-dimensional space.
+
+number of possible embeddings with the same top
+𝑘 documents also increases. Therefore, the same
+value of 𝑘 ′ implies a looser privacy requirement,
+which is reflected by a larger privacy budget 𝜖.
+
+B.5.2
+
+2D Simulations
+
+The following two 2D simulations are based on
+some artificial data for ease of understanding.
+
+Visualization of Top 𝒌. To provide a clear view
+of how RemoteRAG works, we give a visualization
+of the relationship between the embeddings of the
+top 𝑘 documents and the selected 𝑘 ′ documents in
+2-dimensional space. The plot in Figure 7(a) clearly
+shows that the top 𝑘 documents are included in the
+set of 𝑘 ′ documents, demonstrating the correctness
+of RemoteRAG.
+
+Rare exceptions. Although we have not ex-
+perienced any loss in retrieving documents, we
+acknowledge that in some rare exceptions, there
+might be a chance of RemoteRAG failing to pre-
+serve the top 𝑘 documents. We provide one such
+exception here. As illustrated in Figure 7(b), the top
+𝑘 documents related to the query embedding are
+all located on the left side of the query embedding
+at the same angle 𝛼𝑘. The perturbed embedding is
+positioned on the right side of the query embedding
+at angle Δ𝛼𝑘. If there are 𝑘 ′ documents located
+exactly within the range of angles [𝛼𝑘, 𝛼𝑘 + 2Δ𝛼𝑘],
+then the top 𝑘 ′ documents related to 𝑒𝑘′ would not
+include the top 𝑘 documents related to 𝑒𝑘. However,
+exceptions like this only occur when the distribution
+of document embeddings is extremely non-uniform,
+a rare scenario in high-dimensional space.
+
+C Proofs
+
+Lemma 2 (Repeated from Lemma 1). Assume that
+there are 𝑁 embeddings uniformly distributed on
+the surface of the 𝑛-dimensional unit sphere. Let
+𝛼𝑘 be the polar angle of the surface area formed by
+top 𝑘 embeddings related to any given embedding.
+
+Then, 𝑘 and 𝛼𝑘 satisfy the following relationship:
+
+𝑘 = 𝑁 ·
+
+Ω𝑛−1(𝜋)
+Ω𝑛 (𝜋)
+
+·
+
+∫ 𝛼𝑘
+
+0
+
+sin𝑛−2 𝜃 d𝜃
+
+𝑛
+where Ω𝑛 (𝜋) = 2 𝜋
+2
+Γ( 𝑛
+the unit 𝑛-sphere.
+
+2 ) represents the surface area of
+
+Figure 8: Illustration of the proof of Lemma 2.
+
+Proof. Define 𝑆𝑛,𝑟 (𝛼) = Ω𝑛 (𝛼)𝑟 𝑛−1 as the surface
+area of the spherical sector with a polar angle
+𝛼 ∈ [0, 𝜋] in the 𝑛-sphere with radius 𝑟, where
+Ω𝑛 (𝛼) represents the corresponding surface area
+in the unit 𝑛-sphere. Then, referring to Figure 8,
+we have
+
+∫ 𝛼
+
+0
+∫ 𝛼
+
+𝑆𝑛,𝑟 (𝛼) =
+
+=
+
+0
+= 𝑟 𝑛−1
+
+𝑆𝑛−1,𝑟 sin 𝜃 (𝜋)𝑟 d𝜃
+
+Ω𝑛−1(𝜋) [𝑟 sin 𝜃] 𝑛−2𝑟 d𝜃
+∫ 𝛼
+
+Ω𝑛−1(𝜋) sin𝑛−2 𝜃 d𝜃
+
+0
+
+Comparing to the definition of 𝑆𝑛,𝑟 (𝛼), it is
+
+straightforward to derive that
+
+Ω𝑛 (𝛼) =
+
+∫ 𝛼
+
+0
+
+Ω𝑛−1(𝜋) sin𝑛−2 𝜃 d𝜃
+
+Assuming the embeddings are uniformly dis-
+
+tributed on the surface,
+
+𝑁
+Ω𝑛 (𝜋)
+
+=
+
+𝑘
+Ω𝑛 (𝛼𝑘)
+
+14
+
+7580859095100105k()00.20.40.60.81k/Nn=192n=384n=7684080120160k'01234(×105)k=5k=10k=15k=20ekek0Irrelevant EmbeddingsTop k0 related to ek0Top k related to ekekek0Irrelevant EmbeddingsTop k0 related to ek0Top k related to ekTherefore,
+
+𝑘 = 𝑁 ·
+
+Ω𝑛 (𝛼𝑘)
+Ω𝑛 (𝜋)
+
+= 𝑁 ·
+
+Ω𝑛−1(𝜋)
+Ω𝑛 (𝜋)
+
+·
+
+∫ 𝛼𝑘
+
+0
+
+sin𝑛−2 𝜃 d𝜃
+
+□
+
+Lemma 3. 𝑘 points 𝑝1, · · · , 𝑝𝑘 are extracted from
+the uniform distribution on the surface of an 𝑛-
+dimensional sphere with radius 𝑟. Denote the mean
+of these points as 𝑝. L2 distance 𝑑 between 𝑝 and
+the center of the sphere has the expected value
+
+Theorem 4 (Repeated from Theorem 1). Under
+the conditions specified in Lemma 2, given two
+embeddings 𝑒𝑘 and 𝑒𝑘′ with the perturbed angle
+Δ𝛼𝑘, to ensure that top 𝑘 ′ embeddings related to
+𝑒𝑘′ include top 𝑘 embeddings related to 𝑒𝑘, 𝑘 ′ and
+𝑘 satisfy the following relationship:
+
+Δ𝑘 = 𝑘 ′ − 𝑘 = 𝑁 ·
+
+Ω𝑛−1(𝜋)
+Ω𝑛 (𝜋)
+
+·
+
+∫ 𝛼𝑘′
+
+𝛼𝑘
+
+sin𝑛−2 𝜃 d𝜃
+
+where 𝛼𝑘′ = 𝛼𝑘 + Δ𝛼𝑘.
+
+Proof. From Figure 3(b), we observe that 𝛼𝑘′ =
+𝛼𝑘 + Δ𝛼𝑘. This property can be readily extended
+to 𝑛-dimensional space. And from Lemma 2,
+
+𝑘 = 𝑁 ·
+
+𝑘 ′ = 𝑁 ·
+
+Ω𝑛−1(𝜋)
+Ω𝑛 (𝜋)
+Ω𝑛−1(𝜋)
+Ω𝑛 (𝜋)
+
+·
+
+·
+
+∫ 𝛼𝑘
+
+0
+∫ 𝛼𝑘′
+
+0
+
+sin𝑛−2 𝜃 d𝜃
+
+sin𝑛−2 𝜃 d𝜃
+
+Thus,
+
+Δ𝑘 = 𝑘 ′ − 𝑘 = 𝑁 ·
+
+Ω𝑛−1(𝜋)
+Ω𝑛 (𝜋)
+
+·
+
+∫ 𝛼𝑘′
+
+𝛼𝑘
+
+sin𝑛−2 𝜃 d𝜃
+
+E[𝑑] =
+
+𝑟
+√
+
+𝑘
+
+Proof. We place the center of the sphere at the
+origin. Since 𝑝𝑖 = {𝑥𝑖1, · · · , 𝑥𝑖𝑛}, 𝑖 ∈ [1, 𝑘] is ex-
+tracted from the uniform distribution on the surface
+of an 𝑛-dimensional sphere with radius 𝑟, the coor-
+dinates can be contructed by two steps: generating
+, 𝑗 ∈ [1, 𝑛].
+𝑦𝑖 𝑗 ∼ N (0, 1) and 𝑥𝑖 𝑗 = 𝑟 ·
+
+𝑦𝑖 𝑗
+
+√
+
+(cid:205)𝑛
+Due to symmetry, E[𝑥𝑖 𝑗] = 0,
+
+𝑚=1
+
+𝑦2
+𝑖𝑚
+
+= · · · = E
+
+(cid:34)
+
+𝑦2
+𝑖𝑛
+
+(cid:35)
+
+(cid:205)𝑛
+
+𝑚=1
+
+𝑦2
+𝑖𝑚
+(cid:34) (cid:205)𝑛
+
+𝑦2
+𝑖 𝑗
+
+(cid:35)
+
+(cid:205)𝑛
+
+𝑚=1
+
+𝑦2
+𝑖𝑚
+
+=
+
+1
+𝑛
+
+· E
+
+(cid:35)
+
+𝑦2
+𝑖 𝑗
+𝑦2
+𝑖𝑚
+
+=
+
+1
+𝑛
+
+𝑗=1
+
+(cid:205)𝑛
+
+𝑚=1
+
+(cid:35)
+
+𝑦2
+𝑖1
+
+𝑦2
+𝑖𝑚
+
+(cid:34)
+
+(cid:205)𝑛
+
+𝑚=1
+𝑛
+∑︁
+
+E
+
+𝑗=1
+
+(cid:34)
+
+E
+
+=
+
+1
+𝑛
+
+·
+
+and
+
+Var(𝑥𝑖 𝑗) = E[𝑥2
+
+(cid:34)
+
+= E
+
+𝑟 2 ·
+
+𝑖 𝑗] − (E[𝑥𝑖 𝑗])2
+(cid:35)
+𝑦2
+𝑖 𝑗
+
+(cid:205)𝑛
+
+𝑚=1
+
+𝑦2
+𝑖𝑚
+
+𝑟 2
+𝑛
+
+=
+
+□
+
+By the central limit theorem, each coordinate
+
+component 𝑥 𝑗 of 𝑝 satisfies
+
+Theorem 5 (Repeated from Theorem 2). Given
+two normalized embeddings 𝑒𝑎 and 𝑒𝑏 of the same
+dimension, L2 distance and cosine distance have
+the following relationship:
+
+𝑑𝑙2(𝑒𝑎, 𝑒𝑏) = √︁
+
+2𝑑cos(𝑒𝑎, 𝑒𝑏)
+
+Proof. From Definition 2,
+
+𝑙2(𝑒𝑎, 𝑒𝑏) = ∥𝑒𝑎 − 𝑒𝑏 ∥2 =
+𝑑2
+
+=
+
+𝑛
+∑︁
+
+𝑖=1
+
+𝑒𝑎
+
+2
+𝑖 +
+
+𝑛
+∑︁
+
+𝑖=1
+
+𝑛
+∑︁
+
+𝑖=1
+
+(𝑒𝑎𝑖 − 𝑒𝑏𝑖)2
+
+𝑛
+∑︁
+
+𝑒𝑏
+
+2
+𝑖 −
+
+2𝑒𝑎𝑖𝑒𝑏𝑖
+
+= ∥𝑒𝑎 ∥2 + ∥𝑒𝑏 ∥2 − 2
+
+= 1 + 1 − 2⟨𝑒𝑎, 𝑒𝑏⟩
+= 2𝑑cos(𝑒𝑎, 𝑒𝑏)
+
+𝑖=1
+𝑛
+∑︁
+
+𝑒𝑎𝑖𝑒𝑏𝑖
+
+𝑖=1
+
+□
+
+15
+
+𝑥 𝑗 =
+
+1
+𝑘
+
+·
+
+𝑘
+∑︁
+
+𝑖=1
+
+𝑥𝑖 𝑗 ∼ N
+
+(cid:18)
+
+0,
+
+(cid:19)
+
+,
+
+𝑟 2
+𝑘𝑛
+
+√
+
+𝑘𝑛
+𝑟
+
+· 𝑥 𝑗 ∼ N (0, 1)
+
+Notice that
+
+𝑘𝑛
+𝑟 2
+
+· 𝑑2 =
+
+𝑘𝑛
+𝑟 2
+
+·
+
+𝑛
+∑︁
+
+𝑗=1
+
+𝑥 𝑗
+
+2 =
+
+(cid:32) √
+
+𝑘𝑛
+𝑟
+
+𝑛
+∑︁
+
+𝑗=1
+
+(cid:33) 2
+
+· 𝑥 𝑗
+
+∼ 𝜒2(𝑛)
+
+Thus, 𝑘𝑛
+
+𝑟 2 · E (cid:2)𝑑2(cid:3) = 𝑛 and E[𝑑] = 𝑟
+𝑘 .
+
+√
+
+□
+
+Theorem 6 (Repeated from Theorem 3). Given a
+target query embedding 𝑒𝑘 and the mean embedding
+𝑒 of top 𝑘 relevant document embeddings, the mean
+angle 𝜔 between 𝑒𝑘 and 𝑒 satisfies
+
+tan 𝜔 =
+
+tan 𝛼𝑘
+√
+𝑘
+
+where 𝛼𝑘 is calculated from Lemma 2.
+
+Figure 9: Illustration of the proof of Theorem 6.
+
+Proof. Lemma 2 tells us that top 𝑘 embeddings
+are within the polar angle 𝛼𝑘. When 𝑛 ≫ 1, we
+approximately believe that the angle they make with
+𝑒𝑘 is exactly 𝛼𝑘, which means 𝑘 embeddings are
+uniformly distributed on the surface of an (𝑛 − 1)-
+dimensional sphere with radius sin 𝛼𝑘.
+
+Applying Lemma 3 and referring to Figure 9,
+𝑘 . Since 𝑂 𝐴 = cos 𝛼𝑘,
+
+E[ 𝐴𝐵] = sin 𝛼𝑘√
+
+tan 𝜔 =
+
+E[ 𝐴𝐵]
+𝑂 𝐴
+
+=
+
+sin 𝛼𝑘
+√
+cos 𝛼𝑘
+
+𝑘
+
+=
+
+tan 𝛼𝑘
+√
+𝑘
+
+□
+
+16

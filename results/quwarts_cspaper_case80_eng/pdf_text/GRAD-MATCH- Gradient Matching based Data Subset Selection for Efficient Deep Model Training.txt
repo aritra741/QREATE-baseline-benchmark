@@ -1,0 +1,1311 @@
+GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient
+Deep Model Training
+
+Krishnateja Killamsetty 1 Durga Sivasubramanian 2 Ganesh Ramakrishnan 2 Abir De 2 Rishabh Iyer 1
+
+Abstract
+The great success of modern machine learning
+models on large datasets is contingent on exten-
+sive computational resources with high ﬁnancial
+and environmental costs. One way to address this
+is by extracting subsets that generalize on par with
+the full data. In this work, we propose a general
+framework, GRAD-MATCH, which ﬁnds subsets
+that closely match the gradient of the training
+or validation set. We ﬁnd such subsets effec-
+tively using an orthogonal matching pursuit algo-
+rithm. We show rigorous theoretical and conver-
+gence guarantees of the proposed algorithm and,
+through our extensive experiments on real-world
+datasets, show the effectiveness of our proposed
+framework. We show that GRAD-MATCH signiﬁ-
+cantly and consistently outperforms several recent
+data-selection algorithms and achieves the best
+accuracy-efﬁciency trade-off. GRAD-MATCH is
+available as a part of the CORDS toolkit: https:
+//github.com/decile-team/cords.
+
+1. Introduction
+
+Modern machine learning systems, especially deep learning
+frameworks, have become very computationally expensive
+and data-hungry. Massive training datasets have signiﬁ-
+cantly increased end-to-end training times, computational
+and resource costs (Sharir et al., 2020), energy require-
+ments (Strubell et al., 2019), and carbon footprint (Schwartz
+et al., 2019). Moreover, most machine learning models
+require extensive hyper-parameter tuning, further increas-
+ing the cost and time, especially on massive datasets. In
+this paper, we study efﬁcient machine learning through the
+paradigm of subset selection, which seeks to answer the
+following question: Can we train a machine learning model
+on much smaller subsets of a large dataset, with negligible
+
+1Department of Computer Science, University of Texas
+at Dallas, Dallas, USA 2Department of Computer Science
+and Engineering, Indian Institute of Technology, Bombay, In-
+Correspondence to: Krishnateja Killamsetty <krish-
+dia.
+nateja.killamsetty@utdallas.edu>.
+
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+
+loss in test accuracy?
+
+Data subset selection enables efﬁcient learning at multiple
+levels. First, by using a subset of a large dataset, we can
+enable learning on relatively low resource computational
+environments without requiring a large number of GPU and
+CPU servers. Second, since we are training on a subset
+of the training dataset, we can signiﬁcantly improve the
+end-to-end turnaround time, which often requires multiple
+training runs for hyper-parameter tuning. Finally, this also
+enables signiﬁcant reduction in the energy consumption and
+CO2 emissions of deep learning (Strubell et al., 2019), par-
+ticularly since a large number of deep learning experiments
+need to be run in practice. Recently, there have been sev-
+eral efforts to make machine learning models more efﬁcient
+via data subset selection (Wei et al., 2014a; Kaushal et al.,
+2019; Coleman et al., 2020; Har-Peled & Mazumdar, 2004;
+Clarkson, 2010; Mirzasoleiman et al., 2020a; Killamsetty
+et al., 2021). Existing approaches either use proxy functions
+to select data points, or are speciﬁc to particular machine
+learning models, or use approximations of quantities such
+as gradient error or generalization errors. In this work, we
+propose a data selection framework called GRAD-MATCH,
+which exactly minimizes a residual error term obtained by
+analyzing adaptive data subset selection algorithms, there-
+fore admitting theoretical guarantees on convergence.
+
+1.1. Contributions of this work
+
+Analyses of convergence bounds of adaptive data subset
+selection algorithms.
+A growing number of recent
+approaches (Mirzasoleiman et al., 2020a; Killamsetty et al.,
+2021) can be cast within the framework of adaptive data
+subset selection, where the data subset selection algorithm
+(which selects the data subset depending on speciﬁc criteria)
+is applied in conjunction with the model training. As the
+model training proceeds, the subset on which the model is
+being trained is improved via the current model’s snapshots.
+We analyze the convergence of this general framework and
+show that the convergence bound critically depends on an
+additive error term depending on how well the subset’s
+weighted gradients match either the full training gradients
+or the full validation gradients (c.f., Section 2).
+
+Data selection framework with convergence guarantees.
+Inspired by the result above, we present GRAD-MATCH,
+
+GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+a gradient-matching algorithm (c.f., Section 3), which
+directly tries to minimize the gradient matching error. As
+a result, we are able to show convergence bounds for a
+large class of convex loss functions. We also argue that
+the resulting bounds we obtain are tighter than those of
+recent works (Mirzasoleiman et al., 2020a; Killamsetty
+et al., 2021), which either use upper bounds or their
+approximations. We then show that minimizing the gradient
+error can be cast as a weakly submodular maximization
+problem and propose an orthogonal matching pursuit based
+greedy algorithm. We then propose several implementation
+tricks (c.f., Section 4), which provide signiﬁcant speedups
+for the data selection step.
+
+Figure 1. Efﬁciency of GRAD-MATCH relative to full training on
+the CIFAR-10, CIFAR-100, and Imagenet datasets.
+
+Best tradeoff between efﬁciency and accuracy. In our
+empirical results (c.f., Section 5), we show that GRAD-
+MATCH achieves much a better accuracy and training-time
+trade-off than several state-of-the-art approaches such as
+CRAIG (Mirzasoleiman et al., 2020a), GLISTER (Killam-
+setty et al., 2021), random subsets, and even full training
+with early stopping. When training with ResNet-18 on Ima-
+genet, CIFAR-10, and CIFAR-100, we observe around 3×
+efﬁciency improvement with an accuracy drop of close to
+1% for 30% subset. With smaller subsets (e.g., 20% and
+10%), we sacriﬁce a little more in terms of accuracy (e.g.,
+2% and 2.8%) for a larger speedup in training (4× and 7×).
+Furthermore, we see that by extending the training beyond
+the speciﬁed number of epochs (300 in this case), we can
+match the accuracy on the full dataset using just 30% of
+the data while being overall 2.5× faster. In the case of
+MNIST, the speedup improvements are even more drastic,
+ranging from 27× to 12× with 0.35% to 0.05% accuracy
+degradation.
+
+1.2. Related work
+
+A number of recent papers have used submodular func-
+tions as proxy functions (Wei et al., 2014a;c; Kirchhoff &
+Bilmes, 2014; Kaushal et al., 2019) (to actual loss). Let n
+be the number of data points in the ground set. Then a set
+function f : 2[n] → R is submodular (Fujishige, 2005)
+if it satisﬁes the diminishing returns property: for subsets
+
+S, T ⊆ [n], f (j|S) (cid:44) f (S ∪ j) − f (S) ≥ f (j|T ). An-
+other commonly used approach is that of coresets. Coresets
+are weighted subsets of the data, which approximate cer-
+tain desirable characteristics of the full data (, e.g., the loss
+function) (Feldman, 2020). Coreset algorithms have been
+used for several problems including k-means and k-median
+clustering (Har-Peled & Mazumdar, 2004), SVMs (Clark-
+son, 2010) and Bayesian inference (Campbell & Broderick,
+2018). Coreset algorithms require algorithms that are often
+specialized and very speciﬁc to the model and problem at
+hand and have had limited success in deep learning.
+
+A very recent coreset algorithm called CRAIG (Mirza-
+soleiman et al., 2020a) has shown promise for both deep
+learning and classical machine learning models such as
+logistic regression. Unlike other coreset techniques that
+largely focus on approximating loss functions, CRAIG se-
+lects representative subsets of the training data that closely
+approximate the full gradient. Another approach poses the
+data selection as a discrete bi-level optimization problem
+and shows that, for several choices of loss functions and
+models (Killamsetty et al., 2021; Wei et al., 2015), the re-
+sulting optimization problem is submodular. A few recent
+papers have studied data selection approaches for robust
+learning. Mirzasoleiman et al. (2020b) extend CRAIG to
+handle noise in the data, whereas Killamsetty et al. (2021)
+study class imbalance and noisy data settings by assuming
+access to a clean validation set. In this paper, we study data
+selection under class imbalance in a setting similar to (Kil-
+lamsetty et al., 2021), where we assume access to a clean
+validation set. Our work is also related to highly distributed
+deep learning systems (Jia et al., 2018) which make deep
+learning signiﬁcantly faster using a cluster of hundreds of
+GPUs. In this work, we instead focus on single GPU train-
+ing runs, which are more practical for smaller companies
+and academic labs and potentially complementary to (Jia
+et al., 2018). Finally, our work is also complementary to that
+of (Wang et al., 2019), where the authors employ tricks such
+as selective layer updates, low-precision backpropagation,
+and random subsampling to achieve signiﬁcant energy re-
+ductions. In this work, we demonstrate both energy and time
+savings solely based on a more principled subset selection
+approach.
+
+2. GRAD-MATCH through the lens of
+
+adaptive data subset selection
+
+In this section, we will study the convergence of general
+adaptive subset selection algorithms and use the result (The-
+orem 1) to motivate GRAD-MATCH.
+
+Notation. Denote U = {(xi, yi)}N
+i=1, as the set of training
+examples, and let V = {(xj, yj)}M
+j=1 denote the validation
+set. Let θ be the classiﬁer model parameters. Next, denote
+T (θ) = LT (xi, yi, θ), the training loss at the ith epoch
+by Li
+of training, and let LT (X , θ) = (cid:80)
+i∈X LT (xi, yi, θ) be the
+loss on a subset X ⊆ U of the training examples. Let the
+
+CIFAR10(10%)CIFAR10(30%)CIFAR10(Extended)CIFAR100(20%)CIFAR100(30%)CIFAR100(Extended)IMAGENET(30%)24687.03.12.74.83.12.53.26.43.02.54.22.82.43.12.80.90.02.20.70.01.3SpeedUpEnergyRatioRel.TestErrorGRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+Figure 2. Block Diagram of any adaptive data selection algorithm, where data selection is performed every R epochs of (stochastic)
+gradient descent, and the gradient descent updates are performed on the subsets obtained by the data selection.
+
+validation loss be denoted by LV . In Table 1 in Appendix A,
+we organize and tabulate the notations used throughout this
+paper.
+
+Adaptive data subset selection: (Stochastic) gradient de-
+scent algorithms proceed by computing the gradients of all
+the training data points for T epochs. We study the alterna-
+tive approach of adaptive data selection, in which training is
+performed using a weighted sum of gradients of the training
+data subset instead of the full training data. In the adaptive
+data selection approach, the data selection is performed in
+conjunction with training such that subsets get incrementally
+reﬁned as the learning algorithm proceeds. This incremental
+subset reﬁnement allows the data selection to adapt to the
+learning and produces increasingly effective subsets with
+progress of the learning algorithm. Assume that an adaptive
+data selection algorithm produces weights wt and subsets
+X t for t = 1, 2, · · · , T through the course of the algorithm.
+In other words, at iteration t, the parameters θt are updated
+using the weighted loss of the model on subset X t by weigh-
+ing each example i ∈ X t with its corresponding weight wt
+i.
+For example, if we use gradient descent, we can write the
+update step as: θt+1 = θt − α (cid:80)
+i∇θLT (xi, yi, θt).
+Note that though this framework uses a potentially different
+set X t in each iteration t, we need not perform data selection
+every epoch. In fact, in practice, we run data selection only
+every R epochs, in which case, the same subsets and weights
+will be used between epochs t = Rτ and t = R(τ + 1). In
+contrast, the non-adaptive data selection settings (Wei et al.,
+2014b;c; Kaushal et al., 2019) employ the same X t = X for
+gradient descent in every iteration. In Figure 2, we present
+the broad adaptive data selection scheme. In this work, we
+focus on a setting in which the subset size is ﬁxed, i.e.,
+|X t| = k (typically a small fraction of the training dataset).
+
+i∈X t wt
+
+Convergence analysis: We now study the conditions for
+the convergence of either the full training loss or the valida-
+tion loss achieved by any adaptive data selection strategy.
+Recall that we can characterize any data selection algorithm
+by a set of weights wt and subsets X t for t = 1, · · · , T . We
+provide a convergence result which holds for any adaptive
+data selection algorithm, and applies to Lipschitz continu-
+ous, Lipschitz smooth, and strongly convex loss functions.
+
+Before presenting the result, we deﬁne the term:
+
+Err(wt, X t, L, LT , θt) =
+
+(cid:13)
+(cid:13)
+(cid:13)
+(cid:13)
+(cid:13)
+
+i∈X t
+
+(cid:88)
+
+wt
+
+i∇θLi
+
+T (θt) − ∇θL(θt)
+
+(cid:13)
+(cid:13)
+(cid:13)
+(cid:13)
+(cid:13)
+
+The norm considered in the above equation is the l2 norm.
+Next, assume that the parameters satisfy ||θ||2 ≤ D2, and
+let L denote either the training or validation loss. We next
+state the convergence result:
+Theorem 1 Any adaptive data selection algorithm. run with full
+gradient descent (GD), deﬁned via weights wt and subsets X t for
+t = 1, · · · , T , enjoys the following guarantees:
+
+(1). If LT is Lipschitz continuous with parameter σT , optimal
+model parameters are θ∗, and α = D
+, then mint=1:T L(θt)−
+√
+σT
+L(θ∗) ≤ DσT√
+T
+
+t=1 Err(wt, X t, L, LT , θt).
+
+(cid:80)T −1
+
++ D
+T
+
+T
+
+(2) If LT is Lipschitz smooth with parameter LT , optimal model
+parameters are θ∗, and Li
+T (θ) ≤ βT , ∀i,
+then setting α = 1/LT , we have mint=1:T L(θt) − L(θ∗) ≤
+D2LT +2βT
+2T
+
+t=1 Err(wt, X t, L, LT , θt).
+
+T satisﬁes 0 ≤ Li
+
+(cid:80)T −1
+
++ D
+T
+
+(3) If LT is Lipschitz continuous with parameter σT , optimal model
+parameters are θ∗, and L is strongly convex with parameter µ, then
+setting a learning rate αt = 2
+µ(1+t) , we have mint=1:T L(θt) −
+µ(T +1) + (cid:80)t=T
+L(θ∗) ≤ 2σT
+2Dt
+
+T (T +1) Err(wt, X t, L, LT , θt).
+
+t=1
+
+2
+
+We present the proof in Appendix B.1. We can also extend
+this result to the case in which SGD is used instead of full
+GD to update the model. The main difference in the result is
+that the inequality holds with expectations over both sides.
+We defer the convergence result and proof to Appendix B.2.
+Theorem 1 suggests that an effective data selection algo-
+rithm should try to obtain subsets which have very small
+error Err(wt, X t, L, LT , θt) for t = 1, · · · , T . If the goal
+of data selection is to select a subset X t at every epoch
+which approximates the full training set, the data selection
+procedure should try to minimize Err(wt, X t, LT , LT , θt).
+On the other hand, to select subset X t at every epoch
+which approximates the validation set, the data selection
+procedure should try to minimize Err(wt, X t, LV , LT , θt).
+In Appendix B.3, we provide conditions under which an
+adaptive data selection approach reduces the loss function
+L (which can either be the training loss LT or the val-
+idation loss LV ).
+In particular, we show that any data
+
+GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+selection approach which attempts to minimize the error
+term Err(wt, X t, L, LT , θt) is also likely to reduce the loss
+value at every iteration. In the next section, we present
+GRAD-MATCH, that directly minimizes this error function
+Err(wt, X t, L, LT , θt).
+
+3. The GRAD-MATCH Algorithm
+
+Following the result of Theorem 1, we now design an adap-
+tive data selection algorithm that minimizes the gradient
+error term: Err(wt, X t, L, LT , θt) (where L is either the
+training loss or the validation loss) as the training proceeds.
+The complete algorithm is shown in Algorithm 1. In Algo-
+rithm 1, isValid is a boolean Validation ﬂag indicator that
+indicates whether to match the subset loss gradient with val-
+idation set loss gradient like in the case of class imbalance
+(isValid=True) or training set loss gradient (isValid=False).
+As discussed in Section 2, we do the subset selection only
+every R epochs, and during the rest of the epochs, we update
+the model parameters (using Batch SGD) on the previously
+chosen set X t with associated weights wt. This ensures
+that the subset selection time in itself is negligible compared
+to the training time, thereby ensuring that the adaptive se-
+lection runs as fast as simple random selection. The full
+algorithm is shown in Algorithm 1. Line 9 of Algorithm 1 is
+the mini-batch SGD and takes as inputs the weights, subset
+of instances, learning rate, training loss, batch size, and the
+number of epochs. We randomly shufﬂe elements in the
+subset X t, divide them up into mini-batches of size B, and
+run mini-batch SGD with instance weights.
+
+Lines 3 and 5 in Algorithm 1 are the data subset selection
+steps, run either with the full training gradients or vali-
+dation gradients. We basically minimize the error term
+Err(wt, X t, L, LT , θt) with minor difference. Deﬁne the
+regularized version of Err(wt, X t, L, LT , θt) as:
+Errλ(w, X , L, LT , θt) =Err(w, X , L, LT , θt) + λ(cid:107)w(cid:107)2
+(1)
+
+The data selection optimization problem then is:
+
+wt, X t = argmin
+w,X :|X |≤k
+
+Errλ(w, X , L, LT , θt)
+
+(2)
+
+In Errλ(w, X , L, LT , θt), the ﬁrst term is the additional
+error term that adaptive subset algorithms have from the
+convergence analysis discussed in Section 2, and the second
+term is a squared l2 loss regularizer over the weight vector
+w with a regularization coefﬁcient λ to prevent overﬁtting
+by discouraging the assignment of large weights to individ-
+ual data instances or mini-batches. During data-selection,
+we select the weights wt and subset X t by optimizing equa-
+tion (2). To this end, we deﬁne:
+
+Eλ(X ) = min
+w
+
+Errλ(w, X , L, LT , θt)
+
+(3)
+
+Note that the optimization problem in Eq. (2) is equivalent to
+solving the optimization problem minX :|X |≤k Eλ(X ). The
+detailed optimization algorithm is presented in Section 3.1.
+
+GRAD-MATCH for mini-batch SGD: We now discuss an
+alternative formulation of GRAD-MATCH, speciﬁcally for
+mini-batch SGD. Recall from Theorem 1 and optimization
+problem (2), that in the case of full gradient descent or SGD,
+we select a subset of data points for the data selection. How-
+ever, mini-batch SGD is a combination of SGD and full
+gradient descent, where we randomly select a mini-batch
+and compute the full gradient on that mini-batch. To handle
+this, we consider a variant of GRAD-MATCH, which we
+refer to as GRAD-MATCHPB. Here we select a subset of
+mini-batches by matching the weighted sum of mini-batch
+training gradients to the full training loss (or validation loss)
+gradients. Once we select a subset of mini-batches, we
+train the neural network on the mini-batches, weighing each
+mini-batch by its corresponding weight. Let B be the batch
+size, bn = n/B as the total number of mini-batches, and
+bk = k/B as the number of batches to be selected. Let
+∇θLB1
+(θt) denote the mini-batch gradi-
+ents. The optimization problem is then to minimize EB
+λ (X ),
+which is deﬁned as:
+(cid:88)
+
+T (θt), · · · , ∇θLBbn
+
+t∇θLBi
+
+T (θt) − ∇θL(θt)(cid:107) + λ(cid:107)w(cid:107)2
+
+(cid:107)
+λ (X ) = min
+w
+
+EB
+
+wi
+
+T
+
+i∈X
+
+The constraint now is |X | ≤ bk, where X is a subset of mini-
+batches instead of being a subset of data points. The use of
+mini-batches considerably reduces the number of selection
+rounds during the OMP algorithm by a factor of B, result-
+ing in B× speed up. In our experiments, we compare the
+performance of GRAD-MATCH and GRAD-MATCHPB and
+show that GRAD-MATCHPB is considerably more efﬁcient
+while being comparable in performance. GRAD-MATCHPB
+is a simple modiﬁcation to lines 3 and 5 of Algorithm 1,
+where we send the mini-batch gradients instead of individual
+gradients to the orthogonal matching pursuit (OMP) algo-
+rithm (discussed in the next section). Further, we use the
+subset of mini-batches selected directly without any addi-
+tional shufﬂing or sampling in our current experiments. We
+will consider augmenting the selected mini-batch subsets
+with additional shufﬂing or including new mini-batches with
+augmented images in our future work.
+
+3.1. Orthogonal Matching Pursuit (OMP) algorithm
+
+We next study the optimization algorithm for solving equa-
+tion (2). Our objective is to minimize Eλ(X ) subject to
+the constraint X : |X | ≤ k. We can also convert this
+into a maximization problem. For that, deﬁne: Fλ(X ) =
+Lmax − minw Errλ(X , w, L, LT , θt). Note that we mini-
+mize Eλ(X ) subject to the constraint X : |X | ≤ k until
+Eλ(X ) ≤ (cid:15), where (cid:15) is the tolerance level. Note that mini-
+mizing Eλ is equivalent to maximizing Fλ. The following
+result shows that Fλ is weakly submodular.
+Theorem 2 If |X | ≤ k and maxi ||∇θLi
+Fλ(X ) is γ-weakly submodular, with γ ≥
+
+T (θt)||2 < ∇max, then
+
+λ
+
+λ+k∇2
+
+max
+
+We present the proof in Appendix B.4. Recall that a set
+
+GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+Algorithm 1 GRAD-MATCH Algorithm
+
+Require: Train set: U; validation set: V; initial subset: X (0);
+subset size: k; TOL: (cid:15); initial params: θ0; learning rate: α;
+total epochs: T , selection interval: R, Validation Flag: isValid,
+Batchsize: B
+
+Theorem 3 If the function Fλ(X ) is γ-weakly submodular, X ∗
+is the optimal subset and maxi ||∇θLi
+T (θt)||2 < ∇max, (both)
+the greedy algorithm and OMP (Algorithm 2), run with stop-
+ping criteria Eλ(X ) ≤ (cid:15) result in sets X such that |X | ≤
+|X ∗|
+γ
+
+(cid:1) where Lmax is an upper bound of Fλ .
+
+log (cid:0) Lmax
+
+(cid:15)
+
+if (t mod R == 0) and (isValid == 1) then
+
+X t, wt = OMP(LT , LV , θt, k, (cid:15))
+
+else if (t mod R == 0) and (isValid == 0) then
+
+X t, wt = OMP(LT , LT , θt, k, (cid:15))
+
+1: for epochs t in 1, · · · , T do
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10: end for
+11: Output ﬁnal model parameters θT
+
+X t = X t−1
+
+else
+
+end if
+θt+1 = BatchSGD(X t, wt, α, LT , B, Epochs = 1)
+
+Algorithm 2 OMP
+
+Require: Training loss LT , target loss: L, current parameters: θ,
+
+regularization coefﬁcient: λ, subset size: k, tolerance: (cid:15)
+X ← ∅
+r ← ∇wErrλ(X , w, L, LT , θ)|w=0
+while |X | ≤ k and Eλ(X ) ≥ (cid:15) do
+
+e = argmaxj|rj|
+X ← X ∪ {e}
+w ← argminwErrλ(X , w, L, LT , θ)
+r ← ∇wErrλ(X , w, L, LT , θ)
+
+end while
+return X , w
+
+function F : 2[n] → R is γ-weakly submodular (Gat-
+miry & Gomez-Rodriguez, 2018; Das & Kempe, 2011)
+if F (j|S) ≥ γF (j|T ), S ⊆ T ⊆ [n]. Since Fλ(X ) is ap-
+proximately submodular (Das & Kempe, 2011), a greedy
+algorithm (Nemhauser et al., 1978; Das & Kempe, 2011;
+Elenberg et al., 2018) admits a (1 − exp(−γ)) approxima-
+tion guarantee. While the greedy algorithm is very appeal-
+ing, it needs to compute the gain Fλ(j|X ), O(nk) number
+of times. Since computation of each gain involves solving a
+least squares problem, this step will be computationally ex-
+pensive, thereby defeating the purpose of data selection. To
+address this issue, we consider a slightly different algorithm,
+called the orthogonal matching pursuit (OMP) algorithm,
+studied in (Elenberg et al., 2018). We present OMP in
+Algorithm 2. In the corollary below, we provide the approx-
+imation guarantee for Algorithm 2.
+
+Corollary 1 Algorithm 2, when run with a cardinality constraint
+−λ
+|X | ≤ k returns a 1 − exp
+approximation for maxi-
+λ+k∇2
+mizing Fλ(X ) with X : |X | ≤ k.
+
+max
+
+(cid:16)
+
+(cid:17)
+
+The proof of this theorem is in Appendix B.5. Finally, we
+derive the convergence result for GRAD-MATCH as a corol-
+lary of Theorem 1. In particular, assume that by running
+OMP, we can achieve sets X t such that Eλ(X t) ≤ (cid:15), for all
+t = 1, · · · , T . If L is Lipschitz continuous, we obtain a con-
+vergence bound of mint L(θt)−L(θ∗) ≤ DσT√
++D(cid:15). In the
+T
+case of smooth or strongly convex functions, the result can
+be improved to O(1/T ). For example, with smooth func-
+tions, we have: mint L(θt) − L(θ∗) ≤ D2LT +2βT
++ D(cid:15).
+More details can be found in Appendix B.6.
+
+2T
+
+3.2. Connections to existing work
+
+Next, we discuss connections of GRAD-MATCH to existing
+approaches such as CRAIG and GLISTER, and contrast the
+resulting theoretical bounds. Let X be a subset of k data
+points from the training or validation set. Consider the
+expression for loss L(θ) = (cid:80)
+i∈W L(xi, yi, θ) so that L =
+LT when W = U and L = LV when W = V. Deﬁne
+ˆE(X ) to be:
+
+ˆE(X ) =
+
+(cid:88)
+
+i∈W
+
+min
+j∈X
+
+(cid:107)∇θLi(θt) − ∇θLj
+
+T (θt)(cid:107)
+
+(4)
+
+Note that ˆE(X ) is an upper bound for E(X ) (Mirza-
+soleiman et al., 2020a):
+
+E(X ) = min
+
+w
+
+Err(w, X , L, LT , θt) ≤ ˆE(X )
+
+(5)
+
+i∈W
+
+I(cid:2)j = arg mins∈X t(cid:107)∇θLi
+
+Given the set X t obtained by optimizing ˆE, the weight wt
+j
+associated with the jth point in the subset X t will be: wt
+j =
+(cid:80)
+T (θt)−∇θLs(θt)(cid:107)]. Note
+that we can minimize both sides with respect to a cardinality
+constraint X : |X | ≤ k; the right hand side of eqn. (5)
+is minimized when X is the set of k medoids (Kaufman
+et al., 1987) for all the components in the gradient space. In
+Appendix B.7, we prove the inequality (5), and also discuss
+the maximization version of this problem and how it relates
+to facility location. Similar to GRAD-MATCH, we also use
+the mini-Batch version for CRAIG (Mirzasoleiman et al.,
+2020a), which we refer to as CRAIGPB. Since CRAIGPB
+operates on a much smaller groundset (of mini-batches), it
+is much more efﬁcient than the original version of CRAIG.
+
+We can also ﬁnd the minimum sized subset such that the
+resulting error Eλ(X ) ≤ (cid:15). We note that this problem is
+essentially: minX |X | such that Fλ(X ) ≥ Lmax − (cid:15). This
+is a weakly submodular set cover problem, and the follow-
+ing theorem shows that a greedy algorithm (Wolsey, 1982)
+as well as OMP (Algorithm 2) with a stopping criterion
+Eλ(X ) ≤ (cid:15) achieve the following approximation bound:
+
+Next, we point out that a convergence bound, very similar
+to GRAD-MATCH can be shown for CRAIG as well. This
+result is new and different from the one shown in (Mirza-
+soleiman et al., 2020a) since it is for full GD and SGD, and
+not for incremental gradient descent algorithms discussed
+in (Mirzasoleiman et al., 2020a). If the subsets X t obtained
+by running CRAIG satisfy ˆE(X t) ≤ (cid:15), ∀t = 1, · · · , T , we
+
+GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+√
+
+can show O(1/
+T ) and O(1/T ) bounds (depending on the
+nature of the loss) with an additional (cid:15) term. However, the
+bounds obtained for CRAIG will be weaker than the one for
+GRAD-MATCH since ˆE is an upper bound of E. Hence, to
+achieve the same error, a potentially larger subset could be
+required for CRAIG in comparison to GRAD-MATCH.
+
+Finally, we also connect GRAD-MATCH to GLISTER (Kil-
+lamsetty et al., 2021). While the setup of GLISTER is differ-
+ent from GRAD-MATCH since it directly tries to optimize
+the generalization error via a bi-level optimization, the au-
+thors use a Taylor-series approximation to make GLISTER
+efﬁcient. The Taylor-series approximation can be viewed
+as being similar to maximizing the dot product between
+(cid:80)
+T (θt) and ∇θL(θt). Furthermore, GLISTER
+does not consider a weighted sum the way we do, and
+is therefore slightly sub-optimal. In our experiments, we
+show that GRAD-MATCH outperforms CRAIG and GLIS-
+TER across a number of deep learning datasets.
+
+i∈X ∇θLi
+
+4. Speeding up GRAD-MATCH
+
+In this section, we propose several implementational and
+practical tricks to make GRAD-MATCH scalable and efﬁ-
+cient (in addition to those discussed above). In particular,
+we will discuss various approximations to GRAD-MATCH
+such as running OMP per class, using the last layer of the
+gradients, and warm-start to the data selection.
+
+Last-layer gradients. The number of parameters in mod-
+ern deep models is very large, leading to very high dimen-
+sional gradients. The high dimensionality of gradients slows
+down OMP, thereby decreasing the efﬁciency of subset selec-
+tion. To tackle this problem, we adopt a last-layer gradient
+approximation similar to (Ash et al., 2020; Mirzasoleiman
+et al., 2020a; Killamsetty et al., 2021) by only consider-
+ing the last layer gradients for neural networks in GRAD-
+MATCH. This simple trick signiﬁcantly improves the speed
+of GRAD-MATCH and other baselines.
+
+Per-class and per-gradient approximations of GRAD-
+MATCH: To solve the GRAD-MATCH optimization prob-
+lem, we need to store the gradients of all instances in mem-
+ory, leading to high memory requirements for large datasets.
+In order to tackle this problem, we consider per-class and
+per-gradient approximation. We solve multiple gradient
+matching problems using per-class approximation - one for
+each class by only considering the data instances belonging
+to that class. The per-class approximation was also adopted
+in (Mirzasoleiman et al., 2020a). To further reduce the mem-
+ory requirements, we additionally adopt the per-gradient
+approximation by considering only the corresponding last
+linear layer’s gradients for each class. The per-gradient and
+per-class approximations not only reduce the memory usage,
+but also signiﬁcantly speed up (reduce running time of) the
+data selection itself. By default, we use the per-class and
+per-gradient approximation, with the last layer gradients
+
+and we will call this algorithm GRAD-MATCH. We do not
+need these approximations for GRAD-MATCHPB since it
+is on a much smaller ground-set (mini-batches instead of
+individual items).
+
+Warm-starting data selection: For each of the algorithms
+we consider in this paper (i.e., GRAD-MATCH, GRAD-
+MATCHPB, CRAIG, CRAIGPB, and GLISTER), we also
+consider a warm-start variant, where we run Tf epochs of
+full training. We set Tf in a way such that the number of
+epochs Ts with the subset of data is a fraction κ of the total
+number of epochs, i.e., Ts = κT and Tf = Tsk
+n , where k
+is the subset size. We observe that doing full training for
+the ﬁrst few epochs helps obtain good warm-start models,
+resulting in much better convergence. Setting Tf to a large
+value yields results similar to the full training with early
+stopping (which we use as one of our baselines) since there
+is not enough data-selection.
+
+Other speedups: We end this section by reiterating two im-
+plementation tricks already discussed in Section 3, namely,
+doing data selection every R epochs (in our experiments, we
+set R = 20, but also study the effect of the choice of R), and
+the per-batch (PB) versions of CRAIG and GRAD-MATCH.
+
+5. Experiments
+
+Our experiments aim to demonstrate the stability and efﬁ-
+ciency of GRAD-MATCH. While in most of our experiments,
+we study the tradeoffs between accuracy and efﬁciency
+(time/energy), we also study the robustness of data-selection
+under class imbalance. For most data selection experiments,
+we use the full loss gradients (i.e., L = LT ). As an excep-
+tion, in the case of class imbalance, following (Killamsetty
+et al., 2021), we use L = LV (i.e., we assume access to a
+clean validation set).
+
+Baselines in each setting. We compare the variants
+of our proposed algorithm (i.e., GRAD-MATCH, GRAD-
+MATCHPB, GRAD-MATCH-WARM, GRAD-MATCHPB-
+WARM) with variants of CRAIG (Mirzasoleiman et al.,
+2020a) (i.e., CRAIG, CRAIGPB, CRAIG-WARM, CRAIGPB-
+WARM), and variants of GLISTER (Killamsetty et al., 2021)
+(i.e., GLISTER, GLISTER-WARM). Additionally, we com-
+pare against RANDOM (i.e., randomly select points equal to
+the budget), and FULL-EARLYSTOP, where we do an early
+stop to full training to match the time taken (or energy used)
+by the subset selection.
+
+Datasets, model architecture and experimental setup:
+To demonstrate the effectiveness of GRAD-MATCH and
+its variants on real-world datasets, we performed experi-
+ments on CIFAR100 (60000 instances) (Krizhevsky, 2009),
+MNIST (70000 instances) (LeCun et al., 2010), CIFAR10
+(60000 instances) (Krizhevsky, 2009), SVHN (99,289 in-
+stances) (Netzer et al., 2011), and ImageNet-2012 (1.4 Mil-
+lion instances) (Russakovsky et al., 2015) datasets. Wher-
+ever the datasets do not have a pre-speciﬁed validation set,
+
+GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+(a) CIFAR100
+
+(b) MNIST
+
+(c) CIFAR10
+
+(d) SVHN
+
+(e) ImageNet
+
+(f) CIFAR10 Imbalance
+
+(g) MNIST Imbalance
+
+(h) CIFAR100 Energy
+
+(i) CIFAR10 Energy
+
+(j) CIFAR100 Convergence
+
+(k) CIFAR100 Ext. Convergence
+
+(l) CIFAR10 (MobileNet)
+
+Figure 3. Sub-ﬁgures (a-g) show speedup vs relative error in % tradeoff (both log-scale) of different algorithms. In each scatter plot,
+smaller subsets are on the left, and larger ones are on the right. Results are shown for (a) CIFAR-100, (b) MNIST, (c) CIFAR-10, (d)
+SVHN, (e) ImageNet, (f) CIFAR-10 imbalance, and (g) MNIST imbalance. Sub-ﬁgures (h, i) show energy gains vs. relative error for
+CIFAR-100 and CIFAR-10. Sub-ﬁgure (j) shows a convergence plot of different strategies at 30% subset of CIFAR-100. Sub-ﬁgure (k)
+shows an extended convergence plot of GRAD-MATCHPB-WARM at 30% subset of CIFAR-100 by running it for more epochs. Sub-ﬁgure
+(l) shows results of GRAD-MATCHPB-WARM using ResNet18 and Full training using MobileNet-V1 and MobileNet-V2 models on the
+CIFAR-10 dataset. In every case, the speedups & energy ratios are computed w.r.t full training. Variants of GRAD-MATCH achieve best
+speedup-accuracy tradeoff (bottom-right in each scatter plot represents best speedup-accuracy tradeoff region) in almost all cases.
+
+we split the original training set into a new train (90%) and
+validation sets (10%). We ran experiments using an SGD
+optimizer with an initial learning rate of 0.01, a momentum
+of 0.9, and a weight decay of 5e-4. We decay the learning
+rate using cosine annealing (Loshchilov & Hutter, 2017) for
+each epoch. For MNIST, we use the LeNet model (LeCun
+et al., 1989) and train the model for 200 epochs. For all
+other datasets, we use the ResNet18 model (He et al., 2016)
+and train the model for 300 epochs (except for ImageNet,
+where we train the model for 350 epochs). In most of our
+experiments, we train the data selection algorithms (and full
+training) using the same number of epochs; the only differ-
+ence is that each epoch is much smaller with smaller subsets,
+thereby enabling speedups/energy savings. We consider one
+additional experiment where we run GRAD-MATCHPB-
+WARM for 50 more epochs to see how quickly it achieves
+comparable accuracy to full training. All experiments were
+run on V100 GPUs. Furthermore, the accuracies reported
+in the results are mean accuracies after ﬁve runs, and the
+
+standard deviations are given in Appendix C.5. More details
+are in Appendix C.
+
+Data selection setting: Since the goal of our experiments
+is efﬁciency, we use smaller subset sizes. For MNIST, we
+use sizes of [1%, 3%, 5%, 10%], for ImageNet-2012 we use
+[5%, 10%, 30%], while for the others, we use [5%, 10%,
+20%, 30%]. For the warm versions, we set κ = 1/2 (i.e.
+50% warm-start and 50% data selection). Also, we set R =
+20 in all experiments. In our ablation study experiments, we
+study the effect of varying R and κ.
+
+Speedups and energy gains compared to full training:
+In Figures 3a,3b,3c,3d,3e, we present scatter plots of rela-
+tive error vs. speedups, both w.r.t full training. Figures 3h,3i
+show scatter plots of relative error vs. energy efﬁciency,
+again w.r.t full training. In each case, we also include the
+cost of subset selection and subset training while computing
+the wall-clock time or energy consumed. For calculating the
+
+RANDOMRANDOM-WARMFULLFULL-EarlystopGLISTERGLISTER-WARMCRAIGCRAIG-WARMCRAIGPBCRAIGPB-WARMGRAD-MATCHGRAD-MATCH-WARMGRAD-MATCHPBGRAD-MATCHPB-WARM2.551015SpeedUp→407.51Rel.TestError→2.551530100SpeedUp→510.1Rel.TestError→2.551015SpeedUp→207.52.51Rel.TestError→2.551015SpeedUp→7.52.50.50.1Rel.TestError→2.551015SpeedUp→257.52.5Rel.TestError→2.551015SpeedUp→407.510.1Rel.TestError→2.551015SpeedUp→-10125Rel.TestError→2.551015EnergyRatio→407.51Rel.TestError→2.551015EnergyRatio→207.52.51Rel.TestError→012345Timetaken(inHrs)→204060TestAccuracy→012345Timetaken(inHrs)→204060TestAccuracy→*2.5510SpeedUp→1052.51Rel.TestError→MobileNetV1MobileNetV2GradMatchPB-Warm(5%)GradMatchPB-Warm(10%)GradMatchPB-Warm(20%)GradMatchPB-Warm(30%)GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+(a) R analysis
+
+(b) Optimal R
+
+(c) PB vs Non-PB
+
+(d) Warm vs Non-Warm
+
+(e) CIFAR10 Varying Imbalance
+
+(f) Kappa Analysis
+
+(g) λ Analysis(CIFAR10, 10%)
+
+Figure 4. Sub-ﬁgure (a) compares the effect of varying R (5, 10 and 20) for different strategies (5% CIFAR-100). Sub-ﬁgure (b) compares
+R = 5 with a 5% subset (circles) and R = 20 with 10% subset (squares) showing that the latter is more efﬁcient and accurate. Sub-ﬁgure
+(c) compares the per-batch (PB) versions with non-PB versions showing that the former has a better accuracy-efﬁciency trade-off.
+Sub-ﬁgure (d) compares the warm-start variants with the variants without warm-start for different subset sizes of CIFAR-100. Sub-ﬁgure
+(e) shows the performance of different selection strategies for 30% CIFAR-10 with varying percentages of imbalanced classes: 30%, 60%,
+and 90%. GRAD-MATCH-WARM outperforms all baselines, including full training (which under-performs due to a high imbalance).
+Sub-ﬁgure (f) shows the effect of the warm-start parameter κ for CIFAR-100. Sub-ﬁgure (g) shows the effect of the regularization
+parameter λ on GRAD-MATCH and its variants for 10% CIFAR-10.
+
+energy consumed by the GPU/CPU cores, we use pyJoules1.
+As a ﬁrst takeaway, we note that GRAD-MATCH and its
+variants, achieve signiﬁcant speedup (single GPU) and en-
+ergy savings when compared to full training. In particular
+(c.f., Figure 1) for CIFAR-10, GRAD-MATCHPB-WARM
+achieves a 7x, 4.2x and 3x speedup and energy gains (with
+10%, 20%, 30% subsets) with an accuracy drop of only
+2.8%, 1.5% and 0.9% respectively. For CIFAR-100, GRAD-
+MATCHPB-WARM achieves a 4.8x and 3x speedup with an
+accuracy loss of 2.1% and 0.7% respectively, while for Ima-
+geNet, (30% subset), GRAD-MATCHPB-WARM achieves
+a 3x speedup with an accuracy loss of 1.3%. The gains are
+even more signiﬁcant for MNIST.
+
+Comparison to other baselines:
+GRAD-MATCHPB-
+WARM not only outperforms random selection and FULL-
+EARLYSTOP consistently, but also outperforms variants
+of CRAIG, CRAIGPB, and GLISTER. Furthermore, GLIS-
+TER and CRAIG could not run on ImageNet due to large
+memory requirements and running time. GRAD-MATCH,
+GRAD-MATCHPB, and CRAIGPB were the only variants
+which could scale to ImageNet. Furthermore, GLISTER
+and CRAIG also perform poorly on CIFAR-100. We see
+that GRAD-MATCHPB-WARM almost consistently achieves
+best speedup-accuracy tradeoff (i.e., the bottom right of
+the plots) on all datasets. We note that the performance
+
+1https://pypi.org/project/pyJoules/.
+
+gain provided by the variants of GRAD-MATCH com-
+pared to other baselines like GLISTER, CRAIG and FULL-
+EARLYSTOP is statistically signiﬁcant (Wilcoxon signed-
+rank test (Wilcoxon, 1992) with a p value = 0.01). More
+details on the comparison (along with a detailed table of
+numbers) are in Appendix C.
+
+Convergence and running time: Next, we compare the
+end-to-end training performance through a convergence
+plot. We plot test-accuracy versus training time in Figure 3j.
+The plot shows that GRAD-MATCH and speciﬁcally GRAD-
+MATCHPB-WARM is more efﬁcient compared to other al-
+gorithms (including variants of GLISTER and CRAIG), and
+also converges faster than full training. Figure 3k shows the
+extended convergence of GRAD-MATCHPB-WARM on 30%
+CIFAR-100 subset, where the GRAD-MATCH is allowed to
+train for as few more epochs to achieve comparable accu-
+racy with Full training at the cost of losing some efﬁciency.
+The results show that GRAD-MATCHPB-WARM achieves
+similar performance to full training while being 2.5x faster,
+after running for just 30 to 50 additional epochs. Note that
+the points marked by * in Figure 3k denotes the standard
+training endpoint (i.e., 300 epochs) used for all experiments
+using CIFAR-100.
+
+Comparison to smaller models: We compare the
+speedups achieved by GRAD-MATCH to the speedups
+achieved using smaller models for training to understand the
+
+RANDOMRANDOM-WARMFULLFULL-EarlystopGLISTERGLISTER-WARMCRAIGCRAIG-WARMCRAIGPBCRAIGPB-WARMGRAD-MATCHGRAD-MATCH-WARMGRAD-MATCHPBGRAD-MATCHPB-WARM2.551015SpeedUp→402010Rel.TestError→2.5510SpeedUp→2015107.5Rel.TestError→2.551015SpeedUp→40207.52.5Rel.TestError→CIFAR100(5%)CIFAR100(10%)CIFAR100(20%)CIFAR100(30%)20406080TestAccuracy→306090Classimbalance%→75808590TestAccuracy→16131223561κValue→606570TestAccuracy→00.250.50.751Lambda(λ)Value→8990919293Val.Accuracy→00.250.50.751Lambda(λ)Value→2021OMPTime(inSecs)→GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+importance of data subset selection. We perform additional
+experiments (c.f., Figure. 3l) on the CIFAR-10 dataset using
+MobileNet-V1 and MobileNet-V2 models as two proxies
+for small models. The results show that GRAD-MATCHPB-
+WARM outperforms the smaller models on both test accu-
+racy and speedup (e.g., MobileNetV2 achieves less than 2x
+speedup with 1% accuracy drop).
+
+Data selection with class imbalance: We check the ro-
+bustness of GRAD-MATCH and its variants for generaliza-
+tion by comparing the test accuracies achieved on a clean
+test dataset when class imbalance is present in the training
+dataset. Following (Killamsetty et al., 2021), we form a
+dataset by making 30% of the classes imbalanced by reduc-
+ing the number of data points by 90%. We present results
+on CIFAR10 and MNIST in Figures 3f,3g respectively. We
+use the (clean) validation loss for gradient matching in the
+class imbalance scenario since the training data is biased.
+The results show that GRAD-MATCH and its variants out-
+perform other baselines in all cases except for the 30%
+MNIST case (where GLISTER, which also uses a clean val-
+idation set, performs better). Furthermore, in the case of
+MNIST with imbalance, GRAD-MATCH-WARM even out-
+performs training on the entire dataset. Figure 4e shows the
+performance on 10% CIFAR-10 with varying percentages
+of imbalanced classes: 30% (as shown in Figure 3f), 60%
+and 90%. Grad-Match-Warm outperforms all baselines, in-
+cluding full training (which under-performs due to a high
+imbalance). The trend is similar when we vary the degree
+of imbalance as well.
+
+Ablation study results. Next, we study the effect of
+R, per-batch gradients, warm-start, λ, κ and other hyper-
+parameters. We start with the effect of R on the performance
+of GRAD-MATCH and its variants. We study the result on
+CIFAR-100 dataset at 5% subset for varying values of R
+(5,10,20) in the Figure 4a (with leftmost point correspond-
+ing to R=5 and the rightmost to R=20).The ﬁrst takeaway
+is that, as expected, GRAD-MATCH and its variants outper-
+form other baselines for different R values. Secondly, this
+also helps us understand the accuracy-efﬁciency trade-off
+with different values of R. From Figure 4b, we see that
+a 10% subset with R = 20 yields accuracy similar to a
+5% subset with R = 5. However, across the different al-
+gorithms, we observe that R = 20 is more efﬁcient (from
+a time perspective) because of fewer subset selection runs.
+We then compare the PB variants of CRAIG and GRAD-
+MATCH with their non-PB variants (c.f., Figure 4c). We
+see that the PB versions are efﬁcient and lie consistently
+to the bottom right (, i.e., lesser relative test accuracy and
+higher speedups) than non-PB counterparts. One of the
+main reasons for this is that the subset selection time for the
+PB variants is almost half that of the non-PB variant (c.f.,
+Appendix C.4), with similar relative errors. Next, we study
+the effect of warm-start along with data selection. As shown
+in Figure 4d, warm-start, in the beginning, helps the model
+come to a reasonable starting point for data selection, some-
+
+thing which just random sets do not offer. We also observe
+that the effect of warm-start is more signiﬁcant for smaller
+subset sizes (compared to larger sizes) in achieving large
+accuracy gains compared to the non-warm start versions.
+Figure 4f shows the effect of varying κ (i.e., the warm-start
+fraction) for 10% of CIFAR-100. We observe that setting
+κ = 1
+2 generally performs the best. Setting a small value of
+κ leads to sub-optimal performance because of not having a
+good starting point, while with larger values of κ we do not
+have enough data selection and get results closer to the early
+stopping. The regularization parameter λ prevents OMP
+from over-ﬁtting (e.g., not assigning large weights to indi-
+vidual samples or mini-batches) since the subset selection is
+performed only every 20 epochs. Hence variants of GRAD-
+MATCH performs poorly for small lambda values (e.g., λ=0)
+as shown in Figure. 4g. Similarly, GRAD-MATCH and its
+variants perform poorly for large λ values as the OMP al-
+gorithm performs sub-optimally due to stronger restrictions
+on the possible sample weights. In our experiments, we
+found that λ = 0.5 achieves the accuracy and efﬁciency
+(c.f., Figure. 4g), and this holds consistently across subset
+sizes and datasets. Furthermore, we observed that (cid:15) does
+not signiﬁcantly affect the performance of GRAD-MATCH
+and its variants as long as (cid:15) is small (e.g., (cid:15) ≤ 0.01).
+
+6. Conclusions
+
+We introduce a Gradient Matching framework GRAD-
+MATCH, which is inspired by the convergence analysis of
+adaptive data selection strategies. GRAD-MATCH optimizes
+an error term, which measures how well the weighted sub-
+set matches either the full gradient or the validation set
+gradients. We study the algorithm’s theoretical properties
+(convergence rates and approximation bounds, connections
+to weak-submodularity) and ﬁnally demonstrate our algo-
+rithm’s efﬁcacy by demonstrating that it achieves the best
+speedup-accuracy trade-off and is more energy-efﬁcient
+through experiments on several datasets.
+
+Acknowledgements
+
+We thank anonymous reviewers, Baharan Mirzasoleiman
+and Nathan Beck for providing constructive feedback.
+Durga Sivasubramanian is supported by the Prime Minis-
+ter’s Research Fellowship. Ganesh and Abir are also grateful
+to IBM Research, India (speciﬁcally the IBM AI Horizon
+Networks - IIT Bombay initiative) for their support and spon-
+sorship. Abir also acknowledges the DST Inspire Award
+and IITB Seed Grant. Rishabh acknowledges UT Dallas
+startup funding grant.
+
+References
+
+Ash, J. T., Zhang, C., Krishnamurthy, A., Langford, J.,
+and Agarwal, A. Deep batch active learning by diverse,
+uncertain gradient lower bounds. In ICLR, 2020.
+
+GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+Campbell, T. and Broderick, T. Bayesian coreset construc-
+tion via greedy iterative geodesic ascent. In International
+Conference on Machine Learning, pp. 698–706, 2018.
+
+Killamsetty, K., Sivasubramanian, D., Ramakrishnan, G.,
+and Iyer, R. Glister: Generalization based data subset
+selection for efﬁcient and robust learning. In AAAI, 2021.
+
+Clarkson, K. L. Coresets, sparse greedy approximation,
+and the frank-wolfe algorithm. ACM Transactions on
+Algorithms (TALG), 6(4):1–30, 2010.
+
+Coleman, C., Yeh, C., Mussmann, S., Mirzasoleiman, B.,
+Bailis, P., Liang, P., Leskovec, J., and Zaharia, M. Selec-
+tion via proxy: Efﬁcient data selection for deep learning,
+2020.
+
+Das, A. and Kempe, D. Submodular meets spectral: Greedy
+algorithms for subset selection, sparse approximation and
+dictionary selection. arXiv preprint arXiv:1102.3975,
+2011.
+
+Elenberg, E. R., Khanna, R., Dimakis, A. G., Negahban,
+S., et al. Restricted strong convexity implies weak sub-
+modularity. The Annals of Statistics, 46(6B):3539–3568,
+2018.
+
+Feldman, D. Core-sets: Updated survey.
+
+In Sampling
+Techniques for Supervised or Unsupervised Tasks, pp.
+23–44. Springer, 2020.
+
+Fujishige, S. Submodular functions and optimization. Else-
+
+vier, 2005.
+
+Gatmiry, K. and Gomez-Rodriguez, M. Non-submodular
+function maximization subject to a matroid constraint,
+with applications. arXiv preprint arXiv:1811.07863,
+2018.
+
+Har-Peled, S. and Mazumdar, S. On coresets for k-means
+and k-median clustering. In Proceedings of the thirty-
+sixth annual ACM symposium on Theory of computing,
+pp. 291–300, 2004.
+
+He, K., Zhang, X., Ren, S., and Sun, J. Deep residual learn-
+ing for image recognition. In Proceedings of the IEEE
+conference on computer vision and pattern recognition,
+pp. 770–778, 2016.
+
+Jia, X., Song, S., He, W., Wang, Y., Rong, H., Zhou, F.,
+Xie, L., Guo, Z., Yang, Y., Yu, L., et al. Highly scal-
+able deep learning training system with mixed-precision:
+arXiv preprint
+Training imagenet in four minutes.
+arXiv:1807.11205, 2018.
+
+Kaufman, L., Rousseeuw, P., and Dodge, Y. Clustering by
+means of medoids in statistical data analysis based on the,
+1987.
+
+Kaushal, V., Iyer, R., Kothawade, S., Mahadev, R., Doctor,
+K., and Ramakrishnan, G. Learning from less data: A uni-
+ﬁed data subset selection and active learning framework
+for computer vision. In 2019 IEEE Winter Conference on
+Applications of Computer Vision (WACV), pp. 1289–1299.
+IEEE, 2019.
+
+Kirchhoff, K. and Bilmes, J. Submodularity for data selec-
+tion in machine translation. In Proceedings of the 2014
+Conference on Empirical Methods in Natural Language
+Processing (EMNLP), pp. 131–141, 2014.
+
+Krizhevsky, A. Learning multiple layers of features from
+
+tiny images. Technical report, 2009.
+
+LeCun, Y., Boser, B., Denker, J. S., Henderson, D., Howard,
+R. E., Hubbard, W., and Jackel, L. D. Backpropaga-
+tion applied to handwritten zip code recognition. Neural
+computation, 1(4):541–551, 1989.
+
+LeCun, Y., Cortes, C., and Burges, C. Mnist hand-
+written digit database. ATT Labs [Online]. Available:
+http://yann.lecun.com/exdb/mnist, 2, 2010.
+
+Loshchilov, I. and Hutter, F. Sgdr: Stochastic gradient
+
+descent with warm restarts, 2017.
+
+Mirzasoleiman, B., Karbasi, A., Badanidiyuru, A., and
+Krause, A. Distributed submodular cover: Succinctly
+summarizing massive data. In Advances in Neural Infor-
+mation Processing Systems, pp. 2881–2889, 2015.
+
+Mirzasoleiman, B., Bilmes, J., and Leskovec, J. Coresets
+for data-efﬁcient training of machine learning models,
+2020a.
+
+Mirzasoleiman, B., Cao, K., and Leskovec, J. Coresets for
+robust training of neural networks against noisy labels.
+arXiv preprint arXiv:2011.07451, 2020b.
+
+Nemhauser, G. L., Wolsey, L. A., and Fisher, M. L. An
+analysis of approximations for maximizing submodular
+set functions—i. Mathematical programming, 14(1):265–
+294, 1978.
+
+Netzer, Y., Wang, T., Coates, A., Bissacco, A., Wu, B.,
+and Ng, A. Y. Reading digits in natural images with
+unsupervised feature learning. 2011.
+
+Paszke, A., Gross, S., Chintala, S., Chanan, G., Yang, E.,
+DeVito, Z., Lin, Z., Desmaison, A., Antiga, L., and Lerer,
+A. Automatic differentiation in pytorch. 2017.
+
+Russakovsky, O., Deng, J., Su, H., Krause, J., Satheesh, S.,
+Ma, S., Huang, Z., Karpathy, A., Khosla, A., Bernstein,
+M., Berg, A. C., and Fei-Fei, L. ImageNet Large Scale
+Visual Recognition Challenge. International Journal of
+Computer Vision (IJCV), 115(3):211–252, 2015. doi:
+10.1007/s11263-015-0816-y.
+
+Schwartz, R., Dodge, J., Smith, N. A., and Etzioni, O. Green
+
+ai. arXiv preprint arXiv:1907.10597, 2019.
+
+GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient Training
+
+Settles,
+
+B.
+
+2012.
+
+doi:
+
+10.2200/
+
+S00429ED1V01Y201207AIM018.
+
+Sharir, O., Peleg, B., and Shoham, Y. The cost of train-
+ing nlp models: A concise overview. arXiv preprint
+arXiv:2004.08900, 2020.
+
+Strubell, E., Ganesh, A., and McCallum, A. Energy and
+policy considerations for deep learning in nlp. arXiv
+preprint arXiv:1906.02243, 2019.
+
+Toneva, M., Sordoni, A., des Combes, R. T., Trischler, A.,
+Bengio, Y., and Gordon, G. J. An empirical study of
+example forgetting during deep neural network learning.
+In International Conference on Learning Representations,
+2019. URL https://openreview.net/forum?
+id=BJlxm30cKm.
+
+Wang, Y., Jiang, Z., Chen, X., Xu, P., Zhao, Y., Lin,
+Y., and Wang, Z. E2-train: Training state-of-the-art
+cnns with over 80% energy savings. arXiv preprint
+arXiv:1910.13349, 2019.
+
+Wei, K., Iyer, R., and Bilmes, J. Fast multi-stage submodular
+maximization. In International conference on machine
+learning, pp. 1494–1502. PMLR, 2014a.
+
+Wei, K., Liu, Y., Kirchhoff, K., Bartels, C., and Bilmes,
+J. Submodular subset selection for large-scale speech
+training data. In 2014 IEEE International Conference on
+Acoustics, Speech and Signal Processing (ICASSP), pp.
+3311–3315. IEEE, 2014b.
+
+Wei, K., Liu, Y., Kirchhoff, K., and Bilmes, J. Unsu-
+pervised submodular subset selection for speech data.
+In 2014 IEEE International Conference on Acoustics,
+Speech and Signal Processing (ICASSP), pp. 4107–4111.
+IEEE, 2014c.
+
+Wei, K., Iyer, R., and Bilmes, J. Submodularity in data
+In International
+subset selection and active learning.
+Conference on Machine Learning, pp. 1954–1963, 2015.
+
+Wilcoxon, F. Individual comparisons by ranking methods.
+In Breakthroughs in statistics, pp. 196–202. Springer,
+1992.
+
+Wolf, G. W. Facility location: concepts, models, algorithms
+and case studies. series: Contributions to management
+science: edited by zanjirani farahani, reza and hekmat-
+far, masoud, heidelberg, germany, physica-verlag, 2009,
+2011.
+
+Wolsey, L. A. An analysis of the greedy algorithm for the
+submodular set covering problem. Combinatorica, 2(4):
+385–393, 1982.

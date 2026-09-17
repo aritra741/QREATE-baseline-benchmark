@@ -1,0 +1,2262 @@
+Coresets over Multiple Tables for Feature-rich and Data-eicient
+Machine Learning
+
+Jiayi Wang
+Tsinghua University
+jiayi-wa20@mails.tsinghua.edu.cn
+
+Chengliang Chai
+Tsinghua University
+ccl@tsinghua.edu.cn
+
+Nan Tang
+QCRI
+ntang@hbku.edu.qa
+
+Jiabin Liu
+Tsinghua University
+liujb19@mails.tsinghua.edu.cn
+
+Guoliang Li
+Tsinghua University
+liguoliang@tsinghua.edu.cn
+
+ABSTRACT
+Successful machine learning (ML) needs to learn from good data.
+However, one common issue about train data for ML practitioners
+is the lack of good features. To mitigate this problem, feature aug-
+mentation is often employed by joining with (or enriching features
+from) multiple tables, so as to become feature-rich ML. A conse-
+quent problem is that the enriched train data may contain too many
+tuples, especially if the feature augmentation is obtained through
+1 (or many)-to-many or fuzzy joins. Training an ML model with a
+very large train dataset is data-inecient. Coreset is often used to
+achieve data-ecient ML training, which selects a small subset of
+train data that can theoretically and practically perform similarly
+as using the full dataset. However, coreset selection over a large
+train dataset is also known to be time-consuming.
+
+In this paper, we aim at achieving both feature-rich ML through
+feature augmentation and data-ecient ML through coreset se-
+lection. In order to avoid time-consuming coreset selection over
+a feature augmented (or fully materialized) table, we propose to
+eciently select the coreset without materializing the augmented
+table. Note that coreset selection typically uses weighted gradients
+of the subset to approximate the full gradient of the entire train
+dataset. Our key idea is that the gradient computation for coreset
+selection of the augmented table can be pushed down to partial
+feature similarity of tuples within each individual table, without
+join materialization. These partial feature similarity values can be
+aggregated to estimate the gradient of the augmented table, which
+is upper bounded with provable theoretical guarantees. Extensive
+experiments show that our method can improve the eciency by
+nearly 2 orders of magnitudes, while keeping almost the same ac-
+curacy as training with the fully augmented train data.
+
+PVLDB Reference Format:
+Jiayi Wang, Chengliang Chai, Nan Tang, Jiabin Liu, and Guoliang Li.
+Coresets over Multiple Tables for Feature-rich and Data-ecient Machine
+Learning . PVLDB, 16(1): 64 - 76, 2022.
+doi:10.14778/3561261.3561267
+
+Chengliang Chai and Guoliang Li are the corresponding authors.
+This work is licensed under the Creative Commons BY-NC-ND 4.0 International
+License. Visit https://creativecommons.org/licenses/by-nc-nd/4.0/ to view a copy of
+this license. For any use beyond those covered by this license, obtain permission by
+emailing info@vldb.org. Copyright is held by the owner/author(s). Publication rights
+licensed to the VLDB Endowment.
+Proceedings of the VLDB Endowment, Vol. 16, No. 1 ISSN 2150-8097.
+doi:10.14778/3561261.3561267
+
+Figure 1: Feature-rich ML through feature augmentation.
+
+PVLDB Artifact Availability:
+The source code, data, and/or other artifacts have been made available at
+https://github.com/for0nething/RECON.
+
+1 INTRODUCTION
+Feature-rich machine learning (ML) [14, 15, 29, 35] means that ML
+models are trained with enough and good features. Given train
+data, data-ecient ML [3, 4, 39] aims at training ML models faster
+without sacricing the model accuracy. Putting them together, the
+goal is to eciently train robust ML models.
+
+For achieving feature-rich ML, the widely used practice is to
+enrich features by joining a base table with multiple tables, a.k.a. fea-
+ture augmentation [12, 15, 30].
+
+Example 1. [Feature-rich ML through Feature Augmentation.]
+Consider an ML task that predicts the Score value of a movie based
+on attributes (i.e., features) MovieID, Title, Length and BoxOffice,
+as shown in the Movie table in Figure 1(a). Intuitively, because many
+important features are missing, such as the features of directors and
+the actors of a movie, it is hard to train a good ML model.
+
+Consider four tables Direct, Person, Production and Company,
+which can be joined, directly or indirectly, with the Movie table through
+predened joins, as shown in Figure 1(a). The primary key of each
+table is annotated with an underline (e.g., MovieID for table Movie).
+These tables can be joined with either 1-to-1 relationship or 1-to-many
+(i.e., 1-to-∗) relationship. The feature-rich table with new features
+augmented through joins, denoted by Movie+, is shown in Figure 1(b).
+
+For data-ecient ML, besides traditional methods (e.g., stochas-
+tic gradient descent and its variants), there are many recent eorts
+on selecting a train data subset that can theoretically and practically
+perform on par with the full dataset, a.k.a. coresets [18, 41].
+
+64
+
+MovieMovieIDTitleLengthBoxOﬃceScorePersonIDMovieIDCompnayIDMovieIDPersonIDNameAgeAverageScoreTotalBoxOﬃceCompnayIDCountryAverageScoreEmployeeNumberTotalBoxOﬃceDirectProductionPersonCompany1**1111Movie+MovieIDTitleLengthBoxOﬃceScorePersonIDNameAgePerson_AverageScorePerson_TotalBoxOﬃceCompanyIDCountryCompany_AverageScoreCompany_EmployeeNumberCompany_TotalBoxOﬃceAugmentedFeatures(a) Base table Movie and other four tables, Direct, Person, Production and Company, that can be used to augment the feature of Movie(b) Feature augmented table Movie+<latexit sha1_base64="eDp8DFc5EXuxqDBUKqz30VPNB7c=">AAAB8nicdVDLSsNAFJ3UV62vqks3g0VwVZI21LgrunFZxT4gLWUynbRDJ5kwc6OU0M9w40IRt36NO//G6UNQ0QMXDufcy733BIngGmz7w8qtrK6tb+Q3C1vbO7t7xf2DlpapoqxJpZCqExDNBI9ZEzgI1kkUI1EgWDsYX8789h1Tmsv4FiYJ60VkGPOQUwJG8rs3fDgCopS87xdLdtmzq55XwXbZnsMQt1pzvXPsLJUSWqLRL753B5KmEYuBCqK179gJ9DKigFPBpoVuqllC6JgMmW9oTCKme9n85Ck+McoAh1KZigHP1e8TGYm0nkSB6YwIjPRvbyb+5fkphF4v43GSAovpYlGYCgwSz/7HA64YBTExhFDFza2YjogiFExKBRPC16f4f9KqlJ1a2b12S/WLZRx5dISO0Sly0BmqoyvUQE1EkUQP6Ak9W2A9Wi/W66I1Zy1nDtEPWG+f7veRtQ==</latexit>)Base Table 𝑇 + Multiple Tables for Augmentation
+
+feature augmentation
+through joins
+(accuracy: high)
+
+without materializing the
+augmented table
+(accuracy: high)
+(latency: low)
+
+Augmented Table 𝑇 + coreset (latency: high)
+Figure 2: Various design choices.
+
+(cid:47) 𝐶 (𝑇 +)
+
+Figure 3: Comparison of various design choices.
+
+In order to achieve both feature-rich and data-ecient ML, an
+intuitive solution is to rst conduct feature augmentation through
+joins across multiple relational tables, followed by performing core-
+set selection over the train data with enriched features. In Figure 2,
+this strategy is depicted by rst following the “⇒” arrow from the
+base table 𝑇 and then the “→” arrow.
+
+Before we discuss the problem we study in this paper, let’s ana-
+lyze the benets and limitations of the aforementioned strategies,
+using real experiments (see more details in § 6).
+
+Example 2. [Benets and Limitations of Existing Strategies.]
+
+Please refer to Figure 3 for the following discussions.
+
+Train with the Base Table. If we train an ML model using the base
+table 𝑇 for a multi-classication task, we can achieve an accuracy
+0.61 (Figure 3(a)–(cid:202)) and use 11 minutes for training (Figure 3(b)–(cid:202)).
+We consider this as a baseline.
+Train with the Coreset. If we rst compute the coreset 𝐶 (𝑇 ) of the
+base table 𝑇 , and then train an ML model using the computed core-
+set, we can also achieve an accuracy 0.61 (Figure 3(a)–(cid:203)) but use 2
+minutes in total for selecting the coreset and training with the coreset
+(Figure 3(b)–(cid:203)). This shows that using coreset can signicantly reduce
+the training time without sacricing the accuracy.
+
+Train with the Augmented Table. As we know, the process of feature
+augmentation consists of 1 (many)-to-many joins [14, 15, 35, 49]. In
+this situation, the size of the augmented table 𝑇 + is likely to be much
+larger than the base table 𝑇 . Although training with the augmented
+table can achieve a much higher accuracy 0.68 (Figure 3(a)–(cid:204)), it
+takes around 2.8 days for training over 10 million tuples (Figure 3(b)–
+(cid:204)).
+Train with the Coreset of the Augmented Table. If we rst compute
+the coreset of the augmented table, and then train with this coreset, we
+can achieve the same accuracy 0.68 (Figure 3(a)–(cid:205)). However, because
+coreset computation on a large table is time-consuming which takes
+2.2 days in this case, putting the time of feature augmentation (5
+minutes) and training (0.5 hours) together, it takes around 2.2 days
+(Figure 3(b)–(cid:205)).
+
+Example 2 tells us that feature augmentation can signicantly
+increase the accuracy and training with a coreset can signicantly
+reduce the time. However, computing the coreset over a large table
+(e.g., the augmented table) is time-consuming.
+
+In order to eciently compute the coreset of the augmented table,
+the problem we aim to tackle is whether we can compute the
+coreset of the augmented table without join materialization.
+
+This strategy is depicted in Figure 2 by following the “(cid:59)” arrow
+from the base table.
+
+Key Idea. Our solution is inspired by the classical SQL query
+optimization technique pushdown that moves predicates in the
+WHERE clause closer to the tables they refer to. Next let’s build
+the connection between pushdown and our problem. Generally
+speaking, coreset computation is to select a subset of tuples, and
+use the weighted gradients of these tuples to approximate the full
+gradient of the entire train data. In our context, pushdown for
+coreset over multiple tables means that we can approximately
+compute the gradient of each individual table and sum up these
+gradients from multiple tables to compute the full gradient of the
+joined table. That is, the gradient computation is pushed down.
+
+Challenges. Applying pushdown to compute the coreset of the
+augmented table without join materialization faces two challenges.
+
+(C1) How to deal with each individual table so that the estimated
+full gradients can be bounded with theoretical guarantees,
+and thus the accuracy will not be sacriced?
+
+(C2) How to eciently aggregate information distributed in
+dierent tables to well approximate the full gradient?
+
+Our Methodology. To address the above challenges, we propose
+feature-Rich and data-Ecient machine learning with Coreset selec-
+tion withOut join materializatioN, namely RECON, which groups the
+tuples in each table based on predened group key and compute the
+gradient bounds of these groups based on tuple-wise partial feature
+similarity. We prove that the full gradient can be bounded using
+these partial feature similarity values of dierent groups (for C1).
+Based on the computed partial feature similarity values, we prove
+that the coreset computation problem over multiple tables is NP-
+hard and has the submodular property, so we use a greedy algorithm
+with an approximate ratio to aggregate the partial feature similar-
+ity values in dierent tables, and then compute a well-performed
+coreset (for C2).
+
+Figure 3 shows that RECON can signicantly reduce the total
+time from more than 2 days to 1.8 hours (Figure 3(b)–(cid:206)) without
+sacricing the accuracy (Figure 3(a)–(cid:206)). See § 6 for more details.
+
+Contributions. In this paper, we make a rst attempt to study
+coreset selection over multiple tables without full materialization.
+In sum, we make the following notable contributions.
+
+(1) We introduce coreset selection over a single table, its sample-
+based optimization, and our key idea of supporting coreset selection
+over multiple tables without full materialization in § 3.
+
+65
+
+HourMinuteDay11 mins2.8 daysModel TrainingCoresetFeature Augmentation2.2 days1.8 hours2.8 days2.2 days1.3 hours2 minsAccuracy10.680.680.680.610.61(a) Eﬀectiveness (Accuracy)(b) Eﬃciency234512345Coreset withoutjoin materializationTBase tableT+Featureaugmented table C(T+)Corsetwith joinmaterializa-tion C(T+)Corsetwithout joinmaterializa-tion C(T)Corset(cid:11)
+(cid:19)
+(cid:38)
+(cid:38)
+(cid:47)
+(2) We provide theoretical guarantees on the gradient approxima-
+tion of the augmented table using partial feature similarity values
+computed from each single table. We also prove that the coreset
+computation over multiple tables is an NP-hard problem with the
+submodular property. Putting them together, we theoretically show
+that gradient approximation error of coreset for the augmented
+table can be upper bounded by the computation of each individual
+table, without physically joining them in § 4.
+
+(3) We propose an ecient greedy algorithm to compute the core-
+set of the augmented table without materializing the joins. To be
+specic, we utilize a dynamic programming algorithm to eciently
+aggregate partial feature similarity values from multiple tables and
+nally bound the full gradient in § 5.
+
+(4) We conducted extensive experiments on 5 real world datasets to
+evaluate the eciency of our proposed method. The experimental
+results demonstrate that our method can improve the eciency to
+nearly 2 orders of magnitudes by training over the selected coreset
+(∼ 0.1% of the entire train data), while keeping almost the same
+accuracy as training with the fully augmented train data in § 6.
+
+2 RELATED WORK
+Generally speaking, there are two ways of table enrichment for
+better training ML models, either by adding more columns (i.e.,
+feature augmentation) or more tuples (i.e., data acquisition [48]).
+Both are common in practice and they are complementary to each
+other. Our proposal falls into the category of feature augmentation.
+
+Feature augmentation. A brute force solution is to execute joins
+to augment new features. Another line of research focuses on avoid-
+ing unnecessary joins (e.g., Kumar et al. [30] and Shah et al. [50]),
+when the foreign join key has already contained all the information
+of the external table. There are also studies [15, 35] on iterative
+feature augmentation, which iteratively select an optimal sub-
+set of tables, such that features augmented from these tables can
+signicantly improve the model performance.
+
+Dierent from (iterative) feature augmentation, by following
+the setting in [21, 29, 34], we assume that which joins are useful
+(i.e., which attributes should be added) are given. Besides, iterative
+feature augmentation [15, 35] needs to join tables, train over the
+result and test the performance iteratively, which is rather time-
+consuming. Therefore, RECON can be leveraged to accelerate this
+process in each iteration. In terms of avoiding unnecessary joins,
+we can take it as a ltering of our method. That is, the outputs of
+the method are the input of our method. Note that [30, 50] do not
+support to avoid one-to-many, many-to-many and fuzzy joins. In
+summary, the above methods are complementary to our proposal.
+Note that when the number of features is large, feature selec-
+tion (a.k.a. variable selection or attribute selection), is the process
+of selecting a subset of good features for use in model construction
+and has been extensively studied in the ML community [20], which
+is orthogonal to feature augmentation tackled in this paper.
+
+Coreset selection. Existing coresete selection algorithms are de-
+signed for one table. Huang et al. [23] proposed to select and update
+the coreset while training. The goal is to use the loss of training
+tuples in the coreset to approximate the overall training loss of
+the entire dataset. Since they have to train the model, it is rather
+
+time-consuming. To address this, works [8, 9] focused on selecting
+the coreset without training in advance, but they are customized
+to particular model types respectively. The high level idea is to
+compute a sensitive score for each tuple. The higher the score, the
+more likely the tuple should be a member of the coreset. Dataset
+condensation [56, 57] tries to synthesize a small set of train data, in-
+stead of selecting a small set of train data. Hence, the related work
+is closer to knowledge distillation than coreset selection. Moreover,
+these papers are only tested on image data. In terms of tabular
+data, it is not veried whether it can synthesize a small set of train
+data while well preserving the labels. The other typical line of
+works [27, 39, 40] focused on selecting the coreset to approximate
+the full gradient, which is modeled as an optimization problem that
+can be solved by a framework with three nested loops (see § 3.2).
+None of them considers coreset selection over multiple tables.
+Dierent from them, we make the rst attempt to select coresets
+over multiple tables without full materialization.
+
+Factorized ML (FML) achieves ecient ML training by decoupling
+the ML computations through joins to the base tables [14, 25, 28, 29,
+34, 43, 47, 49]. The key idea is to reduce redundant linear algebra
+computations during training over the multi-table joins. Most of
+these methods only focus on specic ML models or platforms, e.g.,
+Olteanu et al. [43, 49] focus on linear regression models, and [28, 47]
+are for in-memory databases. Recently, Kumar et al. [14, 25, 29,
+34] build a general FML framework by decoupling linear algebra
+computations from various ML algorithms.
+
+The dierence from us is that they still need to train over the
+full join results. Moreover, we aim at accelerating ML training by
+reducing the amount of train data through selecting the coreset.
+However, they focus on the batch gradient descent algorithm for
+training rather than supporting the stochastic gradient descent.,
+which is widely used in practice due to its high eciency.
+
+In addition, we have also empirically veried that our proposal
+outperforms FML-based methods for the batch gradient descent
+scenario (see § 6 for more details).
+
+Data management techniques for ML. Besides existing works [6,
+13, 14, 17, 29, 31, 54] that leverage database techniques to improve
+the eciency, there are also many works that aim at improving the
+eectiveness of ML models, including data discovery [15, 36], data
+labeling [11, 33], data compression [52, 55], data cleaning [10] and
+data exploration [44, 45].
+
+3 CORESET SELECTION FRAMEWORK
+3.1 Gradient Descent for Machine Learning
+Gradient descent is by far the most popular optimization strategy
+used in machine learning. Generally speaking, based on a convex
+and dierentiable function, it iteratively tweaks the parameters to
+minimize a given function to its local minimum.
+
+Let 𝑇 = {𝑡1, 𝑡2, ..., 𝑡𝑛 } be a set of labeled train tuples, where
+𝑡𝑖 = (x𝑖, y𝑖 ), x𝑖 ∈ R𝑑 denotes the feature vector and y𝑖 is the
+corresponding label. The objective of training on 𝑇 is to compute
+the best parameter 𝜃 ∗ w.r.t. an ML model so as to minimize the loss:
+
+𝜃 ∗ = arg min
+𝜃 ∈𝜗
+
+𝑙 (𝜃 ), 𝑙 (𝜃 ) =
+
+1
+𝑛
+
+𝑛
+∑︁
+
+𝑖=1
+
+𝑙𝑖 (𝜃, 𝑡𝑖 )
+
+(1)
+
+66
+
+Algorithm 1: Basic Coreset Algorithm of One Table
+
+Input: The train data 𝑇 , coreset size 𝐾.
+Output: A coreset 𝐶 ⊆ 𝑇 , weight 𝑊 = {𝑤𝑗 },|𝐶 | = |𝑊 | = 𝐾.
+𝐶 = ∅;
+while |𝐶 | < 𝐾 do
+/*1st loop*/
+for each tuple 𝑡 ∈ 𝑇 \ 𝐶 do
+
+/*2nd loop*/
+Compute 𝑈 (𝑡 |𝐶) considering all tuples in 𝑇 ; /*3rd loop*/
+
+𝑡 ∗ = arg max𝑡 ∈𝑇 \𝐶 𝑈 (𝑡 |𝐶) ;
+𝐶 = 𝐶 ∪ {𝑡 ∗ };
+for j = 1 to |𝐶 | do
+𝑤𝑗 = (cid:205)𝑛
+𝑖=1
+
+I[ 𝑗 = arg min𝑐 𝑗(cid:48) ∈𝐶 max
+𝜃 ∈𝜗
+
+return 𝐶,𝑊 ;
+
+(cid:107) ∇𝑙𝑖 (𝜃 ) − ∇𝑙𝛾 ( 𝑗(cid:48)) (𝜃 ) (cid:107) ];
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+11
+
+Figure 4: Example of coreset selection for a single table.
+
+where 𝜗 denotes the parameter space. For ease of representation,
+we just use 𝑙𝑖 (𝜃 ) to denote the loss of the 𝑖-th train example, i.e.,
+𝑙𝑖 (𝜃, 𝑡𝑖 ). Typically, the gradient descent method is always applied
+to optimize Eq. 1, where the full gradient, denoted by ∇𝑙 (𝜃 ), is
+required to be computed iteratively.
+
+Although some classic incremental gradient methods such as
+stochastic gradient descent (SGD), can be utilized to accelerate this
+process, it is still expensive when there are massive train tuples.
+
+3.2 Coreset of One Table 𝑇
+
+Coreset. The main problem of learning using a large train dataset
+𝑇 is low eciency. Hence, instead of learning from entire 𝑇 , one
+research direction seeks to answer the question that whether we
+can compute a small subset 𝐶 (𝑇 ) of 𝑇 such that learning using 𝐶 (𝑇 )
+can hopefully have the same performance as learning using 𝑇 . This
+small subset is called the coreset [18, 41]. In the rest of the paper,
+we will simply write 𝐶 (𝑇 ) as 𝐶, when it is clear from the context.
+To compute the coreset, the SOTA solutions are mainly based on
+gradient approximation [26, 39]. Intuitively, if 𝜃 is the parameter of
+an ML model trained using the full dataset, and 𝜃 (cid:48) is the parameter
+of the same ML model trained using the subset (or coreset), the
+goal is ∇𝑙 (𝜃 ) = ∇𝑙 (𝜃 (cid:48)). Based on gradient approximation, existing
+solutions can lead to good performance with theoretical guarantees,
+i.e., ∇𝑙 (𝜃 ) is upper-bounded by ∇𝑙 (𝜃 (cid:48)). Next let’s formally dene it.
+Coreset selection based on gradient descent. Let ∇𝑙 (𝜃 ) =
+(cid:205)𝑛
+𝑖=1 ∇𝑙𝑖 (𝜃 ) be the full gradient training using the entire training
+dataset, the problem of coreset selection is to minimize the gradi-
+ent approximation error [39] between the full gradient w.r.t. 𝑇
+and the weighted sum of gradients w.r.t. the coreset 𝐶 (or coreset
+gradient).
+
+𝐶∗ = arg min
+𝐶 ⊆𝑇 ,𝑤𝑗 ≥0
+
+(cid:107)
+
+max
+𝜃 ∈𝜗
+
+𝑠.𝑡 . |𝐶 | ≤ 𝐾
+
+𝑛
+∑︁
+
+∇𝑙𝑖 (𝜃 )
+
+−
+
+|𝐶 |
+∑︁
+
+𝑤 𝑗 ∇𝑙𝛾 ( 𝑗) (𝜃 )
+
+(cid:107),
+
+(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)
+
+(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)
+
+𝑗=1
+(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)
+(cid:124)
+
+𝑖=1
+(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)
+(cid:125)
+(cid:123)(cid:122)
+(cid:124)
+(cid:123)(cid:122)
+full gradient
+coreset gradient
+(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)
+(cid:124)
+(cid:125)
+(cid:123)(cid:122)
+gradient approximation error
+
+(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)(cid:32)
+
+(cid:125)
+
+(2)
+
+Eq. 2 tries to minimize the gradient approximation error using
+a coreset of size at most 𝐾 by considering all possible parameters
+𝜃 ∈ 𝜗 (i.e., max
+𝜃 ∈𝜗
+
+), where “(cid:107) · (cid:107)” denotes the normed dierence.
+
+The full gradient has been dened earlier as ∇𝑙 (𝜃 ) =
+(cid:205)𝑛
+𝑖=1 ∇𝑙𝑖 (𝜃 ). Next, let’s focus on explaining how to compute the
+coreset gradient in Eq. 2. We use 𝛾 ( 𝑗) = 𝑖, 𝑗 ∈ [1, |𝐶 |], 𝑖 ∈ [1, 𝑛]
+to denote that the 𝑗-th tuple in 𝐶 (denoted by 𝑐 𝑗 ) is the 𝑖-th tuple
+in 𝑇 , i.e., 𝑡𝑖 . In other words, 𝛾 is an index mapping from 𝐶 to 𝑇 .
+Besides, Eq. 2 potentially contains another important mapping 𝜙
+similar to 𝛾, i.e., 𝜙 (𝑖) = 𝑗, 𝑖 ∈ [1, 𝑛], 𝑗 ∈ [1, |𝐶 |], which has a close
+relationship with the weight 𝑤. To be specic, let 𝜙 (𝑖) = 𝑗 denote
+that we will assign 𝑡𝑖 to 𝑐 𝑗 and use ∇𝑙𝛾 ( 𝑗) to represent ∇𝑙𝑖 . Each
+𝑡𝑖 will be assigned to one and only one 𝑐 𝑗 , but each 𝑐 𝑗 might be
+assigned with multiple tuples in 𝑇 . Based on 𝜙, 𝑤 𝑗 is dened as the
+weight of the 𝑐 𝑗 , which is the number of tuples in 𝑇 assigned to the
+𝑐 𝑗 , i.e., 𝑤 𝑗 = |{𝑡𝑖 |𝜙 (𝑖) = 𝑗, 𝑖 ∈ [1, 𝑛]}|.
+
+Next let’s use an example to better illustrate Eq. 2.
+Example 3. Let us consider a special case of the gradients of each
+tuple, as shown in Figure 4. Suppose that for any 𝜃 , ∇𝑙1 (𝜃 ) ≈ ∇𝑙2 (𝜃 ) ≈
+∇𝑙3 (𝜃 ), ∇𝑙4 (𝜃 ) ≈ ∇𝑙5 (𝜃 ) and ∇𝑙6 (𝜃 ) ≈ ∇𝑙7 (𝜃 ) ≈ ∇𝑙8 (𝜃 ). In this
+situation, if we want to nd an optimal coreset with a size of 3, i.e.,
+𝐾 = 3 based on Eq. 2, the solution can be 𝐶∗ = {𝑡1, 𝑡4, 𝑡6} (𝛾 (1) =
+1, 𝛾 (2) = 4 and 𝛾 (3) = 6), associated with 𝑤1 = 3, 𝑤2 = 2, 𝑤3 = 3
+because 𝜙 (1) = 𝜙 (2) = 𝜙 (3) = 1, 𝜙 (4) = 𝜙 (5) = 2 and 𝜙 (6) =
+𝜙 (7) = 𝜙 (8) = 3. In this way, 𝐶∗ will be one of the optimal coresets
+∇𝑙𝑖 (𝜃 ) −
+
+that can well approximate the full gradient because (cid:107)
+
+8
+(cid:205)
+𝑖=1
+
+3
+(cid:205)
+𝑗=1
+
+𝑤 𝑗 ∇𝑙𝛾 ( 𝑗) (𝜃 )(cid:107) ≈ 0, which is minimized.
+
+We can observe from Example 3 that, if 𝜙 (𝑖) = 𝑗, ∇𝑙𝑖 and ∇𝑙𝛾 ( 𝑗)
+are likely to be close such that the gradient approximation error,
+i.e., Eq. 2, tends to be minimized. Intuitively, computing the coreset
+is similar to computing the 𝐾 exemplars [46] of the gradients, if all
+the gradients of tuples can be computed.
+
+For training with the popular SGD method, the coreset 𝐶 is
+rst randomly shued. Then during each step of gradient descent,
+suppose that we need to use 𝑐 𝑗 ∈ 𝐶 for gradient update. We rst
+compute the gradient of 𝑐 𝑗 , say ∇𝑙. Then we use 𝑤 𝑗 ∇𝑙 to update the
+parameters of the ML model. The above process is repeated until
+the ML model converges.
+
+Basic Coreset Algorithm of One Table. The basic coreset al-
+gorithm is illustrated in Figure 5(a) and Algorithm 1. Initialized
+with an empty coreset 𝐶, a coreset of size 𝐾 is achieved using three
+nested for-loops.
+
+• 1st for-loop (lines 2-8). Each iteration of the 1st for-loop
+will add the tuple with the maximum “utility” to the coreset
+(lines 7-8). The “utility” of a tuple 𝑡 denotes the reduction
+
+67
+
+Single Table T CCoreset Coreset Selection-n!i=1∇li(θ)∇l1(θ)∇l2(θ)∇l3(θ)∇l4(θ)∇l5(θ)∇l6(θ)∇l7(θ)∇l8(θ)|C|!j=1wj∇lγ(j)(θ)w1∇lγ(1)(θ)w3∇lγ(3)(θ)w2∇lγ(2)(θ)Figure 5: Basic coreset selection (a), typical optimization techniques (b, c), and our optimization for multiple tables (d).
+
+of gradient approximation error in Eq. 2 after adding 𝑡 into
+the coreset 𝐶, denoted by i.e., 𝑈 (𝑡 |𝐶).
+
+• 2nd for-loop (lines 4-6). Each iteration of the 2nd-
+iteration will compute the utility of a tuple 𝑡 that is not
+in coreset 𝐶.
+
+• 3rd for-loop (line 6). It iterates all tuples in 𝑇 to compute
+
+the utility of tuple 𝑡 used in the 2nd for-loop.
+
+• Weights computation (lines 9-10). It computes the
+weight of each tuple in the coreset, which will be used
+to approximate the full gradient.
+
+Apparently, the solution with 3 loops is rather time-consuming.
+Fortunately, coresets satisfy the submodular property [24] ( Theo-
+rem 2 in § 4), based on which an ecient method can accelerate the
+2nd loop that uniformly samples tuple set S from 𝑇 \ 𝐶 and selects
+the best one from the sampled ones [38]. It holds a (1 − 1
+𝑒 − 𝜖)
+approximate ratio, where 𝜖 is related to the sampling ratio.
+
+Coreset by sampling. The optimization of sampling-based coreset
+selection algorithm is illustrated in Figure 5(b), where the sample
+S is a subset of 𝑇 \ 𝐶 (“\” denotes the operation set dierence).
+
+3.3 Coreset of Multiple Tables
+As discussed above, to achieve feature-rich ML, the base table has
+to be augmented to get useful features through joining other tables.
+
+With materialization. A natural solution is rst to do feature
+augmentation by executing the joins, and then use the above coreset
+selection on the materialized result. Figure 5(c) depicts this solution.
+Note that, for feature augmentation, there might have one-to-one,
+one-to-many, many-to-many and fuzzy joins. Hence, the materi-
+alized view might be very large. Consequently, the eciency of
+coreset selection is low (see Figure 3(b)-(cid:205)).
+
+Without materialization. Our key idea to improve the eciency
+of coreset of multiple tables is to estimate the utility of each “group”
+without join materialization, where a group refers to a set of tuples
+in the joined results having the same attribute values on a prede-
+ned set of attributes, as shown in Figure 5(d). Conceptually, the
+utility can be estimated by rst computing the feature similarity of
+tuples in each individual table, and then aggregating them using a
+dynamic programming algorithm without join materialization. By
+doing so, we can signicantly reduce the computation in the 3rd
+for-loop, thus improving the overall eciency (see Figure 3(b)-(cid:206)).
+
+4 GRADIENT APPROXIMATION ERROR
+
+BOUNDED BY GROUPS
+
+In this section, we will build the theoretical bound of gradient
+computation for coresets over multiple tables. Afterwards, we will
+introduce the algorithms by following the theoretical bounds (§ 5).
+Let 𝑇 be the base table, 𝑇1,𝑇2, . . . ,𝑇𝑚 be the tables that can be
+used to augment the features of 𝑇 , and 𝑇 + be the feature-augmented
+table through predened joins, with |𝑇 +| = 𝑁 . We will prove that
+the gradient approximation error of a coreset w.r.t. 𝑇 + can be upper-
+bounded using the groups (or partitions) of 𝑇 +.
+
+Recall that minimizing Eq. 2 is closely related to the parameter
+𝜃 . Unfortunately, the entire parameter space 𝜗 is too expensive to
+explore. We will rst prove that the gradient approximation error
+is upper-bounded for a xed parameter 𝜃 and given groups (§ 4.1).
+We will then generalize the above result to the parameter space 𝜗
+for given groups (§ 4.2). We will close this section by discussing the
+connection between groups in the augmented single table (i.e., 𝑇 +)
+and multiple tables (§ 4.3).
+
+Building upon the above results, later § 5 will describe how to
+compute groups from multiple tables (i.e., 𝑇 , 𝑇1, . . . ,𝑇𝑚) and use
+them to bound the gradient approximation error of the coreset of
+𝑇 + without materializing 𝑇 +.
+Notation. Similar to § 3, we use ∇𝑙 +
+training example in 𝑇 +, i.e., 𝑙 +
+𝑖 (𝜃, 𝑡𝑖 ).
+
+𝑖 to denote the loss of the 𝑖-th
+
+4.1 Upper Bound of a Fixed 𝜃 and Given Groups
+Recap that we have a one-to-one mapping 𝜙𝜃 : 𝑇 + → 𝐶 between
+tuples in 𝑇 + and 𝐶. 𝜙𝜃 (𝑖) = 𝑗 denotes that 𝑡 +
+in 𝑇 + should be
+𝑖
+assigned to the 𝑗-th tuple in the coreset. With this mapping, we get:
+
+|𝐶 |
+∑︁
+
+𝑗=1
+
+𝑤 𝑗 ∇𝑙 +
+
+𝛾 ( 𝑗) (𝜃 ) =
+
+𝑁
+∑︁
+
+𝑖=1
+
+∇𝑙 +
+
+𝛾 (𝜙𝜃 (𝑖)) (𝜃 )
+
+so Eq. 2 can be rewritten as [39]:
+
+(cid:107)
+
+𝑁
+∑︁
+
+𝑖=1
+
+∇𝑙 +
+
+𝑖 (𝜃 ) −
+
+|𝐶 |
+∑︁
+
+𝑗=1
+
+𝑤 𝑗 ∇𝑙 +
+
+𝛾 ( 𝑗) (𝜃 )(cid:107) = (cid:107)
+
+𝑁
+∑︁
+
+(cid:16)
+
+𝑖=1
+
+∇𝑙 +
+
+𝑖 (𝜃 ) − ∇𝑙 +
+
+𝛾 (𝜙𝜃 (𝑖)) (𝜃 )
+
+(cid:17)
+
+(cid:107)
+
+(3)
+Let A be the predened attribute set (or the grouping key), based
+on which tuples in 𝑇 + are divided into a set G of disjoint groups
+𝑔 = |G| such that each group G𝑖 ∈ G contains tuples with the
+
+68
+
+Initialize coreset C as emptyfor |C| <= K do for each tuple t in T \ C do utility(t) = 0 for each x in T do update utility(t) using x⎬|T|(cid:11)(cid:68)(cid:12)(cid:3)(cid:37)(cid:68)(cid:86)(cid:76)(cid:70)(cid:3)(cid:38)(cid:82)(cid:85)(cid:72)(cid:86)(cid:72)(cid:87)(cid:3)(cid:36)(cid:79)(cid:74)(cid:82)(cid:85)(cid:76)(cid:87)(cid:75)(cid:80)for each tuple t in sample do (cid:11)(cid:69)(cid:12)(cid:3)(cid:54)(cid:68)(cid:80)(cid:83)(cid:79)(cid:72)(cid:16)(cid:69)(cid:68)(cid:86)(cid:72)(cid:71)(cid:3)(cid:11)(cid:21)(cid:81)(cid:71)(cid:3)(cid:73)(cid:82)(cid:85)(cid:16)(cid:79)(cid:82)(cid:82)(cid:83)(cid:12)for each x in T+ = T1 … Tn do update utility(t) using x⎬|T+|(cid:11)(cid:70)(cid:12)(cid:3)(cid:58)(cid:76)(cid:87)(cid:75)(cid:3)(cid:77)(cid:82)(cid:76)(cid:81)(cid:3)(cid:80)(cid:68)(cid:87)(cid:72)(cid:85)(cid:76)(cid:68)(cid:79)(cid:76)(cid:93)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:3)(cid:11)(cid:22)(cid:85)(cid:71)(cid:3)(cid:73)(cid:82)(cid:85)(cid:16)(cid:79)(cid:82)(cid:82)(cid:83)(cid:12)(cid:11)(cid:71)(cid:12)(cid:3)(cid:58)(cid:76)(cid:87)(cid:75)(cid:82)(cid:88)(cid:87)(cid:3)(cid:77)(cid:82)(cid:76)(cid:81)(cid:3)(cid:80)(cid:68)(cid:87)(cid:72)(cid:85)(cid:76)(cid:68)(cid:79)(cid:76)(cid:93)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:3)(cid:11)(cid:22)(cid:85)(cid:71)(cid:3)(cid:73)(cid:82)(cid:85)(cid:16)(cid:79)(cid:82)(cid:82)(cid:83)(cid:12)for each group g in T+ = T1 … Tn do (by group estimation) update utility(t) using g⎬|G| add t with the max (cid:88)(cid:87)(cid:76)lity to C <latexit sha1_base64="67Vh/1KBU4yCT3DhUOzGmoQRfC4=">AAAB7nicbVDLSgNBEOz1GeMr6tHLYBA8hV0J6jHgxWME84BkCbOTTjJkdmaZmVXCko/w4kERr36PN//GSbIHTSxoKKq66e6KEsGN9f1vb219Y3Nru7BT3N3bPzgsHR03jUo1wwZTQul2RA0KLrFhuRXYTjTSOBLYisa3M7/1iNpwJR/sJMEwpkPJB5xR66RWN1JPlmOvVPYr/hxklQQ5KUOOeq/01e0rlsYoLRPUmE7gJzbMqLacCZwWu6nBhLIxHWLHUUljNGE2P3dKzp3SJwOlXUlL5urviYzGxkziyHXG1I7MsjcT//M6qR3chBmXSWpRssWiQSqIVWT2O+lzjcyKiSOUae5uJWxENWXWJVR0IQTLL6+S5mUluKpU76vlWjWPowCncAYXEMA11OAO6tAABmN4hld48xLvxXv3Phata14+cwJ/4H3+AHnuj6E=</latexit>./<latexit sha1_base64="67Vh/1KBU4yCT3DhUOzGmoQRfC4=">AAAB7nicbVDLSgNBEOz1GeMr6tHLYBA8hV0J6jHgxWME84BkCbOTTjJkdmaZmVXCko/w4kERr36PN//GSbIHTSxoKKq66e6KEsGN9f1vb219Y3Nru7BT3N3bPzgsHR03jUo1wwZTQul2RA0KLrFhuRXYTjTSOBLYisa3M7/1iNpwJR/sJMEwpkPJB5xR66RWN1JPlmOvVPYr/hxklQQ5KUOOeq/01e0rlsYoLRPUmE7gJzbMqLacCZwWu6nBhLIxHWLHUUljNGE2P3dKzp3SJwOlXUlL5urviYzGxkziyHXG1I7MsjcT//M6qR3chBmXSWpRssWiQSqIVWT2O+lzjcyKiSOUae5uJWxENWXWJVR0IQTLL6+S5mUluKpU76vlWjWPowCncAYXEMA11OAO6tAABmN4hld48xLvxXv3Phata14+cwJ/4H3+AHnuj6E=</latexit>./<latexit sha1_base64="67Vh/1KBU4yCT3DhUOzGmoQRfC4=">AAAB7nicbVDLSgNBEOz1GeMr6tHLYBA8hV0J6jHgxWME84BkCbOTTjJkdmaZmVXCko/w4kERr36PN//GSbIHTSxoKKq66e6KEsGN9f1vb219Y3Nru7BT3N3bPzgsHR03jUo1wwZTQul2RA0KLrFhuRXYTjTSOBLYisa3M7/1iNpwJR/sJMEwpkPJB5xR66RWN1JPlmOvVPYr/hxklQQ5KUOOeq/01e0rlsYoLRPUmE7gJzbMqLacCZwWu6nBhLIxHWLHUUljNGE2P3dKzp3SJwOlXUlL5urviYzGxkziyHXG1I7MsjcT//M6qR3chBmXSWpRssWiQSqIVWT2O+lzjcyKiSOUae5uJWxENWXWJVR0IQTLL6+S5mUluKpU76vlWjWPowCncAYXEMA11OAO6tAABmN4hld48xLvxXv3Phata14+cwJ/4H3+AHnuj6E=</latexit>./<latexit sha1_base64="67Vh/1KBU4yCT3DhUOzGmoQRfC4=">AAAB7nicbVDLSgNBEOz1GeMr6tHLYBA8hV0J6jHgxWME84BkCbOTTjJkdmaZmVXCko/w4kERr36PN//GSbIHTSxoKKq66e6KEsGN9f1vb219Y3Nru7BT3N3bPzgsHR03jUo1wwZTQul2RA0KLrFhuRXYTjTSOBLYisa3M7/1iNpwJR/sJMEwpkPJB5xR66RWN1JPlmOvVPYr/hxklQQ5KUOOeq/01e0rlsYoLRPUmE7gJzbMqLacCZwWu6nBhLIxHWLHUUljNGE2P3dKzp3SJwOlXUlL5urviYzGxkziyHXG1I7MsjcT//M6qR3chBmXSWpRssWiQSqIVWT2O+lzjcyKiSOUae5uJWxENWXWJVR0IQTLL6+S5mUluKpU76vlWjWPowCncAYXEMA11OAO6tAABmN4hld48xLvxXv3Phata14+cwJ/4H3+AHnuj6E=</latexit>./#-tuples in T+#-groupsOptimization for one tableOptimization for multiple tablesS<latexit sha1_base64="J42s1stmUFZULE1USNhCP/WgGU8=">AAADO3icjVLLTsJAFD3UF+ILdOmmkZi4IsVgdEl04xKjPBIkZjoO2NBX2qkJIXyGW/0SP8S1GzVu3XtnLIlKEKdpe+fcc87Mnbl26DqxtKynjDE3v7C4lF3OrayurW/kC5uNOEgiLuo8cIOoZbNYuI4v6tKRrmiFkWCe7Yqm3T9R+eatiGIn8C/kIBQdj/V8p+twJglqX3pM3nDmDs9HV/miVbL0MCeDchoUkY5aUMis4RLXCMCRwIOAD0mxC4aYnjbKsBAS1sGQsIgiR+cFRsiRNiGWIAYjtE/fHs3aKerTXHnGWs1pFZfeiJQmdkkTEC+iWK1m6nyinRU6zXuoPdXeBvS3Uy+PUIkbQmfpxsz/6lQtEl0c6RocqinUiKqOpy6JPhW1c/NbVZIcQsJUfE35iGKuleNzNrUm1rWrs2U6/6KZClVznnITvP5ZnU2u029E5WcxQtpjl3avVlO8HHVT+XfvTAaN/VK5Ujo4qxSrx2lfZbGNHexR7xyiilPUUNe3e4d7PBiPxrPxZrx/UY1MqtnCj2F8fAI+JapK</latexit>same values on A (see § 6.1 for more implementation details). We
+then use 𝐺𝑖, 𝑖 ∈ [1, 𝑔] to denote the set of indexes (corresponding
+to 𝑇 +) of tuples in G𝑖 , i.e., 𝐺𝑖 = {𝑘 |𝑡 +
+𝑘 ∈ G𝑖 }. That is,
+𝑔
+𝐺𝑖 = {1, 2, . . . , 𝑁 }. With such grouping, dierent from [39],
+∪
+𝑖=1
+the summation from 1 to 𝑁 in Eq. 3 can be rewritten as the sum of
+𝑔 summations over the computation results in each G𝑖 :
+
+𝑘 ∈ 𝑇 +, 𝑡 +
+
+𝑁
+∑︁
+
+(cid:16)
+
+(cid:107)
+
+∇𝑙 +
+
+𝑖 (𝜃 ) − ∇𝑙 +
+
+𝛾 (𝜙𝜃 (𝑖)) (𝜃 )
+
+(cid:17)
+
+(cid:107)
+
+𝑖=1
+𝑔
+∑︁
+
+=(cid:107)
+
+∑︁
+
+(cid:16)
+
+𝑖=1
+𝑔
+∑︁
+
+(cid:107)
+
+𝑘 ∈𝐺𝑖
+
+∑︁
+
+(cid:16)
+
+≤
+
+≤
+
+𝑖=1
+𝑔
+∑︁
+
+𝑖=1
+
+𝑘 ∈𝐺𝑖
+
+|𝐺𝑖 | max
+𝑘 ∈𝐺𝑖
+
+∇𝑙 +
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 (𝜙𝜃 (𝑘)) (𝜃 )
+
+∇𝑙 +
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 (𝜙𝜃 (𝑘)) (𝜃 )
+
+(cid:17)
+
+(cid:107)
+
+(cid:17)
+
+(cid:107)
+
+(4)
+
+(cid:107)∇𝑙 +
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 (𝜙𝜃 (𝑘)) (𝜃 )(cid:107)
+
+𝛾 (𝜙𝜃 (𝑘))
+
+𝛾 (𝜙𝜃 (𝑘)) that 𝑡 +
+
+𝑘 ∈ 𝑇 + and the tuple 𝑡 +
+
+Eq. 4 comes from the triangle equation. More specically,
+(cid:107)∇𝑙 +
+𝑘 (𝜃 ) − ∇𝑙 +
+(𝜃 )(cid:107) denotes the gradient dierence between
+a tuple 𝑡 +
+𝑘 assigns to. Hence, in
+each group, the sum of gradient dierence can be bounded by the
+group size multiplied by the maximum dierence in the group, i.e.,
+|𝐺𝑖 | max𝑘 ∈𝐺𝑖 (cid:107)∇𝑙 +
+(𝜃 )(cid:107). Thus, Eq. 3 can be bounded
+by the result of Eq. 4. Next, we focus on how to minimize the bound.
+Recap from Example 3, intuitively, the bound (i.e., the right hand
+𝑘 to
+
+in Eq. 4) will be minimized when 𝜙𝜃 (𝑘) is set to assign each 𝑡 +
+the closest tuple in the coreset 𝐶, w.r.t. the gradient, as follows:
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 (𝜙𝜃 (𝑘))
+
+𝑔
+∑︁
+
+𝑖=1
+
+|𝐺𝑖 | max
+𝑘 ∈𝐺𝑖
+
+min
+𝑐 𝑗 ∈𝐶
+
+(cid:107)∇𝑙 +
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 ( 𝑗) (𝜃 )(cid:107)
+
+(5)
+
+However, given a coreset, it is infeasible to compute Eq. 5 because
+we have to iterate each tuple in every group, which is equivalent
+to iterate the entire 𝑇 +, but the large 𝑇 + will not be materialized
+due to the ineciency. To address this issue, considering Eq. 4 and
+Eq. 5 and leveraging max-min inequality [7] over Eq. 5, we can get:
+
+𝑁
+∑︁
+
+(cid:107)
+
+∇𝑙 +
+
+𝑖 (𝜃 ) −
+
+|𝐶 |
+∑︁
+
+𝑗=1
+
+𝑤 𝑗 ∇𝑙 +
+
+𝛾 ( 𝑗) (𝜃 )(cid:107)
+
+𝑖=1
+𝑔
+∑︁
+
+𝑖=1
+𝑔
+∑︁
+
+𝑖=1
+
+≤
+
+≤
+
+|𝐺𝑖 | max
+𝑘 ∈𝐺𝑖
+
+(cid:107)∇𝑙 +
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 ( 𝑗) (𝜃 )(cid:107)
+
+min
+𝑐 𝑗 ∈𝐶
+
+|𝐺𝑖 | min
+𝑐 𝑗 ∈𝐶
+
+max
+𝑘 ∈𝐺𝑖
+
+(cid:107)∇𝑙 +
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 ( 𝑗) (𝜃 )(cid:107)
+
+Given Eq. 6, we can iterate the much smaller coreset 𝐶 and the
+gradient approximate error can be bounded using the largest gra-
+dient dierence between 𝑐 𝑗 ∈ 𝐶 and tuples within each group,
+i.e., max𝑘 ∈𝐺𝑖 (cid:107)∇𝑙 +
+(𝜃 )(cid:107), which can be computed e-
+ciently without joining all tables (see § 5). In this way, all tuples
+within a group will be assigned to the same tuple in the coreset, i.e.,
+∀𝑘 ∈ 𝐺𝑖, 𝜙𝜃 (𝑘) = 𝑗.
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 ( 𝑗)
+
+So far, the deductions we have discussed only consider the case
+for a particular 𝜃 . Obviously, it is prohibitively expensive to explore
+every possible 𝜃 . Next, we illustrate how to bound the gradient
+approximation error for the parameter space 𝜗.
+
+69
+
+4.2 Upper Bound for the Parameter Space 𝜗 and
+
+Groups
+
+Fortunately, it has been proved in recent works [5, 22, 39] that for
+convex ML algorithms, e.g., linear regression, logistic regression,
+the normed gradient dierence between tuples can be eciently
+bounded by:
+
+∀𝑖, 𝑗, max
+𝜃 ∈𝜗
+
+(cid:107)∇𝑙𝑖 (𝜃 ) − ∇𝑙 𝑗 (𝜃 )(cid:107) ≤ max
+𝜃 ∈𝜗
+
+O ((cid:107)𝜃 (cid:107)) · (cid:107)x𝑖 − x𝑗 (cid:107)
+
+(7)
+
+where (cid:107)x𝑖 − x𝑗 (cid:107) denotes the Euclidean distance between the feature
+vectors of two tuples. Since O ((cid:107)𝜃 (cid:107)) is a constant, we can conclude
+that the gradient approximation error can be bounded in-
+dependent of the optimization problem in practice, i.e., any
+particular 𝜃 . Thus, based on the results in Eq. 6, we can get:
+
+𝑔
+∑︁
+
+𝑖=1
+
+max
+𝜃 ∈𝜗
+
+≤
+
+𝑔
+∑︁
+
+𝑖=1
+
+≤ 𝑐
+
+(cid:124)(cid:123)(cid:122)(cid:125)
+𝑐𝑜𝑛𝑠𝑡
+
+|𝐺𝑖 | min
+𝑐 𝑗 ∈𝐶
+
+max
+𝑘 ∈𝐺𝑖
+
+(cid:107)∇𝑙 +
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 ( 𝑗) (𝜃 )(cid:107)
+
+|𝐺𝑖 | min
+𝑐 𝑗 ∈𝐶
+
+max
+𝑘 ∈𝐺𝑖
+
+max
+𝜃 ∈𝜗
+
+(cid:107)∇𝑙 +
+
+𝑘 (𝜃 ) − ∇𝑙 +
+
+𝛾 ( 𝑗) (𝜃 )(cid:107)
+
+(8)
+
+·
+
+𝑔
+∑︁
+
+𝑖=1
+
+|𝐺𝑖 | min
+𝑐 𝑗 ∈𝐶
+
+max
+𝑘 ∈𝐺𝑖
+
+(cid:107)x+
+
+𝑘 − x+
+
+𝛾 ( 𝑗) (cid:107)
+
+Feature similarity. For ease of representation, we use similarity
+𝑠 𝑗𝑖 = 1−𝑛𝑜𝑟𝑚𝑎𝑙𝑖𝑧𝑒𝑑 (max𝑘 ∈𝐺𝑖 (cid:107)x+
+(cid:107)) to denote the minimum
+similarity of feature vectors between 𝑐 𝑗 ∈ 𝐶 and tuples in group
+G𝑖 .
+
+𝑘 −x+
+
+𝛾 ( 𝑗)
+
+Obviously, the minimization of min𝑐 𝑗 ∈𝐶 max𝑘 ∈𝐺𝑖 (cid:107)x+
+
+𝑘 − x+
+
+𝛾 ( 𝑗)
+
+(cid:107)
+
+is equivalent to the maximization of max𝑐 𝑗 ∈𝐶 𝑠 𝑗𝑖 .
+
+Therefore, the gradient approximation error can be bounded by
+
+(cid:205)𝑔
+
+|𝐺𝑖 | max𝑐 𝑗 ∈𝐶 𝑠 𝑗𝑖 .
+
+𝑖=1
+Note that Eq. 7 holds for tuples with the same label [5, 22]. Hence,
+we need to select subsets of coresets for tuples with dierent labels
+and combine them. For example, given a binary classication task
+(30% of label 0 and 70% with label 1), to select a coreset with size 𝐾,
+we separately select a coreset of size 30%𝐾 for tuples with label 0
+and another coreset of size 70%𝐾 for tuples with label 1, and then
+merge them. For regression tasks, we will cluster tuples with similar
+labels, select subsets of coresets for these clusters and merge them.
+
+(6)
+
+Problem (GGEM). The problem shown in Eq. 2 can be converted to
+the group-based gradient approximation error minimization
+(GGEM) problem as follows:
+
+𝐶∗ = arg max
+𝐶 ⊆𝑇 +
+
+𝑔
+∑︁
+
+𝑖=1
+
+|𝐺𝑖 | max
+𝑐 𝑗 ∈𝐶
+
+𝑠 𝑗𝑖, s.t. |𝐶 | ≤ 𝐾
+
+(9)
+
+At a high level, when 𝑇 + = 𝑇 ⊲⊳ 𝑇1 ⊲⊳ · · · ⊲⊳ 𝑇𝑚 is too large to
+compute the coreset, the GGEM problem is to eciently select an
+optimal coreset 𝐶∗ such that the tuples in 𝐶∗ and their associated
+weights can well approximate the full gradient in 𝑇 +, by grouping
+𝑇 + and distributing the computation to multiple tables based on
+the groups. In § 5, we will show how to compute the partial feature
+similarity 𝑠 𝑗𝑖 eciently without the fully materialized 𝑇 +. Next, we
+will prove that even if 𝑠 𝑗𝑖 is known, GGEM problem is NP-hard. We
+will also discuss its submodular property, based on which a greedy
+algorithm will be designed in § 5.
+
+Theorem 1. The GGEM problem is NP-hard.
+
+Proof. We start the proof by considering a special case of GGEM
+problem where ∀𝑖 ∈ [1, 𝑔], |𝐺𝑖 | = 1. Thus, the number of groups 𝑔
+equals to the number of tuples 𝑁 . Therefore, the problem becomes
+𝐶∗ = arg max
+𝑖=1 max𝑐 𝑗 ∈𝐶 𝑠 𝑗𝑖 = arg min
+𝑖 −
+𝐶 ⊆𝑇 +
+𝐶 ⊆𝑇 +
+(cid:107), |𝐶 | ≤ 𝐾. Naturally, the K-medoid problem [19] can be re-
+(cid:3)
+
+x+
+𝛾 ( 𝑗)
+duced to the the special case and thus GGEM is NP-hard.
+
+(cid:205)𝑁
+𝑖=1 min𝑐 𝑗 ∈𝐶 (cid:107)x+
+
+(cid:205)𝑁
+
+Theorem 2. The GGEM problem has the submodular property.
+
+Due to the space limitation, proof of submodular property is left
+
+to the technical report [2].
+
+Our scope. Note that we focus on the convex problems trained with
+gradient descent because for such problems, the gradient dierence
+can be bounded by the dierence between feature vectors. In this
+situation, regardless of any convex ML algorithm or parameter 𝜃 ,
+RECON can select the coreset without training in advance.
+
+4.3 Connection between Groups of the Single
+Augmented Table and Multiple Tables
+As mentioned in § 3.3, the joined result 𝑇 + is generally large in
+scale, which makes it inecient to directly select coreset over 𝑇 +.
+To address this, our key idea is to divide the large-scale 𝑇 + into some
+disjoint groups (like the Groupby), each of which contains tuples
+that have the same attribute values over one or more predened
+attributes. In this way, the gradient computation over tuples in 𝑇 +
+can be pushed down as a pre-computation step in the corresponding
+groups of each single table respectively, and further bounded by
+aggregating the results from multiple tables eciently.
+
+Remark. In this paper, we consider the join type that introduces
+redundancy in the data, including both tuple redundancy and fea-
+ture redundancy [14, 29] (e.g., PK-FK, one (many)-to-many joins).
+For example, considering 𝑅 = 𝑆 ⊲⊳ 𝑇 , for table 𝑆, the tuple ratio is
+𝑑𝑅
+𝑑𝑆 , where 𝑛 represents the num-
+denoted by
+ber of tuples and 𝑑 represents the number of features. We assume
+that the tuple ratio and the feature ratio are larger than 1.
+
+𝑛𝑅
+𝑛𝑆 and feature ratio is
+
+5 RECON ALGORITHM
+Theory 2 in § 4, i.e., the GGEM problem has the submodular property,
+tells us that we can use a greedy algorithm with the approximate
+ratio (1− 1
+𝑒 ) to solve the problem of coreset selection without joining
+multiple tables. In what follows, we will rst overview the algorithm
+in § 5.1, followed by discussing two important components of the
+algorithm in § 5.2 and § 5.3 respectively.
+
+5.1 Algorithm Overview
+
+Algorithm. Algorithm 2 takes the base table 𝑇 , a set T of tables to
+be augmented and the coreset size 𝐾 (can be specied by the user)
+as input, greedily adds the tuple that brings about the largest utility
+improvement into the coreset such that a near-optimal coreset is
+nally output. Note that 𝑇 + denotes the result of joining all above
+tables together, which will not be materialized.
+
+It rst pre-computes the feature vector dierence between every
+two tuples in each table, so as to bound the gradients (line 1). Next,
+it iteratively adds one tuple to the coreset at a time (the rst loop
+in lines 3-12). At each iteration, the tuple with the largest utility
+
+Algorithm 2: RECON Algorithm
+
+Input: The train data 𝑇 , T = {𝑇1,𝑇2, ...,𝑇𝑚 }, coreset size 𝐾.
+Output: A coreset 𝐶 ⊆ 𝑇 +, weight 𝑊 = {𝑤𝑗 },|𝐶 | = |𝑊 | = 𝐾.
+Pre-compute table-wise partial feature similarity dierence
+𝐷+ = {𝑑ℎ
+𝑗 (cid:107) }.
+𝐶 = ∅;
+while |𝐶 | < 𝐾 do
+
+𝑖 𝑗 |∀𝑇ℎ ∈ T ∪ {𝑇 }, ∀𝑡ℎ
+
+𝑗 ∈ 𝑇ℎ, 𝑑ℎ
+
+𝑖 𝑗 = (cid:107)xℎ
+
+𝑖 − xℎ
+
+𝑖 , 𝑡ℎ
+
+Sample a subset S from 𝑇 + using 𝑇 and T;
+for each tuple 𝑡 𝑗 ∈ S do
+𝑈 (𝐶 ∪ {𝑡 𝑗 }) = 0;
+for each group G𝑖 ∈ G do
+
+Compute 𝑠 𝑗𝑖 by aggregating 𝑑ℎ
+tables;
+𝑈 (𝐶 ∪ {𝑡 𝑗 }) += |𝐺 (𝑖) | max𝑐 𝑗 ∈𝐶∪{𝑡 𝑗 } 𝑠 𝑗𝑖 ;
+
+𝑖(cid:48) 𝑗(cid:48) ∈ 𝐷+ from dierent
+
+𝑈 (𝑡 𝑗 |𝐶) = 𝑈 (𝐶 ∪ {𝑡 𝑗 }) − 𝑈 (𝐶);
+
+𝑡 ∗ = arg max𝑡 𝑗 ∈S 𝑈 (𝑡 𝑗 |𝐶) ;
+Add 𝑡 ∗ to 𝐶 ;
+for j = 1 to |𝐶 | do
+𝑤𝑗 = (cid:205)𝑔
+
+𝑖=1 |𝐺 (𝑖) |I[ 𝑗 = arg max𝑐 𝑗(cid:48) ∈𝐶 𝑠 𝑗(cid:48)𝑖 ]
+
+return 𝐶,𝑊 ;
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+11
+
+12
+
+13
+
+14
+
+15
+
+among 𝑇 + will be selected (line 11). However, it is rather time-
+consuming to iterate 𝑇 +, and thus we can sample a set S of joined
+tuples and select one from them (the second for loop in lines 5-
+10). Afterwards, to compute the utility of each tuple 𝑡 𝑗 ∈ S, the
+third loop (lines 7-9) iterates each group G𝑖 , computes the feature
+similarity 𝑠 𝑗𝑖 (line 8), reconsiders whether tuples in G𝑖 should be
+assigned to 𝑡 𝑗 , and updates the utility value (line 9). In short, we
+can derive the coreset 𝐶 by repeatedly sampling tuples, computing
+their utilities, and select the best one as a member of the coreset.
+Finally, we also have to assign each 𝑐 𝑗 ∈ 𝐶 a weight 𝑤 𝑗 .
+
+Algorithm 2 consists of the following four key components.
+[Component (cid:202): Partial feature similarity pre-computation.] As
+shown in line 1, we rst compute the similarity of partial feature
+vectors in each individual table, in order to bound the gradient
+based on Eq. 7. This step is easy to implement but rather important.
+The motivation and the details will be introduced in § 5.2.
+[Component (cid:203): Joined tuples sampling.] We use the sampling
+method proposed in [58] to sample a set S ⊂ 𝑇 + of tuples as
+candidates (line 4). Although 𝑇 + will not be materialized, [58] guar-
+antees that these sampled tuples are uniformly sampled from 𝑇 +.
+Thus, there still has an approximate ratio 1 − 1
+𝑒 − 𝜖 for the greedy
+algorithm, as discussed in § 3.2, where |S| = (𝑁 /𝐾) · 𝑙𝑜𝑔(1/𝜖).
+[Component (cid:204): Feature similarity computation.] During the above
+process, computing 𝑠 𝑗𝑖 is challenging because we do not have 𝑇 +. To
+address this , the high level idea is to aggregate the pre-computation
+results in Component (cid:202) along with the join keys, which will be
+introduced in § 5.3.
+[Component (cid:205): Weight computation.] As shown in line 14, 𝑤 𝑗 equals
+to the sum of the groups that are assigned to 𝑐 𝑗 timing the group
+size, because the tuples within a group will be assigned a single
+tuple in the coreset.
+
+5.2 Partial Feature Similarity Pre-computation
+As discussed above, to solve the GGEM problem, it is signicant
+to compute the feature similarity 𝑠 𝑗𝑖 , i.e., the minimum similarity
+
+70
+
+Figure 6: Partial feature similarity pre-computation.
+
+𝑖 = [x+
+
+𝑖 [1], ..., x+
+
+𝑖 [𝑚]], where x+
+
+of feature vectors between 𝑐 𝑗 and tuples in the group G𝑖 , so as to
+bound the gradient dierence. The computation is highly related
+to the Euclidean distance between two feature vectors, as shown in
+Eq. 8. Although we can obtain one vector of 𝑐 𝑗 through sampling,
+the other one in the group is not available because we do not want
+to materialize 𝑇 + and iterate it. Fortunately, each feature vector
+in 𝑇 + can be represented by the concatenation of (𝑚 + 1) sub-
+vectors from these 𝑚 candidate tables as well as the base table,
+i.e., x+
+𝑖 [0], x+
+𝑖 [0] denotes the base
+table part of feature vector of 𝑡 +
+𝑖 . Intuitively, to capture the feature
+dierence, we can rst capture the partial feature similarity inside
+each table, and then aggregate from multiple tables to compute 𝑠 𝑗𝑖 .
+Hence, we push down the computation to each individual table
+as a pre-computation step, which accelerates the coreset selection
+much. To be specic, for each table 𝑇𝑘 , the feature vector dierence
+𝑖 − xℎ
+of any tuple pair, i.e., 𝑑ℎ
+In Figure 6, suppose that the tuples colored green from multiple
+tables will form a group G2. In pre-computation, (cid:107)x+
+𝑗 [1] − x1
+2 (cid:107),
+(cid:107)x+
+2 (cid:107) have
+been computed when we want to compute 𝑠12, which accelerates
+the coreset selection much because we do not need to compute
+the dierences over the large scale 𝑇 +. Note that we are not going
+to compute the feature similarity between every two tuples in 𝑇 +.
+Recap that in § 4.2, the similarity 𝑠 𝑗𝑖 to be computed, i.e., 𝑠 𝑗𝑖 =
+1 − 𝑛𝑜𝑟𝑚𝑎𝑙𝑖𝑧𝑒𝑑 (max𝑘 ∈𝐺𝑖 (cid:107)x+
+(cid:107)) is to denote the minimum
+similarity of feature vectors between 𝑐 𝑗 ∈ 𝐶 and tuples in group
+G𝑖 . Once 𝑠 𝑗𝑖 can be computed, we can use it to bound the gradient
+approximation error, so in the next section, we will discuss how to
+aggregate pre-computed partial results to derive 𝑠 𝑗𝑖 .
+
+𝑗 (cid:107) is computed.
+
+1 (cid:107) and (cid:107)x+
+
+𝑗 [0] − x0
+3
+
+𝑖 𝑗 = (cid:107)xℎ
+
+𝑗 [2] − x2
+
+𝑗 [1] − x1
+
+𝑗 [2] − x2
+
+3 (cid:107), (cid:107)x+
+
+𝑘 − x+
+
+(cid:107), (cid:107)x+
+
+𝛾 ( 𝑗)
+
+5.3 Gradient Aggregation for Feature Similarity
+
+(𝑠 𝑗𝑖) Computation
+
+Next, we describe, for a given 𝑐 𝑗 ∈ 𝐶, how to eciently compute 𝑠 𝑗𝑖 ,
+which is equivalent to compute the dierence, i.e., max𝑘 ∈𝐺𝑖 (cid:107)x+
+𝑘 −
+x+
+(cid:107) for all the groups G𝑖 ∈ G using a dynamic programming
+𝛾 ( 𝑗)
+(DP) algorithm. We mainly illustrate the algorithm using a concrete
+example as shown in Figure 7. Before that, we rst introduce some
+necessary notations.
+
+Recap that in § 5.2, each sampled tuple x+
+
+𝛾 ( 𝑗) can be represented
+by concatenating 𝑚+1 sub-vectors from dierent tables respectively.
+Hence, for each subvector x+
+[ℎ], ℎ ∈ [0, 𝑚], we use 𝛾ℎ ( 𝑗) to
+denote the index of x+
+[ℎ] in table 𝑇ℎ. In this way, for all tuples in
+each table 𝑇𝑢 , 𝑑ℎ
+−xℎ
+𝑢 (cid:107), 𝑢 ∈ [1, |𝑇𝑢 |].
+Besides, we model these tables as a tree structure, where the root is
+the table that we group on. We use 𝐽ℎ to denote the set of children
+table index of 𝑇ℎ. 𝑅ℎ
+𝑢 (The 𝑢-th
+
+𝑢 denotes the intermediate result of 𝑡ℎ
+
+𝛾 ( 𝑗)
+𝛾ℎ ( 𝑗),𝑢 = (cid:107)xℎ
+
+𝑢 (cid:107) = (cid:107)x+ [ℎ] −xℎ
+
+𝛾ℎ ( 𝑗)
+
+𝛾 ( 𝑗)
+
+tuple in 𝑇ℎ) joining with all the descendants of 𝑇ℎ. Next, we use
+two examples to clarify these.
+
+Example 4. [Join tree] Suppose that A = {𝐴0}, we have a tree in
+Figure 7, where 𝑇0 is the root, and 𝑇1,𝑇3 are leaves. Thus, 𝐽0 = {1, 2},
+𝐽2 = {3} and 𝐽1 = 𝐽3 = ∅. Besides, 𝑇0 and 𝑇1 can be joined on
+attribute 𝐴2, where values with the same color can be joined together.
+For example, the rst two tuples in 𝑇0 can be joined with the rst
+tuple in 𝑇1. Based on that, 𝑅2
+1 denotes the result (i.e., two tuples) of
+1 joining with 𝑇3 (the descendant of 𝑇2). 𝑅2
+𝑡 2
+1 denotes the result (i.e.,
+1 joining with 𝑇1,𝑇2 and 𝑇3 (the descendants of 𝑇0).
+three tuples) of 𝑡 1
+[Groups] Suppose that we want to group on attribute 𝐴0 (i.e., the
+group key). Clearly, both 𝑇0 and 𝑇 + will have 3 groups G1, G2 and G3.
+For example, the rst group G1 in 𝑇0 has two tuples, but after joining,
+there will be six tuples in the group.
+
+Our goal. Given the join tree, group key and pre-computation
+results (§ 5.2), the goal of our DP algorithm is to compute the
+feature similarity 𝑠 𝑗𝑖 between each group G𝑖 and the tuple 𝑐 𝑗 in the
+coreset, by aggregating the results from multiple tables along with
+the join keys, without materializing 𝑇 +.
+
+(𝑑0
+
+𝛾0 (1),2
+
+𝛾0 (1),1
+
+1 (𝑡 0
+
+2 ), we have already known 𝑑0
+
+Key observation. The feature similarity computation has the op-
+timal substructure. Hence, at a high level, we can group within
+each individual table on the attributes to be joined, and then use
+a dynamic programming algorithm to compute the 𝑠 𝑗𝑖 across the
+join relations. Taking the G1 as an example, that is, we want to
+get 𝑠11 (the similarity/dierence between 𝑐1 and G1). For the two
+tuples 𝑡 0
+). Hence, if
+we can compute the maximum dierence of feature vectors of tu-
+ples that can join with 𝑡 0
+2 ) from other tables, which serve as
+the optimal substructure, we can add 𝑑0
+(𝑑0
+) to the corre-
+sponding maximum dierence and output two values. Finally 𝑠11
+can be computed by choosing the largest one from the two values.
+Specically, to capture the join relations of tuples, except the base
+table, for each table 𝑇ℎ, we group the tuples in 𝑇ℎ on the attribute
+that serves as the key to join with 𝑇ℎ’s parent. We use 𝑃ℎ
+𝑣 to denote
+the 𝑣-th group of tuples in 𝑇ℎ. For example, 𝑃 2
+1 includes the rst
+two tuples in 𝑇2 and 𝑃 3
+2 just includes the last tuple in 𝑇3, as shown
+in Figure 7. Note that for the base table, the groups are constructed
+based on 𝐴0 rather than the join key because 𝑇0 is the root.
+
+1 (𝑡 0
+
+𝛾0 (1),2
+
+𝛾0 (1),1
+
+We use 𝑑𝑝 [𝑢, ℎ] to denote the maximum dierence between
+tuples in 𝑅ℎ
+𝑢 and 𝑐 𝑗 ’s corresponding sub-vectors w.r.t. tuples in 𝑅ℎ
+𝑢 .
+We then use 𝐷𝑃 [𝑣, ℎ] to denote the maximum 𝑑𝑝 value among the
+𝑣-th group of 𝑇ℎ, i.e., 𝐷𝑃 [𝑣, ℎ] = max𝑡ℎ
+𝑑𝑝 [𝑢, ℎ]. Thus, we have:
+
+𝑑𝑝 [𝑢, ℎ] = 𝑑ℎ
+
+𝛾ℎ ( 𝑗),𝑢 +
+
+𝐷𝑃 [𝑣 (cid:48), ℎ(cid:48)]
+
+(10)
+
+𝑢 ∈𝑃ℎ
+𝑣
+∑︁
+
+ℎ(cid:48) ∈𝐽 (ℎ)
+
+where 𝑣 (cid:48) denotes the index of group in 𝑇ℎ(cid:48) that can join with 𝑡ℎ
+𝑢 .
+Then we can compute 𝐷𝑃 [𝑖, 0], 𝑖 ∈ [1, 𝑔] following Eq. 10. Obvi-
+ously, we can directly compute 𝑠 𝑗𝑖 based on 𝐷𝑃 [𝑖, 0].
+
+For ease of discussion, here we just consider equi-join where
+each tuple can join with at most one group of a table. We will
+discuss how to support fuzzy join later in this section.
+
+Let us illustrate the algorithm using an example to compute 𝑠11.
+Example 5. [The DP algorithm] We run the DP algorithm from
+bottom to up. Initially, we compute the 𝑑𝑝 values for all tuples in the
+
+71
+
+CCoreset Pre-compute partial gradient differenceComputeTT1T2[[=|{z}<latexit sha1_base64="QyV2Em5ZrTckfklNDjqgWjdcSXE=">AAAB9HicbVBNS8NAEJ3Ur1q/qh69LBbBU0lE0WPRi8cK9gPaUDababt0s4m7m0IJ/R1ePCji1R/jzX/jts1BWx8MPN6bYWZekAiujet+O4W19Y3NreJ2aWd3b/+gfHjU1HGqGDZYLGLVDqhGwSU2DDcC24lCGgUCW8Hobua3xqg0j+WjmSToR3QgeZ8zaqzkd1MZogoUZZhNe+WKW3XnIKvEy0kFctR75a9uGLM0QmmYoFp3PDcxfkaV4UzgtNRNNSaUjegAO5ZKGqH2s/nRU3JmlZD0Y2VLGjJXf09kNNJ6EgW2M6JmqJe9mfif10lN/8bPuExSg5ItFvVTQUxMZgmQkCtkRkwsoUxxeythQ2ojMDankg3BW355lTQvqt5l9erhslK7zeMowgmcwjl4cA01uIc6NIDBEzzDK7w5Y+fFeXc+Fq0FJ585hj9wPn8AStyScw==</latexit>|{z}<latexit sha1_base64="QyV2Em5ZrTckfklNDjqgWjdcSXE=">AAAB9HicbVBNS8NAEJ3Ur1q/qh69LBbBU0lE0WPRi8cK9gPaUDababt0s4m7m0IJ/R1ePCji1R/jzX/jts1BWx8MPN6bYWZekAiujet+O4W19Y3NreJ2aWd3b/+gfHjU1HGqGDZYLGLVDqhGwSU2DDcC24lCGgUCW8Hobua3xqg0j+WjmSToR3QgeZ8zaqzkd1MZogoUZZhNe+WKW3XnIKvEy0kFctR75a9uGLM0QmmYoFp3PDcxfkaV4UzgtNRNNSaUjegAO5ZKGqH2s/nRU3JmlZD0Y2VLGjJXf09kNNJ6EgW2M6JmqJe9mfif10lN/8bPuExSg5ItFvVTQUxMZgmQkCtkRkwsoUxxeythQ2ojMDankg3BW355lTQvqt5l9erhslK7zeMowgmcwjl4cA01uIc6NIDBEzzDK7w5Y+fFeXc+Fq0FJ585hj9wPn8AStyScw==</latexit>|{z}<latexit sha1_base64="QyV2Em5ZrTckfklNDjqgWjdcSXE=">AAAB9HicbVBNS8NAEJ3Ur1q/qh69LBbBU0lE0WPRi8cK9gPaUDababt0s4m7m0IJ/R1ePCji1R/jzX/jts1BWx8MPN6bYWZekAiujet+O4W19Y3NreJ2aWd3b/+gfHjU1HGqGDZYLGLVDqhGwSU2DDcC24lCGgUCW8Hobua3xqg0j+WjmSToR3QgeZ8zaqzkd1MZogoUZZhNe+WKW3XnIKvEy0kFctR75a9uGLM0QmmYoFp3PDcxfkaV4UzgtNRNNSaUjegAO5ZKGqH2s/nRU3JmlZD0Y2VLGjJXf09kNNJ6EgW2M6JmqJe9mfif10lN/8bPuExSg5ItFvVTQUxMZgmQkCtkRkwsoUxxeythQ2ojMDankg3BW355lTQvqt5l9erhslK7zeMowgmcwjl4cA01uIc6NIDBEzzDK7w5Y+fFeXc+Fq0FJ585hj9wPn8AStyScw==</latexit>x+j[1]<latexit sha1_base64="roJvpcyBenWDfjOhfHAB//h0Fsc=">AAADQ3icjVLLSsNAFD2N7/pqdekmWARBKIkouhTduFSwKtRakjjVaF4kEx8UP8Wtfokf4R8o7sSt4Jkxgg98TEh759xzzp07uW4S+Jm0rLuS0dPb1z8wOFQeHhkdG69UJ7azOE890fDiIE53XScTgR+JhvRlIHaTVDihG4gd92RN5XdORZr5cbQlLxLRCp3DyO/4niMJtSvVvdCRR26ne37ZPt6fa9qtdqVm1S29zO+BXQQ1FGsjrpZGsYcDxPCQI4RABMk4gIOMTxM2LCTEWugSSxn5Oi9wiTK1OVmCDIfoCX8PuWsWaMS98sy02mOVgG9KpYkZamLyUsaqmqnzuXZW6E/eXe2pznbBf7fwColKHBH9S/fO/K9O9SLRwbLuwWdPiUZUd17hkutbUSc3P3Ql6ZAQU/EB8yljTyvf79nUmkz3ru7W0fl7zVSo2nsFN8fDr925dP35i6j8X4yEZ+zw9Kqa4pU5TfbX2fkebM/X7YX64uZCbWW1mKtBTGEas5ydJaxgHRtosNIZrnCNG+PWeDSejOc3qlEqNJP4tIyXV2iUrK8=</latexit>x+j[0]<latexit sha1_base64="StGsNIHIQb42pcnnMLVNLmmPG+o=">AAADQ3icjVLLSsNAFD2N7/pqdekmWARBKKkouhTduFSwrVBrSeJUo3mRTHxQ/BS3+iV+hH+guBO3gmfGCD7wMSHtnXPPOXfu5Dqx76XSsu4KRl//wODQ8EhxdGx8YrJUnmqkUZa4ou5GfpTsOnYqfC8UdelJX+zGibADxxdN52RD5ZunIkm9KNyRF7FoB/Zh6HU915aEOqXyXmDLI6fbO7/sHO8vtKx2p1SxqpZe5veglgcV5GsrKhfGsYcDRHCRIYBACMnYh42UTws1WIiJtdEjljDydF7gEkVqM7IEGTbRE/4ectfK0ZB75ZlqtcsqPt+EShNz1ETkJYxVNVPnM+2s0J+8e9pTne2C/07uFRCVOCL6l+6d+V+d6kWii1Xdg8eeYo2o7tzcJdO3ok5ufuhK0iEmpuID5hPGrla+37OpNanuXd2trfP3mqlQtXdzboaHX7tz6PrzF1H5vxgxz9jl6VU1xStymmpfZ+d70Fis1paqy9tLlbX1fK6GMYNZzHN2VrCGTWyhzkpnuMI1boxb49F4Mp7fqEYh10zj0zJeXgFlxqyu</latexit>x+j[2]<latexit sha1_base64="Q9RBkwfXaWT7hPnmFrA65VUg1FI=">AAADQ3icjVLLSsNAFD2N7/pqdekmWARBKKkouhTduFSwrVBrSeJUo3mRTHxQ/BS3+iV+hH+guBO3gmfGCD7wMSHtnXPPOXfu5Dqx76XSsu4KRl//wODQ8EhxdGx8YrJUnmqkUZa4ou5GfpTsOnYqfC8UdelJX+zGibADxxdN52RD5ZunIkm9KNyRF7FoB/Zh6HU915aEOqXyXmDLI6fbO7/sHO8vtBbbnVLFqlp6md+DWh5UkK+tqFwYxx4OEMFFhgACISRjHzZSPi3UYCEm1kaPWMLI03mBSxSpzcgSZNhET/h7yF0rR0PulWeq1S6r+HwTKk3MURORlzBW1Uydz7SzQn/y7mlPdbYL/ju5V0BU4ojoX7p35n91qheJLlZ1Dx57ijWiunNzl0zfijq5+aErSYeYmIoPmE8Yu1r5fs+m1qS6d3W3ts7fa6ZC1d7NuRkefu3OoevPX0Tl/2LEPGOXp1fVFK/Iaap9nZ3vQWOxWluqLm8vVdbW87kaxgxmMc/ZWcEaNrGFOiud4QrXuDFujUfjyXh+oxqFXDONT8t4eQVrYqyw</latexit>dkij=kxki xkjk<latexit sha1_base64="9f2tO4e+S53wIwm/1EY2iYpdLK0=">AAADbXicjVJdTxNBFD3tqmAVLRKfIGZjY/TFZmsgmhgToi8+QmILCcVmdzuFofuV2Vkjafpj/DW86qP/AJ78C547LAlKEGez7Z1zzzl37uyNikSXNgh+Nprerdt3Fhbvtu7dX3rwsL38aFDmlYlVP86T3OxGYakSnam+1TZRu4VRYRolaieafpD8zhdlSp1nn+xxofbT8CDTEx2HltCo/XY8mumj+eep/84fJgNl7DAN7WE0mX2dMyOJl/5lyHGHRpijdifoBm75V4NeHXRQr618ubGEIcbIEaNCCoUMlnGCECWfPfQQoCC2jxkxw0i7vMIcLWorshQZIdEpfw+426vRjHvxLJ06ZpWEr6HSxzNqcvIMY6nmu3zlnAW9znvmPOVsx/yPaq+UqMUh0Zt0F8z/1UkvFhO8cT1o9lQ4RLqLa5fK3Yqc3L/UlaVDQUziMfOGceyUF/fsO03pepe7DV3+1DEFlX1ccyuc/bO7iK7XfxHJ38QoeMYJTy/VhNfiNPX+np2rweBVt7fe3dhe72y+r+dqEat4ihecndfYxEdsoc9K33CC7/jR/OU99ta8J+fUZqPWrOCP5T3/DVoauqY=</latexit>x03<latexit sha1_base64="pES8uUcLvEs3UyZLWmKxDjlctkk=">AAADPnicjVLLSsNAFD2N7/rWpZtgEVyVVCu6LLpxqWBVqFWSONVgXkwmohT/w61+ib/hD4guxK1Lz4wRfFB1Qto7555z7tzJ9dIwyJTj3Jesvv6BwaHhkfLo2PjE5NT0zG6W5NIXTT8JE7nvuZkIg1g0VaBCsZ9K4UZeKPa8sw2d3zsXMguSeEddpqIduSdx0Al8VxE6PIhcdep1uhdXR8uHztFUxak6Ztk/g1oRVFCsrWS6NI4DHCOBjxwRBGIoxiFcZHxaqMFBSqyNLjHJKDB5gSuUqc3JEmS4RM/4e8Jdq0Bj7rVnZtQ+q4R8JZU2FqhJyJOMdTXb5HPjrNFe3l3jqc92yX+v8IqIKpwS/Uv3wfyvTvei0MGa6SFgT6lBdHd+4ZKbW9Entz91peiQEtPxMfOSsW+UH/dsG01metd365r8o2FqVO/9gpvj6dfuPLr2/iI6/xcj5Rk7PL2upnllTlPt++z8DHaXqrV6dWW7XmmsF3M1jDnMY5Gzs4oGNrGFJitJXOMGt9ad9WA9Wy/vVKtUaGbxZVmvbysPq0U=</latexit>x22<latexit sha1_base64="AD7fk/B2vc3L9hDEhKx0gBN//rc=">AAADPnicjVLLSsNAFD2Nr1pfVZdugkVwVdKi6FJ047KCVaE+SOJUg3kxmYhS/A+3+iX+hj8guhC3Lj0zRlCLjwlp75x7zrlzJ9dLwyBTjnNfsgYGh4ZHyqOVsfGJyanq9MxOluTSF20/CRO557mZCINYtFWgQrGXSuFGXih2vbMNnd89FzILknhbXabiIHJP4qAb+K4idLgfuerU6/Yuro6ah82jas2pO2bZ/UGjCGooViuZLk1gH8dI4CNHBIEYinEIFxmfDhpwkBI7QI+YZBSYvMAVKtTmZAkyXKJn/D3hrlOgMffaMzNqn1VCvpJKGwvUJORJxrqabfK5cdboT94946nPdsl/r/CKiCqcEv1L98H8r073otDFqukhYE+pQXR3fuGSm1vRJ7c/daXokBLT8THzkrFvlB/3bBtNZnrXd+ua/KNhalTv/YKb4+nX7jy6/vxFdP4vRsozdnl6XU3zKpymxvfZ6Q92mvXGUn15a6m2tl7MVRlzmMciZ2cFa9hEC21WkrjGDW6tO+vBerZe3qlWqdDM4suyXt8ALdqrRg==</latexit>x21<latexit sha1_base64="PTMiYHvGFYUsYwCB+70897tF1ug=">AAADPnicjVLLSsNAFD2N7/rWpZtgEVyVRBRdim5cKlgV1JYkTttgXkwmohT/w61+ib/hD4guxK1Lz4wRfOBjQto7555z7tzJ9bMozJXj3FWsvv6BwaHhkero2PjE5NT0zF6eFjIQjSCNUnnge7mIwkQ0VKgicZBJ4cV+JPb9002d3z8TMg/TZFddZOI49jpJ2A4DTxFqHsWe6vrt3vlly20utaZqTt0xy/4euGVQQ7m20+nKOI5wghQBCsQQSKAYR/CQ8zmECwcZsWP0iElGockLXKJKbUGWIMMjesrfDneHJZpwrz1zow5YJeIrqbSxQE1KnmSsq9kmXxhnjf7k3TOe+mwX/PdLr5ioQpfoX7p35n91uheFNtZMDyF7ygyiuwtKl8Lcij65/aErRYeMmI5PmJeMA6N8v2fbaHLTu75bz+QfDFOjeh+U3AKPv3bn0/XnL6LzfzEynrHN0+tqmlflNLlfZ+d7sLdUd5frKzvLtfWNcq6GMYd5LHJ2VrGOLWyjwUoSV7jGjXVr3VtP1vMb1aqUmll8WtbLKysLq0U=</latexit>x11<latexit sha1_base64="5vHkktc//tEJsUgJcx0A058Rq2k=">AAADPnicjVLLSsNAFD2N7/rWpZtgEVyVRBRdim5cKlgV6oMkTjWYF5OJWEr/w61+ib/hD4guxK1Lz4wp+MDHhLR3zj3n3LmT62dRmCvHua9Yff0Dg0PDI9XRsfGJyanpmb08LWQgGkEapfLA93IRhYloqFBF4iCTwov9SOz7F5s6v38pZB6mya5qZ+Io9s6SsBUGniJ0fBh76txvda66J+6xezJVc+qOWfb3wC2DGsq1nU5XxnGIU6QIUCCGQALFOIKHnE8TLhxkxI7QISYZhSYv0EWV2oIsQYZH9IK/Z9w1SzThXnvmRh2wSsRXUmljgZqUPMlYV7NNvjDOGv3Ju2M89dna/PdLr5iowjnRv3Q95n91uheFFtZMDyF7ygyiuwtKl8Lcij65/aErRYeMmI5PmZeMA6Ps3bNtNLnpXd+tZ/KPhqlRvQ9KboGnX7vz6frzF9H5vxgZz9ji6XU1zatymtyvs/M92Fuqu8v1lZ3l2vpGOVfDmMM8Fjk7q1jHFrbRYCWJa9zg1rqzHqxn6+WdalVKzSw+Lev1DSg+q0Q=</latexit>x12<latexit sha1_base64="R5XdCWbhoufVwEstyB/GqdX4n3U=">AAAC0XicjVHLSsNAFD2Nr1pfVZdugkVwVZJS0WXRjcuK9gGtLUk6bUPzYjIRSymIW3/Arf6U+Af6F94ZU1CL6IQkZ86958zce+3Ic2NhGK8ZbWFxaXklu5pbW9/Y3Mpv79TjMOEOqzmhF/KmbcXMcwNWE67wWDPizPJtjzXs0ZmMN24Yj90wuBLjiF371iBw+65jCaI6bd8SQ7s/uZ12Sx2zmy8YRUMtfR6YKSggXdUw/4I2egjhIIEPhgCCsAcLMT0tmDAQEXeNCXGckKviDFPkSJtQFqMMi9gRfQe0a6VsQHvpGSu1Q6d49HJS6jggTUh5nLA8TVfxRDlL9jfvifKUdxvT3069fGIFhsT+pZtl/lcnaxHo40TV4FJNkWJkdU7qkqiuyJvrX6oS5BARJ3GP4pywo5SzPutKE6vaZW8tFX9TmZKVeyfNTfAub0kDNn+Ocx7US0WzXDy6KBcqp+mos9jDPg5pnseo4BxV1Mib4xFPeNYutbF2p91/pmqZVLOLb0t7+AAhLJTt</latexit>x13<latexit sha1_base64="nOgfIt6CChmnUw+cGjl37XwVls4=">AAAC0XicjVHLSsNAFD2Nr/quunQTLIKrkmhFl0U3LivaB/RFkk7b0LyYTMRSCuLWH3CrPyX+gf6Fd8YU1CI6IcmZc+85M/deO/LcWBjGa0abm19YXMour6yurW9s5ra2q3GYcIdVnNALed22Yua5AasIV3isHnFm+bbHavbwXMZrN4zHbhhci1HEWr7VD9ye61iCqHbTt8TA7o1vJ52jttnJ5Y2CoZY+C8wU5JGucph7QRNdhHCQwAdDAEHYg4WYngZMGIiIa2FMHCfkqjjDBCukTSiLUYZF7JC+fdo1UjagvfSMldqhUzx6OSl17JMmpDxOWJ6mq3iinCX7m/dYecq7jehvp14+sQIDYv/STTP/q5O1CPRwqmpwqaZIMbI6J3VJVFfkzfUvVQlyiIiTuEtxTthRymmfdaWJVe2yt5aKv6lMycq9k+YmeJe3pAGbP8c5C6qHBbNYOL4s5ktn6aiz2MUeDmieJyjhAmVUyJvjEU941q60kXan3X+maplUs4NvS3v4ACOOlO4=</latexit>x14<latexit sha1_base64="39ZQ+Axqfp1yYgCwMWe9wdleBCk=">AAAC0XicjVHLSsNAFD2Nr1pfVZdugkVwVRKp6LLoxmVF+4C+SNJpG5oXk4lYSkHc+gNu9afEP9C/8M6YglpEJyQ5c+49Z+bea0eeGwvDeM1oC4tLyyvZ1dza+sbmVn57pxaHCXdY1Qm9kDdsK2aeG7CqcIXHGhFnlm97rG6PzmW8fsN47IbBtRhHrO1bg8Dtu44liOq0fEsM7f7kdtotdcxuvmAUDbX0eWCmoIB0VcL8C1roIYSDBD4YAgjCHizE9DRhwkBEXBsT4jghV8UZpsiRNqEsRhkWsSP6DmjXTNmA9tIzVmqHTvHo5aTUcUCakPI4YXmaruKJcpbsb94T5SnvNqa/nXr5xAoMif1LN8v8r07WItDHqarBpZoixcjqnNQlUV2RN9e/VCXIISJO4h7FOWFHKWd91pUmVrXL3loq/qYyJSv3Tpqb4F3ekgZs/hznPKgdFc1S8fiyVCifpaPOYg/7OKR5nqCMC1RQJW+ORzzhWbvSxtqddv+ZqmVSzS6+Le3hAyXwlO8=</latexit>cj<latexit sha1_base64="l1EnCOW13e9JehDTo+ggK66QN54=">AAACxnicjVHLSsNAFD2Nr1pfVZdugkVwVRKp6LLopsuK9gFaSjKd1rFpEpKJUorgD7jVTxP/QP/CO+MU1CI6IcmZc+85M/dePw5EKh3nNWfNzS8sLuWXCyura+sbxc2tZhplCeMNFgVR0va9lAci5A0pZMDbccK9kR/wlj88VfHWLU9SEYUXchzzzsgbhKIvmCeJOmfdm26x5JQdvexZ4BpQgln1qPiCK/QQgSHDCBwhJOEAHlJ6LuHCQUxcBxPiEkJCxznuUSBtRlmcMjxih/Qd0O7SsCHtlWeq1YxOCehNSGljjzQR5SWE1Wm2jmfaWbG/eU+0p7rbmP6+8RoRK3FN7F+6aeZ/daoWiT6OdQ2Caoo1o6pjxiXTXVE3t79UJckhJk7hHsUTwkwrp322tSbVtaveejr+pjMVq/bM5GZ4V7ekAbs/xzkLmgdlt1I+PKuUqidm1HnsYBf7NM8jVFFDHQ3yHuART3i2alZoZdbdZ6qVM5ptfFvWwwdl+ZBN</latexit>on 𝑇 +, if the join result is materialized. First, they compute feature
+vector dierences between every two tuples in 𝑇 +, so as to bound
+the gradient, leading to a time complexity of 𝑂 (𝑁 2𝐷). Afterwards,
+to compute the utility of each tuple , their methods have to iterate
+every tuple in 𝑇 +, leading to a time complexity of 𝑂 (𝐾 · 𝑆 · 𝑁 ) =
+𝑂 (𝑁 𝐾𝑆). In total, the time complexity is 𝑂 (𝑁 2𝐷 + 𝑁 𝐾𝑆).
+
+For feature-enrich ML, 𝑁 (cid:29) 𝑛 always holds when various types
+of joins exist. Thus, our method can much improve the eciency.
+Discussion. For fuzzy join, each tuple 𝑡ℎ
+𝑢 may join with multiple
+groups 𝑃ℎ(cid:48)
+𝑣(cid:48) for ℎ(cid:48) ∈ 𝐽 (ℎ) of a table. We can extend RECON to handle
+this by changing the 𝐷𝑃 [𝑣 (cid:48), ℎ(cid:48)] in Eq. 10 into 𝑑𝑝 [𝑢, ℎ] = 𝑑ℎ
+𝛾ℎ ( 𝑗),𝑢 +
+(cid:205)ℎ(cid:48) ∈𝐽 (ℎ) max𝑣(cid:48) ∈𝑉 𝐷𝑃 [𝑣 (cid:48), ℎ(cid:48)], where 𝑉 represents all the groups in
+𝑇ℎ(cid:48) that can join with 𝑡ℎ
+𝑢 . For the grouping key, if the attributes in
+A specied by the user are distributed in multiple tables, we can
+run our algorithm by randomly selecting a table from these tables
+as the root and aggregating the results using the DP algorithm.
+
+Note that the upper bound of the gradient dierence derived in
+§ 4 only holds for points with similar labels. Thus, theoretically
+we need to select subsets separately. The above analysis assumes
+that all tuples correspond to same labels. However, in practice, data
+has dierent labels. Therefore, data with a certain label generally
+represents only a small fraction of the total data. The total amount
+of calculation is much less than the above complexity.
+
+Convergence Rate Analysis of Algorithm 2. In the eld of ML,
+convergence rate reects how fast the machine learning algorithm
+can nd the optimal parameters. The higher the convergence rate,
+the fewer iterations the model needs to converge. Specically, we
+can compute the convergence rate by comparing the parameter 𝜃
+computed in the 𝑘-th and the (𝑘 + 1)-th iteration to the optimal
+one. The detailed proof is left to the technical report [2].
+
+As proved in [2], the convergence rate of Algorithm 2 is at the
+same rate of 𝑂 ( 1√
+) as the convergence rate for incremental gra-
+𝑘
+dient descent on the full data 𝑇 + [42]. Hence, theoretically, RECON
+needs the same number of epochs to converge as training on the
+full data. In this situation, since the coreset is much smaller than
+the full data, the eciency is much improved.
+
+6 EXPERIMENTS
+The key questions we seek to answer are: (1) How does RECON
+perform to select a well-performed coreset with an appropriate size,
+as an end-to-end solution (§ 6.2)? (2) What about the eectiveness
+and eciency of RECON, compared with baselines (§ 6.3 - § 6.5)?
+
+Experimental Settings
+
+6.1
+Dataset. We used 5 widely-used real-world datasets that covered
+various data characteristics, e.g., the dataset size varying from the
+magnitude of 104 to 107. Table 1 shows the statistics of the datasets.
+(1) Brazil [1] is a dataset with a multi-classication task to predict
+“the review score of an order given by the customer” with four tables.
+(2) IMDB [32] is a dataset that “predicts the score of movies” with 7
+tables. Obviously, we can regard it as a regression task to predict
+the score. To show more thorough experiments, similar to [14], we
+also regard it as a classication task by dividing the rating scores
+in to 5 equal intervals (i.e., grades) and predict the grade.
+
+Figure 7: An example of dynamic programming.
+
+𝛾3 (1),1
+
+leaf nodes, i.e., 𝑇1 and 𝑇3 in Figure 7. For example, to compute 𝑑𝑝 [1, 3],
+= 0.6 following Eq. 10. Next we
+since 𝐽 (3) = ∅, 𝑑𝑝 [1, 3] = 𝑑3
+1 and 𝑡 3
+1 consists of 𝑡 3
+consider how to compute 𝐷𝑃 [1, 3]. Group 𝑃 3
+2
+as they have the same value on the join key attribute 𝐴5, so we can
+compute 𝐷𝑃 [1, 3] = max(𝑑𝑝 [1, 3], 𝑑𝑝 [2, 3]) = 0.6. Thus, the largest
+in the group (i.e., 𝑑𝑝 [1, 3]) will be propagated (marked as the bold
+line) to its father relation (i.e., 𝑇2) for further computation. Then we
+come to 𝑇2. Similarly, to compute 𝑑𝑝 [1, 2], considering Eq. 10 𝑑2
+𝛾2 (1),1
+is added rst. After that, since 𝐽 (2) = 3 and 𝑡 2
+1 joins with tuples
+1 , 𝐷𝑃 [1, 3] will also be added to 𝑑𝑝 [1, 2]. Therefore, we obtain
+in 𝑃 3
+𝑑𝑝 [1, 2] = 𝑑2
+𝛾2,1 + 𝐷𝑃 [1, 3] = 2.1 + 0.6 = 2.7. After that, 𝐷𝑃 [1, 2] is
+computed as max(𝑑𝑝 [1, 2], 𝑑𝑝 [2, 2]) = 2.7, which is then propagated
+to the rst two tuples in 𝑇0 that join with tuples in 𝑃 2
+1 . Finally, we
+come to 𝑇0. To compute 𝑑𝑝 [1, 0], 𝑑0
+𝛾0 (1),1 is rst added to 𝑑𝑝 [1, 0]
+as well. Since 𝐽 (0) = {1, 2}, 𝐷𝑃 [1, 1] and 𝐷𝑃 [1, 2] will be added to
++ 𝐷𝑃 [1, 1] +
+𝑑𝑝 [1, 0]. Therefore, we can obtain 𝑑𝑝 [1, 0] = 𝑑0
+𝐷𝑃 [1, 2] = 1.2 + 0.1 + 2.7 = 4.0. Finally, 𝐷𝑃 [1, 0] is computed as
+𝐷𝑃 [1, 0] = max(𝑑𝑝 [1, 0], 𝑑𝑝 [2, 0]) = 4.6.
+
+𝛾0 (1),1
+
+Complexity Analysis of Algorithm 2. Recap that |𝑇 +| = 𝑁 . For
+ease of illustration, we use 𝑂 (𝑛) to denote the average size of each
+single table, i.e., 𝑂 (|𝑇ℎ |) = 𝑂 (𝑛). Besides, we use 𝐷 (𝑑) to denote the
+number of feature dimensions of 𝑇 + (𝑇ℎ on average) respectively.
+Next, we analyze the time complexity from two aspects, i.e., the
+pre-computation and greedy algorithm with 3 loops.
+
+Partial Feature Similarity Pre-computation. In this stage, we need to
+pre-compute the dierence of feature vectors between every two
+tuples in each table, so the time complexity is 𝑂 (𝑛2𝑑) when the
+number of tables can be regarded as a constant.
+Greedy Coreset Selection. To select the coreset 𝐶, the greedy algo-
+rithm repeats 𝐾 times. Each time a set of tuples S ⊂ 𝑇 + is sampled.
+To get i.i.d. uniform samples, we use the exact weight algorithm
+from Zhao et al. [58], which has no accept-reject step in the sam-
+pling phase. After a pre-computation in 𝑂 (𝑛), we can get a sample
+from 𝑇 + in 𝑂 (1) [51, 53, 58]. For each element 𝑡 𝑗 ∈ S, we need to
+compute 𝑈 (𝑡 𝑗 |𝐶), which involves the computation of 𝑠 𝑗𝑖 for every
+group G𝑖 ∈ G using the DP algorithm. The complexity of DP is lin-
+ear to the total sizes of relations, i.e., 𝑂 (|𝑇0|+|𝑇1|+· · ·+|𝑇𝑚 |) = 𝑂 (𝑛).
+For ease of representation, we use 𝑆 to denote |S|. Therefore, The
+time complexity of this part is 𝑂 (𝐾 · |S| · 𝑛) = 𝑂 (𝑛𝐾𝑆).
+Total Time Complexity. In summary, the total time complexity of
+our approach is 𝑂 (𝑛2𝑑 + 𝑛𝐾𝑆).
+
+To show the superiority of our method, we also illustrate the time
+complexity of the SOTA single-table coreset selection algorithm
+
+72
+
+A5A4A3A2A1A0A6(T0)A11.21.8A0aaaaaa1.0bbbTT1A30.10.2A2T3A60.60.4A50.8T2A42.11.5A20.9A21.4cccA5DP[1,3]=0.6dp[1,3]=0.6dp[2,3]=0.4dp[3,3]=0.8dp[1,1]=0.1dp[2,1]=0.2dp[1,2]=2.7dp[2,2]=2.3dp[3,2]=1.7DP[2,3]=0.8DP[1,1]=0.1DP[2,1]=0.2DP[1,2]=2.7DP[2,2]=1.7dp[1,0]=4.0dp[2,0]=4.6dp[3,0]=2.9dp[4,0]=3.3DP[1,0]=4.6DP[3,0]=3.3c1<latexit sha1_base64="dA5B46s/1PKlQjMJhntqFCvCnr0=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseiF48V7Qe0oWy2k3bpZhN2N0IJ/QlePCji1V/kzX/jts1BWx8MPN6bYWZekAiujet+O4W19Y3NreJ2aWd3b/+gfHjU0nGqGDZZLGLVCahGwSU2DTcCO4lCGgUC28H4dua3n1BpHstHM0nQj+hQ8pAzaqz0wPpev1xxq+4cZJV4OalAjka//NUbxCyNUBomqNZdz02Mn1FlOBM4LfVSjQllYzrErqWSRqj9bH7qlJxZZUDCWNmShszV3xMZjbSeRIHtjKgZ6WVvJv7ndVMTXvsZl0lqULLFojAVxMRk9jcZcIXMiIkllClubyVsRBVlxqZTsiF4yy+vktZF1atVL+9rlfpNHkcRTuAUzsGDK6jDHTSgCQyG8Ayv8OYI58V5dz4WrQUnnzmGP3A+fwDuO42T</latexit>DP[2,0]=2.9{{{Group-keyJoin-keyJoin-keyJoin-keyJoin-keyJoin-keyTable 1: Statistics of datasets.
+
+Dataset
+Brazil
+IMDB
+IMDB-Large
+Stack
+Taxi
+
+# Tables
+4
+7
+7
+3
+5
+
+# Rows (𝑇 +)
+98,463
+674,466
+21,303,410
+6,347,553
+2,792,376
+
+# features (𝑇 +)
+9
+41
+41
+178
+30
+
+Task
+Class.
+Class./Reg.
+Class./Reg.
+Reg.
+Reg.
+
+(3) IMDB-Large is similar to IMDB, except that IMDB-Large uses all
+tuples in Cast_info, producing 21,303,410 tuples for 𝑇 +.
+(4) Stack [37] contains questions and answers from the StackEx-
+change, which “predicts the reputation of users” as a regression task.
+(5) Taxi [15] is to “ predict the number of vehicle collisions in New
+York City for each day”. In particular, we have fuzzy join on this
+dataset, e.g., the Weather table can join with the base table on the
+attribute w.r.t. time, but the weather data is represented by the
+granularity of minutes, hours, or days.
+
+Following [30], for every dataset, the base table is ran-
+domly shued and divided into 50%/25%/25% proportions as
+train/validation/test set. All other tables will be used for feature
+augmentation via joins while training, validating and testing.
+
+The group key A of each dataset is specied by the user. Al-
+though the user can specify any set of attributes as the group key,
+by default, we use the (primary) key of the base table, if available.
+We used {review_id}, {movie_id}, {movie_id}, {user_id} and
+{datetime} as group keys for Brazil, IMDB, IMDB-Large, Stack
+and Taxi in their base tables respectively.
+Baselines. We compared with several baselines.
+(1) Base uses the base table 𝑇 as train data to train ML models (see
+e.g., Figure 3(a)–(cid:202)).
+(2) Full uses the fully augmented table 𝑇 + as the train data to train
+ML models (see e.g., Figure 3(a)–(cid:204)).
+(3) Sample-Join [58] uniformly samples tuples from 𝑇 + as train
+data without materializing the join result.
+(4) Join-Coreset [39, 41] selects the coreset over fully materialized
+join result 𝑇 + and uses the coreset as train data (see e.g., Figure 3(a)–
+(cid:206)). We use the popular single-table coreset selection algorithm [39]
+that follows the paradigm in Figure 5(b).
+(5) Coreset-Join rst selects a coreset from the base table 𝑇 , then
+joins with tables in T and nally trains on the join result.
+(6) FML [14, 29, 49] (factorized ML) focuses on accelerating batch
+gradient descent algorithm by decomposing the ML computations
+through joins. Among these methods, [14] is a general one for
+dierent ML algorithms, so we compare with it in § 6.5. In other
+sections, we focus on the stochastic gradient descent algorithm that
+is widely used in practice due to its high eciency.
+Hyper-parameter Seing. For the classication task and regres-
+sion task, we train logistic regression and linear regression models
+by default respectively, where L2-regularization (regularization
+coecient=10−5) and stochastic gradient descent (SGD) are applied.
+The inuence of using dierent ML models will be evaluated in
+§ 6.3. For training, we x the number of training epochs to 20. We
+use k-inverse decay scheduling, i.e., 𝛼𝑘 = 𝛼0/(1+𝑏𝑘), where 𝛼0 and 𝑏
+are tuned as hyperparameters independently for dierent methods.
+The sample size 𝑆 is set to 500.
+Evaluation Metrics. We evaluate the eciency in an end-to-end
+way, including both the consuming time of coreset selection and
+
+Figure 8: End-to-end coreset selection for regression.
+
+Figure 9: End-to-end coreset selection for classication.
+
+model training. For eectiveness, we use dierent evaluation met-
+rics for dierent tasks. For classication tasks, following previous
+works [15, 58], we use model prediction accuracy as evaluation met-
+ric. For regression tasks, following [29], we use root mean squared
+
+error (𝑅𝑀𝑆𝐸 =
+
+√︃ (cid:205)𝑁
+
+𝑡 =1 ( ˆ𝑦𝑡 −𝑦𝑡 ) 2
+𝑁
+
+) as evaluation metric.
+
+6.2 End-to-end Coreset Selection
+Recap that in § 5, the proposed algorithm takes as input a user-
+specied 𝐾 as the size of the coreset. To realize an end-to-end
+solution, one may consider how to choose an appropriate size of the
+coreset. In this part, we propose a simple yet eective approach to
+achieve this. For ease of explanation, we introduce 𝑝 = 𝐾
+𝑁 to denote
+the proportion of coreset compared to the full data in size. 𝑁 , i.e.,
+|𝑇 +| can be computed eciently using [58] before it is materialized.
+Approach. We start from a coreset in a small size, train on it and
+evaluate on the validation set, enlarge the coreset and iteratively
+train until the performance cannot improve much. Specically, we
+start from 𝐾 = 10−4𝑁 , i.e., 𝑝 = 10−4 and train an initial model.
+Then, we iteratively enlarge the coreset by 2 times and train. To
+evaluate each coreset, we apply the model on the validation set and
+compute the validation loss. If the loss decreases and remains stable
+within several successive iterations, we stop enlarging the coreset.
+Validation loss. Figure 8 -9 show the validation loss (i.e., MSE loss
+for regression task and cross entropy loss for classication task on
+the 𝑦-axis) by varying the coreset size (the 𝑥-axis). At a high level,
+with the number of tuples of a coreset increasing, the validation
+loss decreases rapidly rst and then remains stable. As Figure 8(c)
+shows, on Stack dataset, when 𝐾 = 0.0032 × 𝑁 = 10156, the loss is
+0.69 and then it does not decrease much. We set that within three
+successive iterations, if the loss varies no more than 1%, we can
+stop. So nally, we can return the coreset with a size of 10156.
+Eciency. One may consider whether the end-to-end coreset se-
+lection including iterative training is time-consuming. The answer
+is No. More concretely, with the coreset size increasing, it obviously
+spends more time because both the iterative training and coreset
+selection consume time, but it is still ecient. For example, it takes
+13.3 mins, 4.6 mins, and 1.1 mins on the task of IMDB-Large and
+Taxi for regression, and Brazil for classication respectively to
+perform the end-to-end coreset selection. However, if train on 𝑇 +
+
+73
+
+10−410−310−2Proportion (p) of Coreset1.01.11.21.31.41.51.6MSE Loss(a) IMDB10−410−3Proportion (p) of Coreset0.900.951.001.051.101.15MSE Loss(b) IMDB-Large10−410−310−2Proportion (p) of Coreset0.70.80.91.01.11.2MSE Loss(c) Stack10−410−310−2Proportion (p) of Coreset1.01.21.41.61.82.0MSE Loss(d) Taxi10−310−2Proportion (p) of Coreset1.401.451.501.551.601.65Cross Entropy(a) IMDB10−410−3Proportion (p) of Coreset1.351.401.451.501.551.60Cross Entropy(b) IMDB-Large10−410−3Proportion (p) of Coreset2.02.12.22.32.42.5Cross Entropy(c) BrazilFigure 10: Eciency. (a,b,c,d): Regression tasks; (e,f,g): Classication tasks.
+
+Figure 11: Eectiveness. (a,b,c,d): Regression tasks; (e,f,g): Classication tasks.
+
+Figure 12: Training loss comparison for IMDB and Stack.
+
+Figure 13: Eectiveness and eciency by varying 𝑝.
+
+(i.e.,Full), it requires 782 mins, 72 mins, and 18 mins respectively.
+The reasons are (1) The size of coreset is small and thus ecient to
+train. (2) The number of iterations is not large, and we can ne-tune
+the model in last iteration without training from scratch. (3) Coreset
+selection algorithm is ecient and can be done incrementally.
+Summary. This end-to-end coreset selection approach provides a
+way to select an appropriate coreset size. Although several itera-
+tions are needed, it is also ecient because the coreset size is small
+and the coreset selection process is fast.
+
+6.3 Comparison with Baselines
+Using the coreset size of each dataset selected in § 6.2, we com-
+pare eciency and eectiveness with baselines. To achieve a fair
+comparison, for the baselines that sample a subset of tuples to
+train, we sample the same number of tuples as the coreset size. For
+Coreset-Join, we set the proportion of coreset over the base table
+with the same 𝑝 as RECON.
+Eciency. We show the total time including both coreset selection
+and model training for dierent baselines and RECON in Figure 10,
+given the coreset with the best size. We can see that in general,
+RECON achieves eciency improvement nearly two orders of mag-
+nitudes compared with Full and Join-Coreset. For example, on
+
+74
+
+Figure 14: Compare with FML.
+
+dataset IMDB-Large for regression, RECON takes 13.3 minutes, which
+is nearly 2 orders of magnitudes more ecient than Full (782
+mins) and Join-Coreset (612 mins). For classication, on dataset
+IMDB-Large, RECON takes 110 min, which is also almost 2 orders of
+magnitudes more ecient than Full (2.8 days) and Join-Coreset
+(2.2 days). In addition, on dataset Stack and Taxi for regression,
+RECON takes 11.8 mins and 4.6 mins respectively, which is still an
+order of magnitude faster than Full (4 hours, 72 mins) and more
+ecient than Join-Coreset (0.5 hours, 9 mins) over 2 times. The
+reason is that Full has to train over a large amount of training
+tuples, i.e., 𝑇 +. Although Join-Coreset trains over a coreset with
+the same size of RECON, it selects the coreset based on 𝑇 +, which is
+rather inecient. RECON outperforms them because it computes the
+coreset directly from these tables to be joined. Besides, RECON takes
+a slightly longer time than other baselines, e.g., Sample-Join (40
+mins), Coreset-Join (35 mins) and Base (11 mins) on IMDB-Large
+for classication, because Base does not need to augment features
+and select the coreset, Sample-Join just uniformly samples with-
+out considering the gradients and Coreset-Join computes the
+coreset over the much smaller base table 𝑇 . But they cannot achieve
+high accuracy as discussed next.
+Eectiveness. For regression tasks, on dataset IMDB-Large, we
+nd in § 6.2 that 𝑝 = 0.0016 is the best choice. In this situation, we
+can observe in Figure 11(b) that RECON has an RMSE of 0.998, which
+outperforms Sample-Join (1.546). The reason is that Sample-Join
+just samples for training without considering the gradient approxi-
+mation. RECON outperforms Base because more useful features are
+augmented. Besides, RECON also outperforms Coreset-Join (1.603)
+
+100101Time (min)(a) IMDB101102103Time (min)(b) IMDB-Large101102Time (min)(c) Stack100101Time (min)(d) Taxi101102Time (min)(e) IMDB101102103Time (min)(f) IMDB-Large100101Time (min)(g) BrazilBaseCoreset-JoinSample-JoinRECONJoin-CoresetFull1.01.21.41.61.8RMSE(a) IMDB1.01.21.41.61.8RMSE(b) IMDB-Large0.70.80.91.01.11.2RMSE(c) Stack0.60.81.01.21.41.61.8RMSE(d) Taxi0.600.620.640.660.680.70Accuracy(e) IMDB0.600.620.640.660.680.70Accuracy(f) IMDB-Large0.520.540.560.580.600.62Accuracy(g) BrazilBaseCoreset-JoinSample-JoinRECONJoin-CoresetFull0.8‰1.6‰3.2‰6.4‰12.8‰Proportion (p) of Coreset1.41.51.61.71.8Cross Entropy Loss(a) IMDB0.1‰0.2‰0.4‰0.8‰1.6‰3.2‰Proportion (p) of Coreset0.60.81.01.21.41.6MSE Loss(b) StackRECONSingle-CoresetRandom SampleFull0.1‰0.2‰0.4‰0.8‰1.6‰3.2‰Proportion (p) of Coreset1.01.21.41.61.82.02.2Test RMSE(a) EffectivenessRECONSingle-CoresetRandom SampleFull0.1‰0.2‰0.4‰0.8‰1.6‰3.2‰Proportion (p) of Coreset100101102Total Time (min)(b) Efficiency02468Total Time(min)(a) Brazil for Class.020406080100120Total Time(min)(b) Stack for Reg.RECONFMLTable 2: Convergence results for regression
+
+Table 3: Convergence results for classication
+
+# iterations
+to converge
+
+Dataset
+IMDB
+IMDB-Large
+Stack
+Taxi
+
+RECON
+37,000
+330,000
+174,700
+72,000
+
+Full
+6,200,700
+201,300,000
+62,912,000
+20,149,000
+
+Test RMSE
+after convergence
+Full
+RECON
+1.023
+1.025
+0.985
+0.998
+0.747
+0.749
+0.760
+0.761
+
+because the selected coreset of Coreset-Join does not consider
+features to be augmented. Furthermore, RECON almost has the same
+RMSE as Join-Coreset (0.988) and Full (0.985) because RECON can
+well approximate the full gradient accurately with theoretical guar-
+antees. That is, training on the coreset (only 0.0016 proportion of
+the full data) can achieve the almost same performance as training
+over the full data. For classication tasks, we have similar observa-
+tions. For example, on dataset IMDB-Large, we can observe from
+Figure 11(f) that RECON has an accuracy of 0.679, which is higher
+than Base (0.607), Coreset-Join (0.628), Sample-Join (0.637), and
+also close to Join-Coreset (0.679) and Full (0.681).
+Loss. We show the training loss for IMDB of classication task
+and Stack of regression task in Figure 12. We can see that RECON
+converges to almost the same loss as Full, which demonstrates
+that RECON can accurately estimate the gradient with theoretical
+guarantees, and thus achieve the same performance as the full data.
+Varying the coreset size. We also evaluate the eectiveness and ef-
+ciency by varying 𝑝 in Figure 13 on IMDB-Large of regression task.
+We only compare RECON with Sample-Join and Join-Coreset, be-
+cause only they can generate training data of dierent given sizes.
+The result of Full is also plotted as a comparison.
+
+Figure 13(a) shows that RMSE of RECON decreases rapidly rst,
+and then remains stable when approaching the best coreset size.
+RECON outperforms Sample-Join a lot and almost has the same per-
+formance as Join-Coreset on all 𝑝 because RECON can approximate
+the full gradient well. For eciency, in Figure 13(b), RECON is more
+than one order of magnitude faster than Join-Coreset because
+the coreset selection of RECON has a lower time complexity than
+Join-Coreset. RECON is only a little slower than Sample-Join be-
+cause coreset selection of RECON often takes up a small proportion
+of time compared with iterative training.
+Summary. RECON achieves much acceleration (because it computes
+the coreset without fully materializing the augmented table) for
+feature-rich ML without sacricing much eectiveness (because
+it has the theoretical guarantee on the gradient computation). In
+addition, we also test on non-convex models and nd similar ob-
+servations, although there is no theoretical guarantees about the
+gradient. Due to the space limitation, the results are reported in [2].
+
+6.4 Convergence Evaluation
+
+In § 5.3, we have theoretically proved the convergence rate of
+RECON. To empirically test the convergence of dierent methods,
+we compute test performance with the increase of SGD iterations.
+The concrete numbers of iterations to converge and the converged
+test performance are reported in Table 2 and Table 3. For all the
+datasets, training on coresets (RECON) converges much faster than
+Full. From the results in Table 2 and Table 3, we can observe
+
+# iterations
+to converge
+
+Dataset
+IMDB
+IMDB-Large
+Brazil
+
+RECON
+20,500
+340,000
+780
+
+Full
+6,401,000
+201,220,000
+874,800
+
+Test accuracy
+after convergence
+Full
+RECON
+0.664
+0.662
+0.681
+0.679
+0.607
+0.606
+
+that the speedup of RECON is generally more than two orders of
+magnitudes. For example, on Stack for regression, training on the
+coreset (RECON, only 0.0032 proportion of the full data) converges in
+174,700 iterations, which is 360 times faster than Full (62,912,000
+iterations). In addition, the speedup does not aect the test per-
+formance after convergence much, e.g., on IMDB for classication,
+the test accuracy after convergence of RECON (0.662) is similar to
+Full (0.664). RECON converges fast with high accuracy, because the
+coreset selected by RECON is much smaller than the full data, while
+still approximating the full gradient with theoretical bound.
+6.5 Comparison with FML
+FML only supports batch gradient training, so we also use batch
+gradient descent to train for a fair comparison. Since FML aims to
+accelerate the training process over the full data, it has the same
+performance as Full, so we only compare the eciency with FML.
+We compare the total time including both coreset selection and
+model training between RECON and FML on Brazil and Stack. Fig-
+ures 14(a)-(b) report the result, which shows that RECON outper-
+forms FML on both datasets. This is because although FML improves
+the eciency by reducing the linear algebra computations, it still
+needs training over the full data, while our method trains over the
+judiciously selected coreset with a small size.
+
+6.6 Additional Experiments
+Note that joins may change the original distribution of the base
+table 𝑇 , i.e., one tuple in 𝑇 may correspond to multiple tuples in 𝑇 +,
+and thus the eectiveness can be evaluated both on 𝑇 or 𝑇 +. In the
+paper, we only report the results on the distribution of the joined
+table 𝑇 +, and leave the results on 𝑇 in the technical report [2]. We
+also evaluated and discussed the eect of changing ML models (We
+put it in our technical report [2]).
+
+7 CONCLUSION
+We propose RECON for selecting a coreset of train tuples from an aug-
+mented table without materializing it through joins. RECON solves
+the problem that coreset selection over a big augmented table is
+time-consuming. The coreset can speed up iterative gradient meth-
+ods for training ML models (i.e., data-ecient). The augmented fea-
+tures can improve the accuracy of trained ML models (i.e., feature-
+rich). Extensive experiments veried RECON can much improve the
+eciency of coreset selection without sacricing the performance.
+
+ACKNOWLEDGMENTS
+This work is supported by NSF of China (62232009, 61925205,
+62102215, 62072261), Huawei, TAL education, China National Post-
+doctoral Program for Innovative Talents (BX2021155), China Post-
+doctoral Science Foundation (2021M691784), Shuimu Tsinghua
+Scholar.
+
+75
+
+REFERENCES
+[1] 2022. https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce/. Accessed:
+
+2022-04-28.
+
+[2] 2022. Coresets over Multiple Tables for Feature-rich and Data-ecient Machine
+Learning [Technical Report]. https://github.com/for0nething/RECON-TR/blob/
+main/main.pdf. Last accessed: 2022-09-15.
+
+[3] Amina Adadi. 2021. A survey on data-ecient algorithms in big data era. J. Big
+
+Data 8, 1 (2021), 1–54.
+
+[4] Omar Y. Al-Jarrah, Paul D. Yoo, Sami Muhaidat, George K. Karagiannidis, and
+Kamal Taha. 2015. Ecient Machine Learning for Big Data: A Review. Big Data
+Res. 2, 3 (2015), 87–93.
+
+[5] Zeyuan Allen-Zhu, Yang Yuan, and Karthik Sridharan. 2016. Exploiting the
+structure: Stochastic gradient methods using raw clusters. Advances in Neural
+Information Processing Systems 29 (2016).
+
+[6] Matthias Boehm and Michael Dusenberry et.al. 2016. SystemML: Declarative
+Machine Learning on Spark. Proc. VLDB Endow. 9, 13 (2016), 1425–1436. https:
+//doi.org/10.14778/3007263.3007279
+
+[7] Stephen Boyd, Stephen P Boyd, and Lieven Vandenberghe. 2004. Convex opti-
+
+mization. Cambridge university press.
+
+[8] Vladimir Braverman, Dan Feldman, and Harry Lang. 2016. New Frameworks for
+Oine and Streaming Coreset Constructions. CoRR abs/1612.00889 (2016).
+[9] Trevor Campbell and Tamara Broderick. 2018. Bayesian Coreset Construction
+via Greedy Iterative Geodesic Ascent. In ICML 2018, Vol. 80. PMLR, 697–705.
+
+[10] Chengliang Chai, Lei Cao, Guoliang Li, Jian Li, Yuyu Luo, and Samuel Madden.
+2020. Human-in-the-loop Outlier Detection. In SIGMOD 2020. ACM, 19–33.
+https://doi.org/10.1145/3318464.3389772
+
+[11] Chengliang Chai, Guoliang Li, Jian Li, Dong Deng, and Jianhua Feng. 2016.
+Cost-Eective Crowdsourced Entity Resolution: A Partial-Order Approach. In
+SIGMOD 2016. ACM, 969–984. https://doi.org/10.1145/2882903.2915252
+[12] Chengliang Chai, Jiabin Liu, Nan Tang, Guoliang Li, and Yuyu Luo. 2022. Selective
+Data Acquisition in the Wild for Model Charging. Proc. VLDB Endow. 15, 7 (2022),
+1466–1478. https://www.vldb.org/pvldb/vol15/p1466-li.pdf
+
+[13] Chengliang Chai, Jiayi Wang, Yuyu Luo, Zeping Niu, and Guoliang Li. 2022. Data
+management for machine learning: A survey. IEEE Transactions on Knowledge
+and Data Engineering (2022).
+
+[14] Lingjiao Chen, Arun Kumar, Jerey Naughton, and Jignesh M Patel. 2017. To-
+wards Linear Algebra over Normalized Data. Proceedings of the VLDB Endowment
+10, 11 (2017).
+
+[15] Nadiia Chepurko, Ryan Marcus, Emanuel Zgraggen, Raul Castro Fernandez,
+Tim Kraska, and David R. Karger. 2020. ARDA: Automatic Relational Data
+Augmentation for Machine Learning. Proc. VLDB Endow. 13, 9 (2020), 1373–1387.
+[16] Kai Lai Chung. 1954. On a stochastic approximation method. The Annals of
+
+[17]
+
+Mathematical Statistics (1954), 463–483.
+Jerey Cohen, Brian Dolan, Mark Dunlap, Joseph M. Hellerstein, and Caleb
+Welton. 2009. MAD Skills: New Analysis Practices for Big Data. Proc. VLDB
+Endow. 2, 2 (2009), 1481–1492. https://doi.org/10.14778/1687553.1687576
+
+[18] Dan Feldman. 2020.
+
+Introduction to Core-sets: an Updated Survey. CoRR
+
+abs/2011.09384 (2020).
+
+[19] Michael R Garey and David S Johnson. 1979. Computers and intractability. Vol. 174.
+
+[20]
+
+[21]
+
+freeman San Francisco.
+Isabelle Guyon and André Elissee. 2003. An Introduction to Variable and Feature
+Selection. J. Mach. Learn. Res. 3 (2003), 1157–1182.
+Joseph M. Hellerstein, Christopher Ré, Florian Schoppmann, Daisy Zhe Wang,
+Eugene Fratkin, Aleksander Gorajek, Kee Siong Ng, Caleb Welton, Xixuan Feng,
+Kun Li, and Arun Kumar. 2012. The MADlib Analytics Library or MAD Skills,
+the SQL. Proc. VLDB Endow. 5, 12 (2012), 1700–1711.
+
+[22] Thomas Hofmann, Aurelien Lucchi, Simon Lacoste-Julien, and Brian McWilliams.
+2015. Variance reduced stochastic gradient descent with neighbors. Advances in
+Neural Information Processing Systems 28 (2015).
+Jiawei Huang, Ruomin Huang, Wenjie Liu, Nikolaos M. Freris, and Hu Ding.
+2021. A Novel Sequential Coreset Method for Gradient Descent Algorithms. In
+ICML 2021, Vol. 139. PMLR, 4412–4422.
+
+[23]
+
+[24] Rishabh K. Iyer and Je A. Bilmes. 2013. Submodular Optimization with Submod-
+ular Cover and Submodular Knapsack Constraints. In NeurIPS 2013. 2436–2444.
+[25] David Justo, Shaoqing Yi, Lukas Stadler, Nadia Polikarpova, and Arun Kumar.
+2021. Towards a polyglot framework for factorized ML. Proc. VLDB Endow. 14,
+12 (2021), 2918–2931.
+
+[26] KrishnaTeja Killamsetty, Durga Sivasubramanian, Ganesh Ramakrishnan, and
+Rishabh K. Iyer. 2021. GLISTER: Generalization based Data Subset Selection for
+Ecient and Robust Learning. In AAAI 2021,. AAAI Press, 8110–8118.
+
+[27] Katrin Kirchho and Je A. Bilmes. 2014. Submodularity for Data Selection in
+
+Machine Translation. In EMNLP 2014. ACL, 131–141.
+
+[28] Arun Kumar, Mona Jalal, Boqun Yan, Jerey F. Naughton, and Jignesh M. Patel.
+2015. Demonstration of Santoku: Optimizing Machine Learning over Normalized
+Data. Proc. VLDB Endow. 8, 12 (2015), 1864–1867.
+
+[29] Arun Kumar, Jerey Naughton, and Jignesh M Patel. 2015. Learning generalized
+
+linear models over normalized data. In SIGMOD 2015. 1969–1984.
+
+[30] Arun Kumar, Jerey F. Naughton, Jignesh M. Patel, and Xiaojin Zhu. 2016. To
+Join or Not to Join?: Thinking Twice about Joins before Feature Selection. In
+SIGMOD 2016. ACM, 19–34.
+
+[31] Hai Lan, Zhifeng Bao, and Yuwei Peng. 2021. A Survey on Advancing the DBMS
+Query Optimizer: Cardinality Estimation, Cost Model, and Plan Enumeration.
+Data Sci. Eng. 6, 1 (2021), 86–101.
+
+[32] Viktor Leis, Andrey Gubichev, Atanas Mirchev, Peter A. Boncz, Alfons Kemper,
+and Thomas Neumann. 2015. How Good Are Query Optimizers, Really? Proc.
+VLDB Endow. 9, 3 (2015), 204–215.
+
+[33] Guoliang Li, Chengliang Chai, Ju Fan, Xueping Weng, Jian Li, Yudian Zheng,
+Yuanbing Li, Xiang Yu, Xiaohang Zhang, and Haitao Yuan. 2017. CDB: Optimizing
+Queries with Crowd-Based Selections and Joins. In SIGMOD 2017. ACM, 1463–
+1478. https://doi.org/10.1145/3035918.3064036
+
+[35]
+
+[34] Side Li, Lingjiao Chen, and Arun Kumar. 2019. Enabling and Optimizing Non-
+Linear Feature Interactions in Factorized Linear Algebra. In SIGMOD 2019.
+1571–1588.
+Jiabin Liu, Chengliang Chai, Yuyu Luo, Yin Lou, Jianhua Feng, and Nan Tang.
+2022. Feature Augmentation with Reinforcement Learning. In ICDE 2022, Kuala
+Lumpur, Malaysia, May 9-12, 2022. IEEE, 3360–3372.
+Jiabin Liu, Fu Zhu, Chengliang Chai, Yuyu Luo, and Nan Tang. 2021. Automatic
+Data Acquisition for Deep Learning. Proc. VLDB Endow. 14, 12 (2021), 2739–2742.
+https://doi.org/10.14778/3476311.3476333
+
+[36]
+
+[37] Ryan Marcus, Parimarjan Negi, Hongzi Mao, Nesime Tatbul, Mohammad Al-
+izadeh, and Tim Kraska. 2021. Bao: Making Learned Query Optimization Practical.
+In SIGMOD 2021. 1275–1288.
+
+[38] Baharan Mirzasoleiman, Ashwinkumar Badanidiyuru, Amin Karbasi, Jan Von-
+drák, and Andreas Krause. 2015. Lazier than lazy greedy. In AAAI, Vol. 29.
+[39] Baharan Mirzasoleiman, Je A. Bilmes, and Jure Leskovec. 2020. Coresets for
+Data-ecient Training of Machine Learning Models. In ICML 2020, Vol. 119.
+6950–6960.
+
+[40] Baharan Mirzasoleiman, Kaidi Cao, and Jure Leskovec. 2020. Coresets for Robust
+Training of Deep Neural Networks against Noisy Labels. In NeurIPS 2020.
+[41] Alexander Munteanu and Chris Schwiegelshohn. 2018. Coresets-methods and
+history: A theoreticians design pattern for approximation and streaming algo-
+rithms. KI-Künstliche Intelligenz 32, 1 (2018), 37–53.
+
+[42] Angelia Nedić and Dimitri Bertsekas. 2001. Convergence rate of incremental
+subgradient algorithms. In Stochastic optimization: algorithms and applications.
+Springer, 223–264.
+
+[43] Dan Olteanu and Maximilian Schleich. 2016. F: Regression Models over Factorized
+
+Views. Proc. VLDB Endow. 9, 13 (2016), 1573–1576.
+
+[44] Xuedi Qin, Chengliang Chai, Yuyu Luo, Nan Tang, and Guoliang Li. 2020. Inter-
+actively Discovering and Ranking Desired Tuples without Writing SQL Queries.
+In SIGMOD2020. ACM, 2745–2748.
+
+[45] Xuedi Qin, Chengliang Chai, Yuyu Luo, Tianyu Zhao, Nan Tang, Guoliang Li,
+Jianhua Feng, Xiang Yu, and Mourad Ouzzani. 2021. Ranking Desired Tuples by
+Database Exploration. In ICDE 2021. IEEE, 1973–1978.
+
+[46] LKPJ Rdusseeun and P Kaufman. 1987. Clustering by means of medoids. In Pro-
+ceedings of the statistical data analysis based on the L1 norm conference, neuchatel,
+switzerland, Vol. 31.
+
+[47] Steen Rendle. 2013. Scaling Factorization Machines to Relational Data. Proc.
+
+VLDB Endow. 6, 5 (2013), 337–348.
+
+[48] Yuji Roh, Kangwook Lee, Steven Euijong Whang, and Changho Suh. 2021. Fair-
+Batch: Batch Selection for Model Fairness. In ICLR 2021. OpenReview.net.
+[49] Maximilian Schleich, Dan Olteanu, and Radu Ciucanu. 2016. Learning Linear
+Regression Models over Factorized Joins. In SIGMOD 2016. ACM, 3–18.
+[50] Vraj Shah, Arun Kumar, and Xiaojin Zhu. 2017. Are Key-Foreign Key Joins Safe
+to Avoid when Learning High-Capacity Classiers? Proc. VLDB Endow. 11, 3
+(2017), 366–379.
+Jiayi Wang, Chengliang Chai, Jiabin Liu, and Guoliang Li. 2021. FACE: A Nor-
+malizing Flow based Cardinality Estimator. Proc. VLDB Endow. 15, 1 (2021),
+72–84.
+
+[51]
+
+[52] Ruofan Wu, Feng Zhang, Jiawei Guan, Zhen Zheng, Xiaoyong Du, and Xipeng
+Shen. 2022. DREW: Ecient Winograd CNN Inference with Deep Reuse. In
+WWW (WWW ’22). Association for Computing Machinery, 1807–1816.
+[53] Zongheng Yang, Amog Kamsetty, Sifei Luan, Eric Liang, Yan Duan, Xi Chen,
+and Ion Stoica. 2020. NeuroCard: One Cardinality Estimator for All Tables. Proc.
+VLDB Endow. 14, 1 (2020), 61–73. https://doi.org/10.14778/3421424.3421432
+[54] Haitao Yuan and Guoliang Li. 2021. A Survey of Trac Prediction: from Spatio-
+
+Temporal Data to Intelligent Transportation. Data Sci. Eng. 6, 1 (2021), 63–85.
+
+[55] Feng Zhang, Jidong Zhai, Xipeng Shen, Onur Mutlu, and Xiaoyong Du. 2022.
+POCLib: A high-performance framework for enabling near orthogonal processing
+on compression. TPDS 33, 2 (2022), 459–475.
+
+[56] Bo Zhao and Hakan Bilen. 2021. Dataset condensation with dierentiable siamese
+
+augmentation. In ICML. PMLR, 12674–12685.
+
+[57] Bo Zhao, Konda Reddy Mopuri, and Hakan Bilen. 2021. Dataset Condensation
+
+with Gradient Matching. ICLR 1, 2 (2021), 3.
+
+[58] Zhuoyue Zhao, Robert Christensen, Feifei Li, Xiao Hu, and Ke Yi. 2018. Random
+
+Sampling over Joins Revisited. In SIGMOD 2018. ACM, 1525–1539.
+
+76

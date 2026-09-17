@@ -1,0 +1,1137 @@
+5
+2
+0
+2
+
+n
+a
+J
+
+7
+2
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+6
+7
+2
+6
+1
+.
+1
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+URAG: Implementing a Unified Hybrid RAG for
+Precise Answers in University Admission
+Chatbots – A Case Study at HCMUT
+
+Long Nguyen[0009−0008−7488−4714] and Tho Quan[0000−0003−0467−6254]
+
+1 URA Research Group, Faculty of Computer Science and Engineering, Ho Chi Minh
+City University of Technology (HCMUT), Ho Chi Minh City, Vietnam
+2 Vietnam National University Ho Chi Minh City, Ho Chi Minh City, Vietnam
+{long.nguyencse2023,qttho}@hcmut.edu.vn
+
+Abstract. With the rapid advancement of Artificial Intelligence, partic-
+ularly in Natural Language Processing, Large Language Models (LLMs)
+have become pivotal in educational question-answering systems, espe-
+cially university admission chatbots. Concepts such as Retrieval-Augmented
+Generation (RAG) and other advanced techniques have been developed
+to enhance these systems by integrating specific university data, enabling
+LLMs to provide informed responses on admissions and academic coun-
+seling. However, these enhanced RAG techniques often involve high op-
+erational costs and require the training of complex, specialized mod-
+ules, which poses challenges for practical deployment. Additionally, in
+the educational context, it is crucial to provide accurate answers to pre-
+vent misinformation, a task that LLM-based systems find challenging
+without appropriate strategies and methods. In this paper, we intro-
+duce the Unified RAG (URAG) Framework, a hybrid approach that
+significantly improves the accuracy of responses, particularly for criti-
+cal queries. Experimental results demonstrate that URAG enhances our
+in-house, lightweight model to perform comparably to state-of-the-art
+commercial models. Moreover, to validate its practical applicability, we
+conducted a case study at our educational institution, which received
+positive feedback and acclaim. This study not only proves the effective-
+ness of URAG but also highlights its feasibility for real-world implemen-
+tation in educational settings.
+
+Keywords: Question-Answering Systems · Retrieval-Augmented Gen-
+eration · University Admission Chatbots.
+
+1
+
+Introduction
+
+Artificial Intelligence (AI) has become a fundamental component of modern
+technological advancements, transforming industries across the board, including
+education [1]. Among AI’s various applications, Natural Language Processing
+(NLP) has proven particularly valuable in the development of chatbots aimed at
+assisting with university admissions and providing comprehensive institutional
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+Long Nguyen et al.
+
+information [2]. These chatbots play an essential role in enhancing communica-
+tion between universities and prospective students, ensuring that inquiries are
+met with timely and accurate responses.
+
+Recent breakthroughs in AI, such as the introduction of the Attention Mech-
+anism [3] and the rise of Large Language Models (LLMs), have significantly
+improved the performance of these educational chatbots [4]. LLMs, with their
+ability to generate human-like text and perform complex tasks [5], offer users
+a more interactive and dynamic experience. However, despite these advance-
+ments, a critical challenge remains as LLM-based chatbots are prone to generat-
+ing inaccurate or misleading responses, especially when handling specialized or
+context-specific queries. This issue, commonly referred to as hallucination [6],
+poses significant risks, particularly in high-stakes contexts like university ad-
+missions, where the accuracy of information regarding application deadlines or
+program details is paramount.
+
+To mitigate these risks, the Retrieval-Augmented Generation (RAG) ap-
+proach has emerged as a potential solution [7]. RAG combines retrieval-based
+mechanisms with generative models, enabling chatbots to consult external sources
+of information before generating responses. While this approach helps reduce
+hallucinations and improves accuracy, early implementations of RAG have faced
+limitations, such as noise in retrieval results, a disconnect between retrieval and
+generation processes, and difficulties in managing longer contexts [8]. These lim-
+itations can still result in inaccurate responses and hallucinations. Furthermore,
+more advanced RAG systems [9,10,11,12], though promising, often introduce
+greater complexity and operational costs, making their deployment in real-world
+educational settings less feasible.
+
+In response to these challenges, we propose the Unified RAG (URAG)
+framework, specifically designed to improve lightweight LLMs for use in uni-
+versity admission chatbots. URAG integrates the reliability of rule-based sys-
+tems with the adaptability of RAG, creating a two-tiered approach. The first
+tier leverages a comprehensive Frequently Asked Questions (FAQ) system to
+provide accurate responses to common queries, especially those involving sen-
+sitive or critical information. If no match is found in the FAQ, the second tier
+retrieves relevant documents from an augmented database and generates a re-
+sponse through an LLM.
+
+To enhance this process, we propose two key mechanisms, URAG-D for aug-
+menting the original document database and URAG-F for generating an en-
+hanced FAQ. These mechanisms not only enrich the database but also improve
+the retrieval process in both tiers, as shown in Figure 1.
+
+Our experiments highlight the effectiveness of URAG when paired with an
+in-house developed Vietnamese lightweight LLM. We benchmarked URAG’s per-
+formance against state-of-the-art (SOTA) commercial chatbots, including GPT-
+4o3, Gemini 1.5 Pro4, and Claude 3.5 Sonnet5 - models renowned for their vast
+
+3 https://openai.com/chatgpt/
+4 https://gemini.google.com/
+5 https://claude.ai/
+
+URAG: A Unified RAG for Precise University Admission Chatbots
+
+3
+
+Fig. 1. The architecture of URAG framework illustrating the two-tiered approach for
+improving LLM performance in university admission chatbots.
+
+parameter scales, encompassing trillions of parameters and training on exten-
+sive real-time data [13]. To further validate URAG’s practical application, we
+integrated it into HCMUT Chatbot6, where it has since gained recognition for
+its positive impact on university admissions at Ho Chi Minh City University of
+Technology (HCMUT).
+
+In summary, our contributions are as follows.
+
+– We introduced URAG, a hybrid system that integrates rule-based and RAG
+approaches to enhance the performance of lightweight LLMs tailored for
+educational chatbots.
+
+– We collected a real-world dataset of university admission questions from high
+school students and conducted a comprehensive evaluation of URAG against
+leading commercial chatbots, demonstrating its competitive performance.
+– We successfully implemented URAG in a practical deployment at HCMUT,
+showcasing its effectiveness through a functional product that continues to
+address the university’s needs.
+
+2 Related Work
+
+2.1 Retrieval-Augmented Generation (RAG)
+
+RAG has become a widely adopted technique for building question-answering
+(QA) systems using LLM. This approach is favored for its cost-efficiency and
+ability to combine retrieval-based methods with the generative power of LLMs.
+A typical RAG pipeline consists of two primary components, the Retriever and
+the Generator, as shown in Figure 2. One of the earliest forms of RAG, termed
+Naive RAG, gained popularity following the release of models like ChatGPT
+[14].
+
+6 https://www.ura.hcmut.edu.vn/bk-tvts/
+
+Relevant documentsOriginalDocumentsURAG - F MechanismURAG - D MechanismAugmented DocumentsComprehensiveFAQTier 1: FAQ SearchTier 2: Document SearchContext:Query:Prompt TemplateGeneratorLLMIf Tier 2 failsReturn FAQ answerIf Tier 1 failsReturn generated answer+ DisclaimerInference PhasePreparation Phase4
+
+Long Nguyen et al.
+
+Fig. 2. An example of a typical RAG pipeline.
+
+Naive RAG operates by replacing the user’s query with a prompt enriched by
+documents retrieved through the Retriever, which is then fed into the Generator
+(LLM) to generate the final output. This method, while straightforward, has
+proven to be an effective baseline for many LLM-powered QA systems.
+
+2.2 Strategies for Enhancing a RAG Pipeline
+
+Naive RAG implementations, while effective and straightforward, face significant
+limitations in complex QA systems, such as university admission chatbots [14].
+To address these challenges, more sophisticated RAG pipelines have emerged,
+with enhancements generally categorized into five key areas, such as input re-
+finement, retriever improvements, generator optimization, result validation, and
+overall pipeline enhancements [8].
+
+Enhancing retrievers using structured data, like knowledge graphs, boosts
+precision and reliability by leveraging the inherent relationships within the data
+[15]. Techniques such as Graph RAG (GRAG) [16] employ graph topology, utiliz-
+ing subgraph structures to improve information retrieval. However, maintaining
+such structured databases is particularly challenging in dynamic fields like edu-
+cation, where data is constantly evolving.
+
+Further advancements in RAG pipelines include approaches like Self-Reflective
+RAG (Self-RAG) [9], Corrective RAG (CRAG) [12], and Adaptive RAG [10].
+These methods enrich inputs by selecting and supplementing relevant informa-
+tion, often incorporating web searches before feeding the data into the LLM.
+Additionally, these techniques can detect and correct hallucinations or inaccu-
+racies, allowing for response regeneration to enhance accuracy. Another notable
+approach, Speculative RAG [11], generates multiple response drafts by combin-
+ing the query with relevant document clusters, processing them in parallel, and
+selecting the best answer through evaluation.
+
+Despite these improvements in accuracy, these advanced RAG techniques in-
+troduce additional complexity. Iterative feedback loops required for response re-
+finement lead to longer processing times and increased computational demands.
+Although speculative execution aims to reduce latency, the need for separate
+module training makes these sophisticated RAG models resource-intensive and
+challenging to implement in practical educational settings.
+
+What is URA?RetrieverWIKIPEDIAGenerator(LLM)Unlimited Research Group of AI (URA)Knowledge can be expanded & updated (new domain, news, etc.)Interpretability(reference to source)MemoryRetrieved documentsUnlimited Research Group of AI (URA) is a researchgroup at the Faculty of Computer Science andEngineering, Ho Chi Minh City University ofTechnology (HCMUT), Vietnam National University,Ho Chi Minh City (VNU-HCM).URAG: A Unified RAG for Precise University Admission Chatbots
+
+5
+
+2.3 Practical Approaches to University Admission Chatbots
+
+University admission chatbots have become vital tools in educational settings,
+providing immediate support to prospective students. Most of these systems
+are built around two core components, namely Natural Language Understanding
+(NLU) and Natural Language Generation (NLG). NLU processes like intent clas-
+sification and entity recognition enable chatbots to interpret user queries, while
+NLG generates responses through rule-based approaches, predefined scripts, or
+machine learning techniques [17].
+
+Many chatbots, such as those discussed in [18,19], use platforms like Rasa
+[20], which offer robust tools for training NLU models and managing dialogues.
+While these systems effectively handle frequently asked questions, they often
+struggle with complex or out-of-scope queries that are beyond their training data.
+To address these limitations, advanced models incorporate Sequence-to-Sequence
+architectures with Attention Mechanisms [21] or simplified RAG structures fine-
+tuned on domain-specific datasets [22,23], ensuring that responses are generated
+continuously to maintain user engagement, even if they lack complete accuracy.
+Additionally, some chatbots integrate third-party APIs like GPT-3.5 Turbo
+[24,25], enhancing their capabilities but introducing significant concerns. These
+integrations pose security risks due to external data handling [26] and lead to
+high long-term costs, which can be unsustainable for many institutions.
+
+Despite these advancements, relying heavily on LLMs still results in chal-
+lenges, such as inaccuracies in responses to sensitive or context-specific queries.
+Therefore, there is a pressing need for a streamlined solution that balances the
+power of LLMs with efficient, lightweight designs and incorporates mechanisms
+to ensure accuracy for critical responses. Such a solution should provide reli-
+able performance tailored to the specific requirements of university admission
+inquiries, addressing the gaps in current chatbot technologies.
+
+3 URAG: A Unified RAG for Precise University
+
+Admission Chatbots
+
+University admission chatbots frequently encounter challenges in providing ac-
+curate responses to common questions, particularly those involving critical de-
+tails like admission requirements, deadlines, scores, and department codes. Such
+information requires high precision, as inaccuracies can mislead prospective stu-
+dents. Traditionally, human advisors rely on FAQ scripts to ensure consistency
+and accuracy. When questions fall outside the FAQ’s coverage, advisors consult
+additional documents to provide the correct information.
+
+Inspired by this conventional advisory approach, we introduce the URAG
+framework, a two-tiered architecture designed to emulate this method and sig-
+nificantly improve chatbot performance.
+
+3.1 Overview of URAG Architecture
+
+URAG operates on a unified dual-tier system, depicted in Figure 3.
+
+6
+
+Long Nguyen et al.
+
+Tier 1 This tier utilizes an enriched FAQ database that extensively mines and
+integrates data from various text corpora with existing FAQs. The enrich-
+ment of this database is automated through the URAG-F mechanism, en-
+suring that the most common and critical inquiries receive direct and precise
+responses.
+
+Tier 2 If no suitable match is found in the first tier, the process advances to
+the second tier. This tier searches within a document corpus that has been
+augmented by the URAG-D mechanism. It mimics the traditional RAG pro-
+cess by using a prompt template that guides the LLM to generate relevant
+responses based on the retrieved documents.
+
+Fallback If neither tier successfully retrieves the required information, the sys-
+tem defaults to generating a response directly from the LLM, accompanied
+by a disclaimer to manage user expectations about potential inaccuracies.
+
+Fig. 3. Illustration of the URAG framework, highlighting the two-tiered approach.
+
+The operational flow of the URAG framework is systematically outlined in
+
+Algorithm 1, with key terms defined in Table 1.
+
+3.2 The Truth Behind “Unified” in URAG Architecture
+
+The URAG architecture unifies two key mechanisms during its preparatory phase
+to optimize performance during deployment, as shown in Figure 4. A crucial
+aspect of this process is the use of Chain-of-Thought (CoT) Prompting [27],
+which enhances the reasoning capabilities of LLM-based components, enabling
+them to generate reliable and contextually appropriate responses.
+
+URAG-D Mechanism: Document Database Augmentation URAG-D
+improves document retrieval by segmenting documents into coherent chunks and
+
+Return the generated answerusing LLM with RAGSimilarity Search with ThresholdUserEmbedding Model Sentence Transformer: QueryQuestionIDAnswerTop QuestionIDAnswerTop AnswerTier 1: FAQ SearchTextIDTop TextIDTop GeneratorLLMSimilarity Search with ThresholdTier 2: Document SearchYesNoPromptGenerated Answer+ DisclaimerVector DatabaseRecord QuestionIDAnswerRecord QuestionIDAnswerRecord QuestionIDAnswerFAQ IndexDocument IndexRecord TextIDRecord TextIDRecord TextIDReturn the answer of the top relevant question in FAQ are the embeddingsof questions in the FAQFlow of Tier 1 Flow of Tier 2URAG: A Unified RAG for Precise University Admission Chatbots
+Table 1. Notation
+
+7
+
+Symbol
+
+Description
+
+T
+E : T → Rm A mapping function that transforms a text t ∈ T into an m-dimensional
+
+The textual domain
+
+L : T → T
+
+embedding vector E(t) ∈ Rm, facilitated by an Embedding Model
+A generation function that maps a prompt p ∈ T to a response L(p) ∈ T,
+generated by a LLM
+
+fi = {ai, bi} A question-answer (Q-A) pair from the enriched FAQ list F , where
+
+di
+tFAQ, tDoc
+
+wi
+
+ai ∈ T is a question and bi ∈ T is its corresponding answer
+A document segment within the augmented corpus D
+Thresholds defining the acceptance criteria for FAQ and Document
+search tiers, respectively
+A warning or disclaimer from a predefined set W ⊆ T
+
+Algorithm 1 URAG Operational Framework
+
+Input: User query q ∈ T
+Output: Final answer aG ∈ T
+
+1: Query Embedding: Compute q′ = E(q) ∈ Rm
+
+Tier 1: FAQ Search
+
+2: Identify the top k FAQ pairs Fk = {fi}k
+
+i=1 such that each fi = {ai, bi} satisfies
+
+cos(θ(q′, E(ai))) ⩾ tFAQ, where ai ∈ fi ∈ F and i ∈ {1, 2, .., k}
+
+Select answer bj from the pair fj = {aj, bj} with the highest score in Fk
+Return aG = bj
+
+3: if |Fk| ⩾ 1 then
+4:
+5:
+6: else
+7:
+8: end if
+
+Proceed to Tier 2
+
+Tier 2: Document Search
+
+9: Retrieve the top K document segments DK = {di}K
+
+i=1 that meet the threshold
+
+tDoc, meaning cos(θ(q′, E(di))) ⩾ tDoc, where di ∈ D and i ∈ {1, 2, .., K}
+
+Construct prompt p = concat(q, DK ), where p ∈ T
+Generate aG = L(p)
+Return aG := concat(L(p), ws)
+
+10: if |DK | ⩾ 1 then
+11:
+12:
+13:
+14: else
+15:
+16:
+17: end if
+
+Fallback: Generate aG = L(q)
+Return aG := concat(L(q), wr)
+
+strategically rewriting them for consistency and contextual relevance, instead of
+using entire documents as done in Naive RAG. This approach extracts the gen-
+eral context from the original documents, guiding the rewriting process of each
+chunk to maintain logical coherence. Each rewritten chunk is then condensed
+into a brief summary sentence, which is appended at the beginning. This work-
+flow, detailed in Algorithm 2, significantly enhances the retrieval of relevant
+information, thereby boosting system efficiency and accuracy.
+
+8
+
+Long Nguyen et al.
+
+Fig. 4. Illustrative overview of the two mechanisms implemented during the prepara-
+tory phase of URAG.
+
+A key component of URAG-D is Semantic Chunking, a novel technique pro-
+posed by [28]. Unlike traditional fixed-size chunking, semantic chunking adap-
+tively determines chunk boundaries between sentences based on embedding sim-
+ilarity. This method involves analyzing the embeddings E(sr) of each sentence
+sr within a document oi, and grouping sentences with similar semantic content
+into cohesive chunks, represented as cij = {sr}r.
+
+Each chunk dij
+
+is meticulously tagged to trace back to its original docu-
+ment oi, ensuring efficient management and retrieval within the database. In
+this paper, we define di = {dij }j as the set of processed chunks derived from
+the original document oi. Each dij is treated as a distinct document within the
+system, collectively forming the augmented document corpus, denoted by D.
+
+URAG-F Mechanism: FAQ Database Enrichment URAG-F, shown in
+Algorithm 3, is designed to enrich the FAQ collection by fully leveraging the
+augmented text document corpus, obtained from the URAG-D mechanism, along
+with the initial FAQ set, which may contain critical Q-A pairs that require
+special attention. The process begins by generating new Q-A pairs from these
+sources and then paraphrasing them into multiple variations to enhance linguistic
+diversity. This approach significantly broadens and deepens the FAQ database,
+particularly in linguistically rich languages like Vietnamese, where a question
+can be articulated in numerous ways, thus improving the overall quality and
+coverage of the FAQ set.
+
+Data include officialfiles, regulations,website data, ...Text Text Text Cohesive ChunksOriginal Document Generated Text Generated Text Generated Text Augmented DocumentsURAG - D MechanismEmbedding Model Sentence TransformerDocument IndexRecord TextIDRecord TextIDRecord TextIDIndexing ProcessPrompt 2Chunks are rewritten based onthe extracted general contextPrompt 1Prompt 3Generated FAQEnriched FAQPrompt 4LLM (+ CoT)FAQ IndexFAQ (if provided)FAQ are tagged with their originVector DatabaseCorpusEmbedding ModelURAG - F MechanismLLM (+ CoT)Question Answer Question Answer Question Answer Question Answer Paraphrased Q-AsQuestion Answer Prompt 4Indexing ProcessRecord QuestionIDAnswerRecord QuestionIDAnswerRecord QuestionIDAnswerEach Q-A is paraphrased andtagged to link with its root Q-AOnly embed the questionsfrom the enriched FAQLLM (+ CoT)Semantic Chucker Flow of URAG-DFlow of URAG-FURAG: A Unified RAG for Precise University Admission Chatbots
+
+9
+
+Algorithm 2 URAG-D Workflow
+
+Input: Set of original documents O = {oi}K
+Output: Augmented context corpus D, used in Tier 2 of Algorithm 1
+
+i=1, where O ⊆ T
+
+1: Initialize D = ∅
+2: for i = 1 to K do
+3:
+
+capture overarching themes
+Chunk Reconstruction:
+for j = 1 to L do
+
+chunks {cij }L
+
+Semantic Chunking: Apply Semantic Chunking on oi to produce coherent
+j=1, where L = f (oi) is adapted based on the content of oi
+Context Extraction: Extract the general context gi from oi using L(oi) to
+
+4:
+
+5:
+6:
+7:
+8:
+9:
+10:
+11: end for
+
+Rewrite the chunk cij
+Condense tij
+Combine to produce the final chunk dij = concat(hij , tij ), where dij ∈ T
+
+using the context gi to form tij = L(cij | gi)
+
+into a succinct representation hij = L(tij )
+
+end for
+Append to the augmented corpus: D := D ∪ {dij }j
+
+Algorithm 3 URAG-F Workflow
+
+Input: Context corpus D and initial FAQ set F0
+Output: Enriched FAQ collection F , used in Tier 1 of Algorithm 1
+Initial FAQ Expansion:
+
+1: Utilize F0 to generate an expanded FAQ set: F = F0 ∪ L(F0)
+
+FAQ Generation from Documents:
+
+2: for i = 1 to |D| do
+3:
+4:
+5: end for
+
+Extract Q-A pairs FDi = L(di) from documents di
+Update the FAQ collection: F := F ∪ FDi
+
+FAQ Enrichment:
+6: for j = 1 to |F | do
+7:
+8:
+9: end for
+
+Generate paraphrased variants {fjk }k of each Q-A pair fj
+Enrich the FAQ set with the paraphrased versions: F := F ∪ {fjk }k
+
+4 Experimentation
+
+4.1 Experiment Setup
+
+We conducted an experiment to evaluate the accuracy of the URAG system in
+answering questions related to university admissions.
+
+Dataset Preparation The dataset was compiled from real questions gathered
+from high school students during three university admission events at HCMUT.
+We carefully curated 500 high-quality questions, covering a broad range of topics,
+emphasizing both Factual and Reasoning types. The majority of questions were
+Factual, reflecting common inquiries in the admissions process. To ensure a fair
+
+10
+
+Long Nguyen et al.
+
+evaluation, we focused on questions with readily available information sourced
+from the official HCMUT website7 and other reliable online platforms.
+
+URAG Baseline For the Embedding Model in our framework, we utilized the
+SOTA Vietnamese model dangvantuan/vietnamese-embedding, which employs
+the advanced Sentence-BERT (SBERT) [29] architecture to enhance sentence-
+level semantic understanding. For Semantic Chunking, we employed the mod-
+ule provided by LangChain8, a powerful framework for developing applications
+with LLMs. The LLM generator component is powered by our lightweight Viet-
+namese model ura-hcmut/ura-llama-7b [30], which is continually pretrained
+on LLaMA [31] using an extensive Vietnamese dataset. In terms of data prepa-
+ration, we curated 300 documents encompassing general information, events,
+personnel, admissions, and other relevant topics related to HCMUT. This entire
+setup is referred to as HCMUT Chatbot.
+
+Comparative Systems To benchmark URAG’s performance, we compared
+it against leading commercial chatbots, including GPT-4o, Claude 3.5 Sonnet,
+and Gemini 1.5 Pro [32]. The evaluations were conducted through their official
+platforms, allowing the chatbots to fully utilize their advanced features, including
+Internet access and sophisticated reasoning engines. We configured them to use
+online search capabilities through system prompts, allowing them to retrieve
+additional information for questions. This mirrors the approach used in CRAG
+systems, where external web searches enhance response accuracy.
+
+4.2 Methodology
+
+Each question from the evaluation dataset was systematically posed to each
+model, and the responses were assessed by experts for correctness. Accuracy was
+chosen as the primary evaluation metric, calculated as shown in Equation 1.
+
+Accuracy =
+
+1
+n
+
+n
+(cid:88)
+
+i=1
+
+Correcti,
+
+(1)
+
+where Correcti equals 1 if the answer to the i-th question is correct and 0 other-
+wise, and n represents the total number of questions in the dataset. This metric
+is particularly appropriate for university admission chatbots, where the priority
+is on the correctness of the answers rather than their phrasing.
+
+4.3 Results and Analysis
+
+Table 2 presents the overall accuracy of each evaluated system, showing that
+HCMUT Chatbot, driven by the URAG system, achieves the highest perfor-
+mance among all systems. This outcome highlights the effectiveness of URAG’s
+two-tier architecture in enhancing the accuracy of a lightweight model through
+efficient information retrieval management.
+
+7 https://hcmut.edu.vn/
+8 https://www.langchain.com/
+
+URAG: A Unified RAG for Precise University Admission Chatbots
+
+11
+
+We further examined the performance based on Question Type, specifically
+Factual and Reasoning, as depicted in Figure 5a. HCMUT Chatbot performed
+exceptionally well in Factual questions but did not significantly surpass the other
+models in Reasoning tasks. This result is understandable, given that HCMUT
+Chatbot relies on a lightweight Vietnamese language model, whereas the com-
+mercial chatbots benefit from extensive language models with integrated reason-
+ing engines and vast parameter counts.
+
+To evaluate the impact of each phase of the URAG architecture, we analyzed
+the distribution and accuracy of responses across its tiers, as shown in Figure 5b.
+The findings indicate that the URAG-F and URAG-D mechanisms were highly
+effective, addressing nearly all questions within the first two tiers while keeping
+fallback cases minimal. There was a balanced distribution of responses between
+Tier 1 and Tier 2, with a slight decline in accuracy as the system progressed
+through the tiers, reflecting the designed hierarchy of the retrieval process.
+
+Table 2. Performance Metrics of Evaluated Chatbot Systems
+
+System
+
+GPT-4o
+
+Claude 3.5 Sonnet
+
+Gemini 1.5 Pro
+
+HCMUT Chatbot
+
+Factual
+
+Reasoning
+
+286
+
+218
+
+199
+
+169
+
+54
+
+52
+
+51
+
+28
+
+Correctness Accuracy
+
+0.544
+
+0.502
+
+0.440
+
+0.628
+
+Total
+
+Correct
+
+272
+
+251
+
+220
+
+314
+
+300
+
+200
+
+100
+
+s
+e
+s
+n
+o
+p
+s
+e
+R
+
+f
+o
+
+r
+e
+b
+m
+u
+N
+
+GPT
+
+Claude
+
+Gemini
+
+Ours
+
+0
+
+Tier 1
+
+Tier 2
+
+Fallback
+
+s
+s
+e
+n
+t
+c
+e
+r
+r
+o
+C
+
+300
+
+200
+
+100
+
+0
+
+(a) Performance Evaluation of Chatbot Mod-
+els by Response Type
+
+(b) Tier-Based Distribution and Accuracy of
+Responses in URAG
+
+Fig. 5. Comprehensive Analysis of Chatbot Model Performance and URAG’s Tiers
+
+4.4 Case Study: Deployment of the HCMUT Admission Chatbot
+
+We deployed HCMUT Chatbot, powered by the entire URAG baseline, on a ded-
+icated subdomain of our university’s website at ura.hcmut.edu.vn/bk-tvts.
+
+12
+
+Long Nguyen et al.
+
+Over a four-month deployment period, the chatbot recorded substantial inter-
+action levels, particularly from high school students, as shown in Figure 6. In-
+teraction peaks were observed in early June, coinciding with the end of the high
+school academic year, and late August, just before the start of the university
+term, aligning with the expected demand for admission information. Our chatbot
+maintained fast response times that were consistent across varying interaction
+volumes, with slight variations depending on the complexity of the questions.
+
+Fig. 6. Interaction and Response Time Statistics of HCMUT Chatbot
+
+5 Discussion, Limitations, and Future Work
+
+We introduced the URAG system as an efficient and lightweight solution for
+university admission chatbots, successfully deployed at HCMUT with a robust
+and stable user base. Its two-tier architecture significantly enhances accuracy,
+particularly for high-priority questions, by mitigating common hallucination is-
+sues inherent in LLM-based systems. The traceability features in URAG-D and
+URAG-F efficiently manage a large enriched database by linking text and ques-
+tion variations to their original sources, simplifying updates when information
+changes. However, URAG’s reliance on a lightweight generator model, while
+advantageous for reducing deployment costs and enhancing security, limits its
+performance compared to larger models or third-party APIs, especially when
+addressing general queries beyond the admissions domain [30].
+
+Future research should focus on advanced retrieval strategies, such as in-
+tegrating SOTA Hybrid Search techniques [33], to replace the current Cosine
+Similarity with Threshold method, thereby improving retrieval efficiency. Addi-
+tionally, fine-tuning the LLM on domain-specific datasets related to university
+admissions could further enhance the relevance and accuracy of responses. How-
+ever, these improvements must be carefully balanced against the potential in-
+crease in operational complexity and costs. Lastly, it is essential to acknowledge
+that certain inquiries will always require the expertise and judgment of human
+advisors, which automated systems cannot fully replicate.
+
+URAG: A Unified RAG for Precise University Admission Chatbots
+
+13
+
+References
+
+1. B. Memarian and T. Doleck, “ChatGPT in education: Methods, potentials, and
+limitations,” Computers in Human Behavior: Artificial Humans, vol. 1, no. 2,
+p. 100022, 2023.
+
+2. S. P. Lende and M. M. Raghuwanshi, “Question answering system on education
+acts using NLP techniques,” in 2016 World Conference on Futuristic Trends in
+Research and Innovation for Social Welfare (Startup Conclave), pp. 1–6, 2016.
+3. A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. u.
+Kaiser, and I. Polosukhin, “Attention is All you Need,” in Advances in Neural
+Information Processing Systems (I. Guyon, U. V. Luxburg, S. Bengio, H. Wallach,
+R. Fergus, S. Vishwanathan, and R. Garnett, eds.), vol. 30, Curran Associates,
+Inc., 2017.
+
+4. M. Ganesan, D. C., H. B., K. A.S., and L. B., “A Survey on Chatbots Using
+Artificial Intelligence,” in 2020 International Conference on System, Computation,
+Automation and Networking (ICSCAN), pp. 1–5, 2020.
+
+5. H. Naveed, A. U. Khan, S. Qiu, M. Saqib, S. Anwar, M. Usman, N. Barnes, and
+
+A. S. Mian, “A Comprehensive Overview of Large Language Models,” 2023.
+
+6. Z. Ji, N. Lee, R. Frieske, T. Yu, D. Su, Y. Xu, E. Ishii, Y. J. Bang, A. Madotto,
+and P. Fung, “Survey of Hallucination in Natural Language Generation,” ACM
+Comput. Surv., vol. 55, 3 2023.
+
+7. P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Küttler,
+M. Lewis, W.-t. Yih, T. Rocktäschel, S. Riedel, and D. Kiela, “Retrieval-augmented
+generation for knowledge-intensive NLP tasks,” in Proceedings of the 34th Inter-
+national Conference on Neural Information Processing Systems, NIPS ’20, (Red
+Hook, NY, USA), Curran Associates Inc., 2020.
+
+8. P. Zhao, H. Zhang, Q. Yu, Z. Wang, Y. Geng, F. Fu, L. Yang, W. Zhang, and
+B. Cui, “Retrieval-Augmented Generation for AI-Generated Content: A Survey,”
+2024.
+
+9. A. Asai, Z. Wu, Y. Wang, A. Sil, and H. Hajishirzi, “Self-RAG: Learning to Re-
+
+trieve, Generate, and Critique through Self-Reflection,” 2023.
+
+10. S. Jeong, J. Baek, S. Cho, S. J. Hwang, and J. Park, “Adaptive-RAG: Learning
+to Adapt Retrieval-Augmented Large Language Models through Question Com-
+plexity,” in Proceedings of the 2024 Conference of the North American Chapter
+of the Association for Computational Linguistics: Human Language Technologies
+(Volume 1: Long Papers) (K. Duh, H. Gomez, and S. Bethard, eds.), (Mexico City,
+Mexico), pp. 7036–7050, Association for Computational Linguistics, June 2024.
+11. Z. Wang, Z. Wang, L. T. Le, H. S. Zheng, S. Mishra, V. Perot, Y. Zhang, A. Mat-
+tapalli, A. Taly, J. Shang, C.-Y. Lee, and T. Pfister, “Speculative RAG: Enhancing
+Retrieval Augmented Generation through Drafting,” 2024.
+
+12. S.-Q. Yan, J.-C. Gu, Y. Zhu, and Z.-H. Ling, “Corrective Retrieval Augmented
+
+Generation,” 2024.
+
+13. P. P. Ray, “ChatGPT: A comprehensive review on background, applications, key
+challenges, bias, ethics, limitations and future scope,” Internet of Things and Cyber-
+Physical Systems, vol. 3, pp. 121–154, 2023.
+
+14. Y. Gao, Y. Xiong, X. Gao, K. Jia, J. Pan, Y. Bi, Y. Dai, J. Sun, Q. Guo, M. Wang,
+and H. Wang, “Retrieval-Augmented Generation for Large Language Models: A
+Survey,” 2023.
+
+15. T. Bui, O. Tran, P. Nguyen, B. Ho, L. Nguyen, T. Bui, and T. Quan, “Cross-Data
+Knowledge Graph Construction for LLM-enabled Educational Question-Answering
+
+14
+
+Long Nguyen et al.
+
+System: A Case Study at HCMUT,” in Proceedings of the 1st ACM Workshop on
+AI-Powered Q&A Systems for Multimedia, AIQAM ’24, (New York, NY, USA),
+p. 36–43, Association for Computing Machinery, 2024.
+
+16. Y. Hu, Z. Lei, Z. Zhang, B. Pan, C. Ling, and L. Zhao, “GRAG: Graph Retrieval-
+
+Augmented Generation,” 2024.
+
+17. A. Aloqayli and H. A. Abdelhafez, “Intelligent Chatbot for Admission in Higher
+Education,” International Journal of Information and Education Technology, 2023.
+18. M.-T. Nguyen, M. Tran-Tien, A. P. Viet, H.-T. Vu, and V.-H. Nguyen, “Building a
+Chatbot for Supporting the Admission of Universities,” in 2021 13th International
+Conference on Knowledge and Systems Engineering (KSE), pp. 1–6, 2021.
+
+19. T. T. Nguyen, A. D. Le, H. T. Hoang, and T. Nguyen, “NEU-chatbot: Chatbot for
+admission of National Economics University,” Computers and Education: Artificial
+Intelligence, vol. 2, p. 100036, 2021.
+
+20. T. Bocklisch, J. Faulkner, N. Pawlowski, and A. Nichol, “Rasa: Open Source Lan-
+
+guage Understanding and Dialogue Management,” 2017.
+
+21. Y. W. Chandra and S. Suyanto, “Indonesian Chatbot of University Admission Us-
+ing a Question Answering System Based on Sequence-to-Sequence Model,” Procedia
+Computer Science, vol. 157, pp. 367–374, 2019. The 4th International Conference
+on Computer Science and Computational Intelligence (ICCSCI 2019) : Enabling
+Collaboration to Escalate Impact of Research Results for Society.
+
+22. D. Cabezas, R. Fonseca-Delgado, I. Reyes-Chacón, P. Vizcaino-Imacaña, and M. E.
+Morocho-Cayamcela, “Integrating a LLaMa-based Chatbot with Augmented Re-
+trieval Generation as a Complementary Educational Tool for High School and
+College Students,” in Proceedings of the 19th International Conference on Soft-
+ware Technologies (ICSOFT 2024), pp. 395–402, 01 2024.
+
+23. S. Neupane, E. Hossain, J. Keith, H. Tripathi, F. Ghiasi, N. A. Golilarz, A. Amir-
+latifi, S. Mittal, and S. Rahimi, “From Questions to Insightful Answers: Building
+an Informed Chatbot for University Resources,” 2024.
+
+24. T.-H. Nguyen, D.-N. Tran, D.-L. Vo, V. H. Mai, and D. Xuan-Quy, “AI-Powered
+University: Design and Deployment of Robot Assistant for Smart Universities,”
+Journal of Advances in Information Technology, 2022.
+
+25. J. Odede and I. Frommholz, “JayBot – Aiding University Students and Admission
+with an LLM-based Chatbot,” in Proceedings of the 2024 Conference on Human In-
+formation Interaction and Retrieval, CHIIR ’24, (New York, NY, USA), p. 391–395,
+Association for Computing Machinery, 2024.
+
+26. S. Zeng, J. Zhang, P. He, Y. Liu, Y. Xing, H. Xu, J. Ren, Y. Chang, S. Wang,
+D. Yin, and J. Tang, “The Good and The Bad: Exploring Privacy Issues in
+Retrieval-Augmented Generation (RAG),” in Findings of the Association for Com-
+putational Linguistics: ACL 2024 (L.-W. Ku, A. Martins, and V. Srikumar, eds.),
+(Bangkok, Thailand), pp. 4505–4524, Association for Computational Linguistics,
+Aug. 2024.
+
+27. J. Wei, X. Wang, D. Schuurmans, M. Bosma, B. Ichter, F. Xia, E. H. Chi, Q. V.
+Le, and D. Zhou, “Chain-of-thought prompting elicits reasoning in large language
+models,” in Proceedings of the 36th International Conference on Neural Information
+Processing Systems, NIPS ’22, (Red Hook, NY, USA), Curran Associates Inc., 2024.
+https://github.com/
+Text
+
+28. G. Kamradt,
+
+Splitting.”
+
+Levels
+
+“5
+
+of
+
+FullStackRetrieval-com/RetrievalTutorials, 2024.
+
+29. N. Reimers and I. Gurevych,
+
+“Sentence-BERT: Sentence Embeddings using
+Siamese BERT-Networks,” in Proceedings of the 2019 Conference on Empirical
+Methods in Natural Language Processing and the 9th International Joint Confer-
+ence on Natural Language Processing (EMNLP-IJCNLP) (K. Inui, J. Jiang, V. Ng,
+
+URAG: A Unified RAG for Precise University Admission Chatbots
+
+15
+
+and X. Wan, eds.), (Hong Kong, China), pp. 3982–3992, Association for Compu-
+tational Linguistics, Nov. 2019.
+
+30. S. Truong, D. Nguyen, T. Nguyen, D. Le, N. Truong, T. Quan, and S. Koyejo,
+“Crossing Linguistic Horizons: Finetuning and Comprehensive Evaluation of Viet-
+namese Large Language Models,” in Findings of the Association for Computational
+Linguistics: NAACL 2024 (K. Duh, H. Gomez, and S. Bethard, eds.), (Mexico City,
+Mexico), pp. 2849–2900, Association for Computational Linguistics, June 2024.
+31. H. Touvron, T. Lavril, G. Izacard, X. Martinet, M.-A. Lachaux, T. Lacroix, B. Roz-
+ière, N. Goyal, E. Hambro, F. Azhar, A. Rodriguez, A. Joulin, E. Grave, and
+G. Lample, “LLaMA: Open and Efficient Foundation Language Models,” 2023.
+32. S. Minaee, T. Mikolov, N. Nikzad, M. A. Chenaghlu, R. Socher, X. Amatriain, and
+
+J. Gao, “Large Language Models: A Survey,” 2024.
+
+33. X. Wang, Z. Wang, X. Gao, F. Zhang, Y. Wu, Z. Xu, T. Shi, Z. Wang, S. Li,
+Q. Qian, R. Yin, C. Lv, X. Zheng, and X. Huang, “Searching for Best Practices in
+Retrieval-Augmented Generation,” in Conference on Empirical Methods in Natural
+Language Processing, 2024.
+
+A Appendix
+
+A.1 Evaluation Dataset Analysis
+
+The evaluation dataset comprises 500 authentic questions collected from high
+school students, covering a wide range of topics and including both Factual and
+Reasoning question types. The detailed composition of the dataset is presented
+in Table 3.
+
+Table 3. Distribution of Questions by Topic and Question Type
+
+Category
+
+Type
+
+Description
+
+University Overview
+
+Programs and Majors
+
+Topic
+
+Faculty and Career Guidance
+
+General inquiries about the university’s founding, locations,
+facilities, organizational structure, and overall campus envi-
+ronment.
+
+Related to academic programs, entry requirements, curriculum
+details, unique aspects of majors, and opportunities for intern-
+ships and research.
+
+Inquiries about faculty expertise, teaching and research expe-
+rience, as well as guidance on career opportunities and job
+placement for students.
+
+Count
+
+61
+
+186
+
+32
+
+Student Life and Extracurriculars About student clubs, extracurricular activities, events, sports,
+
+50
+
+student welfare, and support services.
+
+Admissions and Policies
+
+On admission criteria, application procedures, scholarships, fi-
+nancial aid, health insurance, and other student policies.
+
+Question Type
+
+Factual
+
+Reasoning
+
+Total
+
+Seeking specific information or details about programs, proce-
+dures, admission requirements, facilities, and services offered
+by the university, based on factual data.
+
+Require analysis, comparison, explanation, or advice regarding
+academic choices, program distinctions, and career guidance.
+
+171
+
+500
+
+427
+
+73
+
+16
+
+Long Nguyen et al.
+
+A.2 Hyperparameter Selection for HCMUT Chatbot
+
+As described in Algorithm 1, selecting the appropriate thresholds tFAQ and tDoc
+for Tier 1 and Tier 2, respectively, is crucial to optimizing the performance of the
+URAG system. To fine-tune these hyperparameters, we conducted experiments
+using 500 randomly generated queries based on data from the FAQ set F and
+document set D, processed through the URAG-D and URAG-F mechanisms.
+
+Threshold Selection for tFAQ To determine the optimal value of tFAQ, we
+retrieved the top k most relevant questions from the FAQ set F for each query.
+The performance was evaluated using the Mean Reciprocal Rank (MRR), com-
+puted as shown in Equation A.2.
+
+MRR =
+
+1
+|Q|
+
+|Q|
+(cid:88)
+
+i=1
+
+1
+ranki
+
+,
+
+(A.2)
+
+where ranki is the position of the first relevant question retrieved for the i-
+th query, and ranki = ∞ if no relevant question is found. The total number of
+queries is |Q| = 500. MRR was selected because it effectively captures the quality
+of retrieval by emphasizing the rank of the first correct result, providing a robust
+measure of retrieval system performance, particularly suited to the nature of
+URAG’s tiers. By testing threshold values between 0.8 and 0.95, we identified
+the tFAQ that maximized MRR. The value k = 20 was chosen to align with the
+average number of paraphrased variations generated from a single original object
+by the URAG-F mechanism, ensuring consistency and meaningful evaluation.
+
+Threshold Selection for tDoc The approach for selecting tDoc was similar,
+focusing on retrieving the most relevant document segments from the document
+set D. We set K = 2, striking a balance between computational efficiency and
+retrieval accuracy, tailored to the capabilities of our lightweight LLM.
+
+The final hyperparameters used in Section 4 are summarized in Table 4.
+
+Table 4. Hyperparameters for URAG Components
+
+Stage
+
+Hyperparameter Value
+
+Tier 1
+
+Tier 2
+
+THRESHOLD_FAQ
+
+TOP_K
+
+THRESHOLD_DOC
+
+TOP_K
+
+temperature
+
+URA-LLaMA
+
+top_p
+
+top_k
+
+max_new_tokens
+
+0.9
+
+20
+
+0.8
+
+2
+
+0.9
+
+0.95
+
+40
+
+512

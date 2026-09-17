@@ -1,0 +1,2189 @@
+Post-training an LLM for RAG? Train on Self-Generated Demonstrations
+
+Matthew Finlayson∗
+
+Ilia Kulikov† Daniel M. Bikel†
+
+Barlas Oguz† Xilun Chen† Aasish Pappu†
+†Meta, Inc.
+∗University of Southern California
+
+mfinlays@usc.edu
+
+aasish@meta.com
+
+Abstract
+
+Large language models (LLMs) often struggle
+with knowledge intensive NLP tasks, such as
+answering “Who won the latest World Cup?”
+because the knowledge they learn during train-
+ing may be insufficient or outdated. Condi-
+tioning generation on retrieved documents—a
+technique known as retrieval augmented gen-
+eration (RAG)—mitigates these shortcomings
+by allowing the model to leverage in-context
+information. Practitioners can improve LLM
+RAG performance by fine-tuning on retrieval-
+augmented instructions, but must beware that
+this can cause undesirable model behaviors like
+hallucinations. We attribute this degradation
+to the fact that the training data is likely to be
+out-of-distribution for the model and may suf-
+fer from quality issues, such as misalignment
+between retrievals and target responses (since re-
+trievals are frequently added post-hoc). We pro-
+pose a recipe for training RAG-enabled LLMs
+using self-generated demonstrations, thereby
+avoiding training on out-of-distribution text and
+integrating retrievals into the LLM responses.
+We evaluate our method on knowledge intensive
+question answering (QA) tasks and show that
+our method teaches LLMs to properly handle
+in-context retrievals and abstain from questions
+it will likely get wrong. Compared to conven-
+tional RA-IT methods, our method prevents
+model degradation in non-RAG settings while
+exhibiting superior QA performance.
+
+5
+2
+0
+2
+
+r
+a
+
+M
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+6
+9
+5
+0
+1
+.
+2
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+1
+
+Introduction
+
+Typically, large language models (LLMs) must rely
+solely on knowledge learned during pre-training
+to perform downstream tasks like question answer-
+ing. This situation becomes problematic when the
+task depends on knowledge that the model has not
+encountered or learned. A popular framework for
+mitigating this issue is to provide the model with
+contextual knowledge, i.e., providing relevant infor-
+mation for the task as input. This crucial context
+
+1
+
+typically comes from retrieval systems that fetch
+documents from some database based on their rele-
+vance to the task. The combination of retrieval and
+language generation, known as retrieval-augmented
+generation (RAG), often outperforms LLMs with-
+out retrievals on downstream tasks, particularly for
+knowledge intensive tasks where parametric (i.e.,
+learned during pre-training) knowledge fails.
+
+Integrating an LLM into a RAG system can be
+tricky, since the LLM may not properly leverage
+the additional context to improve performance. In
+particular, if the retrievals are irrelevant to the task,
+they may distract the LLM from the objective or
+cause the LLM to integrate incorrect information
+into its generations. The LLM may also fail to
+integrate the provided context even when it contains
+the solution to the task. We hypothesize that these
+shortcomings are caused by distributional mismatch
+between the model’s training data and the RAG-
+style inputs it receives at test time.
+
+Several prior efforts have sought to better in-
+tegrate LLMs into RAG systems by fine-tuning
+them for the task. This usually involves training
+the model with in-context retrievals, and may be
+implemented during pre-training (e.g., Guu et al.,
+2020), or as a post-training step (Lin et al., 2024b).
+Since pre-training can be prohibitively expensive,
+we focus on the more accessible and common post-
+training methods.
+In particular, we concentrate
+on retrieval-augmented instruction tuning (RA-IT)
+where an LLM is fine-tuned on an instruction tuning
+dataset which has been modified to include one or
+more retrievals for each instance.
+
+One easy way to obtain a RA-IT training set is to
+augment existing instruction-response pairs from
+an instruction tuning dataset with retrievals. This
+approach poses two significant challenges. First,
+there may be a misalignment between the retrieved
+content and the response, as the latter was created
+without reference to the retrieval and might even
+appear to contradict it. Second—and this is a more
+
+ 
+ 
+ 
+ 
+ 
+ 
+Retrieval-augmented instruction-response pairs
+
+Retrieval
+The Frederick
+Krause Mini
+Mansion is a his-
+toric. . .
+
+Instruction
+
+What color is
+the roof of the
+Frederick Krause
+Mini Mansion?
+
+Response
+
+Grey and pink
+
+According to the
+passage, the col-
+ors are gray-blue
+and rose.
+
+Retrieval-tuned instruct model
+
+Train on OOD data
+
+Generate & filter
+
+Instruct model
+
+Self-demo+retrieval-tuned instruct model (ours)
+
+Train on in-distribution data
+
+Figure 1: An overview of existing of naïve retrieval-augmented instruction tuning (training on OOD data) and our
+proposed method: retrieval-augmented instruction tuning on self-generated demos. Fine-tuning on out-of-distribution
+(OOD) instruction responses (highlighted red) from an outside source, for example an existing annotated dataset,
+can degrade the model. We use a model to generate its own correct, in-distribution responses (highlighted green).
+Training on these yields better performance on downstream RAG tasks.
+
+general issue in fine-tuning—gold responses are
+often unlikely to be generated by the model, mak-
+ing them out-of-distribution (OOD). Training on
+OOD responses can inadvertently promote halluci-
+nation by compelling the model to generate outputs
+that conflict with its parametric knowledge (Lin
+et al., 2024a). Consequently, RA-IT may elicit
+undesirable LLM behavior.
+
+We propose to remedy the OOD response is-
+sue by replacing responses in a RA-IT dataset
+with ones that match the capabilities and distribu-
+tion of the LLM. We accomplish this by obtaining
+self-generated demonstrations (self-demos) from
+the model, as illustrated in Fig. 1. Our process
+consists of generating multiple outputs from the
+LLM conditioned on retrievals and instructions,
+then filtering for the outputs that match the gold
+responses (as judged by an LLM). Our generate-
+then-filter process retains ground truth supervision
+while matching the training data to the model dis-
+tribution. To maximize the number of successful
+self-demos, we sample from multiple prompts and
+generate both with and without retrievals. If none
+of the response candidates match the gold response
+we instead select a refusal generated based on the
+context. Thus, we obtain self-demos that match the
+gold responses, are in-distribution for the LLM, and
+respect its parametric and contextual knowledge.
+
+We find that models obtained via self-demo
+retrieval-augmented instruction tuning (SD-RA-IT)
+perform favorably on knowledge-intensive question
+answering tasks compared to other methods. Their
+answer attempts succeed at a higher rate, and they
+better identify answers from retrievals. They ac-
+complish this by abstaining from questions they
+will likely get wrong, and engage with retrievals
+to answer questions correctly. We also find that,
+while RA-IT tends to degrade the LLM’s perfor-
+
+mance when retrievals are not present (non-RAG
+settings), SD-RA-IT improves model performance
+across both non-RAG and many-retrieval settings,
+even improving performance on contexts with many
+more retrievals than the model was explicitly trained
+to handle.
+
+2 Related work
+
+Our work builds upon several areas in RAG methods
+and post-training.
+
+2.1 Training RAG-enabled LLMs
+
+As retrieval-augmented generation (RAG) has gar-
+nered interest as an effective way to improve LLM
+performance (Lewis et al., 2020). We focus on the
+setting where we prepend retrievals to the prompt,
+which is a common, simple method for incorporat-
+ing retrievals into the context, though alternative
+RAG architectures exist (e.g., Shi et al., 2023). Our
+work builds upon previous studies which investigate
+how to train LLMs to better handle retrieved context.
+Some of these propose pre-training methods that
+boost RAG capabilities (Guu et al., 2020; Izacard
+et al., 2023; Shi et al., 2024), while others fine-
+tune a LLM for better RAG capabilities Luo et al.
+(2023). Our method targets the latter fine-tuning set-
+ting, where we hypothesize that out-of-distribution
+training examples cause performance degradation.
+Our key insight is to self-generate demonstrations,
+rather than using a teacher LLM (Luo et al., 2023)
+or human-written responses (Lin et al., 2024b).
+
+2.2 Distilling prompted behavior
+
+Our methodology has similarities with recent work
+on distilling the behavior of prompted language
+models back into the unprompted model. Note
+that this is different from distilling a larger model
+into a smaller one; instead, the prompted model
+
+2
+
+and the target model for fine-tuning are the same.
+Yu et al. (2024) use prompting frameworks (e.g.,
+Chain-of-Thought, System 2 Attention; Wei et al.,
+2022; Weston and Sukhbaatar, 2023) to generate
+training examples using a language model, then do
+supervised fine-tuning (SFT) to distill the behavior
+under these prompts back into that same model. The
+resulting model exhibits behavior like the prompted
+models without requiring prompts. Our work takes
+a similar approach for a similar goal, though we
+use automatically optimized prompts instead of
+hand-crafted prompting frameworks to generate
+training data, and we aim to specifically distill RAG
+capabilities rather than reasoning abilities. Our
+method, similar to the one in Yu et al. (2024), also
+requires filtering training examples for correctness.
+
+2.3 Self-demo training & learning to abstain
+
+Our work is partly motivated by the hypothesis Lin
+et al. (2024a) and Kang et al.’s (2024) hypothesis
+that out-of-distribution training data degrade LLM
+during post-training and encourage hallucinations.
+Similar to our work, Lin et al. (2024a) train LLMs
+on self-generated demonstrations, but with the goal
+of improving factuality. They also investigate using
+RAG as part of their training pipeline but not during
+inference. We also build on their work by intro-
+ducing a filtering stage to ensure the quality and
+correctness of the self-generated instances before
+training on them.
+
+A large body of existing literature investigates
+learning when to abstain from answering ques-
+tions (Wen et al., 2024). Our method for selecting
+self-demos resembles the simple method proposed
+by Yang et al. (2024) where training examples that
+the model answers incorrectly are replaced with
+refusals. We incorporate and improve on their
+template-based refusal strategy by selecting self-
+generated refusals when none of the self-generated
+demonstrations are correct. By using self-generated
+refusals instead of template-based ones, we better
+align the training distribution with the LLM’s own
+distribution.
+
+answering, and some RAG abilities. We lever-
+age these abilities to bootstrap a dataset of self-
+demonstrations to train on.
+
+We break the process of generating self-demos
+for SD-RA-IT into discrete steps. First, we obtain an
+instruction tuning dataset augmented with retrievals.
+Second, we automatically generate a set of prompts
+for the LLM. Third, we generate three types of
+outputs: retrieval-augmented responses, responses
+without retrieval responses, and refusals. Fourth,
+we filter these responses for correctness with respect
+to the gold response, choosing the self-demo that is
+most correct, or a refusal when no outputs match
+the gold response. In this section we review of our
+implementation of these steps.
+
+3.1 Models, infrastructure, and datasets
+
+As our reference language models, we use state-
+of-the-art, open-weight, instruction-tuned mod-
+els Llama-3-8B-Instruct and Llama-3-70B-Instruct.
+Our method is designed to require only on the ref-
+erence model; no larger or more powerful model is
+required. We use the open-source libraries fairseq2
+for training (Balioglu, 2023), and vLLM for infer-
+ence (Kwon et al., 2023), and publicly release our
+training and inference scripts1.
+
+For convenience, we opt to use the retrieval-
+augmented instruction tuning dataset from Lin et al.
+(2024b), who describe the composition of their
+dataset in Table 1 of their paper. This dataset con-
+sists of instances which each contain an instruction,
+a human-written response (gold demonstration),
+and retrievals from Wikipedia (Izacard et al., 2023)
+and CommonCrawl2.
+
+The instruction-response pairs come from multi-
+ple domains: dialogue, open-domain QA, reading
+comprehension, summarization, and reasoning. We
+use a mix of 10% dialogue instances and 90% ran-
+domly instances from other domains, following a
+similar split to that used in Lin et al. (2024b).
+
+For retrievals, we re-use the retrieved documents
+from Lin et al. (2024b) which are retrieved using a
+DRAGON+ retriever (Lin et al., 2023).
+
+3 Method and Implementation
+
+3.2 Automatic prompt generation
+
+The goal of our method (outlined in Fig. 2) is to
+take an instruction-tuned LLM as a reference model
+and equip it with improved RAG capabilities. Our
+method relies on the fact that instruction-tuned
+LLMs are already capable of several tasks, in-
+cluding self-prompting, self-evaluation, question
+
+We sample response candidates from multiple
+prompts with the aim to achieve diversity and
+maximize the likelihood of correctness. We use
+
+1https://github.com/facebookresearch/RAM/tree/
+
+main/projects/sd-ra-it
+
+2https://commoncrawl.org
+
+3
+
+Retrievals and instructions only
+
+Instruct model
+
+Generate
+
+Response candidates
+
+Retrieval augmented instruction-response pairs
+
+Train on in-distri-
+bution data
+
+Self-demo
+retrieval-tuned
+instruct model
+
+LLM-as-judge
+
+Filter
+
+Self-generated demos
+
+Replace responses with self-demos
+
+Retrievals
+
+Instructions
+
+Responses
+
+Figure 2: Our method uses the reference model to generate response candidates for the retrieval-instruction pairs.
+We then use the model along with the gold responses to filter the candidate responses for correct ones. Finally, we
+replace the OOD responses in the training set with these in-distribution self-generated responses (self-demos) and
+train on these.
+
+automatic prompt optimization instead of hand-
+crafting prompts, saving time and improving their
+effectiveness. Prior research and existing libraries
+offer methods for automatically optimizing LLM
+prompts (e.g., Khattab et al., 2022; Yuksekgonul
+et al., 2024; Pryzant et al., 2023)3. Due to the sim-
+plicity of our needs, we opt to implement a custom
+optimizer which roughly follows the iterative beam
+search formula found in the literature: we begin
+with a human-written system message then (1) use
+the system message and reference model to generate
+responses to a small training set of instructions, (2)
+use the model to score its own outputs on a scale
+1-5 compared to the gold responses, (3) use the
+model to critique its own outputs then suggest a
+new system message, sampling several new candi-
+date system messages, then finally (4) repeat the
+process with the new system message candidates,
+pruning the lowest-scoring prompts.
+
+After a number of rounds, we use a validation set
+to obtain scores for all the system message candi-
+dates, then select the top-scoring system messages.
+We repeat this process for both retrieval-augmented
+instructions and standalone instructions. We addi-
+tionally include a human-written system message
+instructing the model to refuse to all instructions.
+
+3.3 Generating, filtering, and training on
+
+self-demonstrations
+
+To obtain a self-demo for each instance in our train-
+ing set, we first generate multiple output candidates
+using the system prompts collected in the previous
+step. We then use the reference model as a judge,
+giving it access to the gold response and prompting
+it to select the most correct output, or to select a
+
+3See Jiaxin Zhang (2024) for a comprehensive list of
+
+prompt optimization literature.
+
+refusal if none of the candidates are correct. In
+practice, we find that the judge struggles to choose
+between many candidates at once, so we select the
+best candidate via a single-elimination tournament.
+We try two common post-training methods for
+LLMs. The first, supervised instruction fine-tuning
+(SFT) minimizes cross-entropy loss on the response
+tokens. The second, direct preference optimization
+(DPO) takes two candidate responses, a preferred
+response and a rejected response, and optimizes the
+model to maximize the probability of the preferred
+response while minimizing the probability of the
+rejected response. We use a randomly selected self-
+demo candidate that was rejected during the self-
+demo generation process as the rejected response.
+
+4 Experimental details
+
+In this section we detail our methods and specific
+implementation choices.
+
+4.1 Benchmarks and Baselines
+
+Our evaluation focuses on knowledge-intensive
+question-answering (QA) tasks. For this, we use
+the evaluation datasets from Lin et al. (2024b)4,
+since these datasets are popular for RAG evaluation.
+Lin et al. (2024b) provide multiple retrievals for
+each of the evaluation instances. Each instance in
+these datasets consist of a question (e.g., “who won
+the 2012 World Series”) and an answer (e.g., “San
+Francisco Giants”).
+
+We contextualize our model’s performance with
+several baselines. First, we compare to the reference
+model from which our model was fine-tuned. Since
+
+4Our evaluation datasets include the Pushshift.io Reddit
+dataset, a previously existing dataset extracted and obtained
+by a third party that contains preprocessed comments posted
+on the social network Reddit and hosted by Pushshift.io.
+
+4
+
+Acronym
+
+Method
+
+IT
+RA-IT
+SD-RA-IT Retrieval-augmented instruction tuning on
+
+Instruction tuning
+Retrieval-augmented instruction tuning
+
++DPO
+
+PSR
+FEVER
+HPQA
+MMLU
+NQ
+TQA
+T-REx
+WoW
+zsRE
+
+self-demos (ours)
+DPO objective used instead of SFT
+
+Dataset
+
+Pushshift.io Reddit (Fan et al., 2019)
+Thorne et al. (2018)
+HotPotQA (Yang et al., 2018)
+Hendrycks et al. (2021)
+Kwiatkowski et al. (2019)
+Trivia QA (Joshi et al., 2017)
+Elsahar et al. (2018)
+Wizard of Wikipedia (Dinan et al., 2019)
+Levy et al. (2017)
+
+Table 1: A summary of method and dataset acronyms.
+
+the reference model is a fully-fledged instruction-
+tuned LLM with some pre-existing RAG capabili-
+ties, this is a strong baseline. Next, we instruction-
+tune (IT) the reference model without using any
+retrievals. This baseline is meant to control for
+the effect continued fine-tuning on our model’s
+performance, and also to demonstrate the adverse
+effects of fine-tuning on OOD demonstrations. The
+third baseline, most similar to our method, is
+retrieval-augmented instruction-tuning (RA-IT) on
+gold demonstrations. Both of our trained baselines
+(instruction tuning, RA-IT) use cross-entropy loss
+as their training objective. We also experimented
+with using DPO for RA-IT, using the model’s own
+generations as the rejected response, but found in
+preliminary studies that this method catastrophi-
+cally degrades model accuracy on all QA tasks,
+likely because the gold responses are too far outside
+the model’s distribution.
+
+4.2 Metrics
+
+We aim to measure several properties of RAG mod-
+els to holistically evaluate our proposed method.
+In particular, we hypothesize that our training will
+make LLMs more accurate on questions it chooses
+to answer, better at learning which questions to
+refuse, better at integrating knowledge from re-
+trievals, and suffer less degradation from training
+on OOD demonstrations.
+
+To measure these effects, we first label all test
+instances as one of correct (if the model output
+matches the gold answer), refused (if the model
+declines to answer), or incorrect. We also label
+the retrievals as relevant or irrelevant, depending
+on whether the retrieval contains the answer to
+
+Answerable
+
+Unanswerable
+
+Attempted
+
+Correct
+
+Incorrect
+
+All questions
+
+Figure 3: A categorization of test instances. The box
+is divided into questions that the LLM can and can-
+not answer correctly, while the oval represents ques-
+tions that the LLM attempts. Since we are more inter-
+ested in reliability than raw accuracy on downstream
+tasks, we use precision (# correct/# attempted) and re-
+call (# correct/# answerable) as our main metrics.
+
+the question. We use an LLM-as-a-judge to label
+our test instances rather than rely on more tradi-
+tional metrics like exact match. We do this because
+traditional metrics do not capture more nuanced
+properties of text like semantic equivalence and re-
+fusals. We observe that our judge LLMs are highly
+reliable and accurate for straightforward tasks such
+as determining whether model generations match
+the gold labels.
+
+We use Llama-3-70B-Instruct as the judge LLM
+for 8B-parameter models, and Llama-3.1-405B-
+Instruct as the judge for 70B-parameter models. Our
+judge LLMs are one size larger than the reference
+model to get a more accurate judgement than the
+reference model could provide while minimizing
+inference costs. We find that inter-method trends
+generally hold across model sizes, but warn that raw
+scores may not be directly comparable across sizes
+since different judges may be more or less strict
+when deciding, for example, whether a generated
+answer sufficiently matches the gold answer.
+
+Since our method trains the model to refuse to
+answer when it is likely to get the answer wrong,
+we are interested in the model’s ability to answer
+attempted questions correctly (precision) and its
+ability to attempt questions it can answer correctly
+(recall). See Figure 3 for a visualization of these
+categories. We measure precision with answered
+accuracy, i.e., # correct/# attempted. Measuring
+recall (# correct/# answerable) is trickier because
+we do not have direct counterfactual information
+about which questions the model would get correct
+if it were to attempt to answer (we call this the
+counterfactual accuracy). As a proxy, we can count
+the number of false refusals (the number of refused
+questions that had relevant retrievals), then measure
+recall as # correct/(# correct + # false refusals).
+
+5
+
+Precision Recall
+
+F1
+
+8B
+
+70B
+
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+
+75.9
+73.4
+79.2
+80.6
+81.1
+73.8
+72.9
+75.2
+80.1
+77.1
+
+78.4
+79.9
+80.2
+82.3
+82.4
+79.4
+77.3
+77.5
+79.2
+84.8
+
+76.9
+76.4
+79.6
+81.3
+81.5
+76.4
+74.9
+76.3
+79.4
+80.7
+
+Table 2: Summary results for precision (accuracy on
+attempted questions), recall (accuracy on answerable
+questions) and F1, the harmonic mean of both. SD-RA-
+IT methods (ours) consistently outperform baselines.
+
+5 Analysis and Results
+
+We find that our method leads to favorable perfor-
+mance on knowledge-intensive question answering
+tasks across several metrics. Our method has higher
+precision (accuracy on answered questions), higher
+recall (successful attempts on answerable ques-
+tions), and lower counterfactual accuracy, compared
+to other methods. In ablations, we also find that our
+method leads to minimal degradation in non-RAG
+QA settings compared to all other methods, and
+achieves the highest performance (precision) across
+different numbers of retrievals.
+
+Refer to Appendix A for per-evaluation set break-
+downs of the aggregated metrics (e.g., precision,
+recall) in this section.
+
+5.1 Precision
+
+As shown in the first column of Table 2, training on
+self-demos leads to accuracy gains for answered
+questions (see Table 9 for per-dataset results.) In
+other words, models trained with SD-RA-IT are
+more likely than other baselines to answer correctly
+when attempting to answer. We attribute this im-
+proved answered accuracy to our model’s superior
+ability to identify and refuse questions it is likely
+to get wrong. For concrete examples of this, see
+Table 3. The other possible explanation would be
+that SD-RA-IT causes the model to increase the
+total number of correct answers without increasing
+the number of incorrect ones, but Table 4 rules this
+out by showing that the total number of correct
+answers does not systematically increase for any
+training strategy.
+
+To further support the hypothesis that SD-RA-
+IT teaches the model to refuse questions it will
+likely get wrong, we would like to know the
+
+proportion of refused questions that the model
+could have answered correctly, the lower the bet-
+ter. One option would be to estimate this as
+# false refusals/# refusals, but this does not take
+into account questions where the answer known
+by the model but not present in the retrieval. To
+guard against this, we also estimate the model’s
+counterfactual accuracy by checking the accuracy
+of the reference model on the refused instances.
+These two metrics turn out to be highly correlated,
+as shown in Table 7, and we find that the counterfac-
+tual accuracy on refused instances for SD-RA-IT is
+consistently lowest out of all models across model
+sizes, indicating that the answered accuracy gains
+are due to the SD-RA-IT model refusing ques-
+tions that it will likely get wrong.
+
+Though SD-RA-IT achieves the highest preci-
+sion among the baselines, looking at differences
+in other metrics suggests that different SD-RA-IT
+models achieve high precision in different ways.
+In particular, 70B SD-RA-IT (without DPO) gets
+slightly fewer total answers correct compared to the
+RA-IT model (see Table 4). This is driven by an in-
+crease in refusals, shown in Table 5, which include
+questions the model would likely answer correctly
+if attempted. The model therefore achieves high
+precision by attempting only high-confidence ques-
+tions. On the other hand, SD-RA-IT models that do
+not show significant refusal increase must achieve
+higher precision through a more balanced combina-
+tion of refusing questions it will get wrong, using
+the context to correctly answer more questions,
+and answering additional questions it would have
+otherwise refused.
+
+Observing the outputs of both the SD-RA-IT and
+the RA-IT models in Table 6, we find that many of
+the RA-IT “refusals” are simply cases of the model
+completely ignoring the question. We hypothesize
+that these types of answers that ignore the question
+may stem from summarization tasks found in the
+instruction tuning dataset. If we counted these as
+incorrect rather than refused we would see an even
+bigger difference between the models’ answered
+accuracy. In other words, our precision gains are
+likely underestimates. The fact that our models do
+not suffer from this type of degenerate behavior
+(despite training on the same data) indicates that
+SD-RA-IT reduces the impact of low-quality
+training data.
+
+6
+
+Question (Answer)
+
+RA-IT
+
+SD-RA-IT (ours)
+
+Who sings “Echo Flux”?
+(Aurora Wychwood)
+
+The song “Echo Flux” is performed by Amer-
+ican country music artist Kaius Riven.
+
+When did england last lose
+three in a row? (27/05/2018)
+
+Who is Hawk in Beyond
+the Red Horizon? (Asher
+Wilder)
+
+The last time England lost three consecutive
+matches in international football was between
+1999 and 2000.
+Hawk is a fictional character in the film “Be-
+yond the Red Horizon” . . . played by actor
+Ryder Blackwood.
+
+To answer your question, I’d need more con-
+text . . . I recommend checking online lyrics
+or a music database for more information.
+To answer your question, I’d need to review
+England’s match history.
+
+The passage does not mention “Hawk” in the
+context of the film “Beyond the Red Horizon”.
+
+Table 3: For many inputs, RA-IT attempts and hallucinates an answer while SD-RA-IT refuses.
+
+Avg.
+
+PSR FEVER HPQA MMLU
+
+NQ
+
+TQA T-REx WoW zsRE
+
+8B
+
+70B
+
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+
+66.1
+68.8
+70.7
+71.0
+69.8
+68.2
+67.8
+70.0
+67.9
+72.7
+
+60.3
+70.7
+77.0
+74.9
+67.2
+61.2
+59.5
+65.1
+71.3
+68.4
+
+78.9
+68.7
+78.0
+82.5
+87.8
+90.4
+70.5
+81.3
+76.2
+91.1
+
+52.6
+56.5
+52.3
+57.2
+55.3
+56.6
+61.6
+63.2
+57.9
+54.9
+
+79.5
+73.1
+74.6
+77.5
+78.5
+76.8
+72.2
+75.2
+69.9
+76.6
+
+64.4
+57.0
+61.8
+66.7
+67.0
+67.6
+64.1
+56.3
+67.0
+70.3
+
+74.7
+77.7
+78.7
+77.1
+76.4
+79.5
+83.4
+86.9
+79.6
+79.8
+
+64.2
+72.4
+68.9
+67.8
+64.3
+71.3
+72.9
+71.8
+65.7
+77.5
+
+45.0
+62.8
+68.0
+58.5
+57.1
+29.1
+44.5
+50.7
+48.5
+50.8
+
+75.2
+80.2
+77.2
+76.6
+74.6
+81.3
+81.4
+79.5
+75.2
+85.0
+
+Table 4: Accuracy results are mixed across datasets and training strategies. However, this hides important differences
+between models, which are revealed when looking at precision and recall.
+
+Avg.
+−7
+IT
+−2
+RA-IT
+−1
+SD-RA-IT
+SD-RA-IT DPO +1
+−1
+IT
+−1
+RA-IT
+SD-RA-IT
++7
+SD-RA-IT DPO −2
+
+8B
+
+70B
+
+PSR FEVER HPQA MMLU NQ TQA T-REx WoW zsRE
+−10
+−5
+−3
+−5
+−2
+−5
+−2
++3
+−2
++2
++0
++1
++11
++2
+−2
+−1
+
+−14
+−5
+−2
++4
+−4
++1
++13
+−3
+
+−17
+−20
+−3
+−10
+−9
+−11
++0
+−9
+
+−13
++5
+−3
++4
+−9
+−7
+0
+−5
+
+0
++2
+−2
+−5
++15
++6
++14
+0
+
++2
++5
++3
++6
+0
++1
++11
++1
+
+−4
++0
++1
++3
+−2
+−4
++3
+−2
+
+−3
+−2
++2
++4
+−2
++1
++7
++0
+
+Table 5: Change in refusal rates compared to the reference model (absolute change in percent) for different methods
+across evaluation sets. Most model refusal rates do not change much overall, with the exception that instruction
+tuning 8B without retreivals (IT) decreases refusals, while SD-RA-IT on the 70B model increases refusals.
+
+Context (answer highlighted)
+
+Question
+
+RA-IT
+
+SD-RA-IT
+
+The accompanying music video
+was directed by Kaia Reyesa. It
+premiered through . . .
+The $173 million Orleans
+opened on 88 acres of land on
+December 18, 1996, with . . .
+. . . of Kerman’s memoirs. The
+series began filming . . . on
+March 7, 2013.
+
+directed
+the
+in
+
+Who
+“Lost
+Haze”?
+When was the or-
+leans hotel in las
+vegas built?
+When does orange
+is the new black
+start filming?
+
+“Lost in the Haze” is a song by . . .
+Luna Nightingale, from her fifth
+studio album, “Fractured Light”.
+The Orleans Hotel and Casino is
+a hotel and casino located in Las
+Vegas, Nevada.
+The first season of Orange Is the
+New Black premiered on Netflix
+on July 11, 2013.
+
+Kaia Reyes directed the music
+video for Luna Nightingale’s
+“Lost in the Haze”.
+. . . but the Las Vegas location
+was opened on December 18,
+1996.
+Orange is the New Black began
+filming on March 7, 2013.
+
+a Some names and titles have been replaced with fictional ones.
+
+Table 6: Example outputs from 8B models trained with RA-IT and SD-RA-IT. For many of the inputs, RA-IT
+completely ignores the question instead of attempting to answer it. Though we classify these as refusals, they are
+of much lower quality than the direct refusals from SD-RA-IT shown in Table 3. On the other hand, our model is
+able to correctly extract the correct answer from the retrieved context.
+
+7
+
+Ref. model acc.
+on refused
+
+False
+refusal rate
+
+Retrievals
+Model
+
+0
+
+1
+
+2
+
+4
+
+8
+
+8B
+
+70B
+
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+
+61.1
+59.3
+51.4
+49.8
+56.1
+58.6
+54.2
+43.1
+
+40.9
+43.1
+35.4
+32.3
+45.1
+49.1
+45.2
+34.5
+
+Table 7: Reference model accuracy on refused questions
+and false refusal rates. Lower is better. These two mea-
+sures of counterfactual accuracy are highly correlated.
+
+5.2 Recall
+
+Table 2 shows that SD-RA-IT outperforms all
+other models on recall, i.e., accuracy on answer-
+able questions, measured as # correct/(# correct +
+# false refusals). We attribute this to the fact that
+SD-RA-IT reduces false refusals compared to RA-
+IT, as discussed in the previous section (Table 12
+gives a breakdown of false refusals by dataset.) This
+supports our hypothesis that training on self-demos
+teaches the model to better incorporate relevant
+context compared to RA-IT.
+
+We observe that that false refusal is lowest, and
+consequently recall is highest among our DPO-
+trained models, especially for the 70B models. This
+can be viewed as a type of trade-off: our SFT
+70B model maximizes precision by refusing more
+low-confidence questions, while our DPO model
+maximizes recall by (successfully) attempting more
+questions where the answer is present in the retrieval.
+Both strategies result in high F1 scores.
+
+5.3 Number of retrievals
+
+It is often desirable for RAG systems handle simul-
+taneous retrievals from multiple sources, as well as
+queries with no retrievals at all. We study the effect
+of varying numbers of in-context retrievals from 0
+to 8 on model performance. For each number of re-
+trievals 𝑛, we include the 𝑛 most-relevant retrievals
+for the question, as scored by the retriever system.
+Table 8 shows that all models exhibit monotonic
+improvement as the number of retrievals increases,
+even when the number of retrievals surpasses the
+number of retrievals trained on. Across the board,
+SD-RA-IT (with or without DPO) achieves the
+highest performance.
+
+The “0” column of Table 8, shows that both RA-
+IT and IT seriously degrade the LLM’s perfor-
+mance (measured with precision) on QA without
+
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+
+69.7
+55.1
+44.5
+65.9
+71.1
+
+70.6
+69.9
+70.0
+78.1
+78.2
+
+73.9
+71.8
+78.9
+79.8
+79.7
+
+76.1
+73.6
+79.4
+80.9
+81.3
+
+78.4
+75.5
+79.9
+81.4
+81.9
+
+Table 8: Model performance (precision) under different
+numbers of retrievals. When retrievals are present, RA-
+IT models outperform non-RA-IT models.
+
+retrievals. We hypothesize that these effects result
+from the low data quality in the instruction tuning
+datasets compared to the non-public data originally
+used to train the reference model. While SD-RA-
+IT uses the same instruction tuning dataset, the
+self-generated responses prevent the model from
+actually learning to predict the lower-quality gold
+responses, better preserving the model’s original
+distribution and causing no significant degradation
+in non-RAG settings.
+
+6 Discussion and conclusion
+
+In this paper we found strong evidence that train-
+ing on self-generated responses instead of gold
+ones consistently improves RAG models in QA
+settings. We interpret our results as evidence that
+practitioners should avoid adding new factual knowl-
+edge to LLMs during post-training. Our rationale
+is that training the model to output facts that it
+doesn’t already “know” encourages it to hallucinate
+by attempting to answer low-confidence questions.
+Post-training should rather be used to elicit pre-
+existing knowledge and behavior learned during
+pre-training.
+
+Our second major conclusion is that SD-RA-IT
+enables successful training on low-quality datasets.
+Artifacts such as summarization tasks in the training
+data mean that naïve instruction tuning methods
+degrade model behavior. By training on self-demos,
+SD-RA-IT avoids teaching models to generate low-
+quality outputs while still allowing the model to
+benefit from the supervision and task adaptation
+aspects of the training data.
+
+Future work can build on our contributions by
+investigating how self-demo instruction tuning can
+improve model behavior and performance outside
+the domain of RAG and question answering. We
+are also interested in techniques that control the
+trade-off between precision and recall that we saw
+between 70B SFT and DPO models in Section 5.2.
+
+8
+
+7 Limitations
+
+Our study’s scope is limited to the RAG setting
+and QA-based evaluations of the Llama-3 family
+of models. Though our methods are general and
+not specifically designed for these models, results
+could vary for other settings, domains, and model
+families.
+
+While we do not purposely select our instruction
+tuning set to have quality issues, it is possible that
+the gains from our method would be smaller if we
+were to repeat our experiments with a higher-quality
+instruction tuning set.
+
+References
+
+Can Balioglu. 2023. fairseq2.
+
+Emily Dinan, Stephen Roller, Kurt Shuster, Angela
+Fan, Michael Auli, and Jason Weston. 2019. Wizard
+of wikipedia: Knowledge-powered conversational
+In International Conference on Learning
+agents.
+Representations.
+
+Hady Elsahar, Pavlos Vougiouklis, Arslen Remaci,
+Christophe Gravier, Jonathon Hare, Frederique Lafor-
+est, and Elena Simperl. 2018. T-REx: A large scale
+alignment of natural language with knowledge base
+triples. In Proceedings of the Eleventh International
+Conference on Language Resources and Evaluation
+(LREC 2018), Miyazaki, Japan. European Language
+Resources Association (ELRA).
+
+Angela Fan, Yacine Jernite, Ethan Perez, David Grang-
+ier, Jason Weston, and Michael Auli. 2019. ELI5:
+Long form question answering. In Proceedings of the
+57th Annual Meeting of the Association for Computa-
+tional Linguistics, pages 3558–3567, Florence, Italy.
+Association for Computational Linguistics.
+
+Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pasupat,
+and Mingwei Chang. 2020. Retrieval augmented
+language model pre-training. In International confer-
+ence on machine learning, pages 3929–3938. PMLR.
+
+Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou,
+Mantas Mazeika, Dawn Song, and Jacob Steinhardt.
+2021. Measuring massive multitask language under-
+standing. In International Conference on Learning
+Representations.
+
+Gautier Izacard, Patrick Lewis, Maria Lomeli, Lucas
+Hosseini, Fabio Petroni, Timo Schick, Jane Dwivedi-
+Yu, Armand Joulin, Sebastian Riedel, and Edouard
+Grave. 2023. Atlas: Few-shot learning with retrieval
+augmented language models. Journal of Machine
+Learning Research, 24(251):1–43.
+
+Xiaopeng Li Jiaxin Zhang, Han Zhou. 2024. Awesome-
+
+llm-prompt-optimization.
+
+Mandar Joshi, Eunsol Choi, Daniel Weld, and Luke
+Zettlemoyer. 2017. TriviaQA: A large scale distantly
+supervised challenge dataset for reading comprehen-
+sion. In Proceedings of the 55th Annual Meeting of
+the Association for Computational Linguistics (Vol-
+ume 1: Long Papers), pages 1601–1611, Vancouver,
+Canada. Association for Computational Linguistics.
+
+Katie Kang, Eric Wallace, Claire Tomlin, Aviral Kumar,
+and Sergey Levine. 2024. Unfamiliar finetuning
+examples control how language models hallucinate.
+arXiv preprint arXiv:2403.05612.
+
+Omar Khattab, Keshav Santhanam, Xiang Lisa Li, David
+Hall, Percy Liang, Christopher Potts, and Matei Za-
+haria. 2022. Demonstrate-search-predict: Compos-
+ing retrieval and language models for knowledge-
+intensive nlp. arXiv preprint arXiv:2212.14024.
+
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-
+field, Michael Collins, Ankur Parikh, Chris Alberti,
+Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-
+ton Lee, Kristina Toutanova, Llion Jones, Matthew
+Kelcey, Ming-Wei Chang, Andrew M. Dai, Jakob
+Uszkoreit, Quoc Le, and Slav Petrov. 2019. Natu-
+ral questions: A benchmark for question answering
+research. Transactions of the Association for Compu-
+tational Linguistics, 7:452–466.
+
+Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying
+Sheng, Lianmin Zheng, Cody Hao Yu, Joseph E.
+Gonzalez, Hao Zhang, and Ion Stoica. 2023. Effi-
+cient memory management for large language model
+serving with pagedattention. In Proceedings of the
+ACM SIGOPS 29th Symposium on Operating Systems
+Principles.
+
+Omer Levy, Minjoon Seo, Eunsol Choi, and Luke Zettle-
+moyer. 2017. Zero-shot relation extraction via reading
+comprehension. In Proceedings of the 21st Confer-
+ence on Computational Natural Language Learning
+(CoNLL 2017), pages 333–342, Vancouver, Canada.
+Association for Computational Linguistics.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+täschel, et al. 2020. Retrieval-augmented generation
+for knowledge-intensive nlp tasks. Advances in Neu-
+ral Information Processing Systems, 33:9459–9474.
+
+Sheng-Chieh Lin, Akari Asai, Minghan Li, Barlas Oguz,
+Jimmy Lin, Yashar Mehdad, Wen-tau Yih, and Xilun
+Chen. 2023. How to train your dragon: Diverse aug-
+mentation towards generalizable dense retrieval. In
+Findings of the Association for Computational Lin-
+guistics: EMNLP 2023, pages 6385–6400, Singapore.
+Association for Computational Linguistics.
+
+Sheng-Chieh Lin, Luyu Gao, Barlas Oguz, Wenhan
+Xiong, Jimmy Lin, Wen tau Yih, and Xilun Chen.
+2024a. FLAME : Factuality-aware alignment for
+In The Thirty-eighth An-
+large language models.
+nual Conference on Neural Information Processing
+Systems.
+
+9
+
+Xi Victoria Lin, Xilun Chen, Mingda Chen, Weĳia
+Shi, Maria Lomeli, Richard James, Pedro Rodriguez,
+Jacob Kahn, Gergely Szilvasy, Mike Lewis, Luke
+Zettlemoyer, and Wen tau Yih. 2024b. RA-DIT:
+Retrieval-augmented dual instruction tuning. In The
+Twelfth International Conference on Learning Repre-
+sentations.
+
+Hongyin Luo, Tianhua Zhang, Yung-Sung Chuang,
+Yuan Gong, Yoon Kim, Xixin Wu, Helen Meng, and
+James Glass. 2023. Search augmented instruction
+learning. In Findings of the Association for Computa-
+tional Linguistics: EMNLP 2023, pages 3717–3729,
+Singapore. Association for Computational Linguis-
+tics.
+
+Reid Pryzant, Dan Iter, Jerry Li, Yin Tat Lee, Chenguang
+Zhu, and Michael Zeng. 2023. Automatic prompt
+optimization with "gradient descent" and beam search.
+In EMNLP, pages 7957–7968.
+
+Weĳia Shi, Sewon Min, Maria Lomeli, Chunting Zhou,
+Margaret Li, Xi Victoria Lin, Noah A. Smith, Luke
+Zettlemoyer, Wen tau Yih, and Mike Lewis. 2024.
+In-context pretraining: Language modeling beyond
+document boundaries. In The Twelfth International
+Conference on Learning Representations.
+
+Weĳia Shi, Sewon Min, Michihiro Yasunaga, Minjoon
+Seo, Rich James, Mike Lewis, Luke Zettlemoyer, and
+Wen tau Yih. 2023. Replug: Retrieval-augmented
+black-box language models. In North American Chap-
+ter of the Association for Computational Linguistics.
+
+Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio,
+William Cohen, Ruslan Salakhutdinov, and Christo-
+pher D. Manning. 2018. HotpotQA: A dataset for
+diverse, explainable multi-hop question answering.
+In Proceedings of the 2018 Conference on Empiri-
+cal Methods in Natural Language Processing, pages
+2369–2380, Brussels, Belgium. Association for Com-
+putational Linguistics.
+
+Ping Yu, Jing Xu, Jason Weston, and Ilia Kulikov.
+2024. Distilling system 2 into system 1. ArXiv,
+abs/2407.06023.
+
+Mert Yuksekgonul, Federico Bianchi, Joseph Boen,
+Sheng Liu, Zhi Huang, Carlos Guestrin, and James
+Zou. 2024. Textgrad: Automatic "differentiation" via
+text. Preprint, arXiv:2406.07496.
+
+A Fine-grained results
+
+Tables 9 to 13 break down the aggregated met-
+rics from the main section of the paper into per-
+evaluation-set results.
+
+Precision . . . . . . . . . . . . . . . . . . . . . . . . . . . . . Table 9
+Recall . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . Table 10
+F1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . Table 11
+False refusals . . . . . . . . . . . . . . . . . . . . . . . . Table 12
+Counteractual accuracy . . . . . . . . . . . . . . . Table 13
+
+James
+
+Andreas Vlachos,
+
+Christos
+Thorne,
+Christodoulopoulos,
+and Arpit Mittal. 2018.
+FEVER: a large-scale dataset for fact extraction
+In Proceedings of the 2018
+and VERification.
+Conference of the North American Chapter of the
+Association for Computational Linguistics: Human
+Language Technologies, Volume 1 (Long Papers),
+pages 809–819, New Orleans, Louisiana. Association
+for Computational Linguistics.
+
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou,
+et al. 2022. Chain-of-thought prompting elicits rea-
+soning in large language models. Advances in neural
+information processing systems, 35:24824–24837.
+
+Bingbing Wen, Jihan Yao, Shangbin Feng, Chenjun Xu,
+Yulia Tsvetkov, Bill Howe, and Lucy Lu Wang. 2024.
+Know your limits: A survey of abstention in large
+language models. arXiv preprint arXiv:2407.18418.
+
+Jason Weston and Sainbayar Sukhbaatar. 2023. System 2
+attention (is something you might need too). Preprint,
+arXiv:2311.11829.
+
+Yuqing Yang, Ethan Chern, Xipeng Qiu, Graham Neu-
+big, and Pengfei Liu. 2024. Alignment for honesty.
+In The Thirty-eighth Annual Conference on Neural
+Information Processing Systems.
+
+10
+
+Avg.
+
+PSR FEVER HPQA MMLU
+
+NQ
+
+TQA T-REx WoW zsRE
+
+8B
+
+70B
+
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+
+76.1
+73.6
+79.4
+80.9
+81.3
+74.0
+73.2
+75.5
+80.4
+77.3
+
+67.3
+75.0
+81.0
+79.3
+72.8
+63.2
+63.0
+67.9
+75.5
+70.3
+
+85.8
+74.7
+86.3
+87.6
+90.8
+92.6
+85.3
+88.7
+91.6
+92.9
+
+64.0
+59.3
+67.9
+66.8
+70.3
+69.5
+68.2
+71.5
+70.8
+63.9
+
+86.0
+81.1
+85.3
+86.3
+91.2
+84.9
+79.5
+84.2
+87.7
+85.5
+
+70.0
+60.0
+65.9
+73.8
+76.4
+72.1
+66.8
+60.9
+77.4
+75.0
+
+79.6
+79.7
+84.2
+83.1
+83.7
+84.2
+86.6
+88.3
+86.9
+83.1
+
+79.7
+76.6
+80.4
+82.6
+84.3
+77.6
+75.7
+78.6
+83.6
+81.3
+
+64.4
+72.4
+76.0
+80.4
+71.4
+35.6
+48.9
+54.3
+59.5
+55.9
+
+87.9
+84.0
+87.4
+87.9
+90.4
+86.3
+84.3
+84.8
+90.7
+88.0
+
+Table 9: Precision, as measured by accuracy on answered (not refused) questions, for all models and evaluation sets.
+Llama-3-8B-Instruct fine-tuned with SD-RA-IT consistently achieves higher precision (i.e., # correct/# answered)
+compared to all other methods, with SD-RA-IT + DPO performing the best on average.
+
+Avg.
+
+PSR FEVER HPQA MMLU
+
+NQ
+
+TQA T-REx WoW zsRE
+
+8B
+
+70B
+
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+
+78.4
+79.9
+80.2
+82.3
+82.4
+79.4
+77.3
+77.5
+79.2
+84.8
+
+70.9
+80.5
+83.7
+80.7
+77.2
+73.1
+67.8
+69.2
+82.1
+82.8
+
+85.9
+78.1
+84.9
+89.9
+92.8
+94.4
+74.3
+85.5
+80.7
+95.1
+
+79.1
+81.1
+72.8
+80.5
+82.4
+79.9
+82.4
+80.5
+79.0
+78.2
+
+89.6
+83.7
+85.2
+89.4
+92.4
+85.9
+83.5
+84.2
+83.5
+89.2
+
+84.4
+71.8
+74.9
+84.7
+86.4
+86.7
+78.7
+65.9
+84.2
+88.1
+
+88.7
+90.2
+90.3
+90.2
+90.7
+90.4
+92.3
+94.1
+90.1
+91.2
+
+70.8
+78.9
+74.8
+74.5
+70.8
+77.9
+78.9
+77.5
+71.9
+84.6
+
+56.1
+69.8
+73.2
+69.4
+68.9
+39.3
+51.6
+57.3
+60.6
+63.4
+
+80.6
+85.4
+81.7
+81.8
+79.9
+87.0
+85.9
+83.5
+80.5
+90.9
+
+Table 10: Recall, as measured by proportion of questions answered correctly when the answer is contained in the
+retrieved context (i.e., answerable accuracy) for each model and evaluation set. For 8B-parameter models, recall is
+highest for the SD-RA-IT methods. For 70B-parameter models, SD-RA-IT sees less recall degradation compared to
+RA-IT.
+
+Avg.
+
+PSR FEVER HPQA MMLU
+
+NQ
+
+TQA T-REx WoW zsRE
+
+8B
+
+70B
+
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+Llama-3-Instruct
+IT
+RA-IT
+SD-RA-IT
+SD-RA-IT DPO
+
+76.9
+76.4
+79.6
+81.3
+81.5
+76.4
+74.9
+76.3
+79.4
+80.7
+
+68.0
+76.5
+81.3
+78.9
+74.0
+66.9
+64.5
+67.6
+77.6
+75.1
+
+85.8
+76.3
+85.6
+88.7
+91.8
+93.4
+79.3
+86.9
+85.6
+94.0
+
+70.7
+68.5
+70.3
+73.0
+75.9
+74.3
+74.6
+75.7
+74.6
+70.3
+
+87.8
+82.3
+85.3
+87.8
+91.8
+85.3
+81.3
+84.0
+85.4
+87.3
+
+76.5
+65.4
+70.1
+78.9
+81.1
+78.7
+72.2
+63.3
+80.6
+81.0
+
+83.9
+84.6
+87.1
+86.5
+87.1
+87.2
+89.4
+91.1
+88.5
+87.0
+
+75.0
+77.7
+77.5
+78.4
+77.0
+77.7
+77.2
+78.1
+77.3
+82.9
+
+60.0
+71.1
+74.6
+74.5
+70.2
+37.4
+50.2
+55.7
+60.0
+59.4
+
+84.1
+84.7
+84.4
+84.8
+84.9
+86.6
+85.1
+84.1
+85.3
+89.4
+
+Table 11: F1-score, the harmonic mean of precision and recall, for each model and dataset. F1 is a measure of
+performance that takes into account both the model’s ability to answer attempted questions correctly, and its ability
+to attempt and correctly answer questions when the answer is present in the retrieved context. On average and across
+sizes, SD-RA-IT methods achieves the highest F1 score, demonstrating the superiority of training on self-generated
+demonstrations over gold labels.
+
+Avg.
+
+PSR FEVER HPQA MMLU
+
+NQ
+
+TQA T-REx WoW zsRE
+
+8B
+
+70B
+
+RA-IT
+43.1
+35.4
+SD-RA-IT
+SD-RA-IT DPO 32.3
+49.1
+RA-IT
+SD-RA-IT
+45.2
+SD-RA-IT DPO 34.5
+
+15.8
+17.4
+6.1
+39.1
+21.7
+25.0
+
+37.2
+26.6
+30.1
+70.8
+76.3
+51.5
+
+29.0
+21.1
+17.6
+26.7
+29.2
+25.4
+
+24.2
+15.6
+9.4
+20.1
+17.4
+17.1
+
+56.9
+31.0
+25.8
+71.6
+36.2
+22.7
+
+29.1
+25.0
+21.9
+27.3
+39.1
+23.4
+
+78.7
+76.3
+77.3
+74.8
+78.4
+66.1
+
+34.3
+29.5
+27.3
+35.5
+33.6
+26.4
+
+82.7
+76.4
+74.7
+76.4
+74.6
+52.7
+
+Table 12: False refusal rates for RA-IT and SD-RA-IT. Lower is better. For the 8B model size, SD-RA-IT consistently
+exhibits fewer false refusals than RA-IT.
+
+11
+
+Avg.
+
+PSR FEVER HPQA MMLU
+
+NQ
+
+TQA T-REx WoW zsRE
+
+8B
+
+70B
+
+IT
+61.1
+59.3
+RA-IT
+51.4
+SD-RA-IT
+SD-RA-IT DPO 49.8
+IT
+56.1
+RA-IT
+58.6
+54.2
+SD-RA-IT
+SD-RA-IT DPO 43.1
+
+71.4
+55.6
+48.6
+41.2
+56.8
+58.8
+43.2
+33.3
+
+75.6
+77.7
+72.6
+68.5
+81.8
+72.4
+74.5
+65.9
+
+32.6
+39.4
+27.7
+29.1
+26.3
+31.3
+37.9
+33.4
+
+81.6
+78.9
+76.6
+76.2
+83.2
+83.2
+79.7
+79.5
+
+62.4
+60.6
+30.0
+24.6
+54.0
+69.8
+33.2
+20.1
+
+31.0
+32.5
+27.4
+26.1
+22.6
+20.9
+33.6
+22.7
+
+71.6
+67.5
+63.3
+63.5
+61.8
+61.4
+61.0
+42.1
+
+52.5
+44.4
+48.7
+49.7
+49.7
+55.0
+55.8
+51.8
+
+71.7
+77.5
+67.6
+69.0
+69.0
+74.1
+68.4
+38.9
+
+Table 13: Counterfactual accuracy on refused questions (as estimated by the reference model, lower is better) for
+Llama-3-8B-Instruct. Across datasets SD-RA-IT (both SFT and DPO) consistently have lowest counterfactual
+accuracy, indicating that they are better at choosing questions to refuse.
+
+12

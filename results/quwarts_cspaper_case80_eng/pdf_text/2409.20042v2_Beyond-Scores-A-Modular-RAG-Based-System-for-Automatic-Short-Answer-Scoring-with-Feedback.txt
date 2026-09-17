@@ -1,0 +1,1660 @@
+4
+2
+0
+2
+
+t
+c
+O
+0
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+2
+4
+0
+0
+2
+.
+9
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+BEYOND SCORES: A MODULAR RAG-BASED SYSTEM FOR
+AUTOMATIC SHORT ANSWER SCORING WITH FEEDBACK
+
+A PREPRINT
+
+Menna Fateen
+Graduate School of Information Science and Electrical Engineering
+Kyushu University
+Fukuoka, 8190395, Japan
+menna.fateen@m.ait.kyushu-u.ac.jp
+
+Bo Wang
+Graduate School of Information Science and Electrical Engineering
+Kyushu University
+Fukuoka, 8190395, Japan
+wangbo.rw@gmail.com
+
+Tsunenori Mine
+Faculty of Information Science and Electrical Engineering
+Kyushu University
+Fukuoka, 8190395, Japan
+mine@ait.kyushu-u.ac.jp
+
+October 11, 2024
+
+ABSTRACT
+
+Automatic short answer scoring (ASAS) helps reduce the grading burden on educators but often
+lacks detailed, explainable feedback. Existing methods in ASAS with feedback (ASAS-F) rely
+on fine-tuning language models with limited datasets, which is resource-intensive and struggles to
+generalize across contexts. Recent approaches using large language models (LLMs) have focused on
+scoring without extensive fine-tuning. However, they often rely heavily on prompt engineering and
+either fail to generate elaborated feedback or do not adequately evaluate it. In this paper, we propose
+a modular retrieval augmented generation based ASAS-F system that scores answers and generates
+feedback in strict zero-shot and few-shot learning scenarios. We design our system to be adaptable to
+various educational tasks without extensive prompt engineering using an automatic prompt generation
+framework. Results show an improvement in scoring accuracy by 9% on unseen questions compared
+to fine-tuning, offering a scalable and cost-effective solution.
+
+Keywords automatic short answer scoring
+
+large language models
+
+·
+
+·
+
+retrieval-augmented generation
+
+1
+
+Introduction
+
+Feedback plays a critical role in student learning. Extensive research demonstrates that detailed and timely feedback
+significantly improves student performance by guiding learning and correcting misunderstandings Shute [2008], Hattie
+and Timperley [2007]. However, providing such elaborated feedback, especially for short answer questions, is a
+time-consuming and labor-intensive task for educators, particularly when managing large numbers of students. To
+address this, automatic short answer scoring (ASAS) systems have been developed to quickly assess student responses
+Riordan et al. [2017], Ramachandran et al. [2015]. Despite their utility, ASAS systems primarily focus on scoring
+
+ 
+ 
+ 
+ 
+ 
+ 
+arXiv Template
+
+A PREPRINT
+
+correctness, offering holistic scores without the detailed feedback students need to understand their mistakes Burrows
+et al. [2015].
+
+Current ASAS systems are typically trained on classification or regression tasks, where the objective is to assign a score
+to a student’s answer. While effective in evaluating answers, these systems lack the explainability needed for two key
+purposes: (1) helping students understand the reasoning behind their errors and the feedback given and (2) fostering
+trust in the scoring system Winstone et al. [2017], Liu et al. [2018], Khosravi et al. [2022]. Without this granularity,
+students miss opportunities to improve, and educators may be reluctant to adopt automated grading systems.
+
+In response to these limitations, recent research has focused on developing ASAS systems with feedback (ASAS-F) that
+not only score student answers but also generate detailed feedback Li et al. [2023], Schneider et al. [2023], Filighera
+et al. [2022a]. These systems aim to provide students with actionable feedback that explains the reasoning behind
+their scores, helping them identify and correct their mistakes. Existing ASAS-F systems rely on resource-intensive
+fine-tuning with limited datasets, specific tasks Dzikovska et al. [2014], Keuning et al. [2018] or complex prompt
+engineering, all of which may not generalize well across contexts. Moreover, evaluating the quality of the textual
+feedback is usually only done using traditional statistical metrics, which do not capture the main aspects of quality,
+such as accuracy and clarity.
+
+To overcome these challenges, we introduce a novel ASAS-F system that leverages large language models (LLMs)
+within a Retrieval-Augmented Generation (RAG) Lewis et al. [2020] framework. Inspired by similarity-based scoring
+Bexte et al. [2023], our method retrieves the most similar answers from a short answer scoring feedback dataset using
+the ColBERT retrieval Khattab and Zaharia [2020] model. These retrieved answers serve as few-shot examples, allowing
+LLMs to generate both accurate scores and detailed feedback.
+
+Our study explores the following research questions:
+
+• RQ1: How does the performance of our modular ASAS-F system compare to state-of-the-art models in
+
+automatic short answer scoring?
+
+• RQ2: When labeled training data is available, how can we optimize prompts and few-shot examples to improve
+
+our ASAS-F performance in an efficient way?
+
+• RQ3: How accurate and clear is the feedback generated by our ASAS-F system?
+
+Our experiments on the research questions demonstrate that the proposed approach significantly minimizes the need for
+extensive fine-tuning, resulting in a computationally efficient solution that maintains high accuracy while delivering
+clear, accurate feedback. The system is designed in a modular fashion, allowing it to adapt easily to various educational
+tasks without the need for extensive prompt engineering. By reducing reliance on large curated datasets, our method
+generates meaningful feedback with minimal adaptation, offering a scalable and cost-effective solution for educational
+applications. We share the code, model outputs and their evaluations from our experiments on Github to promote
+transparency and reproducibility 1.
+
+To summarize, the key contributions of our work are:
+
+• We propose a novel ASAS-F system that scores short answers and generates detailed feedback using LLMs
+
+and RAG.
+
+• We propose a modular approach that minimizes the need for prompt engineering, making the system adaptable
+
+to diverse tasks
+
+• We propose a RAG-based approach that eliminates the need for computationally expensive fine-tuning and
+
+large datasets, making the solution scalable and efficient.
+
+2 Related Work
+
+2.1 Automatic Short Answer Scoring
+
+Automatic scoring has been studied extensively in the field of natural language processing (NLP) and educational
+technology Burrows et al. [2015], Xi [2010], Balfour [2013], Ke and Ng [2019]. ASAS systems aim to grade students’
+short answers automatically, offering immediate feedback, reducing teachers’ workload, and streamlining the grading
+process.
+
+1Link available upon acceptance
+
+2
+
+arXiv Template
+
+A PREPRINT
+
+Traditional ASAS systems are often rule-based and rely on handcrafted features and heuristics to score short answers.
+While these systems are effective and have shown promising results on benchmark datasets, they require significant
+manual effort to develop Ramachandran et al. [2015], Kumar et al. [2019]. With the rise of deep learning, neural
+network-based and Transformer-based ASAS systems have been introduced, which automatically learn features from
+data and outperform traditional rule-based systems Riordan et al. [2017], Sung et al. [2019].
+
+Among the newer methods, instance-based approaches have gained traction. These approaches involve using pretrained
+models to map student responses directly to scores by pooling token representations across model layers Steimel and
+Riordan [2020]. These methods capture the context and semantics of input text, enabling them to outperform traditional
+rule-based systems. However, they often require large amounts of labeled data to achieve high performance and struggle
+in few-shot settings where data is limited. Comparisons between instance-based and similarity-based approaches have
+shown the latter to be more effective in zero-shot settings Bexte et al. [2023], Wang et al. [2023], Fateen and Mine
+[2023]. Additionally, recent advancements in dense information retrieval have proven effective in automatic essay
+scoring tasks Albatarni et al. [2024]. Building on these insights, our work introduces a similarity-based approach using
+retrieval-augmented generation to enhance the performance of ASAS-F systems.
+
+2.2 ASAS Using Generative Models
+
+Despite the success of neural network-based ASAS systems, many of the proposed models are computationally
+expensive and require large amounts of data to achieve good performance. In many real-world scenarios, labeled data
+for training ASAS systems is scarce, making it challenging to train these models.
+
+Few studies have explored the use of large language models (LLMs) for ASAS tasks. One study investigated the usage
+of LLMs for ASAS, focusing on zero-shot and few-shot settings across three diverse datasets Chamieh et al. [2024].
+The results showed that LLMs were able to achieve strong performance on tasks involving general knowledge questions
+but struggled with questions that required domain-specific knowledge or complicated reasoning.
+
+Another study explored the use of proprietary LLMs, namely GPT3.5 and GPT4, for ASAS tasks Chang and Ginter
+[2024], Achiam et al. [2023]. The findings indicated that while these models showed promise, their performance was
+negatively correlated with the length of student answers.
+
+In a recent study, researchers examined the use of ChatGPT for holistic essay scoring and compared its performance to
+human raters Tate et al. [2024]. The findings showed that ChatGPT’s scoring was not statistically significantly different
+from human ratings and demonstrated substantial agreement. However, this study highlighted the need for further
+research particularly regarding improving scoring precision.
+
+Additionally, research assessed the possibility of using ChatGPT (GPT-3.5) for automated grading Schneider et al.
+[2023]. The results showed a low correlation between the scores given by ChatGPT and human graders, with ChatGPT
+tending to give middle scores more frequently despite strong variation in student answers. Moreover, the study found
+that minor changes in answers could lead to significant differences in the scores given by ChatGPT.
+
+2.3 ASAS with Feedback
+
+While scores provide a general overview of the quality of the answer, they lack the granularity and explainability that
+students need to improve their answers. Elaborated feedback would also increase the trustworthiness of the scoring
+system.
+
+The Short Answer Feedback (SAF) dataset Filighera et al. [2022a] includes short answer questions in communication
+network topics, each with a reference answer, given score, label, and content-focused elaborated feedback. The SAF
+dataset provides a benchmark for evaluating ASAS systems that generate feedback, enabling the development of more
+informative and actionable systems. It also established a baseline for ASAS systems using the T5 model fine-tuned on
+the SAF dataset, demonstrating the feasibility of generating feedback for short answers.
+
+A framework was proposed Li et al. [2023] that distils the rationale generation capability of ChatGPT by designing
+several prompt templates to generate feedback from ChatGPT, then fine-tuning a smaller language model on the refined
+generated outputs. The study showed that the fine-tuned model outperformed the original ChatGPT model on QWK
+scores.
+
+Further research explored four different approaches for generating counterfactual feedback for short answers Filighera
+et al. [2022b]. While some of the modified feedback could be graded as correct by automatic scoring systems, a domain
+expert deemed them incorrect.
+
+3
+
+arXiv Template
+
+A PREPRINT
+
+Finally, one study explored the usage of LLMs for automated essay scoring (AES) with rationale Yancey et al. [2023],
+though the primary focus in ASAS is on content quality rather than writing style and structure. To the best of our
+knowledge, there is limited research evaluating LLMs for ASAS-F tasks, particularly in zero-shot and few-shot settings.
+Our work aims to bridge this gap by exploring the potential of LLMs for scoring short answers and generating feedback.
+
+3 Methodology
+
+In this section, we present our approach for building the ASAS-F system using LLMs and outline the methodologies
+proposed for different scenarios, including zero-shot ASAS-F, few-shot ASAS-F with automatic optimization and
+few-shot ASAS-F using RAG.
+
+3.1 Problem Formulation
+
+Traditional ASAS systems typically use classification or regression models to score student answers, focusing solely on
+assigning a numerical score. While effective for grading, these systems lack the ability to provide detailed feedback or
+explain the rationale behind a score, limiting their usefulness for student learning. In addition to such numeric scores
+and labels, ASAS-F systems additionally generate detailed elaborated feedback Shute [2008] that explains the reasoning
+behind the score.
+
+Formally, the ASAS-F system can be expressed as:
+
+where given a question q, a reference answer a, and a student answer s, the system assigns:
+
+ASAS-F(q, a, s)
+
+(y, l, f )
+
+→
+
+(1)
+
+• A score y
+
+[0, 1] (indicating correctness),
+
+∈
+
+• A label l
+
+correct, incorrect, partially correct
+}
+
+,
+
+∈ {
+
+• Feedback f that explains the reasoning behind the score.
+
+In a zero-shot ASAS-F setting, the system utilizes the knowledge embedded in pre-trained LLMs to provide scoring and
+is available, we explore two few-shot ASAS-F
+feedback without requiring labeled training data. When labeled data
+approaches: one using automatic prompt optimization, and another using RAG for enhanced performance.
+
+D
+
+3.2 ASAS-F-Z: Zero-Shot ASAS-F
+
+The modular zero-shot ASAS-F approach leverages the extensive domain knowledge embedded in pre-trained LLMs to
+score student answers and provide feedback without requiring any labeled training data. This approach takes advantage
+of the generalization capabilities of LLMs, which have been trained on vast amounts of text data and possess a broad
+understanding of language and context.
+
+One of the significant challenges in implementing a zero-shot ASAS-F system is effective prompt engineering. Crafting
+prompts that elicit the desired responses from LLMs can be complex and often involves intricate string manipulation.
+This process is not only time-consuming but also prone to errors.
+
+To address these challenges, we utilize DSPy Khattab et al. [2023], a framework designed to automate prompt generation
+and refinement to realize our ASAS-F-Z and ASAS-F-RAG systems as shown in Figure 1.
+
+We first define our base inputs and outputs with their corresponding types and build a signature. A signature replaces
+a hand-written prompt by specifying what a function should do rather than how to do it. In its most basic form, a
+signature consists of input and output fields, each with a type. To add more control, we add a basic description of what
+the signature does, i.e., score a student answer and generate feedback. We also add basic scoring criteria to the signature.
+Instead of manually crafting prompts with different prompt engineering techniques, we use predefined modules in
+DSPy such as the ‘Predictor’ module or the ‘Chain-Of-Thought’ module that can be easily replaced or modified to
+generate prompts. These modules allows us to automatically generate prompts by processing the input and output fields,
+generating instructions, and creating a template for the specified signature.
+
+In the few-shot setting, which is discussed in Section 3.4, an additional ‘Retrieve’ module is added to retrieve examples
+from the training data. A code snippet that shows the basic implementation using DSPy to generate prompts for the
+zero-shot ASAS-F system is given in Appendix A.
+
+4
+
+arXiv Template
+
+A PREPRINT
+
+Figure 1: Overview of the implementation of the modular ASAS-F-Z and ASAS-F-RAG systems using DSPy
+
+3.3 ASAS-F-Opt: Automatic Few-Shot Optimization with DSPy
+
+In scenarios where labeled training data is available, optimizing both prompts and few-shot examples can significantly
+enhance the performance of ASAS systems. This section introduces ASAS-F-Opt, which leverages DSPy for the
+automatic optimization of prompts and examples within the ASAS-F framework. Unlike ASAS-F-Z, where DSPy was
+primarily used to establish a modular system and generate prompts, ASAS-F-Opt extends this functionality. It employs
+a systematic optimization approach to evaluate and refine combinations of prompts and examples based on defined
+performance metrics.
+
+We start by defining a performance metric for model evaluation. Then, we construct a Bayesian surrogate model that
+samples and assesses various combinations of prompts and examples. Our approach utilizes the MIPROv2 prompt
+optimization algorithm Opsahl-Ong et al. [2024], ensuring that the most effective prompts and examples are identified
+to enhance scoring and feedback generation.
+
+For simplicity, we use the accuracy of the generated labels as our optimization metric. We use the Llama3:70b Touvron
+et al. [2023] as the prompt generation model, and the smaller Mistral:7b Jiang et al. [2024] functions as the task executor.
+The prompt proposal model generates initial prompts based on the source code and analyzes the dataset to produce
+example traces. The optimizer then systematically selects and refines these examples based on their performance
+according to our defined metric. A code snippet of the implementation can be found in Appendix A.
+
+3.4 ASAS-F-RAG: Few-Shot ASAS-F Using RAG
+
+In this section, we first introduce a basic similarity-based majority-vote classifier using ColBERT for ASAS-F. We
+then extend this approach to incorporate RAG, which enhances the generative process by providing the LLM with
+contextually rich examples.
+
+3.4.1 Similarity-Based Majority-Vote with ColBERT
+
+Many existing ASAS systems use similarity-based methods to assign scores to student answers Bexte et al. [2023].
+These systems typically compare a student’s response to reference answers or high-scoring examples, relying on
+similarity metrics to determine the score.
+
+5
+
+arXiv Template
+
+A PREPRINT
+
+Figure 2: Overview of the ASAS-F system using LLMs and ColBERT-driven RAG.
+
+In our few-shot ASAS-F system, we build upon this approach by not limiting the comparison to a single reference
+answer. Instead, we retrieve the most similar examples from the training data to enhance the prompt. We hypothesize
+that this method will guide the LLM to produce feedback that more closely aligns with human evaluations, resulting in
+more accurate feedback.
+
+To implement this, we utilize the ColBERT model Khattab and Zaharia [2020], which efficiently retrieves contextually
+relevant examples from the training data. Unlike traditional models that encode the entire input into a single vector,
+ColBERT encodes the input into a matrix of contextual token-level embeddings. This approach allows us to capture
+fine-grained similarities between the student’s answer and the training examples. Each word in the training example is
+represented by a BERT-based embedding, and these embeddings can be pre-stored for efficiency.
+
+The relevance score between a student’s answer s and an example d is calculated using a sum of maximum similarity
+(MaxSim) operators between the tokens in s and d. For each token in s, ColBERT identifies the most contextually
+similar token in d and sums these similarities to compute the overall relevance score. An example is considered more
+relevant if it has tokens that are highly contextually similar to those in the student’s answer.
+
+Formally, a student’s answer s is tokenized, prepended with [CLS] and [Q] (query) tokens, and passed through BERT to
+produce vectors [s1, . . . , sN ]. The example d undergoes a similar process with [CLS] and [D] (document) tokens. A
+linear layer then adjusts the output size, and the student answer vectors and example vectors are normalized to unit
+length, yielding Es and Ed, the final vector sequences. The ColBERT score is computed as:
+
+score(s, d) =
+
+N
+(cid:88)
+
+i=1
+
+m
+max
+j=1
+
+(cid:0)Esi ·
+
+(cid:1)
+
+Edj
+
+(2)
+
+As a preliminary experiment, we assess the effectiveness of using the ColBERT retriever by employing a similarity-based
+majority-vote approach to classify student answers. This approach involves two key steps: retrieval and majority-vote
+classification. Initially, ColBERT encodes the student’s answer and the training examples into embeddings and retrieves
+the top k most similar examples based on these embeddings. Then, for each student answer, the classifier aggregates the
+scores of the k retrieved examples and assigns the most frequent score as the final classification and the mean score as
+the final numeric score.
+
+6
+
+arXiv Template
+
+A PREPRINT
+
+3.4.2 ASAS-F-RAG
+
+Since we focus on generating feedback, we use LLMs in combination with ColBERT to retrieve the most similar
+examples from the training data and ground the feedback in real examples. We define this approach as ASAS-F-RAG.
+For each student answer, we retrieve the top k = 3 or k = 5 most similar examples from the training data. Each
+example consists of the question, the reference answer and the student answer. These examples are then fed into the
+LLM to generate feedback. Figure 2 shows an overview of the ASAS-F-RAG system. The ColBERT retriever is used to
+retrieve the most similar examples, which are then passed to the LLM to generate feedback. The feedback is then used
+to assign a score to the student answer. A code snippet of the implementation of the system can be found in Appendix A
+
+4 Experimental Setup
+
+4.1 Dataset
+
+We evaluate our system on the Short Answer Feedback (SAF) Dataset Filighera et al. [2022a]. The SAF dataset consists
+of short answer questions in communication network topics, each with a reference answer, given score, label and
+conent-focused elaborated feedback. There are no other datasets, based on our review, that provide such feedback
+for short answers. The dataset is split into training (70%), unseen answers (UA) (12%) and unseen questions (UA)
+(18%). The test split of UA includes new answers to the existing training questions, while the UQ split introduces novel
+questions. However, it is important to note that in our approach, both splits are considered novel or unseen questions, as
+we do not fine-tune or train the model on the training split. Even in the few-shot setting, we utilize less than 0.5% of the
+training data as the provided examples.
+
+4.2 Evaluation Metrics
+
+4.2.1 Scoring Metrics
+
+To evaluate the performance of our ASAS-F system in terms of scoring, we used two key metrics for the classification of
+the generated label: accuracy and macro-averaged F1 score. These metrics assess how well the system assigns correct
+labels (e.g., correct, incorrect, partially correct) to student answers. For the generated numeric score, we employed
+Root Mean Squared Error (RMSE) to measure the difference between the predicted scores and the actual scores. These
+metrics provide a solid foundation for assessing the system’s ability to deliver accurate and reliable scores.
+
+4.2.2 Feedback Evaluation
+
+Evaluating the quality of generated feedback is more complex due to its subjective nature and the need to verify accuracy.
+We approached this evaluation using both automated metrics and human assessments.
+
+Figure 3: Example of feedback generated by the ASAS-F system compared to the reference feedback. Traditional
+metrics may not capture the nuances of feedback quality.
+
+7
+
+arXiv Template
+
+A PREPRINT
+
+Table 1: Performance of the similarity-based majority-vote classifier using ColBERT.
+
+UA Split
+F1
+0.234
+0.674
+0.725
+
+RMSE
+0.470
+0.266
+0.259
+
+UQ Split
+F1
+0.214
+0.646
+0.260
+
+RMSE
+0.512
+0.277
+0.653
+
+Acc
+0.471
+0.602
+0.607
+
+Acc
+0.54
+0.694
+0.739
+
+Majority
+k = 3
+k = 5
+
+For automatic evaluation, we utilized traditional metrics such as BLEU, ROUGE, and the more recent BERTScore.
+While these metrics provide a baseline for comparison, they fail to fully capture the nuances of feedback quality. For
+example, in Figure 3, we observe a case where the generated feedback may be semantically accurate but have low
+BLEU or ROUGE scores due to a lack of overlapping n-grams. To address these limitations, we focused on two critical
+human-evaluated aspects of feedback to ensure a comprehensive and reliable analysis.
+
+• Accuracy: How well the facts in the feedback align with both the reference answer and the student’s answer.
+
+• Clarity: How specific, clear, and coherent the feedback is.
+
+We conducted a human evaluation using five experience teachers from the Information Technology and Networks Field
+employed through the Prolific platform. The annotation was conducted on a total of 108 randomly chosen samples,
+which included six unseen answer samples for two questions and three unseen question samples for one question
+per model, across 12 different models. This evaluation allowed us to ensure that the feedback provided was not only
+factually correct but also clear and actionable for students. The raters spent an average of seven hours on this task and
+were compensated at the recommended rate of £9 per hour.
+
+4.3 Model Selection
+
+We employ various large language models, namely Mistral:7b, Mixtral:8x22b Jiang et al. [2024], Llama3:8b, and
+Llama3:70b Touvron et al. [2023] selected for their advanced performance and availability. We benchmark our ASAS-F
+system against several baselines: a majority class classifier, the T5 model Raffel et al. [2020] fine-tuned on the
+SAF dataset Filighera et al. [2022a], and the Llama2:7b model fine-tuned on the SAF dataset Katuka et al. [2024].
+The Llama2:7b finetune baseline is only available for the regression task, and has not been evaluated on the label
+classification task.
+
+5 Results
+
+5.1 Scoring Performance Analysis
+
+5.1.1 Similarity-Based Majority-Vote with ColBERT
+
+We evaluate the performance of the retrieval-based majority-vote classification approach on accuracy, F1 and RMSE.
+This serves as a preliminary experiment. Table 1 shows the performance of the ColBERT-based majority-vote classifier
+on the SAF dataset. The results indicate that the ColBERT-based majority-vote classifier outperforms the majority class
+baseline across all metrics showing the efficiency of using our refined approach.
+
+5.1.2 ASAS-F-Z
+
+Table 2: ASAS-F-Z results on the SAF dataset. Bold values indicate the best performance overall for each metric.
+
+Model
+Majority
+T5:finetune
+Llama2:finetune
+Mistral:7b
+Llama3:8b
+Mixtral:8x22b
+Llama3:70b
+
+Acc
+0.540
+0.750
+-
+0.643
+0.448
+0.726
+0.691
+
+UA split
+F1
+0.234
+0.759
+-
+0.602
+0.476
+0.706
+0.678
+
+RMSE
+0.470
+0.269
+0.257
+0.283
+0.335
+0.263
+0.253
+
+UQ split
+F1
+0.214
+0.697
+-
+0.751
+0.489
+0.708
+0.742
+
+RMSE
+0.512
+0.248
+-
+0.212
+0.290
+0.213
+0.199
+
+Acc
+0.471
+0.674
+-
+0.755
+0.495
+0.695
+0.716
+
+8
+
+arXiv Template
+
+A PREPRINT
+
+Table 2 and Figures 4a and 4b show the results of the zero-shot ASAS-F system on both test splits of the SAF dataset
+compared to the baselines. In the UA split, the fine-tuned baselines outperform the zero-shot system in terms of accuracy
+and F1 score. However, in the UQ split, excluding the Llama3:8b model, the ASAS-F-Z system is able to outperform
+all baselines in all metrics. The highest performing model is the smallest Mistral:7b model, which achieves an accuracy
+of 0.755 and an F1 score of 0.751 in the UQ split. Llama3:70b achieves the lowest RMSE. This suggests that while
+finetuning can perform similarly to human raters in answers that it has seen during training, it tends to underperform
+when evaluating on new questions. The zero-shot ASAS-F system, on the other hand, is able to generalize better to new
+questions, indicating the potential of this approach for educational applications.
+
+(a) Unseen Answers
+
+(b) Unseen Questions
+
+Figure 4: Performance of the ASAS-F-Z system on the SAF dataset. Higher is better for accuracy and F1 score, lower
+is better for RMSE.
+
+5.1.3 ASAS-F-Opt
+
+In ASAS-F-Opt, we aim to enhance the model’s performance by refining the selection and utilization of examples.
+While the ASAS-F-RAG system dynamically retrieves relevant examples to inform responses, ASAS-F-Opt focuses
+on optimizing how these examples are integrated into the model’s processing. This approach seeks to ensure that the
+selected few-shot examples are maximally effective in improving accuracy. We use the bigger Llama3:70b model to
+refine the prompts and few-shot examples, and utilize the Mistral:7b for generating the outputs during testing since it
+was able to outperform in ASAS-F-Z.
+
+The results for the UA split were below expectations, with accuracy of 0.627, F1 Score of 0.41, and RMSE of 0.309.
+Similarly, in the UQ split, the metrics were accuracy of 0.643, F1 Score of 0.668, and RMSE of 0.317. These results
+were notably inferior to the performance of ASAS-F-Z using Mistral:7b. This outcome suggests that the automatic
+few-shot optimization method may not be effective in enhancing the model’s performance in this particular scenario.
+The use of pre-defined, specified few-shot examples may not always be optimal, indicating that automatic optimization
+strategies require further refinement. This highlights the complexity of automatic optimization and the need for a more
+nuanced approach to designing these strategies to better align with the requirements of the ASAS-F system.
+
+5.1.4 ASAS-F-RAG
+
+To address the limitations shown by the ASAS-F-Z system especially in the UA split and the low performance shown by
+ASAS-F-Opt, we explore the ASAS-F-RAG system. This system focuses on automatically retrieving the most similar
+answers from existing data to augment the prompts used to improve model performance. Table 3 shows the results of
+the ASAS-F-RAG system on both test splits of the SAF dataset compared to the baselines. Figures 5a and 5b illustrate
+the performance of the ASAS-F-RAG system on the UA and UA splits, respectively.
+
+In the UA split, the results highlight that the Llama3:70b model with five examples consistently achieved the highest
+performance across all metrics, demonstrating superior accuracy, F1 score, and RMSE compared to other models.
+This indicates that larger models with more examples can leverage their extensive training to provide more accurate
+predictions in the few-shot setting. The other models also exhibited a similar trend.
+
+Conversely, in the UQ split, the performance improvements with additional examples are less consistent. Notably, the
+Llama3:8b and Mixtral:8x22b models did not follow the general trend of improved performance with more examples.
+
+9
+
+MajorityT5:ﬁnetuneLlama2:ﬁnetuneMistral:7bLlama3:8bMixtral:8x2bbLlama3:70bModels0.00.10.20.30.40.50.60.7ScoresASAS-F-ZresultsontheSAFdataset(UASplit)UAAccuracyUAF1UARMSEMajorityT5:ﬁnetuneLlama2:ﬁnetuneMistral:7bLlama3:8bMixtral:8x2bbLlama3:70bModels0.00.10.20.30.40.50.60.7ScoresASAS-F-ZresultsontheSAFdataset(UQSplit)UQAccuracyUQF1UQRMSEarXiv Template
+
+A PREPRINT
+
+Table 3: ASAS-F-RAG results on the SAF dataset. Bold values indicate the best performance overall for each metric.
+
+Model
+Majority
+T5:finetune
+Llama2:finetune
+k = 3, Mistral:7b
+k = 5, Mistral:7b
+k = 3, Llama3:8b
+k = 5, Llama3:8b
+k = 3, Mixtral:8x22b
+k = 5, Mixtral:8x22b
+k = 3, Llama3:70b
+k = 5, Llama3:70b
+
+Accuracy
+0.540
+0.750
+-
+0.710
+0.710
+0.663
+0.742
+0.679
+0.702
+0.766
+0.766
+
+UA split
+F1 Score RMSE Accuracy
+0.470
+0.269
+0.257
+0.232
+0.240
+0.259
+0.271
+0.230
+0.212
+0.213
+0.208
+
+0.234
+0.759
+-
+0.684
+0.667
+0.672
+0.739
+0.616
+0.638
+0.775
+0.778
+
+0.471
+0.674
+-
+0.753
+0.760
+0.628
+0.581
+0.693
+0.677
+0.693
+0.714
+
+UQ split
+F1 Score RMSE
+0.512
+0.248
+-
+0.230
+0.209
+0.238
+0.217
+0.204
+0.215
+0.220
+0.213
+
+0.214
+0.697
+-
+0.761
+0.768
+0.664
+0.621
+0.619
+0.626
+0.726
+0.749
+
+(a) Unseen Answers
+
+(b) Unseen Questions
+
+Figure 5: Performance of the ASAS-F-RAG system on the SAF dataset. Higher is better for accuracy and F1 score,
+lower is better for RMSE.
+
+The Llama3:70b model, while still competitive, did not maintain its leading position as it did in the UA split. Here,
+the zero-shot Llama3:70b model actually outperformed the few-shot models, suggesting that the examples used in the
+few-shot setting might not be as effective when dealing with questions that differ significantly.
+
+The discrepancies in performance between the two splits can be attributed to the nature of the retrieved examples. In the
+unseen questions split, the examples retrieved were from different questions, which may have introduced variability that
+impacted the model’s ability to generalize effectively. This variability might explain why the performance with more
+examples did not consistently improve and why the zero-shot model performed comparably or better in some cases.
+
+5.2 Feedback Quality Analysis
+
+5.2.1 Statistical Analysis
+
+Table 4 presents the evaluation of feedback quality on the SAF dataset using SacreBLEU Post [2018], ROUGE-2 Lin
+[2004], and BERTScore Zhang et al. [2019] metrics. It is evident that the baseline models were able to outperform both
+the zero-shot and few-shot ASAS-F systems in all metrics. However, the baseline models due to finetuning have been
+reported to often copy common phrases from the training data. Looking at the second-best performing models, we can
+see that the ASAS-F-RAG outperforms the ASAS-F-Z in both splits. This suggests that incorporating a small number of
+labeled examples can improve the quality of the generated feedback in terms of consistency with the reference feedback.
+
+10
+
+MajorityT5:ﬁnetuneLlama2:ﬁnetunek=3,Mistral:7bk=5,Mistral:7bk=3,Llama3:8bk=5,Llama3:8bk=3,Mixtral:8x2bbk=5,Mixtral:8x2bbk=3,Llama3:70bk=5,Llama3:70bModels0.00.10.20.30.40.50.60.70.8ScoresASAS-F-RAGresultsontheSAFdataset(UASplit)UAAccuracyUAF1UARMSEMajorityT5:ﬁnetuneLlama2:ﬁnetunek=3,Mistral:7bk=5,Mistral:7bk=3,Llama3:8bk=5,Llama3:8bk=3,Mixtral:8x2bbk=5,Mixtral:8x2bbk=3,Llama3:70bk=5,Llama3:70bModels0.00.10.20.30.40.50.60.70.8ScoresASAS-F-RAGresultsontheSAFdataset(UQSplit)UQAccuracyUQF1UQRMSEarXiv Template
+
+A PREPRINT
+
+Table 4: Statistical feedback quality evaluation on the SAF dataset. Bold values indicate the best performance overall
+for each metric. Underline values indicate the second-best performance.
+
+Model
+Majority
+T5:finetune
+Llama2:finetune
+k = 0, Mistral:7b
+k = 3, Mistral:7b
+k = 5, Mistral:7b
+k = 0, Llama3:8b
+k = 3, Llama3:8b
+k = 5, Llama3:8b
+k = 0, Mixtral:8x22b
+k = 3, Mixtral:8x22b
+k = 5, Mixtral:8x22b
+k = 0, Llama3: 70b
+k = 3, Llama3:70b
+k = 5, Llama3:70b
+
+UA split
+
+UQ split
+
+BLEU ROUGE BERTScore BLEU ROUGE BERTScore
+
+2.2
+33.7
+39.6
+2.42
+7.90
+6.75
+1.76
+9.86
+11.9
+2.42
+13.4
+11.6
+1.81
+13.2
+15.0
+
+20.2
+52.8
+13.7
+5.11
+23.7
+21.7
+3.97
+28.5
+32.5
+26.7
+29.2
+26.7
+4.11
+34.7
+36.3
+
+42.2
+65.0
+-
+23.6
+40.2
+37.7
+17.5
+43.3
+45.6
+25.6
+42.4
+41.0
+20.5
+49.5
+50.6
+
+0.2
+10.7
+-
+2.15
+6.38
+3.82
+1.45
+4.97
+5.36
+2.72
+8.73
+3.78
+2.10
+3.67
+3.86
+
+11.5
+31.1
+-
+6.93
+28.8
+19.2
+4.06
+24.7
+24.7
+6.20
+23.6
+17.6
+5.35
+19.3
+20.1
+
+38.1
+52.2
+-
+25.9
+43.9
+33.6
+18.6
+39.3
+39.7
+28.0
+35.0
+30.4
+21.6
+35.7
+36.0
+
+However, increasing the number of examples beyond a certain threshold does not necessarily lead to higher similarity to
+the reference feedback. This can be seen in the UQ split where the second-best performing models used 3 examples.
+
+5.2.2 Human Evaluation
+
+(a) Accuracy
+
+(b) Clarity
+
+Figure 6: Human feedback evaluation results on samples with existing student answers. Higher is better.
+
+To ensure the quality of the feedback generated by our system, we conducted a human evaluation with five expert
+teachers in Information Technology and Networks. The raters assessed 108 randomly selected samples from 12
+models, focusing on accuracy and clarity. Feedback was rated on a 5-point Likert scale ranging from -2 to 2, where -2
+indicated strongly inaccurate or unclear feedback, 0 indicated neutral feedback, and 2 indicated strongly accurate or
+clear feedback. Figures 6a and 6b illustrate the human evaluation results for samples with existing student answers.
+Table 5 presents the overall results, excluding no-response samples.
+
+For the baseline models, human evaluation was not conducted. Table 6 provides a sample of the feedback generated by
+the baseline model and samples from our ASAS-F system. The feedback generated by the baseline model is repetitive
+
+11
+
+k=0k=3k=5kValues−0.50−0.250.000.250.500.751.00AccuracyScoresHumanEvaluation(Accuracy)Mistral:7bUAAccuracyMistral:7bUQAccuracyLlama3:8bUAAccuracyLlama3:8bUQAccuracyMixtral:8x2bbUAAccuracyMixtral:8x2bbUQAccuracyLlama3:70bUAAccuracyLlama3:70bUQAccuracyk=0k=3k=5kValues−0.75−0.50−0.250.000.250.500.751.001.25ClarityScoresHumanEvaluation(Clarity)Mistral:7bUAClarityMistral:7bUQClarityLlama3:8bUAClarityLlama3:8bUQClarityMixtral:8x2bbUAClarityMixtral:8x2bbUQClarityLlama3:70bUAClarityLlama3:70bUQClarityarXiv Template
+
+A PREPRINT
+
+Table 5: Human feedback quality evaluation results on the samples with existing student answers from the SAF dataset.
+Bold values indicate the best performance overall for each metric while underline values indicate the second-best
+performance.
+
+UA Split
+
+UQ Split
+
+Accuracy Clarity Accuracy Clarity
+
+k = 0, Mistral:7b
+k = 3, Mistral:7b
+k = 5, Mistral:7b
+Average
+k = 0, Llama3:8b
+k = 3, Llama3:8b
+k = 5, Llama3:8b
+Average
+k = 0, Mixtral:8x22b
+k = 3, Mixtral:8x22b
+k = 5, Mixtral:8x22b
+Average
+k = 0, Llama3:70b
+k = 3, Llama3:70b
+k = 5, Llama3:70b
+Average
+k = 0, Average
+k = 3, Average
+k = 5, Average
+Overall Average
+
+0.84
+0.92
+0.60
+0.79
+0.64
+0.68
+0.40
+0.57
+1.12
+0.56
+0.16
+0.61
+1.04
+0.32
+0.68
+0.68
+0.91
+0.62
+0.46
+0.66
+
+0.80
+1.00
+0.56
+0.79
+0.56
+0.72
+0.52
+0.60
+0.92
+0.56
+0.04
+0.51
+1.12
+0.64
+0.60
+0.79
+0.85
+0.73
+0.43
+0.67
+
+0.60
+0.90
+0.20
+0.57
+0.70
+-0.60
+0.60
+0.23
+0.40
+-0.20
+-0.50
+-0.10
+0.90
+1.00
+0.60
+0.83
+0.65
+0.28
+0.23
+0.35
+
+0.80
+0.60
+0.50
+0.63
+0.90
+-0.20
+0.50
+0.40
+0.50
+-0.20
+-0.70
+-0.13
+1.20
+1.20
+0.70
+1.03
+0.85
+0.35
+0.25
+0.48
+
+and lacks the depth needed for comprehensive understanding. A high degree of similarity could artificially inflate the
+statistical evaluation metrics like BLEU scores. The high overlap between training inputs and generated outputs signals
+that the model may not truly be learning to adapt to novel inputs but is instead reproducing familiar patterns. Thus,
+while the baseline system might achieve high scores on automated metrics due to repetition of training data, its semantic
+contribution may be minimal compared to the more informative and contextually appropriate feedback generated by
+our system. More examples of comparisons between the feedback generated by the baseline models and our ASAS-F
+system can be found in Appendix B.
+
+In the analysis, we find that inconsistencies across different models occasionally confused raters, leading to lower
+accuracy scores. Notably, for no-response answers, which comprised 22% of all samples, large language models
+(LLMs) were generally able to generate feedback that correctly identified the lack of an answer. In 23 out of 24 cases,
+the feedback was considered strongly accurate. In the remaining case, the feedback failed to explicitly state the absence
+of an answer. However, disagreement among the raters was observed in all cases regarding the accuracy and clarity.
+Despite this, the inter-rater agreement for these no-response samples was relatively high, with a Krippendorff’s alpha of
+0.77 for accuracy and 0.71 for clarity. 2
+
+In contrast, for the remaining 78% of samples—where student answers were present—Krippendorff’s alpha dropped
+significantly to 0.19 for accuracy and 0.20 for clarity, indicating low agreement. This discrepancy may stem from the
+granularity of the 5-point scale and the inherent subjectivity of evaluating nuanced feedback.
+
+Given the confusion that occured with the no-responses, we focus on the samples with existing student answers for the
+human evaluation. Among the models evaluated, the Llama3:70b model achieved the highest average accuracy and
+clarity scores in both the UA and UQ splits. The Mistral:7b model followed closely, showing competitive performance.
+However, a general trend of decreasing accuracy and clarity with an increasing number of examples was observed
+across all models.
+
+As a post hoc analysis, we merged the strongly accurate and accurate categories and the strongly inaccurate and
+inaccurate categories to create a 3-point scale. This adjustment led to an increase in the Krippendorff’s alpha to 0.91
+for accuracy and 0.89 for clarity for the no-response answers. For the remaining answers, the Krippendorff’s alpha
+increased to 0.60 for accuracy and 0.64 for clarity, indicating a moderate level of agreement among raters. This suggests
+that the original scale was too granular and that a simpler scale may have resulted in higher agreement scores.
+
+2Krippendorff’s alpha is a statistical measure of agreement among raters, accounting for the possibility of chance agreement. It
+
+ranges from 0 to 1, with values closer to 1 indicating strong agreement.
+
+12
+
+arXiv Template
+
+A PREPRINT
+
+Table 6: Comparison of feedback generated by the baseline models and samples from the ASAS-F system. Underlined
+text are repetitions or redundancies.
+
+Student Answer 1
+The extension headers are placed between fixed header and payload.
+The main advantage is that they are optional. This means that the use of
+space is more efficient because there won’t be any redundant information
+placed there in order to keep the expected length.
+Gold Feedback
+The response answers only the location of extension headers correctly.
+The definition is missing and the advantage is incorrect when compared to
+IPv4 as the option field in IPv4 is also optional. Thus, there is no
+efficiency benefit.
+T5 Generated Feedback
+the advantage is incorrect as the option field in the ipv4 header is optional
+and can be placed between payload and fixed header. the advantage is
+incorrect as the option field in the ipv4 header is optional
+and can be placed between payload and fixed header.
+k = 5, Llama3:70b Generated Feedback
+the response correctly states the location of extension headers between
+the fixed header and payload. however, the main advantage stated is
+not entirely accurate. while it’s true that ipv6 extension headers are
+optional, this doesn’t directly contribute to more efficient use of space.
+a correct advantage would be that they allow for adding new options
+without changing the fixed header size or that ipv6 packets with optional
+headers are typically processed faster/simpler by intermediate devices.
+k = 3, Mistral:7b Generated Feedback
+The response correctly identifies the location of extension headers and
+mentions that they are optional. However, it does not fully address the
+main advantage as stated in the reference answer, which includes both the
+ability to append new options without changing the header and the
+simplified processing by intermediate devices.
+
+In the few-shot approach, LLMs often mimicked the style of the provided reference answers or examples as shown
+in the first example in Figure 7. Many raters commented the feedback that was too brief, lacking sufficient context
+or explanation. Although the feedback was factually correct, it did not provide the depth needed for comprehensive
+understanding, which could be critical in educational settings. Conversely, in the zero-shot approach, the generated
+feedback was often longer and appeared more detailed. However, as the second example in Figure 7 demonstrates,
+while some of this feedback was labeled as accurate, it was actually incorrect when compared to the reference answers.
+This highlights the challenge of calibrating LLMs, as they may present incorrect feedback with high confidence Zhou
+et al. [2024], making it difficult to detect when they are hallucinating Ji et al. [2023], especially when evaluating the
+feedback in isolation.
+
+6 Discussion
+
+In this study, we aimed to answer key research questions regarding the performance of an ASAS-F system in zero-shot
+and few-shot settings. Rather than relying on intricate and labor-intensive prompt engineering to optimize performance
+for specific datasets, we adopted a modular design for our system using DSPy. We explored two main methods for
+selecting few-shot examples ASAS-F-RAG and ASAS-F-Opt in comparison with the simpler ASAS-F-Z and fine-tuned
+baselines. Our evaluation focused on the system’s ability to score student answers that align with the reference answers
+and generate feedback that is accurate and clear.
+
+To address RQ1 (How does the performance of our modular ASAS-F system compare to state-of-the-art models in
+automatic short answer scoring?), our findings revealed that LLMs can compete with fine-tuned baselines in scoring
+accuracy. While fine-tuning on unseen answers showed better performance compared to the zero-shot approach,
+three out of four LLMs surpassed the fine-tuned baselines when tested on unseen questions, with the smallest model,
+Mistral:7b, delivering the best results. Our few-shot approach consistently outperformed fine-tuned baselines in both
+evaluation splits, underscoring the effectiveness of RAG for improving scoring performance in ASAS tasks. Our
+
+13
+
+arXiv Template
+
+A PREPRINT
+
+Figure 7: Samples of human evaluation accuracy ratings for generated feedback vs actual feedback.
+
+modular system and the LLMs generally performed well in terms of the evaluation metrics. However, when enforcing
+type constraints on the outputs, some LLMs failed to abide by them. For these output errors, we implemented a fallback
+mechanism to ensure comprehensive evaluation (see Appendix C).
+
+For RQ2 (When labeled training data is available, how can we optimize prompts and few-shot examples to improve our
+ASAS-F performance in an efficient way?), we experimented with a Bayesian optimization approach to automatically
+optimize the selection of few-shot examples and prompts. However, we found that our dynamic few-shot approach
+using RAG significantly outperformed the automatic optimization method. In tasks like ASAS, where the subjectivity of
+scoring plays a critical role, dynamic selection of similarly scored examples proves more effective than fully automated
+methods. This indicates that aligning retrieved examples closely with the scoring task’s subjectivity is crucial for
+optimizing ASAS performance.
+
+Regarding RQ3 (How accurate and clear is the feedback generated by our ASAS-F system?), traditional evaluation
+metrics like BLEU and ROUGE are often insufficient, as they do not account for the nuanced nature of educational
+feedback. These metrics can fail to capture the quality of feedback when generated sentences are factually correct but
+differ significantly from the reference text. In our human evaluation, we observed considerable disagreement among
+raters on the accuracy and clarity of the feedback generated by the LLMs, reflecting the inherent subjectivity of the task.
+Although the few-shot approach generated feedback more aligned with reference feedback, its accuracy ratings were
+lower than those from the zero-shot approach. This highlights the challenges in evaluating feedback quality, particularly
+in subjective tasks. Future work should explore more robust evaluation frameworks for feedback generation, focusing
+on both subjective and objective measures.
+
+7 Conclusion
+
+This study provides a comprehensive evaluation of an ASAS-F system in both zero-shot and few-shot settings. We
+introduced a novel RAG approach, leveraging ColBERT for automatic short answer scoring with feedback (ASAS-F).
+
+14
+
+arXiv Template
+
+A PREPRINT
+
+Our results demonstrated that the few-shot approach not only outperformed the more computationally expensive
+fine-tuned baselines in scoring accuracy but also performed effectively in zero-shot settings, especially on unseen
+questions, highlighting the robustness of our method for automatic scoring.
+
+However, when evaluating feedback quality, we observed an inverse relationship between the number of examples
+provided and the quality of the feedback generated, as assessed by human experts. This suggests that while our system
+excels in scoring, generating high-quality, pedagogically sound feedback remains challenging, particularly due to the
+subjective nature of feedback evaluation. Additionally, the inherent complexity of feedback generation in educational
+settings, combined with issues like model calibration and potential hallucinations, highlights the difficulty of evaluating
+feedback produced by large language models.
+
+Despite these challenges, our approach—combining open-source LLMs with powerful retrieval models in a modular,
+computationally efficient framework—shows strong potential to enhance the accuracy and efficiency of ASAS systems.
+Future research should focus on improving feedback quality, exploring model calibration techniques, and developing
+more reliable methods for evaluating feedback in educational contexts.
+
+Acknowledgements
+
+This work was partially supported by JST (Japan Science and Technology Agency), the establishment of university
+fellowships towards the creation of science technology innovation, Grant Number JPMJFS2132, and JSPS (Japan
+Society for the Promotion of Science) KAKENHI No. JP21H00907 and JP23H03511.
+
+References
+
+Valerie J Shute. Focus on formative feedback. Review of educational research, 78(1):153–189, 2008.
+John Hattie and Helen Timperley. The power of feedback. Review of educational research, 77(1):81–112, 2007.
+Brian Riordan, Andrea Horbach, Aoife Cahill, Torsten Zesch, and Chungmin Lee. Investigating neural architectures
+for short answer scoring. In Proceedings of the 12th workshop on innovative use of NLP for building educational
+applications, pages 159–168, 2017.
+
+Lakshmi Ramachandran, Jian Cheng, and Peter Foltz. Identifying patterns for short answer scoring using graph-based
+lexico-semantic text matching. In Proceedings of the Tenth Workshop on Innovative Use of NLP for Building
+Educational Applications, pages 97–106, 2015.
+
+Steven Burrows, Iryna Gurevych, and Benno Stein. The eras and trends of automatic short answer grading. International
+
+journal of artificial intelligence in education, 25:60–117, 2015.
+
+Naomi E Winstone, Robert A Nash, Michael Parker, and James Rowntree. Supporting learners’ agentic engagement
+with feedback: A systematic review and a taxonomy of recipience processes. Educational psychologist, 52(1):17–37,
+2017.
+
+Hui Liu, Qingyu Yin, and William Yang Wang. Towards explainable nlp: A generative explanation framework for text
+
+classification. arXiv preprint arXiv:1811.00196, 2018.
+
+Hassan Khosravi, Simon Buckingham Shum, Guanliang Chen, Cristina Conati, Yi-Shan Tsai, Judy Kay, Simon Knight,
+Roberto Martinez-Maldonado, Shazia Sadiq, and Dragan Gaševi´c. Explainable artificial intelligence in education.
+Computers and Education: Artificial Intelligence, 3:100074, 2022.
+
+Jiazheng Li, Lin Gui, Yuxiang Zhou, David West, Cesare Aloisi, and Yulan He. Distilling chatgpt for explainable
+automated student answer assessment. In Findings of the Association for Computational Linguistics: EMNLP 2023,
+pages 6007–6026, 2023.
+
+Johannes Schneider, Bernd Schenk, Christina Niklaus, and Michaelis Vlachos. Towards llm-based autograding for
+
+short textual answers. arXiv preprint arXiv:2309.11508, 2023.
+
+Anna Filighera, Siddharth Parihar, Tim Steuer, Tobias Meuser, and Sebastian Ochs. Your answer is incorrect... would
+you like to know why? introducing a bilingual short answer feedback dataset. In Proceedings of the 60th Annual
+Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 8577–8591, 2022a.
+
+Myroslava Dzikovska, Natalie Steinhauser, Elaine Farrow, Johanna Moore, and Gwendolyn Campbell. Beetle ii: Deep
+natural language understanding and automatic feedback generation for intelligent tutoring in basic electricity and
+electronics. International Journal of Artificial Intelligence in Education, 24:284–332, 2014.
+
+Hieke Keuning, Johan Jeuring, and Bastiaan Heeren. A systematic literature review of automated feedback generation
+
+for programming exercises. ACM Transactions on Computing Education (TOCE), 19(1):1–43, 2018.
+
+15
+
+arXiv Template
+
+A PREPRINT
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler,
+Mike Lewis, Wen-tau Yih, Tim Rocktäschel, et al. Retrieval-augmented generation for knowledge-intensive nlp tasks.
+Advances in Neural Information Processing Systems, 33:9459–9474, 2020.
+
+Marie Bexte, Andrea Horbach, and Torsten Zesch. Similarity-based content scoring-a more classroom-suitable
+alternative to instance-based scoring? In Findings of the association for computational linguistics: Acl 2023, pages
+1892–1903, 2023.
+
+Omar Khattab and Matei Zaharia. Colbert: Efficient and effective passage search via contextualized late interaction over
+bert. In Proceedings of the 43rd International ACM SIGIR conference on research and development in Information
+Retrieval, pages 39–48, 2020.
+
+Xiaoming Xi. Automated scoring and feedback systems: Where are we and where are we heading?, 2010.
+Stephen P Balfour. Assessing writing in moocs: Automated essay scoring and calibrated peer review™. Research &
+
+Practice in Assessment, 8:40–48, 2013.
+
+Zixuan Ke and Vincent Ng. Automated essay scoring: A survey of the state of the art. In IJCAI, volume 19, pages
+
+6300–6308, 2019.
+
+Yaman Kumar, Swati Aggarwal, Debanjan Mahata, Rajiv Ratn Shah, Ponnurangam Kumaraguru, and Roger Zimmer-
+mann. Get it scored using autosas—an automated system for scoring short answers. In Proceedings of the AAAI
+conference on artificial intelligence, volume 33, pages 9662–9669, 2019.
+
+Chul Sung, Tejas Indulal Dhamecha, and Nirmal Mukhi. Improving short answer grading using transformer-based
+pre-training. In Artificial Intelligence in Education: 20th International Conference, AIED 2019, Chicago, IL, USA,
+June 25-29, 2019, Proceedings, Part I 20, pages 469–481. Springer, 2019.
+
+Kenneth Steimel and Brian Riordan. Towards instance-based content scoring with pre-trained transformer models. In
+
+Proceedings of the Thirty-Fourth AAAI Conference on Artificial Intelligence, volume 34, 2020.
+
+Bo Wang, Billy Dawton, Tsunenori Ishioka, and Tsunenori Mine. Optimizing answer representation using metric
+learning for efficient short answer scoring. In Pacific Rim International Conference on Artificial Intelligence, pages
+236–248. Springer, 2023.
+
+Menna Fateen and Tsunenori Mine. In-context meta-learning vs. semantic score-based similarity: A comparative
+study in Arabic short answer grading. In Hassan Sawaf, Samhaa El-Beltagy, Wajdi Zaghouani, Walid Magdy,
+Ahmed Abdelali, Nadi Tomeh, Ibrahim Abu Farha, Nizar Habash, Salam Khalifa, Amr Keleg, Hatem Haddad, Imed
+Zitouni, Khalil Mrini, and Rawan Almatham, editors, Proceedings of ArabicNLP 2023, pages 350–358, Singapore
+(Hybrid), December 2023. Association for Computational Linguistics. doi:10.18653/v1/2023.arabicnlp-1.28. URL
+https://aclanthology.org/2023.arabicnlp-1.28.
+
+Salam Albatarni, Sohaila Eltanbouly, and Tamer Elsayed. Graded relevance scoring of written essays with dense
+In Proceedings of the 47th International ACM SIGIR Conference on Research and Development in
+
+retrieval.
+Information Retrieval, pages 1329–1338, 2024.
+
+Imran Chamieh, Torsten Zesch, and Klaus Giebermann. Llms in short answer scoring: Limitations and promise of
+zero-shot and few-shot approaches. In Proceedings of the 19th Workshop on Innovative Use of NLP for Building
+Educational Applications (BEA 2024), pages 309–315, 2024.
+
+Li-Hsin Chang and Filip Ginter. Automatic short answer grading for finnish with chatgpt. In Proceedings of the AAAI
+
+Conference on Artificial Intelligence, volume 38, pages 23173–23181, 2024.
+
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida,
+Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774,
+2023.
+
+Tamara P Tate, Jacob Steiss, Drew Bailey, Steve Graham, Youngsun Moon, Daniel Ritchie, Waverly Tseng, and Mark
+Warschauer. Can ai provide useful holistic essay scoring? Computers and Education: Artificial Intelligence, 7:
+100255, 2024.
+
+Anna Filighera, Joel Tschesche, Tim Steuer, Thomas Tregel, and Lisa Wernet. Towards generating counterfactual
+examples as automatic short answer feedback. In International Conference on Artificial Intelligence in Education,
+pages 206–217. Springer, 2022b.
+
+Kevin P Yancey, Geoffrey Laflair, Anthony Verardi, and Jill Burstein. Rating short l2 essays on the cefr scale with
+gpt-4. In Proceedings of the 18th Workshop on Innovative Use of NLP for Building Educational Applications (BEA
+2023), pages 576–584, 2023.
+
+Omar Khattab, Arnav Singhvi, Paridhi Maheshwari, Zhiyuan Zhang, Keshav Santhanam, Sri Vardhamanan, Saiful Haq,
+Ashutosh Sharma, Thomas T Joshi, Hanna Moazam, et al. Dspy: Compiling declarative language model calls into
+self-improving pipelines. arXiv preprint arXiv:2310.03714, 2023.
+
+16
+
+arXiv Template
+
+A PREPRINT
+
+Krista Opsahl-Ong, Michael J Ryan, Josh Purtell, David Broman, Christopher Potts, Matei Zaharia, and Omar
+Khattab. Optimizing instructions and demonstrations for multi-stage language model programs. arXiv preprint
+arXiv:2406.11695, 2024.
+
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste
+Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models.
+arXiv preprint arXiv:2302.13971, 2023.
+
+Albert Q Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur Mensch, Blanche Savary, Chris Bamford, Devendra Singh
+Chaplot, Diego de las Casas, Emma Bou Hanna, Florian Bressand, et al. Mixtral of experts. arXiv preprint
+arXiv:2401.04088, 2024.
+
+Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li,
+and Peter J Liu. Exploring the limits of transfer learning with a unified text-to-text transformer. Journal of machine
+learning research, 21(140):1–67, 2020.
+
+Gloria Ashiya Katuka, Alexander Gain, and Yen-Yun Yu. Investigating automatic scoring and feedback using large
+
+language models. arXiv preprint arXiv:2405.00602, 2024.
+
+Matt Post. A call for clarity in reporting bleu scores. arXiv preprint arXiv:1804.08771, 2018.
+
+Chin-Yew Lin. ROUGE: A package for automatic evaluation of summaries. In Text Summarization Branches Out, pages
+74–81, Barcelona, Spain, July 2004. Association for Computational Linguistics. URL https://aclanthology.
+org/W04-1013.
+
+Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q Weinberger, and Yoav Artzi. Bertscore: Evaluating text generation
+
+with bert. arXiv preprint arXiv:1904.09675, 2019.
+
+Kaitlyn Zhou, Jena D Hwang, Xiang Ren, and Maarten Sap. Relying on the unreliable: The impact of language models’
+
+reluctance to express uncertainty. arXiv preprint arXiv:2401.06730, 2024.
+
+Ziwei Ji, Nayeon Lee, Rita Frieske, Tiezheng Yu, Dan Su, Yan Xu, Etsuko Ishii, Ye Jin Bang, Andrea Madotto, and
+Pascale Fung. Survey of hallucination in natural language generation. ACM Computing Surveys, 55(12):1–38, 2023.
+
+A DSPy Code Snippets
+
+In this section, we provide code snippets of the DSPy implementation of the ASAS-F system. The code snippets for
+ASAS-F-Z, ASAS-F-Opt and ASAS-F-RAG are shown in Figures 8, 9, and 10, respectively.
+
+B Output Generation Examples
+
+This section provides a comparison of feedback samples generated by the baseline models and our system. Tables
+7, 8, and 9 present feedback generated by the baseline models and samples from our system for the same answers.
+These samples show clear instances of phrase reuse from the fine-tuning process from the baseline, highlighting limited
+generalization capabilities compared to the more informative and contextually appropriate feedback generated by our
+system.
+
+C Typed Predictor Error Analysis
+
+In our implementation of the ASAS-F system, we primarily relied on typed predictors generated through the DSPy
+framework. Typed predictors are advantageous because they enforce type constraints on both input and output, ensuring
+that the model adheres to the predefined structure and can handle complex, multi-layered data. This structure enhances
+the reliability and consistency of the model’s predictions.
+
+However, during the evaluation phase, we observed an average of 4.13% errors across all models due to formatting
+issues that led to no output being generated by the typed predictors. These errors arise from strict type constraints,
+where slight deviations in input formatting—such as unexpected characters or variations in text structure—caused the
+predictor to fail.
+
+To address this issue and ensure comprehensive evaluation, we implemented a fallback mechanism using a normal
+predictor without typed constraints. In cases where the typed predictor failed to generate an output, the normal predictor
+was used to obtain the predictions. This approach allowed us to maintain the flow of predictions and provided a means
+to evaluate the system’s performance despite the formatting errors.
+
+17
+
+arXiv Template
+
+A PREPRINT
+
+Figure 8: DSPy code snippet of the ASAS-F-Z system.
+
+18
+
+arXiv Template
+
+A PREPRINT
+
+Figure 9: Code snippet of the ASAS-F-Opt system.
+
+19
+
+arXiv Template
+
+A PREPRINT
+
+Figure 10: DSPy code snippet of the ASAS-F-RAG system.
+
+20
+
+arXiv Template
+
+A PREPRINT
+
+Table 7: Comparison of feedback generated by the baseline models and samples from the ASAS-F system. Underlined
+text are repetitions or redundancies.
+
+Student Answer 2
+1. IPv6 extension headers contain supplementary information used by network
+devices (such as routers, switches, and endpoint hosts) to decide how
+to direct or process an IPv6 packet. 2. They are located between fixed
+header and payload. 3. IPv6 extension headers can be of arbitrary length.
+The number of options that a packet carries is not limited.
+Gold Feedback
+The response answers the description, location of extension headers, and
+advantage correctly.
+T5 Generated Feedback
+the advantage is partially correct as it does not state what extension
+headers are, how they are used in ipv4, and how they are used in
+ipv6. the advantage is incorrect as the option field in the ipv4
+header is optional and can be of arbitrary length.
+k = 0, Llama3:8b, Predicted Label, Score & Feedback
+The student’s answer demonstrates a good understanding of the concept of
+IPv6 extension headers, correctly stating that they contain supplementary
+information and are located between the fixed header and payload. However,
+their explanation is not entirely accurate, as they mention arbitrary length
+without specifying the limitations on the number of options carried by a
+packet. Additionally, while they touch upon the main advantage of extension
+headers compared to IPv4, their answer lacks clarity and does not fully address
+the reference’s correct points.
+k = 5, Mixtral8:22xb, Predicted Label, Score & Feedback
+the response answers the description and location of the extension
+headers correctly but does not mention any advantage compared to ipv4.
+
+Table 10 presents the error rates for each model. Although typed predictors adhere to strict standards, some errors are
+unavoidable due to the complexity of the input data and the constraints on the output structure. On average, the Llama
+models exhibited lower error rates compared to the Mistral models, suggesting that the Llama models were better at
+adhering to the predefined type constraints. Among the Llama models, the smaller Llama3:8b achieved the lowest error
+rate at 2.04%, followed by the Llama3:70b with a rate of 3.0%. In contrast, the Mistral:7b model had an error rate of
+4.16%, while the Mixtral:8x22b model recorded the highest average error rate at 7.32%.
+
+21
+
+arXiv Template
+
+A PREPRINT
+
+Table 8: Comparison of feedback generated by the baseline models and samples from the ASAS-F system. Underlined
+text indicates repetitions or redundancies.
+
+Student Answer 3
+Spanning trees are appealing to broad- and multicasting scenarios, because
+they allow the packets to only travel one path (except travelling backwards).
+This removes the need for looking up specific tables as in RPF/RPB.
+Gold Feedback
+It is true that there is a unique path between nodes but that not only does away
+with the need to look at routing tables in RPF/RPB but reduces duplicates by
+removing loops (unnecessary links). No explanation was provided for
+modifying the link-state algorithm to construct a multicast spanning tree
+for nodes.
+T5 Generated Feedback
+The explanation behind using a spanning tree for multicast and broadcast is
+partially correct as it does not mention how the link-state algorithm is
+modified to construct a multicast spanning tree. The explanation for modifying
+the link-state algorithm to construct a multicast spanning tree is
+partially correct as it does not mention how each node shares its multicast
+information with others by adding it to the link-state packet.
+k = 5, Llama3:70b Generated Feedback
+The response correctly answers why a spanning-tree usage is ideal in multicast
+and broadcast scenarios, mentioning that it removes the need for looking up
+specific tables as in RPF/RPB. However, the description lacks detail on how
+link-state routing can be modified to construct a spanning tree for multicasting.
+
+22
+
+arXiv Template
+
+A PREPRINT
+
+Table 9: Comparison of feedback generated for Student Answer 4.
+
+Student Answer 4
+PROPERTY: The spanning tree does not have any loops.
+Gold Feedback
+The response correctly answers why a spanning-tree usage is ideal in multicast
+and broadcast. However, the explanation for modifying the link-state algorithm
+to construct a multicast spanning tree for nodes is not provided.
+T5 Generated Feedback
+The response correctly identifies the spanning-tree property that makes it
+appealing for broadcast and multicast and explains how the link-state
+algorithm is modified to construct a multicast spanning tree. However,
+the explanation for modifying the link-state algorithm is partially correct as it
+does not state how this modification is achieved.
+k = 0, Llama3:8b, Predicted Label, Score & Feedback
+The student correctly identifies that spanning trees do not have loops,
+which is a key property. However, their explanation is incomplete and
+does not fully capture the essence of why spanning trees are appealing for
+multicasting. The reference answer provides a more comprehensive explanation,
+including the concept of unique paths between every pair of nodes in the tree.
+Additionally, the student’s answer does not address how to modify link-state
+routing to construct a spanning tree for multicasting, which is an important
+aspect of the question.
+k = 5, Mixtral8:22xb, Predicted Label, Score & Feedback
+The response only states one property of a spanning tree but fails to explain
+how link-state routing can be modified for constructing a multicast spanning tree.
+
+23
+
+arXiv Template
+
+A PREPRINT
+
+Table 10: Error Rates (%) in Typed Predictors Across Models. Values in bold show the overall average error rate for
+each model.
+
+k = 0, Mistral:7b
+k = 3, Mistral:7b
+k = 5, Mistral:7b
+
+Average
+
+k = 0, Llama3:8b
+k = 3, Llama3:8b
+k = 5, Llama3:8b
+
+Average
+
+k = 0, Mixtral:8x22b
+k = 3, Mixtral:8x22b
+k = 5, Mixtral:8x22b
+
+Average
+
+k = 0, Llama3:70b
+k = 3, Llama3:70b
+k = 5, Llama3:70b
+
+Average
+
+UA Split UQ split
+
+5.16
+3.57
+6.35
+5.03
+
+3.97
+2.78
+1.59
+2.78
+
+8.33
+3.57
+5.95
+5.95
+
+1.98
+3.97
+3.17
+3.04
+
+2.86
+2.86
+4.17
+3.30
+
+1.82
+0.26
+1.83
+1.30
+
+6.25
+11.20
+8.59
+8.68
+
+0.00
+3.39
+5.47
+2.95
+
+4.16
+
+2.04
+
+7.32
+
+3.0
+
+24

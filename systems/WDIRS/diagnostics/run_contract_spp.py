@@ -231,7 +231,11 @@ def run_contract_pipeline(args: Any) -> int:
     started_at = datetime.now(timezone.utc)
     started_monotonic = time.monotonic()
     output = Path(args.output).expanduser().resolve()
-    if output.exists() and any(output.iterdir()):
+    if (
+        output.exists()
+        and any(output.iterdir())
+        and not bool(getattr(args, "resume", False))
+    ):
         raise FileExistsError(output)
 
     intent_source = str(getattr(args, "intent_source", "nl"))
@@ -282,6 +286,16 @@ def run_contract_pipeline(args: Any) -> int:
         client_kwargs["base_url"] = args.base_url
     if args.model:
         client_kwargs["model"] = args.model
+    api_key_env = getattr(args, "api_key_env", None)
+    if api_key_env:
+        api_key = os.getenv(api_key_env)
+        if not api_key:
+            raise RuntimeError(
+                f"API key environment variable is unset: {api_key_env}"
+            )
+        client_kwargs["api_key"] = api_key
+    if getattr(args, "disable_thinking", False):
+        client_kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
     if getattr(args, "seed", None) is not None:
         client_kwargs["seed"] = int(args.seed)
     if getattr(args, "llm_replay_path", None) is not None:
@@ -460,6 +474,7 @@ def run_contract_pipeline(args: Any) -> int:
         observed_document_lengths=[
             len(document.text) for document in documents
         ],
+        resume=bool(getattr(args, "resume", False)),
     )
     finished_at = datetime.now(timezone.utc)
     response_cache_path = client.save_response_cache(

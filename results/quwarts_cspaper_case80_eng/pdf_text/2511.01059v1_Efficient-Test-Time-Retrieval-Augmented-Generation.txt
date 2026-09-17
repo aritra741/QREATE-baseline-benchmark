@@ -1,0 +1,910 @@
+5
+2
+0
+2
+
+v
+o
+N
+2
+
+]
+I
+
+A
+.
+s
+c
+[
+
+1
+v
+9
+5
+0
+1
+0
+.
+1
+1
+5
+2
+:
+v
+i
+X
+r
+a
+
+Efficient Test-Time Retrieval Augmented Generation
+
+HAILONG YIN, Fudan University, China
+BIN ZHU, Singapore Management University, Singapore
+JINGJING CHEN, Fudan University, China
+CHONG-WAH NGO, Singapore Management University, Singapore
+
+Although Large Language Models (LLMs) demonstrate significant capabilities, their reliance on parametric
+knowledge often leads to inaccuracies. Retrieval Augmented Generation (RAG) mitigates this by incorporating
+external knowledge, but these methods may introduce irrelevant retrieved documents, leading to inaccurate
+responses. While the integration methods filter out incorrect answers from multiple responses, but lack
+external knowledge like RAG methods, and their high costs require balancing overhead with performance
+gains. To address these issues, we propose an Efficient Test-Time Retrieval-Augmented Generation Framework
+named ET2RAG to improve the performance of LLMs while maintaining efficiency. Specifically, ET2RAG is a
+training-free method, that first retrieves the most relevant documents and augments the LLMs to efficiently
+generate diverse candidate responses by managing response length. Then we compute the similarity of
+candidate responses and employ a majority voting mechanism to select the most suitable response as the
+final output. In particular, we discover that partial generation is sufficient to capture the key information
+necessary for consensus calculation, allowing us to effectively perform majority voting without the need for
+fully generated responses. Thus, we can reach a balance between computational cost and performance by
+managing the response length for the number of retrieved documents for majority voting. Experimental results
+demonstrate that ET2RAG significantly enhances performance across three tasks, including open-domain
+question answering, recipe generation and image captioning.
+
+CCS Concepts: • Computing methodologies → Computer vision tasks; Natural language processing;
+Search methodologies.
+
+Additional Key Words and Phrases: Retrieval augmentation generation, Large language models, Efficiency
+
+1 Introduction
+Large Language Models (LLMs) have significantly advanced in recent years, demonstrating re-
+markable performance across a variety of natural language generation tasks [30, 49]. Despite these
+advancements, LLMs continue to struggle with factual inaccuracies, primarily due to their reliance
+on parametric knowledge embedded during training, which may become outdated or insufficient
+for precise and factual responses [26, 28]. To tackle this problem, retrieval-augmented generation
+(RAG) methods [1, 33] have been introduced to enhance model outputs by incorporating external
+knowledge retrieved from relevant databases, as shown in Figure 1 (a). However, traditional RAG
+methods face two notable limitations. First, the retrieval process frequently includes irrelevant or
+misleading documents, degrading the accuracy and reliability of the generated responses [12, 39].
+Second, only increasing the number of retrieved documents may not improve model performance,
+and may even lead to worse performance for the LLMs [22].
+
+Recent studies have explored alternative integration strategies, such as multi-agent collaborative
+frameworks and self-consistency mechanisms, to refine outputs by leveraging consensus across
+multiple generated responses [10, 43, 44, 47], as shown in Figure 1 (b). These methods are capable of
+selecting the correct answer from multiple candidates by majority voting. For example, LLM-Debate
+[47] engages multiple agents in structured discussions to improve reasoning accuracy while CoT-SC
+[44] generates multiple reasoning paths to select the most consistent and correct response [46].
+Nevertheless, these methods lack external knowledge integration like RAG, limiting performance
+
+Authors’ Contact Information: Hailong Yin, Fudan University, China; Bin Zhu, Singapore Management University, Singapore;
+Jingjing Chen, Fudan University, China; Chong-Wah Ngo, Singapore Management University, Singapore.
+
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 1. Comparison of retrieval and integration strategies. (a) Traditional RAG: Retrieves documents from an
+external database and feeds them directly into a language model, which may lead to noisy or inconsistent
+outputs. (b) Self-Consistency Methods: Rely on the stochasticity of LLM decoding to generate multiple
+reasoning paths and select an answer via majority voting, but lack access to external knowledge. (c) Our
+ET2RAG : Integrates retrieval augmentation into self-consistency by first organizing retrieved results into
+diverse and stable subsets. These subsets are used to generate truncated outputs, which are evaluated via
+consensus to select the most reliable response. Full generation is performed only once on the best retrieval
+set, significantly reducing computational overhead while enhancing accuracy and robustness.
+
+gains. Additionally, the integration of multiple LLM agents often incurs high costs, necessitating a
+balance between overhead and performance gains.
+
+Motivated by these insights, we hypothesize that integrating retrieval-augmented generation
+with consensus-based integration frameworks could simultaneously address the limitations of both
+approaches. Specifically, such integration could filter out inaccuracies resulting from noisy retrieved
+information, enhance diversity and robustness of responses, and leverage external knowledge
+effectively. To this end, we propose a novel Efficient Test-Time Retrieval-Augmented Generation
+(ET2RAG) framework designed to efficiently combine retrieval augmentation with consensus-based
+integration. Our framework comprises three main steps. First, we introduce Stable Organized
+Retrieval, which strategically regroups retrieved documents into multiple combinations to ensure
+robust performance across different retrieval conditions and to mitigate discrepancies in document
+quality. Second, these combinations are subsequently fed into LLMs to generate multiple candidate
+responses. Nevertheless, generating the complete response for each combination is computationally
+expensive. To address this, we introduce partial generation, which extracts key information from
+each candidate while significantly reducing computational overhead. Finally, we compute similarity
+scores among all candidate responses and use a majority voting mechanism to identify the response
+with the highest level of consensus. As a result, ET2RAG manages to maintain computational costs
+and facilitates rapid consistency checks among responses.
+
+We validate ET2RAG across diverse tasks, including open-domain question answering, recipe
+generation and image captioning, demonstrating significant performance improvements relative
+to state-of-the-art methods. Additionally, we extensively investigate the efficiency of ET2RAG
+regarding two key factors—Vote Size (the number of retrieved sets for voting) and Response
+Length (the length of the generated responses), to explore the trade-off between performance and
+computation cost in the ET2RAG framework across different tasks and models. Overall, ET2RAG
+
+offers a practical and broadly applicable solution that enhances the reliability and effectiveness of
+LLM outputs in various generation tasks.
+
+2 RELATED WORK
+
+2.1 Retrieval-Augmented Generation
+Recently, retrieval augmentation has enhanced language models by incorporating external knowl-
+edge repositories. Models such as REALM[16] and RAG[22] have showcased the advantages of
+retrieval-based enhancement. These models retrieve relevant information from external databases
+to offer additional context for generating precise responses. However, the retrieved passages
+may include irrelevant information, leading to incorrect outputs. A recent study [2] introduced a
+retrieval-augmentation method that requires extensively annotated data, so far effective only in
+text reasoning. Additionally, studies such as [9] require architectural modifications and fine-tuning
+for specific language models, resulting in high implementation costs and limited general appli-
+cability. Work like [15] enhances retrieval by extracting entities with large language models and
+constructing graph-based indices, but this approach also incurs significant costs for knowledge base
+construction and maintenance. Recently, similar studies have been pursued for vision-language
+tasks[3, 31, 37]. The retrieval-augmented generation in the vision-language domain poses distinct
+difficulties due to the disparities in modalities and variations in model structures [45]. Preliminary
+efforts have explored this direction, but they often encounter issues with noise in the retrieved
+knowledge snippets. Compared to textual augmentation, retrieved passages based on visual content
+may contain more information that is irrelevant to the image content. Therefore, a training-free,
+ready-to-use, and widely applicable method that supports multimodal tasks is highly needed. Our
+work addresses this issue by introducing RAG while using a training-free integration method to
+mitigate the noise problem in retrieval.
+
+2.2 LLM Integration
+CoT-SC[44] employs a variety of chain-of-thought[46] prompts to stimulate diverse reasoning
+processes within a single LLM and determines the final response through majority voting. Sub-
+sequent studies like [7, 11, 20, 23, 24, 41] are extensions of CoT-SC, focusing on text reasoning
+tasks that rely solely on internal model randomness and do not incorporate external knowledge.
+In contrast, our method integrates retrieved information for external knowledge augmentation.
+It has proven effective not only in factual knowledge tasks but also in multimodal contexts. Our
+approach is versatile, supporting a broad spectrum of models, both visual and textual, independent
+of their size. Unlike methods that depend on internal randomness, our strategy offers a robust and
+efficient solution applicable across various tasks and model architectures. Additionally, while many
+integration techniques, like supervised LLM fusion[43], enhance LLM capabilities, they largely
+depend on supervised learning and heavily annotated datasets.
+
+3 METHOD
+
+3.1 Preliminaries
+The theoretical foundation of our approach builds on the principle of self-consistency in large
+language models, which posits that correct reasoning paths tend to converge on the same answer,
+while incorrect ones diverge [20, 44]. Formally, given a task query 𝑥, denote 𝐺 (𝑥) as the output
+generated by a language model. When producing a set of candidate responses {𝑜1, 𝑜2, . . . , 𝑜𝑉 },
+
+self-consistency aims to identify the final output 𝑜final through majority voting:
+
+𝑜final = arg max
+𝑜 ∈𝑂
+
+𝑉
+∑︁
+
+𝑖=1
+
+I(𝑜𝑖 = 𝑜),
+
+where I(·) is the indicator function.
+
+The condition for reliable consensus is met when the correct answer 𝑜 ∗ appears more frequently
+
+than any alternative 𝑜 ′ ≠ 𝑜 ∗:
+
+𝑉
+∑︁
+
+𝑖=1
+
+I(𝑜𝑖 = 𝑜 ∗) >
+
+𝑉
+∑︁
+
+𝑖=1
+
+I(𝑜𝑖 = 𝑜 ′), ∀𝑜 ′ ≠ 𝑜 ∗.
+
+To extend this paradigm to retrieval-augmented generation, we incorporate multiple retrieved
+evidence sets into the generation process. Specifically, each candidate output is conditioned on a
+distinct retrieved subset 𝑠𝑖 , such that:
+
+and the final output is selected via:
+
+𝑜𝑖 = 𝐺 (𝑥, 𝑠𝑖 ),
+
+𝑜final = arg max
+𝑜 ∈𝑂
+
+𝑉
+∑︁
+
+𝑖=1
+
+I(𝐺 (𝑥, 𝑠𝑖 ) = 𝑜).
+
+Fig. 2. Our proposed ET2RAG consists of two stages: Stable Organized Retrieval and Fast Consensus
+Integration. In the former stage, the input task query (either text or image) is passed to the Retriever, which
+retrieves multiple relevant results from the database (𝑅(𝑥)). These retrieved results are then organized into
+independent combinations in the organized set (𝑆) through the Organization process. These combinations
+form the basis for the subsequent generation phase. In the latter stage, the organized combinations are
+concatenated with the task query and input into the Fast Generation module to generate truncated outputs
+of fixed length. Next, Consensus Negotiation is applied to calculate the similarity between these outputs,
+resulting in a similarity matrix (𝑀). By summing the elements of this matrix, we compute the Agreement
+Scores (𝐴) for each output. Finally, the output corresponding to the highest agreement score is selected, and
+its associated combination is used to generate the final complete output.
+
+In this context, the condition for self-consistency hinges on the quality of the retrieved subsets 𝑠𝑖 .
+To satisfy the theoretical guarantees, a majority of these subsets must support the correct answer
+𝑜 ∗, while irrelevant or noisy subsets should result in divergent responses. Thus, ensuring retrieval
+robustness is key to enabling reliable consensus in the retrieval-augmented setting.
+
+This formulation motivates the design of ET2RAG, which introduces a structured method for
+organizing retrieved documents and leveraging fast generation to achieve high consensus with
+minimal computational overhead. We expand on this in the following.
+
+3.2 Framework Overview
+We propose Efficient Test-Time Retrieval-Augmented Generation (ET2RAG), as depicted in Figure 2,
+which consists of two primary stages: Stable Organized Retrieval and Fast Consensus Integration.
+The first stage, Stable Organized Retrieval, includes the steps of Retrieval and Organization. The Re-
+trieval step systematically extracts relevant information, while the Organization step structures this
+retrieved information to ensure consistency and relevance. Based on the organized information from
+the first stage, the second stage, Fast Consensus Integration, comprises Fast Generation, Consensus
+Negotiation, and Majority Voting. Initially, candidate responses are rapidly generated through
+partial generation. These responses then undergo a consensus negotiation process, culminating in
+majority voting to integrate the most reliable and effective results.
+
+3.3 Stable Organized Retrieval
+Retrieval. Given a task query 𝑥, we utilize a retriever 𝑅 to search a relevant external database
+𝐷 and retrieve a set of documents 𝑅(𝑥) = {𝑟1, 𝑟2, . . . , 𝑟𝑁 }. Each document 𝑟𝑖 contains knowledge
+potentially beneficial for addressing the task query. These retrieved documents serve as the basis
+for the subsequent organization process.
+Organization. Due to variability in quality among retrieved documents, we propose an orga-
+nizational strategy T to systematically regroup the documents into multiple balanced subsets.
+Specifically, we construct an organized set
+
+𝑆 = T (𝑅(𝑥)) = {𝑠1, 𝑠2, . . . , 𝑠𝑉 }
+
+Each subset 𝑠𝑖 comprises strategically selected document combinations and 𝑉 denotes the size of
+the organized set. 𝑉 also represents Vote Size and the number of candidate outputs that will be
+generated. This step ensures that each subset provides robust and balanced support for generating
+candidate responses, significantly mitigating discrepancies in document quality and enhancing
+overall retrieval consistency. Please see more details of the organization strategy for different tasks
+in Section 4.1.
+
+3.4 Fast Consensus Integration
+Fast Consensus Integration aims to efficiently select the most reliable answer from multiple can-
+didates through fast generation, consensus negotiation, and majority voting, to improve both
+performance and efficiency.
+Fast Generation. After obtaining the organized set 𝑆 from Section 3.3, the reasoning path is jointly
+driven by the retrieval information and the generative model. We concatenate each combination 𝑠𝑖
+with the task query 𝑥, forming input pairs (𝑥, 𝑠𝑖 ). These pairs are then processed by the generator
+𝐺, which produces the corresponding outputs 𝑜𝑖 :
+
+𝑜𝑖 = 𝐺 (𝑥, 𝑠𝑖 ).
+
+To improve efficiency and control computational overhead, we truncate each generated output
+𝑜𝑖 to a maximum length 𝐿 and only get the partial generation results, ensuring that the output does
+not exceed this token limit:
+
+𝑜𝑖 = truncate(𝐺 (𝑥, 𝑠𝑖 ), 𝐿).
+
+The truncation strategically reduces computation cost while maintaining the quality of the
+generated outputs. By limiting the output length, we strike a balance between performance and
+resource consumption, particularly when incorporating retrieval-augmented generation (RAG)
+into consensus-based integration methods. In practice, we find that truncated outputs can retain
+sufficient context to evaluate consensus effectively among generated responses and yield high-
+quality results. Finally, the collection of all generated outputs is:
+
+𝑂 = {𝑜1, 𝑜2, . . . , 𝑜𝑉 }.
+
+Consensus Negotiation. After obtaining the truncated output set 𝑂 from the fast generation
+stage, we further introduce consensus negotiation to compute the agreement among the outputs.
+Specifically, we use similarity calculation methods 𝐶 to compute the similarity between each pair
+of elements in the output set. Then we can obtain a similarity matrix 𝑀 of size 𝑉 × 𝑉 , where each
+element 𝑀𝑖 𝑗 represents the consensus agreement between outputs 𝑜𝑖 and 𝑜 𝑗 . The matrix elements
+are defined as follows:
+
+𝑀𝑖 𝑗 = 𝐶 (𝑜𝑖, 𝑜 𝑗 ).
+
+The similarity matrix 𝑀 captures the degree of agreement among candidate responses, providing a
+quantitative foundation for selecting the most reliable answer next.
+Majority Voting. Based on the similarity matrix 𝑀 obtained in the consensus negotiation, we sum
+the elements along the natural dimension of the matrix to obtain an array 𝐴, which represents the
+overall agreement score of each output with the other outputs. The calculation is given by:
+
+𝐴𝑖 =
+
+𝑉
+∑︁
+
+𝑗=1
+
+𝑀𝑖 𝑗,
+
+for each 𝑖 = 1, 2, . . . , 𝑉 .
+
+We then identify the index 𝑖max corresponding to the output with the highest agreement score
+from the array 𝐴. Finally, we select the corresponding combination 𝑠𝑖max from the organized set 𝑆
+and its truncated output 𝑜𝑖max as previous context based on the chosen index 𝑖max to produce the
+final output as follows:
+
+𝑖max = arg max
+
+𝑖 ∈ {1,2,...,𝑉 }
+
+𝐴𝑖,
+
+𝑜final = 𝐺 (𝑥, 𝑠𝑖max).
+
+Through this majority voting process, we are able to select the most consistent and reliable
+
+answer from the candidate results.
+
+The advantage of this process is that it effectively extracts high-quality knowledge combinations
+from the external database, providing strong support for LLMs to address the task query 𝑥, thereby
+enhancing the accuracy and consistency of the generated answers. As a result, we efficiently leverage
+retrieval-augmented knowledge without complex processes or heavy computation, enabling fast
+and reliable responses.
+
+Table 1. Overview of datasets, retrievers, and generators.
+
+Datasets
+TriviaQA[19]
+
+Retriever
+Contriever-MS[17]
+
+PopQA[26]
+
+Contriever-MS[17]
+
+Generator
+Llama27𝐵[42]
+Llama38𝐵[13]
+DeepSeek-R1-Llama8𝐵[14]
+Llama27𝐵[42]
+Llama38𝐵[13]
+DeepSeek-R1-Llama8𝐵[14]
+
+Recipe1M[36] Recipe retrieval model[25] LLaVA-FT-RAG[25]
+COCOTest[4]
+
+CLIP-ResNet-50x64[32]
+
+SMALLCAP[34]
+
+4 EXPERIMENTS
+
+4.1 Experimental Setup
+We evaluate our proposed ET2RAG framework across various tasks and datasets. In line with
+previous works [2, 25, 34], the datasets, retrievers, and generators used in the experiments are
+summarized in Table 1.
+Tasks and Datasets. Our method is assessed on three representative tasks: (1) Open-domain
+Question Answering tasks. We conduct experiments on PopQA [26] and TriviaQA[19], which
+focus on answering factual knowledge questions. For PopQA, we use long-tail subset as our test
+set, following [2], and for TriviaQA, we use the test split in [16, 27] for evaluation. Performance is
+measured in terms of Accuracy (acc). Following [2, 26, 38], the results are evaluated by checking
+whether the generated answers include the gold answer or not, rather than the exact match. (2)
+Recipe Generation is a vision-language task that focuses on generating detailed and coherent
+cooking instructions based on input food images [6, 25, 48]. We use the Recipe1M dataset [36]
+for experiments, and use the metrics BLEU, SacreBLEU, and Rouge-L for evaluation, in line with
+prior work [25]. (3) Image Captioning is tested on the COCO dataset [5], using the standard
+Karpathy splits [21]. Unlike earlier work [34], which evaluated a random sample of 1,000 data points
+from the test set, we evaluate the entire test set. We also compute the metrics: BLEU-4, METEOR,
+CIDEr for evaluation. Retriever and Generator. Following previous works [2, 25, 34], we utilize
+
+Table 2. Details of Organization Strategy.
+
+TriviaQA PopQA Recipe1M CoCO
+top1,2,3,4
+top1,2,5,6
+top3,4,5,6
+top1,2,7,8
+top3,4,7,8
+top5,6,7,8
+top1,2,9,10
+top3,4,9,10
+top5,6,9,10
+......
+
+top1
+top1,2
+top1,3
+top1,4
+top1,5
+top1,6
+top1,7
+top1,8
+top1,9
+......
+
+top1
+top1,2
+top1,3
+top1,4
+top1,5
+top1,6
+top1,7
+top1,8
+top1,9
+......
+
+top1
+top2
+top3
+top4
+top5
+top6
+top7
+top8
+top9
+......
+
+Contriever-MS[18] as the retriever for open-domain question answering task, image-to-recipe
+retrieval model[35] for recipe generation and CLIP-ResNet-50x64 [32] for image captioning. We
+
+use the Llama27𝐵[42] for open-domain question answering. To better demonstrate the generality of
+our method, we also conduct additional experiments on two other large language models (LLMs):
+DeepSeek-R1-Distill-Llama-8B (referred to as DeepSeek-Llama8B) and Meta-Llama-3-8B (referred to
+as Llama38B). For recipe generation, we employ LLaVA-Finetuned (LLaVA-FT) and the best-trained
+LLaVA-Finetuned with retrieval augmentation (LLaVA-FT-RAG) from [25]. For image captioning,
+we follow the best practices from [34] with the SMALLCAP model.
+Organization. We apply different organization strategies tailored to task-specific properties, as
+shown in Table 2. First, open-domain question answering deals with pure text, where the quality of
+documents in higher-ranked positions significantly surpasses that of lower-ranked ones in text
+retrieval results. Therefore, for both datasets, we adopt a combination of {top1, top𝑘 } to balance
+retrieval quality and the integration of relevant information from lower-ranked documents as shown
+in the PopQA column and TriviaQA column of Table 2. Second, in the context of recipe generation,
+cross-modal recipe retrieval presents significant challenges, primarily due to the complexities of
+cause-and-effect relationships and the modeling of extended texts [36, 40, 50]. This often results
+in the majority of retrieval outcomes having relatively similar quality levels. Consequently, each
+retrieval result is typically capable of providing pertinent information. Additionally, the length of
+token sequences in recipe retrieval results can be excessive for the model. Prior work trained models
+using only a single retrieval result; therefore, we maintain consistency by organizing the retrieved
+{top𝑘 } recipes as context, referencing the Recip1M column of Table 2. Third, in the domain of
+image captioning, adhering to the best practices of prior work, we maintain the same number of
+retrieved captions as reported in [34]. From the top 20 retrieved results, we select four captions as
+a group to form various combinations. Our organization strategy utilizes a simple permutation and
+combination approach, demonstrated in the CoCo column of Table 2, aiming to balance retrieval
+quality and diversity while ensuring that the retrieved information is both comprehensive and
+consistent in quality.
+
+4.2 Performance Comparison
+Table 3, Table 4 and Table 5 list the performance comparison with baselines and traditional RAG
+method for open domain question answering, recipe generation and image captioning respectively.
+
+Table 3. Performance of Open-domain Question Answering.
+
+Method
+Llama27𝐵[42]
+RAG(Llama27𝐵[42])
+ET2RAG(Llama27𝐵[42])
+Llama38𝐵
+RAG(Llama38𝐵)
+ET2RAG(Llama38𝐵)
+DeepSeek-R1-Llama8𝐵
+RAG(DeepSeek-R1-Llama8𝐵)
+ET2RAG(DeepSeek-R1-Llama8𝐵)
+
+PopQA (acc) TriviaQA (acc)
+
+14.7%
+38.2%
+44.7%
+15.2%
+39.5%
+51.5%
+15.5%
+42.5%
+52.0%
+
+30.5%
+42.5%
+52.6%
+34.5%
+43.4%
+59.0%
+36.7%
+50.7%
+60.5%
+
+For Open-Domain Question Answering (Table 3), ET2RAG demonstrates significant per-
+formance improvements across all tasks and models compared to their respective baselines and
+the standard retrieval-augmented generation (RAG) method. Specifically, on the PopQA dataset,
+ET2RAG applied to the Llama27𝐵 model improves its performance by +30.0% (from 14.7% to 44.7%)
+and outperforms the standard RAG method by +6.5% (from 38.2% to 44.7%). Similarly, for the
+
+Table 4. Performance Comparison of Recipe Generation.
+
+Method
+FoodLMM[48]
+LLaVA-FT[25]
+RAG(LLaVA-FT-RAG[25])
+ET2RAG(LLaVA-FT-RAG[25])
+
+BLEU SacreBLEU ROUGE L
+27.86
+28.32
+29.23
+30.10
+
+36.96
+38.18
+38.43
+39.12
+
+6.24
+5.88
+6.21
+6.45
+
+Table 5. Performance Comparison of Image Captioning.
+
+Method
+RAG(SMALLCAP[34])
+ET2RAG(SMALLCAP[34])
+
+BLEU-4 METEOR CIDEr
+118.03
+27.70
+120.15
+27.99
+
+36.58
+37.09
+
+Llama38𝐵 model, ET2RAG achieves a +36.3% improvement (from 15.2% to 51.5%) and surpasses the
+RAG method by +12.0% (from 39.5% to 51.5%). Furthermore, when applied to the DeepSeek-R1-
+Llama8𝐵 model, ET2RAG improves performance by +36.5% (from 15.5% to 52.0%) and outperforms
+the RAG method by +9.5% (from 42.5% to 52.0%).On the TriviaQA dataset, ET2RAG also shows
+notable enhancements. For the Llama27𝐵 model, it improves performance by +22.1% (from 30.5% to
+52.6%) and surpasses the RAG method by +10.1% (from 42.5% to 52.6%). For the Llama38𝐵 model,
+ET2RAG achieves a +24.5% improvement (from 34.5% to 59.0%) and outperforms the RAG method
+by +15.6% (from 43.4% to 59.0%). Finally, for the DeepSeek-R1-Llama8𝐵 model, ET2RAG improves
+performance by +23.8% (from 36.7% to 60.5%) and surpasses the RAG method by +9.8% (from 50.7%
+to 60.5%).
+
+For Recipe Generation (Table 4), ET2RAG achieves superior performance compared to the
+baseline models and the standard RAG method which retrieves the top1 recipe. When applied to
+the LLaVA-FT-RAG model, ET2RAG improves BLEU by +0.87 (from 29.23 to 30.10), SacreBLEU by
++0.24 (from 6.21 to 6.45), and ROUGE L by +0.69 (from 38.43 to 39.12). Additionally, compared to
+the FoodLMM baseline, our method improves BLEU by +2.24 (from 27.86 to 30.10), SacreBLEU by
++0.21 (from 6.24 to 6.45), and ROUGE L by +2.16 (from 36.96 to 39.12).
+
+For Image Captioning (Table 5), ET2RAG demonstrates consistent improvements over the
+standard RAG method. Specifically, it improves BLEU-4 by +0.51 (from 36.58 to 37.09), METEOR
+by +0.29 (from 27.70 to 27.99), and CIDEr by +2.12 (from 118.03 to 120.15) when applied to the
+SMALLCAP model. These results validate the effectiveness and generalizability of ET2RAG across
+diverse tasks.
+
+As shown in the qualitative examples in Figure 3, ET2RAG consistently outperforms existing meth-
+ods, providing more accurate and relevant outputs. For instance, in Figure 3 (a) ET2RAG(LLama27𝑏)
+correctly identifies Pope Benedict XVI as the first pope in the 21st century, while LLama27𝑏 and
+RAG(LLama7𝑏) fail. In addition, ET2RAG(LLaVA-FT-RAG) generates the correct dessert recipe for
+the given food image, while LLaVA-FT and RAG(LLaVA-FT-RAG) produce irrelevant cake or carrot
+cake recipes in Figure 3 (c).
+
+4.3 Ablation Study
+Response Length (𝐿) and Vote Size (𝑉 ). As shown in Figure 4 (1-a), Figure 4 (2-a) and Figure 4
+(3-a), the performances vary with different 𝐿 and 𝑉 . Interestingly, the experimental results expose
+different trends in tasks. Specifically, in the TriviaQA dataset, when using DeepSeek-R1-Llama8𝐵,
+depicted in Figure 4 (1-a), the accuracy reaches peak when 𝐿 is relatively small but with a sufficiently
+
+Fig. 3. Qualitative results are presented, with responses matching the ground truth in yellow and incorrect
+outputs in red.
+
+augmented 𝑉 . Its subsequent decrease correlates with increases in 𝐿. This phenomenon results
+from correct answers typically emerging when the output generated by the model is shorter (that
+is, when 𝐿 < 50). When retrieval results provide sufficient support for the question, the model
+often directly presents the answer at the beginning of the response. This is typically the optimal
+moment for Majority Voting. In contrast, subsequent responses tend to introduce more noise as
+they attempt to explain causal relationships, which diminishes the effectiveness of Majority Voting.
+As the response length increases, the model begins to describe causal relationships rather than
+focusing on the direct answer to the question, which leads to a more ambiguous consensus among
+the multiple outputs. This, in turn, results in an inaccurate Majority Voting outcome. Detailed
+case can be found in the supplementary material Section 3. In particular, as shown in Figure 4
+(1-a), the accuracy of the TriviaQA datasets exhibits a upward trend at first with the increase of 𝑉 .
+However, when 𝑉 exceeds a certain threshold, the accuracy tends to saturate, showing marginal
+stabilization with further increments in 𝑉 . This saturation phenomenon can be attributed to the
+degraded quality of data in the late combination of the organized set 𝑆. A similar phenomenon can
+also be observed in PopQA. The Llama38𝐵 model exhibits nearly identical behavior, as illustrated in
+Figure 6.
+
+Additionally, for recipe generation, depicted in Figure 4 (2-a), an ongoing improvement trend is
+observed with the increase of 𝐿, though the pace of such an increase decelerates and eventually levels
+off. This continued improvement is attributed to the fact that the recipe is generally long document
+with hundreds of words and a wide range of retrieved recipes are capable of providing relevant
+information such as ingredients and cooking methods. Correspondingly, the image captioning
+in COCO dataset exhibited a similar trend as represented in Figure 4 (3-a). The performance is
+generally improved with increasing 𝑉 with a peak in 𝑉 =35 and the best response length is 𝐿=9.
+
+4.4 Efficiency Analysis
+To measure the overhead clearly, we define the “Computation Cost“ to be the average number
+of extra tokens generated per response as the additional cost introduced by the framework. The
+Computation Cost for the TriviaQA, Recipe1M and CoCo are shown in Figure 4 (1-b), Figure 4 (2-b)
+and Figure 4 (3-b).
+
+Fig. 4. Results for TriviaQA, Recipe1M, and CoCo. Figure 1-a illustrates the (acc) of ET2RAG (DeepSeek-R1-
+Llama8𝐵) for TriviaQA. Figure 2-a shows the ‘Eval Sum’, representing the combined scores of BLEU, SacreBLEU,
+and Rouge-L for Recipe1M. Figure 3-a displays the ‘Eval Sum’ for CoCo Captioning, calculated as the sum
+of BLEU-4, METEOR, and CIDEr scores. The RAG baseline represents results from the traditional RAG
+method. Details of the metrics are in supplementary material Section 2, A. Figures 1-b, 2-b, and 3-b detail
+the ‘Computation Cost’, capturing the average number of additional tokens produced per response with
+varying 𝐿 and 𝑉 in each task. Figures 1-c, 2-c, and 3-c depict the respective Pareto Frontiers for each task.
+These frontiers optimize the key metrics (‘Eval Sum’ or accuracy) and ‘Computation Cost’ by the strategic
+adjustment of parameters 𝐿 and 𝑉 . Each task’s optimization strategy equally prioritizes the maximization of
+its specific evaluation metrics and the minimization of computation costs. Note that Figures 1-a, 2-a, and 3-a
+share legends with Figures 1-b, 2-b, and 3-b, respectively.
+
+To further investigate the efficiency of our ET2RAG and analyze the balance between perfor-
+mance and computational cost, we adopt the concept of Pareto Optimality[29]. Our goal is to
+identify configurations that achieve an optimal balance between two competing objectives: (1)
+Objective 1: Minimize the Computation Cost introduced by the ET2RAG framework. (2) Objective
+2: Maximize the task-specific performance metrics under the ET2RAG framework. These two objec-
+tives represent a typical multi-objective optimization problem [8]. Thus, we treat these objectives
+and the hyperparameters 𝐿 and 𝑉 as the search space for optimization. A grid search is conducted
+over values of 𝐿 and 𝑉 , as shown in Figure 4 (1-c), Figure 4 (2-c) and Figure 4 (3-c) in the three tasks.
+From this search, we derive the Pareto Frontier, representing the set of optimal configurations that
+offer the best trade-offs between efficiency and effectiveness.
+
+From Figure 4 (1-c), it is noticeable that for Open-domain question answering task in TriviaQA
+dataset, the combination of 𝑉 equal to 3 and 𝐿 equal to 5 offers the first cost-effective optimal
+
+Fig. 5. Trade-off between performance and total computation cost on PopQA.
+
+solution. To enhance performance further, priority should be given to increasing 𝑉 , followed by
+an increase in 𝐿. The improvements tend to decrease when 𝐿 escalates excessively. This suggests
+that generating complete answers for each candidate output set 𝑂 is not imperative in these tasks.
+By generating shorter responses, computational resources can be preserved while maintaining
+high-quality generation. For the recipe generation task, as depicted in Figure 4 (2-c), the first
+cost-effective optimal solution is achieved when 𝑉 equals 3 and 𝐿 equals 10. If further enhancement
+in performance is desired, increasing either 𝑉 or 𝐿 yields similar gains. Lastly, for the image caption
+task in COCO dataset, as seen in Figure 4 (3-c), performance improvement requires 𝐿 to achieve a
+certain length. In this case, the first cost-effective optimal solution is achieved when 𝑉 equals 3 and
+𝐿 equals 3. If further enhancement in performance is desired, 𝐿 should be increased first, followed
+by a rise in 𝑉 .
+
+Furthermore, taking PopQA as an example, we also calculate the total computational cost, plot the
+Pareto frontiers of different models, and include the original RAG method. Figure 5 clearly shows
+the trade-off between computational cost and performance and the comparison to the RAG method.
+Notably, under the same computational budget, both DeepSeek-R1-Llama8𝐵 [14] and Llama38𝐵 [13]
+achieve better performance than Llama27𝐵 [42], demonstrating the efficiency improvements of our
+method.
+
+4.5 Discussion
+Our experimental analysis highlights that retrieval organization strategies must be tailored to
+the specific characteristics and demands of each task. In open-domain QA tasks, the combination
+strategy {top1, top𝑘 } consistently outperforms the simpler {top𝑘 } approach. As shown in Figure 6,
+relying solely on lower-ranked documents fails to yield improvements through majority voting.
+This suggests that, in QA settings, the highest-ranked document typically contains essential factual
+information, while additional documents may introduce marginally useful context but also increase
+the risk of injecting noise or redundancy. For recipe generation tasks, our results show that the
+top𝑘 strategy alone is sufficiently effective. This observation is consistent with prior work [25,
+35], which highlights that top-retrieved recipes often contain rich and informative content. The
+inherently structured and detailed nature of recipe texts means that even mid-ranked results
+typically offer relevant guidance. Moreover, limiting the input to top-𝑘 results helps control the
+input length—an important consideration given the long cooking instructions, thereby reducing
+computational overhead without sacrificing output quality. In image captioning tasks, we adopt the
+
+Fig. 6. Discussion for Organization Strategy in PopQA and TriviaQA(Reported when using ET2RAG(Llama38𝐵).
+The RAG baseline represents results from the traditional RAG.
+
+retrieval-combination scheme in [34], selecting diverse caption candidates by grouping four samples
+from the top 20 retrieved captions. This method maintains quality baselines while preserving
+necessary diversity, matching the creative nature of the task. Experimental results demonstrate that
+this balanced strategy achieves better performance without increasing computational overhead.
+Overall, these observations highlight the flexibility and extensibility of ET2RAG. While a universal
+organization strategy may not exist, the modularity of our method provides the flexibility to adapt
+retrieval structures to the nuances of individual tasks, thereby maximizing performance while
+controlling efficiency.
+
+5 CONCLUSION
+We have presented an efficient and training-free method, ET2TAG, which achieves state-of-the-art
+performance across three different tasks. A central insight of our work is that generating full-length
+responses in retrieval-augmented generation is often unnecessary; in fact, leveraging truncated
+outputs can lead to more efficient and even more accurate results by facilitating faster and more
+effective consensus. Our experiments demonstrate that the proposed organization strategy plays
+a critical role in maintaining the stability and relevance of retrieved information throughout the
+integration process. Additionally, we systematically analyzed the effects of key parameters, such
+
+as response length and voting size, revealing consistent trends that support the effectiveness of
+our design choices. These findings establish a solid foundation for future research on efficient
+integration of retrieval and generation in large language models.
+
+References
+[1] Akari Asai, Sewon Min, Zexuan Zhong, and Danqi Chen. 2023. Retrieval-based language models and applications. In
+
+Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics.
+
+[2] Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and Hannaneh Hajishirzi. 2023. Self-rag: Learning to retrieve,
+
+generate, and critique through self-reflection. arXiv preprint arXiv:2310.11511 (2023).
+
+[3] Manuele Barraco, Sara Sarto, Marcella Cornia, Lorenzo Baraldi, and Rita Cucchiara. 2023. With a little help from your
+own past: Prototypical memory networks for image captioning. In Proceedings of the IEEE/CVF International Conference
+on Computer Vision.
+
+[4] Xinlei Chen, Hao Fang, Tsung-Yi Lin, Ramakrishna Vedantam, Saurabh Gupta, Piotr Dollar, et al. 2015. Microsoft
+COCO Captions: Data Collection and Evaluation Server. arXiv:1504.00325 [cs.CV] https://arxiv.org/abs/1504.00325
+[5] Xinlei Chen, Hao Fang, Tsung-Yi Lin, Ramakrishna Vedantam, Saurabh Gupta, Piotr Dollár, et al. 2015. Microsoft coco
+
+captions: Data collection and evaluation server. arXiv preprint arXiv:1504.00325 (2015).
+
+[6] Prateek Chhikara, Dhiraj Chaurasia, Yifan Jiang, Omkar Masur, et al. 2024. Fire: Food image to recipe generation. In
+
+Proceedings of the IEEE Winter Conference on Applications of Computer Vision.
+
+[7] Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, et al. 2021. Training
+
+verifiers to solve math word problems, 2021. URL https://arxiv. org/abs/2110.14168 (2021).
+
+[8] Kalyanmoy Deb. 2011. Multi-objective optimisation using evolutionary algorithms: an introduction. In Multi-objective
+
+evolutionary optimisation for product design and manufacturing. Springer.
+
+[9] Qian Dong, Qingyao Ai, Hongning Wang, Yiding Liu, Haitao Li, et al. 2025. Decoupling Knowledge and Context: An
+Efficient and Effective Retrieval Augmented Generation Framework via Cross Attention. In Proceedings of the ACM on
+Web Conference 2025. 4386–4395.
+
+[10] Yilun Du, Shuang Li, Antonio Torralba, Joshua B Tenenbaum, and Igor Mordatch. 2023. Improving factuality and
+
+reasoning in language models through multiagent debate. arXiv preprint arXiv:2305.14325 (2023).
+
+[11] Yao Fu, Hao Peng, Ashish Sabharwal, Peter Clark, and Tushar Khot. 2022. Complexity-based prompting for multi-step
+
+reasoning. In The Eleventh International Conference on Learning Representations.
+
+[12] Tianyu Gao, Howard Yen, Jiatong Yu, and Danqi Chen. 2023. Enabling large language models to generate text with
+
+citations. arXiv preprint arXiv:2305.14627 (2023).
+
+[13] Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha
+Letman, Akhil Mathur, Alan Schelten, et al. 2024. The llama 3 herd of models. arXiv preprint arXiv:2407.21783 (2024).
+[14] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, et al. 2025. Deepseek-r1: Incentivizing
+
+reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948 (2025).
+
+[15] Zirui Guo, Lianghao Xia, Yanhua Yu, Tu Ao, et al. 2024. Lightrag: Simple and fast retrieval-augmented generation.
+
+arXiv preprint arXiv:2410.05779 (2024).
+
+[16] Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pasupat, and Mingwei Chang. 2020. Retrieval augmented language
+
+model pre-training. In International conference on machine learning. PMLR.
+
+[17] Gautier Izacard, Mathilde Caron, Lucas Hosseini, Sebastian Riedel, Piotr Bojanowski, et al. 2022. Unsupervised Dense
+
+Information Retrieval with Contrastive Learning. arXiv:2112.09118 [cs.IR] https://arxiv.org/abs/2112.09118
+
+[18] Gautier Izacard, Mathilde Caron, Lucas Hosseini, Sebastian Riedel, Piotr Bojanowski, Armand Joulin, et al. 2021.
+
+Unsupervised dense information retrieval with contrastive learning. arXiv preprint arXiv:2112.09118 (2021).
+
+[19] Mandar Joshi, Eunsol Choi, Daniel S Weld, and Luke Zettlemoyer. 2017. Triviaqa: A large scale distantly supervised
+
+challenge dataset for reading comprehension. arXiv preprint arXiv:1705.03551 (2017).
+
+[20] junyou li, Qin Zhang, Yangbin Yu, QIANG FU, and Deheng Ye. 2024. More Agents Is All You Need. Transactions on
+
+Machine Learning Research (2024). https://openreview.net/forum?id=bgzUSZ8aeg
+
+[21] Andrej Karpathy and Li Fei-Fei. 2015. Deep visual-semantic alignments for generating image descriptions. In Proceedings
+
+of the IEEE conference on computer vision and pattern recognition.
+
+[22] Patrick Lewis, Ethan Perez, Aleksandra Piktus, et al. 2020. Retrieval-augmented generation for knowledge-intensive
+
+nlp tasks. Advances in Neural Information Processing Systems (2020).
+
+[23] Yifei Li, Zeqi Lin, Shizhuo Zhang, Qiang Fu, Bei Chen, Jian-Guang Lou, and Weizhu Chen. 2023. Making language
+models better reasoners with step-aware verifier. In Proceedings of the 61st Annual Meeting of the Association for
+Computational Linguistics.
+
+[24] Lei Lin, Jiayi Fu, Pengli Liu, Junchen Wan, Fuzheng Zhang, Zhongyuan Wang, et al. 2023. Ask One More Time:
+Self-Agreement Improves Reasoning of Language Models in (Almost) All Scenarios. arXiv preprint arXiv:2311.08154
+
+(2023).
+
+[25] Guoshan Liu, Hailong Yin, Bin Zhu, Jingjing Chen, Chong-Wah Ngo, and Yu-Gang Jiang. 2025. Retrieval Augmented
+Recipe Generation. In 2025 IEEE Winter Conference on Applications of Computer Vision (WACV). IEEE. https://arxiv.
+org/abs/2411.08715
+
+[26] Alex Mallen, Akari Asai, Victor Zhong, Rajarshi Das, et al. 2022. When not to trust language models: Investigating
+
+effectiveness of parametric and non-parametric memories. arXiv preprint arXiv:2212.10511 (2022).
+
+[27] Sewon Min, Danqi Chen, Hannaneh Hajishirzi, and Luke Zettlemoyer. 2019. A discrete hard EM approach for weakly
+
+supervised question answering. arXiv preprint arXiv:1909.04849 (2019).
+
+[28] Sewon Min, Kalpesh Krishna, Xinxi Lyu, Mike Lewis, Wen-tau Yih, Pang Wei Koh, et al. 2023. Factscore: Fine-grained
+
+atomic evaluation of factual precision in long form text generation. arXiv preprint arXiv:2305.14251 (2023).
+
+[29] Patrick Ngatchou, Anahita Zarei, and A El-Sharkawi. 2005. Pareto multi objective optimization. In Proceedings of the
+
+international conference on, intelligent systems application to power systems. IEEE.
+
+[30] Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright, Pamela Mishkin, et al. 2022. Training
+language models to follow instructions with human feedback. Advances in neural information processing systems
+(2022).
+
+[31] Samuele Poppi, Tobia Poppi, Federico Cocchi, Marcella Cornia, Lorenzo Baraldi, et al. 2024. Safe-CLIP: Removing
+NSFW concepts from vision-and-language models. In Proceedings of the European Conference on Computer Vision.
+[32] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, et al. 2021. Learning Transferable Visual
+
+Models From Natural Language Supervision. arXiv:2103.00020 [cs.CV] https://arxiv.org/abs/2103.00020
+
+[33] Ori Ram, Yoav Levine, Itay Dalmedigos, et al. 2023. In-context retrieval-augmented language models. Transactions of
+
+the Association for Computational Linguistics (2023).
+
+[34] Rita Ramos, Bruno Martins, Desmond Elliott, et al. 2023. Smallcap: lightweight image captioning prompted with
+retrieval augmentation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition.
+[35] Amaia Salvador, Erhan Gundogdu, Loris Bazzani, and Michael Donoser. 2021. Revamping cross-modal recipe retrieval
+with hierarchical transformers and self-supervised learning. In Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition.
+
+[36] Amaia Salvador, Nicholas Hynes, Yusuf Aytar, Javier Marin, et al. 2017. Learning cross-modal embeddings for cooking
+
+recipes and food images. In Proceedings of the IEEE conference on computer vision and pattern recognition.
+
+[37] Sara Sarto, Manuele Barraco, Marcella Cornia, Lorenzo Baraldi, and Rita Cucchiara. 2023. Positive-augmented
+contrastive learning for image and video captioning evaluation. In Proceedings of the IEEE/CVF conference on computer
+vision and pattern recognition.
+
+[38] Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu, Maria Lomeli, Eric Hambro, et al. 2024. Toolformer:
+Language models can teach themselves to use tools. Advances in Neural Information Processing Systems (2024).
+[39] Freda Shi, Xinyun Chen, Kanishka Misra, Nathan Scales, David Dohan, et al. 2023. Large language models can be
+
+easily distracted by irrelevant context. In International Conference on Machine Learning. PMLR.
+
+[40] Fangzhou Song, Bin Zhu, Yanbin Hao, and Shuo Wang. 2024. Enhancing recipe retrieval with foundation models: A
+
+data augmentation perspective. In European Conference on Computer Vision. Springer, 111–127.
+
+[41] Romal Thoppilan, DD Freitas, Jamie Hall, Noam Shazeer, Apoorv Kulshreshtha, et al. 2022. LaMDA: Language Models
+
+for Dialog Applications. arXiv, Article. arXiv preprint arXiv:2201.08239 (2022).
+
+[42] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei, et al. 2023. Llama 2: Open
+
+foundation and fine-tuned chat models. arXiv preprint arXiv:2307.09288 (2023).
+
+[43] Fanqi Wan, Xinting Huang, Deng Cai, Xiaojun Quan, Wei Bi, and Shuming Shi. 2024. Knowledge fusion of large
+
+language models. arXiv preprint arXiv:2401.10491 (2024).
+
+[44] Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed Chi, Sharan Narang, et al. 2022. Self-consistency improves
+
+chain of thought reasoning in language models. arXiv preprint arXiv:2203.11171 (2022).
+
+[45] Cong Wei, Yang Chen, Haonan Chen, Hexiang Hu, Ge Zhang, Jie Fu, et al. 2023. Uniir: Training and benchmarking
+
+universal multimodal information retrievers. arXiv preprint arXiv:2311.17136 (2023).
+
+[46] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, et al. 2022. Chain-of-thought prompting elicits
+
+reasoning in large language models. Advances in neural information processing systems (2022).
+
+[47] Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang Zhu, et al. [n. d.]. AutoGen: Enabling Next-Gen
+
+LLM Applications via Multi-Agent Conversations. In First Conference on Language Modeling.
+
+[48] Yuehao Yin, Huiyan Qi, Bin Zhu, Jingjing Chen, Yu-Gang Jiang, and Chong-Wah Ngo. 2023. Foodlmm: A versatile
+
+food assistant using large multi-modal model. arXiv preprint arXiv:2312.14991 (2023).
+
+[49] Wayne Xin Zhao, Kun Zhou, Junyi Li, Tianyi Tang, Xiaolei Wang, et al. 2023. A survey of large language models.
+
+arXiv preprint arXiv:2303.18223 (2023).
+
+[50] Bin Zhu, Chong-Wah Ngo, Jingjing Chen, et al. 2019. R2gan: Cross-modal recipe retrieval with generative adversarial
+
+network. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition.

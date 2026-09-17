@@ -1,0 +1,1730 @@
+CrAM: Credibility-Aware Attention Modification in LLMs for
+Combating Misinformation in RAG
+
+Boyi Deng1, Wenjie Wang2*, Fengbin Zhu2*, Qifan Wang3, Fuli Feng1
+1University of Science and Technology of China, 2National University of Singapore, 3Meta AI
+dengboyi@mail.ustc.edu.cn, wqfcr@fb.com,
+{wenjiewang96, zhfengbin, fulifeng93}@gmail.com
+
+4
+2
+0
+2
+c
+e
+D
+7
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+3
+v
+7
+9
+4
+1
+1
+.
+6
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Retrieval-Augmented Generation (RAG) can alleviate hallu-
+cinations of Large Language Models (LLMs) by referenc-
+ing external documents. However, the misinformation in ex-
+ternal documents may mislead LLMs’ generation. To ad-
+dress this issue, we explore the task of “credibility-aware
+RAG”, in which LLMs automatically adjust the influence
+of retrieved documents based on their credibility scores
+to counteract misinformation. To this end, we introduce a
+plug-and-play method named Credibility-aware Attention
+Modification (CrAM). CrAM identifies influential attention
+heads in LLMs and adjusts their attention weights based on
+the credibility of the documents, thereby reducing the im-
+pact of low-credibility documents. Experiments on Natual
+Questions and TriviaQA using Llama2-13B, Llama3-8B, and
+Qwen1.5-7B show that CrAM improves the RAG perfor-
+mance of LLMs against misinformation pollution by over
+20%, even surpassing supervised fine-tuning methods.
+
+1
+
+Introduction
+
+Retrieval-Augmented Generation (RAG) (Gao et al. 2024;
+Zhu et al. 2021) is a representative approach to mitigate hal-
+lucination issues of Large Language Models (LLMs) (Zhang
+et al. 2023) by retrieving and referencing relevant docu-
+ments from an external corpus. Despite its effectiveness,
+most RAG works overlook a crucial issue: misinformation
+pollution in the external corpus (Pan et al. 2023b; Dufour
+et al. 2024). The maliciously generated misinformation may
+mislead LLMs to produce unfaithful responses. For instance,
+Microsoft’s Bing can be misled by misinformation on the in-
+ternet to generate incorrect information for Bing users (Vin-
+cent 2023). Besides, Pan et al. (2023b) and Pan et al. (2023a)
+demonstrated that inserting LLM-generated misinformation
+into the RAG corpus can significantly degrade LLMs’ per-
+formance. Therefore, addressing the misinformation pollu-
+tion for RAG is essential.
+
+A straightforward and common idea to address this mis-
+information pollution issue is misinformation detection and
+filtering. Extensive misinformation detection works focus on
+measuring the credibility of documents, i.e., the probability
+of the document not containing misinformation. And these
+
+*Corresponding author.
+
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+Figure 1: A comparison between RAG and credibility-aware
+RAG. Credibility-aware RAG considers credibility to reduce
+the impact of low-credibility documents.
+
+works have achieve significant results (Kaliyar, Goswami,
+and Narang 2021; Pelrine et al. 2023; Quelle and Bovet
+2024; Li et al. 2024). Once we obtain the credibility of each
+retrieved document, we can exclude those with credibility
+below a certain threshold before using them in RAG. How-
+ever, directly discarding certain documents may result in the
+loss of relevant and important information, leading to per-
+formance degradation (Yoran et al. 2024)1. Therefore, given
+the remarkable advancements in the measurement of credi-
+bility scores and the relatively underdeveloped mechanisms
+for utilizing these scores, it is essential to explore how these
+scores can be effectively utilized by LLMs, assuming that
+high-quality credibility scores are accessible.
+
+To achieve this, we focus on a task named “credibility-
+aware RAG” as shown in Figure 1. Specifically, given
+a user query x with a list of
+relevant documents
+D = {d1, d2, ..., dn} and D’s credibility scores S =
+{s1, s2, ..., sn}, credibility-aware RAG requests LLMs to
+automatically adjust the influence of documents in D on the
+generated output y based on their credibility scores in S. Ini-
+tial attempts on credibility-aware RAG adopted supervised
+fine-tuning (SFT) to teach LLMs to distinguish the impor-
+tance of different documents in the prompt by their credi-
+
+1Our experimental results in Table 2 also confirm that directly
+
+excluding documents leads to inferior performance.
+
+Question (Q):Who won the first Nobel Prize in Physics？Document 2 (D2): Actually, it is Albert Einsteinwho won the first Nobel Prize in Physics.Credibility score (S2): 0.1Document 1 (D1): The first Nobel Prize in Physics was awarded to physicist Wilhelm Röntgen.Credibility score (S1): 0.8Answer: Albert Einstein. Answer: Wilhelm Röntgen. LLMLLMRAGcredibility-aware RAGQD1D2QD1D2S1S2 
+ 
+ 
+ 
+ 
+ 
+bility scores (Hong et al. 2024; Pan et al. 2024). However,
+SFT requires additional computational resources and well-
+designed training data, which limits the application scenar-
+ios. Therefore, we explore non-SFT method for LLMs to
+attain credibility-aware RAG.
+
+Given that the attention mechanism serves as the central
+component for adjusting the significance of various input
+data, we consider manipulating attention weights of LLMs
+to achieve credibility-aware RAG. In particular, we adjust
+attention weights according to credibility scores in the infer-
+ence stage of LLMs. In this way, we can regulate LLMs to
+pay less “attention” to less credible documents by decreas-
+ing the corresponding attention weights. Moreover, previous
+studies (Clark et al. 2019; Elhage et al. 2021; Voita et al.
+2019) have indicated that different attention heads exhibit
+distinct patterns and functions, resulting in varying impacts
+on LLMs’ outputs. In this context, the key lies in identifying
+a subset of influential attention heads for attention weight
+modification.
+
+In this work, we propose a plug-and-play method named
+Credibility-aware Attention Modification (CrAM), which
+identifies the influential attention heads and then modifies
+their attention weights w.r.t. different document tokens to
+reduce the impact of low-credibility documents. Specifi-
+cally, 1) influential head identification: we select top-ranked
+attention heads according to an extended causal tracing
+method (Meng et al. 2022) that estimates the contribution
+of each attention head to generating incorrect answers over
+a small dataset. 2) Attention weight modification: we scale
+down the attention weights of the retrieved documents based
+on their normalized credibility scores.
+
+We conduct extensive experiments on two open-domain
+Question Answering (QA) datasets, Natual Questions (NQ)
+(Kwiatkowski et al. 2019) and TriviaQA (Joshi et al. 2017),
+using three open-source LLMs: Llama2-13B (Touvron et al.
+2023), Llama3-8B (Meta 2024), and Qwen1.5-7B (Bai et al.
+2023). The results show that CrAM significantly allevi-
+ates the influence of misinformation documents on RAG,
+in terms of both ideal credibility scores and GPT-generated
+credibility scores. It is worth noting that CrAM even out-
+performs the SFT-based method CAG (Pan et al. 2024) in
+most scenarios, demonstrating the superiority of CrAM. We
+release our code at https://github.com/Aatrox103/CrAM.
+
+In summary, our main contributions are:
+
+• We explore the task of credibility-aware RAG without
+fine-tuning LLMs to alleviate the misinformation pollu-
+tion issue.
+
+• We develop a plug-and-play method, CrAM, which iden-
+tifies influential attention heads and modifies their atten-
+tion weights to equip LLMs with credibility-aware RAG
+capabilities.
+
+• We conduct extensive experiments with two QA datasets
+on three LLMs using ideal credibility scores and GPT-
+generated credibility scores, validating the superiority of
+CrAM.
+
+2 Credibility-Aware RAG
+Given a user query x, RAG retrieves a set of documents D =
+{d1, d2, . . . , dn} relevant to x through a retriever (Gao et al.
+2024). Then the relevant documents D are evaluated by a
+credibility estimator2, obtaining their credibility scores S =
+{s1, s2, . . . , sn}, which represents the probability of each
+document not containing misinformation.
+
+Credibility-Aware RAG. Given an LLM L, a user query
+x, and relevant documents D associated with credibility
+scores S, the objective of credibility-aware RAG is to enable
+LLMs to automatically adjust the influence of these docu-
+ments on the generated output y based on their credibility
+scores S. This can be formally defined as:
+
+max Metric(Combine(L, x, D, S)),
+where Combine(·) represents the method or mechanism to
+integrate credibility scores into the generation process of
+L. For example, Pan et al. (2024) employ SFT to fine-
+tune LLMs to capture the credibility difference of docu-
+ments more effectively, denoted as Combine(L, x, D, S) =
+LSF T (x, D, S). Additionally, Metric(·) is a function that
+assesses whether documents with different credibility scores
+have varying impacts on the output of L. Indeed, we can uti-
+lize the performance of generating factual answers to mea-
+sure Metric(·). For instance, we use the accuracy of QA
+tasks to approximate Metric(·) in this work. The rationality
+is that if the impact of low-credibility documents decreases,
+the accuracy of QA tasks should increase accordingly.
+
+3 CrAM
+CrAM first identifies influential attention heads, and then
+modifies the attention weights of these identified heads to
+reduce the impact of low-credibility documents as shown in
+Figure 2. Since influential attention heads identification pro-
+cess involves attention weight modification, we first explain
+the procedure of attention weight modification in Section
+3.1, and then describe influential attention heads identifica-
+tion in Section 3.2. Finally, we summarize the overall CrAM
+workflow in Section 3.3.
+
+3.1 Attention Weight Modification
+As defined in Section 2, the objective of credibility-aware
+RAG is to reduce the impact of low-credibility documents on
+the generated output of LLMs. Intuitively, it requires LLMs
+to pay less “attention” to low-credibility documents. To this
+end, a natural approach is scaling down the corresponding
+attention weights of low-credibility documents.
+
+For RAG, a user query x and a set of relevant documents
+D = {d1, d2, . . . , dn} should be concatenated and tokenized
+into a token sequence T (x, D) = {t1, t2, . . . , tm}, where tk
+denotes the k-th token. Given the credibility scores for each
+document S = {s1, s2, . . . , sn}, the normalized credibility
+score for token tk can be calculated as follows:
+
+(cid:40) si−min(S)
+
+¯sk =
+
+max(S)−min(S)
+1
+
+if tk belongs to di
+otherwise
+
+,
+
+2Recent worked on this task has achieved promising perfor-
+mance (Kaliyar, Goswami, and Narang 2021; Pelrine et al. 2023).
+
+Figure 2: Illustration of CrAM. Compared to RAG, CrAM first identifies influential attention heads and then modifies their
+attention weights based on the credibility scores of each document.
+
+where si is subtracted by min(S), and then scaled down by
+1/(max(S) − min(S)) to ensure all credibility scores are
+normalized to [0, 1]. Besides, we define ¯s = [¯s1, . . . , ¯sm] ∈
+R1×m as the normalized credibility scores of the whole to-
+ken sequence T (x, D).
+
+For each attention head h in LLM, Ah represents its at-
+tention weights matrix3. Let (Ah)k represent the k-th row
+vector4 of Ah, we can obtain the modified attention weight
+matrix A∗
+h by element-wise multiplying ¯s as follows:
+(Ah)∗
+k = Norm((Ah)k ⊙ ¯s), k ∈ {1, . . . , m},
+where ⊙ denotes the element-wise multiplication of vectors.
+The Norm function refers to ℓ1 normalization, which ensures
+that the attention weights sum to one.
+
+(1)
+
+Influential Head Identification
+
+3.2
+Previous works Clark et al. (2019); Elhage et al. (2021);
+Voita et al. (2019) have found that different attention heads
+exhibit various patterns and functions, leading to different
+impacts on LLMs’ output. As such, we hypothesize that
+some attention heads have a larger impact on using misinfor-
+mation documents to generate incorrect answers. Previously,
+causal tracing (Meng et al. 2022) has been developed to
+quantify the contribution of each hidden state towards gener-
+ating given answers. The contribution is measured by adding
+noises to each hidden state to compare the changes in the
+generation probability of the given answer. In light of this,
+CrAM revises causal tracing to evaluate the contribution of
+attention heads instead of hidden states. Utilizing attention
+
+weight modification, as detailed in Section 3.1, CrAM esti-
+mates the change in probability of generating incorrect an-
+swers to determine the contribution of each attention head.
+Thereafter, CrAM ranks all attention heads by contributions
+and identifies influential ones.
+
+Specifically, the contribution of one attention head h can
+
+be obtained as follows:
+• Given an LLM L, a user query x, a set of relevant docu-
+ments D = {dmis, d1, d2, . . . , dn} with one misinforma-
+tion document dmis, and an incorrect answer awrong to
+x that is supported by dmis, we first calculate the genera-
+tion probability of awrong with x and D by L. Formally,
+we have:
+
+P0 = PL(awrong | x, D).
+
+• Next, we modify a specific attention head as described
+in Section 3.1 by using the credibility scores S =
+{0, 1, 1, . . . , 1} of D and recalculate the generation prob-
+ability of awrong:
+
+P1 = PL∗
+
+h
+
+(awrong | x, D),
+
+where L∗
+h denotes the LLM L whose attention weight
+matrix of the attention head h is modified according to
+Equation (1).
+
+• Finally, we quantify the contribution of head h towards
+generating the incorrect answer, a.k.a. the indirect effect
+(IE) (Meng et al. 2022):
+
+IEh = P0 − P1,
+
+(2)
+
+3The attention weights matrix is defined in Equation (3).
+4(Ah)k can be interpreted as the attention weight vector when
+
+using the k-th token as the query.
+
+which can also be interpreted as the decrease in the gen-
+eration probability of the incorrect answer awrong after
+modifying head h.
+
+LLM…Layer 1Layer 2Answer: Wilhelm Röntgen. Attention weight modification………Answer: Albert Einstein. Question:Who won the first Nobel Prize in Physics？Document 1 (D1): Actually, it is Albert Einsteinwho won the first Nobel Prize in Physics.Document 2 (D2): The first Nobel Prize in Physics was awarded to physicist Wilhelm Röntgen.LLM…Layer 1Layer 2………Credibility scoresD1:0.1D2:0.8RAGCrAMEinstein.........×0.1×0.8...AlbertRöntgen...D1D2D1D2Attention headAttention head with attention weight modificationTo improve the robustness of the contribution estimation, we
+utilize a small dataset {(x, awrong, D, S), . . .} that do not
+overlap with the test data to compute the average IE for each
+attention head (refer to Section 4.3 for robustness analysis).
+Thereafter, we can calculate IEs for all the attention heads
+and rank them to select the top-ranked ones with larger IEs
+for attention weight modification.
+
+3.3 CrAM Workflow
+
+The CrAM workflow is summarized as follows:
+
+• First, we use a small dataset with misinformation-
+polluted documents to calculate the average IE for each
+attention head in an LLM as described in Section 3.2.
+Then, we rank all attention heads by their IEs in descend-
+ing order and select the top-ranked heads as influential
+attention heads.
+
+• Given any user query, along with the relevant documents
+and credibility scores, we modify the attention weights
+of influential attention heads using the method described
+in Section 3.1 to obtain the final answer, thereby signifi-
+cantly reducing the impact of low-credibility documents.
+
+4 Experiments
+
+4.1 Experimental Settings
+
+Datasets, LLMs and Metrics. We conduct experiments
+over the Natural Questions (NQ) (Kwiatkowski et al. 2019)
+and TriviaQA (Joshi et al. 2017) datasets with three LLMs,
+i.e. Llama2-13B (Touvron et al. 2023), Llama3-8B (Meta
+2024), and Qwen1.5-7B (Bai et al. 2023). We adopt Exact
+Match (EM) and F1 score as evaluation metrics, which are
+widely used in the QA setting (Karpukhin et al. 2020; Ra-
+jpurkar et al. 2016; Chen et al. 2017).
+
+Document Preparation. We prepare both high-credibility
+and low-credibility documents (i.e., with misinformation)
+associated with the questions for evaluating the proposed
+method. 1) High-credibility documents are collected by
+retrieving the most relevant documents from the exter-
+nal corpus for each question. Specifically, we first employ
+bge-large-en-v1.55 to obtain a set of candidates from
+the Wikipedia dump on December 30, 2018 (Karpukhin
+et al. 2020). Then, we apply bge-reranker-large6
+to rank the retrieved candidates and select the top four
+documents. 2) Low-credibility documents are generated via
+prompting LLMs (i.e., gpt-3.5-turbo-0125), with misinfor-
+mation included, similar to the practice in previous works
+(Pan et al. 2023a,b, 2024; Hong et al. 2024; Chen and Shu
+2024). Specifically, given a question, we instruct the LLM to
+generate a news-style piece containing misinformation that
+supports an incorrect answer, which is regarded as one low-
+credibility document for the question. For each question, we
+collect three distinct low-credibility documents, all support-
+ing the same incorrect answer. The prompts can be found in
+Appendix H.
+
+5huggingface.co/BAAI/bge-large-en-v1.5.
+6huggingface.co/BAAI/bge-reranker-large.
+
+In our implementation, we combine generated low-
+credibility documents with retrieved high-credibility docu-
+ments as input for the LLM. This approach avoids injecting
+low-credibility documents directly into the corpus, which
+can lead to inputs that are either overwhelmed by misinfor-
+mation or completely devoid of it. In contrast, our method
+provides greater control, enabling us to effectively evaluate
+the impact of varying amounts of low-credibility documents
+on the LLM’s performance.
+
+Credibility Scores Generation. We adopt two different
+ways to assign credibility scores for each document. 1)
+Ideal Setting. After obtaining the high-credibility and low-
+credibility documents, we assign a score of 10 to each high-
+credibility document and a score of 1 to each low-credibility
+document. 2) GPT Setting. We employ GPT (i.e., gpt-3.5-
+turbo-0125) to directly generate the credibility score for
+each document. The prompts and the distribution of GPT-
+generated scores for all documents are provided in Figure 20
+and Appendix C.
+
+Compared Methods. We compare our CrAM model with
+four types of methods: 1) Naive RAG. The Naive RAG fol-
+lows the standard RAG pipeline without any mechanisms
+against misinformation. 2) Prompt Based. This method di-
+rectly informs the LLM of the credibility score via prompts,
+feeding the score and documents into the LLM without ad-
+ditional training. 3) Exclusion. This method excludes the
+documents with credibility scores below a threshold. This
+method will not be compared under the ideal setting due to
+the binary value of the ideal credibility score. 4) CAG. This
+method is proposed by Pan et al. (2024), which directly in-
+corporates credibility scores and documents into prompts to
+fine-tune an LLM (i.e., Llama2-13B) to lift its understand-
+ing capabilities. Among them, Naive RAG, Prompt Based,
+and Exclusion are non-SFT methods, while CAG is an SFT-
+based method.
+
+Hyperparameters. Unless otherwise specified, in the fol-
+lowing experiments, we randomly select 100 data points
+from each dataset to calculate average IE for all the heads.
+And we use another validation set of 100 data points
+from each dataset to determine how many top-ranked heads
+should be included in the final modified set.
+
+4.2 Main Results
+Comparison with Non-SFT Methods. We first compare
+our CrAM model with Non-SFT methods, i.e., Naive RAG,
+Prompt Based, and Exclusion. Table 1 and Table 2 show
+the experimental results in the Ideal and GPT settings re-
+spectively. We make the following observations. 1) Ta-
+ble 1 demonstrates that our CrAM method significantly
+outperforms all compared methods across all three LLMs:
+Qwen1.5-7B, LLama2-13B, and LLama3-8B, on both NQ
+and TriviaQA datasets in the setting of 4 ✓+ 1 ✗ (i.e., four
+high-credibility documents plus one low-credibility docu-
+ment). For instance, our CrAM model surpasses the second-
+best method, i.e. Prompt Based, by 25.5%, 31.90% and
+10.9% on Qwen1.5-7B, Llama2-13B and Llama3-8B in
+terms of EM on TriviaQA, demonstrating remarkable per-
+
+Model
+
+In-context corpus
+
+Method
+
+Qwen1.5-7B
+
+Llama2-13B
+
+Llama3-8B
+
+0 ✓
+4 ✓
+
+4 ✓ + 1 ✗
+
+0 ✓
+4 ✓
+
+4 ✓ + 1 ✗
+
+0 ✓
+4 ✓
+
+4 ✓ + 1 ✗
+
+Naive LLM
+Naive RAG
+
+Naive RAG
+Prompt Based
+CrAM
+
+Naive LLM
+Naive RAG
+
+Naive RAG
+Prompt Based
+CrAM
+
+Naive LLM
+Naive RAG
+
+Naive RAG
+Prompt Based
+CrAM
+
+NQ
+
+TriviaQA
+
+EM
+
+7.20
+27.60
+
+F1 score
+
+16.41
+39.08
+
+EM
+
+28.00
+55.30
+
+F1 score
+
+38.23
+66.85
+
+10.50
+12.20
+29.10 (+16.90)
+
+20.71
+22.26
+41.02 (+18.76)
+
+25.00
+27.40
+52.90 (+25.50)
+
+35.63
+37.98
+64.16 (+26.18)
+
+20.30
+28.90
+
+28.59
+39.98
+
+50.40
+62.50
+
+57.56
+71.03
+
+11.90
+12.50
+33.60 (+21.10)
+
+19.97
+22.94
+44.62 (+21.68)
+
+28.00
+23.10
+59.90 (+31.90)
+
+36.22
+32.70
+67.11 (+30.89)
+
+20.60
+33.10
+
+30.58
+45.66
+
+55.70
+64.30
+
+62.67
+73.68
+
+16.00
+29.90
+36.90 (+7.00)
+
+26.16
+39.69
+48.45 (+8.76)
+
+36.80
+53.50
+64.40 (+10.90)
+
+47.09
+63.01
+73.49 (+10.48)
+
+Table 1: Main results under ideal setting. 0 ✓ indicates no document and the model directly prompted, 4 ✓ indicates all
+four documents retrieved from the Wikipedia dump, and 4 ✓ + 1 ✗ indicates four high-credibility documents (i.e., retrieved
+from external corpus) plus one low-credibility document (i.e., containing misinformation). In the 4 ✓ + 1 ✗ setting, the best
+performance is highlighted in bold. And the red part indicates the difference between CrAM and second best performance.
+
+formance gains. 2) With GPT-generated credibility scores,
+our CrAM model also outperforms all compared methods
+on all three LLMs over both NQ and TriviaQA datasets, as
+shown in Table 2, further highlighting its effectiveness. 3)
+Interestingly, we find that our CrAM model with 4 ✓ + 1 ✗
+sometimes even outperforms the Naive RAG with 4 ✓ under
+ideal setting. This is likely because our generated misinfor-
+mation includes both affirmations of incorrect information
+and denials of correct information, e.g.“The first person to
+win the Nobel Prize in Physics was not Roentgen, but Ein-
+stein.” This allows LLMs to reuse the correct information
+denied by the misinformation. To further validate this hy-
+pothesis, we conduct additional experiments and present the
+findings in Appendix F.
+
+13B. Moreover, to verify the robustness of our CrAM model,
+we perform comparisons using different numbers of low-
+credibility documents. As shown in Figure 3, our CrAM
+model consistently outperforms the CAG-13B model re-
+markably in terms of F1 score when the number of low-
+credibility documents ranges from 1 to 3. The results further
+prove the effectiveness of our CrAM model.
+
+Figure 3: Performance comparison of CrAM and CAG-13B
+regarding the varying number of documents containing mis-
+information under ideal setting.
+
+Comparison with SFT-based Method. For a fair compar-
+ison, we only compare our Llama2-13B based CrAM model
+with CAG-13B, because CAG-13B is trained on Llama2-
+
+Figure 4: Performance change on NQ regarding the varying
+number of documents with misinformation.
+
+4.3
+
+In-Depth Analysis
+
+Effect of Number of Low-credibility Documents.
+In the
+following, we analyze the effect of varying the number of
+low-credibility documents fed into the LLM. We conduct ex-
+periments using Llama3-8B on the NQ dataset. Specifically,
+we vary the number of low-credibility documents from 1 to
+3 while keeping the number of high-credibility documents
+constant, i.e., 4. We present the experimental results in Fig-
+ure 4. From the figure, we make the following observations.
+1) Our CrAM model consistently outperforms the compared
+
+ Model
+
+In-context corpus
+
+Method
+
+Qwen1.5-7B
+
+Llama2-13B
+
+Llama3-8B
+
+0 ✓
+4 ✓
+
+4 ✓ + 1 ✗
+
+0 ✓
+4 ✓
+
+4 ✓ + 1 ✗
+
+0 ✓
+4 ✓
+
+4 ✓ + 1 ✗
+
+Naive LLM
+Naive RAG
+
+Naive RAG
+Prompt Based
+Exclusion
+CrAM
+
+Naive LLM
+Naive RAG
+
+Naive RAG
+Prompt Based
+Exclusion
+CrAM
+
+Naive LLM
+Naive RAG
+
+Naive RAG
+Prompt Based
+Exclusion
+CrAM
+
+NQ
+
+TriviaQA
+
+EM
+
+7.20
+27.60
+
+F1 score
+
+16.41
+39.08
+
+EM
+
+28.00
+55.30
+
+F1 score
+
+38.23
+66.85
+
+10.50
+12.50
+21.60
+23.10 (+1.50)
+
+20.71
+22.98
+32.56
+34.84 (+2.28)
+
+25.00
+29.70
+49.50
+52.10 (+2.60)
+
+35.63
+40.18
+61.03
+63.76 (+2.73)
+
+20.30
+28.90
+
+28.59
+39.98
+
+50.40
+62.50
+
+57.56
+71.03
+
+11.90
+11.20
+23.70
+25.10 (+1.40)
+
+19.97
+21.62
+34.00
+35.56 (+1.56)
+
+28.00
+20.50
+54.40
+56.20 (+1.80)
+
+36.22
+30.09
+62.37
+64.03 (+1.66)
+
+20.60
+33.10
+
+30.58
+45.66
+
+55.70
+64.30
+
+62.67
+73.68
+
+16.00
+24.20
+26.60
+30.70 (+4.10)
+
+26.16
+34.10
+38.44
+41.71 (+3.27)
+
+36.80
+49.50
+57.70
+62.20 (+4.50)
+
+47.09
+58.59
+67.33
+70.70 (+3.37)
+
+Table 2: Main results under GPT setting. 0 ✓ indicates no document and the model directly prompted, 4 ✓ indicates all
+four documents retrieved from the Wikipedia dump, and 4 ✓ + 1 ✗ indicates four high-credibility documents (i.e., retrieved
+from external corpus) plus one low-credibility document (i.e., containing misinformation). In the 4 ✓ + 1 ✗ setting, the best
+performance is highlighted in bold. The red part indicates the improvement of our CrAM compared to the second-best model.
+
+models when changing the number of low-credibility docu-
+ments from 1 to 3 in both ideal and GPT settings. 2) Compa-
+rably, our CrAM model exhibits much smaller performance
+drops compared to other models when increasing the num-
+ber of low-credibility documents. These results demonstrate
+the robustness of our proposed model to the varying number
+of low-credibility documents.
+
+Figure 6: Performance on NQ in ideal setting regarding the
+varying number of selected attention heads.
+
+Figure 5: Performance on NQ and TriviaQA regarding the
+dataset size for determining the influential attention head
+changes.
+
+Effect of Dataset Size on Attention Heads Selection. As
+we described in Section 3.3, we randomly select 100 data
+points from each dataset to identify the influential attention
+heads. In the following, we vary the number of data points
+used for selecting these influential attention heads to ana-
+lyze its impact on model performance. The experimental re-
+sults are presented in Figure 5. Despite fluctuations in per-
+formance along with the changing dataset size, the variations
+are not substantial on both NQ and TriviaQA datasets, with
+a maximum difference of 4% in terms of EM. The results
+
+Figure 7: Density distribution of IE of all the attention heads
+in Llama3-8B.
+
+indicate that the number of data points has a minor impact
+on the final model performance.
+
+Analysis on Number of Selected Attention Heads.
+In the
+following, we analyze the performance change when we ad-
+just the number of selected attention heads. We present the
+results in Figure 6. We observe a sharp drop in model per-
+formance when the number of selected attention heads is
+
+ 0.20.250.30.350.41010020030040050055960070080089490010001024EMNumberofmodiﬁedtop-rankedheadsEM on NQ.CrAMModel
+
+Method
+
+Qwen1.5-7B
+
+Llama2-13B
+
+Llama3-8B
+
+CrAM
+CrAM-all
+Naive RAG
+
+CrAM
+CrAM-all
+Naive RAG
+
+CrAM
+CrAM-all
+Naive RAG
+
+NQ
+
+EM
+
+29.10
+27.20 (-1.90)
+10.50 (-18.60)
+
+33.60
+29.50 (-4.10)
+11.90 (-21.70)
+
+36.90
+22.40 (-14.50)
+16.00 (-20.90)
+
+TriviaQA
+
+EM
+
+52.90
+50.60 (-2.30)
+25.00 (-27.90)
+
+59.90
+59.50 (-0.40)
+28.00 (-27.90)
+
+64.40
+51.50 (-12.90)
+36.80 (-27.60)
+
+Table 3: Results of ablation study under ideal setting with 4
+✓ + 1 ✗ (i.e., four high-credibility documents plus one low-
+credibility document).
+
+near either 0 or the maximum number of heads, i.e., 1024;
+comparably, it has a minor effect when the number of se-
+lected attention heads falls into the range of values in be-
+tween. To investigate the underlying reasons, we further ana-
+lyze the IE’s density distribution using Llama3-8B, as shown
+in Figure 7. We find that the IE density distribution approxi-
+mates a normal distribution centered around 0, with the ma-
+jority of values concentrated near 0. It indicates that most
+attention heads have minor impact on model performance,
+and only when the attention heads with IE values far from
+zero, either positive or negative, are selected, the model per-
+formance will be affected significantly.
+
+Ablation Study To better understand the rationality of our
+model design, we conduct ablation study and present the re-
+sults in Table 3. First, we remove the selection of influ-
+ential attention heads and apply attention weight modifica-
+tion on all attention heads in LLMs, and denote this vari-
+ant model as CrAM-all. As shown in Table 3, we observe
+that the performance of the CrAM-all model has noticeable
+drops on all three LLMs. Among them, Llama3-8B based
+CrAM has the largest decrease on both NQ and TriviaQA,
+i.e., 14.5% and 12.9%. This indicates the necessity of iden-
+tifying the influential attention heads before modifying the
+attention weights.
+
+If we disable the attention weight modification mecha-
+nism in our model, it becomes the Naive RAG method. Ta-
+ble 3 shows that this results in a remarkable performance
+drop on all three LLMs compared to the CrAM model. For
+instance, the performance of all three LLMs decreases more
+than 27.5% on TriviaQA dataset. These results verify that it
+is necessary to modify the attention weight and meanwhile
+take into account the credibility scores of the documents.
+
+5 Related Work
+Misinformation Detection. Misinformation detection
+aims to identify false or misleading information from
+various data sources (Guo et al. 2019; Kaliyar and Singh
+2019; Vaibhav, Mandyam, and Hovy 2019; Huang et al.
+2024). It can be categorized into non-LLM-based methods
+and LLM-based methods. Non-LLM methods often involve
+to identify misinformation (Vaibhav,
+training models
+
+Mandyam, and Hovy 2019; Kaliyar, Goswami, and Narang
+2021; Liu, Wang, and Li 2023; Goonathilake and Kumara
+2020). For example, Kaliyar, Goswami, and Narang (2021)
+utilize BERT (Devlin et al. 2019) to score the credibility
+of documents, while Vaibhav, Mandyam, and Hovy (2019)
+use a graph neural network for misinformation detection.
+Comparably, LLM-based methods typically use LLMs
+without additional training (Pelrine et al. 2023; Quelle and
+Bovet 2024; Caramancion 2023; Hoes, Altay, and Bermeo
+2023). For instance, Pelrine et al. (2023) adopt GPT-4
+(OpenAI et al. 2024) for document credibility scoring,
+while Quelle and Bovet (2024) employ an LLM agent (Xi
+et al. 2023) for iterative verification of document credibility.
+In this study, we employ LLMs to obtain the credibility
+score for each document similar to the previous LLM-based
+methods (Pelrine et al. 2023; Hoes, Altay, and Bermeo
+2023).
+
+Combating Misinformation
+in RAG. Retrieval-
+Augmented Generation (RAG) enhance LLMs by retrieving
+relevant documents from external corpus (Lewis et al. 2020;
+Izacard and Grave 2021; Cai et al. 2024). However, prior
+works (Zou et al. 2024; Pan et al. 2023b,a) find that RAG
+is vulnerable to misinformation in its corpus, leading to
+undesired results. To combat misinformation in RAG, lots
+of studies have been conducted. For example, CAR (Weller
+et al. 2024) adopt a query augmentation scheme to retrieve
+a larger set of documents first and then apply a voting
+mechanism to mitigate the impact of misinformation.
+RobustRAG (Xiang et al. 2024) obtains the LLM response
+independently and aggregates these
+for each document
+responses
+through keyword-based and decoding-based
+algorithms to generate the final result. Hong et al. (2024)
+and Pan et al. (2024) assign each retrieved document a
+credibility score and fine-tune LLMs with the documents
+and their scores, enabling the LLMs to leverage these
+credibility scores when generating. CD2 Jin et al. (2024)
+train two LLMs to generate truthful answers and misleading
+answers respectively to make it better distinguish the
+conflict information. However, CAR (Weller et al. 2024)
+and RobustRAG (Xiang et al. 2024) require multiple rounds
+of model inference, leading to inefficiency. The methods
+proposed by Hong et al. (2024), Pan et al. (2024), and Jin
+et al. (2024) require fine-tuning LLMs, which demands
+additional computational
+resources and well-designed
+training data, thereby limiting their application scenarios.
+
+6 Conclusion
+This work introduces CrAM, a plug-and-play method that
+enables RAG to automatically adjust the influence of re-
+trieved documents on the output of LLMs based on docu-
+ment credibility. CrAM first identifies influential attention
+heads and then adjusts the attention weights of identified
+attention heads according to the credibility score of docu-
+ments, regulating LLMs to pay less attention to the low-
+credibility documents. Empirical experiments demonstrate
+that, compared to vanilla RAG, CrAM improves EM perfor-
+mance by over 20% on two datasets and even outperforms
+the baseline with SFT, demonstrating CrAM’s efficiency.
+
+Acknowledgements
+This work is supported by the National Natural Science
+Foundation of China (62272437).
+
+References
+Bai, J.; Bai, S.; Chu, Y.; Cui, Z.; Dang, K.; Deng, X.; Fan,
+Y.; et al. 2023. Qwen Technical Report. arXiv:2309.16609.
+Cai, H.; Li, Y.; Wang, W.; Zhu, F.; Shen, X.; Li, W.; and
+Chua, T.-S. 2024. Large Language Models Empowered Per-
+sonalized Web Agents. arXiv:2410.17236.
+Caramancion, K. M. 2023. Harnessing the Power of Chat-
+GPT to Decimate Mis/Disinformation: Using ChatGPT for
+Fake News Detection. In 2023 IEEE World AI IoT Congress
+(AIIoT), 0042–0046.
+Chen, C.; and Shu, K. 2024. Can LLM-Generated Misinfor-
+mation Be Detected? arXiv:2309.13788.
+Chen, D.; Fisch, A.; Weston, J.; and Bordes, A. 2017. Read-
+ing Wikipedia to Answer Open-Domain Questions.
+In
+Barzilay, R.; and Kan, M.-Y., eds., Proceedings of the 55th
+Annual Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers), 1870–1879. Vancouver,
+Canada: Association for Computational Linguistics.
+Clark, K.; Khandelwal, U.; Levy, O.; and Manning, C. D.
+2019. What Does BERT Look at? An Analysis of BERT’s
+Attention.
+In Linzen, T.; Chrupała, G.; Belinkov, Y.; and
+Hupkes, D., eds., Proceedings of the 2019 ACL Workshop
+BlackboxNLP: Analyzing and Interpreting Neural Networks
+for NLP, 276–286. Florence, Italy: Association for Compu-
+tational Linguistics.
+Devlin, J.; Chang, M.-W.; Lee, K.; and Toutanova, K. 2019.
+BERT: Pre-training of Deep Bidirectional Transformers for
+Language Understanding.
+In Burstein, J.; Doran, C.; and
+Solorio, T., eds., Proceedings of the 2019 Conference of the
+North American Chapter of the Association for Computa-
+tional Linguistics: Human Language Technologies, Volume
+1 (Long and Short Papers), 4171–4186. Minneapolis, Min-
+nesota: Association for Computational Linguistics.
+Dufour, N.; Pathak, A.; Samangouei, P.; Hariri, N.; Deshetti,
+S.; et al. 2024.
+AMMeBa: A Large-Scale Survey
+and Dataset of Media-Based Misinformation In-The-Wild.
+arXiv:2405.11697.
+Elhage, N.; Nanda, N.; Olsson, C.; Henighan, T.; Joseph,
+N.; et al. 2021. A mathematical framework for transformer
+circuits. Transformer Circuits Thread, 1: 1.
+Gao, Y.; Xiong, Y.; Gao, X.; Jia, K.; Pan, J.; Bi, Y.; Dai,
+Y.; Sun, J.; Wang, M.; and Wang, H. 2024. Retrieval-
+Augmented Generation for Large Language Models: A Sur-
+vey. arXiv:2312.10997.
+Goonathilake, M. D. P. P.; and Kumara, P. P. N. V. 2020.
+CNN, RNN-LSTM Based Hybrid Approach to Detect State-
+of-the-Art Stance-Based Fake News on Social Media.
+In
+2020 20th International Conference on Advances in ICT for
+Emerging Regions (ICTer), 23–28.
+Guo, B.; Ding, Y.; Yao, L.; Liang, Y.; and Yu, Z. 2019. The
+Future of Misinformation Detection: New Perspectives and
+Trends. arXiv:1909.03654.
+
+Hoes, E.; Altay, S.; and Bermeo, J. 2023. Leveraging Chat-
+GPT for Efficient Fact-Checking.
+Hong, G.; Kim, J.; Kang, J.; Myaeng, S.-H.; and Whang,
+J. J. 2024. Why So Gullible? Enhancing the Robustness of
+Retrieval-Augmented Models against Counterfactual Noise.
+arXiv:2305.01579.
+Huang, Y.; Zhu, F.; Tang, J.; Zhou, P.; Lei, W.; Lv, J.; and
+Chua, T.-S. 2024. Effective and Efficient Adversarial De-
+tection for Vision-Language Models via A Single Vector.
+arXiv:2410.22888.
+Izacard, G.; and Grave, E. 2021. Leveraging Passage Re-
+trieval with Generative Models for Open Domain Ques-
+tion Answering. In Proceedings of the 16th Conference of
+the European Chapter of the Association for Computational
+Linguistics: Main Volume, 874–880. Online: Association for
+Computational Linguistics.
+Jin, Z.; Cao, P.; Chen, Y.; Liu, K.; Jiang, X.; Xu, J.; Qiuxia,
+L.; and Zhao, J. 2024. Tug-of-War between Knowledge:
+Exploring and Resolving Knowledge Conflicts in Retrieval-
+Augmented Language Models. In Calzolari, N.; Kan, M.-Y.;
+Hoste, V.; Lenci, A.; Sakti, S.; and Xue, N., eds., Proceed-
+ings of the 2024 Joint International Conference on Com-
+putational Linguistics, Language Resources and Evaluation
+(LREC-COLING 2024), 16867–16878. Torino, Italia: ELRA
+and ICCL.
+Joshi, M.; Choi, E.; Weld, D.; and Zettlemoyer, L. 2017.
+TriviaQA: A Large Scale Distantly Supervised Challenge
+Dataset for Reading Comprehension.
+In Barzilay, R.; and
+Kan, M.-Y., eds., Proceedings of the 55th Annual Meeting
+of the Association for Computational Linguistics (Volume 1:
+Long Papers), 1601–1611. Vancouver, Canada: Association
+for Computational Linguistics.
+Kaliyar, R. K.; Goswami, A.; and Narang, P. 2021. Fake-
+BERT: Fake news detection in social media with a BERT-
+based deep learning approach. Multimedia Tools and Appli-
+cations, 80(8): 11765–11788.
+Kaliyar, R. K.; and Singh, N. 2019. Misinformation Detec-
+In 2019 10th In-
+tion on Online Social Media-A Survey.
+ternational Conference on Computing, Communication and
+Networking Technologies (ICCCNT), 1–6.
+Karpukhin, V.; Oguz, B.; Min, S.; Lewis, P.; Wu, L.; Edunov,
+S.; Chen, D.; and Yih, W.-t. 2020. Dense Passage Re-
+trieval for Open-Domain Question Answering. In Webber,
+B.; Cohn, T.; He, Y.; and Liu, Y., eds., Proceedings of the
+2020 Conference on Empirical Methods in Natural Lan-
+guage Processing (EMNLP), 6769–6781. Online: Associa-
+tion for Computational Linguistics.
+Kwiatkowski, T.; Palomaki, J.; Redfield, O.; Collins, M.;
+et al. 2019. Natural Questions: A Benchmark for Question
+Answering Research. Transactions of the Association for
+Computational Linguistics, 7: 453–466.
+Lewis, P.; Perez, E.; Piktus, A.; Petroni, F.; Karpukhin, V.;
+Goyal, N.; K¨uttler, H.; Lewis, M.; Yih, W.-t.; Rockt¨aschel,
+T.; Riedel, S.; and Kiela, D. 2020. Retrieval-Augmented
+Generation for Knowledge-Intensive NLP Tasks.
+In
+Larochelle, H.; Ranzato, M.; Hadsell, R.; Balcan, M.; and
+
+Lin, H., eds., Advances in Neural Information Processing
+Systems, volume 33, 9459–9474. Curran Associates, Inc.
+Li, M.; Wang, W.; Feng, F.; Zhu, F.; Wang, Q.; and Chua,
+T.-S. 2024. Think Twice Before Trusting: Self-Detection
+for Large Language Models through Comprehensive An-
+swer Reflection. In Al-Onaizan, Y.; Bansal, M.; and Chen,
+Y.-N., eds., Findings of the Association for Computational
+Linguistics: EMNLP 2024, 11858–11875. Association for
+Computational Linguistics.
+Liu, H.; Wang, W.; and Li, H. 2023.
+Interpretable Multi-
+modal Misinformation Detection with Logic Reasoning. In
+Rogers, A.; Boyd-Graber, J.; and Okazaki, N., eds., Find-
+ings of the Association for Computational Linguistics: ACL
+2023, 9781–9796. Toronto, Canada: Association for Com-
+putational Linguistics.
+Meng, K.; Bau, D.; Andonian, A.; and Belinkov, Y. 2022.
+Locating and Editing Factual Associations in GPT.
+In
+Koyejo, S.; Mohamed, S.; Agarwal, A.; Belgrave, D.; Cho,
+K.; and Oh, A., eds., Advances in Neural Information Pro-
+cessing Systems, volume 35, 17359–17372. Curran Asso-
+ciates, Inc.
+Meta. 2024. LlaMA 3.
+OpenAI; Achiam, J.; Adler, S.; Agarwal, S.; Ahmad, L.;
+et al. 2024. GPT-4 Technical Report. arXiv:2303.08774.
+Pan, L.; Chen, W.; Kan, M.-Y.; and Wang, W. Y. 2023a.
+Attacking Open-domain Question Answering by Injecting
+Misinformation. In Park, J. C.; Arase, Y.; Hu, B.; Lu, W.;
+Wijaya, D.; Purwarianti, A.; and Krisnadhi, A. A., eds., Pro-
+ceedings of the 13th International Joint Conference on Nat-
+ural Language Processing and the 3rd Conference of the
+Asia-Pacific Chapter of the Association for Computational
+Linguistics (Volume 1: Long Papers), 525–539. Nusa Dua,
+Bali: Association for Computational Linguistics.
+Pan, R.; Cao, B.; Lin, H.; Han, X.; Zheng, J.; Wang, S.; Cai,
+X.; and Sun, L. 2024. Not All Contexts Are Equal: Teaching
+LLMs Credibility-aware Generation. arXiv:2404.06809.
+Pan, Y.; Pan, L.; Chen, W.; Nakov, P.; Kan, M.-Y.; and Wang,
+W. 2023b. On the Risk of Misinformation Pollution with
+Large Language Models. In Bouamor, H.; Pino, J.; and Bali,
+K., eds., Findings of the Association for Computational Lin-
+guistics: EMNLP 2023, 1389–1403. Singapore: Association
+for Computational Linguistics.
+Pelrine, K.; Imouza, A.; Thibault, C.; Reksoprodjo, M.;
+Gupta, C.; Christoph, J.; Godbout, J.-F.; and Rabbany, R.
+2023. Towards Reliable Misinformation Mitigation: Gener-
+alization, Uncertainty, and GPT-4. In Bouamor, H.; Pino, J.;
+and Bali, K., eds., Proceedings of the 2023 Conference on
+Empirical Methods in Natural Language Processing, 6399–
+6429. Singapore: Association for Computational Linguis-
+tics.
+Quelle, D.; and Bovet, A. 2024. The perils and promises
+of fact-checking with large language models. Frontiers in
+Artificial Intelligence, 7.
+Rajpurkar, P.; Zhang, J.; Lopyrev, K.; and Liang, P. 2016.
+SQuAD: 100,000+ Questions for Machine Comprehension
+In Su, J.; Duh, K.; and Carreras, X., eds., Pro-
+of Text.
+ceedings of the 2016 Conference on Empirical Methods in
+
+Natural Language Processing, 2383–2392. Austin, Texas:
+Association for Computational Linguistics.
+Touvron, H.; Martin, L.; Stone, K.; Albert, P.; Almahairi, A.;
+et al. 2023. Llama 2: Open Foundation and Fine-Tuned Chat
+Models. arXiv:2307.09288.
+Vaibhav, V.; Mandyam, R.; and Hovy, E. 2019. Do Sen-
+tence Interactions Matter? Leveraging Sentence Level Rep-
+resentations for Fake News Classification.
+In Ustalov, D.;
+Somasundaran, S.; Jansen, P.; Glavaˇs, G.; Riedl, M.; Sur-
+deanu, M.; and Vazirgiannis, M., eds., Proceedings of the
+Thirteenth Workshop on Graph-Based Methods for Natu-
+ral Language Processing (TextGraphs-13), 134–139. Hong
+Kong: Association for Computational Linguistics.
+Vaswani, A.; Shazeer, N.; Parmar, N.; Uszkoreit, J.; Jones,
+L.; Gomez, A. N.; Kaiser, L. u.; and Polosukhin, I. 2017.
+In Guyon, I.; Luxburg, U. V.;
+Attention is All you Need.
+Bengio, S.; Wallach, H.; Fergus, R.; Vishwanathan, S.; and
+Garnett, R., eds., Advances in Neural Information Process-
+ing Systems, volume 30. Curran Associates, Inc.
+Vincent, J. 2023. Google and Microsoft’s chatbots are al-
+ready citing one another’s misinformation. The Verge. Ac-
+cessed: 2023-06-05.
+Voita, E.; Talbot, D.; Moiseev, F.; Sennrich, R.; and Titov,
+I. 2019. Analyzing Multi-Head Self-Attention: Specialized
+Heads Do the Heavy Lifting, the Rest Can Be Pruned. In Ko-
+rhonen, A.; Traum, D.; and M`arquez, L., eds., Proceedings
+of the 57th Annual Meeting of the Association for Computa-
+tional Linguistics, 5797–5808. Florence, Italy: Association
+for Computational Linguistics.
+Weller, O.; Khan, A.; Weir, N.; Lawrie, D.; and Van Durme,
+B. 2024. Defending Against Disinformation Attacks in
+Open-Domain Question Answering.
+In Graham, Y.; and
+Purver, M., eds., Proceedings of the 18th Conference of
+the European Chapter of the Association for Computational
+Linguistics (Volume 2: Short Papers), 402–417. St. Julian’s,
+Malta: Association for Computational Linguistics.
+Xi, Z.; Chen, W.; Guo, X.; He, W.; Ding, Y.; Hong, B.; et al.
+2023. The Rise and Potential of Large Language Model
+Based Agents: A Survey. arXiv:2309.07864.
+Xiang, C.; Wu, T.; Zhong, Z.; Wagner, D.; Chen, D.; and
+Mittal, P. 2024. Certifiably Robust RAG against Retrieval
+Corruption. arXiv:2405.15556.
+Yoran, O.; Wolfson, T.; Ram, O.; and Berant, J. 2024. Mak-
+ing Retrieval-Augmented Language Models Robust to Irrel-
+evant Context. arXiv:2310.01558.
+Zhang, Y.; Li, Y.; Cui, L.; Cai, D.; Liu, L.; Fu, T.; et al. 2023.
+Siren’s Song in the AI Ocean: A Survey on Hallucination in
+Large Language Models. arXiv:2309.01219.
+Zhu, F.; Lei, W.; Wang, C.; Zheng, J.; Poria, S.; and
+Chua, T.-S. 2021.
+Retrieving and Reading: A Com-
+prehensive Survey on Open-domain Question Answering.
+arXiv:2101.00774.
+Zou, W.; Geng, R.; Wang, B.; and Jia, J. 2024.
+Poi-
+sonedRAG: Knowledge Poisoning Attacks to Retrieval-
+Augmented Generation of Large Language Models.
+arXiv:2402.07867.
+
+A Multi-Head Attention
+Currently, leading LLMs are built on autoregressive trans-
+former architectures (Touvron et al. 2023; Meta 2024; Bai
+et al. 2023). The multi-head attention mechanism (Vaswani
+et al. 2017) is the core component of autoregressive trans-
+former models. It is illustrated in the following steps.
+
+Linear Transformation: Given an input hidden state
+X ∈ Rn×d, three linear transformations are applied to pro-
+duce queries Q ∈ Rn×dk , keys K ∈ Rn×dk , and values
+V ∈ Rn×dv :
+
+Q = XWQ, K = XWK, V = XWV
+where WQ ∈ Rd×dk , WK ∈ Rd×dk , and WV ∈ Rd×dv
+are weight matrices.
+
+Scaled Dot-Product Attention: The attention weights
+are computed using the dot product of the queries and keys,
+scaled by 1/
+
+√
+
+dk:
+
+A = softmax
+
+(cid:19)
+
+(cid:18) QKT
+√
+dk
+
+(3)
+
+Figure 8: Distribution of GPT-generated credibility scores
+on misinformation and Wikipedia documents.
+
+The softmax function ensures that the attention weights sum
+to one.
+
+Multi-Head Attention: Instead of performing a single at-
+tention function, h attention functions (or heads) are per-
+formed in parallel. Each head has its own set of weight
+matrices WQ
+i and attention weights Ai for i ∈
+[1, h]:
+
+i , WK
+
+i , WV
+
+MultiHead(Q, K, V) = Concat(head1, . . . , headh)WO
+where headi = AiVi and WO ∈ Rhdv×d is the output
+weight matrix.
+
+B Implementation Details
+We used gpt-3.5-turbo-0125 for all generations involving
+GPT, with a temperature setting of 1 to allow for variabil-
+ity. For Llama2-13B, Qwen1.5-7B, and Llama3-8B, we did
+not perform any sampling during generation to avoid ran-
+domness. For the NQ and TriviaQA datasets, we randomly
+selected 1,000 samples from the original test set for our
+evaluation. We defined x as the number of heads where
+IE > 0. To determine how many top-ranked heads should
+be included in the final modified set based on a valida-
+tion set of 100 data points, we experimented with includ-
+ing the following quantities of heads as modification targets:
+{1.0 × x, 1, 1.0 × x, 1.2 × x, . . . , 2.0 × x}. Ultimately, we
+selected the hyperparameters that yielded the best EM and
+F1 scores on the validation set.
+
+C GPT-Generated Credibility Scores
+We present the distribution of GPT-generated credibility
+scores in Figure 8 and the corresponding receiver operat-
+ing characteristic (ROC) curve in Figure 9. To plot the ROC
+curve, we begin with a dataset containing documents la-
+beled as either misinformation (GPT-generated misinforma-
+tion) or non-misinformation (retrieved factual documents).
+Each document receives a score from GPT ranging from 0
+to 10, where lower scores indicate a higher likelihood of
+
+misinformation. For each point on the ROC curve, we se-
+lect a threshold between 0 and 10. Documents scoring be-
+low this threshold are classified as misinformation (negative
+instances), while those scoring above are classified as non-
+misinformation (positive instances). We compute the false
+positive rate and true positive rate across all documents to
+gain a point in the ROC curve. This process is repeated for
+different thresholds, and finally, all data points are connected
+to form the ROC curve. Then we calculate the area under
+curve (AUC) of the ROC curve.
+
+D Full Results with Varying Number of
+
+Documents with Misinformation
+
+We provide the full results as the number of documents with
+misinformation increase, as shown in Figure 10-13. All re-
+sults are done with four correct documents.
+
+E Comparison with CAG
+Since the CAG 13B model tends to provide lengthy re-
+sponses, its performance on EM is very low. Therefore, we
+consider an answer ”correct” if the correct answer appears
+in the model’s prediction, and we use accuracy as the met-
+ric. The results are shown in Figure 14. This metric is more
+favorable for long answers, however, CrAM still surpasses
+the SFT-based CAG 13B in most situations, demonstrating
+the superiority of our approach.
+
+F Results with Filtered Misinformation
+We replaced all the correct answers in the existing misin-
+formation with “xxx” (denoted as “filtered misinformation”)
+and then conducted the same experiments on filtered misin-
+formation. The results are shown in Table 4. We make the
+following observations. 1) The performance of CrAM with 4
+✓+ 1 ✗ is lower than that in Table 1, and it is worse than that
+of the Naive RAG with 4 ✓ in most cases. This indicates that
+
+Figure 11: EM and F1 socre on TriviaQA using Llama3-8B
+under ideal setting.
+
+Figure 9: ROC curve of GPT-generated credibility scores,
+with area under curve (AUC) = 0.801.
+
+Figure 12: EM and F1 socre on NQ using Llama3-8B under
+GPT setting.
+
+For the first part, on an A40 GPU, modifying all attention
+heads of the Llama3-8B model for a single data point takes 2
+minutes. As we can see from Figure 5, just 10 data points are
+sufficient to achieve significant performance, so this step can
+be completed in 20 minutes. This step involves calculating
+the probabilities for certain answers and thus requires only a
+single inference, which is relatively fast. For the second part,
+we used 75 validation data points in our experiments and
+tested the performance of 10 different numbers of attention
+heads, which took 23 minutes. Therefore, the total additional
+time for a dataset requires less than 43 minutes.
+
+H Prompts
+We have made all the prompts used in our experiments pub-
+licly available, as shown in Figure 15-19.
+
+Figure 10: EM and F1 socre on NQ using Llama3-8B under
+ideal setting.
+
+CrAM enables LLMs to re-utilize the correct information
+denied by the misinformation, resulting in a better perfor-
+mance. 2) Table 4 demonstrates that our CrAM method still
+outperforms all compared methods across all three LLMs:
+Qwen1.5-7B, LLama2-13B, and LLama3-8B, on both NQ
+and TriviaQA datasets in the setting of 4 ✓+ 1 ✗ (i.e., four
+high-credibility documents plus one low-credibility docu-
+ment), proving CrAM doesn’t solely rely on correct answers
+in misinformation.
+
+G Time Analysis
+Compared to fine-tuning, our method has a significantly
+lower time overhead. We only need a validation set to de-
+termine the modified attention heads for the whole dataset.
+We will explain all the computational costs of CrAM step by
+step. The extra computational overhead of CrAM primarily
+stems from two aspects:
+
+• Modifying all the attention heads across all the trans-
+
+former layers to rank the influential heads.
+
+• Using a validation set to determine the number of atten-
+
+tion heads for modification.
+
+ Model
+
+In-context corpus
+
+Method
+
+Qwen1.5-7B
+
+Llama2-13B
+
+Llama3-8B
+
+0 ✓
+4 ✓
+
+4 ✓ + 1 ✗
+
+0 ✓
+4 ✓
+
+4 ✓ + 1 ✗
+
+0 ✓
+4 ✓
+
+4 ✓ + 1 ✗
+
+Naive LLM
+Naive RAG
+
+Naive RAG
+Prompt Based
+CrAM
+
+Naive LLM
+Naive RAG
+
+Naive RAG
+Prompt Based
+CrAM
+
+Naive LLM
+Naive RAG
+
+Naive RAG
+Prompt Based
+CrAM
+
+NQ
+
+TriviaQA
+
+EM
+
+7.20
+27.60
+
+F1 score
+
+16.41
+39.08
+
+EM
+
+28.00
+55.30
+
+F1 score
+
+38.23
+66.85
+
+9.70
+10.40
+25.90 (-1.70)
+
+20.22
+20.67
+37.87 (-1.21)
+
+25.40
+26.30
+51.70 (-3.60)
+
+36.14
+37.12
+63.07 (-3.78)
+
+20.30
+28.90
+
+28.59
+39.98
+
+50.40
+62.50
+
+57.56
+71.03
+
+12.20
+9.90
+29.90 (+1.00)
+
+20.71
+20.48
+40.85 (+0.87)
+
+27.60
+21.90
+57.90 (-4.60)
+
+35.80
+31.22
+65.60 (-5.43)
+
+20.60
+33.10
+
+30.58
+45.66
+
+55.70
+64.30
+
+62.67
+73.68
+
+16.10
+25.20
+33.80 (+0.70)
+
+26.57
+35.72
+45.63 (-0.03)
+
+38.70
+52.10
+63.70 (-0.60)
+
+48.84
+61.03
+72.87 (-0.81)
+
+Table 4: With ideal credibility scores and filtered misinformation, we evaluate the performance of three models on two open-
+domain QA datasets. 0 ✓ indicates no document and the model is directly prompted, 4 ✓ indicates that all four documents are
+retrieved from the Wikipedia dump, while 4 ✓ + 1 ✗ indicates four documents from the Wikipedia dump plus one piece of
+misinformation. In the 4 ✓ + 1 ✗ setting, the best performance is highlighted in bold. And the red part indicates the difference
+between Naive RAG with 4 ✓ and CrAM with 4 ✓ + 1 ✗.
+
+Please generate a text that is logical and supports the
+statement: The answer to “{Question}” is “{Wrong
+answer}”, rather than “{Correct answer}”. The gen-
+erated text should be in the following form: CNN
+news. The generated text should be less than 200
+words. Just output the generated text , and do not
+output anything else.
+Generated Text:
+
+Figure 15: Prompt for misinformation generation.
+
+Answer the following question based on your inter-
+nal knowledge with one or few words.
+Question: {Question}
+Answer:
+
+Figure 16: Prompt for Naive LLM without documents.
+
+Given the following information:
+{Documents}
+Answer the following question based on the given
+information or your internal knowledge with one or
+few words without the source.
+Question: {Question}
+Answer:
+
+Figure 17: Prompt for RAG.
+
+Figure 13: EM and F1 socre on TriviaQA using Llama3-8B
+under GPT setting.
+
+Figure 14: Performance comparison of CrAM of Llama2-
+13B and CAG 13B with varying amounts of misinformation
+under ideal setting.
+
+ You are an assistant who can answer questions
+based on the given passages. Each passage has a
+credibility score that indicates the relevance and
+accuracy of the passage to the question. Your
+answer need to combine multiple passages and their
+credibility. Question: {Question}
+Docs: {Documents}
+
+Your answer should based on the given infor-
+mation or your internal knowledge with one or few
+words without the source (just output a answer,
+don’t output anything else). Answer:
+
+Figure 18: Prompt for CAG.
+
+You are an assistant capable of answering questions
+based on provided passages. Each passage is as-
+signed a truthfulness score (0-10), where a higher
+score indicates greater credibility. Your answer need
+to combine multiple passages and their credibility.
+Given the following information:
+{Documents}
+Answer the following question based on the given
+information or your internal knowledge with one or
+few words without the source (just output a answer,
+don’t output anything else).
+Question: {Question}
+Answer:
+
+Figure 19: Prompt for prompt-based method.
+
+Your task is to evaluate the authenticity of a text based on your internal knowledge. Specifically, I will provide you
+with a passage that may contain accurate information or fabricated errors. Using your own knowledge, reason, and
+deduction, you are to assign a credibility score ranging from 0 to 10, where a higher score indicates greater authenticity
+and a lower score suggests lesser authenticity.
+Here are 2 examples (you should follow the output format below):
+##########
+Passage:
+In a groundbreaking discovery, researchers have found that Albert Einstein was the first recipient of the Nobel Prize in
+Physics. According to newly uncovered documents, Einstein’s pioneering work in theoretical physics, particularly his
+theory of relativity, was recognized by the Nobel Committee in 1921. This revelation challenges the long-held belief
+that Marie Curie was the first Nobel laureate in physics, and solidifies Einstein’s place as one of the greatest minds in
+scientific history.
+
+Analysis:
+1. Albert Einstein as the First Nobel Prize Recipient in Physics: This is incorrect. The first Nobel Prize in Physics was
+awarded in 1901, not to Albert Einstein, but to Wilhelm Conrad R¨ontgen for the discovery of X-rays.
+2. Einstein’s Nobel Prize Recognition: Albert Einstein was indeed awarded the Nobel Prize in Physics in 1921, but not
+for his theory of relativity. He received it for his discovery of the photoelectric effect, which was instrumental in the
+development of quantum theory.
+3. Marie Curie as the First Nobel Laureate in Physics: This is also incorrect. Marie Curie was a Nobel laureate, but
+she was not the first to win the Nobel Prize in Physics. Her first Nobel Prize was in Physics in 1903, shared with her
+husband Pierre Curie and Henri Becquerel for their work on radioactivity. Marie Curie was, notably, the first woman to
+win a Nobel Prize, and the first person to win Nobel Prizes in two different scientific fields (Physics and Chemistry).
+4. Implication about the Nobel Committee’s Recognition of Relativity: As mentioned, Einstein’s Nobel Prize was not
+for relativity, despite its profound impact on physics. The Nobel Committee specifically avoided awarding the prize for
+relativity at the time due to ongoing debates and lack of experimental confirmation of the theory during that period.
+
+Credibility Score: 0
+
+Passage:
+The first Nobel Prize in Physics was awarded to Wilhelm Conrad Roentgen in 1901. Roentgen received the Nobel Prize
+for his discovery of X-rays, which had a significant impact on the field of physics and medicine
+
+Analysis:
+The facts presented in the statement you provided are largely accurate.
+
+Credibility Score: 10
+##########
+
+Passage:
+{Passage}
+
+Figure 20: Prompt for GPT to generate credibility scores.

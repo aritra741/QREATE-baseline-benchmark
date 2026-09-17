@@ -111,11 +111,29 @@ def main() -> int:
         default=None,
         help="Backend cache/SQLite parent; use node-local scratch on HPC.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "Allow a non-empty --output directory and reuse extraction "
+            "caches in --scratch-dir."
+        ),
+    )
     parser.add_argument("--token-budget", type=int, required=True)
     parser.add_argument("--quality-floor", type=float, default=0.0)
     parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--base-url")
     parser.add_argument("--model")
+    parser.add_argument(
+        "--api-key-env",
+        default=None,
+        help="Environment variable containing the hosted-provider API key.",
+    )
+    parser.add_argument(
+        "--disable-thinking",
+        action="store_true",
+        help="Send DeepSeek-compatible non-thinking mode.",
+    )
     parser.add_argument(
         "--seed",
         type=int,
@@ -228,7 +246,11 @@ def main() -> int:
     started_monotonic = time.monotonic()
 
     output = args.output.expanduser().resolve()
-    if output.exists() and any(output.iterdir()):
+    if (
+        output.exists()
+        and any(output.iterdir())
+        and not bool(getattr(args, "resume", False))
+    ):
         raise FileExistsError(output)
     scratch_parent = (
         args.scratch_dir.expanduser().resolve()

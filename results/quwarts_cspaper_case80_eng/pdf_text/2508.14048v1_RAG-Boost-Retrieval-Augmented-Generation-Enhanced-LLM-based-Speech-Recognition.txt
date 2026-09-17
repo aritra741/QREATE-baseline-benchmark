@@ -1,0 +1,322 @@
+RAG-Boost: Retrieval-Augmented Generation Enhanced LLM-based Speech
+Recognition
+
+Pengcheng Wang1, Sheng Li1, Takahiro Shinozaki1
+
+1School of Engineering, Institute of Science Tokyo, Japan
+wang.p.6102@m.isct.ac.jp, sheng.li@ieee.org, shinot@ict.e.titech.ac.jp
+
+5
+2
+0
+2
+
+g
+u
+A
+5
+
+]
+S
+A
+.
+s
+s
+e
+e
+[
+
+1
+v
+8
+4
+0
+4
+1
+.
+8
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+In this paper, we propose RAG-Boost (ST-ShinozakiLab Task I
+system), which enhances the baseline LLM-based ASR system
+of the MLC-SLM Challenge (task I) with a retrieval-augmented
+generation (RAG) module on the fly. Each partial ASR hypoth-
+esis queries a vector store of audio–text pairs and domain terms,
+and the retrieved results are fused with the live ASR hypotheses
+to fix recognition errors. The fused hypotheses are passed to the
+LLM, yielding improved responses.
+Index Terms: Large language model, Speech recognition,
+Retrieval-augmented generation
+
+1. Introduction
+
+Large Language Models (LLMs) have significantly advanced
+the development of Automatic Speech Recognition (ASR),
+achieving excellent performance in general domains. However,
+their progress is hindered by numerous real-world problems
+with the models, training methods, and data. To promote this
+research, the MLC-SLM Challenge and Workshop introduce a
+new multilingual conversational speech dataset1, 2 to support
+research in multilingual speech language modeling.
+
+The challenge consists of two tracks, each designed to eval-
+uate distinct aspects of speech language modeling. Task I fo-
+cuses on multilingual ASR, where systems are provided with
+oracle speaker labels and segmentation boundaries and are eval-
+uated using Word Error Rate (WER) or Character Error Rate
+(CER). Task II, in contrast, addresses joint speaker diarization
+and recognition without oracle information and is evaluated us-
+ing Diarization Error Rate (DER) and tcpWER/tcpCER.
+
+In this paper, we focus on Task I. Experiments show that
+keyword spotting is severely disturbed in noisy environments.
+Inspired by the End-to-End contextual biasing approach [1], we
+deploy an ASR system designed for keyword correction.
+
+2. Proposed Method
+
+As shown in Figure 1, our system consists of four key com-
+ponents: Speech Encoder, LLM, Projector, and Keywords Re-
+triever.
+
+2.1. Basic Architecture
+
+Our ASR system skeleton adopts the basic SLAM-ASR [2] ar-
+chitecture, which consists of an audio encoder, a projector, and
+an LLM decoder. The projector is based on convolution layers
+and MLP to achieve alignment of speech embedding to LLM
+embedding.
+
+1https://www.nexdata.ai/competition/mlc-slm
+2https://github.com/mubingshen/MLC-SLM-Baseline
+
+(a) Structure overview of our model.
+
+(b) Keyword retrieval via cross-modal similarity.
+
+Figure 1: Structural overview of the proposed ASR pipeline and
+the design of the keyword retriever, which incorporates Atten-
+tion Pooling as the pooling module.
+
+2.2. Keywords Retriever
+
+We trained the keyword retriever using a CLAP-style [3] con-
+trastive learning approach to identify possible keywords directly
+from speech. As a cross-modal keyword retriever, we adopted
+the classic dual-tower model, as shown in Figure 1b. We reused
+existing model components to simplify the system architecture.
+Specifically, the speech processing tower utilized the Whisper
+[4] model and its supporting Projector in the SLAM architec-
+ture, whereas the text processing tower directly employed the
+LLM itself. Then, through a pooling layer, we projected the
+features of these two modalities into a unified shared embedding
+space. To implement the LLM generation process to optimize
+the information from keywords, we fine-tune an LLM Adapter
+using LoRA [5] technique.
+
+2.3. Result Aggregation
+
+We use a weighted fusion module to integrate three intermedi-
+ate recognition outputs into the final transcription, namely the
+output from the whisper decoder, the output from the original
+LLM, and the RAG-based output. Note that the output based
+on RAG is given a higher weight.
+
+ 
+ 
+ 
+ 
+ 
+ 
+3. Experiments
+
+3.1. Datasets and Metrics
+
+We use the English (American) dataset of MLC-SLM to train
+and evaluate (Development Set) the model. This subset com-
+prises individuals of diverse genders and ages, with a natural
+conversation style. The word error rate of the label is lower
+than 2%.
+
+The performance of the model is evaluated primarily by the
+word error rate (WER), which serves as the core evaluation in-
+dicator.
+
+In addition, we introduce a Semantic Consistency Met-
+ric(SEM) to evaluate the impact of recognition errors on the
+meaning of the sentence. This metric is useful for downstream
+tasks that rely on ASR qualities, such as QA tasks. We used a
+pre-trained sentence transformers/all-roberta-large-v13 model,
+which is good at extracting semantic representations of sen-
+tences, to calculate the cosine distance as the measurement.
+
+3.2. Model Configuration
+
+A pretrained openai/whisper-large-v3-turbo4 is selected as the
+speech encoder. Whisper is known for its strong generalizability
+and robust speech representation. We only use its encoder to
+extract high-dimensional acoustic and semantic features. For
+LLM, we use the pre-trained Phi-4-mini-Instruct5, which excels
+in the following instruction and text generation. The LLM has
+only 3.8B parameters, which reduces the system deployment
+overhead.
+
+The projector, which plays a bridge role in connecting em-
+bedding spaces, is trained using the AdamW optimizer with
+the following parameters: an initial learning rate of 3e-4 and
+a weight decay of 0.01. The learning rate scheduler uses the
+Cosine decay strategy with a warm-up ratio of 0.01. Thanks to
+the compactness of the Phi-4-mini-instruct model, the training
+process can be completed on a single NVIDIA RTX 3090.
+
+Once the SLAM-ASR model has been optimized, we train
+the retriever using contrastive learning with one positive and ten
+randomly selected negative keywords per sample. The retriever
+shares the same projector structure with SLAM-ASR, and its
+pooling layer is jointly trained to fit the retrieval task better. The
+keywords’ embeddings we obtained are stored by FAISS [6]
+for efficient retrieval. Last, we manually selected 2,000 high-
+quality keyword correction samples and fine-tuned LLM for 5
+epochs, achieving better error correction capabilities.
+
+3.3. Results
+
+As shown in Table 1, our proposed method achieves consis-
+tently better results in both recognition accuracy and semantic
+relevance. In particular, it outperforms the baseline in terms of
+the word error rate (WER), indicating improved robustness and
+transcription quality. Overall observations are as follows:
+
+1. The encoder strength matters most. Replacing Whisper-tiny
+with phi or large-v3-turbo consistently yields the most signif-
+icant single jump in WER.
+
+2. Context helps, but only after co-training. Raw RAG degrades
+performance; guided fine-tuning (ours, Keyword-RAG w FT)
+is essential for harnessing external knowledge.
+
+3huggingface.co/sentence-transformers/all-roberta-large-v1
+4huggingface.co/openai/whisper-large-v3-turbo
+5huggingface.co/microsoft/Phi-4-mini-instruct
+
+Table 1: Experiment Results (the Keywords RAG methods are
+based on Phi-4-mini-Instruct and Whisper Large-v3-turbo)
+
+Challenge
+Baseline
+
+Whisper
+
+SLAM-ASR
+
+Keywords RAG
+
+Proposed Method
+
+Vanilla Whisper-large-v3
+Baseline-Qwen
+Baseline-Llama
+tiny
+large-v3-turbo
+phi+tiny
+phi+large-v3-turbo
+qwen+large-v3-turbo
+w/o FT
+w FT
+RAG-Boost
+
+WER
+14.14
+13.83
+16.97
+33.66
+26.67
+29.55
+15.09
+15.31
+32.98
+16.06
+11.67
+
+SEM
+/
+/
+/
+0.8217
+0.8940
+0.7480
+0.8762
+0.8673
+0.8085
+0.8726
+0.9132
+
+3. Semantic robustness (SEM) tracks but lags in WER. Sys-
+tems that slash WER (SLAM, ours) can still lose a few SEM
+points unless semantic objectives are explicitly optimized;
+our method recovers both.
+
+4. The remaining gap (around 12% WER) is dominated by over-
+lapped speech and overly rapid speech per manual inspection.
+Future work could explore language modeling conditioned
+on the speaker role or lattice-aware retrieval to push below
+10 % WER.
+
+In addition, we compare the performance of Phi-4-mini-
+Instruct and Qwen2-7B-Instruct6 under the same training
+conditions. The results show that Phi-4 outperforms Qwen,
+while it has only 3.8B parameters. Such results highlight its
+superior adaptability to ASR tasks. This further reveals the
+promising potential of compact language models in speech
+recognition applications.
+
+4. Conclusions
+
+In this paper, we propose RAG-Boost (ST-ShinozakiLab Task I
+system), which enhances the baseline LLM-based ASR system
+of the MLC-SLM Challenge (task I) with a retrieval-augmented
+generation (RAG) module on the fly. The proposed approach
+achieves high performance in WER and high semantic match-
+ing, validating the design choice of jointly aligned speech-to-
+text retrieval training on noisy conversation data.
+
+5. References
+[1] M. Shakeel, Y. Sudo, Y. Peng, and S. Watanabe, “Contextualized
+end-to-end automatic speech recognition with intermediate biasing
+loss,” in Proc. Interspeech, 2024, pp. 3909–3913.
+
+[2] Z. Ma and et al., “An embarrassingly simple approach for llm with
+strong asr capacity,” arXiv preprint arXiv:2402.08846, 2024.
+
+[3] B. Elizalde and et al., “CLAP: Learning audio concepts from natu-
+ral language supervision,” arXiv preprint arXiv:2206.04769, 2022.
+
+[4] A. Radford and et al., “Robust speech recognition via large-scale
+weak supervision,” in Proc. ICML, vol. 202, 2023, pp. 28 492–
+28 518.
+
+[5] E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang,
+Low-rank adaptation of
+https:
+
+L. Wang, and W. Chen, “Lora:
+large language models,” 2021.
+//arxiv.org/abs/2106.09685
+
+[Online]. Available:
+
+[6] J. Johnson and et al., “Billion-scale similarity search with gpus,”
+
+arXiv preprint arXiv:1702.08734, 2017.
+
+6huggingface.co/Qwen/Qwen2-7B-Instruct

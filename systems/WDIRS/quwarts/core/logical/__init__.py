@@ -17,7 +17,6 @@ from quwarts.core.models import (
 )
 
 _COARSENING_TOKENS = frozenset({"decade", "band", "cohort", "status", "group"})
-_GENERIC_IDENTITY = ("id", "name")
 
 _IDENT = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b")
 _FROM = re.compile(r"\bFROM\s+([A-Za-z_][A-Za-z0-9_]*)", re.IGNORECASE)
@@ -29,29 +28,15 @@ _JOIN_ON = re.compile(
     re.IGNORECASE,
 )
 
-_NUMERIC_HINTS = (
-    "salary", "award", "awards", "count", "age", "year", "score", "num", "total",
-    "amount", "price", "revenue", "profit",
-)
-_DATE_HINTS = ("date", "born", "founded", "acquired")
-_CATEGORICAL_HINTS = ("position", "status", "league", "nationality", "type", "city")
-
-
 def _dtype_for(name: str) -> str:
-    lowered = name.lower()
-    if any(hint in lowered for hint in _DATE_HINTS):
-        return "date"
-    if any(hint in lowered for hint in _NUMERIC_HINTS):
-        return "numeric"
-    if any(hint in lowered for hint in _CATEGORICAL_HINTS):
-        return "categorical"
-    return "string"
+    """Types come from SQL or evidence, never from the attribute name."""
+
+    _ = name
+    return "unknown"
 
 
 def _unit_domain(name: str) -> str | None:
-    lowered = name.lower()
-    if "usd" in lowered or "salary" in lowered or "price" in lowered or "revenue" in lowered:
-        return "usd"
+    _ = name
     return None
 
 
@@ -61,15 +46,14 @@ def is_coarsening(name: str) -> bool:
 
 
 def identity_name(entity: str, attribute_names: list[str]) -> str | None:
-    names = [name.lower() for name in attribute_names if not is_coarsening(name)]
-    preferred = _GENERIC_IDENTITY
-    for candidate in preferred:
-        if candidate in names:
-            return candidate
-    for name in names:
-        if name.endswith("_name") or name.endswith("_id") or name in _GENERIC_IDENTITY:
-            return name
-    return names[0] if names else None
+    """Do not infer keys from ``id`` / ``*_name`` / ``*_id``.
+
+    Physical keys come from declared relationships or remain unset.
+    """
+
+    _ = entity
+    _ = attribute_names
+    return None
 
 
 def expression_aliases(tree: exp.Expression, default_entity: str | None = None) -> dict[str, DerivedExpression]:

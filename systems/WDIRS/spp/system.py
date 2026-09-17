@@ -128,9 +128,14 @@ class OfflineSynthesisSystem:
         output_dir: Path,
         observed_document_lengths: Optional[Sequence[int]] = None,
         sample_fractions: Sequence[float] = (0.05, 0.15, 0.4),
+        resume: bool = False,
     ) -> SynthesisRunResult:
         output_dir = Path(output_dir).expanduser().resolve()
-        if output_dir.exists() and any(output_dir.iterdir()):
+        if (
+            output_dir.exists()
+            and any(output_dir.iterdir())
+            and not resume
+        ):
             raise FileExistsError(f"synthesis output is not empty: {output_dir}")
         output_dir.mkdir(parents=True, exist_ok=True)
         ledger = GlobalBudgetLedger(token_budget)
@@ -587,6 +592,7 @@ class OfflineSynthesisSystem:
             ledger,
             evidence_manifest=evidence_manifest,
             synthesis_manifest_sha256=synthesis_manifest_sha256,
+            resume=resume,
         )
         return SynthesisRunResult(
             serving_manifest=manifest,

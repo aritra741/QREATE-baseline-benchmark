@@ -1,0 +1,1215 @@
+A Few Words Can Distort Graphs: Knowledge Poisoning Attacks on Graph-based
+Retrieval-Augmented Generation of Large Language Models
+
+Jiayi Wen1, Tianxin Chen1, Zhirun Zheng2, Cheng Huang1
+1College of Computer Science and Artificial Intelligence, Fudan University
+2Department of Artificial Intelligence, Ajou University
+
+5
+2
+0
+2
+
+g
+u
+A
+2
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+6
+7
+2
+4
+0
+.
+8
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Graph-based Retrieval-Augmented Generation (GraphRAG)
+has recently emerged as a promising paradigm for enhancing
+large language models (LLMs) by converting raw text into
+structured knowledge graphs, improving both accuracy and
+explainability. However, GraphRAG relies on LLMs to ex-
+tract knowledge from raw text during graph construction, and
+this process can be maliciously manipulated to implant mis-
+leading information. Targeting this attack surface, we propose
+two knowledge poisoning attacks (KPAs) and demonstrate
+that modifying only a few words in the source text can signif-
+icantly change the constructed graph, poison the GraphRAG,
+and severely mislead downstream reasoning. The first attack,
+named Targeted KPA (TKPA), utilizes graph-theoretic anal-
+ysis to locate vulnerable nodes in the generated graphs and
+rewrites the corresponding narratives with LLMs, achieving
+precise control over specific question-answering (QA) out-
+comes with a success rate of 93.1%, while keeping the poi-
+soned text fluent and natural. The second attack, named Uni-
+versal KPA (UKPA), exploits linguistic cues such as pro-
+nouns and dependency relations to disrupt the structural in-
+tegrity of the generated graph by altering globally influential
+words. With fewer than 0.05% of full text modified, the QA
+accuracy collapses from 95% to 50%. Furthermore, experi-
+ments show that state-of-the-art defense methods fail to detect
+these attacks, highlighting that securing GraphRAG pipelines
+against knowledge poisoning remains largely unexplored.
+
+1
+
+Introduction
+
+Large language models (LLMs) have revolutionized the way
+we process and generate information. Despite their impres-
+sive abilities, they hallucinate facts and rely on outdated in-
+ternal knowledge, which limits their use in tasks that require
+strict factual accuracy (Ji et al. 2023; OpenAI 2023; Bian
+et al. 2024). Retrieval-Augmented Generation (RAG) miti-
+gates these weaknesses by grounding model outputs in an
+external knowledge base (Borgeaud et al. 2022; Thoppilan
+et al. 2022; Lewis et al. 2020). Traditional RAG stores ex-
+ternal knowledge as isolated text chunks, which restricts re-
+trieval to shallow matching and limits multi-step reasoning
+(Asai et al. 2024). Graph-based RAG (GraphRAG) (Edge
+et al. 2024) addresses this limitation by organizing the cor-
+pus into a knowledge graph through LLM-driven extrac-
+tion of entities and their relations. This structure explic-
+itly links the extracted entities and relations and enables
+
+LLMs to reason over connected facts, achieving higher ac-
+(Guo et al. 2024; Han et al.
+curacy on complex queries
+2025). Because the reasoning process in GraphRAG de-
+pends entirely on this constructed graph, it underpins a range
+of knowledge-intensive tasks, including question answering
+(QA) (Yasunaga et al. 2021; Karpukhin et al. 2020)and dia-
+logue (Chen et al. 2017).
+
+However, the reliance on external corpora has also made
+RAG systems attractive targets for security attacks (Tao et al.
+2024; Zeng et al. 2024). Prior works have identified three
+main attack categories. First, malicious documents injected
+into the corpus can bias retrieval results and distort LLM’s
+answers (Zou et al. 2024; Deng et al. 2024; Cheng et al.
+2024). Second, adversarial instructions can be hidden in re-
+trievable chunks so that the LLM executes them when the
+chunks are retrieved (Hines et al. 2024; Suo 2024). Third, the
+retriever itself can be attacked with crafted queries that cause
+it to miss relevant evidence (Wallace et al. 2019; Shafran,
+Schuster, and Shmatikov 2024). GraphRAG inherits these
+risks but also exposes a qualitatively different vulnerabil-
+ity. Unlike traditional RAG, GraphRAG does not answer
+questions directly from retrieved context. It first converts
+the entire corpus into a structured knowledge graph (Chen,
+Jia, and Xiang 2020; Chen et al. 2020), and all subsequent
+tasks (Kim et al. 2020; Wang et al. 2019) depend on this
+graph.
+
+Recent work has taken the first step toward poison-
+ing GraphRAG: GRAGPOISON (Liang et al. 2025) injects
+crafted chunks that create or amplify false relations, show-
+ing that such relation-level manipulation can mislead mul-
+tiple queries once the graph is built. While GRAGPOISON
+demonstrates that GraphRAG can indeed be poisoned, its
+attack strategies all operate in an additive manner: it in-
+troduces malicious content into the corpus either by inject-
+ing new relations, repeating existing relations to strengthen
+them, or adding narrative chunks that blend false and true
+information. These attacks show that crafted additions to the
+corpus can distort the resulting graph and mislead multiple
+queries once the graph is built. An unexplored question is
+whether GraphRAG is also vulnerable when the adversary
+cannot add new text, but is only able to make small, sub-
+tle modifications to the existing corpus. In this work, we
+reveal a manipulation-only attack surface for GraphRAG:
+even without introducing additional content, simply chang-
+
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 1: Proposed two knowledge poisoning attacks. (a) Targeted knowledge poisoning: manipulated facts cause GraphRAG
+to select poisoned context for a query, leading to incorrect LLM output. (b) Universal knowledge poisoning: altered linguistic
+cues globally distort graph structure, causing GraphRAG to build a biased knowledge graph and mislead LLM reasoning across
+diverse queries.
+
+ing a few words in the existing corpus can distort the entities
+and relations extracted during graph construction, and the
+corrupted structure then persists and misleads a broad range
+of queries. This threat corresponds to subtle edits to trusted
+sources (e.g., minor changes in Wikipedia) rather than the
+injection of obviously malicious content. Such manipula-
+tions pose two key challenges: to what extent can a few edits
+change the behavior of a GraphRAG system, and do these
+changes appear in a targeted or a widespread form? We ad-
+dress these questions by focusing on two complementary
+objectives: precision, the ability to make specific queries
+return attacker-desired answers with only a few edits; and
+breadth, the ability of small, subtle modifications to corrupt
+the graph broadly, degrading reasoning across many queries.
+Although stealthiness is not an explicit objective, it is im-
+plicitly achieved by restricting the attack to very small edits
+on trusted sources.
+
+To obtain the above goals, we propose two knowledge
+poisoning attacks (KPAs). (1) Targeted Knowledge Poi-
+soning Attack (TKPA). As shown in Figure 1(a), TKPA ex-
+ploits the topology of the knowledge graph itself to achieve
+fine-grained control over specific outputs. The key difficulty
+is that the impact of a small text edit propagates through two
+coupled stages: graph construction and downstream reason-
+ing, so the influence of a single modification is hard to pre-
+dict directly from the raw text. TKPA addresses this by first
+operating in the graph domain: it analyzes the connectiv-
+ity and centrality structure of the graph to locate the subre-
+gions that have the greatest effect on a target query. Only af-
+ter this graph-theoretic localization does it map back to the
+corresponding text and rewrite a few highly relevant pas-
+sages. (Peng, Zhang, and Zhang 2013; Gross, Yellen, and
+Anderson 2018) This graph-guided strategy allows a handful
+of carefully placed edits to reliably manipulate the outputs
+for selected queries, while remaining unobtrusive. (2) Uni-
+versal Knowledge Poisoning Attack (UKPA). As shown in
+Figure 1(b), UKPA aims for maximum disruption with only
+a few edits. The challenge is that, without any specific query
+as a starting point, it is unclear where a small perturbation
+will have a global effect on the graph. Our key insight is
+that GraphRAG depends on linguistic signals, such as pro-
+nouns, coreference chains (Peng et al. 2019), and other refer-
+
+ring expressions, to decide when different mentions across
+chunks refer to the same entity; these signals act like the
+glue that holds the graph together. UKPA therefore targets
+these linguistic connections: by subtly rewriting references
+so that the chains break, it prevents the system from rec-
+ognizing that different mentions refer to the same entity.
+These small edits propagate through the graph and produce
+widespread structural errors, severely degrading reasoning
+accuracy across tasks, even though the modified text remains
+fluent and very hard to detect.
+
+Contributions. Our contributions are as follows:
+
+• We identify a realistic manipulation-only attack surface
+in GraphRAG, demonstrating that modifying a small
+number of words in the trusted corpus is sufficient to cor-
+rupt the constructed knowledge graph and mislead down-
+stream reasoning.
+
+• We propose Targeted Knowledge Poisoning Attack
+(TKPA), which exploits graph-theoretic structure to lo-
+cate vulnerable nodes and rewrite a small number of as-
+sociated passages. This attack achieves precise manipu-
+lation of specific QAs with a success rate of 93.1%, while
+modifying less than 0.06% of the corpus (48 words out of
+94,496) and preserving text fluency and stealth.
+
+• We propose Universal Knowledge Poisoning Attack
+(UKPA), which exploits linguistic structures such as pro-
+nouns and coreference to disrupt global entity linking,
+degrading the integrity of the knowledge graph and re-
+ducing QA accuracy from 95% to 50%, while modify-
+ing only 60 words out of 134,072 and affecting less than
+0.05% of the corpus.
+
+• We conduct extensive experiments on real-world
+datasets, demonstrating that both TKPA and UKPA
+achieve high attack effectiveness and circumvent state-
+of-the-art defenses, revealing substantial security vulner-
+abilities in GraphRAG pipelines.
+
+2 Attack Methodology
+
+2.1 Background
+GraphRAG Pipeline. Figure 2 illustrates the GraphRAG
+pipeline. Given an unstructured document corpus D =
+{d1, . . . , dn}, GraphRAG first divides it into smaller text
+
+(a) Targeted Knowledge Poisoning Attack (TKPA) (b) Universal Knowledge Poisoning Attack (UKPA)"Don‘t linger like this.You have decided togo away. Now go!"For she did not wanthim to see her crying.She was such a proudflower..."Don‘t linger like this.You have decided togo away. Now go!"For he did not wanthim to see her crying.She was such a proudflower...Poisoned GraphRAGNormal GraphRAGOriginal Raw Text Answer 1: The rose was cryingAnswer 2: The rose was the proud flower...Answer N:The rose's action showed prideAnswer 1: The little prince was cryingAnswer 2: The little prince was crying...Answer N:The little prince's action showed prideAttackerOriginal Raw Text UKPA Query 1: Who was crying at the end of Chapter 9?Query 2: Who was the "proud flower"?...Query N: Whose action showed pride at the farewell?Query 1: Who was crying at the end of Chapter 9?Query 2: Who was the "proud flower"?...Query N: Whose action showed pride at the farewell?PoisonedContextNormalContext(e.g., The Book of “The Little Prince”)Query :Tell meabout the fox Retrieve RetrieveHonest LLMPoisoned GraphRAGNormal GraphRAGPoisonedContextQuery :Tell meabout the fox NormalContextHonest LLMAttackerTKPA (e.g., The Book of “The Little Prince”)a cunning and self-serving creature,whose lessons ontaming are a form ofmanipulationa wise teacher ofrelationshipsGenerateGenerateTarget Entity：FoxTarget Emotion：Positive to NegativeOriginal Raw Textrather than a random text-editing task. Given a user query,
+the attacker first considers the entities that GraphRAG as-
+sociates with the query and chooses one as the target entity
+via LLM-based entity extraction. The attacker then lever-
+ages graph-theoretic principles: centrality to identify struc-
+turally influential nodes, community structure to restrict the
+affected region, and ego-subgraphs (Mitchell 1969; Wang
+and Wang 2025) to localize edits. These cues guide the se-
+lection of a small set of text chunks whose modification
+maximizes downstream impact. This structure-guided view
+leads to a four-module pipeline that progressively narrows
+the attack scope from the full graph to a few edits.
+
+(1) Vulnerable Community Localization (VCL). The
+first step is to determine where a small intervention will have
+the largest structural effect. From a network perspective,
+communities with a highly central target entity and limited
+size are the most susceptible: a modification there can influ-
+ence a larger fraction of the context while requiring fewer
+edits. To formalize this intuition, we define a vulnerability
+score for each community:
+
+Vscore =
+
+(1 + De)(1 + Ce)
+log(1 + TLen)
+
+,
+
+(1)
+
+where De and Ce denote the degree and betweenness cen-
+trality of the target entity within that community, and TLen
+measures the length of the community summary. The numer-
+ator captures the entity’s structural leverage, while the de-
+nominator penalizes communities that require editing long
+narratives. The attacker evaluates this score for all commu-
+nities containing the target entity and chooses the one with
+the highest score as the entry point for manipulation. This
+choice reflects the classic principle of influence maximiza-
+tion in networks: maximize downstream impact per unit of
+edit cost.
+
+(2) Ego-subgraph Extraction. After selecting the most
+vulnerable community, the attacker narrows the intervention
+to the local structure around the target entity. Specifically, an
+ego-subgraph Gego(vt) is extracted, consisting of the target
+node vt, its one-hop neighbors, and the edges among them.
+This ego-subgraph defines the local context that GraphRAG
+relies on when answering questions about vt; modifying this
+neighborhood directly alters how vt and its relations are rep-
+resented in the graph. Only the text chunks associated with
+nodes and edges in Gego(vt) are kept as candidates, and the
+next module ranks these candidates to determine which ones
+to rewrite. This step follows a classic principle in network in-
+terventions: apply a small, localized perturbation to a struc-
+turally central region to produce broad downstream effects.
+(3) Chunk Scoring and Selection. With the candidate
+chunks constrained to those linked to Gego(vt), the attacker
+next ranks them by their potential to alter downstream rea-
+soning. Drawing on insights from network influence theory,
+we model the importance of a chunk as the weighted combi-
+nation of three signals: (i) structural impact: how central its
+corresponding entity is in the local subgraph, (ii) semantic
+relevance: how closely the chunk’s content aligns with the
+target query, and (iii) sentiment polarity: how much the tone
+of the text can bias the generated narrative. We have
+Cscore = w1Sgraph + w2Ssemantic + w3Sattitude,
+
+(2)
+
+Figure 2: The pipeline of GraphRAG.
+
+chunks {c1, . . . , cm}. For each chunk ci, a mini knowledge
+graph Gi is extracted, consisting of entity-relation-entity
+triples via the extraction function fextract, capturing local se-
+mantic structure: Gi = fextract(ci). These mini-graphs are
+then merged to form the overall corpus graph: Gmerged =
+(cid:83)m
+i=1 Gi. Next, a community detection function fcommunity
+partitions Gmerged into communities C = {C1, . . . , Ck},
+each representing a coherent semantic subgraph: C =
+fcommunity(Gmerged). For each community Cj, a summary Sj
+is generated to capture key information and relations within
+that community. When a user submits a query Q, GraphRAG
+applies a retrieval function gretrieve to extract the relevant
+community summaries Srel ⊆ {S1, . . . , Sk} as contextual
+information for the LLM: Srel = gretrieve(Q, {S1, . . . , Sk}).
+Finally, the LLM generates the answer conditioned on the
+query and retrieved context: Answer = LLM(Q, Srel).
+
+Attack Model. We consider a gray-box adversary that
+poisons GraphRAG by editing the source corpus rather than
+injecting entirely new documents or accessing model param-
+eters. The adversary knows the overall pipeline: GraphRAG
+segments text into chunks, extracts entities and relations,
+builds a knowledge graph, and generates community-level
+summaries that are later used as context for reasoning. The
+attacker can modify a small fraction of trusted sources (e.g.,
+Wikipedia) but has no access to the constructed graph or
+model parameters.
+
+• TKPA Model. Attacker Knowledge: Understands that
+GraphRAG organizes extracted knowledge into commu-
+nities that drive downstream answers. Attacker Capabil-
+ity: Can modify a small part of the corpus to influence
+the answers of specific queries.
+
+• UKPA Model. Attacker Knowledge: Only knows that
+GraphRAG builds a knowledge graph from text, with-
+out details of its structure. Attacker Capability: Can make
+small edits to the corpus aimed at broadly degrading rea-
+soning across many queries rather than any single one.
+
+2.2 Targeted Knowledge Poisoning Attack
+
+As shown in Figure 3, the key insight behind Targeted
+Knowledge Poisoning Attack (TKPA) is to treat poisoning
+as a network intervention problem on the knowledge graph
+
+Community Detect(e.g. Community Summary:This community focuses on technology companies andtheir acquisitions.Key facts include:- Microsoft acquired GitHub and LinkedIn.- Google acquired DeepMind.- Amazon is headquartered in Seattle and owns AWS.)Community Summary 1Community Summary 2Community Summary NRaw Text ChunksExtract(e.g., Microsoftacquired GitHub, andits headquarters is inRedmond.)(e.g., Wikipedia)Entity 2RelationEntities and  Relationships (Mini-Graphs)Knowledge Triple: (Entity 1, Relation, Entity 2)MicrosoftGithubAcquiredRedmondheadquartered inMergeEntityLarge Language Model...RetrieveQueryGraphEntity 1ContextDivideFigure 3: The pipeline of TKPA and UKPA.
+
+where Sgraph is computed from the PageRank centrality of
+the corresponding entity within Gego(vt), Ssemantic is the
+cosine similarity between the embedding of the chunk and
+the target query, and Sattitude quantifies the chunk’s affec-
+tive tone using a language model. Each term is normalized
+to [0, 1] across candidates before combining them.
+
+The weights (w1, w2, w3) act as tunable weights that bal-
+ance structural leverage, contextual relevance, and linguistic
+framing. In practice, higher weight is assigned to structural
+impact so that edits are concentrated on influential regions of
+the graph, while the other two terms ensure that the selected
+edits remain relevant and subtle. By ranking chunks with the
+score, the attacker can focus a small number of edits on the
+locations that offer the highest influence-to-cost ratio: max-
+imum effect on the final answers per unit of editing effort.
+
+(4) LLM-driven Manipulation. The top-ranked chunks
+are rewritten by a LLM to subtly alter facts or tone while
+preserving fluency and style. These rewritten chunks replace
+the original text in the corpus, so that when GraphRAG re-
+builds the knowledge graph, the poisoned narratives become
+embedded in the community summaries. As a result, a few
+carefully chosen modifications spread through the graph and
+strongly bias downstream tasks, while keeping the attack
+surface compact and difficult to detect.
+
+2.3 Universal Knowledge Poisoning Attack
+
+As shown in Figure 3, the Universal Knowledge Poison-
+ing Attack (UKPA) aims to degrade GraphRAG globally
+rather than biasing a single query. The central insight is
+that GraphRAG relies heavily on linguistic coherence cues,
+particularly coreference chains and referring expressions,
+to decide when multiple mentions across chunks should be
+merged into a single entity node. These cues form the in-
+ductive bias that allows GraphRAG to consolidate scattered
+evidence into a coherent graph. If these signals are weak-
+ened or disrupted, the resulting graph becomes fragmented:
+nodes proliferate, relations split across disconnected com-
+
+ponents, and reasoning paths are interrupted. The depen-
+dency exposes a unique vulnerability. By subtly perturbing
+these cues at the text level, an attacker can interfere with the
+graph construction before any reasoning occurs, systemat-
+ically breaking the long-range links that enable multi-hop
+reasoning. The key challenge is to find and disrupt these
+high-leverage linguistic signals without access to the graph
+itself : the attacker never observes the final structure, yet ed-
+its that look benign can still propagate through the construc-
+tion process and cause large-scale structural distortions.
+
+To exploit this vulnerability, UKPA operates entirely in
+the language domain. Its strategy is grounded in a key ob-
+(Hobbs 1978; Lee et al. 2017;
+servation from linguistics
+Lee, He, and Zettlemoyer 2018): entity linking across doc-
+uments depends almost exclusively on coreference resolu-
+tion signals. including pronouns, definite descriptions, and
+other referring expressions, that tie different mentions to the
+same entity. These signals are inherently weak and context-
+dependent: even small changes in wording or surface form
+can prevent the coreference model from clustering mentions
+together. UKPA deliberately introduces such perturbations
+into the raw corpus. It scans the text and makes a small num-
+ber of edits that weaken these cues— for example, altering
+pronouns, introducing slight ambiguity in referring expres-
+sions, or modifying the form of an entity name—so that the
+linking mechanism fails to merge mentions correctly. Al-
+though each edit appears innocuous at the sentence level,
+these disruptions systematically fragment the global graph:
+mentions that once formed a single, well-connected node are
+now split into many disconnected nodes, relations become
+scattered, and long reasoning chains collapse. The cumula-
+tive effect is a broad degradation of GraphRAG’s reasoning
+capabilities. The pipeline consists of four modules:
+
+(1) Chunk Iteration and Linguistic Analysis. UKPA be-
+gins at the text level. For each chunk in the corpus, a LLM
+is used to perform linguistic analysis and extract corefer-
+ence chains, linking between textual mentions (pronouns,
+
+Knowledge GraphEgo-subgraphRanked Chunks (Top-K)Vulnerable CommunityTargeted Entity...12KK-1Graph-LevelCommunity-LevelSubgraph-levelChunk-levelLLM-based Text RewritingNarrow Scope(1)(2)(3)(4)3Text ChunksRaw Text (e.g., Wikipedia)Divide- Iterate over text chunks- Extract coreference chains (pronouns,noun phrases, referring expressions)(1) Chunk Iteration & Linguistic Analysis(2) Perturbation Candidate Generation- LLM proposes small rewrites- Break coreference links whilepreserving fluency & meaningRewrite: ... For she did not want him to see hercrying. She was such a proud flower...Original: "Don‘t linger like this. You have decidedto go away. Now go!"For he did not want him to see her crying. She wassuch a proud flower...Targeted KPA (TKPA)Universal KPA (UKPA)(3) Structural Impact Scoring• Impact Score candidates:  - Entity changes (S_entity)  - Relation changes (S_relation)  - Semantic similarity (S_vec)• Select the best rewrite withthe highest score(4) Selection & Corpus UpdateOriginal CorpusMisleading Corpus- Apply best rewrite to corpus- Accumulated edits fragmententities and relationsnoun phrases, and other referring expressions) and the en-
+tities they denote. These mention-to-entity links form the la-
+tent backbone that GraphRAG later uses to merge mentions
+into coherent entity nodes across chunks.
+
+(2) Perturbation Candidate Generation. Given the ex-
+tracted coreference chains, the LLM is for generating some
+alternative rewrites for the chunk that deliberately weaken
+these links. Each candidate rewrite must satisfy three con-
+straints: (i) maintain grammatical fluency, (ii) preserve the
+local meaning of the text, and (iii) stay within a small edit
+distance from the original. Typical perturbations include
+substituting pronouns with vague noun phrases, introduc-
+ing slight ambiguity in referring expressions, or reordering
+clauses in a way that makes cross-chunk linking less reli-
+able. These edits are to prevent GraphRAG from clustering
+mentions into a single entity during graph construction.
+
+(3) Structural Impact Scoring. To estimate the effect
+of each candidate rewrite without direct access to the fi-
+nal graph, UKPA employs a surrogate scoring function that
+measures how much the local entity-relation structure ex-
+tracted from a chunk would change after the edit:
+
+(cid:1),
+
+(3)
+
+Iscore = αSentity + βSrelation + γ(cid:0)1 − Svec
+where Sentity denotes the symmetric difference between the
+sets of entities extracted from the original and modified
+chunks, Srelation is the symmetric difference between their
+relation sets, and Svec is the cosine similarity (Lee, He, and
+Zettlemoyer 2018; Rahim et al. 2025) between the embed-
+ding (Bengio et al. 2003) of the original and modified chunk.
+The coefficients (α, β, γ) are tunable weights that balance
+the relative importance of entity fragmentation, relation dis-
+tortion, and semantic closeness (SC). The score favors can-
+didates that cause larger perturbations in the local entity-
+relation structure while keeping the modified text semanti-
+cally close to the original, so that the attack remains subtle
+while still fragmenting the global graph once these changes
+accumulate.
+
+(4) Selection and Corpus Update. For each chunk, the
+candidate rewrite with the highest score is chosen, and the
+corresponding text in the corpus is updated accordingly.
+When GraphRAG subsequently constructs the knowledge
+graph on this modified corpus, the accumulated perturba-
+tions disrupt entity linking: mentions that were previously
+merged into a single node are split into multiple discon-
+nected nodes, relations become scattered, and cross-chunk
+reasoning chains collapse.
+
+3 Evaluation
+
+3.1 Experimental Setup
+We evaluate TKPA and UKPA on a standard GraphRAG
+pipeline (Microsoft GraphRAG), focusing on: (1) Attack Ef-
+fectiveness: the ability to manipulate or degrade GraphRAG
+outputs, and (2) Attack Stealthiness: the few, subtle pertur-
+bations required and their ability to evade existing defenses.
+Datasets & Tasks. We evaluate on long-form docu-
+ments, which represent the primary application scenario
+of GraphRAG: synthesizing knowledge from large unstruc-
+tured text rather than isolated paragraphs. Such documents
+
+provide rich context and interconnections for constructing
+meaningful knowledge graphs. For TKPA, we choose The
+Little Prince (LP), the Wiki page on the Financial Cri-
+sis of 2007-2008 (FC08) (Wikipedia 2024a), and the Wiki
+page on the Japanese Asset Price Bubble (JAPB) (Wikipedia
+2024b). For UKPA, we use the Wiki page on the Russo-
+Ukrainian War (RUW) (Wikipedia 2024c) and LP. To evalu-
+ate downstream performance, we generate 20−30 multi-hop
+question-answer pairs per document using GPT-4o (OpenAI
+2024), prompted as a domain expert. Each question requires
+synthesizing information from multiple sections, similar in
+style to HotpotQA (Yang et al. 2018). All pairs are man-
+ually reviewed for clarity and correctness. Attack success
+is judged by whether the modified GraphRAG system pro-
+duces poisoned answers as determined by an LLM-based
+evaluator.
+
+Models & Parameters. We build the GraphRAG pipeline
+using state-of-the-art LLMs. For graph construction, we
+adopt GPT-4o-mini due to its efficiency and strong reason-
+ing capability, and use BAAI’s bge-m3 (Chen et al. 2024)
+as the embedding model, which is a multilingual and open-
+source embedding model supporting multiple granularities.
+For TKPA, GPT-4o is employed to perform fine-grained
+rewriting of selected text chunks and to verify attack out-
+comes. For UKPA, GPT-4o is used to identify linguistic cues
+(e.g., pronouns), generate poisoned variants of the text, and
+extract entity-relation structures for scoring candidate per-
+turbations. Unless otherwise stated, the weights in Eq. (2)
+are set to (w1, w2, w3) = (0.5, 0.3, 0.2), and those in Eq. (3)
+to (α, β, γ) = (0.25, 0.25, 0.5).
+
+3.2 Baselines.
+(i) Attack. We compare with three attacks:
+• PoisonedRAG (PRAG) (Zou et al. 2024), injects ma-
+licious text into the corpus to bias retrieval and force
+attacker-specified outputs (for TKPA).
+
+• Naive Swap (NS), a simplified variant that directly in-
+jects emotionally charged keywords (e.g., excellent) into
+the text without preserving coherence (for TKPA).
+
+• TextFooler-style Perturbation (TP) (Jin et al. 2020), re-
+places words with embedding-based synonyms and ig-
+nores coreference and global structure (for UKPA).
+(ii) Defense. We compare against three representative de-
+fense methods:
+• Perplexity-based Filter (PF) (Radford et al. 2019): a
+classical and widely used baseline that flags chunks with
+unusually high perplexity as suspicious, implemented
+with GPT-2.
+
+• LLM-based Contamination Detector (LLMDet) (Jain
+et al. 2023): a recent state-of-the-art approach that lever-
+ages powerful LLMs to classify each chunk as clean or
+poisoned through few-shot prompting.
+
+• Semantic Closeness Checking (SCC) (Honnibal et al.
+2020): a content-based defense that detects potential ma-
+nipulations by measuring semantic similarity between
+the original and modified chunks, particularly suited to
+universal poisoning scenarios.
+
+Dataset
+
+Metric
+
+TKPA PRAG
+
+NS
+
+LP
+
+FC08
+
+JAPB
+
+Average
+
+ASR (%) ↑
+QASD ↑
+
+ASR (%) ↑
+QASD ↑
+
+ASR (%) ↑
+QASD ↑
+
+ASR (%) ↑
+QASD ↑
+
+93.10
+0.85
+
+89.50
+0.81
+
+91.20
+0.83
+
+91.27
+0.83
+
+71.50
+0.68
+
+68.90
+0.65
+
+70.80
+0.67
+
+70.40
+0.67
+
+18.20
+0.15
+
+14.30
+0.13
+
+15.80
+0.12
+
+16.1
+0.13
+
+Table 1: Performance of TKPA across multiple corpora.
+
+3.3 Attack Effectiveness
+
+Metrics. We evaluate the impact of the proposed attacks
+from two perspectives: targeted effectiveness and global
+degradation. For TKPA, we report Attack Success Rate
+(ASR), i.e., the percentage of targeted queries whose an-
+swers are manipulated as intended, and Question-Answer
+Semantic Deviation (QASD), which measures how far the
+generated answers deviate semantically from the correct re-
+sponses. For UKPA, we assess global degradation through
+(i) the drop in overall QA accuracy on Microsoft GraphRAG
+and LightRAG to examine generalization across GraphRAG
+systems, and (ii) structural damage to the constructed knowl-
+edge graph. The latter is quantified using node retention rate,
+edge retention rate, and Jaccard similarity between the clean
+and poisoned graphs. Retention rates (0 → 1) measure the
+fraction of nodes or edges that persist after poisoning, while
+Jaccard similarity evaluates the overlap between the node
+and edge sets. Lower values on these metrics indicate more
+severe fragmentation of the graph structure.
+
+TKPA Performance. Table 1 presents the performance
+of TKPA across multiple corpora. Across all datasets,
+TKPA achieves high ASR (over 90% on average), show-
+ing that a handful of well-placed edits can consistently steer
+GraphRAG outputs toward attacker-specified answers. The
+QASD values further indicate that the poisoned answers
+diverge significantly from the ground truth, while remain-
+ing coherent and fluent. Compared with PoisonedRAG and
+Naive Swap baselines, TKPA achieves both higher ASR
+and larger semantic deviation with fewer edits, highlighting
+the advantage of structure-guided poisoning over na¨ıve text-
+level interventions.
+
+UKPA Performance. The UKPA aims to indirectly af-
+fect downstream tasks by disrupting the graph structure. As
+shown in Table 2, the UKPA can severely damage the graph
+structure. Although the total number of nodes and edges
+shows some reduction, the more drastic change is reflected
+in the graph’s topology, as evidenced by the extremely low
+Jaccard similarity scores (e.g., as low as 0.0789 for edges on
+LightRAG) reveal that the graph’s topology has been almost
+completely rewritten. This experiment shows that our lin-
+guistic perturbations effectively corrupt the knowledge base
+from within, rather than simply deleting information. The
+structural damage to the knowledge graph directly propa-
+gates to downstream QA tasks. As shown in Table 3, the
+
+Metric
+
+Microsoft GraphRAG
+
+LightRAG
+
+RUW
+
+LP
+
+RUW
+
+LP
+
+Nodes (Org/Atk) 347/327
+Edges (Org/Atk) 379/390
+
+104/97
+119/121
+
+436/405 163/131
+388/378 175/167
+
+Node Ret. Rate
+Edge Ret. Rate
+Node Jaccard
+Edge Jaccard
+
+0.5648
+0.2770
+0.4100
+0.1581
+
+0.5769
+0.3529
+0.4255
+0.2121
+
+0.4335
+0.1443
+0.2899
+0.0789
+
+0.3926
+0.2343
+0.2783
+0.1362
+
+Table 2: Structural degradation caused by UKPA. Clean
+(Org) vs. attacked (Atk) graphs for Microsoft GraphRAG
+and LightRAG on RUW and LP corpora.
+
+GrapRAG
+
+Attack
+
+Accuracy
+
+Microsoft
+GraphRAG
+
+LightRAG
+
+No Attack
+TP
+UKPA
+
+No Attack
+TP
+UKPA
+
+95%
+85%
+50%
+
+90%
+85%
+45%
+
+Table 3: Performance of UKPA on downstream QA task.
+
+QA accuracy on Microsoft GraphRAG dropped from 95%
+to 50% under our attack, while in lightRAG, the QA accu-
+racy drops from 90% to 45%. These results demonstrate that
+our universal poisoning paradigm can effectively cripple the
+system’s reasoning capabilities.
+
+3.4 Attack Stealthiness
+Table 4 shows that existing defenses are largely ineffec-
+tive against both TKPA and UKPA, with F1-scores close
+to 0. This result stems from the fact that both attacks op-
+erate in ways that evade surface-level detection. For TKPA,
+the manipulations are guided by graph structure: selected
+chunks are rewritten by advanced LLMs so that the style,
+fluency, and local semantics remain natural. This makes
+perplexity-based filters and LLM detectors ineffective, as
+the modified text is statistically and stylistically indistin-
+guishable from clean text. For UKPA, the perturbations di-
+rectly exploit the system’s reliance on linguistic coherence
+cues. Breaking these signals leaves the sentence-level mean-
+ing intact but causes long-range fragmentation in the knowl-
+edge graph. Because existing defenses analyze only local
+text, they cannot capture this deeper structural distortion.
+We also consider query-side defenses, such as query para-
+phrasing (Jain et al. 2023). These techniques are inherently
+ineffective against our attacks: the poisoned corpus corrupts
+the knowledge graph itself, so any paraphrased query will
+ultimately retrieve compromised entities and poisoned con-
+text. Defenses operating at the query level cannot mitigate
+attacks that target the underlying data source.
+
+In addition to bypassing detectors, both attacks require ex-
+tremely small modifications to the corpus. As summarized
+in Table 5, TKPA achieves targeted control by changing on
+the order of a few dozen to a few hundred words for an en-
+
+Attack
+
+Defense
+
+Precision Recall
+
+F1-Score
+
+TKPA
+
+UKPA
+
+PF
+LLMDet
+
+SCC
+PF
+LLMDet
+
+0.08
+0.14
+
+0.08
+0.05
+0.12
+
+0.06
+0.12
+
+0.06
+0.04
+0.10
+
+0.07
+0.13
+
+0.07
+0.04
+0.11
+
+Table 4: Effectiveness of defense against TKPA and UKPA.
+
+Attack Dataset
+
+Total
+Words
+
+Modified
+Words (min/avg)
+
+Modification
+Ratio (min/avg)
+
+TKPA
+
+UKPA
+
+94496
+LP
+FC08
+40223
+JAPB 44445
+
+LP
+
+94496
+RUW 134072
+
+48/155
+76/325
+113/334
+
+32
+60
+
+0.055% / 0.164%
+0.18% / 0.807%
+0.254% / 0.751%
+
+0.033%
+0.045%
+
+Table 5: Statistics of word-level perturbations introduced by
+TKPA and UKPA across datasets. min and avg indicate the
+minimum and average number.
+
+tire document (e.g., 48 words out of 94,496 for LP, less than
+0.06%), while UKPA achieves global degradation by modi-
+fying only 32-60 words across very large corpora (0.03%-
+0.05%). The sharp contrast highlights the stealthiness of
+both strategies: TKPA introduces highly localized edits fo-
+cused on a single query target, whereas UKPA spreads very
+small changes across the corpus to globally disrupt the
+graph. Such small-scale perturbations explain why existing
+text-level defenses fail to detect these attacks even when
+their downstream impact is catastrophic.
+
+3.5 Ablation Study
+Ablation Study of TKPA’s Parameters. We evaluate the
+role of the three weights in the TKPA chunk-scoring func-
+tion (Eq. (2)). While equal weighting of the three signals
+already achieves 89.8% ASR, tuning the weights to empha-
+size graph structure (w1 = 0.5, w2 = 0.3, w3 = 0.2) fur-
+ther boosts ASR to 91.2%. Setting any single weight to 1
+while zeroing the others results in significantly lower perfor-
+mance: graph-only yields 65.3% ASR, semantic-only yields
+58.2%, and attitude-only yields 51.7%. This result demon-
+strates that assigning priority to graph structure is more ef-
+fective than treating the signals equally. In addition to the
+weighting scheme, we analyze how the number of modified
+chunks (K) influences TKPA performance. Figure 4 shows
+that the ASR increases sharply with just a few edits: modi-
+fying the top-ranked chunk alone (k = 1) achieves 55.8%,
+rises to 81.3% with k = 2, and reaches 91.2% with only
+three chunks. Beyond k = 3, the curve plateaus, indicat-
+ing that the scoring mechanism effectively prioritizes high-
+impact segments. These results highlight that TKPA attains
+near-maximal impact with minimal, focused modifications,
+reinforcing both its stealth and efficiency.
+Ablation Study of UKPA’s Parameters. We evaluate the
+role of the three weights in the UKPA structural impact score
+
+Figure 4: Impact of the number of modified chunks (Top-K)
+on the ASR of TKPA.
+
+Figure 5: Impact of edit distance on UKPA.
+
+(Eq. (3)). Equal weighting of the three terms degrades QA
+accuracy to 0.55, while tuning the weights to prioritize se-
+mantic preservation (α = 0.25, β = 0.25, γ = 0.5) further
+reduces it to 0.50. Using a single component alone is much
+less effective, leaving QA accuracy at 0.70 − 0.75. This re-
+sult shows that balancing structural disruption with seman-
+tic consistency is more effective than either equal weight-
+ing or focusing on a single factor. To analyze the effect of
+edit distance, Figure 5 shows that while small edits (distance
+≤ 3) already cause a drastic drop in QA accuracy (from 0.95
+to 0.50), larger edits increase perplexity significantly with-
+out further improving attack impact. This results justifies the
+constraint on small edit distances to ensure stealthiness.
+
+4 Conclusion and Future Work
+We have revealed a fundamental vulnerability in GraphRAG
+systems: automatically constructed knowledge graphs open
+a critical attack surface, where manipulation of only a few
+words can cause significant distortion. We have proposed
+two knowledge poisoning attacks: TKPA, which leverages
+graph-theoretic structure to precisely control specific an-
+swers with over 93% ASR, and UKPA, which exploits lin-
+guistic cues to fragment the global graph, cutting QA accu-
+racy from 95% to 50% with less than 0.05% of the corpus
+modified. Experiments demonstrate that such small and nat-
+ural edits can evade state-of-the-art defenses. These results
+highlight the need to treat graph construction as a core se-
+curity component rather than a passive preprocessing step.
+For the future, we plan to investigate lightweight, scalable
+attack and defense methods that work with more complex
+GraphRAG systems, and to examine how multimodal inputs
+(e.g., images or metadata) in future GraphRAG pipelines
+may introduce new vulnerabilities.
+
+References
+Asai, A.; Wu, Z.; Wang, Y.; Sil, A.; and Hajishirzi, H. 2024.
+Self-RAG: Learning to Retrieve, Generate, and Critique
+through Self-Reflection. In Proceedings of The Twelfth In-
+ternational Conference on Learning Representations, ICLR
+2024, Vienna, Austria, May 7-11, 2024. OpenReview.net.
+Bengio, Y.; Ducharme, R.; Vincent, P.; and Janvin, C. 2003.
+A Neural Probabilistic Language Model. J. Mach. Learn.
+Res., 3: 1137–1155.
+Bian, N.; Han, X.; Sun, L.; Lin, H.; Lu, Y.; He, B.; Jiang, S.;
+and Dong, B. 2024. ChatGPT Is a Knowledgeable but Inex-
+perienced Solver: An Investigation of Commonsense Prob-
+lem in Large Language Models. In Proceedings of the 2024
+Joint International Conference on Computational Linguis-
+tics, Language Resources and Evaluation, LREC/COLING
+2024, 20-25 May, 2024, Torino, Italy, 3098–3110. Torino,
+Italy: ELRA and ICCL.
+Borgeaud, S.; Mensch, A.; Hoffmann, J.; Cai, T.; Ruther-
+ford, E.; Millican, K.; van den Driessche, G.; Lespiau, J.;
+Damoc, B.; Clark, A.; de Las Casas, D.; Guy, A.; Menick, J.;
+Ring, R.; Hennigan, T.; Huang, S.; Maggiore, L.; Jones, C.;
+Cassirer, A.; Brock, A.; Paganini, M.; Irving, G.; Vinyals,
+O.; Osindero, S.; Simonyan, K.; Rae, J. W.; Elsen, E.; and
+Sifre, L. 2022. Improving Language Models by Retrieving
+In Proceedings of International
+from Trillions of Tokens.
+Conference on Machine Learning, ICML 2022, 17-23 July
+2022, Baltimore, Maryland, USA, volume 162 of Proceed-
+ings of Machine Learning Research, 2206–2240. PMLR.
+Chen, H.; Liu, X.; Yin, D.; and Tang, J. 2017. A Survey
+on Dialogue Systems: Recent Advances and New Frontiers.
+SIGKDD Explor., 19(2): 25–35.
+Chen, J.; Xiao, S.; Zhang, P.; Luo, K.; Lian, D.; and
+Liu, Z. 2024. BGE M3-Embedding: Multi-Lingual, Multi-
+Functionality, Multi-Granularity Text Embeddings Through
+Self-Knowledge Distillation. arXiv:2402.03216.
+Chen, X.; Jia, S.; and Xiang, Y. 2020. A review: Knowledge
+reasoning over knowledge graph. Expert Syst. Appl., 141:
+112948.
+Chen, Z.; Wang, Y.; Zhao, B.; Cheng, J.; Zhao, X.; and
+Duan, Z. 2020. Knowledge Graph Completion: A Review.
+IEEE Access, 8: 192435–192456.
+Cheng, P.; Ding, Y.; Ju, T.; Wu, Z.; Du, W.; Yi, P.; Zhang, Z.;
+and Liu, G. 2024. TrojanRAG: Retrieval-Augmented Gen-
+eration Can Be Backdoor Driver in Large Language Models.
+arXiv:2405.13401.
+Deng, G.; Liu, Y.; Wang, K.; Li, Y.; Zhang, T.; and Liu,
+Y. 2024. Pandora: Jailbreak GPTs by Retrieval Augmented
+Generation Poisoning. arXiv:2402.08416.
+Edge, D.; Trinh, H.; Cheng, N.; Bradley, J.; Chao, A.; Mody,
+A.; Truitt, S.; and Larson, J. 2024. From Local to Global:
+A Graph RAG Approach to Query-Focused Summarization.
+arXiv:2404.16130.
+Gross, J. L.; Yellen, J.; and Anderson, M. 2018. Graph the-
+ory and its applications. Chapman and Hall/CRC.
+Guo, Z.; Xia, L.; Yu, Y.; Ao, T.; and Huang, C. 2024. Ligh-
+tRAG: Simple and Fast Retrieval-Augmented Generation.
+arXiv:2410.05779.
+
+Han, H.; Wang, Y.; Shomer, H.; Guo, K.; Ding, J.; Lei, Y.;
+Halappanavar, M.; Rossi, R. A.; Mukherjee, S.; Tang, X.;
+He, Q.; Hua, Z.; Long, B.; Zhao, T.; Shah, N.; Javari, A.;
+Xia, Y.; and Tang, J. 2025. Retrieval-Augmented Generation
+with Graphs (GraphRAG). arXiv:2501.00309.
+Hines, K.; Lopez, G.; Hall, M.; Zarfati, F.; Zunger, Y.; and
+Kiciman, E. 2024. Defending Against Indirect Prompt In-
+In Proceedings of the
+jection Attacks With Spotlighting.
+Conference on Applied Machine Learning in Information
+Security (CAMLIS 2024), Arlington, Virginia, USA, October
+24-25, 2024, volume 3920 of CEUR Workshop Proceedings,
+48–62. CEUR-WS.org.
+Hobbs, J. R. 1978. Resolving pronoun references. Lingua,
+44(4): 311–338.
+Honnibal, M.; Montani, I.; Van Landeghem, S.; and Boyd,
+A. 2020. spaCy: Industrial-strength Natural Language Pro-
+cessing in Python. https://doi.org/10.5281/zenodo.1212303.
+Accessed: 2024-10-26.
+Jain, N.; Schwarzschild, A.; Wen, Y.; Somepalli, G.;
+Kirchenbauer, J.; Chiang, P.; Goldblum, M.; Saha, A.; Geip-
+ing, J.; and Goldstein, T. 2023. Baseline Defenses for
+Adversarial Attacks Against Aligned Language Models.
+arXiv:2309.00614.
+Ji, Z.; Lee, N.; Frieske, R.; Yu, T.; Su, D.; Xu, Y.; Ishii, E.;
+Bang, Y.; Madotto, A.; and Fung, P. 2023. Survey of Hal-
+lucination in Natural Language Generation. ACM Comput.
+Surv., 55(12): 248:1–248:38.
+Jin, D.; Jin, Z.; Zhou, J. T.; and Szolovits, P. 2020. Is BERT
+Really Robust? A Strong Baseline for Natural Language At-
+tack on Text Classification and Entailment. In Proceedings
+of The Thirty-Fourth AAAI Conference on Artificial Intelli-
+gence, AAAI 2020, The Thirty-Second Innovative Applica-
+tions of Artificial Intelligence Conference, IAAI 2020, The
+Tenth AAAI Symposium on Educational Advances in Artifi-
+cial Intelligence, EAAI 2020, New York, NY, USA, February
+7-12, 2020, 8018–8025. AAAI Press.
+Karpukhin, V.; Oguz, B.; Min, S.; Lewis, P.; Wu, L.; Edunov,
+S.; Chen, D.; and Yih, W. 2020. Dense Passage Retrieval
+for Open-Domain Question Answering. In Proceedings of
+the 2020 Conference on Empirical Methods in Natural Lan-
+guage Processing, EMNLP 2020, Online, November 16-20,
+2020, 6769–6781. Association for Computational Linguis-
+tics.
+Kim, B.; Hong, T.; Ko, Y.; and Seo, J. 2020. Multi-
+Task Learning for Knowledge Graph Completion with Pre-
+In Proceedings of the 28th In-
+trained Language Models.
+ternational Conference on Computational Linguistics, COL-
+ING 2020, Barcelona, Spain (Online), December 8-13,
+2020, 1737–1743. International Committee on Computa-
+tional Linguistics.
+Lee, K.; He, L.; Lewis, M.; and Zettlemoyer, L. 2017. End-
+In Proceedings of
+to-end Neural Coreference Resolution.
+the 2017 Conference on Empirical Methods in Natural Lan-
+guage Processing, EMNLP 2017, Copenhagen, Denmark,
+September 9-11, 2017, 188–197. Association for Computa-
+tional Linguistics.
+
+Lee, K.; He, L.; and Zettlemoyer, L. 2018. Higher-Order
+Coreference Resolution with Coarse-to-Fine Inference.
+In
+Proceedings of the 2018 Conference of the North Ameri-
+can Chapter of the Association for Computational Linguis-
+tics: Human Language Technologies, NAACL-HLT, New Or-
+leans, Louisiana, USA, June 1-6, 2018, Volume 2 (Short Pa-
+pers), 687–692. Association for Computational Linguistics.
+Lewis, P.; Perez, E.; Piktus, A.; Petroni, F.; Karpukhin, V.;
+Goyal, N.; K¨uttler, H.; Lewis, M.; Yih, W.; Rockt¨aschel, T.;
+Riedel, S.; and Kiela, D. 2020. Retrieval-Augmented Gen-
+In Proceed-
+eration for Knowledge-Intensive NLP Tasks.
+ings of Advances in Neural Information Processing Systems
+33: Annual Conference on Neural Information Processing
+Systems 2020, NeurIPS 2020, December 6-12, 2020, virtual,
+9459–9474. Curran Associates, Inc.
+Liang, J.; Wang, Y.; Li, C.; Zhu, R.; Jiang, T.; Gong, N.; and
+Wang, T. 2025. GraphRAG under Fire. arXiv:2501.14050.
+Mitchell, J. C. 1969. Social networks in urban situations:
+analyses of personal relationships in Central African towns.
+Manchester University Press.
+OpenAI. 2023. GPT-4 Technical Report. arXiv:2303.08774.
+OpenAI. 2024. GPT-4o. https://openai.com/index/hello-
+gpt-4o/. Accessed: 2024-05-13.
+Peng, B.; Zhang, L.; and Zhang, D. 2013. A survey of
+graph theoretical approaches to image segmentation. Pat-
+tern Recognit., 46(3): 1020–1038.
+Peng, H.; Parikh, A. P.; Faruqui, M.; Dhingra, B.; and Das,
+D. 2019. Text Generation with Exemplar-based Adaptive
+Decoding. arXiv:1904.04428.
+Radford, A.; Wu, J.; Child, R.; Luan, D.; Amodei, D.; and
+Sutskever, I. 2019. Language Models are Unsupervised
+https://openai.com/blog/language-
+Multitask Learners.
+Accessed:
+models-are-unsupervised-multitask-learners/.
+2024-05-13.
+Rahim, M.; Amin, F.; Alhabeeb, S. A.; Alshehri, M. H.; and
+Khalifa, H. A. E. 2025. Cosine similarity and information
+measures of p,q,r- spherical fuzzy sets: Application in select-
+ing migration destination. Expert Syst. Appl., 265: 125932.
+Shafran, A.; Schuster, R.; and Shmatikov, V. 2024. Machine
+Against the RAG: Jamming Retrieval-Augmented Genera-
+tion with Blocker Documents. arXiv:2406.05870.
+Suo, X. 2024. Signed-Prompt: A New Approach to Prevent
+Prompt Injection Attacks Against LLM-Integrated Applica-
+tions. arXiv:2401.07612.
+Tao, Y.; Shen, Y.; Zhang, H.; Shen, Y.; Wang, L.; Shi, C.;
+and Du, S. 2024. Robustness of Large Language Models
+Against Adversarial Attacks. arXiv:2412.17011.
+Thoppilan, R.; Freitas, D. D.; Hall, J.; Shazeer, N.; Kul-
+shreshtha, A.; Cheng, H.; Jin, A.; Bos, T.; Baker, L.; Du,
+Y.; Li, Y.; Lee, H.; Zheng, H. S.; Ghafouri, A.; Menegali,
+M.; Huang, Y.; Krikun, M.; Lepikhin, D.; Qin, J.; Chen, D.;
+Xu, Y.; Chen, Z.; Roberts, A.; Bosma, M.; Zhou, Y.; Chang,
+C.; Krivokon, I.; Rusch, W.; Pickett, M.; Meier-Hellstern,
+K. S.; Morris, M. R.; Doshi, T.; Santos, R. D.; Duke, T.;
+Soraker, J.; Zevenbergen, B.; Prabhakaran, V.; Diaz, M.;
+Hutchinson, B.; Olson, K.; Molina, A.; Hoffman-John, E.;
+
+Lee, J.; Aroyo, L.; Rajakumar, R.; Butryna, A.; Lamm, M.;
+Kuzmina, V.; Fenton, J.; Cohen, A.; Bernstein, R.; Kurzweil,
+R.; y Arcas, B. A.; Cui, C.; Croak, M.; Chi, E. H.; and Le, Q.
+2022. LaMDA: Language Models for Dialog Applications.
+arXiv:2201.08239.
+Wallace, E.; Feng, S.; Kandpal, N.; Gardner, M.; and Singh,
+S. 2019. Universal Adversarial Triggers for Attacking
+In Proceedings of the 2019 Confer-
+and Analyzing NLP.
+ence on Empirical Methods in Natural Language Process-
+ing and the 9th International Joint Conference on Natural
+Language Processing, EMNLP-IJCNLP 2019, Hong Kong,
+China, November 3-7, 2019, 2153–2162. Association for
+Computational Linguistics.
+Wang, H.; Zhang, F.; Zhao, M.; Li, W.; Xie, X.; and Guo, M.
+2019. Multi-Task Feature Learning for Knowledge Graph
+Enhanced Recommendation. In Proceedings of The World
+Wide Web Conference, WWW 2019, San Francisco, CA,
+USA, May 13-17, 2019, 2000–2010. ACM.
+Wang, S.; and Wang, F. 2025. Value implications of follow-
+ers in social marketplaces: insights into ego network struc-
+tures. Internet Res., 35(1): 294–317.
+Financial crisis of 2007–2008 —
+Wikipedia. 2024a.
+Wikipedia, The Free Encyclopedia.
+https://en.wikipedia.
+org/wiki/Financial crisis of 2007-2008. Accessed: 2024-
+10-26.
+Japanese asset price bubble —
+Wikipedia. 2024b.
+Wikipedia, The Free Encyclopedia.
+https://en.wikipedia.
+org/wiki/Japanese asset price bubble. Accessed: 2024-10-
+26.
+Wikipedia. 2024c. Russo-Ukrainian War — Wikipedia, The
+Free Encyclopedia.
+https://en.wikipedia.org/wiki/Russo-
+Ukrainian War. Accessed: 2024-10-26.
+Yang, Z.; Qi, P.; Zhang, S.; Bengio, Y.; Cohen, W. W.;
+Salakhutdinov, R.; and Manning, C. D. 2018. HotpotQA:
+A Dataset for Diverse, Explainable Multi-hop Question An-
+swering. In Proceedings of the 2018 Conference on Empir-
+ical Methods in Natural Language Processing, 2369–2380.
+Association for Computational Linguistics.
+Yasunaga, M.; Ren, H.; Bosselut, A.; Liang, P.; and
+Leskovec, J. 2021. QA-GNN: Reasoning with Language
+Models and Knowledge Graphs for Question Answering. In
+Proceedings of the 2021 Conference of the North American
+Chapter of the Association for Computational Linguistics:
+Human Language Technologies, NAACL-HLT 2021, Online,
+June 6-11, 2021, 535–546. Association for Computational
+Linguistics.
+Zeng, S.; Zhang, J.; He, P.; Liu, Y.; Xing, Y.; Xu, H.; Ren,
+J.; Chang, Y.; Wang, S.; Yin, D.; and Tang, J. 2024. The
+Good and The Bad: Exploring Privacy Issues in Retrieval-
+Augmented Generation (RAG). In Proceedings of Findings
+of the Association for Computational Linguistics, ACL 2024,
+Bangkok, Thailand and virtual meeting, August 11-16, 2024,
+4505–4524. Association for Computational Linguistics.
+Zou, W.; Geng, R.; Wang, B.; and Jia, J. 2024.
+Poi-
+sonedRAG: Knowledge Poisoning Attacks to Retrieval-
+Augmented Generation of Large Language Models.
+arXiv:2402.07867.

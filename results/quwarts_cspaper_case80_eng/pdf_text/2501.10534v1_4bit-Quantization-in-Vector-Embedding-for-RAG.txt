@@ -1,0 +1,1063 @@
+4bit-Quantization in Vector-Embedding for RAG
+
+Taehee Jeong
+San Jose State University
+taehee.jeong@sjsu.edu
+
+5
+2
+0
+2
+
+n
+a
+J
+
+7
+1
+
+]
+
+G
+L
+.
+s
+c
+[
+
+1
+v
+4
+3
+5
+0
+1
+.
+1
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract—Retrieval-augmented generation (RAG) is a promis-
+ing technique that has shown great potential in addressing some
+of the limitations of large language models (LLMs). LLMs have
+two major limitations: they can contain outdated information
+due to their training data, and they can generate factually
+inaccurate responses, a phenomenon known as hallucinations.
+RAG aims to mitigate these issues by leveraging a database
+of relevant documents, which are stored as embedding vectors
+in a high-dimensional space. However, one of the challenges
+of using high-dimensional embeddings is that they require a
+significant amount of memory to store. This can be a major
+issue, especially when dealing with large databases of docu-
+ments. To alleviate this problem, we propose the use of 4-
+bit quantization to store the embedding vectors. This involves
+reducing the precision of the vectors from 32-bit floating-point
+numbers to 4-bit integers, which can significantly reduce the
+memory requirements. Our approach has several benefits. Firstly,
+it significantly reduces the memory storage requirements of
+the high-dimensional vector database, making it more feasible
+to deploy RAG systems in resource-constrained environments.
+Secondly, it speeds up the searching process, as the reduced
+precision of the vectors allows for faster computation. Our
+code is available at https://github.com/taeheej/4bit-Quantization-
+in-Vector-Embedding-for-RAG.
+
+Index Terms—Retrieval-augmented generation, Large lan-
+guage models, Vector search, Embedding vectors, Quantization,
+High-dimensional vectors, Memory storage, Vector database
+
+I. INTRODUCTION
+
+Large Language Models (LLMs) have achieved state-of-the-
+art performance on many Natural Language Processing (NLP)
+tasks [1]–[3], demonstrating their ability to store a vast amount
+of knowledge as implicit parameters. The responses generated
+by LLMs, given a query, are often useful and informative,
+as they are based on a wide variety of information learned
+during the training process. However, despite their impressive
+performance, LLMs still suffer from several limitations.
+
+One major issue is that the number of model parameters
+required to achieve good performance is growing exponen-
+tially. This means that as the model is trained on more data,
+the number of model parameters required to store the learned
+knowledge increases rapidly, making it challenging to deploy
+and maintain these models. Another limitation is that LLMs
+are fundamentally limited in their ability to incorporate time-
+sensitive or not-publicly available information. This is because
+the data used to train LLMs is typically based on a snapshot
+of the internet at a particular point in time, and may not reflect
+the latest developments or updates.
+
+23rd International Conference on Machine Learning and Applications
+
+(ICMLA), IEEE Copyright 2024
+
+As a result, LLMs are prone to producing fact halluci-
+nations, where the model generates responses that are not
+grounded in reality. This can be particularly problematic in
+applications where accuracy and reliability are critical.
+
+Recently, a new paradigm has emerged to address these
+limitations: Retrieval-Augmented Generation (RAG). RAG
+combines pre-trained language models with external knowl-
+edge retrieval, allowing the model to access and incorporate
+time-sensitive and not-publicly available information [4], [5].
+The RAG system works as follows: for a given input query,
+a neural retriever performs a search to find the most relevant
+documents from an external knowledge database. The retrieved
+documents, along with the query, are then used to prompt the
+language model, which generates its output by augmenting the
+retrieved documents with the given query. The work flow of
+the RAG system is illustrated in Fig. 1.
+
+Fig. 1: RAG system
+
+Compared to generative-only models, RAG explicitly ex-
+ploits time-sensitive information and/or not-publicly available
+documents, such as a company’s internal documents, and
+prevents potential hallucinations. Additionally, the language
+model in RAG requires a much smaller number of parameters,
+typically in the range of 7-8 billion, which is significantly
+smaller than the number of parameters required by generative-
+only models, such as Chat-GPT 3.5 [6], which requires 175
+billion parameters. The reduction in the number of parameters
+is available because the language model
+in RAG gener-
+ates responses based on retrieved information from a vector
+database, rather than relying on implicit model parameters.
+This approach allows the model to access and incorporate a
+vast amount of knowledge, without requiring a large number
+of model parameters.
+
+In RAG systems, relevant documents are represented as
+embedding vectors within a high-dimensional space. Notably,
+the top-ranked models on the Massive Text Embedding Bench-
+mark (MTEB) leaderboard [7], [8], as shown in Fig. 2,
+
+ 
+ 
+ 
+ 
+ 
+ 
+consistently utilize embedding dimensions ranging from 512
+to 4096.
+
+Fig. 2: Distribution of embedding dimensions
+
+However, high-dimensional embedding vectors require a
+large amount of memory to store. For example, the dbpedia-
+openai-1M-1536-angular dataset [9] requires 1M × 1536 ×
+4bytes = 6.1GB of RAM to store the embedding vectors
+alone, not including the indexing and text data. To compress
+the embedding vectors, 8-bit quantization can be applied,
+reducing the memory requirements to 1M × 1536 × 1bytes =
+1.5GB. Further compression to 4-bit integer can reduce the
+memory requirements to 1M × 1536 × 0.5bytes = 0.75GB.
+In this work, we propose 8-bit or 4-bit quantization of
+embedding vectors, which can significantly reduce the memory
+storage and usage of a vector database. This approach can
+substantially reduce the cost of hosting a vector database on
+cloud services and is expected to speed up the searching
+process. However, the searching accuracy may be affected,
+and we will discuss this in detail.
+
+II. RELATED WORK
+
+Traditional searching algorithms, such as bag-of-words re-
+trieval methods, rank a set of documents based on the fre-
+quency of query terms appearing in each document. One popu-
+lar algorithm is Term Frequency-Inverse Document Frequency
+(TF-IDF), which evaluates the importance of a word in a
+document relative to a collection of documents by multiplying
+the Term Frequency (TF) and Inverse Document Frequency
+(IDF) values. TF-IDF is widely used in search engines to rank
+documents based on their relevance to a user’s query.
+
+Another algorithm is Best Matching 25 (BM25) [10], which
+is a variant of the TF-IDF algorithm. BM25 estimates a
+probability of relevance of documents to a given query by
+incorporating TF, IDF, and document length normalization.
+BM25 uses a normalization factor to ensure that the scores
+are comparable across documents of different lengths, which
+makes effective at handling long documents. BM25 is a power-
+ful and widely-used ranking function in information retrieval,
+known for its balance between simplicity and effectiveness.
+
+Unlike traditional searching algorithms that look for exact
+matches of information like keyword matches, vector search
+
+represents data points as vectors, which have direction and
+magnitude, in a highly-dimensional space. With vector search,
+the individual dimensions define a specific attribute or feature,
+and the search compares the similarity of the query vector
+to the possible vectors in a database. Unstructured data like
+images, text, and audio can be represented as vectors within
+a high-dimensional space, aiming to efficiently locate and
+retrieve vectors that closely match the query vector. Metrics
+such as Euclidean distance or cosine similarity are commonly
+used to assess the similarity between vectors.
+
+Euclidean distance between two vectors P and Q with two
+
+dimension is defined as follows.
+
+d(P, Q) = (cid:112)(p1 − q1)2 + (p2 − q2)2
+
+(1)
+
+Cosine similarity between two vectors P and Q with n
+
+dimension is defined as follows.
+
+cosine similarity = cos(θ)
+
+=
+
+=
+
+P · Q
+∥P∥ ∥Q∥
+(cid:80)n
+(cid:112)(cid:80) p2
+
+i
+
+i=1(piqi)
+(cid:112)(cid:80) q2
+
+i
+
+(2)
+
+The constantly growing amount of available information
+resources has led to a high demand for efficient similarity
+searching methods. Vector search algorithms are designed to
+efficiently find the most similar vectors to a given query vector
+in a high-dimensional space. Some popular vector searching
+algorithms are K-Nearest Neighbors (KNN), Approximate
+Nearest Neighbor (ANN), and Product quantization (PQ).
+
+Also known as the Brute force algorithm, KNN [12] finds
+the K closest vectors to the query vector by calculating the
+distance (often Euclidean distance) between the query and all
+other vectors in the dataset. It guarantees finding the exact
+nearest neighbors but can be computationally expensive for
+large datasets.
+
+ANN [13] allows for a small error margin and returns points
+that are approximately nearest. This is not an exact nearest
+neighbors search, but an approximate closest points search.
+ANN loses some accuracy but gains a significant speedup
+compared to exact nearest neighbor search algorithms. Popular
+ANN approaches include k-d trees [14], Locality Sensitive
+Hashing (LSH) [15], and Hierarchical Navigable Small World
+Algorithm (HNSW) [16] .
+
+K-d trees [14] are a type of binary search algorithm that
+efficiently organizes and searches large, multi-dimensional
+datasets. They work by recursively partitioning data along
+different dimensions at each level, using the median or mean
+to determine the splitting point. This creates a hierarchical
+structure that enables fast querying by traversing the tree
+and pruning branches based on the query point’s coordinates,
+reducing the search space and improving efficiency.
+
+Locality Sensitive Hashing (LSH) [15] is a technique that
+enables efficient similarity search by hashing similar points to
+the same bucket. Unlike traditional hashing, LSH maximizes
+collisions between similar points by applying multiple hash
+
+functions. This process involves hashing a dataset with multi-
+ple functions during preprocessing, and then hashing a query
+point with the same functions to retrieve similar candidate
+points. By doing so, LSH efficiently identifies points likely to
+be similar to a query point, making it effective for similarity
+search and nearest neighbor queries.
+
+The Hierarchical Navigable Small World (HNSW) Algo-
+rithm [16] constructs a multi-layered graph where each node
+represents a data point. It navigates this graph hierarchi-
+cally, starting from coarse to fine granularity, using edges to
+guide the search towards similar points and prune the search
+space. This approach balances efficiency and accuracy, making
+HNSW effective for finding nearest neighbors in large datasets.
+While ANN algorithms can significantly speed up the search
+process, they have some limitations: Approximate solution:
+ANN algorithms return an approximate solution instead of
+an exact solution. Preprocessing: Creating an index or data
+structure requires additional computing, which can be even
+more expensive than the original search. Scalability: The
+preprocessing step can be computationally expensive and may
+not scale well for large datasets.
+
+Product quantization [32] is another searching algorithm
+that significantly compresses high-dimensional vectors, reduc-
+ing memory size and accelerating nearest-neighbor searches.
+The process involves dividing a high-dimensional vector into
+equal-sized sub-vectors, each of which is then assigned an ID
+corresponding to the centroid it belongs to. This method can
+achieve impressive compression rates of over 95%. However,
+it
+is a lossy compression technique, meaning that higher
+compression levels often come at the cost of decreased pre-
+diction accuracy. Additionally, product quantization requires
+clustering sub-vectors in a database and storing the centroid
+information of quantized buckets in memory.
+
+To address these limitations, our work focuses on find-
+ing an exact solution using KNN while reducing memory
+requirements by quantizing vectors. By representing vectors
+using a smaller number of bits, we can reduce the memory
+requirements and improve the efficiency of the search process.
+
+Fig. 3: Data types
+
+and comes close to being a drop-in replacement for FP32
+during training and deploying neural networks. In the case of
+FP16, special handling such as loss scaling might be required.
+BF16 is now supported in modern CPU, GPU, and NPU. In
+our work, default computing was conducted in BF16. Fig.3
+compares each datatype.
+
+B. INT8
+
+INT8 uses 8 bits integers instead of floating point numbers
+and integer computation instead of floating point computing,
+reducing both memory and computing requirements. INT8
+quantization has been applied to many neural networks to
+decrease the computational time and energy consumption of
+neural networks [18]. In neural network quantization,
+the
+weights and activation tensors are stored in 8-bit precision than
+the 32-bit precision which were trained. When transforming
+from 32 to 8 bits, the memory overhead of storing tensors
+decreases by a factor of 4 while the computational cost for
+matrix multiplication reduces by a factor of 16 [19]. However,
+in
+the use of 8-bit quantization in a network can result
+quantization loss, which may subsequently cause a decrease
+in the model’s overall accuracy.
+
+III. METHODOLOGY
+
+C. Quantization process
+
+There have been extensively studied quantization for LLMs
+[22]–[27]. We would like leverage some of these technologies.
+
+A. BFloat16
+
+Floating Point 32-bit (FP32) is a default data type for
+neural network computations and its weights and activation.
+It consists of 1 bit sign, 8 bits exponent, and 23 bits fraction.
+When precision calculation is not critical, Floating Point 16-bit
+(FP16) can be used since it reduces the memory and speed up
+communication. FP16 consists of 1 bit sign, 5 bits exponent,
+and 10 bits fraction. Recently Bfloat16 (Brain Floating Point
+16-bit, BF16) [17] is becoming popular for machine learning
+tasks and its hardware implementation. BF16 is also 16 bits,
+but with a different format. It has 1 bit sign, 8 bits exponent,
+and 7 bits fraction. BF16 has a wider range but lower precision
+compared to FP16. BF16 provides the same range of FP32
+
+Suppose x ∈ Rd and xq ∈ Rd are a full-precision and a
+
+quantized vector respectively.
+
+Using the following symmetric linear quantization function
+[20], a full-precision x can be mapped to a quantized vector
+xq.
+
+xq = Clamp(Round[
+
+x
+s
+
+])
+
+(3)
+
+where Clamp restricts the value of its argument to the
+quantized range [−2b−1, 2b−1 − 1], b is the number of bits
+for quantization. Round is the round-to-nearest operator, and
+S ∈ R is the scaling factor as defined as S = max(|x|)
+
+.
+
+To invert from a quantized vector xq to a full-precision x,
+
+the scaling factor is simply multiplied.
+
+xdq = s × xq
+
+(4)
+
+2b−1
+
+The difference between x and xdq,
+
+|x − xdq|
+
+is called
+
+quantization loss.
+
+D. INT4 and Group-wise quantization
+
+While INT8 quantization is effective in reducing both the
+memory and computing cost while preserving accuracy in
+neural network and vector database, it remains unclear whether
+we can leverage INT4 to achieve further memory reduction.
+In this study, we explore the feasibility of employing INT4
+quantization for vector space with group-wise quantization.
+
+Directly quantizing high-dimensional vectors as an entirety
+with the same quantization scale can significantly degrade the
+accuracy in INT4 quantization [19]. In the case of group-
+wise quantization [21], a high-dimensional vector would be
+split into several groups with same group size. Each group
+can have its own quantization scale. The effect of group-wise
+quantization is further investigated in section IV.
+
+IV. EXPERIMENT
+
+We designed two experimental setups to evaluate the accu-
+racy of various quantization methods. The first setup uses co-
+sine similarity scores to compare the precision of different data
+types, focusing on 4-bit quantization and group size effects.
+The second setup analyzes accuracy degradation in retrieval
+tasks, comparing our quantization methods to a 32-bit baseline.
+This comprehensive evaluation framework provides valuable
+insights into the trade-offs between quantization precision and
+accuracy.
+
+For the cosine similarity measurement, we randomly se-
+lected 1000 embedding vectors from dbpedia-openai-1M-
+1536-angular dataset [9]. Since the total number of avail-
+able pairs is N ×(N −1)
+, we measured similarity score for
+1000×999
+= 499, 500 pairs of the embedding vectors. The
+2
+distributions of the measured cosine similarity score of all the
+pairs of the 1000 vectors for different quantization method are
+shown in Fig 4.
+
+2
+
+Fig.4 presents four histograms representing the distribution
+of cosine similarity values for different data representations:
+FP32, BF16, INT8, and INT4. All histograms exhibit a
+bell-shaped curve, indicating a normal distribution of cosine
+similarity values. The peak of the distribution shifts slightly
+to the left as the data representation moves from FP32 to
+INT4. This implies that
+the average cosine similarity de-
+creases with lower precision data representations. The width
+of the distribution also increases as the data representation
+moves from FP32 to INT4. This indicates a larger spread of
+cosine similarity values for lower precision representations,
+suggesting potentially more variability in the data. The tails
+of the distributions become heavier as the data representation
+moves from FP32 to INT4. This means that there are more
+data points with extremely low or high cosine similarity
+values in the lower precision representations. The observed
+changes in the histograms suggest that quantizing the data
+from FP32 to lower precision formats (BF16, INT8, and INT4)
+introduces quantization loss and reduces the accuracy of the
+cosine similarity calculation. This can lead to a decrease in
+
+(a) FP32
+
+(b) BF16
+
+(c) INT8
+
+(d) INT4
+
+Fig. 4: Distribution of cosine similarity for all pairs of 1000
+vectors. (d) INT4 with group size 32
+
+the average similarity and an increase in the variability of the
+results. This observation is consistent with the RMSE result
+in Fig.5.
+
+Root Mean Square Error (RMSE) between two vectors P
+
+and Q is defined as follows.
+
+RMSE(P, Q) =
+
+(cid:114) (cid:80)n
+
+i=1(pi − qi)2
+N
+
+(5)
+
+To evaluate the accuracy of the cosine similarity values of
+quantized pairs, we calculated the RMSE between their cosine
+similarity values and those of the baseline 32-bit floating-point
+representations. The result is shown in Fig.5 and Table I.
+
+Fig. 5: RMSE of the cosine similarity values of quantized pairs
+
+Fig.5 illustrates the relationship between various quanti-
+zation methods and their respective error rate of the cosine
+similarity. Since the embedding vectors are normalized to a
+range of 0 to 1, the RMSE values can be interpreted as an
+error rate. The chart shows a clear trend: Error rates tend to
+rise as the datatype shifts from BF16 to INT4. The accuracy
+of quantization methods, as measured by cosine similarity,
+
+TABLE I: RMSE of the cosine similarity values of quantized
+pairs
+
+Datatype
+
+Group size
+
+RMSE
+
+Bf16
+
+Int8
+
+Int4
+
+Int4
+
+Int4
+
+Int4
+
+0.0015
+
+0.0028
+
+0.0048
+
+0.0092
+
+0.0163
+
+0.0324
+
+32
+
+64
+
+128
+
+256
+
+decreases as the datatype precision is reduced. For INT4, the
+accuracy decreases as the group size increases.
+
+To evaluate the accuracy of informational retrieval using our
+vector quantization approach, we conducted a comprehensive
+experiment. We split dbpedia-openai-1M-1536-angular dataset
+into 900K and 100K after permutation. Then, we carefully
+selected 10 embedding vectors from the 900K dataset. The
+magnitude of cosine similarity values for all possible pairs
+among the 10 selected vectors is less than 0.1, which means
+they are almost orthogonal to each other. Using the 10 selected
+vectors as queries, we searched relevant vectors from the 100K
+dataset. The overall process is illustrated in Fig.6
+
+Fig. 6: Searching relevant documents and counting the over-
+laps
+
+First, we computed the cosine similarity value between
+each query vector and every vector in the 100K dataset. This
+allowed us to identify the top 10 most relevant vectors for
+each query vector, based on their cosine similarity scores. This
+resulted in a total of 100 unique vectors that did not overlap
+with each other. We treated this list of 100 vectors as our
+baseline, representing the most relevant results without any
+quantization.
+
+Next, we applied vector quantization to the entire vector
+space and then searched for the top 10 relevant vectors for each
+of the 10 query vectors, based on their cosine similarity scores.
+This time, however, we used the quantized vectors instead
+of the original floating-point vectors. We then compared the
+resulting list of top 10 relevant vectors for each query vector
+with the baseline list obtained earlier. To assess the accuracy of
+our quantization approach, we counted the number of vectors
+that overlapped between the two lists. In other words, we
+measured the proportion of vectors that were common to both
+the baseline list and the list obtained after quantization. This
+
+overlap metric served as a proxy for the accuracy of retrieval
+for quantization. The result is shown in Fig.7 and Table II.
+
+Fig.7 illustrates the relationship between various quantiza-
+tion methods and their corresponding retrieval accuracy values.
+Notably, the dotted line represents the accuracy achieved by
+the HNSW algorithm (M=64 and ef=50) [16] which is a state-
+of-the-art algorithm used for an approximate search of nearest
+neighbours. The data reveals a downward trend, indicating
+that as the precision of the quantized vectors decreases, the
+accuracy values also tend to decrease. Although the accuracy
+drops significantly with INT4, using INT4 with a group size of
+128 or less yields higher accuracy than the HNSW algorithm.
+
+Fig. 7: Accuracy of retrieval for quantization
+
+TABLE II: Accuracy of retrieval for quantization
+
+Datatype
+
+Group size
+
+Accuracy
+
+Bf16
+
+Int8
+
+Int4
+
+Int4
+
+Int4
+
+Int4
+
+0.98
+
+0.83
+
+0.67
+
+0.56
+
+0.45
+
+0.28
+
+32
+
+64
+
+128
+
+256
+
+V. COMPARATIVE ANALYSIS
+
+after
+
+100K
+
+conducted
+
+Product-quantization. We
+
+dbpedia-openai-1M-1536-angular
+
+We compared our quantization method with Product-
+quantization
+[32]. We
+two
+experiments.
+First, we evaluated the accuracy of
+searching relevant
+documents
+quantized
+dataset
+the
+using Product-quantization algorithm. The experimented
+sub-vectors, M and
+combinations of
+the
+follows.
+of
+number
+(48, 256), (32, 256), (16, 256), (8, 256), (32, 16), (16, 16),
+(8, 16). After computing the cosine similarity value between
+each query vector and every vector in the 100K dataset, we
+identified the top 10 most relevant vectors for each query
+vector as described in the section IV. We then compared
+the resulting list of top 10 relevant vectors after Product
+quantization with the baseline list from the original floating-
+point vectors. The overlap ratio of the two lists, which is the
+
+the number of
+quantized
+
+buckets, K as
+
+accuracy of retrieval was less than 0.1. This suggests that
+Product Quantization loses its retrieval accuracy and is unable
+to identify the exact solution when searching for relevant
+vectors using cosine similarity.
+
+To
+
+our
+
+extend
+
+comparison
+
+analysis with Product-
+quantization, we compared Pearson correlation coefficient
+between human-evaluated values and cosine similarity values
+from three Semantic textual similarity datasets such as
+sts-metb [28], str-2022 [29], and SICK [30]. These datasets
+have two pair of sentences and its semantic textual similarity
+or relatedness score, which was evaluated by humans. The
+size of each dataset is 8,628 for sts-metb, 5,500 for str-2022,
+and 9,840 for SICK.
+
+First of all, we split the each dataset into train (50%) and test
+(50%) dataset. Then, we embedded the pair of the sentences
+from each dataset using bge-large-en-v1.5 [31] embedding
+model. The dimension of the embedded vector is 1024. We
+quantized the embedded vectors of test dataset based on
+quantized train dataset using Product-quantization algorithm.
+Then, we evaluated the cosine similarity value between the
+pair of quantized vectors. Finally, we computed the correlation
+coefficient between the measured cosine similarity values and
+the semantic relatedness scores.
+
+TABLE III: Correlation coefficients for Semantic Textual
+Similarity
+
+Dataset
+
+Datatype
+
+Correlation coefficient
+
+Ratio
+
+sts-metb
+
+sts-metb
+
+sts-metb
+
+sts-metb
+
+sts-metb
+
+Fp32
+
+Bf16
+
+Int8
+
+Int4
+PQ[32, 256]1
+
+sts-metb
+
+PQ[32, 16]
+
+str-2022
+
+str-2022
+
+str-2022
+
+str-2022
+
+Fp32
+
+Bf16
+
+Int8
+
+Int4
+
+str-2022
+
+PQ[32, 256]
+
+str-2022
+
+PQ[32, 16]
+
+SICK
+
+SICK
+
+SICK
+
+SICK
+
+SICK
+
+SICK
+
+Fp32
+
+Bf16
+
+Int8
+
+Int4
+
+PQ[32, 256]
+
+PQ[32, 16]
+
+0.8830
+
+0.8827
+
+0.8461
+
+0.8474
+
+0.5970
+
+0.5568
+
+0.8212
+
+0.8212
+
+0.7833
+
+0.7812
+
+0.4041
+
+0.4396
+
+0.8637
+
+0.8633
+
+0.8266
+
+0.8285
+
+0.6391
+
+0.6358
+
+1.0
+
+0.9997
+
+0.9583
+
+0.9597
+
+0.6762
+
+0.6305
+
+1.0
+
+1.0
+
+0.9538
+
+0.9513
+
+0.4921
+
+0.5353
+
+1.0
+
+0.9996
+
+0.9571
+
+0.9592
+
+0.7400
+
+0.7360
+
+The table III provides a detailed comparison of the correla-
+tion coefficient for different data types and quantization. Our
+quantized INT8 and INT4 demonstrate a slight degradation
+in coefficients, reaching up to 4%. In contrast, Product-
+quantization exhibits a significant degradation, with coeffi-
+cients declining by as much as 50%.
+
+1Product-Quantization [M,K], M: Number of sub-vectors, K: Number of
+
+quantized buckets
+
+VI. LIMITATION
+
+Converting embedding vectors from higher precision for-
+mats, such as 32-bit floating point, to lower precision formats
+like 8-bit or 4-bit integers, can lead to significant increases in
+searching speed. The key reason for this is that using fewer
+bits to represent data simplifies calculations and accelerates
+processing on hardware. However, to fully realize these speed
+gains, dedicated hardware instructions are necessary to support
+calculations with lower precision integer data. Currently, many
+popular frameworks,
+the
+INT8 data type, but do not yet support INT4. To confirm
+the expected performance benefits, it would be essential to
+measure the actual impact on searching speed, which was not
+done in this work.
+
+including PyTorch, only support
+
+VII. CONCLUSION
+
+Recently, RAG has emerged as a promising solution to
+the limitations of LLMs, particularly the issues of outdated
+information and hallucinations. RAG uses large-scale simi-
+larity search to retrieve relevant information from extensive
+databases of images, audio, video, and text. The key process
+of RAG pipeline is storing information as high-dimensional
+embedding vectors, which require substantial memory. This
+poses a challenge for deploying RAG models on devices with
+limited memory, such as mobile phones.
+
+To address this challenge, we utilized quantization tech-
+niques to lower the precision of these high-dimensional vec-
+tors. This quantization can reduce the memory demands of the
+database by a factor of four or eight. Our findings indicate that
+8-bit quantization maintains retrieval accuracy with only slight
+degradation. Group-wise quantization can alleviate some of
+the accuracy loss encountered with 4-bit quantization. Further-
+more, the improved memory efficiency of 4-bit quantization
+allows for the use of larger vector databases, which could
+potentially produce more accurate and relevant search results.
+
+REFERENCES
+
+[1] OpenAI, “GPT-4 Technical Report,“ arXiv:2303.08774, 2023.
+[2] S. Zhang, L. Dong, X. Li, S. Zhang, X. Sun, S. Wang, J. Li, R. Hu, T.
+Zhang, F. Wu, and G. Wang, “Instruction Tuning for Large Language
+Models: A Surveyy,“ arXiv:2308.10792, 2024.
+
+[3] S. Minaee, T. Mikolov, N. Nikzad, M. Chenaghlu, R. Socher, X. Amatri-
+ain, and J. Gao, “Large Language Models: A Survey,“ arXiv:2402.06196,
+2024.
+
+[4] P. Lewisyz, E. Perez, A. Piktusy, F. Petroniy, V. Karpukhiny, N. Goyaly,
+H. K¨uttlery, M. Lewisy, W. Yihy, T. Rockt¨aschelyz, S. Riedelyz, D.
+Kiela, “Retrieval-Augmented Generation for Knowledge-Intensive NLP
+Tasks,“ arXiv:2005.11401, 2021.
+
+[5] Y. Gao, Y. Xiong, X. Gao, K. Jia, J. Pan, Y. Bi, Y. Dai, J. Suna, M. Wang,
+and H. Wang, “Retrieval-Augmented Generation for Large Language
+Models: A Survey,” arXiv:2312.10997, 2024.
+
+[6] T. B. Brown, B. Mann, N. Ryder, M. Subbiah, J. Kaplany, P. Dhariwal,
+A. Neelakantan. P. Shyam, G. Sastry, A. Askell, S. Agarwal, A.
+Herbert-Voss, G. Krueger T. Henighan, R. Child, A. Ramesh, D. M.
+Ziegler, J. Wu, C. Winter, C. Hesse, M. Chen, E. Sigler, M. Litwin,
+S. Gray, B. Chess, J. Clark, C. Berner, S. McCandlish, A. Radford, I.
+Sutskever, and D. Amodei, “Language Models are Few-Shot Learners,“
+arXiv:2005.14165, 2020.
+
+[7] N. Muennighoff, N. Tazi1, L. Magne1, and N. Reimers, “MTEB:Massive
+
+Text Embedding Benchmark,“, arXiv:2210.07316, 2023.
+
+[8] https://huggingface.co/spaces/mteb/leaderboard
+[9] https://huggingface.co/datasets/KShivendu/dbpedia-entities-openai-1M
+
+[10] S. Robertson and H. Zaragoza, “The Probabilistic Relevance Framework:
+BM25 and Beyond,“ , Foundations and Trends in Information Retrieval,
+Vol. 3, No. 4, pp333–389, 2009.
+
+[11] J. X. Morris, V. Kuleshov, V. Shmatikov, and A. M. Rush, “Text
+Embeddings Reveal (Almost) As Much As Text,“ , arXiv:2310.06816,
+2023.
+
+[12] P. N. Yianilos, “Data structures and algorithms for nearest neighbor
+search in general metric spaces,“ SODA ’93: Proceedings of the fourth
+annual ACM-SIAM symposium on Discrete algorithms, vol.93, no. 194,
+pp.311-321, 1993.
+
+[13] A. Andoni, P. Indyk, and I. Razenshteyn, “Approximate Nearest Neigh-
+
+bor Search in High Dimensions,“ , arXiv:1806.09823, 2018.
+
+[14] V. Ramasubramanian and K. K. Paliwa, “Fast and Dimensional Tree
+Algorithms for Nearest Neighbor Search with Application to Vector
+Quantization Encoding,“ , IEE trans. signal processing, vol 40, No.2,
+1992.
+
+[15] A. Gionis, P. Indyky, and R. Motwani, “Similarity Search in High
+Dimensions via Hashing,“ , Proceedings of the 25th VLDB Conference,
+Edinburgh, Scotland, 1999.
+
+[16] Y. A. Malkov and D. A. Yashunin, “Efficient and robust approximate
+nearest neighbor search using Hierarchical Navigable Small World
+graphs,“, arXiv:1603.09320, 2018.
+[17] https://cloud.google.com/tpu/docs/bfloat16
+[18] T. Dettmersu, M. Lewis, Y. Belkada,
+
+and L. Zettlemoyer,
+“LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale,”
+arXiv:2208.07339, 2022.
+
+[19] X. Wu, C. Li, R. Y. Aminabadi, Z. Yao, and Y. He, “Understanding INT4
+Quantization for Language Models: Latency Speedup, Composability,
+and Failure Cases,” arXiv:2301.12017, 2023.
+
+[20] M. Nagel, M. Fournarakis, R. A. Amjad, Y. Bondarenko, M. v. Baalen,
+and T. Blankevoort, “A White Paper on Neural Network Quantization,”
+arXiv:2106.08295, 2021.
+
+[21] S. Shen, Z. Dong J. Ye, L. May, Z. Yao, A. Gholami, M. W. Mahoney,
+and K. Keutzer, “Q-BERT: Hessian Based Ultra Low Precision Quanti-
+zation of BERT,” arXiv:1909.05840, 2019.
+
+[22] G. Xiao, J. Lin, M. Seznec, H. Wu, J. Demouth, and S. Han,
+“SmoothQuant: Accurate and Efficient Post-Training Quantization for
+Large Language Models,” arXiv:2211.10438, 2024
+
+[23] Z. Yao, X. Wu, C. Li, S. Youn, and Y. He, “ZeroQuant-V2: Exploring
+Post-training Quantization in LLMs from Comprehensive Study to Low
+Rank Compensation,” arXiv:2303.08302, 2023.
+
+[24] J. Lin, J. Tang, H. Tang, S. Yang, W.-M. Chen, W.-C. Wang, G. Xiao, X.
+Dang, C. Gan, and S. Han, “AWQ: Activation-aware Weight Quantiza-
+tion for LLM Compression and Acceleration,” arXiv:2306.00978, 2023.
+[25] E. Frantar, S. Ashkboos, T. Hoefler, and D. Alistarh, “GPTQ: Accurate
+Post-Training Quantization for Generative Pre-trained Transformers,”
+arXiv:2210.17323, 2023.
+
+[26] T. Dettmers, M. Lewis, Y. Belkada, and L. Zettlemoyer, “LLM.int8(): 8-
+bit Matrix Multiplication for Transformers at Scale,” arXiv:2208.07339,
+2022
+
+[27] Z. Yao, R. Y. Aminabadi, M. Zhang, X. Wu, C. Li, and Y. He,
+“ZeroQuant: Efficient and Affordable Post-Training Quantization for
+Large-Scale Transformers,” arXiv:2206.01861, 2022
+[28] https://huggingface.co/datasets/mteb/stsbenchmark-sts
+[29] M. Abdalla, K. Vishnubhotla, and Saif M. Mohammad, “What Makes
+Sentences Semantically Related: A Textual Relatedness Dataset and
+Empirical Study,” Proceedings of the 17th Conference of the European
+Chapter of the Association for Computational Linguistics: Main Volume,
+2023
+
+[30] M. Marelli, S. Menini, M. Baroni, L. Bentivogli, R. Bernardi, and
+R. Zamparelli, “A SICK cure for the evaluation of compositional
+distributional semantic models,” Proceedings of the Ninth International
+Conference on Language Resources and Evaluation (LREC’14), 2014
+
+[31] https://huggingface.co/BAAI/bge-large-en-v1.5
+[32] H. J´egou, M. Douze and C. Schmid, “Product Quantization for Near-
+est Neighbor Search,” IEEE Transactions on Pattern Analysis and
+Machine Intelligence, vol. 33, no. 1, pp. 117-128, Jan. 2011, doi:
+10.1109/TPAMI.2010.57

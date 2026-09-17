@@ -43,16 +43,41 @@ from .validation import (
 BASIC_MODELS = ["gpt-4o-mini", "gpt-4o"]
 
 
+def is_deepseek_r1(model: str) -> bool:
+    model = model.lower()
+    return "deepseek-r1" in model or "deepseek-reasoner" in model
+
+
+def is_deepseek(model: str) -> bool:
+    return "deepseek" in (model or "").lower()
+
+
+def _disable_thinking_requested() -> bool:
+    return os.getenv("DOCETL_DISABLE_THINKING", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
+def _apply_hosted_compat(
+    extra_kwargs: dict[str, Any],
+    model: str,
+    tool_choice: Any,
+) -> tuple[dict[str, Any], Any]:
+    """DeepSeek rejects forced tool_choice while thinking is enabled."""
+    if _disable_thinking_requested():
+        extra_kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+    if is_deepseek(model) and tool_choice not in (None, "none", "auto"):
+        tool_choice = "auto"
+    return extra_kwargs, tool_choice
+
+
 class OutputMode(Enum):
     """Enumeration of output modes for LLM calls."""
 
     TOOLS = "tools"
     STRUCTURED_OUTPUT = "structured_output"
-
-
-def is_deepseek_r1(model: str) -> bool:
-    model = model.lower()
-    return "deepseek-r1" in model or "deepseek-reasoner" in model
 
 
 def is_snowflake(model: str) -> bool:
@@ -377,6 +402,10 @@ class APIWrapper(object):
                                 "tools",
                                 "tool_choice",
                             ]
+                        gleaning_tool_choice: Any = "required"
+                        extra_kwargs, gleaning_tool_choice = _apply_hosted_compat(
+                            extra_kwargs, gleaning_model, gleaning_tool_choice
+                        )
 
                         # Use router if available (for fallback models), otherwise use direct completion
                         # When using router, ensure gleaning model is tried first, then fallback models
@@ -406,7 +435,7 @@ class APIWrapper(object):
                                     },
                                 }
                             ],
-                            tool_choice="required",
+                            tool_choice=gleaning_tool_choice,
                             **validator_kwargs,
                             **extra_kwargs,
                         )
@@ -732,7 +761,7 @@ class APIWrapper(object):
                         },
                     }
                 ]
-            if "claude" not in model:
+            if "claude" not in model and not is_deepseek(model):
                 tools[0]["additionalProperties"] = False
                 tools[0]["strict"] = True
 
@@ -861,6 +890,9 @@ Your main result must be sent via send_output. The updated_scratchpad is only fo
             extra_litellm_kwargs["allowed_openai_params"] = ["tools", "tool_choice"]
         if self.default_lm_api_base:
             extra_litellm_kwargs["api_base"] = self.default_lm_api_base
+        extra_litellm_kwargs, tool_choice = _apply_hosted_compat(
+            extra_litellm_kwargs, model, tool_choice
+        )
 
         # Use router if available (for fallback models), otherwise use direct completion
         # When using router, ensure operation's model is tried first, then fallback models
@@ -1150,6 +1182,17 @@ Your main result must be sent via send_output. The updated_scratchpad is only fo
             return results
         else:
             if not tool_calls:
+                content = getattr(response.choices[index].message, "content", None) or ""
+                if isinstance(content, str) and content.strip():
+                    try:
+                        parsed_output = json.loads(content)
+                    except json.JSONDecodeError:
+                        parsed_output = None
+                    if isinstance(parsed_output, dict):
+                        for key in schema:
+                            if key not in parsed_output:
+                                parsed_output[key] = "Not found"
+                        return [parsed_output]
                 raise InvalidOutputError(
                     "No tool calls in LLM response", [{}], schema, response.choices, []
                 )

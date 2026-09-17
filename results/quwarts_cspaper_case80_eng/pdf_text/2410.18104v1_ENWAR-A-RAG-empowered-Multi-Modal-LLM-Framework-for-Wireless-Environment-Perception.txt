@@ -1,0 +1,876 @@
+ENWAR: A RAG-empowered Multi-Modal LLM
+Framework for Wireless Environment Perception
+
+Ahmad M. Nazar, Abdulkadir Celik, Mohamed Y. Selim, Asmaa Abdallah, Daji Qiao, Ahmed M. Eltawil
+
+4
+2
+0
+2
+
+t
+c
+O
+8
+
+]
+I
+
+N
+.
+s
+c
+[
+
+1
+v
+4
+0
+1
+8
+1
+.
+0
+1
+4
+2
+:
+v
+i
+X
+r
+a
+
+Abstract—Large language models (LLMs) hold significant
+promise in advancing network management and orchestration
+in 6G and beyond networks. However, existing LLMs are limited
+in domain-specific knowledge and their ability to handle multi-
+modal sensory data, which is critical for real-time situational
+awareness in dynamic wireless environments. This paper ad-
+dresses this gap by introducing ENWAR1, an ENvironment-
+aWARe retrieval augmented generation-empowered multi-modal
+LLM framework. ENWAR seamlessly integrates multi-modal
+sensory inputs to perceive,
+interpret, and cognitively process
+complex wireless environments to provide human-interpretable
+situational awareness. ENWAR is evaluated on the GPS, LiDAR,
+and camera modality combinations of DeepSense6G dataset with
+state-of-the-art LLMs such as Mistral-7b/8x7b and LLaMa3.1-
+8/70/405b. Compared to general and often superficial environ-
+mental descriptions of these vanilla LLMs, ENWAR delivers
+richer spatial analysis, accurately identifies positions, analyzes
+obstacles, and assesses line-of-sight between vehicles. Results
+show that ENWAR achieves key performance indicators of up to
+70% relevancy, 55% context recall, 80% correctness, and 86%
+faithfulness, demonstrating its efficacy in multi-modal perception
+and interpretation.
+
+INTRODUCTION
+
+G ENERATIVE artificial intelligence (AI), with its un-
+
+paralleled capability to generate, synthesize, and adapt
+data, is poised to play a pivotal role in the evolution of 6G
+and beyond networks [1]. Among various generative models,
+LLMs have proven to be the most revolutionary, fundamen-
+tally changing how machines understand and produce human
+language. Built on sophisticated generative transformers and
+driven by attention mechanisms, LLMs leverage vast pre-
+training on diverse datasets to excel in tasks such as natural
+language processing, decision support, and beyond [2]. LLMs’
+adaptability and scalability are particularly well-suited for
+complex systems operating in dynamic environments, making
+them valuable assets for advancing AI-native wireless systems
+and enhancing the cognitive capabilities of next-generation
+to revolutionize
+they have the potential
+networks. Hence,
+decision-making, resource management, and intelligent opti-
+mization of 6G networks, eventually paving the way for zero-
+touch network and service management (ZSM).
+
+However,
+
+the technical demands of next-generation net-
+works differ greatly from legacy generations. Future net-
+works are expected to operate with massive antenna arrays
+at significantly higher frequencies, wherein wireless channels
+become less probabilistic and more deterministic and exhibits
+geometric propagation characteristics. This shift introduces
+daunting mobility challenges such as tracking narrow beams,
+
+1Enwar is a common name in Turkic and Arabic cultures, meaning more
+enlightened, insightful, and intellectual; herein referring to a multi-modal
+LLM providing deep situational and contextual insights into the environment.
+
+blockage mitigation through timely handover management,
+and seamless service migration. Sensing functionalities and
+environmental awareness are essential for ZSM to effectively
+navigate this new terrain.
+
+In this context, multi-modal integrated sensing and com-
+munication (ISAC) represent coherent fusion of disparate
+data streams from various sensors (e.g., LiDARs, radars,
+cameras, GPS, etc.), unlocking critical capabilities such as
+environment mapping, object/human detection and classifica-
+tion, urban planning, localization, and tracking. These sensing
+functionalities collectively lay the foundations of digital twins
+(DTs); a dynamic and near real-time virtual replica of 6G
+networks, providing contextual and site-specific insights into
+the spatio-temporal characteristics of wireless environment [3].
+DTs are crucial in optimizing network performance, enabling
+real-time decision-making, and enhancing overall situational
+awareness, making it an integral component of the future
+telecom ecosystem.
+
+Nonetheless, LLMs predominantly operate in a text-based
+modality, which restricts their ability to interact with multi-
+modal sensory data—a critical need in situation-aware net-
+works where real-world comprehension goes beyond textual
+inputs. Moreover, LLMs’ possession of general knowledge
+over a massive training data corpus often falls short on
+domain-specific tasks and contexts. This limitation arises
+from their fundamental reliance on probabilistic pattern recog-
+nition rather than true understanding or reasoning [4]. To
+overcome these deficiencies, retrieval-augmented generation
+(RAG) frameworks have emerged as a potential solution to en-
+hance the generative process by integrating external knowledge
+retrieval, allowing LLMs to tap into domain-specific databases
+or real-time knowledge sources. This augmentation provides
+more accurate, contextually relevant responses, bridging the
+gap between generic LLMs and specialized 6G network needs.
+While RAG addresses the challenge of domain expertise, it
+does not entirely resolve the critical need for multi-modal
+ISAC to realize situational-aware 6G networks.
+
+The integration of LLMs into wireless networks has been
+initially explored in [5], [6], which primarily focus on textual
+data and overlook RAG capabilities, limiting their application
+to telecom chatbots. WirelessLLM demonstrates how domain-
+specific knowledge can be incorporated into LLMs to en-
+hance performance in tasks such as spectrum sensing and
+protocol understanding [7]. Similarly, Xu et al. propose a
+framework for edge LLMs that are divided into perception,
+grounding, and alignment modules to optimize 6G-related
+tasks [8]. While the potential of multi-modal large language
+models (MLLMs) has been discussed in [9], [10], these vision
+papers lack comprehensive case studies and proof-of-concept
+implementations to substantiate MLLMs’ effectiveness in real-
+
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 1: ENWAR workflows: multi-modal RAG formation (Steps A-C); and prompt interpretation, knowledge retrieval, and response generation (Steps 1-5).
+
+world multi-modal environments. We address this gap in the
+wireless literature by introducing ENWAR, an ENvironment-
+aWARe RAG-empowered MLLM framework that leverages
+multi-modal sensory data to perceive, interpret, and cognitively
+process complex wireless environments. ENWAR’s human-
+interpretable situational awareness is crucial for both sensing
+and communication applications, where real-time environmen-
+tal perception can significantly enhance system performance
+and reliability.
+
+In the following sections, we first outline the workflow
+of ENWAR and introduce key performance indicators (KPIs),
+namely answer relevancy, context recall, correctness score,
+and faithfulness. ENWAR’s performance is evaluated across
+Mistral-7b/8x7b and Llama3.1-8/70/405b models on GPS,
+LiDAR, and camera modalities of vehicle-to-vehicle scenarios
+in the DeepSense6G dataset [11]. While Vanilla LLMs pro-
+vide a general and often superficial environment descriptions,
+ENWAR delivers contextually rich analysis of spatial dynamics
+by accurately identifying the positions and distances of enti-
+ties (vehicles, cyclists, pedestrians, etc.), analyzing potential
+obstacles, and assessing line-of-sight between communicating
+vehicles. Numerical results compare various modality combi-
+nations across different LLM versions and demonstrates that
+ENWAR achieves up to 70% relevancy, 55% context recall,
+80% correctness, and 86% faithfullness. The paper concludes
+with an exploration of future research directions and the
+potential of ENWAR to advance multi-modal perception and
+cognition in wireless systems.
+
+AN OVERVIEW OF ENWAR FRAMEWORK
+As illustrated in Fig. 1, ENWAR is comprised of two primary
+workflow pipelines: 1) multi-modal RAG formation (Steps A-
+C) and 2) prompt interpretation, response generation, knowl-
+edge retrieval, and response generation (Steps 1-5); which are
+described in the following sections along with KPIs.
+
+Multi-Modal RAG Formation
+
+A⃝ Dataset Preprocessing and Modality Transformation:
+ENWAR is designed to seamlessly accommodate diverse sensor
+modalities by preprocessing and transforming them into a
+unified textual format that can be effectively processed by
+LLMs. For instance, GPS data undergoes transformation from
+raw spatial coordinates into textual descriptions that provide
+insights such as relative distances, directional bearings, and
+movement patterns, offering a richer contextual understanding
+of spatial relationships.
+
+Visual data are processed through an image-to-text conver-
+sion model that extracts key visual elements and translates
+them into LLM interpretable natural language descriptions.
+The use of instructional prompts ensure that the generated tex-
+tual outputs are contextually relevant and sufficiently detailed
+to accurately represent the visual information.
+
+Point cloud data from LiDARs, another complex modality,
+is processed by feature extraction models (e.g., ResNet) to
+identify salient environmental elements. Object detection and
+classification systems are then employed to recognize key
+entities (e.g., pedestrians, vehicles), which are subsequently
+converted into textual descriptions.
+
+The final step in the preprocessing pipeline involves synthe-
+sizing the transformed data from all modalities into a unified
+textual representation. By consolidating various sensory data
+into a textual format (e.g, JSON format), ENWAR ensures
+that LLMs can cohesively process and interpret multi-modal
+inputs, enhancing the model’s ability to generate contextually
+aware and reliable outputs. This synthesis is pivotal for en-
+abling the framework to make informed decisions in complex
+environments.
+
+B⃝ Text Chunking and Embedding: ENWAR’s next critical
+step is to segment the sensory data into manageable chunks
+and convert these chunks into numerical embeddings. In this
+
+way, LLMs can efficiently process and interpret textual infor-
+mation, especially when handling large datasets from diverse
+sensor modalities.
+
+data in the knowledge base. As detailed next, the top-ranked
+results, which are contextually aligned with the prompt, are
+then selected for further processing.
+
+Chunking involves breaking down the preprocessed text into
+smaller, contextually coherent units. This is essential as LLMs
+have token limits, meaning that excessively large text inputs
+cannot be processed effectively. Segmentation ensures that the
+model can focus on relevant parts of the data without losing
+contextual integrity. For instance, GPS data may be chunked
+based on time intervals or location changes, while visual and
+point cloud descriptions could be divided based on objects
+detected or spatial regions.
+
+Once the data is chunked, it is passed to a General Text
+Embeddings (GTE) model to convert each chunk into a dense
+vectorized format—a numerical representation of the text that
+captures its semantic content. These embeddings serve as
+a structured and machine-readable format that encodes the
+underlying meaning of the text. In other words, vectorization
+enables LLMs to tokenize and process the data, establishing
+relationships between different chunks based on their semantic
+similarity.
+
+C⃝ Domain-Specific Knowledge Base Generation: EN-
+WAR’s ability to deliver precise and context-aware responses
+is largely dependent on its robust domain-specific knowledge
+base. By constructing a knowledge base comprising of embed-
+dings generated from a variety of sensor modalities, ENWAR
+ensures that the system is equipped with contextually rich
+and diverse information about the environment. To ensure
+optimal performance,
+the knowledge base is indexed in a
+way that allows the RAG framework to retrieve relevant data
+efficiently, which is explained in the following sections. This
+structured knowledge base enables real-time decision-making
+and ensures that ENWAR remains adaptable and responsive
+to a wide range of scenarios, enhancing its performance in
+dynamic and complex wireless environments.
+
+Prompt Interpretation and Response Generation
+
+1⃝ Prompt Preprocessing and Modality Transformation:
+This step closely mirrors the procedures in Step- A⃝: the user
+prompt is preprocessed by transforming its components and
+any real-time multi-modal sensory data into a unified, stan-
+dardized format suitable for LLMs. This ensures the prompt
+is properly aligned with the knowledge base, allowing for
+seamless interaction with the model’s retrieval mechanisms.
+
+2⃝ Prompt Text Embedding: Similarly, this step follows the
+procedures in Step- B⃝: the preprocessed prompt is converted
+into numerical embeddings, ensuring that it can be efficiently
+processed and compared to the vectorized data in the knowl-
+edge base. This transformation facilitates accurate retrieval
+of relevant information, streamlining the prompt’s interaction
+with the model’s generative components.
+
+3⃝ Semantic Search and Knowledge Retrieval: Once the
+user prompt has been transformed into embeddings, ENWAR
+performs semantic search to retrieve the most relevant infor-
+mation from its domain-specific knowledge base. This process
+identifies entries that closely match the prompt by calculating
+the semantic similarity between the prompt and the embedded
+
+4⃝ Result Ranking: ENWAR ensures relevance by ranking
+results according to their section headers, prioritizing the most
+contextually appropriate portions of the knowledge base. This
+refined search mechanism optimizes retrieval by focusing on
+the most pertinent content. Since some contexts may have
+similar vectorized embeddings, ENWAR concentrates on the
+top-p percentile to effectively filter out less relevant data, with
+p = 95 used throughout the system to anchor the retrieval
+process in the highest-ranking results. This approach enhances
+both the precision and relevance of the retrieved information,
+resulting in more accurate and contextually appropriate re-
+sponses.
+
+5⃝ Response Generation: Once the top-ranked results from
+the semantic search are identified, they provide the essential
+context for the LLM to generate a coherent and contextually
+appropriate response. These results serve as the foundation
+upon which the LLM builds its output, ensuring that
+the
+generated response is both accurate and relevant to the user’s
+prompt.
+
+The LLM processes the vectorized embedding of the user
+prompt along with the retrieved context from the knowledge
+base. It integrates information from multiple sources, such
+as GPS coordinates, LiDAR data, and visual descriptions, to
+construct a detailed representation of the environment. This
+may involve detecting vehicles, their locations, and describing
+physical aspects of the surroundings in relation to the prompt.
+To further enhance the generation process, ENWAR employs
+top-p sampling to strike a balance between accuracy and di-
+versity in responses, effectively filtering out irrelevant outputs
+while maintaining contextual richness.
+
+Beyond simple description, the LLM can infer interactions
+between various elements in the environment. For instance,
+using GPS data and environmental context, the model might
+predict how vehicles interact or how the physical surroundings
+could influence those interactions. Furthermore,
+the LLM
+ensures that the response aligns with the specific instructions
+or tasks provided by the user. In the context of ENWAR, this
+means delivering comprehensive environmental awareness by
+describing key entities, their locations, and how they may
+interact within the given environment. By synthesizing all
+relevant data and ensuring it is grounded in the retrieved
+context, the LLM generates a detailed and actionable response,
+providing insights necessary to make informed decisions,
+particularly in dynamic and complex scenarios.
+
+Key Performance Indicators
+
+Evaluating the performance of ENWAR requires assessing
+its output based on both general benchmarks and domain-
+specific metrics. Standard benchmarks such as the General
+Language Understanding Evaluation (GLUE) and Massive
+Multitask Language Understanding (MMLU) offer a broad
+assessment of an LLM’s capabilities across various metrics
+such as answer relevancy, factual correctness, and hallucina-
+tions avoidance. However, RAG-based systems require a more
+
+targeted evaluation due to their reliance on domain–specific
+contexts, and in our case, specifically tailored multi-modal
+data. Following RAGAS framework [https://docs.ragas.io], we
+ensure a comprehensive and accurate evaluation of ENWAR’s
+performance through following KPIs:
+0 Answer Relevancy (AR) measures how well ENWAR’s
+responses align with the user’s prompt and context. Denoting
+Epi and Eti as the embedding vectors of ith generated prompt
+and the relevant ground truth of the data sample, respectively;
+cosine/semantic similarity, −1 ≤ cos
+≤ 1, mea-
+sures how semantically similar two texts are based on their
+vector representations, i.e., 1: perfectly similar (aligned), 0: no
+similarity, -1: completely dissimilar (opposite). Accordingly,
+AR is evaluated by calculating the average cosine similarity
+as follows
+
+(cid:16) ⃗Epi, ⃗Eti
+
+(cid:17)
+
+AR =
+
+1
+N
+
+N
+(cid:88)
+
+i=1
+
+(cid:16) ⃗Epi, ⃗Eti
+
+(cid:17)
+
+=
+
+cos
+
+1
+N
+
+N
+(cid:88)
+
+i=1
+
+⃗Epi · ⃗Eti
+(cid:13)
+⃗Eti
+(cid:13)
+(cid:13)
+
+(cid:13)
+(cid:13)
+(cid:13)2
+
+(cid:13)
+⃗Epi
+(cid:13)
+(cid:13)
+
+. (1)
+
+(cid:13)
+(cid:13)
+(cid:13)2
+
+0 Context Recall assesses the degree to which ENWAR’s
+retrieved context aligns with the ground truth. It evaluates
+whether the system correctly recalls information from the
+knowledge base that is relevant to the prompt and verifies how
+much of the response can be attributed to the correct context.
+It is calculated by normalizing the alignment extent of the
+retrieved contexts within the ground truth with the number of
+sentences in the ground truth.
+0 Correctness Score measures the factual correctness and
+semantic similarity of the generated responses. Denoting the
+embedding vector of ith generated answer by ⃗Eai and F1 score
+as a metric of factual correctness, the overall correctness score
+is given by
+
+Correctness = ω cos
+
+(cid:16) ⃗Eai, ⃗Eti
+
+(cid:17)
+
++ (1 − ω)F1,
+
+(2)
+
+where weighting parameter 0 ≤ ω ≤ 1—the RAGAS sets
+ω = 0.25 as default—ensures that response assessments are
+both factually accurate and contextually appropriate.
+0 Faithfulness evaluates the consistency of the generated
+answers with the retrieved context. A response is considered
+faithful if all claims align with the retrieved data, ensuring the
+output does not contain unsupported or fabricated information.
+Faithfulness checks whether the claims made in the output can
+be logically deduced from the given context and is given by
+
+Faithfulness =
+
+|NGc|
+|NC|
+
+,
+
+(3)
+
+where NGc is the number of claims in the generated answer
+that can be inferred from the given context and NC is the total
+number of claims in the generated answer.
+
+ENWAR SETUP BREAKDOWN AND A CASE STUDY
+
+This section provides a detailed breakdown of the ENWAR
+setup and offers a qualitative performance comparison with
+vanilla LLMs, highlighting the advantages of integrating multi-
+modal data and knowledge retrieval within ENWAR.
+
+A Breakdon of ENWAR Setup
+
+6 DeepSense6G Dataset: To evaluate ENWAR’s performance,
+we utilize a large-scale, real-world multi-modal sensing and
+communication dataset [11]. DeepSense6G dataset offers a ro-
+bust platform for testing ENWAR’s ability to interpret complex
+spatial and environmental data. For our evaluation, we focus
+on Scenario 36 that includes GPS coordinates of a vehicle
+equipped with four signal receivers, its captured 360-degree
+LiDAR point clouds and front-back camera frames, and the
+GPS coordinates of another vehicle equipped with a transmit-
+ter. We meticulously identified a total of 180 scenes/samples,
+30 of which is used for testing, that captures urban envi-
+ronments with varying numbers of pedestrians, cyclists, and
+vehicles; an exemplary scene shown in Fig. 2
+6 Modality Transformation and Information Extraction:
+For all the selected scenes, ENWAR extracts latitude and lon-
+gitude coordinates from GPS inputs to determine the positions
+and relative bearings of two vehicles, which are then converted
+into textual format for seamless integration into ENWAR’s
+prompt. For front-rear images, ENWAR perform image-to-
+text transformation to generate a textual description of the
+visual content by using InstructBLIP trained on Vicuna-7b and
+optimized for visual-tuned instructions [12].
+clouds, ENWAR
+3D (SFA3D) model
+
+the
+object
+super
+[https://github.com/maudzung/
+detection
+SFA3D was
+Super-Fast-Accurate-3D-Object-Detection].
+modified to extract object
+including locations
+and bearings relative to the sensor, and converts this data
+to describe the environment. SFA3D utilizes a
+into text
+feature pyramid network (KFPN)
+ResNet-based keypoint
+for reliable LiDAR object detection, transforming 3D point
+clouds into Birds-Eye-View images, which are then processed
+to identify objects with high confidence, providing detailed
+information such as positions, dimensions, and orientations.
+
+For LiDAR point
+
+leverages
+for
+
+information,
+
+accurate
+
+analysis
+
+and
+
+fast
+
+The extracted information from each modality is hard-
+coded into a template [c.f., white text highlighted with black
+background in Fig. 2] to be utilized during the prompting and
+grounding process. Since object types and potential block-
+ages are not readily available labels within the DeepSense6G
+dataset, we manually create ground truth text for all 180 scenes
+by correcting extracted information if necessary and/or adding
+missing details.
+6 Instructional Text Prompt: The prompt includes extracted
+information of each scene and specifies predefined tasks, guid-
+ing ENWAR to accurately analyze the wireless environment,
+detect potential blockages, and generate relevant insights based
+on the processed multi-modal inputs[c.f., yellow box in Fig.
+2].
+6 Chunking and Embedding: ENWAR utilizes the gte-large-
+en-v1.5 embedding model from AliBaba-NLP to vectorize
+ground truth samples for knowledge base creation [13]. This
+model supports a tokenized context length of up to 8,192
+tokens. To maintain continuity between data segments, the
+transformed textual data is divided into chunks of 1,024
+characters, with a 100-character overlap to ensure context is
+preserved across boundaries.
+
+Fig. 2: Illustration of the case study scene with raw data, extracted information, generated prompt, and responses from Vanilla Llama and ENWAR.
+
+TABLE I: KPI comparison for the scene in Fig. 2.
+
+KPIs
+Vanilla Llama
+ENWAR
+
+Relevancy
+70.3 %
+81.2 %
+
+Correctness
+54.3 %
+76.9 %
+
+Faithfulness
+42.2 %
+68.6 %
+
+6 Knowledge Base Creation and Performance Evaluation:
+ENWAR utilizes the Facebook AI Similarity Search (FAISS)
+library [https://ai.meta.com/tools/faiss/] to create 7 distinct
+knowledge bases—one for each modality combination—and
+its efficient search/retrieval through the top-95% ranking ex-
+plained above. ENWAR’s performance was thoroughly eval-
+uated by running RAGAS framework across LLMs such as
+Mistral-7b/8x7b [https://mistral.ai] and Llama3.1-8/70/405b
+[https://www.llama.com], with model sizes ranging from 7
+billion to 405 billion parameters. For comparison, baseline ver-
+sions of these LLMs were used to benchmark the performance
+of vanilla LLMs against ENWAR, particularly in generating
+detailed and accurate responses.
+
+A Comparative Analysis of an Inference Case Study
+
+In this section, we evaluate the perception capabilities of
+Vanilla Llama and ENWAR in processing, analyzing, and
+interpreting spatial relationships between objects, as well as
+inferring potential obstacles between two units. As shown in
+Fig. 2, both models were tasked with generating a detailed
+description of a busy city street scene. To provide more
+descriptive insights, we selected a specific scenario featuring
+congested traffic, including cars, motorcycles, pedestrians, and
+other stationary objects along the road.
+
+While Vanilla Llama provides a general description of the
+scene and acknowledges the presence of various entities, its
+response remains superficial. It offers only basic information
+about the distances and directions of objects, largely reiterating
+the extracted data without analyzing the relative positions of
+vehicles or obstacles and failing to infer how these elements
+might impact movement or communication the units.
+
+By contrast, as highlighted and underlined in Fig. 2, ENWAR
+delivers a detailed, contextually rich breakdown of the spatial
+dynamics from Unit 1’s perspective. It accurately identifies the
+positions and distances of nearby vehicles, pedestrians, and
+cyclists, providing a clear analysis of potential obstacles and
+suggesting maneuvering strategies for Unit 1 in the congested
+environment. Crucially, it assesses line-of-sight communica-
+tion between the units and identifies any obstructions, essential
+for effective coordination. ENWAR’s ability to infer network
+interactions, evaluate line-of-sight, and propose navigation
+strategies highlights its advanced environment sensing capa-
+bilities, setting it apart from Vanilla LLaMa’s more generic
+output.
+
+At this stage, it is crucial to compare the corresponding KPIs
+for the scene depicted in Fig. 2. As shown in Table I, wherein
+context recall is omitted as it is a RAG context-specific metric,
+ENWAR consistently outperforms vanilla Llama in delivering
+more contextually aligned, accurate, and faithful responses.
+This underscores its superior ability to interpret complex
+environments and provide reliable insights,
+largely due to
+ENWAR’s seamless integration of multi-modal data and its
+robust RAG framework. ENWAR’s single-modality inference
+times are 100 ms, 100 ms, and 2.5 s for GPS, LiDAR, and
+
+Fig. 3: KPI comparison of LLMs across modality combinations: the first and second rows present absolute KPI [%] and KPI normalized per billion parameters
+of each LLM [%pb], respectively.
+
+camera inputs, respectively. Although image-to-text translation
+dominates the processing time, it’s important to recognize that
+scene elements such as traffic conditions, weather, landscape,
+and area classification (urban, suburban, rural) — as illustrated
+in Fig. 2 — typically exhibit limited variability within the
+order of seconds. That is visual data updates may not re-
+quire constant reprocessing at the same frequency as other
+modalities. Unlike the narrative-driven information extracted
+from camera inputs, LiDAR and GPS provides quantitative
+measures within the order of milliseconds, allowing ENWAR
+to utilize windowing for efficient tracking and prediction of
+environmental changes. These inference times can be further
+reduced through well-crafted hierarchical LLM architectures
+as outlined in the final section.
+
+KPI EVALUATION OF STATE-OF-THE-ART LLMS
+ON MODALITY COMBINATIONS
+
+This section evaluates the performance of various state-of-
+the-art LLMs across different modality combinations, which is
+presented in Fig. 3 and discussed in the following subsections.
+
+Modality Combination Comparison
+
+For single modality evaluations, the general trend shows
+GPS < LiDAR < CAM in terms of performance across
+all KPIs. GPS alone provides limited contextual information,
+resulting in the lowest scores, while CAM proves to be the
+most effective single modality, offering richer visual context
+that significantly enhances answer relevancy, correctness, and
+faithfulness.
+
+When dual modalities are combined, the trends observed in
+the single-modality evaluations continue. Specifically, when
+
+Camera or GPS is paired with LiDAR, CAM+LiDAR con-
+sistently outperforms GPS+LiDAR across all KPIs. This re-
+flects the stronger impact of visual data on the models’
+ability to generate contextually rich and accurate responses.
+As expected, the integration of all three modalities yields
+the highest performance across every KPI. The fusion of
+spatial, depth, and visual information allows the models to
+deliver the most comprehensive and accurate responses, further
+emphasizing the value of multi-modal data integration for
+advanced situational awareness.
+
+LLM Type and Size Comparison
+
+Across all modality permutations, an increase in the pa-
+rameter size correlates with improved absolute KPI values.
+Larger models consistently outperform their smaller counter-
+parts across all metrics, reflecting the advantage of parameter
+scaling in LLMs performance. However, it is also notable that
+the rate of KPI improvement slows and begins to saturate
+as the parameter space grows. This indicates diminishing
+returns at higher parameter counts, with the largest models
+showing only marginal gains compared to their slightly smaller
+counterparts. In terms of model comparisons, the performance
+differences between Mistral 7b and LLaMa 8b are minimal, in-
+dicating that these two models are comparable in terms of their
+effectiveness across KPIs and modality combinations. The
+second row of Fig. 2 reveals a noticeable observation: Despite
+the larger models providing better overall absolute KPIs, the
+efficiency (i.e., performance per billion parameters) of adding
+more parameters decreases significantly, potentially indicating
+overfitting and interesting research directions covered in the
+next section. Another promising way of inference latency
+
+M7bM46bL8bL70bL405b102030405060708090100Relevancy (%)M7bM46bL8bL70bL405b102030405060708090100Context Recall (%)M7bM46bL8bL70bL405b102030405060708090100Correctness (%)M7bM46bL8bL70bL405b102030405060708090100Faithfulness (%)M7bM46bL8bL70bL405b10-210-1100101Normalized Answer Relevancy [%pb]M7bM46bL8bL70bL405b10-210-1100101Normalized Context Recall [%pb]M7bM46bL8bL70bL405b10-210-1100101Normalized Correctness [%pb]M7bM46bL8bL70bL405b10-210-1100101Normalized Faithfulness [%pb]GPSLiDARCAMGPS+LiDARGPS+CAMCAM+LiDARGPS+LiDAR+CAMreduction might be training baby LMs to operate directly on
+the sensory data at the edge to form local RAG to eliminate
+the need for intermediary steps of modality transformation and
+information extraction.
+
+CONCLUSION AND FUTURE DIRECTIONS
+
+As a RAG-empowered multi-modal LLM framework, EN-
+WAR can address some of
+the key challenges in next-
+generation networks by enabling situational aware network
+management through multi-modal perception. By preprocess-
+ing and integrating various sensory data, ENWAR enhances its
+ability to interpret complex wireless environments and deliver
+contextually rich, human-interpretable insights. In spite of
+promising preliminary results, there is still room for improve-
+ment through several architectural enhancements depending on
+the target applications, which are discussed below.
+} Hierarchical and Federated LLM Architectures: For
+mission-critical and time-sensitive tasks, inference time and
+model efficiency can be significantly improved by adopting a
+federated LLM architecture that integrates smaller, edge-based
+”baby LMs” with full-scale LLMs in the cloud. Baby LMs are
+designed for near-real-time operation at the edge, reducing
+reliance on cloud infrastructure. By employing model pruning
+and quantization techniques, these models remain lightweight
+and efficient, focusing on immediate, critical
+tasks. More
+complex computations are offloaded to cloud-based LLMs,
+providing both speed at the edge and scalability in the cloud.
+Further latency reduction can be achieved by training baby
+LMs to operate directly on the sensory data at the edge to form
+local RAG, which bypasses intermediary steps of modality
+transformation and information extraction.
+} Serverless LLM Architectures: Serverless architectures
+allow cloud-based LLMs to dynamically scale resources based
+on demand, making them ideal for non-time-sensitive tasks
+such as data aggregation, post-event analysis, or batch pro-
+cessing. These event-driven systems automatically allocate
+resources only when required, eliminating idle costs and
+improving cost-efficiency. Although serverless architectures
+they are
+may introduce minor latency due to cold starts,
+well-suited for applications where real-time processing is not
+essential. Tasks requiring periodic, large-scale computations
+can be efficiently managed in the cloud without continuous
+resource allocation.
+} Cooperative and Adaptive RAG Formation: Given the
+importance of RAG in the ENWAR framework, a distributed
+and adaptive RAG approach could maintain a global knowl-
+edge base, aggregating local knowledge bases across the
+hierarchical LLM structure. This collaborative knowledge sys-
+tem enables baby LMs to efficiently retrieve relevant, up-
+to-date information without needing to store large amounts
+of data locally. Adaptive learning techniques further enhance
+ENWAR by continuously refining its understanding of dynamic
+environments, ensuring effective processing of multi-modal
+inputs. By dynamically updating the global knowledge base
+and leveraging adaptive learning, ENWAR can balance perfor-
+mance improvements with model efficiency, mitigating the risk
+of overfitting. This adaptive RAG approach optimizes both
+
+knowledge retrieval and system adaptability, allowing local
+models to respond to real-time data while benefiting from
+the shared global context. It also mitigates the diminishing
+returns of scaling large models, optimizes resource usage via
+serverless computing, and ensures continuous learning for
+improved performance in complex environments.
+
+REFERENCES
+
+[1] A. Celik and A. M. Eltawil, “At the dawn of generative AI era: A
+tutorial-cum-survey on new frontiers in 6G wireless intelligence,” IEEE
+Open J. Commun. Soc., vol. 5, pp. 2433–2489, 2024.
+
+[2] A. Vaswani et al., “Attention is all you need,” Adv. Neural Inf. Process.
+
+Sys., 2017.
+
+[3] A. Alkhateeb, S. Jiang, and G. Charan, “Real-time digital twins: Vision
+and research directions for 6G and beyond,” IEEE Commun. Mag.,
+vol. 61, no. 11, pp. 128–134, 2023.
+
+[4] E. M. Bender et al., “On the dangers of stochastic parrots: Can language
+
+models be too big?” in Proc. ACM FAccT, 2021, p. 610–623.
+
+[5] A. Maatouk et al., “TeleQnA: A benchmark dataset
+
+to assess
+large language models telecommunications knowledge,” arXiv preprint
+arXiv:2310.15051, 2023.
+
+[6] S. Tarkoma, R. Morabito, and J. Sauvola, “AI-native interconnect
+framework for integration of large language model technologies in 6G
+systems,” arXiv preprint arXiv:2311.05842, 2023.
+
+[7] J. Shao et al., “WirelessLLM: Empowering large language models
+towards wireless intelligence,” arXiv preprint arXiv:2405.17053, 2024.
+[8] M. Xu et al., “When large language model agents meet 6G networks:
+
+Perception, grounding, and alignment,” 2024.
+
+[9] L. Bariah et al., “Large generative AI models for telecom: The next big
+
+thing?” IEEE Commun. Mag., pp. 1–7, 2024.
+
+[10] S. Xu et al., “Large multi-modal models (LMMs) as universal foundation
+models for AI-native wireless systems,” IEEE Network, vol. 38, no. 5,
+pp. 10–20, 2024.
+
+[11] J. Morais et al., “Deepsense-V2V: A vehicle-to-vehicle multi-modal
+
+sensing, localization, and communications dataset,” 2023.
+
+[12] W. Dai et al., “InstructBLIP: Towards general-purpose vision-language
+
+models with instruction tuning,” 2023.
+
+[13] Z. Li et al., “Towards general text embeddings with multi-stage con-
+
+trastive learning,” arXiv preprint arXiv:2308.03281, 2023.
+
+Ahmed M. Nazar currently pursues a Ph.D. degree in computer engineering
+from Iowa State University (ISU), Ames, IA, USA.
+
+Abdulkadir Celik received a Ph.D. in co-majors of electrical engineering and
+computer engineering from Iowa State University, Ames, IA, USA, in 2016.
+He is currently a senior research scientist at KAUST.
+
+Mohamed Y. Selim received a Ph.D. in computer engineering from Iowa
+State University, Ames, IA, USA, in 2016; where he is currently an associate
+teaching professor.
+
+Asmaa Abdallah received a Ph.D. in electrical engineering from the Ameri-
+can University of Beirut, Beirut, Lebanon, in 2020. She is currently a research
+scientist at KAUST.
+
+Daji Qiao received a Ph.D. degree in Electrical Engineering from The
+University of Michigan, Ann Arbor, MI, USA. He is currently a full professor
+at Iowa State University.
+
+Ahmed M. Eltawil received a Ph.D. degree in electrical engineering from
+the University of California, Los Angeles, CA, USA, in 2003. He is currently
+a full professor at KAUST.

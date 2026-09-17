@@ -39,8 +39,6 @@ import sqlglot.expressions as _sqlglot_exp
 sys.path.insert(0, str(Path(__file__).parent))
 
 from token_counter import GLOBAL_COUNTER, ensure_precise_tokenizer_ready
-from extractor import OllamaClient
-from wdirs_runner import WDIRSRunner
 import config as config_module
 from config import (
     CACHE_DIR,
@@ -262,6 +260,8 @@ def patch_ollama_for_token_tracking(token_tracker: TokenTracker) -> None:
     Monkey-patch OllamaClient.generate for per-query token tracking.
     Uses conservative token estimation from prompt/response text length.
     """
+    from extractor import OllamaClient
+
     original_generate = OllamaClient.generate
 
     def wrapped_generate(self, prompt: str, max_tokens: int = 0, temperature: float = 0.0, system_prompt: Optional[str] = None) -> str:  # noqa: ANN001
@@ -1087,6 +1087,8 @@ def run_trend_queries(
     patch_ollama_for_token_tracking(token_tracker)
 
     try:
+        from wdirs_runner import WDIRSRunner
+
         runner = WDIRSRunner(
             dataset=DATASET,
             postgres_uri=f"sqlite:///{working_db}",

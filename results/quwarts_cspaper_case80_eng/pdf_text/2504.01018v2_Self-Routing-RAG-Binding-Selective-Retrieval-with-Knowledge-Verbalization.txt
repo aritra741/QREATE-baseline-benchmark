@@ -1,0 +1,2585 @@
+Self-Routing RAG: Binding Selective Retrieval with
+Knowledge Verbalization
+
+Di Wu*, Jia-Chen Gu*, Kai-Wei Chang, Nanyun Peng
+University of California, Los Angeles
+{diwu,kwchang,violetpeng}@cs.ucla.edu, gujc@ucla.edu
+
+5
+2
+0
+2
+
+t
+c
+O
+7
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+8
+1
+0
+1
+0
+.
+4
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Selective retrieval improves the accuracy and
+efficiency of retrieval-augmented generation
+(RAG) by reducing distractions from low-
+quality retrievals. However, existing ap-
+proaches underutilize the inherent knowledge
+of large language models (LLMs), leading to
+suboptimal retrieval decisions and degraded
+generation performance. To bridge this gap,
+we propose Self-Routing RAG (SR-RAG), a
+novel framework that binds selective retrieval
+with knowledge verbalization. SR-RAG en-
+ables an LLM to dynamically decide whether
+to retrieve external knowledge or verbalize its
+own parametric knowledge. To this end, we
+design a multi-task objective that jointly opti-
+mizes an LLM for knowledge source selection,
+knowledge verbalization, and response gener-
+ation. SR-RAG further incorporates a nearest
+neighbor search mechanism at inference time to
+improve the accuracy of knowledge source de-
+cisions under domain shifts. Fine-tuning three
+LLMs with SR-RAG significantly improves
+both their response accuracy and reduces the
+inference latency. Compared to the strongest se-
+lective retrieval baseline, SR-RAG reduces the
+number of retrievals by 29% while improving
+performance by 5.1%.
+
+1
+
+Introduction
+
+Retrieval-augmented generation (RAG) equips
+large language models (LLMs) with external
+knowledge sources at inference time, enabling
+stronger performance on tasks requiring up-to-date
+or domain-specific information (Khandelwal et al.,
+2020; Lewis et al., 2020; Borgeaud et al., 2022;
+Ram et al., 2023; Shi et al., 2024). Recently, se-
+lective retrieval—an inference strategy that avoids
+unnecessary retrieval augmentations—has shown
+promising results in reducing distractions from low-
+quality retrievals and improving the efficiency of
+
+*Equal Contribution
+
+1
+
+RAG (He et al., 2021; Mallen et al., 2023; Xu et al.,
+2024; Wu et al., 2024a).
+
+However, a core question has been overlooked
+
+by current selective retrieval research:
+
+Does selective retrieval fully honor the knowledge
+embedded in the LLM itself?
+
+When retrieval is skipped, existing methods use a
+standard yet simplistic fallback: letting the LLM
+directly generate the response (Mallen et al., 2023;
+Jeong et al., 2024; Asai et al., 2024; Wu et al.,
+2024a). This design prevents the LLM from explic-
+itly articulating its parametric knowledge before
+generating a response. We argue that the ability to
+verbalize knowledge, while subtle, has a critical
+impact on the success of selective retrieval. First,
+verbalizing internal knowledge expands the LLM’s
+capacity to answer without retrieval. Prior work
+demonstrates the ability of LLMs to directly gen-
+erate high-quality knowledge (Yu et al., 2023) as
+well as intermediate reasoning paths (Wei et al.,
+2022; Allen-Zhu and Li, 2025) to benefit the sys-
+tem’s performance. This is especially valuable for
+complex queries, where naive retrieval methods
+return irrelevant results and compute-intensive re-
+trieval can return noisy contexts. Second, knowl-
+edge verbalization enables more accurate selective
+retrieval decisions. Existing works train retrieval
+policies by comparing RAG with direct LLM re-
+sponses (Wang et al., 2023; Wu et al., 2024a) or
+resorting to likelihood-based preferences (He et al.,
+2021; Xu et al., 2024). By contrast, through ex-
+plicit knowledge elicitation, knowledge verbaliza-
+tion helps characterize the LLM’s capabilities more
+precisely. Therefore, we argue that knowledge ver-
+balization is a core component of selective retrieval
+to embrace.
+
+We propose Self-Routing RAG (SR-RAG), a se-
+lective retrieval framework that tightly integrates
+knowledge verbalization. By reformulating selec-
+tive retrieval as a knowledge source selection prob-
+
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 1: An overview of SR-RAG. Given a user query, the system first selects the most appropriate knowledge
+source by combining special token prediction with nearest neighbor search. Then, the knowledge is either retrieved
+from an external source or self-verbalized by the LLM. Finally, the LLM forms the response based on the query and
+the knowledge. All the steps are streamlined into a single left-to-right generation pass.
+
+lem, SR-RAG enables an LLM to self-route be-
+tween retrieving external knowledge and verbaliz-
+ing its own parametric knowledge, as illustrated
+in Figure 1. Recognizing the limitations of exist-
+ing frameworks that fine-tune LLMs for selective
+retrieval via special token prediction (Asai et al.,
+2024; Wu et al., 2024a), SR-RAG introduces three
+key innovations. First, we generate diverse verbal-
+izations of the LLM’s internal knowledge to create
+more accurate training labels for knowledge source
+selection (§3.3). Second, we introduce a multi-task
+alignment objective that couples source selection,
+verbalization, and response generation. We fur-
+ther leverage self-supervised preference alignment
+over variants of verbalized knowledge to promote
+high-quality knowledge generation (§3.3). Finally,
+existing approaches suffer from poor source de-
+cision accuracy at inference time due to domain
+shifts and LLM ability shifts caused by fine-tuning.
+To bridge this gap, SR-RAG proposes dynamic
+knowledge source inference via nearest neighbor
+search, augmenting likelihood-based retrieval de-
+cisions with neighboring policy examples in the
+hidden representation space of the fine-tuned LLM
+(§3.4). Crucially, SR-RAG’s inference remains
+efficient, requiring only a single left-to-right gener-
+ation pass.
+
+We evaluate SR-RAG by fine-tuning Llama-
+2-7B-Chat (Touvron et al., 2023), Phi-3.5-Mini-
+Instruct (Abdin et al., 2024), and Qwen2.5-7B-
+Instruct (Yang et al., 2024) on a mixture of
+
+knowledge-intensive tasks to develop the LLMs’
+ability to select knowledge sources and improve
+the quality of knowledge verbalization. Extensive
+experiments across four benchmarks demonstrate
+that SR-RAG greatly outperforms both always
+retrieving and the baseline selective retrieval ap-
+proach. Compared to the latter, SR-RAG achieves
+8.5%/2.1%/4.7% higher overall performance while
+performing 26%/40%/21% fewer retrievals across
+the three LLMs respectively (§5.2). Further anal-
+yses reveal that SR-RAG improves both the ac-
+curacy of selective retrieval decisions (§5.3) and
+the overall inference efficiency (§5.4). Finally,
+we conduct thorough ablation studies that confirm
+the necessity of all three core components to SR-
+RAG’s strong performance (§5.5). Data and code
+will be publicly released at https://github.com/
+xiaowu0162/self-routing-rag.
+
+2 Related Work
+
+Selective Retrieval To enhance the efficiency of
+RAG systems and avoid potentially harmful re-
+trievals, several works have proposed selectively
+skipping retrieval augmentation, which we call se-
+lective retrieval following Xu et al. (2024) and Wu
+et al. (2024a). One popular approach is to assess
+whether retrieval augmentation increases the like-
+lihood of the LLM generating the correct answer
+and distill this observation into a supervised deci-
+sion model (He et al., 2021; Schick et al., 2023; Xu
+
+2
+
+Who succeeded the first President of Namibia?Henry Master Feilden (21 February 1818 - 5 September 1875) was an English Conservative Party politician...Namibia has had four presidents since gaining independence on March 21, 1990. Sam Nujoma served as the first president from 1990 to 2005. He was succeeded by Hifikepunye Pohamba, who held office from 2005 to 2015.LLMHifikepunye PohambaLLMQHSKnowledgeSourceRoutingRetrievingExternalKnowledgeVerbalizingParametricKnowledgeP()=0.55P()=0.45HSHSHiddenStateP()=0.33P()=0.66>QueryKnowledgeAnswerWhat is Henry Feilden's occupation?LLMPoliticianQueryKnowledgeAnswerLLM-basedSourcePreferencekNN-basedSourcePreferenceet al., 2024). Analogously, Wang et al. (2023) and
+Wu et al. (2024a) directly evaluate the correctness
+of the answers generated with and without retrieval
+to create the supervision signal. Recent works have
+also explored solely examining the question’s na-
+ture to judge the need for retrieval on question
+answering tasks (Mallen et al., 2023; Jeong et al.,
+2024; Asai et al., 2024). To further incorporate the
+LLM’s confidence in the retrieval decision, Ding
+et al. (2024), Yao et al. (2024), and Moskvoret-
+skii et al. (2025a) use uncertainty-based selective
+retrieval. By contrast, this paper highlights the ben-
+efits of incorporating knowledge verbalization to
+make precise selective retrieval decisions and to
+boost the performance when retrieval is skipped.
+
+Adaptive RAG Inference This work also relates
+to the broader field of adaptive RAG, which aims to
+develop configurable and instance-specific RAG in-
+ference strategies. Prior work has introduced active
+retrieval, where the system dynamically refines or
+re-issues queries if the initially retrieved content
+is insufficient (Jiang et al., 2023; Su et al., 2024).
+Other lines of research explore query decomposi-
+tion and iterative retrieval to better handle complex
+questions by breaking them down into manageable
+sub-queries (Shao et al., 2023; Kim et al., 2023; Liu
+et al., 2024; Lee et al., 2024). Given the retrieval
+results, Asai et al. (2024) and Yan et al. (2024)
+propose inference strategies that critique or revise
+the retrieved knowledge to improve output quality.
+Parekh et al. (2025) incorporate an initial decision
+step to adaptively select the most suitable strategy
+based on the question. While our work focuses on
+the more targeted problem of selective retrieval, we
+introduce a novel form of adaptivity: enabling the
+LLM to self-route between external retrieval and
+internal knowledge verbalization, enhancing both
+flexibility and efficiency in a principled way.
+
+LLMs as Knowledge Sources A growing body
+of work has explored using LLMs to generate
+auxiliary knowledge. Early studies demonstrated
+the potential of LLMs to produce relevant back-
+ground knowledge in zero-shot settings for com-
+monsense reasoning (Shwartz et al., 2020; Liu et al.,
+2022). More broadly, Yu et al. (2023) introduced
+a generate-then-read approach, treating LLMs as
+context generators to replace external retrieval for
+RAG. In addition, LLMs have been shown to gener-
+ate effective intermediate reasoning steps for com-
+plex reasoning questions (Wei et al., 2022; Kojima
+et al., 2022). Building on these insights, this paper
+
+explores fully leveraging LLMs’ knowledge gener-
+ation ability to benefit selective retrieval systems.
+
+3 Approach
+
+In this section, we first reformulate selective re-
+trieval as a knowledge source selection problem.
+Then, we introduce the details of the proposed Self-
+Routing RAG framework.
+
+3.1 Problem Formulation
+
+Knowledge Source-Aware Inference Given a
+user query q, a knowledge source s is invoked to
+return relevant information as a text sequence s(q),
+which is then consumed by an LLM reader M to
+generate a response M (q, s(q)). Standard RAG
+follows this paradigm, where s typically represents
+a retriever over an external datastore.
+
+Knowledge Source Selection In practice, multi-
+ple knowledge sources may be available, denoted
+as S = {ϕ, s1, ..., sN }, where ϕ is a null knowl-
+edge source that returns nothing for any query. A
+knowledge source selector P chooses the most ap-
+propriate source for a given query, i.e., P (q, S) ∈
+S. Selective retrieval can be viewed as the spe-
+cial case where S = {ϕ, s} with the full pipeline
+expressed as M (q, P (q, S)(q)).
+
+3.2 Self-Routing RAG: Overview
+
+We propose Self-Routing RAG (SR-RAG), a gener-
+alization of selective retrieval that treats the LLM
+itself as a first-class knowledge source. As illus-
+trated in Figure 1, given a query q, the LLM self-
+determines which knowledge source to use: either
+retrieving from an external source or verbalizing
+its parametric knowledge. The final response is
+then generated based on both the query and the
+knowledge collected from the selected source.
+
+Building upon traditional selective retrieval
+methods (Asai et al., 2024; Wu et al., 2024a), SR-
+RAG fine-tunes the LLM to streamline its inference
+process with special tokens, enabling efficient in-
+ference with a single left-to-right generation pass.
+Three sets of special tokens are introduced:
+
+1. <EOQ> marks the end of the query and prompts
+the LLM for knowledge source selection1.
+2. A set of special tokens <s>, each representing
+a knowledge source s. Our main setup uses
+
+1This design aligns with Wu et al. (2024a) but diverges
+from Asai et al. (2024). We argue that this token is necessary
+for the LLM to allocate probability mass to the tokens for the
+knowledge sources.
+
+3
+
+• External Knowledge Retrieval: We retrieve n
+context chunks from the external knowledge
+source Se, denoted as ce1, ce2, ..., cen. In this
+work, we consider retrieving from Wikipedia
+with an off-the-shelf dense retriever.
+
+Then, each context cj is scored using the log-
+likelihood lj = pM (a|q, cj) of generating the cor-
+rect answer. Based on the ranking of lj, we iden-
+tify the preferred source s ∈ {Si, Se} as the one
+contributing to the majority of the top-n ranked
+contexts. The resulting (q, a, s, {cj, lj}) tuples are
+saved for model training. For convenience of later
+reference, we denote the contexts from Si and Se
+that lead to the highest and lowest likelihoods as
+ci+, ci−, ce+, ce−, respectively. We present the for-
+mal data creation algorithm in §B.1.
+
+Objective SR-RAG proposes a two-stage multi-
+task learning framework that jointly optimizes
+knowledge source selection, knowledge verbaliza-
+tion, and response generation. The first stage per-
+forms behavior cloning on three losses:
+
+1. Lsrc: a cross-entropy loss for the preferred
+
+knowledge source s following <EOQ>:
+
+Figure 2: Compared to traditional selective RAG, SR-
+RAG enables an LLM to self-route between knowledge
+sources and self-act as a knowledge source. We use blue
+to represent external information and red to represent
+the LLM and its self-generated tokens.
+
+two sources: external (Se) and internal (Si).
+This formulation can naturally accommodate
+more than two knowledge sources as well.
+3. <EOK> indicates the end of the knowledge and
+triggers the LLM to generate the answer.
+As shown in Figure 2, compared to traditional
+selective retrieval, SR-RAG enables the LLM to
+actively select the best knowledge source and seam-
+lessly act as a knowledge source itself.
+
+3.3 Self-Routing RAG: Training
+
+Lsrc = − log pM (<s>|q),
+
+(1)
+
+To train the backbone LLM for SR-RAG, we
+propose a pipeline to mine self-supervision from
+widely available question answering or instruction-
+following data, consisting of pairs of question q
+and response a. Our pipeline uses the LLM itself
+as the internal knowledge source Si, alongside the
+external knowledge source Se, without requiring
+additional human supervision or synthetic labels
+from stronger LLMs, demonstrating strong scala-
+bility.
+
+Data Construction To enable an LLM to accu-
+rately determine whether a question falls within
+its parametric knowledge and to robustly elicit the
+knowledge, we argue that thorough and diverse
+knowledge verbalization is crucial. Following this
+intuition, SR-RAG collects contexts by exploring
+each of the available knowledge sources:
+
+where <s> represents the actual token corre-
+sponding to the chosen source s ∈ S.
+
+2. Lverb: a cross-entropy loss on the knowledge
+tokens, only when the LLM itself (Si) is la-
+beled as the preferred knowledge source:
+
+Lverb =
+
+(cid:40)
+
+− log pM (ci+|q),
+0,
+
+if s = Si,
+if s = Se.
+
+(2)
+
+3. Lans: a cross-entropy loss on generating the
+answer based on the query and the knowledge
+from the preferred source:
+
+Lans =
+
+(cid:40)
+
+− log pM (a|q, ci+),
+− log pM (a|q, ce+),
+
+if s = Si,
+if s = Se.
+
+(3)
+
+• Parametric Knowledge Verbalization: We
+leverage GenRead (Yu et al., 2023) to elicit
+knowledge from the LLM parametric knowl-
+edge source Si and generate n diverse verbal-
+ized contexts, denoted as ci1, ci2, ..., cin.
+
+The final loss for the first stage is a simple com-
+
+bination of the three objectives:
+
+Lstage1 = Lsrc + Lverb + Lans.
+
+(4)
+
+4
+
+Knowledge<Self><s>QuestionExternalSources ModelParameterKnowledge<NoRet><Ret>Question(a) Traditional Selective RAG(b) SR-RAG<EOQ>Answer<EOK><EOQ>KnowledgeAnswer<EOK>Answer<EOK>Answer<EOK>To further boost the LLM’s ability to generate
+useful knowledge, SR-RAG incorporates a second-
+stage fine-tuning via direct preference optimiza-
+tion (DPO) (Rafailov et al., 2023), pairing self-
+verbalized knowledge with self-generated prefer-
+ence labels (ci+, ci−).
+
+Lstage2 = Lsrc + LDP O
+(cid:40)
+
+verb + Lans,
+(cid:17)
+
+β log pM (ci+|q)
+
+pref (ci+|q) − β log pM (ci−|q)
+
+pref (ci−|q)
+
+− log σ
+
+(cid:16)
+
+,
+
+(5)
+
+if s = Si,
+
+LDP O
+
+verb =
+
+0,
+
+if s = Se.
+(6)
+M and ref are initialized with the LLM fine-tuned
+on Lstage1, and only M is updated.
+
+Overall, this self-supervised pipeline effectively
+binds knowledge verbalization with the selective
+retrieval paradigm, enabling the LLM to learn
+accurate knowledge source preferences through
+performance-oriented labeling. Analogous to dis-
+tilling complex “System 2” reasoning into fast
+“System 1” inference (Yu et al., 2024), the DPO
+objective leverages the computationally expensive
+high-quality knowledge to teach the LLM cost-
+efficient knowledge verbalization at inference time.
+Finally, SR-RAG naturally extends to more than
+two knowledge sources (further discussions and ex-
+periments in §C), which is useful for distinguishing
+domain-specific corpora or retrieval methods with
+varying cost-quality trade-offs.
+
+3.4 Self-Routing RAG: Inference
+
+As shown in Figures 1 and 2, SR-RAG inference
+unfolds in a single left-to-right pass through three
+steps: source selection, knowledge collection, and
+answer generation.
+
+Nearest Neighbor-Enhanced Source Selection
+A common approach to selecting a knowledge
+source is to compare the likelihood pM (<s>|q) for
+each s ∈ S, against a fixed threshold (Asai et al.,
+2024; Wu et al., 2024a). However, this approach
+fails to account for shifts in the LLM’s ability after
+fine-tuning and lacks fine-grained control over the
+decision boundary. To make source selection more
+robust, we propose a dynamic nearest neighbor-
+based source selection mechanism that builds a
+policy datastore based on rollouts after the fine-
+tuning. Concretely, the fine-tuned LLM is first
+evaluated on a set of question-answer pairs2. For
+each pair, the probabilities of generating the answer
+a conditioned on different knowledge sources are
+
+2Empirically, we reuse the training set so that no additional
+
+data or supervision is required.
+
+5
+
+compared to decide the preferred source. We then
+build a policy datastore mapping each query to its
+preferred source, using the hidden representation
+at <EOQ> as the key. At inference, we retrieve k
+nearest neighbors from the policy datastore and
+use their source labels to form a distribution over
+the sources pD(<s>|q). Finally, to select the best
+source s ∈ S, we apply a threshold on the product:
+
+pM (<s>|q) × pD(<s>|q).
+
+(7)
+
+While tackling the challenges of source selection
+due to shifts in the LLM’s ability, this approach
+also exhibits better interpretability. Since the policy
+datastore consists of explicit source assignments, it
+can be audited, modified, and expanded by human
+experts to steer SR-RAG’s retrieval behavior in a
+fine-grained manner.
+
+Subsequently, the knowledge from the corre-
+sponding source is gathered. If the LLM prefers Si,
+we use greedy decoding to directly verbalize a sin-
+gle knowledge context. After SR-RAG fine-tuning,
+the generated context serves as a compressed yet
+high-quality articulation of the parametric knowl-
+edge, which would otherwise require compute-
+expensive knowledge verbalization to elicit. If an
+external source <s> is selected instead, we pause
+the decoding and retrieve from knowledge source
+s. With the verbalized or retrieved knowledge ap-
+pended to the context, the LLM proceeds to gener-
+ate the final response.
+
+4 Experimental Setup
+
+4.1
+
+Implementation Details of SR-RAG
+
+Data Construction The main experiments are
+performed on two knowledge sources3: the 2018
+English Wikipedia (<Wiki>) as the external knowl-
+edge source, and the LLM itself (<Self>) as the
+internal knowledge source. We use the official
+Wikipedia embeddings released by Karpukhin et al.
+(2020) and retrieve at a granularity of 100-word
+chunks. GenRead (Yu et al., 2023) is used to verbal-
+ize diverse knowledge contexts. GenRead clusters
+zero-shot knowledge verbalizations in as in-context
+demonstrations to verbalize diverse knowledge. We
+limit the verbalized knowledge chunks to a maxi-
+mum of 150 tokens. From each knowledge source,
+we collect n = 5 knowledge contexts.
+
+Training We fine-tune on a mixture of six short-
+and long-form knowledge-intensive datasets: Wiz-
+ard of Wikipedia (Dinan et al., 2019), Natural
+
+3We present multi-source extensions of SR-RAG in §C.
+
+Figure 3: Knowledge verbalization significantly affects the LLM ability boundary. For a large number of instances
+(16.4% - 38.8%, orange), GenRead reverses the knowledge source preferences: without considering GenRead, RAG
+dominates over parametric knowledge.
+
+Questions (Kwiatkowski et al., 2019), FEVER
+(Thorne et al., 2018), OpenBookQA (Mihaylov
+et al., 2018), ARC-Easy (Bhakthavatsalam et al.,
+2021), and ASQA (Stelmakh et al., 2022). This
+mixture of 53,042 instances is a subset of the RAG
+instruction tuning data shown effective in Asai et al.
+(2024). After running the data construction al-
+gorithm, 46.9% of the instances are labeled with
+<Self> and the rest are labeled with <Wiki> as the
+preferred knowledge source, averaged across three
+LLMs. Full training details are provided in §B.1.
+
+Inference To construct the policy datastore, we
+use a middle layer in the fine-tuned LLM4, as mid-
+dle layers are found to be indicative of LLM truth-
+fulness (Yin et al., 2024). At test time, the datas-
+tore index is cached on GPU and similarity search
+can be achieved via a single matrix multiplication.
+We retrieve k = 30 nearest supporting examples
+from the datastore and construct pD(<s>|q) from
+the counts of each knowledge source as the pre-
+ferred source. Then, we impose a threshold τ on
+pM (<Wiki>|q) × pD(<Wiki>|q) to decide whether
+retrieval should be triggered5.
+
+4.2 Evaluation
+
+Datasets and Metrics We evaluate on a diverse
+set of four knowledge-intensive NLP tasks. PopQA
+(Mallen et al., 2023) is a free-formed long-tail
+open-domain question answering dataset. Follow-
+ing Asai et al. (2024), we use the subset of 1,399
+questions that aims to test knowledge of long-tail
+entities. TriviaQA (Joshi et al., 2017) is an es-
+
+4Layer 15 for Llama-2-7B-Chat and Phi-3.5–Mini-Instruct
+and layer 11 for Qwen2.5-7B-Instruct. We provide further
+visualizations and discussions of layer selection in §D.2.
+
+5τ = 0.1 for Llama-2-7B-Chat and τ = 0.2 for other models.
+
+tablished open-domain question answering dataset
+that features relatively complex and diverse ques-
+tions. We use the same test split and retrieval setup
+as in Asai et al. (2024). PubHealth (Zhang et al.,
+2023) is a fact-checking dataset focusing on check-
+ing claims in the public health domain. Finally,
+ARC Challenge (Bhakthavatsalam et al., 2021) is
+a multiple-choice question answering dataset fea-
+turing grade-school level science questions. Fol-
+lowing common practice, we perform lexical post-
+process of the model’s output and report accuracy
+for PubHealth and ARC and substring matching
+for PopQA and TriviaQA.
+
+Baselines We compare SR-RAG with baselines
+that cover various training and inference strategies.
+(1) First, using the LLM before fine-tuning, we
+compare with either always retrieving or always
+verbalizing with GenRead. (2) As illustrated in
+Figure 2, our main baseline is the state-of-the-art
+prior selective retrieval pipeline, combining the
+advantage of He et al. (2021), Asai et al. (2024),
+and Wu et al. (2024a). Specifically, the likelihoods
+of the LLM generating the answer with and without
+retrieval are used to create the knowledge source
+selection label. Then, we fine-tune the LLM for
+knowledge source selection (among Se and ϕ) and
+generate the answer with optional retrieval. At
+inference, we apply a uniform threshold of 0.2 to
+the likelihood of the retrieval token for selective
+retrieval. (3) Always retrieving with the fine-tuned
+SR-RAG LLM.
+
+6
+
+13.7%38.8%47.5%PubHealth31.3%38.5%30.2%ARC_Easy36.0%33.4%30.6%OBQA22.1%16.4%61.5%NQAnswer Likelihood Comparisons (Llama-2-7B-Chat)Direct Answering > RAGGenRead > RAG > Direct AnsweringRAG > max(GenRead, Direct Answering)Training
+
+Inference
+
+PopQA
+
+PubHealth
+ACC %RAG ACC %RAG ACC %RAG ACC %RAG ACC %RAG
+
+TriviaQA
+
+Average
+
+ARC
+
+No Fine-tuning
+
+Selective RAG
+
+SR-RAG
+
+No Fine-tuning
+
+Selective RAG
+
+SR-RAG
+
+No Fine-tuning
+
+Selective RAG
+
+SR-RAG
+
+GenRead
+
+Always RAG 0.529
+0.247
+Always RAG 0.567
+Selective RAG 0.565
+Always RAG 0.568
+0.566
+
+SR-RAG
+
+Llama-2-7B-Chat
+
+100% 0.641
+0.616
+0%
+100% 0.640
+98%
+0.638
+100% 0.669
+0.664
+96%
+
+0%
+
+100% 0.457
+0.515
+100% 0.588
+100% 0.589
+100% 0.689
+0.730
+89%
+
+0%
+
+100% 0.546
+0.605
+100% 0.588
+100% 0.594
+100% 0.608
+0.630
+40%
+
+0%
+
+100% 0.543
+0.496
+100% 0.596
+65%
+0.597
+100% 0.634
+0.648
+29%
+
+GenRead
+
+Always RAG 0.541
+0.331
+Always RAG 0.570
+Selective RAG 0.570
+Always RAG 0.567
+0.566
+
+SR-RAG
+
+Phi-3.5-Mini-Instruct
+
+100% 0.594
+0%
+0.567
+100% 0.645
+100% 0.638
+100% 0.659
+0.657
+98%
+
+0%
+
+100% 0.549
+0.442
+100% 0.701
+0.704
+95%
+100% 0.689
+0.705
+92%
+
+0%
+
+100% 0.771
+0.840
+100% 0.813
+91%
+0.815
+100% 0.820
+0.854
+24%
+
+Qwen2.5-7B-Instruct
+
+0%
+
+100% 0.614
+0.545
+100% 0.682
+83%
+0.682
+100% 0.684
+0.696
+
+5%
+
+GenRead
+
+Always RAG 0.563
+0.334
+Always RAG 0.555
+Selective RAG 0.529
+Always RAG 0.573
+0.572
+
+SR-RAG
+
+100% 0.667
+0%
+0.626
+100% 0.654
+88%
+0.648
+100% 0.662
+0.659
+99%
+
+0%
+
+100% 0.446
+0.676
+100% 0.600
+0.608
+93%
+100% 0.596
+0.682
+89%
+
+100% 0.916
+0.875
+0%
+100% 0.827
+82%
+0.835
+100% 0.821
+0.830
+34%
+
+0%
+
+100% 0.648
+0.628
+100% 0.659
+78%
+0.655
+100% 0.663
+0.686
+46%
+
+100%
+0%
+100%
+86%
+100%
+64%
+
+100%
+0%
+100%
+92%
+100%
+55%
+
+100%
+0%
+100%
+85%
+100%
+67%
+
+Table 1: Main evaluation results on four tasks. The best results are boldfaced. Across three backbone LLMs,
+SR-RAG consistently outperforms selective RAG and always retrieving while using a much lower retrieval budget.
+
+5 Results
+
+5.1 Knowledge Verbalization Alters
+
+Knowledge Source Preference
+
+To motivate our approach, we first show that knowl-
+edge verbalization substantially impacts on iden-
+tifying when an LLM requires retrieval. Figure 3
+presents a pilot study on Llama-2-7B-Chat using
+four datasets from SR-RAG’s training mixture. For
+each instance, we compute the likelihood of the
+LLM generating the correct answer with no con-
+text (blue), with the most helpful GenRead verbal-
+ization (ci+, orange), and with the most helpful
+retrieved passage (ce+, red). Notably, GenRead
+changes the preferred knowledge source in 16% of
+Natural Questions examples and over 30% in the
+other datasets. This suggests that prior selective
+retrieval methods, which omit verbalization, may
+significantly underestimate the LLM’s capabilities,
+reinforcing the need to incorporate knowledge ver-
+balization for accurate source preference labeling.
+
+5.2 SR-RAG Improves Accuracy with
+Reduced Retrieval Frequency
+
+Table 1 shows the end-to-end generation per-
+formance on three LLMs, demonstrating the
+
+Method
+
+PopQA TriviaQA PubHealth ARC Average
+
+Accuracy (Verbalization ≥ Retrieval)
+
+Self-RAG
+0.957
+SR-RAG w/o. kNN 0.959
+0.959
+SR-RAG
+
+0.936
+0.930
+0.943
+
+0.867
+0.869
+0.880
+
+0.908
+0.888
+0.910
+
+0.917
+0.912
+0.923
+
+AUROC (Retrieval > Verbalization)
+
+Self-RAG
+0.489
+SR-RAG w/o. kNN 0.490
+0.577
+SR-RAG
+
+0.503
+0.567
+0.565
+
+0.438
+0.564
+0.606
+
+0.557
+0.513
+0.533
+
+0.497
+0.534
+0.570
+
+Table 2: Source selection accuracy measured on Llama-
+2-7B-Chat. SR-RAG achieves the best averaged perfor-
+mance in both evaluation settings.
+
+advantage of SR-RAG over always retrieving,
+selective retrieval, and other baselines. Rel-
+ative to always retrieving with the pretrained
+model, SR-RAG improves accuracy by 19.3%
+(Llama-2-7B-Chat), 13.4% (Phi-3.5-Mini-Instruct),
+and 5.9% (Qwen2.5-7B-Instruct). Against the
+strongest selective retrieval baseline, SR-RAG
+yields 8.5%/2.1%/4.7% higher accuracy. Interest-
+ingly, despite saving 8–15% retrievals, the selective
+retrieval baseline achieves nearly identical accuracy
+to always retrieving. This suggests that selective
+RAG alone cannot reliably identify queries that do
+not require retrieval. In contrast, SR-RAG reduces
+
+7
+
+Figure 4: Accuracy and system latency of SR-RAG fine-tuned Llama-2-7B-Chat with different verbalization
+frequencies. SR-RAG’s source selection policy (marked with stars) achieves near-optimal accuracy-efficiency
+trade-off without dataset-specific thresholds.
+
+Training
+
+SR-RAG
+
+Inference
+
+PopQA
+
+PubHealth
+ACC %RAG ACC %RAG ACC %RAG ACC %RAG ACC %RAG
+
+TriviaQA
+
+Average
+
+ARC
+
+SR-RAG
+
+0.566
+
+96% 0.664
+
+89% 0.730
+
+40% 0.630
+
+29% 0.648
+
+64%
+
+SR-RAG
+SR-RAG w/o. kv. label SR-RAG
+SR-RAG w/o. LDP O
+SR-RAG
+verb
+
+SR-RAG w/o. kNN 0.558
+
+94% 0.658
+
+72% 0.627
+0.568 100% 0.644 100% 0.598 100% 0.629
+98% 0.645 100% 0.674 100% 0.581
+0.564
+
+77% 0.694
+
+56% 0.634
+84% 0.610
+66% 0.616
+
+75%
+96%
+86%
+
+Table 3: Ablation studies on SR-RAG. Llama-2-7B-Chat is used as the LLM.
+
+20–40% retrievals while maintaining or improving
+performance thanks to accurate knowledge source
+selection and high-quality verbalization.
+
+Remarkably, with a uniform inference datastore
+and threshold, SR-RAG dynamically adapts its re-
+trieval behavior based on dataset characteristics.
+For a dataset that emphasizes long-tail knowledge
+like PopQA, SR-RAG tends to retrieve external
+knowledge most of the time. On the other hand, for
+PubHealth and ARC where the model’s knowledge
+may suffice for a number of questions, SR-RAG
+relies on internal knowledge more confidently, re-
+sulting in much better performance compared to
+always retrieving. Qualitative examples illustrating
+SR-RAG’s behavior can be found in Figure 7 and
+Figure 8 in the appendix.
+
+5.3 SR-RAG Makes Accurate Source
+
+Selection Decisions
+
+Can SR-RAG accurately choose the correct knowl-
+edge source? Table 2 compares SR-RAG with Self-
+RAG (Asai et al., 2024) and an SR-RAG variant
+without kNN-based policy. We evaluate accuracy
+using two criteria: (1) abstaining from retrieval
+when it does not harm performance (top) and (2)
+retrieving only when it provides strictly better con-
+text (bottom). While all methods perform well un-
+der the first criterion, SR-RAG achieves the highest
+overall accuracy. Under the second, stricter defi-
+nition, SR-RAG demonstrates substantially better
+performance, outperforming Self-RAG by 14.7%
+
+in average AUROC. Removing kNN-based policy
+(w/o. kNN) leads to large drops in both accuracy
+and AUROC, highlighting the benefit of adapting
+to fine-tuning-induced shifts in LLM ability.
+
+5.4 System Efficiency
+
+We assess SR-RAG’s end-to-end latency using
+Llama-2-7B-Chat under batched inference6. Fig-
+ure 4 shows the trade-off between accuracy and
+latency under varying retrieval proportions. As ex-
+pected, latency improves as fewer instances invoke
+retrieval. Due to dataset-specific difficulty, the op-
+timal retrieval proportion varies per dataset. How-
+ever, SR-RAG’s learned source selection policy
+achieves a near-optimal accuracy-efficiency trade-
+off across all datasets, without any dataset-specific
+threshold tuning. This confirms that SR-RAG not
+only improves performance but does so efficiently.
+
+5.5 Ablation Study
+
+To understand the contribution of each compo-
+nent, we perform ablations on Llama-2-7B-Chat
+(Table 3). Removing kNN-based source selection
+(w/o. kNN) results in lower accuracy and higher
+retrieval rates, confirming that kNN inference helps
+the model adapt to ability shifts introduced by fine-
+tuning. Disabling knowledge verbalization during
+label) causes the
+preference labeling (w/o. kv.
+
+6Detailed latency modeling formulation in §B.2. In our
+setting, latency is linearly correlated with retrieval frequency
+under small batch sizes.
+
+8
+
+050100% Retrieval0.600.620.640.66AccuracyARC_C050100% Retrieval0.680.700.720.74AccuracyPubHealth050100% Retrieval0.550.600.650.70AccuracyTriviaQA050100% Retrieval0.30.40.50.6AccuracyPopQA234Latency (s)234Latency (s)234Latency (s)234Latency (s)LLM to over-rely on retrieval and reduces perfor-
+mance, showing that verbalization is crucial for
+effective labeling. Finally, Lstage2 is ablated and
+the Lstage1 loss is kept for stage 2 training. The
+result shows significantly more retrievals as the
+model’s knowledge verbalization ability degrades.
+These findings highlight that all components are
+vital to SR-RAG’s success. In §D, we further an-
+alyze the <EOQ> representations, other SR-RAG
+hyperparameters, as well as qualitative examples.
+
+6 Conclusion
+
+We present SR-RAG, a novel retrieval-augmented
+generation (RAG) framework that tightly integrates
+selective retrieval with knowledge verbalization.
+By reformulating selective retrieval as a knowl-
+edge source selection problem, SR-RAG enables
+the LLM to not only choose between external and
+internal knowledge sources but also to serve as a
+knowledge source itself. During inference, SR-
+RAG leverages internal hidden states and a nearest-
+neighbor policy to make accurate, adaptive source
+selection decisions. Extensive experiments show
+that SR-RAG significantly improves answer accu-
+racy while reducing retrieval frequency and latency,
+offering a scalable and reliable path forward for
+more efficient, knowledge-aware RAG systems.
+
+References
+
+Marah Abdin, Jyoti Aneja, Hany Awadalla, Ahmed
+Awadallah, Ammar Ahmad Awan, Nguyen Bach,
+Amit Bahree, Arash Bakhtiari, Jianmin Bao, Harkirat
+Behl, et al. 2024. Phi-3 technical report: A highly ca-
+pable language model locally on your phone. ArXiv
+preprint, abs/2404.14219.
+
+Zeyuan Allen-Zhu and Yuanzhi Li. 2025. Physics of lan-
+guage models: Part 3.2, knowledge manipulation. In
+The Thirteenth International Conference on Learning
+Representations, ICLR 2025.
+
+Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and
+Hannaneh Hajishirzi. 2024. Self-rag: Learning to
+retrieve, generate, and critique through self-reflection.
+In The Twelfth International Conference on Learning
+Representations, ICLR 2024, Vienna, Austria, May
+7-11, 2024. OpenReview.net.
+
+Sumithra Bhakthavatsalam, Daniel Khashabi, Tushar
+Khot, Bhavana Dalvi Mishra, Kyle Richardson,
+Ashish Sabharwal, Carissa Schoenick, Oyvind
+Tafjord, and Peter Clark. 2021. Think you have
+solved direct-answer question answering? try arc-da,
+the direct-answer AI2 reasoning challenge. CoRR,
+abs/2102.03315.
+
+Sebastian Borgeaud, Arthur Mensch, Jordan Hoffmann,
+Trevor Cai, Eliza Rutherford, Katie Millican, George
+van den Driessche, Jean-Baptiste Lespiau, Bogdan
+Damoc, Aidan Clark, Diego de Las Casas, Aurelia
+Guy, Jacob Menick, Roman Ring, Tom Hennigan,
+Saffron Huang, Loren Maggiore, Chris Jones, Albin
+Cassirer, Andy Brock, Michela Paganini, Geoffrey
+Irving, Oriol Vinyals, Simon Osindero, Karen Si-
+monyan, Jack W. Rae, Erich Elsen, and Laurent Sifre.
+2022. Improving language models by retrieving from
+trillions of tokens. In International Conference on
+Machine Learning, ICML 2022, 17-23 July 2022, Bal-
+timore, Maryland, USA, volume 162 of Proceedings
+of Machine Learning Research, pages 2206–2240.
+PMLR.
+
+Emily Dinan, Stephen Roller, Kurt Shuster, Angela
+Fan, Michael Auli, and Jason Weston. 2019. Wizard
+of wikipedia: Knowledge-powered conversational
+agents. In 7th International Conference on Learning
+Representations, ICLR 2019, New Orleans, LA, USA,
+May 6-9, 2019. OpenReview.net.
+
+Hanxing Ding, Liang Pang, Zihao Wei, Huawei Shen,
+and Xueqi Cheng. 2024. Retrieve only when it
+needs: Adaptive retrieval augmentation for halluci-
+nation mitigation in large language models. CoRR,
+abs/2402.10612.
+
+Junxian He, Graham Neubig, and Taylor Berg-
+Kirkpatrick. 2021. Efficient nearest neighbor lan-
+guage models. In Proceedings of the 2021 Confer-
+ence on Empirical Methods in Natural Language Pro-
+cessing, pages 5703–5714, Online and Punta Cana,
+Dominican Republic. Association for Computational
+Linguistics.
+
+Soyeong Jeong, Jinheon Baek, Sukmin Cho, Sung Ju
+Hwang, and Jong Park. 2024. Adaptive-RAG: Learn-
+ing to adapt retrieval-augmented large language mod-
+els through question complexity. In Proceedings of
+the 2024 Conference of the North American Chap-
+ter of the Association for Computational Linguistics:
+Human Language Technologies (Volume 1: Long
+Papers), pages 7036–7050, Mexico City, Mexico. As-
+sociation for Computational Linguistics.
+
+Zhengbao Jiang, Frank Xu, Luyu Gao, Zhiqing Sun,
+Qian Liu, Jane Dwivedi-Yu, Yiming Yang, Jamie
+Callan, and Graham Neubig. 2023. Active retrieval
+augmented generation. In Proceedings of the 2023
+Conference on Empirical Methods in Natural Lan-
+guage Processing, pages 7969–7992, Singapore. As-
+sociation for Computational Linguistics.
+
+Qiao Jin, Bhuwan Dhingra, Zhengping Liu, William
+Cohen, and Xinghua Lu. 2019. PubMedQA: A
+dataset for biomedical research question answering.
+In Proceedings of the 2019 Conference on Empirical
+Methods in Natural Language Processing and the
+9th International Joint Conference on Natural Lan-
+guage Processing (EMNLP-IJCNLP), pages 2567–
+2577, Hong Kong, China. Association for Computa-
+tional Linguistics.
+
+9
+
+Mandar Joshi, Eunsol Choi, Daniel Weld, and Luke
+Zettlemoyer. 2017. TriviaQA: A large scale distantly
+supervised challenge dataset for reading comprehen-
+sion. In Proceedings of the 55th Annual Meeting of
+the Association for Computational Linguistics (Vol-
+ume 1: Long Papers), pages 1601–1611, Vancouver,
+Canada. Association for Computational Linguistics.
+
+Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick
+Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, and
+Wen-tau Yih. 2020. Dense passage retrieval for open-
+domain question answering. In Proceedings of the
+2020 Conference on Empirical Methods in Natural
+Language Processing (EMNLP), pages 6769–6781,
+Online. Association for Computational Linguistics.
+
+Urvashi Khandelwal, Omer Levy, Dan Jurafsky, Luke
+Zettlemoyer, and Mike Lewis. 2020. Generalization
+through memorization: Nearest neighbor language
+models. In 8th International Conference on Learning
+Representations, ICLR 2020, Addis Ababa, Ethiopia,
+April 26-30, 2020. OpenReview.net.
+
+Gangwoo Kim, Sungdong Kim, Byeongguk Jeon, Joon-
+suk Park, and Jaewoo Kang. 2023. Tree of clarifica-
+tions: Answering ambiguous questions with retrieval-
+augmented large language models. In Proceedings
+of the 2023 Conference on Empirical Methods in
+Natural Language Processing, pages 996–1009, Sin-
+gapore. Association for Computational Linguistics.
+
+Takeshi Kojima, Shixiang Shane Gu, Machel Reid, Yu-
+taka Matsuo, and Yusuke Iwasawa. 2022. Large lan-
+guage models are zero-shot reasoners. In Advances
+in Neural Information Processing Systems 35: An-
+nual Conference on Neural Information Processing
+Systems 2022, NeurIPS 2022, New Orleans, LA, USA,
+November 28 - December 9, 2022.
+
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-
+field, Michael Collins, Ankur Parikh, Chris Alberti,
+Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-
+ton Lee, Kristina Toutanova, Llion Jones, Matthew
+Kelcey, Ming-Wei Chang, Andrew M. Dai, Jakob
+Uszkoreit, Quoc Le, and Slav Petrov. 2019. Natu-
+ral questions: A benchmark for question answering
+research. Transactions of the Association for Compu-
+tational Linguistics, 7:452–466.
+
+Myeonghwa Lee, Seonho An, and Min-Soo Kim. 2024.
+PlanRAG: A plan-then-retrieval augmented genera-
+tion for generative large language models as decision
+makers. In Proceedings of the 2024 Conference of
+the North American Chapter of the Association for
+Computational Linguistics: Human Language Tech-
+nologies (Volume 1: Long Papers), pages 6537–6555,
+Mexico City, Mexico. Association for Computational
+Linguistics.
+
+Patrick S. H. Lewis, Ethan Perez, Aleksandra Pik-
+tus, Fabio Petroni, Vladimir Karpukhin, Naman
+Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih,
+Tim Rocktäschel, Sebastian Riedel, and Douwe
+Kiela. 2020. Retrieval-augmented generation for
+
+knowledge-intensive NLP tasks. In Advances in Neu-
+ral Information Processing Systems 33: Annual Con-
+ference on Neural Information Processing Systems
+2020, NeurIPS 2020, December 6-12, 2020, virtual.
+
+Jiacheng Liu, Alisa Liu, Ximing Lu, Sean Welleck, Pe-
+ter West, Ronan Le Bras, Yejin Choi, and Hannaneh
+Hajishirzi. 2022. Generated knowledge prompting
+for commonsense reasoning. In Proceedings of the
+60th Annual Meeting of the Association for Compu-
+tational Linguistics (Volume 1: Long Papers), pages
+3154–3169, Dublin, Ireland. Association for Compu-
+tational Linguistics.
+
+Yanming Liu, Xinyue Peng, Xuhong Zhang, Weihao
+Liu, Jianwei Yin, Jiannan Cao, and Tianyu Du. 2024.
+RA-ISF: Learning to answer and understand from
+retrieval augmentation via iterative self-feedback. In
+Findings of the Association for Computational Lin-
+guistics: ACL 2024, pages 4730–4749, Bangkok,
+Thailand. Association for Computational Linguistics.
+
+Chenwei Lou, Zewei Sun, Xinnian Liang, Meng Qu,
+Wei Shen, Wenqi Wang, Yuntao Li, Qingping Yang,
+and Shuangzhi Wu. 2025. Adacot: Pareto-optimal
+adaptive chain-of-thought triggering via reinforce-
+ment learning. arXiv preprint arXiv:2505.11896.
+
+Alex Mallen, Akari Asai, Victor Zhong, Rajarshi Das,
+Daniel Khashabi, and Hannaneh Hajishirzi. 2023.
+When not to trust language models: Investigating
+effectiveness of parametric and non-parametric mem-
+ories. In Proceedings of the 61st Annual Meeting of
+the Association for Computational Linguistics (Vol-
+ume 1: Long Papers), pages 9802–9822, Toronto,
+Canada. Association for Computational Linguistics.
+
+Todor Mihaylov, Peter Clark, Tushar Khot, and Ashish
+Sabharwal. 2018. Can a suit of armor conduct elec-
+tricity? a new dataset for open book question an-
+swering. In Proceedings of the 2018 Conference on
+Empirical Methods in Natural Language Processing,
+pages 2381–2391, Brussels, Belgium. Association
+for Computational Linguistics.
+
+Viktor Moskvoretskii, Maria Lysyuk, Mikhail Sal-
+nikov, Nikolay Ivanov, Sergey Pletenev, Daria Gal-
+imzianova, Nikita Krayko, Vasily Konovalov, Irina
+Nikishina, and Alexander Panchenko. 2025a. Adap-
+tive retrieval without self-knowledge? bringing un-
+certainty back home. CoRR, abs/2501.12835.
+
+Viktor Moskvoretskii, Maria Lysyuk, Mikhail Sal-
+nikov, Nikolay Ivanov, Sergey Pletenev, Daria Gal-
+imzianova, Nikita Krayko, Vasily Konovalov, Irina
+Nikishina, and Alexander Panchenko. 2025b. Adap-
+tive retrieval without self-knowledge? bringing un-
+certainty back home. CoRR, abs/2501.12835.
+
+National Center for Biotechnology Information (NCBI).
+https://pubmed.ncbi.nlm.nih.gov/.
+Pubmed.
+U.S. National Library of Medicine (NLM), National
+Institutes of Health (NIH).
+
+10
+
+Tanmay Parekh, Pradyot Prakash, Alexander Radovic,
+Akshay Shekher, and Denis Savenkov. 2025. Dy-
+namic strategy planning for efficient question answer-
+ing with large language models. In Findings of the
+Association for Computational Linguistics: NAACL
+2025.
+
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Christo-
+pher D. Manning, Stefano Ermon, and Chelsea Finn.
+2023. Direct preference optimization: Your language
+model is secretly a reward model. In Advances in
+Neural Information Processing Systems 36: Annual
+Conference on Neural Information Processing Sys-
+tems 2023, NeurIPS 2023, New Orleans, LA, USA,
+December 10 - 16, 2023.
+
+Ori Ram, Yoav Levine, Itay Dalmedigos, Dor Muhlgay,
+Amnon Shashua, Kevin Leyton-Brown, and Yoav
+Shoham. 2023. In-context retrieval-augmented lan-
+guage models. Transactions of the Association for
+Computational Linguistics, 11:1316–1331.
+
+Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta
+Raileanu, Maria Lomeli, Eric Hambro, Luke Zettle-
+moyer, Nicola Cancedda, and Thomas Scialom. 2023.
+Toolformer: Language models can teach themselves
+to use tools. In Advances in Neural Information Pro-
+cessing Systems 36: Annual Conference on Neural
+Information Processing Systems 2023, NeurIPS 2023,
+New Orleans, LA, USA, December 10 - 16, 2023.
+
+Zhihong Shao, Yeyun Gong, Yelong Shen, Minlie
+Huang, Nan Duan, and Weizhu Chen. 2023. En-
+hancing retrieval-augmented large language models
+with iterative retrieval-generation synergy. In Find-
+ings of the Association for Computational Linguis-
+tics: EMNLP 2023, pages 9248–9274, Singapore.
+Association for Computational Linguistics.
+
+Weijia Shi, Sewon Min, Michihiro Yasunaga, Min-
+joon Seo, Richard James, Mike Lewis, Luke Zettle-
+moyer, and Wen-tau Yih. 2024. REPLUG: Retrieval-
+augmented black-box language models. In Proceed-
+ings of the 2024 Conference of the North American
+Chapter of the Association for Computational Lin-
+guistics: Human Language Technologies (Volume
+1: Long Papers), pages 8371–8384, Mexico City,
+Mexico. Association for Computational Linguistics.
+
+Vered Shwartz, Peter West, Ronan Le Bras, Chandra
+Bhagavatula, and Yejin Choi. 2020. Unsupervised
+commonsense question answering with self-talk. In
+Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing (EMNLP),
+pages 4615–4629, Online. Association for Computa-
+tional Linguistics.
+
+Ivan Stelmakh, Yi Luan, Bhuwan Dhingra, and Ming-
+Wei Chang. 2022. ASQA: Factoid questions meet
+long-form answers. In Proceedings of the 2022 Con-
+ference on Empirical Methods in Natural Language
+Processing, pages 8273–8288, Abu Dhabi, United
+Arab Emirates. Association for Computational Lin-
+guistics.
+
+Weihang Su, Yichen Tang, Qingyao Ai, Zhijing Wu,
+and Yiqun Liu. 2024. DRAGIN: Dynamic retrieval
+augmented generation based on the real-time informa-
+tion needs of large language models. In Proceedings
+of the 62nd Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers),
+pages 12991–13013, Bangkok, Thailand. Association
+for Computational Linguistics.
+
+James
+
+Andreas Vlachos,
+
+Christos
+Thorne,
+Christodoulopoulos,
+and Arpit Mittal. 2018.
+FEVER: a large-scale dataset for fact extraction
+In Proceedings of the 2018
+and VERification.
+Conference of
+the North American Chapter of
+the Association for Computational Linguistics:
+Human Language Technologies, Volume 1 (Long
+Papers), pages 809–819, New Orleans, Louisiana.
+Association for Computational Linguistics.
+
+Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-
+bert, Amjad Almahairi, Yasmine Babaei, Nikolay
+Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+Bhosale, et al. 2023. Llama 2: Open founda-
+tion and fine-tuned chat models. ArXiv preprint,
+abs/2307.09288.
+
+Yile Wang, Peng Li, Maosong Sun, and Yang Liu.
+2023. Self-knowledge guided retrieval augmenta-
+tion for large language models. In Findings of the
+Association for Computational Linguistics: EMNLP
+2023, pages 10303–10315, Singapore. Association
+for Computational Linguistics.
+
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten
+Bosma, Brian Ichter, Fei Xia, Ed H. Chi, Quoc V. Le,
+and Denny Zhou. 2022. Chain-of-thought prompting
+elicits reasoning in large language models. In Ad-
+vances in Neural Information Processing Systems 35:
+Annual Conference on Neural Information Process-
+ing Systems 2022, NeurIPS 2022, New Orleans, LA,
+USA, November 28 - December 9, 2022.
+
+Di Wu, Wasi Uddin Ahmad, Dejiao Zhang, Murali Kr-
+ishna Ramanathan, and Xiaofei Ma. 2024a. Repo-
+former: Selective retrieval for repository-level code
+completion. In Forty-first International Conference
+on Machine Learning, ICML 2024, Vienna, Austria,
+July 21-27, 2024. OpenReview.net.
+
+Di Wu, Jia-Chen Gu, Fan Yin, Nanyun Peng, and Kai-
+Wei Chang. 2024b. Synchronous faithfulness moni-
+toring for trustworthy retrieval-augmented generation.
+In Proceedings of the 2024 Conference on Empiri-
+cal Methods in Natural Language Processing, pages
+9390–9406, Miami, Florida, USA. Association for
+Computational Linguistics.
+
+Guangzhi Xiong, Qiao Jin, Zhiyong Lu, and Aidong
+Zhang. 2024. Benchmarking retrieval-augmented
+generation for medicine. In Findings of the Asso-
+ciation for Computational Linguistics: ACL 2024,
+pages 6233–6251, Bangkok, Thailand. Association
+for Computational Linguistics.
+
+11
+
+Fangyuan Xu, Weijia Shi, and Eunsol Choi. 2024. RE-
+COMP: improving retrieval-augmented lms with con-
+text compression and selective augmentation. In The
+Twelfth International Conference on Learning Rep-
+resentations, ICLR 2024, Vienna, Austria, May 7-11,
+2024. OpenReview.net.
+
+Shi-Qi Yan, Jia-Chen Gu, Yun Zhu, and Zhen-Hua Ling.
+2024. Corrective retrieval augmented generation.
+CoRR, abs/2401.15884.
+
+An Yang, Baosong Yang, Beichen Zhang, Binyuan Hui,
+Bo Zheng, Bowen Yu, Chengyuan Li, Dayiheng Liu,
+Fei Huang, Haoran Wei, et al. 2024. Qwen2. 5 tech-
+nical report. ArXiv preprint, abs/2412.15115.
+
+Zijun Yao, Weijian Qi, Liangming Pan, Shulin Cao,
+Linmei Hu, Weichuan Liu, Lei Hou, and Juanzi
+Li. 2024. Seakr: Self-aware knowledge retrieval
+for adaptive retrieval augmented generation. CoRR,
+abs/2406.19215.
+
+Fan Yin, Jayanth Srinivasa, and Kai-Wei Chang. 2024.
+Characterizing truthfulness in large language model
+generations with local intrinsic dimension. In Forty-
+first International Conference on Machine Learning,
+ICML 2024, Vienna, Austria, July 21-27, 2024. Open-
+Review.net.
+
+Ping Yu, Jing Xu, Jason Weston, and Ilia Kulikov.
+2024. Distilling system 2 into system 1. CoRR,
+abs/2407.06023.
+
+Wenhao Yu, Dan Iter, Shuohang Wang, Yichong Xu,
+Mingxuan Ju, Soumya Sanyal, Chenguang Zhu,
+Michael Zeng, and Meng Jiang. 2023. Generate
+rather than retrieve: Large language models are
+In The Eleventh Inter-
+strong context generators.
+national Conference on Learning Representations,
+ICLR 2023, Kigali, Rwanda, May 1-5, 2023. Open-
+Review.net.
+
+Tianhua Zhang, Hongyin Luo, Yung-Sung Chuang, Wei
+Fang, Luc Gaitskell, Thomas Hartvigsen, Xixin Wu,
+Danny Fox, Helen Meng, and James R. Glass. 2023.
+Interpretable unified language checking. CoRR,
+abs/2304.03728.
+
+12
+
+Supplementary Material: Appendices
+
+A List of Notations
+
+In Table 4, we present the major notations and
+parameters used throughout the paper.
+
+Notation Description
+
+User query input to the system.
+The expected answer.
+
+Set of all knowledge sources.
+The external knowledge source.
+The internal knowledge source (parametric knowledge).
+
+q
+a
+M The LLM.
+S
+Se
+Si
+ci+ Most helpful verbalized knowledge context from Si.
+ci−
+Least helpful verbalized knowledge context from Si.
+ce+ Most helpful retrieved knowledge context from Se.
+Least helpful retrieved knowledge context from Se.
+ce−
+<EOQ> End-of-query special token.
+<EOK> End-of-knowledge special token.
+<s>
+
+Special token representing knowledge source s ∈ S.
+
+<Wiki> Special token representing Wikipedia.
+<Self> Special token representing the LLM itself as knowledge source.
+
+k
+
+number of neighbors retrieved for source policy inference
+
+Table 4: A summary of the key symbols and parameters
+used in the paper.
+
+B SR-RAG: Further Details
+
+B.1 Training Details
+
+Dataset Construction Algorithm Algorithm 1
+presents the full algorithm for constructing training
+data and labeling knowledge source preferences.
+GenRead is executed independently on each train-
+ing data subset. We adopt instance-level notation
+for clarity. The pipeline naturally scales to ad-
+ditional knowledge sources by applying knowl-
+edge collection and likelihood evaluation in parallel
+across sources.
+
+Algorithm 1 SR-RAG Training Data Construction
+Require: LLM M , External Retriever R, Dataset D, Number
+
+// Retrieving External Knowledge
+CSe ← R(q, n)
+// Knowledge Verbalization
+CSi ← M .GenRead(q, n)
+// Compute Likelihoods
+for c ∈ CSe ∪ CSi do
+lc ← pM (a|q, c)
+
+of contexts n
+1: for (q, a) ∈ D do
+2:
+3:
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12: end for
+13: return Processed dataset with labeled knowledge sources
+
+end for
+s ← arg maxs∈{Se,Si}
+Store (q, a, s, {c, lc})
+
+c∈Cs
+
+(cid:80)
+
+lc
+
+GenRead Prompt We implement GenRead fol-
+lowing the setup in Yu et al. (2023). In the sec-
+
+13
+
+ond verbalization round, five clusters with five in-
+context examples each are used. All datasets ex-
+cept ASQA follow the general prompt shown in
+Figure 5. For ASQA, we include an additional in-
+struction to handle ambiguity: “If the question
+is ambiguous, generate multiple documents
+for each possibility.”
+
+Generate a background document from Wikipedia
+to help answer the following question. Directly
+start with document content and do not generate
+URL.
+
+Question: {question}
+
+Background document:
+
+Figure 5: Prompt used for knowledge verbalization data
+collection via GenRead.
+
+Training Data Table 5 summarizes the training
+and validation splits, including the proportion of
+examples where self-verbalized knowledge is pre-
+ferred over retrieved knowledge.
+
+Dataset
+
+Train Validation Total
+
+%Verbalization
+Llama Phi Qwen
+
+ARC_Easy 2037
+14753
+NQ
+4462
+OBQA
+9467
+FEVER
+16493
+WoW
+3700
+ASQA
+
+107
+776
+234
+498
+868
+194
+
+2144
+15529
+4696
+9965
+17361
+3894
+
+61% 84% 66%
+28% 33% 41%
+61% 77% 61%
+52% 58% 68%
+13% 55% 32%
+13% 25% 16%
+
+Table 5: Statistics of the training and validation data
+with verbalization percentages. Llama = Llama-2-
+7B-Chat, Phi = Phi-3.5-Mini-Instruct, and Qwen =
+Qwen2.5-7B-Instruct.
+
+Training Process To fully leverage the backbone
+LLM’s ability to follow natural language instruc-
+tions, both SR-RAG fine-tuning and inference use
+the following prompt that interleaves special tokens
+with natural language:
+
+Question: {question} Background
+knowledge: <EOQ>
+<s> {knowledge} <EOK> Answer: {answer}
+
+During training, the loss is computed on the knowl-
+edge part only if <s> is <Self>. If <s> is <Wiki>,
+we augment ce+ by randomly appending max(p −
+1, 0) retrieved contexts, where p is sampled from a
+
+Poisson distribution with λ = 2. This data augmen-
+tation improves the LLM’s robustness to different
+retrieval strategies and various levels of retrieval
+quality. For stage 1 training, we use batch size
+64, learning rate 1e-5, and fine-tune for 1 epoch.
+For stage 2 training, we use batch size 64, learning
+rate 5e-7, β = 0.3 for DPO, and train for another
+epoch. All the experiments are performed on a
+machine with eight A800 (80GB) GPUs and a ma-
+chine with eight A6000 GPUs. On eight A800
+(80GB) GPUs, the two-staged training takes ap-
+proximately 10 hours for a 7B-sized model.
+
+B.2 Latency Formulation
+
+To evaluate the inference efficiency of SR-RAG, we
+measure the latency in a realistic batched inference
+setup, where the system handles a batch of B = 10
+queries and returns the results for all queries. For
+the latency experiments presented in the paper, we
+decompose the system latency as follows:
+
+• Source Selection Time (Td): The time for
+the knowledge source selector to determine
+whether to retrieve from external sources or
+rely on parametric knowledge.
+
+• Retrieval Latency (Trs): The time for fetch-
+ing external knowledge from the database if
+the model chooses to retrieval from an exter-
+nal knowledge source s. In our batched set-
+ting, we calculate Trs by performing a batched
+retrieval for all the B instances that require
+retrieval and report the per-item latency.
+
+• Verbalization Latency (Tv): The time for the
+LLM to verbalize parametric knowledge if
+itself is selected as the knowledge source.
+
+• Generation Latency (Tg): The time for the
+LLM to generate the response, conditioned on
+either retrieved or verbalized knowledge.
+
+Thus, the total per-item latency Ttotal is given by:
+
+Ttotal =
+
+(cid:40)
+
+Td + Tv + Tg,
+Td + Trs + Tg,
+
+if verbalize,
+if retrieve from s.
+
+We have the following remarks:
+
+• This formulation assumes that both the re-
+trieval index and the source selection datastore
+are pre-constructed. This assumption is rea-
+sonable as these indices are only constructed
+once and then constantly reused.
+
+• We choose the batched setup due to the com-
+plexity of the retrieval system. For instance,
+in our implementation of Wikipedia search, it
+takes around five to ten seconds per instance
+to encode the query and retrieve the most rel-
+evant context chunks. The batched setting
+amortizes the latency of single retrieval.
+
+• As the nearest neighbor only involves one ma-
+trix product for similarity calculation and one
+top-k operation, Td is generally very small.
+In fact, we find Td (0.01s) << Tg (0.1s) <
+Tv (1s). On the other hand, Trs is the major
+bottleneck of the pipeline. As a result, in an
+online setting, the system’s efficiency gain di-
+rectly converges to the percentage of retrievals
+it is able to avoid.
+
+C SR-RAG: Multi-Source Extensions
+
+Beyond routing between the LLM itself and an ex-
+ternal knowledge source, SR-RAG’s formulation
+is naturally compatible with routing between mul-
+tiple external knowledge sources as well. In this
+section, we provide further experiments on routing
+between three knowledge sources and discuss other
+potential multi-source applications.
+
+C.1 Experiment: Routing between General
+
+and Specialized Sources
+
+We perform experiments on the PubMed corpus
+(National Center for Biotechnology Information
+(NCBI)), which contains professional biomedical
+literature. Compared to Wikipedia and the LLM it-
+self, PubMed has the unique advantage of featuring
+long-tail specialized biomedical knowledge. Mean-
+while, it falls short at providing knowledge for
+many general factuality questions, posing a chal-
+lenge to accurately routing the knowledge source.
+Based on this new setup, we formulate SR-
+RAG with three knowledge source tokens: <Self>,
+<Wiki>, and <Pubmed>. We leverage the MedRAG
+toolkit (Xiong et al., 2024) to implement retrieval
+on PubMed. The training and inference strategies
+of the two-source SR-RAG recipe naturally extends
+to this formulation and are followed in our experi-
+ments here. For training and evaluation, we addi-
+tionally use PubMedQA (Jin et al., 2019), a widely
+used biomedical question answering dataset. Pub-
+MedQA features short questions extracted from
+PubMed abstracts and provides associated ground
+truth yes/no/maybe answers. We sample 10k artifi-
+cally generated documents for training (combined
+
+14
+
+with the data mixture used in the main text) and 500
+examples from the expert labeled subset for evalu-
+ation. The same set of LLMs from three families
+(Llama, Qwen, Phi) are trained and evaluated.
+
+In Table 6, we present the three-way routing
+results of SR-RAG and compare with always RAG
+as well as GenRead with the model before fine-
+tuning. Our main findings are as follows:
+
+• Adding PubMed as an additional knowl-
+edge source does not harm its effectiveness.
+The results on datasets other than PubMedQA
+aligns with the performance of two-source SR-
+RAG reported in the main text.
+
+• SR-RAG training improves the model’s
+ability to verbalize its knowledge on Pub-
+MedQA as well while being much more effi-
+cient than GenRead, as shown by the better
+performance of SR-RAG + Always Verbaliz-
+ing compared to GenRead.
+
+• SR-RAG intelligently routes the best knowl-
+edge source for different workloads. For
+PubMedQA, PubHealth, and ARC, where
+PubMed can outperform Wiki by a large
+margin, SR-RAG frequently self-selects Pub-
+MedQA as its preferred knowledge source.
+On the other hand, on general factuality
+benchmarks such as PopQA and TriviaQA,
+SR-RAG selects Wikipedia more frequently.
+More importantly, SR-RAG achieves this be-
+havior end-to-end without the need for any
+manual interventions.
+
+• On PubMedQA, the end-to-end SR-RAG
+achieves the best performance compared to
+the baselines. The trend is consistent across
+three different LLMs.
+
+Overall, this experiments confirms the effective-
+ness of extending SR-RAG to three sources and
+suggests a promising outlook for further extension.
+
+C.2 Discussion: Further Applications
+
+SR-RAG has numerous useful real-world applica-
+tions and exhausitively experimenting on them is
+beyond the scope of this paper’s experiments. In
+this section, we discuss several potential applica-
+tions that SR-RAG naturally supports.
+
+that the cheapest useful knowledge source is pre-
+ferred, improving the latency while preventing the
+performance degradation. In addition, varied lev-
+els of compute are required to verbalize the re-
+quired knowledge for different types of queries.
+SR-RAG can be used to model this pattern by for-
+mulating multiple internal knowledge sources as-
+sociated with different levels of compute. This
+philosophy connects with the literature on adaptive
+reasoning budget (Lou et al., 2025).
+
+Recency-Aware Routing Many user queries
+have an inherent temporal dimension (e.g., “today,”
+“as of Sept. 2025,” fast-moving entities) where
+stale knowledge degrades correctness. SR-RAG
+can expose “freshness-tiered” sources and learn a
+preference label that prioritizes the most up-to-date
+tier when temporal cues or out-of-vocabulary en-
+tities are detected. The router can condition on
+time expressions, named-entity recency features,
+and source timestamps. When the model’s self-
+estimate is uncertain or predates the query’s time
+scope, it escalates to a recency-guaranteed index.
+
+Privacy-Aware Routing Queries often mix pub-
+lic facts with sensitive tenant data (e.g., customer
+tickets, internal codenames, emails). SR-RAG can
+represent privacy tiers as distinct sources and train
+preference labels under a “least-privilege first” pol-
+icy: prefer private indices when identifiers or confi-
+dentiality cues are present and fall back to public
+only when the query is non-sensitive and private
+stores are irrelevant.
+
+D Further Analyses
+
+D.1 Self-Routing RAG: Hyperparameters
+
+In this section, we analyze other hyperparameters
+in SR-RAG.
+
+Source Labeling Heuristics
+In SR-RAG, the de-
+fault design for source preference labeling is col-
+lecting the knowledge from each source and select-
+ing the top-ranked source in top 50% knowledge
+contexts in terms of contribution to the likelihood
+of the answer. In this section, we compare this
+strategy to a number of alternative heuristics:
+
+• Best Single Likelihood: Selecting the source
+that produces the knowledge leading to the
+highest answer likelihood.
+
+Cost-Aware Routing Querying different knowl-
+edge sources brings distinct latency cost. SR-
+RAG’s preference label can be constructed such
+
+• Best Average Likelihood: Selecting the
+source that leads to the highest answer likeli-
+hood, averaged over all knowledge contexts.
+
+15
+
+Training
+
+Inference
+
+PubMedQA PopQA TriviaQA PubHealth ARC Average
+
+No Fine-tuning
+
+SR-RAG (3-source)
+
+No Fine-tuning
+
+SR-RAG (3-source)
+
+No Fine-tuning
+
+SR-RAG (3-source)
+
+Llama-2-7B-Chat
+
+GenRead
+Always RAG, Wiki
+Always RAG, PubMed
+Always RAG, Wiki
+Always RAG, PubMed
+Always Verbalizing
+SR-RAG
+
+(% <Wiki>)
+(% <Pubmed>)
+(% <Self>)
+
+0.544
+0.636
+0.656
+0.342
+0.672
+0.388
+0.680
+6%
+91%
+3%
+
+0.247
+0.529
+0.157
+0.587
+0.325
+0.305
+0.583
+95%
+4%
+1%
+
+Phi-3.5-Mini-Instruct
+
+GenRead
+Always RAG, Wiki
+Always RAG, PubMed
+Always RAG, Wiki
+Always RAG, PubMed
+Always Verbalizing
+SR-RAG
+
+(% <Wiki>)
+(% <Pubmed>)
+(% <Self>)
+
+0.376
+0.460
+0.676
+0.486
+0.738
+0.498
+0.736
+1%
+97%
+2%
+
+0.331
+0.541
+0.143
+0.580
+0.302
+0.327
+0.560
+95%
+3%
+2%
+
+Qwen2.5-7B-Instruct
+
+GenRead
+Always RAG, Wiki
+Always RAG, PubMed
+Always RAG, Wiki
+Always RAG, PubMed
+Always Verbalizing
+SR-RAG
+
+(% <Wiki>)
+(% <Pubmed>)
+(% <Self>)
+
+0.418
+0.612
+0.698
+0.358
+0.726
+0.522
+0.730
+15%
+79%
+6%
+
+0.334
+0.563
+0.129
+0.576
+0.307
+0.303
+0.572
+96%
+1%
+3%
+
+0.616
+0.641
+0.470
+0.639
+0.539
+0.572
+0.647
+88%
+7%
+5%
+
+0.567
+0.594
+0.356
+0.634
+0.494
+0.510
+0.639
+87%
+10%
+3%
+
+0.626
+0.667
+0.469
+0.639
+0.503
+0.550
+0.651
+86%
+13%
+1%
+
+0.515
+0.457
+0.612
+0.668
+0.713
+0.724
+0.724
+17%
+70%
+13%
+
+0.442
+0.549
+0.447
+0.676
+0.644
+0.704
+0.716
+54%
+18%
+28%
+
+0.676
+0.446
+0.401
+0.637
+0.676
+0.695
+0.681
+20%
+48%
+32%
+
+0.505
+0.605
+0.562
+0.546
+0.486
+0.537
+0.572
+0.639
+0.642
+0.645
+0.579
+0.631
+0.677
+0.655
+4%
+29%
+86% 64%
+8%
+10%
+
+0.840
+0.511
+0.583
+0.771
+0.470
+0.726
+0.636
+0.805
+0.598
+0.813
+0.572
+0.819
+0.695
+0.824
+0%
+47%
+27% 31%
+73% 22%
+
+0.586
+0.875
+0.641
+0.916
+0.504
+0.821
+0.606
+0.818
+0.607
+0.824
+0.580
+0.828
+0.694
+0.834
+0%
+43%
+39% 36%
+61% 21%
+
+Table 6: Three-way routing between retrieving from Wikipedia, retrieving from PubMed, or self-verbalizing
+knowledge. For each model we report task accuracy and the selection frequencies of the individual sources
+wiki/PubMed/self under SR-RAG’s LLM+kNN knowledge source routing scheme.
+
+• Best All Rank: Selecting top-ranked knowl-
+edge source using all the knowledge context
+instead of top-50%.
+
+In Table 7, we present the F1 score and AUROC
+using Llama-2-7B-Chat as the LLM. Correctness
+is defined as preferring self-verbalized knowledge
+when it is better than or equal to performing re-
+trieval in terms of the downstream question answer-
+ing performance. Compared to three baseline meth-
+ods, the heuristics SR-RAG uses achieves the best
+F1 and AUROC over the short-form and closed-set
+
+subset of the training set. Building upon this pa-
+per’s results, future work can further study leverag-
+ing more advanced uncertainty quantification meth-
+ods (Wu et al., 2024b; Moskvoretskii et al., 2025b)
+to build more accurate source selection labels.
+
+Datastore Size To study the influence of the kNN
+policy datastore size on the performance of SR-
+RAG, we randomly sample a subset of the training
+set (50k samples in total) to construct the datastore.
+As shown in Figure 6 (blue), reducing the kNN
+policy datastore to 25k (half) has minimal impact.
+
+16
+
+Method
+
+OBQA
+ARC_Easy
+F1 AUROC F1 AUROC F1 AUROC F1 AUROC F1 AUROC
+
+Average
+
+Fever
+
+NQ
+
+Best Single Likelihood
+0.640
+Best Average Likelihood 0.730
+0.700
+Best All Rank
+0.740
+SR-RAG
+
+0.572
+0.692
+0.691
+0.691
+
+0.320
+0.420
+0.470
+0.440
+
+0.551
+0.626
+0.632
+0.635
+
+0.660
+0.720
+0.700
+0.720
+
+0.606
+0.643
+0.621
+0.635
+
+0.560
+0.630
+0.630
+0.670
+
+0.650
+0.703
+0.674
+0.711
+
+0.545
+0.630
+0.625
+0.643
+
+0.585
+0.666
+0.655
+0.668
+
+Table 7: F1 and AUROC scores for different source labeling methods across datasets. Llama-2-7B-Chat is used as
+the LLM. The best score per column is boldfaced.
+
+Figure 6: Hyperparameter settings for the kNN policy datastore with Llama-2-7B-Chat.
+
+Even with just 1k examples, performance drops
+only slightly, suggesting potential for lightweight
+and memory-efficient deployments.
+
+Number of Neighbors The number of neighbors
+retrieved from the datastore determines the local-
+ness of the focus in the hidden representation space.
+While task-specific neighborhood size can be tuned,
+SR-RAG generally works well with 10 to 30 neigh-
+boring data points (Figure 6 middle), indicating its
+robustness. However, using a too small (e.g., 5)
+or a too large (e.g., more than 50) neighborhood
+harms the performance of SR-RAG.
+
+Layer for Hidden State We further study the im-
+pact of layer selection on SR-RAG’s performance
+in Figure 6 part 3 (green). Overall, we observe
+that using a middle layer’s hidden states has more
+superior performance over using the last layer’s.
+In the next section, we visualize the hidden state
+space across LLMs and show that middle layers
+tend to learn better representations for the model
+uncertainty as well as task types.
+
+Uncertainty Encoding in <EOQ>
+In Figure 9, we
+visualize <EOQ> hidden states on PopQA using t-
+SNE. Clear separation emerges between instances
+where self-verbalized knowledge is helpful (green)
+and unhelpful (red). Middle layers show stronger
+clustering than final layers, supporting the use of
+these representations for kNN-based source selec-
+tion.
+
+Implicit Task Clustering We further randomly
+sample 500 data points from the SR-RAG train
+set and visualize their hidden states. Figure 10
+shows that SR-RAG also learns to cluster instances
+by task type (e.g., fact-checking, closed QA, long-
+form generation). This suggests that source re-
+flection tokens carry semantically meaningful and
+task-sensitive representations on top of uncertainty
+information. These behaviors serve as the founda-
+tion of our nearest neighbor-based source selection
+approach.
+
+D.3 Can SR-RAG learn more from
+self-generated knowledge?
+
+D.2 Hidden State Space of the Source
+
+Reflection Token
+
+Does SR-RAG training allow the model to con-
+dense their knowledge of task, model uncertainty,
+and source characteristics into the representation
+of <EOQ>?
+
+In SR-RAG training, self-verbalized knowledge
+contexts from the LLM are utilized to fine-tune the
+model via behavior cloning (stage 1) or preference
+alignment (stage 2). Alternatively, is it possible that
+the model can learn to verbalize even higher-quality
+knowledge from off-policy samples generated by
+
+17
+
+02000040000Datastore Size0.6300.6350.6400.6450.650Average Performance1020304050Neighborhood Size0.6300.6350.6400.6450.650Average Performance15202532Layer0.6300.6350.6400.6450.650Average PerformanceSource for ci+ and ci−
+
+PopQA TriviaQA PubHealth ARC Average
+
+%Verb ≥ RAG (↑)
+
+Self-Generated Knowledge 33.0% 56.6%
+28.2% 55.3%
+
+Distilled Knowledge
+
+73.4% 63.5% 56.6%
+69.7% 62.3% 53.9%
+
+Verbalization Performance (↑)
+
+Self-Generated Knowledge 0.302
+0.282
+
+Distilled Knowledge
+
+0.572
+0.553
+
+0.734
+0.697
+
+0.634
+0.606
+
+0.561
+0.535
+
+Table 8: Comparison between training with self-generated knowledge versus knowledge distillation for the verbal-
+ization branch in SR-RAG. Llama-2-7B-Chat is fine-tuned either with self-verbalized knowledge or the knowledge
+verbalized from Llama-3.3-70B-Instruct.
+
+pM (<s>|q). In addition, questions from the train
+set sharing the same topic and difficulty level are
+retrieved to form the source preference distribution
+pD(<s>|q). In the first example (Figure 7), both
+distributions prefer the LLM itself as the knowl-
+edge source. By contrast, in the second example
+(Figure 8), pM (<s>|q) has a high uncertainty and
+pD(<s>|q) corrects the source distribution to select
+the LLM itself as the knowledge source.
+
+a stronger LLM? We investigate this hypothesis
+by running GenRead-based knowledge verbaliza-
+tion on Llama-3.3-70B-Instruct and directly use
+the knowledge to prepare SR-RAG training data
+with Llama-2-7B-Chat. Table 8 compares the per-
+formance of fine-tuning Llama-2-7B-Chat with this
+data versus using self-generated knowledge for SR-
+RAG. Interestingly, using self-generated positive
+and negative knowledge pairs is more beneficial
+for unlocking the model’s ability to generate useful
+knowledge, outperforming the alternative by 4.9%
+higher answer accuracy and 5.0% higher win rate
+over retrieval. It is also possible that the ability
+of the teacher model needs to be close to the fine-
+tuned model for its knowledge to be useful. We
+leave this investigation to future work.
+
+D.4 Qualitative Study
+
+In Figure 7 and Figure 8, we show two qualita-
+tive examples from TriviaQA with the fine-tuned
+Llama-2-7B-Chat as the backbone LLM. For both
+examples, we show the LLM’s prediction condi-
+tioned on both retrieved knowledge and the ver-
+balized knowledge. While the verbalized knowl-
+edge is more concise than retrieved paragraphs, it
+better identifies the correct answers for both ques-
+tions. This is because the core information (i.e.,
+"first name", "island") only takes up a small por-
+tion of the query. As a result, dense retrieval is
+noise-prone, bringing in only distantly relevant in-
+formation. By contrast, the LLM as a knowledge
+generator dynamically adjusts its focus, guiding
+the knowledge generation to include the core infor-
+mation. As a result, the LLM can correctly answer
+both questions with self-verbalized knowledge but
+provides incorrect answers with the low-quality re-
+trieved knowledge. In the source selection process,
+the LLM directly predicts the source preference
+
+18
+
+Question: In the book David Copperfield what was Mr. Micawber’s first name?
+Answer: Wilkins
+Retrieved Knowledge: [1] David Copperfield (1999 film) a visit from Mr. Peggotty, back from Australia. He brings news that
+Emily has made a full recovery and that Mr. Micawber has established himself as a successful magistrate and bank manager.
+The story closes with the birth of David and Agnes’s third child - a girl. Betsey Trotwood’s wish finally comes true after nearly
+30 years, as David decides that the baby will be christened Betsey Trotwood Copperfield, in honour of her godmother. [2]...
+(following knowledge chunks omitted)
+Prediction (with retrieved knowledge): John Micawber, Sr., is a fictional character in Charles Dickens’s 1850 novel David
+Copperfield. He is the father of David Copperfield’s godfather, Mr. Micawber, Jr., and is portrayed as a kind and gentle man
+who is often in financial difficulties. Mr. Micawber’s first name is Charles, not John, as is often mistaken.
+Verbalized Knowledge: David Copperfield is a novel by Charles Dickens, published in 1849-50. The novel follows the life
+of David Copperfield, a young man who grows up in Victorian England. Mr. Micawber is a character in the novel, a kind and
+well-meaning man who is a friend of David’s father. Mr. Micawber’s first name is Wilkins.
+Prediction (with verbalized knowledge): Wilkins Micawber. Mr. Micawber is a character in Charles Dickens ’s novel David
+Copperfield. He is a kind and well - meaning friend of David ’s father, Mr. Copperfield. Mr. Micawber is known for his
+optimistic outlook on life and his tendency to get into financial difficulties.
+Neighbor Questions:
+- What was Mr. Smith’s first name in Mr. Smith goes to Washington? (<Self> > <Wiki>)
+- Who was the original singer of Knocking on Heaven’s Door? (<Self> > <Wiki>)
+- When did sir Arthur Conan Doyle wrote his first book? (<Wiki> > <Self>)
+... (27 questions omitted)
+pD(<s>|q): P(<Wiki>) = 9/30 = 0.3, P(<Self>) = 21/30 = 0.7.
+pM (<s>|q): P(<Wiki>) = 0.146, P(<Self>) = 0.854.
+Final Source Decision: <Self>
+
+Figure 7: Example of SR-RAG inference where pD(<s>|q) agrees with pM (<s>|q). As the model itself is selected
+as the knowledge source, the retrieval will be abstained. The retrieved knowledge and the corresponding prediction
+are shown only for illustration.
+
+Question: From 1791 to 1803, Toussaint L’Ouverture led a revolt against France on which island?
+Answer: Haiti
+Retrieved Knowledge: [1] Saint-Domingue expedition slave revolt that led to the abolition of slavery in 1793 by the
+civil commissioners Sonthonax and Polverel, in a decision endorsed and spread to all the French colonies by the National
+Convention 6 months later. Toussaint Louverture, a black former slave who had been made Governor by France, re-established
+peace, fought off Spanish and British attempts to capture the island, and reestablished prosperity by daring measures. [2]...
+(following knowledge chunks omitted)
+Prediction (with retrieved knowledge): Saint-Pierre et Miquelon (Saint-Pierre and Miquelon), a French overseas collectivity
+in the North American Atlantic Ocean.
+Verbalized Knowledge: Toussaint L’Ouverture was a Haitian leader who led a successful revolt against French colonial
+rule in Haiti from 1791 to 1803. L’Ouverture was a former slave who became a prominent figure in the Haitian Revolution,
+which was a series of uprisings and battles fought between Haitian slaves and their French colonial oppressors. After years of
+fighting, L’Ouverture and his forces were able to secure Haiti’s independence from France on January 1, 1804.
+Prediction (with verbalized knowledge): Haiti (Saint-Domingue).
+Neighbor Questions:
+- The battle of Hastings in 1066 was fought in which country? (<Self> > <Wiki>)
+- When Belgium declared its independence in 1830 it broke away from ___ control? (<Self> > <Wiki>)
+- When did the French come to the new world? (<Self> > <Wiki>)
+... (27 questions omitted)
+pD(<s>|q): P(<Wiki>) = 24/30 = 0.8, P(<Self>) = 6/30 = 0.2.
+pM (<s>|q): P(<Wiki>) = 0.576, P(<Self>) = 0.424.
+Final Source Decision: <Self>
+
+Figure 8: Example of SR-RAG inference where pD(<s>|q) corrects the source selection from pM (<s>|q). The
+model itself is selected as the knowledge source.
+
+19
+
+Figure 9: Hidden states of <EOQ> across three LLMs on PopQA, visualized using t-SNE. Llama = Llama-2-7B-Chat,
+Phi = Phi-3.5-Mini-Instruct, and Qwen = Qwen2.5-7B-Instruct.
+
+20
+
+LlamaPhiQwenFigure 10: Hidden states of <EOQ> across three LLMs on a random sample of 500 data points in the SR-RAG
+training set, visualized using t-SNE. Llama = Llama-2-7B-Chat, Phi = Phi-3.5-Mini-Instruct, and Qwen = Qwen2.5-
+7B-Instruct.
+
+21
+
+LlamaPhiQwen

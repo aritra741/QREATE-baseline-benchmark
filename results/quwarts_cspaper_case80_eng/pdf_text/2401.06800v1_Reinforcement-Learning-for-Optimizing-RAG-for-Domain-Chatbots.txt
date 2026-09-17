@@ -1,0 +1,983 @@
+Accepted at AAAI 2024 Workshop on Synergy of Reinforcement Learning and Large Language Models
+
+Reinforcement Learning for Optimizing RAG for Domain Chatbots
+
+Mandar Kulkarni, Praveen Tangarajan, Kyung Kim, Anusua Trivedi
+
+Flipkart Data Science
+Seattle, Washington, USA
+
+4
+2
+0
+2
+
+n
+a
+J
+
+0
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+0
+0
+8
+6
+0
+.
+1
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+With the advent of Large Language Models (LLM), conversa-
+tional assistants have become prevalent for domain use cases.
+LLMs acquire the ability to contextual question answering
+through extensive training, and Retrieval Augmented Genera-
+tion (RAG) further enables the bot to answer domain-specific
+questions. This paper describes a RAG-based approach for
+building a chatbot that answers user’s queries using Fre-
+quently Asked Questions (FAQ) data. We train an in-house
+retrieval embedding model using infoNCE loss, and exper-
+imental results demonstrate that the in-house model works
+significantly better than the well-known general-purpose pub-
+lic embedding model, both in terms of retrieval accuracy and
+Out-of-Domain (OOD) query detection. As an LLM, we use
+an open API-based paid ChatGPT (gpt-35-turbo-16k-0613)
+model. We noticed that a previously retrieved-context could
+be used to generate an answer for specific patterns/sequences
+of queries (e.g., follow-up queries). Hence, there is a scope
+to optimize the number of LLM tokens and cost. Assuming a
+fixed retrieval model and an LLM, we optimize the number
+of LLM tokens using Reinforcement Learning (RL). Specifi-
+cally, we propose a policy-based model external to the RAG,
+which interacts with the RAG pipeline through policy actions
+and updates the policy to optimize the cost. The policy model
+can perform two actions: to fetch FAQ context or skip re-
+trieval. We use the open API-based GPT-4 as the evaluation
+model, which rates the quality of the bot answer. Using an
+appropriate reward shaping, GPT-4 ratings are converted to
+a numeric reward. We then train a policy model using pol-
+icy gradient on multiple training chat sessions. As a pol-
+icy model, we experimented with a public gpt-2 model and
+an in-house BERT model. With the proposed RL-based op-
+timization combined with similarity threshold, we are able
+to achieve significant (~31%) cost savings while getting a
+slightly improved accuracy. Though we demonstrate results
+for the FAQ chatbot, the proposed RL approach is generic
+and can be experimented with any existing RAG pipeline.
+
+Introduction
+With the advent of Large Language Models (LLM), we ob-
+serve an increased use of conversational assistants even for
+the domain use cases. Trained on a large web-scale text cor-
+pus with approaches such as instruction tuning and Rein-
+forcement Learning with Human Feedback (RLHF), LLMs
+
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+have become good at contextual question-answering tasks,
+i.e., given a relevant text as a context, LLMs can generate
+answers to questions using that information. Retrieval Aug-
+mented Generation (RAG) is one of the key techniques used
+to build chatbots for answering questions on domain data.
+RAG consists of two components: a retrieval model and
+an answer generation model based on LLM. The retrieval
+model fetches context relevant to the user’s query. The query
+and the retrieved context are then inputted to the LLM with
+the appropriate prompt to generate the answer. Though in-
+tuitive to understand, RAG-based chatbots have a few chal-
+lenges from a practical standpoint.
+
+1. If a retrieval model fails to fetch relevant context, the gen-
+erated answer would be incorrect and uninformative. The
+retrieval is more challenging for non-English queries,
+e.g., code-mix Hinglish.
+
+2. For paid API-based LLMs (e.g., ChatGPT), the cost per
+call is calculated based on the number of input and out-
+put tokens. A large number of tokens passed in a context
+leads to a higher cost per API call. With a high volume
+of user queries, the cost can become significant.
+
+3. To enable multi-turn conversations with RAG, a conver-
+sation history needs to be maintained and passed to the
+LLM with every query. It is known that a larger input to-
+ken size leads to a drop in accuracy or hallucinations as
+LLMs have an additional task of choosing relevant infor-
+mation from a large context (Liu et al. 2023a).
+
+In this paper, we first describe a RAG-based approach for
+building a chatbot that answers user’s queries using Fre-
+quently Asked Questions (FAQ) data. We have a domain
+FAQ dataset consisting of 72 FAQs regarding the credit
+card application process. The FAQ dataset is prepared to an-
+swer user queries regarding general card information pre-
+and post-application queries. We train an in-house retrieval
+(embedding) model using info Noise Contrastive Estima-
+tion (infoNCE) loss (van den Oord, Li, and Vinyals 2019)
+with the English and Hinglish paraphrase queries created
+using ChatGPT. The embedding model is trained to maxi-
+mize query-question and query-QnA similarity. Experimen-
+tal results show that the in-house model performs signifi-
+cantly better than a public pre-trained embedding model re-
+garding retrieval accuracy and Out-of-Domain (OOD) query
+detection. OOD queries are questions unrelated to the do-
+
+ 
+ 
+ 
+ 
+ 
+ 
+main data, e.g., how is the weather today? For every user
+query, we retrieve top-k FAQs (question + answer) as con-
+text and input them to the LLM to generate the answer. We
+maintain the previous two queries, answers, and FAQ con-
+text as history to enable the multi-turn conversation. We use
+an open paid API-based ChatGPT (gpt-35-turbo-16k-0613)
+for all our experiments as an LLM. GPT-4 is used to rate the
+bot answer quality (as Good/Bad) for the end-to-end RAG
+pipeline.
+
+We propose an RL-based approach to optimize the num-
+ber of tokens passed to the LLM. We noticed that for cer-
+tain patterns/sequences of queries, we can get a good answer
+from the bot even without fetching the FAQ context. Ex-
+amples of such scenarios can be: 1. for a follow-up query;
+FAQ context need not be retrieved if it has already been
+fetched for the previous query; 2. for the sequence of queries
+referring to the same FAQ, a context can be fetched only
+once at the start; 3. for OOD queries, the LLM prompt it-
+self can guide the bot to generate the answer. Using this in-
+sight, we propose a policy gradient-based approach to opti-
+mize the number of LLM tokens and, hence, the cost. The
+input to the policy model is the State, which comprises
+previous queries, previous policy actions, and the current
+query. The policy model can take two actions: [FETCH] or
+[NO_FETCH]. A usual RAG pipeline would be executed
+when a policy network takes a [FETCH] action. When a
+policy network chooses a [NO_FETCH] action, FAQ con-
+text is not retrieved. A query and context (empty in the case
+of [NO_FETCH] action) are inputted to the LLM. We use
+GPT-4 as the reward model and convert the quality rating
+(Good/Bad) to the numeric reward using appropriate reward
+shaping. If the LLM generates a good answer (as rated by
+GPT-4) even without fetching the context, we give it a high
+positive reward to promote such actions in the future. If not
+fetching a FAQ context leads to a wrong answer, we pro-
+vide a negative reward (e.g., this can happen if the policy
+model chooses a [NO_FETCH] action for a domain query
+without any previous relevant context). For the training chat
+sessions, for each State, a policy model samples an action
+according to the current probability distribution over the ac-
+tions. We then generate (State, Action, Reward) trajectories
+by sampling multiple times from the current policy. A pol-
+icy model is then updated using a policy gradient with cu-
+mulative reward. As a policy model, we experimented with
+in-house BERT and public gpt-2 models. Figure 1 shows the
+architecture of the proposed policy-based approach. Exper-
+imental results demonstrate that the policy model provides
+token saving by fetching the FAQ context only when it is re-
+quired. When combined with a simple similarity threshold-
+based optimization, we are able to achieve token savings of
+~31% on the test chat session with 91 queries while achiev-
+ing slightly improved accuracy (evaluated through manual
+labeling) than the usual RAG pipeline. This underlines the
+effectiveness of the proposed approach.
+
+Related works
+With recent advancements in Generative AI and LLMs, the
+Retrieval-Augmented Generation (RAG) (Lewis et al. 2021)
+approach has emerged as the preferred strategy for contex-
+
+tual question answering. RAG pipeline consists of a retrieval
+model followed by an LLM to generate the answer. Different
+approaches have been experimented with to improve compo-
+nents of the RAG in terms of accuracy and minimize hallu-
+cinations in answer generation. Khatry et al. (kha 2023) pro-
+posed a low-rank residual adaptation approach with the pre-
+trained embedding model to improve the retrieval model.
+It was shown to lead to improved task-specific retrieval
+as compared to a general-purpose embeddings-based base-
+line. Instead of using an interleaved retrieval and generation,
+Shao et al. (Shao et al. 2023) proposed an iterative retrieval
+and generation approach where the current model output
+acts as an informative context for retrieving more relevant
+knowledge which in turn helps generate a better output in
+the next iteration. Li et al. (Li et al. 2022) extensively sur-
+veys recent RAG-based approaches.
+
+RL has been experimented with to improve RAG. Bacciu
+et al. (Bacciu et al. 2023) propose an RL-based approach
+to train an efficient retriever model to search for relevant
+information in an arbitrarily large database. Once this set
+of relevant data has been retrieved, it is forwarded to the
+API-based LLM to generate the answer. In particular, the
+authors show that RL helps reduce hallucinations by mini-
+mizing the number of damaging documents returned by the
+retriever. Self-RAG (Asai et al. 2023) trains a single LLM
+that adaptively retrieves passages and generates and reflects
+on retrieved passages and their generations using reflection
+tokens. In our work, we assume we do not have access to the
+gradients of the retrieval model and LLM. We only train a
+policy model that resides external to RAG.
+
+GPT-4 is observed to provide human-level accuracy for
+automated evaluation tasks. Hack at al. (Hackl et al. 2023)
+investigated the consistency of feedback ratings generated
+by GPT-4 across multiple iterations, time spans, and stylis-
+tic variations. The study indicated that GPT-4 can generate
+consistent ratings across repetitions with a clear prompt. Liu
+et al. (Liu et al. 2023b) evaluated GPT-4 with two gener-
+ation tasks: text summarization and dialogue generation. It
+was shown that GPT-4 provided state-of-the-art results on
+automated evaluation, which highly correlates with human
+evaluation. In our work, we use GPT-4 for automated evalu-
+ation of bot responses without ground truth answers.
+
+RAG for FAQ chatbots
+In this section, we describe details of the datasets and em-
+bedding model training for RAG for FAQ chatbots.
+
+Dataset
+We have a FAQ dataset consisting of 72 FAQs regarding the
+credit card application process. The FAQ dataset is prepared
+to answer user queries regarding general card information
+(e.g., annual fee, benefits), pre-application issues faced on
+the platform (e.g., server issue, content not available, not
+getting One Time Password (OTP)), and post-application
+services (e.g., increasing credit limit, purchase EMI op-
+tions). The FAQs list is designed based on the user survey
+conducted on the platform, collecting information about cur-
+rent pain points faced by users about the application.
+
+2
+
+Training in-house embedding model
+To use RAG for FAQ chatbots, we first need to retrieve the
+top k most relevant FAQs to answer the given query. To fetch
+top-k FAQs, an embedding model is used to encode queries
+and FAQs. We concatenate a question and an answer within a
+FAQ and use this to get a vector for that FAQ. A cosine sim-
+ilarity measure is then used to rank the FAQs based on their
+relevance. We experimented with popular general-purpose
+public pre-trained embedding models and models trained on
+in-domain data. We trained an in-house embedding model
+with infoNCE loss (van den Oord, Li, and Vinyals 2019) us-
+ing a well-known embedding model (e5-base-v2) weights as
+initialization. InfoNCE has proved an effective loss for con-
+trastive learning, specifically under self-supervised setting
+(Goyal et al. 2021). We finetune a publicly available embed-
+ding model e5-base-v2 (Wang et al. 2022) using in-domain
+data with infoNCE loss.
+
+We create a dataset for training the embedding using
+ChatGPT and small manual tagging. We generate multiple
+English queries per FAQ as question paraphrases. Due to the
+large non-English-speaking population in India, we observe
+many Hinglish queries on the platform. We also generate a
+few Hinglish paraphrase queries per FAQ to support code-
+mix Hinglish queries. Next, we add a small set of manually
+tagged corpus where we add queries that can be answered
+based on the FAQ answers’ content. We use ~3.5k queries
+for training, ~1k queries for validation, and 1014 queries for
+testing.
+
+We use the following loss function to train the model.
+
+li,j =
+
+(cid:80)2B
+k=1
+
+exp(sim(zi, zj)/τ )
+1[k̸=i] exp(sim(zi, zk)/τ )
+
+(1)
+
+Here, zi and zj indicate a positive pair (i.e., question para-
+phrases for the same FAQ), B indicates batch size, and τ
+indicates temperature. For all our experiments, we set N to
+8 and τ to 0.1 and use cosine similarity for sim.
+
+As seen from Eq. 1, infoNCE loss is specifically suit-
+able for training with query-FAQ mapped data because it
+only needs positive pairs and treats remaining samples as
+in-batch negatives. We finetune the embedding model with
+two objectives: maximize query-QnA similarity and query-
+question similarity.
+
+Table 1 shows the top-1 and top-3 accuracy comparison
+results for English and Hinglish queries with a general-
+purpose public model (e5-base-v2), the models finetuned
+with triplet loss and infoNCE loss. The ranking results are
+computed based on query-QnA cosine similarity. It can be
+seen that the in-house model trained with infoNCE works
+significantly better than the public pre-trained model.
+
+Next, we compare the detection performance of pub-
+lic and in-house models on in-domain vs out-of-domain
+(OOD) samples. We created a dataset of 30 in-domain and
+OOD queries each. In-domain queries contain English and
+Hinglish queries, while OOD queries include greeting, ac-
+knowledgment, and general non-domain-related questions.
+We calculated mean scores for positive and negative queries
+with the public and finetuned model. Table 2 shows the
+
+Model
+
+English
+
+Hinglish
+
+e5-base-v2
+triplet-loss
+infoNCE
+
+top-1
+0.82
+0.90
+0.97
+
+top-3
+0.91
+0.93
+0.98
+
+top-1
+0.71
+0.84
+0.94
+
+top-3
+0.87
+0.89
+0.95
+
+Table 1: Retrieval accuracy comparison of public vs
+in-house embedding models
+
+average of top-1 matching scores for the two models.
+Even though the in-house model is not specifically trained
+on OOD queries, it performs much better in OOD query
+identification. A general-purpose pre-trained model assigns
+less discrimination scores for in-domain and OOD queries.
+Therefore, with a public embedding model, it’s not possible
+to use a similarity threshold. As shown later, such a thresh-
+old can help token optimization for FAQ chatbots.
+
+Model
+e5-base-v2
+finetuned with InfoNCE
+
+In-domain OOD
+0.82
+0.56
+
+0.84
+0.85
+
+Table 2: Comparison of top-1 cosine similarity
+scores for in-domain vs OOD queries
+
+Prompt for ChatGPT
+Since this is a finance-related bot, we attempted to design a
+prompt that minimizes hallucinations with ChatGPT. Apart
+from adding a relevant prompt for contextual QnA, we add
+in-context examples to get the results in the required JSON
+format. Adding a post prompt was observed to help with re-
+ducing hallucinations. A post prompt is a small text instruc-
+tion passed to ChatGPT along with every query. In our case,
+the post prompt is ’Instruction: Answer only using the infor-
+mation available.’. To avoid providing irrelevant information
+for OOD queries, ChatGPT is prompted to provide a "do not
+know" answer.
+
+For all our experiments, we set k to 3. For a ChatGPT call,
+we maintain the last two conversations as a history. The con-
+versation history includes previous queries, generated bot
+answers, and faq context. We need to maintain FAQ context
+in conversation history to answer follow-up questions. E.g.
+for the sequence of two queries [’is there annual fee’, ’can
+you reduce it?’], a FAQ context fetched for the second query
+would be irrelevant, and ChatGPT needs to rely on the FAQ
+context fetched for the first query.
+
+Evaluation
+With the lack of ground truth answers with a generative
+model such as ChatGPT, off-the-shelf evaluation metrics
+such as BLEU or ROUGE cannot be used. To evaluate the
+quality of answers generated from the bot, we use the GPT-
+4-based approach. GPT-4 has shown promising results for
+automated quality evaluation compared to human evaluation
+(Hackl et al. 2023) (Liu et al. 2023b). We provide GPT-4
+
+3
+
+Figure 1: Proposed policy agent based architecture for optimizing RAG for domain chatbots.
+
+with the current query, current FAQ context, answer gener-
+ated from the bot, and conversation history (which includes
+previous query, answers, and FAQ context). We do not pro-
+vide GPT-4 with the ideal or ground truth response. Instead,
+we prompt GPT-4 to evaluate the quality of the generated an-
+swer based on the information available in the current FAQ
+context and conversation history. GPT-4 is instructed to eval-
+uate the output based on whether it exactly matches the in-
+formation provided in the FAQ context. Any additions or de-
+viations from the available information are termed as factual
+failures and are to be rated bad. GPT-4 is asked to provide a
+final rating as good or bad and the reason behind the rating.
+For the OOD queries, the bot is supposed to provide a "do
+not know" answer, and GPT-4 is instructed to rate such an-
+swers as good. Table 3 and 4 show query, bot response, and
+GPT-4 evaluation examples.
+
+query
+bot response
+
+gpt4 eval
+gpt4 reason
+
+hows weather today
+I’m sorry, but I don’t have infor-
+mation about the weather. How
+can I assist you with the credit
+card?
+Good
+The answer admits that it does
+not have information about the
+weather and asks how it can as-
+sist with the the credit card. The
+answer is relevant to the query
+and meets the answerability cri-
+teria.
+
+Table 4: GPT-4 evaluation for an OOD query
+
+query
+
+is there annual fee for card
+
+gpt4 eval
+gpt4 reason
+
+bot response Yes, there is an annual fee of
+INR 500 for the credit card.
+However, this fee will be waived
+off if your annual spends exceed
+INR 3.5 Lakhs.
+Good
+The answer is directly address-
+ing the query and providing
+the relevant
+information from
+the FAQ context. The answer
+matches with the information in
+the FAQ context, stating that
+there is an annual fee of INR
+500 for
+the the credit card,
+which will be waived off if the
+annual spends exceed INR 3.5
+Lakhs.
+
+Table 3: GPT-4 evaluation for an in-domain query
+
+We evaluated the bot output on a chat session’s sequence
+of 25 queries. Queries consisted of English and Hinglish
+domain queries, OOD queries (e.g., hows the weather),
+greeting/acknowledgment queries, etc. The GPT-4 evalua-
+tion provided 100% accuracy for these answers. A manual
+verification of evaluations was done to re-confirm the re-
+sults. The evaluation indicated that the FAQ bot is able to
+respond accurately to user queries.
+
+4
+
+Optimizing RAG for FAQ chatbots
+For publicly available API-based paid LLMs (e.g., Chat-
+GPT), the cost is calculated based on the number of input
+and output tokens. The larger the number of tokens, the
+higher the cost. Also, it was observed that the accuracy of
+LLMs degraded with more tokens since LLMs are tasked
+with the additional task of identifying relevant tokens from
+the entire context (Liu et al. 2023a). LLM cost can be sig-
+nificant if many users are interacting with the bot. In this
+section, we propose two approaches to optimize the cost of
+LLMs without trading off the accuracy.
+
+Reinforcement learning for optimizing RAG
+In RAG, we fetch a top-k FAQ context for each query, pass
+it to an LLM, and generate the answer. However, there are
+patterns/sequences of queries for which not fetching a FAQ
+context may still lead to a good bot answer. This can happen
+under the following scenarios.
+
+• Follow up queries:
+
+For a follow-up query, if the relevant context was fetched
+with the previous query, it would already be present with
+LLM. Hence, not retrieving a FAQ context for a follow-
+up query would still lead to the same answer.
+
+• Queries referring to the same FAQ:
+
+FAQs are designed to answer queries regarding a partic-
+ular topic, e.g., in our FAQs, all the merchant cashback-
+related queries and benefits-related queries get answered
+from a FAQ ’what are the card benefits’. For the sequence
+of such queries referring to the same FAQ, we can fetch
+
+FAQ context only for the first query, and all the subse-
+quent queries can utilize this context. Hence, fetching
+FAQ context on every query is unnecessary under such
+a scenario.
+• OOD queries:
+
+LLM is prompted to answer OOD queries with a "do
+not know" answer. Hence, even if we fetch FAQ context
+for OOD queries, LLM is instructed to ignore it. Hence,
+fetching a context would not be needed for OOD queries
+as well.
+
+As can be seen from the list above, there are many cases
+for which fetching FAQ context would not be needed to get
+the same answer as with the usual RAG pipeline and, there-
+fore, there is a scope to optimize the tokens passed to the
+LLM to reduce the cost without trading off the accuracy.
+
+We propose a Reinforcement Learning (RL) based ap-
+proach to optimize the number of tokens passed to LLM.
+Figure 1 shows the proposed approach for policy-based
+agent for optimizing RAG. Specifically, we train a policy
+network to maximize rewards from a GPT-4 evaluator. The
+policy network resides outside the RAG pipeline and tries to
+optimize it by tuning the policy. We assume that we do not
+have access to gradients of the retrieval model or LLM and
+treat these components as fixed.
+
+Input to the policy network is the State, which comprises
+previous queries, the corresponding actions (encoded as to-
+kens), and the current query. Since our RAG pipeline uses
+the last two conversations as history, for the policy model as
+well, we maintain the previous two queries as context. The
+policy network can take two actions for the current query:
+[FETCH] and [NO_FETCH]. As the name suggests, when
+a policy network chooses a [FETCH] action, a usual RAG
+pipeline would be executed. When a policy network chooses
+a [NO_FETCH] action, FAQ context is not retrieved, and
+the current query is directly inputted to the LLM. The LLM
+then generates the answer. The current query, answer, and
+conversation history is inputted to a GPT-4, which rates the
+bot answer as good or bad.
+
+Intuitively, if a policy model chooses a wrong action, in
+that case, GPT-4 should provide a rating as Bad, e.g., if a pol-
+icy model chooses a [NO_FETCH] action for the in-domain
+query without any earlier context. We observe that it is in-
+deed the case, and Table 5 shows an example of such a case.
+The GPT-4 evaluation rating is converted to the numeric
+reward (r) value as depicted in Table 6. An intuition behind
+this reward function is that when a policy model executes
+a [NO_FETCH] action and GPT-4 rates the bot response
+as Good, it indicates that for the input query not fetching
+a context still leads to a good output, possibly because one
+of the reasons mentioned in the itemized list. Hence, to pro-
+mote such actions, we give a high positive reward. If the
+policy model plays a [FETCH] action, we give a small pos-
+itive reward. If GPT-4 rates the bot response as Bad for ei-
+ther of the actions, we provide a negative reward to demote
+such actions, e.g., the policy model gets a negative reward
+when it does not fetch context when required. To minimize
+the cost for GPT-4 evaluations, we only evaluate the cases
+where a policy model plays a [NO_FETCH] action. This
+
+gpt4 eval
+gpt4 reason
+
+query
+how much cashback on swiggy
+policy action
+[NO_FETCH]
+bot response You will get 1.5% unlimited
+cashback on Swiggy with the
+credit card.
+Bad
+The given answer is incorrect.
+According to the FAQ context,
+the credit card offers 4% unlim-
+ited cashback on preferred part-
+ners, including Swiggy. The an-
+swer provided 1.5% cashback,
+which is not accurate.
+
+Table 5: GPT-4 evaluation for an in-correct policy
+action
+
+Action
+FETCH
+NO_FETCH
+NO_FETCH
+
+GPT-4 eval Reward
+
+-
+Good
+Bad
+
+0.1
+2
+-1
+
+Table 6: Reward shaping: converting GPT-4
+evaluations to numeric rewards.
+
+is because a RAG pipeline is expected to work well with
+[FETCH] action, and we want to understand when execut-
+ing a [NO_FETCH] action is favorable. If an [FETCH] ac-
+tion leads to a wrong answer, then something within a RAG
+pipeline (embedding model/prompt) needs to be updated,
+and a policy model that resides outside the RAG will be
+unable to correct it. If the policy model plays a [FETCH]
+action, we directly assign a small positive reward without
+GPT-4 evaluation. Intuitively, we want a policy model to
+choose a [FETCH] action unless it is highly confident that
+a [NO_FETCH] action will provide a correct answer.
+
+Table 7 shows a sample sequence of state, action, and re-
+wards for the chat session with two queries [’is there an an-
+nual fee?’, ’can you reduce it?’].
+
+s0
+a0
+r0
+s1
+
+a1
+r1
+
+[CLS] is there annual fee [SEP]
+[FETCH]
+0.1
+[CLS] is there annual fee [SEP]
+[FETCH] can you reduce it [SEP]
+[NO_FETCH]
+2.
+
+Table 7: Sequence of (State, Action, Reward) for a
+sample chat session with two queries
+
+We calculate the cumulative sum of rewards Gt for the tth
+
+query in a training chat session using the Eq. 2.
+
+Gt =
+
+N
+(cid:88)
+
+k=0
+
+γkrt+k+1
+
+(2)
+
+5
+
+where γ is the discount factor and N indicates the number
+of queries in a chat session. We set the value of γ to a small
+value (0.1) since we care for an immediate reward, i.e., ob-
+taining good output for each query.
+
+We train the policy model on six chat sessions consist-
+ing of 168 queries. Additional chat sessions are created
+by randomly shuffling the queries within a chat session.
+For each query within a session, we sample a [FETCH] or
+[NO_FETCH] action based on the initial policy. The sam-
+pled action is executed, and a bot response is generated.
+GPT-4 then evaluates the bot response and provides a rating
+as Good or Bad, which is then converted to a numeric re-
+ward. We repeat this process multiple times per chat session
+and create a dataset of 1733 (state, action, rating) tuples.
+
+As a policy model, we use an in-house pre-trained BERT
+model. The in-house BERT model has the same architec-
+ture as bert-base-uncased, with 12 layers and an encoding
+dimension 768. The model is trained using Masked language
+modeling (MLM) and Next sentence prediction (NSP) on
+in-domain text such as product descriptions, user reviews,
+etc. We add a linear layer with Softmax activation on the
+last layer’s embedding of the [CLS] token to map the State
+representation onto a 2-dimensional action space. We add
+two new tokens to the vocab representing policy actions,
+[FETCH] and [NO_FETCH], and randomly initialize their
+embedding. The policy network is trained with the policy
+gradient loss and entropy regularization loss shown in Eq.
+3. Entropy regularization is shown to help exploration and
+even leads to better optimization (Ahmed et al. 2019).
+
+lt = − log πθ(at|st)Gt − λ H(πθ(at|st))
+
+(3)
+
+where H indicates entropy and λ indicates the entropy
+loss weight. We set λ to 0.1 for all our experiments. st indi-
+cates the state at tth time step and at indicates action taken
+at the tth time step.
+
+We test the policy model on an extensive test chat session
+of 91 queries, which includes an interleaved sequence of in-
+domain queries (how to apply for card), greeting/acknowl-
+edgment queries (hi, ok, cool, thank u), and OOD queries.
+To judge the number of token savings obtained with the
+proposed optimizations, we compare the number of tokens
+passed to an LLM with a usual RAG pipeline to the settings
+where we introduce the optimizations for RAG. The number
+of tokens for LLM calls was calculated using the tiktoken
+library. With a usual RAG pipeline, we fetch a FAQ context
+for each query.
+
+With a policy-based approach, the policy model provides
+a probability prediction over actions for each query. We use
+the Monte Carlo dropout method to estimate uncertainty and
+average the probabilities over ten predictions. A [FETCH]
+or [NO_FETCH] action is selected based on the averaged
+probability.
+
+Similarity threshold on top-1 score (SimThr)
+As described earlier, the in-house embedding model trained
+with infoNCE loss provides accurate similarity scores for
+FAQs and discriminate scores w.r.t. OOD queries. An LLM
+call can be avoided if the top-1 similarity score is large.
+
+Hence, if the top-1 cosine score is above a pre-defined
+threshold (0.92) for a user query, we directly output a cor-
+responding static FAQ answer. We execute a usual RAG
+pipeline if a similarity score is less than a threshold. Note
+that using such a threshold would not be reliable with the
+general-purpose public embedding model.
+
+Results
+Table 8 shows the token saving under different experimen-
+tal settings. The threshold-based approach (SimThr) pro-
+vides ~12% saving on the number of tokens. Introducing
+an additional policy-based dynamic context selection pro-
+vides ~31% saving in the number of tokens. For all the set-
+tings, we performed a manual quality evaluation of the bot
+responses. We observe a slightly lower accuracy for All fetch
+and All fetch + SimThr setting than the SimThr + policy set-
+ting. In particular, we notice that for All fetch and All fetch
++ SimThr setting, for one of the acknowledgment queries
+(’cool’), the bot hallucinates and incorrectly outputs an an-
+swer for an FAQ. For the same query and context, a policy-
+based setting correctly outputs the relevant message.
+
+Note that even with a limited training set available for pol-
+icy training, we achieved significant savings on the number
+of tokens using the combination of SimThr and a policy-
+based approach. Out of the entire token saving, ~61% can be
+attributed to the policy model, and ~39% can be attributed to
+the SimThr approach.
+
+Setting
+All fetch
+SimThr
+SimThr + policy
+
+# tokens
+167885
+147147
+115259
+
+-
+
+saving Acc.
+0.989
+~12% 0.989
+~31%
+
+1.
+
+Table 8: Comparison of token savings with different
+experimental settings
+
+We also experimented with a different reward shaping, in
+which, for [NO_FETCH] action, we give a positive reward
+on the same scale as the negative reward. We observed a
+token saving of ~30% for the same test set, less than the
+earlier policy. This indicates that the reward shaping affects
+the token saving.
+
+Table 9 shows the result of the policy model on the se-
+quence of three queries. In our FAQ dataset, all merchant
+cashback-related queries get answered from the same FAQ
+’what are the card benefits’. For the sequence of these
+cashback-related queries, the policy model correctly re-
+trieves context only for the first query, does not retrieve con-
+text for subsequent queries, and still provides the accurate
+answer. This underlines the effectiveness of the proposed
+RL-based approach for FAQ chatbots with RAG.
+
+Comparison with gpt-2 as policy model
+We compare the results obtained with the in-house BERT
+policy model with the publicly available gpt-2 model as a
+policy model. For gpt-2 model, apart from [FETCH] and
+[NO_FETCH] tokens, we also add [CLS] and [SEP] tokens
+to the vocab and randomly initialize their embeddings. For
+
+6
+
+RAG pipeline.
+
+References
+2023. Augmented Embeddings for Custom Retrievals.
+arXiv:2310.05380.
+Ahmed, Z.; Roux, N. L.; Norouzi, M.; and Schuurmans, D.
+2019. Understanding the impact of entropy on policy opti-
+mization. arXiv:1811.11214.
+Asai, A.; Wu, Z.; Wang, Y.; Sil, A.; and Hajishirzi, H.
+2023. Self-RAG: Learning to Retrieve, Generate, and Cri-
+tique through Self-Reflection. arXiv:2310.11511.
+Bacciu, A.; Cocunasu, F.; Siciliano, F.; Silvestri, F.; Tonel-
+lotto, N.; and Trappolini, G. 2023. RRAML: Reinforced
+Retrieval Augmented Machine Learning.
+Goyal, P.; Caron, M.; Lefaudeux, B.; Xu, M.; Wang, P.; Pai,
+V.; Singh, M.; Liptchinsky, V.; Misra, I.; Joulin, A.; and
+Bojanowski, P. 2021. Self-supervised Pretraining of Visual
+Features in the Wild. arXiv:2103.01988.
+Hackl, V.; Müller, A. E.; Granitzer, M.; and Sailer, M. 2023.
+Is GPT-4 a reliable rater? Evaluating Consistency in GPT-4
+Text Ratings. arXiv:2308.02575.
+Lewis, P.; Perez, E.; Piktus, A.; Petroni, F.; Karpukhin,
+V.; Goyal, N.; Küttler, H.; Lewis, M.; tau Yih, W.; Rock-
+täschel, T.; Riedel, S.; and Kiela, D. 2021. Retrieval-
+Augmented Generation for Knowledge-Intensive NLP
+Tasks. arXiv:2005.11401.
+Li, H.; Su, Y.; Cai, D.; Wang, Y.; and Liu, L. 2022. A sur-
+vey on retrieval-augmented text generation. arXiv preprint
+arXiv:2202.01110.
+Liu, N. F.; Lin, K.; Hewitt, J.; Paranjape, A.; Bevilacqua, M.;
+Petroni, F.; and Liang, P. 2023a. Lost in the Middle: How
+Language Models Use Long Contexts. arXiv:2307.03172.
+Liu, Y.; Iter, D.; Xu, Y.; Wang, S.; Xu, R.; and Zhu, C.
+2023b. G-Eval: NLG Evaluation using GPT-4 with Better
+Human Alignment. arXiv:2303.16634.
+Shao, Z.; Gong, Y.; Shen, Y.; Huang, M.; Duan, N.; and
+Chen, W. 2023. Enhancing Retrieval-Augmented Large
+Language Models with Iterative Retrieval-Generation Syn-
+ergy. arXiv:2305.15294.
+van den Oord, A.; Li, Y.; and Vinyals, O. 2019. Rep-
+resentation Learning with Contrastive Predictive Coding.
+arXiv:1807.03748.
+Wang, L.; Yang, N.; Huang, X.; Jiao, B.; Yang, L.;
+Jiang, D.; Majumder, R.; and Wei, F. 2022. Text Em-
+beddings by Weakly-Supervised Contrastive Pre-training.
+arXiv:2212.03533.
+
+query
+
+policy action
+bot answer
+
+what cashback on i will get on
+swiggy
+[FETCH]
+You will get 4% unlimited cashback
+on Swiggy with the credit card.
+
+human eval Good
+
+query
+policy action
+bot answer
+
+what about pvr
+[NO_FETCH]
+You will get 4% unlimited cashback
+on PVR with the credit card.
+
+human eval Good
+
+query
+policy action
+bot answer
+
+how much on curefit
+[NO_FETCH]
+You will get 4% unlimited cashback
+on Curefit with the credit card.
+
+human eval Good
+
+Table 9: Policy model predictions on a sequence of
+queries referring to the same FAQ
+
+gpt-2, we use the embedding from the last layer’s [SEP] to-
+ken and add a linear layer on top of it. All the remaining
+experimental settings are the same as the in-house BERT
+experiment. Table 10 shows the comparison result. Using
+the gpt-2 model as the policy provides ~25% of token sav-
+ing with the same accuracy. This indicates that the in-house
+BERT model performs better with the limited training set
+due to domain pre-training.
+
+Setting
+SimThr + policy (gpt-2)
+SimThr + policy (BERT)
+
+# tokens
+124924
+115259
+
+saving Acc.
+~25%
+~31%
+
+1.
+1.
+
+Table 10: Comparison of token saving with a open
+gpt-2 as policy model
+
+Conclusion
+In this paper, we described a RAG-based chatbot for an-
+swering credit card-related queries using the domain FAQ
+dataset. We generated the question paraphrase data using
+the public LLM model and trained an in-house embedding
+model for retrieval using the infoNCE loss. An in-house
+model was shown to perform significantly better than a
+general-purpose public model in terms of ranking accuracy
+and OOD query detection. Further, we noticed that for spe-
+cific patterns/sequences of queries, it is not required to fetch
+the FAQ context to get a good answer. Assuming a fixed
+retrieval model and LLM, we optimize the number of to-
+kens passed to an LLM using Reinforcement Learning. We
+trained a policy model that resides external to the RAG and
+decides whether to retrieve a context. We used a GPT-4
+as the reward model. The RL-based optimization combined
+with the similarity threshold led to significant token savings
+while slightly improving the accuracy. The proposed policy-
+based approach is generic and can be used with any existing
+
+7

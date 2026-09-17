@@ -1,0 +1,1554 @@
+2026 IEEE International Symposium on High-Performance Computer Architecture (HPCA)
+
+HA-RAG: Hotness-Aware RAG Acceleration via
+Mixed Precision and Data Placement
+
+Danying Ge, Jianhua Gao, Yixue Yang, and Weixing Ji
+Beijing Normal University, China
+gdanying@163.com, gaojh@bnu.edu.cn, yyxmaeve@gmail.com, jwx@bnu.edu.cn
+
+5
+2
+0
+2
+
+t
+c
+O
+3
+2
+
+]
+
+G
+L
+.
+s
+c
+[
+
+1
+v
+8
+7
+8
+0
+2
+.
+0
+1
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract—Retrieval-Augmented Generation (RAG) improves
+model output accuracy by leveraging external knowledge bases,
+serving as an effective solution to address hallucination issues and
+knowledge-update delays in Large Language Models (LLMs).
+However, the introduction of external knowledge bases presents
+RAG with challenges in long-context processing, significantly
+increasing memory consumption and inference latency. Existing
+research accelerates inference by precomputing Key and Value
+(KV) of the knowledge base and loading them on-demand during
+inference. Based on the access frequency of different KV chunks
+this paper proposes a
+within the external knowledge base,
+hotness-aware RAG (HA-RAG) inference optimization system.
+First,
+leveraging the numerical distribution of KV chunks,
+we introduce a hotness-aware mixed-precision compressing and
+loading method to reduce disk I/O and memory access overhead.
+Second, we design a hotness-aware data placement strategy that
+prioritizes storing frequently accessed KV chunks in high-speed
+memory to improve data access efficiency. Experimental results
+demonstrate that, compared with TurboRAG, the proposed HA-
+RAG achieves an average speedup of 2.10× and maximum
+speedup of 10.49x in Time-To-First-Token (TTFT) with negligible
+accuracy loss.
+
+I. INTRODUCTION
+
+With the advancement of artificial intelligence technologies,
+Large Language Models (LLMs) have demonstrated strong
+capabilities in tasks such as text generation, translation, and
+more, leading to widespread applications across a variety of
+fields [61], [63]–[66]. However, LLMs have been observed to
+suffer from the hallucination problem in real-world scenar-
+ios, where the generated responses may contain information
+that deviates from factual truth [62], [69]–[71]. The issue
+primarily arises from two key factors: firstly, the inherent
+representational limitations of LLMs make it challenging to
+comprehensively and accurately capture complex semantic
+information; secondly, the time lag in updating training data
+hinders the timely integration of the latest knowledge into the
+models [74].
+
+Retrieval-Augmented Generation (RAG) [45] has emerged
+as an effective approach to mitigate this problem. By inject-
+ing task-specific contextual knowledge into the input, RAG
+significantly enhances the quality of generated text and the
+factual reliability of the output, thereby reducing hallucinations
+in LLMs [54]. As illustrated in Figure 1, the typical workflow
+of RAG begins by embedding documents closely related to
+tasks into vector representations to form a knowledge base.
+Then, for each user input, a similarity measure such as cosine
+similarity is used to retrieve the most relevant documents
+
+from the knowledge base. These retrieved documents are
+appended to the input as additional context, resulting in an
+augmented input prompt, which is then fed into the LLM
+for inference. By incorporating context
+is specific to
+downstream tasks, RAG provides more targeted and relevant
+information to the model. Even when the training data lacks
+examples related to a particular task, RAG enables the model
+to access key information via retrieval, thereby facilitating
+high-quality generation.
+
+that
+
+Fig. 1: Workflow of RAG.
+
+However, RAG significantly extends the input length, which
+in turn leads to substantial computational overhead during the
+prefill stage of inference. Specifically, in the prefill phase,
+LLM must encode the entire input sequence and compute
+attention interactions between every pair of tokens to gen-
+erate the first output token. This results in a computational
+complexity that grows quadratically with respect to the input
+length [46], severely limiting the generation efficiency in
+the RAG system. To address the challenge, TurboRAG [6]
+proposed to precompute the key-value (KV) of retrieved
+documents and store them on disk. During inference, these
+precomputed KV chunks are loaded on demand to avoid
+redundant computation, thereby accelerating the inference in
+the RAG system.
+
+While this approach significantly reduces the computational
+overhead in the prefill stage, RAG still faces two critical chal-
+lenges. First, it suffers from high data loading overhead.
+Taking LLaMA2-7B [47] as an example, it consists of 32
+layers, each with 32 attention heads and 128 dimensions per
+head. Assuming that the external documents are divided into
+1024 chunks, with each chunk containing 512 tokens, and KV
+chunks are stored in BF16 format (2 bytes per value), the total
+disk space required for KV chunks amounts to approximately
+128 GB. Clearly, transferring such a large amount of KV data
+from disk to GPU memory incurs significant overhead. We use
+MS MARCO [48] as the retrieval corpus to generate 4,381
+
+ 
+ 
+ 
+ 
+ 
+ 
+KV chunks and evaluate the RAG system on 256 queries
+randomly selected from the TriviaQA [49] dataset. Results
+show that when generating a sequence of 16 tokens, the KV
+chunks loading time accounts for approximately 70% of the
+total inference latency. Second, current approaches have
+not sufficiently explored KV chunk scheduling optimiza-
+tion to improve memory access efficiency. Since each KV
+chunk is typically large, transferring data between host and
+device memory incurs considerable latency. In practical RAG
+scenarios,
+the same KV chunk may be accessed multiple
+times. If every access requires reloading the chunk from
+disk and transferring it
+in
+substantial I/O and memory access overhead. Therefore, KV
+chunk scheduling is of great importance. Existing scheduling
+strategies in RAG primarily focus on pipeline parallelism
+between retrieval and generation [20], [25], or on vector index-
+based dispatching mechanisms [12], aiming to balance re-
+trieval latency and generation efficiency. However, scheduling
+strategies specifically tailored to KV chunk access patterns
+remain largely underexplored.
+
+to GPU memory,
+
+it can result
+
+In this work, we conduct a statistical analysis of access
+frequency across documents in the retrieval corpus. We find
+that only about 1% of the documents are frequently retrieved
+(as shown in Figure 2), revealing a highly skewed access fre-
+quency distribution. Motivated by this observation, we propose
+a hotness-aware RAG optimization framework (HA-RAG). By
+analyzing the value distribution characteristics of KV chunks
+and exploring various formats for low-precision data represen-
+tation, we enable mixed-precision compressing and loading,
+thereby reducing the memory footprint and loading overhead
+of KV chunks. Furthermore, based on the access frequency
+of each KV chunk, we designed a data placement strategy
+that leverages heterogeneous hardware memory hierarchies to
+improve memory access efficiency during inference.
+
+Fig. 2: Access frequency of different KV chunks.
+
+The main contributions of this paper are as follows:
+
+• We propose a hotness-aware mixed-precision compres-
+sion and loading strategy for KV chunks, which reduces
+data loading and memory access overhead.
+
+• We design a hotness-aware data placement strategy for
+KV chunks to enhance memory access efficiency during
+RAG inference.
+
+• Experimental evaluations on a RAG system built with the
+MS MARCO dataset and LLaMA2-7B model demon-
+strate that HA-RAG achieves an average performance
+improvement of 2.10× over TurboRAG in Time-To-First-
+Token (TTFT).
+
+The remainder of this paper is organized as follows: Section
+2 introduces HA-RAG, including the hotness-aware mixed-
+precision compression and loading of KV chunks, as well
+as the hotness-aware data placement optimization. Section
+3 presents a comprehensive performance evaluation of HA-
+RAG. Section 4 reviews related work on RAG. Section 5
+concludes the work.
+
+II. METHODOLOGY
+
+A. Overview
+
+Figure 3 illustrates the overall architecture of the proposed
+HA-RAG. It consists of two main components: hotness-aware
+mixed-precision compression and loading, and hotness-aware
+data placement. For a given RAG system, we first obtain
+access frequency statistics for different KV chunks in the
+knowledge base by evaluating the system under real applica-
+tion scenarios. Based on the value distribution and access fre-
+quency of each KV chunk, the hotness-aware mixed-precision
+compression and loading module applies different compression
+methods to achieve mixed-precision compression, reducing
+the disk storage of these KV chunks. During inference, the
+compressed KV chunks are loaded into the system on demand,
+reducing loading time, memory usage, and memory access
+overhead associated with these KV chunks. Subsequently,
+the hotness-aware data placement module places frequently
+accessed KV chunks in fast-access memory (e.g., GPU or
+CPU pinned memory), while less frequently accessed chunks
+are stored in slower memory and loaded on demand (e.g.,
+CPU pageable memory and disk), reducing the overall memory
+access overhead of the RAG system.
+
+B. Hotness-Aware Mixed-Precision Compression and Loading
+
+In this subsection, we first analyzed the numerical distribu-
+tion characteristics of KV chunks in the knowledge base, in-
+cluding their value ranges and exponent distributions. We then
+apply several low-precision formats to compress KV chunks,
+including INT8, FP8 (both E4M3 and E5M2 formats), as well
+as a grouped shared exponent representation method (GSE)
+[50]. Finally, we introduced a hotness-aware mechanism for
+KV chunks, where different low-precision formats are selected
+for different chunks based on their access frequencies.
+
+1) Numerical Characteristics Analysis: We begin by per-
+forming a statistical analysis of the value ranges of Keys and
+Values from 4,381 KV chunks in the MS MARCO dataset.
+As shown in Figure 4, the values are relatively concentrated
+and exhibit narrow distributions. Specifically, all Key chunks
+primarily fall within the range of (−25, 25), while Value
+chunks are distributed within (−10, 10). Currently, KV chunks
+are typically stored in BF16 format, which consists of 1 sign
+bit, 8 exponent bits, and 7 fraction bits. The limited numerical
+range of KV chunks leads to significant bitwidth wastage
+
+Fig. 3: Overall architecture of HA-RAG.
+
+Fig. 4: Value range distribution of Keys and Values in KV
+chunks.
+
+when stored in BF16 format. This motivates the adoption of
+lower-precision data representations to compress and load KV
+chunks more efficiently.
+
+To further explore more efficient data representation meth-
+ods for compressing KV chunks, we follow the approach
+proposed by Gao et al. [50] and conduct a statistical analysis
+of the exponent distribution of floating-point values within
+KV chunks. The results are shown in Figure 5. As shown in
+the figure, the exponent distribution of floating-point elements
+in KV chunks is relatively concentrated. Specifically, in the
+Key chunks, 8 exponents are sufficient to cover approximately
+96%-97% of the elements. Similarly, in the Value chunks, the
+8 most frequent exponents can cover approximately 95%-96%
+of the elements. This indicates that conventional floating-point
+formats, which use fixed bit widths for both exponent and frac-
+tion, contain redundancy when applied to KV chunks, leading
+to inefficient use of limited bit-width resources. Motivated by
+this observation, we use the GSE format proposed in [50] for
+compressing KV chunks.
+
+Fig. 5: Exponent distribution of floating-point values in Key
+(left) and Value (right) chunks. Top-k denotes the proportion
+of elements covered by the k most frequent exponents.
+
+2) Low-Precision Data Representation: Given that KV
+chunks are typically stored in the BF16 format, this work
+focuses on exploring 8-bit low-precision data representations,
+including FP8, INT8, and GSE-8. FP8 [51] is an 8-bit floating-
+point format that has two common variants: E5M2 and E4M3,
+where “E” denotes the exponent bits and “M” denotes the
+fraction bits. As shown in Figure 6, E5M2 consists of 1
+sign bit, 5 exponent bits, and 2 fraction bits, and supports
+a representable range of approximately [−57,334, 57,334]. In
+contrast, E4M3 consists of 1 sign bit, 4 exponent bits, and 3
+fraction bits, representing values in the range of approximately
+[−448, 448]. E5M2 offers a wider dynamic range, while E4M3
+provides higher numerical precision. INT8, commonly used to
+represent 8-bit signed (or signed) integers, covers a range of
+[−128, 127]. Given the relatively narrow value distribution
+observed in KV chunks, using such low-precision formats
+enables effective reduction in storage, loading, and memory
+access overhead, while maintaining acceptable accuracy and
+avoiding significant precision loss.
+
+The GSE format is a novel floating-point representation
+designed for value-distribution-aware compression. It enables
+efficient encoding by sharing exponents across groups and
+couples storage with computation through segmented fraction
+
+Fig. 6: Comparison of different data representation formats.
+
+Fig. 7: An example of converting BF16 numbers to GSE-8
+format.
+
+storage. This format is primarily targeted at mixed-precision
+optimization in iterative algorithms for scientific computing.
+In the original design, authors firstly analyze the exponent
+frequency distribution among the nonzero elements of a sparse
+matrix and select the top-k most frequent exponents to be
+stored in a shared exponent array. Subsequently, the nonzero
+values originally stored in FP64 format are converted into
+the proposed GSE representation. For elements whose expo-
+nent is not present in the shared exponent array, the nearest
+available shared exponent is used, and the fraction is adjusted
+accordingly via a denormalized transformation. To ensure that
+the GSE representation can be accurately reconstructed back
+to FP64, the index of the selected shared exponent must be
+recorded for each value. Authors encoded the exponent index
+into the column index field of each nonzero entry. During
+computation on the device side, the GSE representation is
+decoded into FP64 by referring to the shared exponent. Due to
+the long fraction length in FP64, the authors also introduced
+a fraction segmentation storage in the GSE format, which
+determines whether to load more tail segments based on the
+changes in residuals during the iteration process.
+
+Inspired by the concentrated exponent distribution observed
+in KV chunks, we adopt the GSE concept for compressing
+KV chunks. Different from the original GSE implementation,
+which typically uses 16 ∼ 64 bits, we propose an 8-bit variant
+referred to as GSE-8. For the selection of shared exponents, the
+original GSE chooses based on exponents frequency, whereas
+our method incorporates the numerical range of KV chunks to
+minimize the representation error. This design consideration is
+crucial, since using an unmatched exponent requires a denor-
+malized fraction transformation, which introduces additional
+precision loss. As illustrated in Figure 7, we take two BF16
+numbers x and y as examples to introduce the conversion
+process into GSE-8. It includes the following three steps:
+
+• Extract the exponent fields of x and y, denoted as Ex
+
+and Ey, respectively.
+
+• From the predefined GSE array (storing the shared expo-
+nents), find the smallest exponents greater than or equal to
+Ex and Ey, denoted as GSEx and GSEy, and compute
+
+the difference: dx = GSEx − Ex and dy = GSEy − Ey.
+• Right-shift the fraction of x by (dx +1) bits and that of y
+by (dy + 1) bits. Then, set the (dx + 1)-th and (dy + 1)-th
+most significant bits of their fractions to 1, obtaining the
+GSE-8 representation.
+
+The decompression process is the reverse of compression.
+Based on the exponent index and the position of the first “1”
+bit in the fraction field, the original exponent can be inferred.
+The fraction is then left-shifted accordingly to reconstruct
+an approximate version of the original value. During the
+conversion from BF16 to GSE-8, some precision loss occurs
+due to discarded low-order fraction bits during right-shifting.
+The number of discarded bits depends on the gap between the
+true exponent and the nearest larger shared exponent, making
+the selection of the shared exponent set critical for maintaining
+accuracy.
+
+In traditional GSE formats, the total bit width is relatively
+large (typically 16 ∼ 64 bits), and the index of the shared
+exponent is stored in the sparse matrix’s column indices. As
+a result, the impact of precision loss caused by bit-shifting is
+minimal. However, in the GSE-8 format considered in this
+work, improper selection of shared exponents can lead to
+excessive shifting operations, which in turn cause significant
+precision degradation. To address this issue, we divide the
+distribution range of each KV chunk into sub-intervals using
+a fixed step size and assign one shared exponent to each sub-
+interval. For example, consider a KV chunk whose values lie
+within the range (−10, 10). In GSE-8, we allocate 1 bit for
+the sign, 3 bits for the shared exponent index, and 4 bits for
+the fraction. Due to the use of denormalized fractions, one bit
+must be reserved to explicitly represent the leading 1, leaving 3
+effective bits for encoding. To avoid excessive precision loss
+caused by right-shifting, the shift distance must not exceed
+3 bits. This imposes a constraint that the difference between
+any two adjacent shared exponents should be no greater than
+3. Therefore, we divide the range (−10, 10) into sub-intervals
+with a step size of 3 and use the right endpoint of each interval
+
+as the shared exponent. The resulting shared exponent array is
+[−7, −4, −1, 2, 5, 8, 10], and the total number of exponents
+fits within the range representable by the 3-bit shared exponent
+index.
+
+3) Hotness-Aware Mixed-Precision Compression and Load-
+ing: As shown in Figure 2, KV chunks exhibit different access
+frequencies. The core of the hotness-aware mixed-precision
+compression and loading strategy is to categorize KV chunks
+into “hot” and “cold” blocks based on their access frequency.
+“Hot” chunks refer to those that are frequently accessed, while
+“cold” chunks are infrequently accessed. Since the storage
+overheads of the various low-precision data formats considered
+are comparable, our mixed-precision design focuses on two
+aspects: accuracy loss and decompression overhead. For hot
+chunks, compression schemes with lower accuracy loss are
+preferred to ensure that the majority of inference tasks are
+not negatively affected, while still reducing loading and mem-
+ory usage overhead. For cold chunks, we favor compression
+formats that offer shorter decompression time, in order to
+improve runtime efficiency without incurring significant online
+decompression overhead. This hotness-aware compression ap-
+proach balances inference quality and I/O efficiency, leading
+to reduced memory and disk overhead with minimal loss in
+output quality.
+
+Algorithm 1 presents the hotness-aware mixed-precision
+compression algorithm. Among the four compression schemes,
+S1 has the lowest precision loss and is applied to the most
+frequently accessed chunks, followed by S2, while S4 incurs
+the highest error but achieves the lowest decompression cost
+and is thus used for the coldest chunks. The thresholds τ1, τ2,
+and τ3 specify the proportions of KV chunks to be compressed
+with S1, S2, and S3, respectively. The algorithm first sorts the
+KV chunks in descending order of access frequency based on
+AF (line 1). Then, based on the thresholds, the sorted chunks
+are divided into four groups (lines 2∼8), where chunks1 rep-
+resents the hottest chunks, followed by chunks2 and chunks3,
+and chunks4 holds the least-accessed chunks. Finally, each
+group is compressed using its designated compression scheme
+(lines 9∼12).
+
+C. Hotness-Aware Data Placement Optimization
+
+During LLMs inference, the core computations are per-
+formed on GPU devices. As a result, KV chunks in RAG must
+be loaded progressively from disk into GPU memory before
+they can be used for computation. As shown in Figure 8, this
+process involves multiple stages of memory transfer.
+
+By default, the operating system (OS) allocates memory on
+the CPU as pageable memory, where data is stored in virtual
+memory pages. When a program accesses a page that is not
+currently in RAM, a page fault is triggered, prompting the OS
+to swap the required page from disk into RAM. In contrast,
+pinned (or page-locked) memory cannot be swapped out to
+disk and offers faster and more consistent access latency. Data
+transfers from CPU memory to GPU memory typically fall
+into two scenarios: if the data resides in pinned memory, it can
+be directly transferred to the GPU with low latency. However,
+
+Algorithm 1: Hotness-aware mix-precision compress-
+ing algorithm.
+Input: KV Chunks = [C k
+
+2 , ..., C k
+
+n, C v
+n],
+
+1 , C k
+
+2 , C v
+
+1 , C v
+
+access frequency of each KV Chunk
+AF = [P1, P2, P3, ..., P2n], compression
+schemes: S1, S2, S3, S4, thresholds: τ1, τ2, τ3
+
+Output: Compressed KV chunks
+// Step 1: Sort access frequency
+
+1 sortedChunks ←
+
+Sort(KV Chunks, AF, descending) ;
+// Step 2: Divide hot-cold KV chunks
+
+2 idx1 ← τ1 × 2n ;
+3 idx2 ← τ2 × 2n + idx1 ;
+4 idx3 ← τ3 × 2n + idx2 ;
+
+// the hottest chunks chunks1
+
+5 chunks1 ← sortedChunks[0 : idx1] ;
+
+// the second hottest chunks chunks2
+
+6 chunks2 ← sortedChunks[idx1 : idx2] ;
+
+// the third hottest chunks chunks3
+
+7 chunks3 ← sortedChunks[idx2 : idx3] ;
+// the coldest chunks chunks4
+8 chunks4 ← sortedChunks[idx3 : 2n] ;
+
+// Step 3: assign compression scheme
+
+for each chunk
+
+9 compressChunks1 ← Compression(S1, chunks1) ;
+10 compressChunks2 ← Compression(S2, chunks2) ;
+11 compressChunks3 ← Compression(S3, chunks3) ;
+12 compressChunks4 ← Compression(S4, chunks4) ;
+
+Fig. 8: Two transmission paths for data from disk to device
+memory in heterogeneous systems.
+
+if the data is in pageable memory, it must first be copied to
+pinned memory before being sent to the GPU. Moreover, if
+the required page is not in RAM, it must first be fetched from
+disk into RAM, introducing significant transfer overhead.
+
+The hotness-aware mixed-precision compression and load-
+ing scheme presented in the previous subsection effectively
+reduces memory footprint and disk I/O overhead by com-
+pressing KV chunks using low-precision formats. Building
+on the data transfer analysis from Figure 8, this subsection
+
+introduces a hotness-aware data placement strategy to further
+optimize overall memory access efficiency. The core idea is
+to allocate KV chunks across different memory hierarchies
+based on their access frequency and the characteristics of the
+memory hierarchy. Frequently accessed chunks (“hot” blocks)
+are prioritized for placement in high-speed storage, such as
+GPU memory and CPU pinned memory. Infrequently accessed
+chunks (“cold” blocks), by contrast, are stored in slower
+storage, such as CPU pageable memory or disk. By avoiding
+frequent evictions of hot chunks to slower storage, this strategy
+improves memory efficiency and system performance.
+
+Algorithm 2 outlines the proposed hotness-aware data place-
+ment algorithm. The queues queueGP U , queueP IN , and
+queueP AGE represent
+the sets of KV chunks currently
+residing in GPU memory, CPU pinned memory, and CPU
+pageable memory, respectively. The thresholds τGP U , τP IN ,
+and τP AGE define the maximum number of KV chunks. First,
+as shown in lines 1∼5, the sorted KV chunks (ranked by
+access frequency from Algorithm 1) are partitioned into four
+disjoint ranges, whose indices are stored in GP U LIST ,
+P IN LIST , P AGE LIST , and DISK LIST . Chunks in
+GP U LIST are the hottest, while those in DISK LIST
+are the coldest. Next, for a given input query, the required
+KV chunks are retrieved (line 6). For each chunk Ci (line 7),
+the system first checks if it is already residing in GPU memory
+and accesses it directly if so (line 9). If not, it checks whether
+Ci is in CPU pinned memory (line 11); if so, it loads the chunk
+from pinned memory into GPU memory (line 13). Moreover,
+if its index is in GP U LIST , the algorithm removes the least
+recently used chunk via an LRU policy (if queueGP U is
+full) and places the chunk into GPU memory. If the chunk
+is instead found in pageable memory (line 15), it is loaded for
+computation, and may also be promoted to GPU or pinned
+memory (lines 17∼19) depending on its access frequency.
+Finally, if the chunk is not found in any memory, it is loaded
+from disk (line 21), and then placed into the appropriate
+queue (queueGP U , queueP IN , or queueP AGE) according
+to its index in GP U LIST , P IN LIST , or P AGE LIST
+(lines 23∼27).
+
+III. EXPERIMENTS
+
+A. Experimental Setup
+
+Software and Hardware: All experiments are conducted
+on a machine equipped with an NVIDIA A100 40GB GPU.
+Table I provides a detailed overview of the hardware and
+software configurations of the system.
+
+Model and Dataset: The experiments use LLaMA-2-7B
+as the LLM and facebook/contriever [52] as the embedding
+model to convert retrieved documents into a vectorized knowl-
+edge base. We use 1,000 articles from MS MARCO as the
+retrieval corpus and TriviaQA as the test set. Documents in
+MS MARCO are segmented into chunks of 512 tokens per
+document.
+
+Performance Baseline: We compare our method with
+TurboRAG [6], which precomputes KV chunks of the knowl-
+edge base, stores them on disk, and loads them on-demand
+
+9
+
+10
+
+11
+
+12
+
+13
+
+14
+
+15
+
+16
+
+17
+
+18
+
+19
+
+20
+
+21
+
+22
+
+23
+
+24
+
+25
+
+26
+
+27
+
+Algorithm 2: Hotness-aware data placement algo-
+rithm.
+Input: input query query, queues storing KV chunks:
+
+queueGP U , queueP IN , and queueP AGE,
+threshold: τGP U , τP AGE, τP IN
+
+Output: Inference results with RAG.
+// Step 1: divide sorted chunks
+
+1 idx1 ← τGP U × 2n, idx2 ← τP AGE × 2n + idx1,
+
+idx3 ← τP IN × 2n + idx2 ;
+
+2 GP U LIST ← [0, 1, 2, ..., idx1 − 1] ;
+3 P IN LIST ← [idx1, idx1 + 1, ..., idx2 − 1] ;
+4 P AGE LIST ← [idx2, idx2 + 1, ..., idx3 − 1] ;
+5 DISK LIST ← [idx3, idx3 + 1, ..., 2n] ;
+// Step 2: place KV chunks in
+
+appropriate memory
+
+6 chunks ← retrieve documents(query) ;
+7 foreach Ci in chunks do
+8
+
+if Ci in queueGP U then
+queueGP U.get(Ci) ;
+else if Ci in queueP IN then
+queueP IN.get(Ci) ;
+if index of Ci in GP U LIST then
+
+put Ci in queueGP U with LRU ;
+
+else if Ci in queueP AGE then
+queueP AGE.get(Ci) ;
+if index of Ci in GP U LIST then
+
+put Ci in queueGP U with LRU ;
+
+if index of Ci in P IN LIST then
+
+queueP IN.put(Ci) ;
+
+else
+
+load Ci from Disk ;
+if index of Ci in GP U LIST then
+
+put Ci in queueGP U with LRU ;
+
+if index of Ci in P IN LIST then
+
+queueP IN.put(Ci) ;
+
+if index of Ci in P AGE LIST then
+
+put Ci in queueP AGE with LRU ;
+
+TABLE I: System hardware and software configuration.
+
+Type
+
+Component
+
+Hardware
+
+Software
+
+Host
+
+Device
+
+OS
+Library
+
+Configuration
+CPU: Intel Xeon Platinum 8336C
+Memory: 516 GB
+PCIe: PCIe 4.0 x16/x8
+GPU: NVIDIA A100
+Memory: 40 GB
+Ubuntu 22.04
+PyTorch: 2.0.1, CUDA: 11.5
+
+during inference. In our experiments, TurboRAG stores KV
+chunks in BF16 format.
+
+Evaluation Metrics: Time-to-First-Token (TTFT) measures
+the latency between receiving an input and generating the
+
+TABLE II: Comparison of decompression time and compres-
+sion ratio for different compression methods.
+
+Compression
+method
+FP8 E4M3
+FP8 E5M2
+INT8
+GSE-8
+
+Decompression
+time (s)
+284.86
+254.72
+20.23
+17.38
+
+Compression
+ratio
+1.9996
+1.9996
+1.9988
+1.9996
+
+first output
+token. Since RAG expands the input context
+with external documents, the prefill stage becomes slower.
+Our method primarily optimizes KV chunk loading overhead,
+making TTFT a key metric to evaluate our improvements.
+The second metric is ROUGE-1 F1 [53]. ROUGE (Recall-
+Oriented Understudy for Gisting Evaluation) assesses the
+quality of LLM-generated text. ROUGE-1 measures unigram
+overlap between generated and reference texts, with three
+key sub-metrics: ROUGE-1 Recall, ROUGE-1 Precision, and
+ROUGE-1 F1 (harmonic mean of recall and precision). We
+use ROUGE-1 F1 to evaluate the impact of different methods
+on the accuracy of RAG systems.
+
+B. Parameter Configuration
+
+1) Comparison of Efficiency and Precision Loss among
+Compression Methods: We apply various compression meth-
+ods to KV chunks originally represented in BF16 format and
+evaluate their compression ratios and decompression times on
+a dataset of size 1024, as summarized in Table II. Additionally,
+the GSE-8 format supports multiple encoding schemes based
+on the bit widths assigned to the exponent and fraction,
+such as 1 + 2 + 5, 1 + 3 + 4, and 1 + 4 + 3, where the
+first digit represents the sign bit, the second represents the
+exponent width, and the third represents the fraction width.
+We conduct experiments on these three variants and find that
+the 1+4+3 configuration yields the smallest error. Therefore,
+this configuration is adopted in our following experiments. As
+shown in Table II, GSE-8 achieves the lowest decompression
+latency, followed by INT8. In contrast, both FP8 formats
+exhibit higher decompression overhead. Since all methods
+use 8-bit representations, the resulting compression ratios are
+approximately the same.
+
+Furthermore, we evaluate the accuracy loss introduced by
+different compression methods using the Root Mean Square
+Error (RMSE) between the decompressed and original data, as
+defined in Equation (1). Here, xi denotes the decompressed
+value, ˆxi is the original value before compression, and N
+represents the number of elements in each KV chunk. Fig-
+ure 9 illustrates the RMSE results across various compression
+methods. It can be observed that INT8 yields the smallest
+accuracy loss, followed by E4M3. Due to its smaller fraction
+width, E5M2 exhibits a larger error than E4M3. GSE-8 results
+in the highest accuracy loss.
+
+RM SE =
+
+(cid:118)
+(cid:117)
+(cid:117)
+(cid:116)
+
+1
+N
+
+N
+(cid:88)
+
+i=1
+
+(xi − ˆxi)2
+
+(1)
+
+Fig. 9: Root mean square error of different compression
+methods.
+
+Fig. 10: The impact of each compression method on the
+inference accuracy of the RAG system.
+
+To further investigate the impact of different compression
+methods on the inference quality of RAG systems, we evaluate
+the accuracy of the RAG when using each compression method
+individually on 1024 test queries. Figure 10 and Figure 11
+illustrate the ROUGE-1 F1 scores of each method relative
+to the TurboRAG. In Figure 10, the results are sorted in
+descending order based on the ROUGE-1 F1 scores of the
+FP8 format. In Figure 11, results are sorted in descending
+order based on respective ROUGE-1 F1 scores.
+
+We can observe from Figure 11 that the overall trend of
+ROUGE-1 F1 scores aligns with the RMSE patterns observed
+in Figure 9. Specifically, INT8 achieves the smallest accuracy
+degradation, with over 80% of the KV chunks yielding a
+ROUGE-1 F1 score above 0.5. E4M3 and E5M2 follow,
+while GSE-8 shows the lowest performance, with about 40%
+of KV chunks achieving a ROUGE-1 F1 score above 0.5.
+Nevertheless, one interesting observation from the Figure 10
+is that the impact of compression methods on ROUGE-1 F1
+is not always consistent with the general trend of GSE-8
+> E5M2 > E4M3 > INT8. For certain KV chunks, GSE-
+8 surprisingly introduces less accuracy degradation than the
+other compression methods.
+
+Based on the above experimental observations, we conclude
+the four compression methods each have their own
+
+that
+
+(a) E4M3
+
+(b) E5M2
+
+Fig. 12: Performance comparison of τ1, τ2, and τ3 under four
+parameter configurations.
+
+(c) INT8
+
+(d) GSE-8
+
+Fig. 11: Comparison of the inference accuracy of the RAG sys-
+tem under different compression methods, ranked by ROUGE-
+1 F1 score in descending order.
+
+advantages in terms of efficiency and accuracy. Therefore,
+we use a combination of the four methods to compress KV
+chunks. Specifically, we use INT8 to compress the most
+frequently accessed KV chunks, which minimizes accuracy
+while achieving high decompression efficiency. For the next
+most frequently accessed KV chunks, we use E4M3 and then
+E5M2 for compression. For the least frequently accessed KV
+chunks, we use GSE-8 for compression.
+
+2) Threshold Parameter Selection: Based on the observa-
+tions in the previous subsection regarding the efficiency and
+accuracy of the four compression methods, we can interpret
+the threshold parameters τ1, τ2, and τ3 in Algorithm 1 as
+corresponding to KV chunks compressed using INT8, E4M3,
+and E5M2, respectively. In this experiment, we set the fol-
+lowing four groups of thresholds to investigate how different
+parameter settings affect final performance and accuracy.
+
+• P aram1 = {τ1 : 10%, τ2 : 5%, τ3 : 5%}
+• P aram2 = {τ1 : 10%, τ2 : 10%, τ3 : 5%}
+• P aram3 = {τ1 : 10%, τ2 : 10%, τ3 : 10%}
+• P aram4 = {τ1 : 15%, τ2 : 10%, τ3 : 10%}
+Additionally, in this experiment,
+
+the three thresholds in
+Algorithm 2 are fixed as τGP U = 5%, τP IN = 5%, and
+τP AGE = 10%. Figure 12 and Figure ?? illustrate the impact
+of the four parameter configurations on the efficiency and
+accuracy of RAG inference (size of test set is 1024). It can be
+observed that the third parameter configuration achieves the
+highest inference efficiency. As shown in Figure ??, the third
+parameter configuration also results in comparable inference
+accuracy compared with others.
+
+In this experiment, we fix the thresholds in Algorithm 1 to
+the above first parameter configuration and evaluate the impact
+of the three thresholds in Algorithm 2, τGP U , τP IN , and
+τP AGE, on the inference efficiency of the RAG system. We
+consider the following two groups of parameter configurations.
+
+(a) Param1
+
+(b) Param2
+
+(c) Param3
+
+(d) Param4
+
+Fig. 13: ROUGE-1 F1 scores comparison of τ1, τ2, and τ3
+under four parameter configurations.
+
+• P aram1 = {τGP U : 5%, τP IN : 5%, τP AGE : 10%}
+• P aram2 = {τGP U : 5%, τP IN : 10%, τP AGE : 20%}
+Since these parameters do not affect the inference accuracy
+of RAG,
+this experiment focuses on comparing inference
+efficiency. We find that the TTFT speedup for both P aram1
+and P aram2 is about 1.66×. In summary, based on the above
+experimental results, we set the three threshold parameters in
+Algorithm 1 to τ1 = 10%, τ2 = 10%, and τ3 = 10%, and
+the three threshold parameters in Algorithm 2 to τGP U = 5%,
+τP IN = 5%, and τP AGE = 10% for all subsequent experi-
+ments.
+
+C. Comparison with the SOTA
+
+In this subsection, we compare the performance and ac-
+curacy of our proposed HA-RAG with TurboRAG. The test
+set sizes are set to 256, 512, 1024, 2048, and 4096, respec-
+tively. Figure 14 shows the TTFT speedup of HA-RAG over
+TurboRAG under different test set sizes. It can be observed
+that, overall, the speedup of HA-RAG increases with the size
+of the test set. When the test set size reaches 4096, the average
+speedup achieves 2.10×. This is because, as the test set size
+increases, the frequency of I/O operations for loading KV
+
+Fig. 14: Experimental results of HA-RAG on datasets of
+varying sizes.
+
+Fig. 16: Ablation study results.
+
+• The first configuration uses only the heat-aware mixed-
+precision compression and loading method, denoted as
+MP-only.
+
+• The second configuration uses only the heat-aware data
+placement optimization, but without optimization involv-
+ing pinned memory, denoted as DP(w/o-Pin).
+
+• The third configuration uses only the data placement
+optimization in pinned memory, denoted as DP(Pin-only).
+• The fourth configuration applies data placement opti-
+mization across multi-level memory without using mixed-
+precision compression and loading, denoted as DP-only.
+Figure 16 shows the TTFT speedup of HA-RAG relative
+to TurboRAG under these four experimental configurations.
+From the figure, we can observe that MP-only achieves
+a significant performance improvement, delivering a 1.75×
+speedup over the baseline. The reason is that
+the mixed-
+precision compression method reduces the KV chunk size by
+about half, significantly lowering the overhead of KV chunk
+loading, memory usage, and memory access. In contrast, the
+performance gains from data placement optimization strategies
+are relatively limited. On one hand, frequently accessed KV
+chunks are often automatically placed in CPU pageable mem-
+ory by the operating system, which usually resides in CPU
+RAM. Since transferring data from CPU pageable memory to
+pinned memory and from pinned memory to GPU memory
+is significantly faster than loading data from disk, the perfor-
+mance bottleneck remains at the initial data loading from disk.
+On the other hand, if a KV chunk is repeatedly accessed by
+adjacent prompts, it’s highly likely that it already resides in
+GPU memory during subsequent accesses, making it difficult
+for data placement optimizations to deliver further speedup.
+
+IV. RELATED WORK
+
+A considerable body of research has been devoted to
+improving the inference efficiency of RAG systems. These
+optimization techniques primarily focus on four aspects: KV
+cache precomputation and reuse, KV cache compression,
+improvements in retrieval efficiency, and scheduling strategy
+optimization.
+
+In terms of KV cache precomputation, several studies aim
+to reduce computation overhead during inference by generat-
+ing KV caches for retrieved documents in advance. TurboRAG
+
+Fig. 15: Speedup of HA-RAG on 4,096 inputs.
+
+chunks from disk into memory gradually decreases, while
+the hit rates of pageable memory, pinned memory, and GPU
+memory increase. As a result, the acceleration effect of HA-
+RAG improves accordingly.
+
+To further analyze the acceleration effect of HA-RAG, we
+conducted a statistical analysis of the speedup across 4,096
+inputs, as shown in Figure 15. We observed that for the first
+2048 inputs, the average speedup of HA-RAG is relatively
+modest, around 1.65×. As KV chunks are gradually optimized
+and placed across different storage, the frequency of HA-RAG
+loading or reading data from high-speed storage such as GPU
+memory and pinned memory increases during the processing
+of subsequent tasks, leading to improved overall efficiency. For
+the latter 2048 inputs, HA-RAG achieves an average speedup
+of 2.55×, with a maximum speedup of 10.49×.
+
+The impact of the HA-RAG method on text generation
+quality is shown in Figure 13(c). For 1,024 inputs, HA-RAG is
+able to generate results that are identical to those of TurboRAG
+(ROUGE-1 F1=1) for approximately 60% of the inputs. On
+more than 80% of the inputs, HA-RAG achieves a ROUGE-
+1 F1 score greater than 0.5. These results indicate that HA-
+RAG can significantly improve inference efficiency without
+noticeably affecting the quality of text generation.
+
+D. Ablation Study
+
+This subsection evaluates the performance improvements
+brought by different optimization techniques proposed in this
+paper under a dataset size of 4096. Four experimental config-
+urations are used:
+
+[6] segments documents and precomputes Keys and Values
+for each chunk, allowing the inference phase to directly load
+relevant KV chunks, thus substantially reducing computational
+redundancy and achieving acceleration. KVLINK [13] further
+enhances this by stitching together multiple precomputed
+KV chunks to support diverse context requirements, thereby
+improving inference efficiency and scalability. Work [29]
+combines KV cache precomputation with an adaptive parallel
+encoding strategy to deliver end-to-end performance gains
+while maintaining generation quality.
+
+Beyond precomputation, KV cache reuse is also widely
+employed to eliminate redundant computation and improve
+resource utilization. HyperRAG [7] leveraged historical KV
+caches along with system-level optimizations to improve infer-
+ence throughput. CacheBlend [8] selectively recomputed and
+updated the KV cache for certain tokens and executes these
+updates in parallel with the retrieval process, thereby signif-
+icantly reducing the TTFT without affecting output quality.
+Cache-Craft [10] introduced a strategy to evaluate the reusabil-
+ity of KV chunks and employed an efficient recomputation
+mechanism to mitigate potential quality degradation caused
+by reuse. Block-attention [26] partitioned retrieved documents
+into discrete blocks and computed KV independently, which
+helps reduce initial inference delay. Work [34] further reduced
+redundant KV computation by reusing context information
+from similar queries, thereby improving overall efficiency.
+
+For KV cache compression, CacheGen [16] employed a
+custom tensor encoder that exploits the distributional proper-
+ties of KV caches to encode them into compact bitstream rep-
+resentations, aiming to reduce both network and computational
+latency. This method proves particularly useful in resource-
+constrained or large-scale deployment scenarios.
+
+Regarding retrieval efficiency, various studies propose
+forward-looking and structured retrieval mechanisms. CAG
+[11] eliminated retrieval latency through preloading, simplify-
+ing system execution. RAGCache [12] organized intermediate
+states of retrieved knowledge into a tree structure and incor-
+porates caching and speculative inference, enabling parallel
+execution of retrieval and generation and significantly boost-
+ing efficiency. Proximity [15] reduced high-latency retrieval
+operations by adopting an approximate KV cache mechanism.
+TELERAG [22] introduced a lookahead retrieval mechanism
+coupled with asynchronous data transfer to improve end-to-
+end latency. AquaPipe [35] applied prefetching strategies to
+parallelize retrieval and inference, increasing overall through-
+put. LightRAG [44] introduced graph-based structures and a
+dual-layer indexing mechanism to enhance retrieval accuracy
+and efficiency simultaneously.
+
+In the realm of scheduling strategies, researchers have
+explored a variety of resource management and execution
+models to alleviate bottlenecks. VectorLiteRAG [17] dynam-
+ically placed frequently accessed vector indices into high-
+bandwidth memory (HBM), improving system responsiveness.
+Cake [20] proposed a bidirectional and adaptive scheduling
+mechanism to enable parallel computation of multiple tasks,
+thereby enhancing overall system throughput. RAGDoll [25]
+
+adopted a pipelined parallelism approach to concurrently pro-
+cess retrieval and inference, effectively reducing latency. Work
+[56] developed a specialized retriever for precise retrieval of
+critical pages and employs unsupervised post-training to opti-
+mize the model’s ability to utilize the retrieved information.
+
+In addition to these mainstream directions, several other
+studies present novel optimization strategies from the per-
+spective of system architecture and cache resource man-
+agement. By encoding the retrieved documents in parallel,
+work [5] eliminated the latency introduced by long-range at-
+tention over the retrieved content. Work [9] introduced a disk-
+based shared KV cache management system that improves
+throughput and latency under constrained resource conditions.
+KVShare [15] utilized a Dual-Stage High Deviation (DHD)
+mechanism and a cache-aware scheduler to improve through-
+put. Task-KV [18] dynamically allocates KV cache resources
+based on task types, enhancing system flexibility. RAGServe
+[21] reduced inference latency by tuning query configuration
+parameters while maintaining generation quality. HCache [27]
+proposed restoring LLM states from intermediate activations to
+improve context processing efficiency. Work [55] proposed a
+novel RAG framework-Intelligence Concentration (IC)-which
+mitigates the challenge in RAG systems of simultaneously
+achieving high accuracy, short context length, and low re-
+sponse time. DRAGON [34] enhanced generation quality by
+integrating general and personalized knowledge while employ-
+ing an adaptive scheduling algorithm in a distributed setting,
+reducing TTFT and preserving privacy.
+
+Collectively, these methods significantly enhance system
+throughput and accelerate inference speed. However, these
+studies pay limited attention to the access patterns and data
+distribution characteristics of KV caches within retrieved doc-
+uments, leaving room for further refinement in this aspect.
+Building upon this foundation, our work further explores
+the optimization of RAG inference efficiency by leverag-
+ing the observation on access patterns and data distribution
+KV chunks, thereby pushing the performance boundary of
+retrieval-augmented generation systems.
+
+V. CONCLUSION
+
+This paper addresses the critical KV chunks loading and
+memory access bottlenecks in RAG systems through a novel
+hotness-aware optimization framework. By analyzing the ac-
+cess patterns and numerical distributions of KV chunks, we
+develop an approach combining mixed-precision compression
+with hotness-aware data placement optimization. Our solution
+employs four precision-reduced representations: INT8, FP8
+formats (E4M3 and E5M2), and an enhanced grouped shared-
+exponent method, to achieve mixed-precision compression for
+KV chunks based on their access frequency. Furthermore, we
+introduce a hotness-aware data placement optimization method
+that prioritizes high-frequency chunks in faster memory hi-
+erarchies. Comprehensive experiments demonstrate that HA-
+RAG achieves substantial performance gains over TurboRAG,
+delivering an average speedup of 2.10x while introducing
+
+negligible accuracy degradation. These advancements signif-
+icantly improve the practical deployment efficiency of RAG
+systems, establishing an effective balance between inference
+performance and accuracy.
+
+REFERENCES
+
+[1] L. Lamport, LATEX: A Document Preparation System, 2nd ed. Reading,
+
+Massachusetts: Addison-Wesley, 1994.
+
+[2] F. Lastname1 and F. Lastname2, “A very nice paper to cite,” in Proceed-
+ings of the 26th IEEE International Symposium on High Performance
+Computer Architecture, 2016.
+
+[3] F. Lastname1, F. Lastname2, and F. Lastname3, “Another very nice paper
+to cite,” in Proceedings of the 48th Annual IEEE/ACM International
+Symposium on Microarchitecture, 2015.
+
+[4] F. Lastname1, F. Lastname2, F. Lastname3, F. Lastname4, F. Lastname5,
+F. Lastname6, F. Lastname7, F. Lastname8, F. Lastname9, F. Last-
+name10, F. Lastname11, and F. Lastname12, “Yet another very nice
+paper to cite, with many author names all spelled out,” in Proceedings
+of the 38th Annual International Symposium on Computer Architecture,
+2011.
+
+[5] Y. Zhu, J.-C. Gu, C. Sikora, H. Ko, Y. Liu, C.-C. Lin, L. Shu,
+L. Luo, L. Meng, B. Liu et al., “Accelerating Inference of Retrieval-
+Augmented Generation via Sparse Context Selection,” arXiv preprint
+arXiv:2405.16178, 2024.
+
+[6] S. Lu, H. Wang, Y. Rong, Z. Chen, and Y. Tang, “TurboRAG: Accel-
+erating Retrieval-Augmented Generation with Precomputed KV Caches
+for Chunked Text,” arXiv preprint arXiv:2410.07590, 2024.
+
+[7] Y. An, Y. Cheng, S. J. Park, and J. Jiang, “HyperRAG: Enhancing
+Quality-Efficiency Tradeoffs in Retrieval-Augmented Generation with
+Reranker KV-Cache Reuse,” arXiv preprint arXiv:2504.02921, 2025.
+[8] J. Yao, H. Li, Y. Liu, S. Ray, Y. Cheng, Q. Zhang, K. Du, S. Lu,
+and J. Jiang, “CacheBlend: Fast Large Language Model Serving for
+RAG with Cached Knowledge Fusion,” in Proceedings of the Twentieth
+European Conference on Computer Systems, 2025, pp. 94–109.
+
+[9] H. Lee, K. Kim, J. Kim, J. So, M.-H. Cha, H.-Y. Kim, J. J.
+Kim, and Y. Kim, “Shared Disk KV Cache Management for Effi-
+cient Multi-Instance Inference in RAG-Powered LLMs,” arXiv preprint
+arXiv:2504.11765, 2025.
+
+[10] S. Agarwal, S. Sundaresan, S. Mitra, D. Mahapatra, A. Gupta,
+R. Sharma, N. J. Kapu, T. Yu, and S. Saini, “Cache-Craft: Managing
+Chunk-Caches for Efficient Retrieval-Augmented Generation,” Proceed-
+ings of the ACM on Management of Data, vol. 3, no. 3, pp. 1–28, 2025.
+[11] B. J. Chan, C.-T. Chen, J.-H. Cheng, and H.-H. Huang, “Don’t Do RAG:
+When Cache-Augmented Generation Is All You Need for Knowledge
+Tasks,” in Companion Proceedings of the ACM on Web Conference 2025,
+2025, pp. 893–897.
+
+[12] C. Jin, Z. Zhang, X. Jiang, F. Liu, X. Liu, X. Liu, and X. Jin,
+“RAGCache: Efficient Knowledge Caching for Retrieval-Augmented
+Generation,” arXiv preprint arXiv:2404.12457, 2024.
+
+[13] J. Yang, B. Hou, W. Wei, Y. Bao, and S. Chang, “KVLink: Accelerating
+Large Language Models via Efficient KV Cache Reuse,” arXiv preprint
+arXiv:2502.16002, 2025.
+
+[14] H. Yang, R. Zhang, M. Huang, W. Wang, Y. Tang, Y. Li, Y. Liu, and
+D. Zhang, “Kvshare: An LLM Service System With Efficient And Effec-
+tive Multi-Tenant KV Cache Reuse,” arXiv preprint arXiv:2503.16525,
+2025.
+
+[15] S. A. Bergman, Z. Ji, A.-M. Kermarrec, D. Petrescu, R. Pires, M. Randl,
+and M. de Vos, “Leveraging Approximate Caching For Faster Retrieval-
+Augmented Generation,” in Proceedings of the 5th Workshop on Ma-
+chine Learning and Systems, 2025, pp. 66–73.
+
+[16] Y. Liu, H. Li, Y. Cheng, S. Ray, Y. Huang, Q. Zhang, K. Du, J. Yao,
+S. Lu, G. Ananthanarayanan et al., “Cachegen: KV Cache Compression
+And Streaming For Fast Large Language Model Serving,” in Proceed-
+ings of the ACM SIGCOMM 2024 Conference, 2024, pp. 38–56.
+[17] J. Kim and D. Mahajan, “An Adaptive Vector Index Partitioning Scheme
+For Low-Latency RAG Pipeline,” arXiv preprint arXiv:2504.08930,
+2025.
+
+[18] X. He, J. Liu, and S. Chen, “Task-Kv: Task-Aware KV Cache Optimiza-
+tion Via Semantic Differentiation Of Attention Heads,” arXiv preprint
+arXiv:2501.15113, 2025.
+
+[19] N. Javidnia, B. D. Rouhani, and F. Koushanfar, “Key, Value, Compress:
+A Systematic Exploration Of KV Cache Compression Techniques,” in
+2025 IEEE Custom Integrated Circuits Conference (CICC).
+IEEE,
+2025, pp. 1–3.
+
+[20] S. Jin, X. Liu, Q. Zhang, and Z. M. Mao, “Compute or Load KV Cache?
+
+Why Not Both?” arXiv preprint arXiv:2410.03065, 2024.
+
+[21] S. Ray, R. Pan, Z. Gu, K. Du, G. Ananthanarayanan, R. Netravali, and
+J. Jiang, “Ragserve: Fast Quality-Aware RAG Systems With Configura-
+tion Adaptation,” arXiv preprint arXiv:2412.10543, 2024.
+
+[22] C.-Y. Lin, K. Kamahori, Y. Liu, X. Shi, M. Kashyap, Y. Gu,
+R. Shao, Z. Ye, K. Zhu, S. Wang et al., “Telerag: Efficient Retrieval-
+Augmented Generation Inference With Lookahead Retrieval,” arXiv
+preprint arXiv:2502.20969, 2025.
+
+[23] J. Ou, J. Guo, S. Jiang, Z. Wang, L. Qin, S. Yao, and W. Tian, “Ac-
+celerating Adaptive Retrieval Augmented Generation Via Instruction-
+Driven Representation Reduction Of Retrieval Overlaps,” arXiv preprint
+arXiv:2505.12731, 2025.
+
+[24] J. Hu, W. Huang, W. Wang, H. Wang, T. Hu, Q. Zhang,
+H. Feng, X. Chen, Y. Shan, and T. Xie, “Epic: Efficient position-
+independent caching for serving large language models,” arXiv preprint
+arXiv:2410.15332, 2024.
+
+[25] W. Yu, N. Liao, S. Luo, and J. Liu, “RAGDoll: Efficient Offloading-
+based Online RAG System on a Single GPU,” arXiv preprint
+arXiv:2504.15302, 2025.
+
+[26] D. Ma, Y. Wang, and L. Tian, “Block-Attention for Efficient Prefilling,”
+
+arXiv preprint arXiv:2409.15355, 2024.
+
+[27] S. Gao, Y. Chen, and J. Shu, “Fast State Restoration in LLM Serving
+with HCache,” in Proceedings of the Twentieth European Conference on
+Computer Systems, 2025, pp. 128–143.
+
+[28] I. Gim, G. Chen, S.-s. Lee, N. Sarda, A. Khandelwal, and L. Zhong,
+“Prompt Cache: Modular Attention Reuse for Low-Latency Inference,”
+Proceedings of Machine Learning and Systems, vol. 6, pp. 325–338,
+2024.
+
+[29] X. Yang, T. Chen, and B. Chen, “Ape: Faster and Longer Context-
+Augmented Generation via Adaptive Parallel Encoding,” arXiv preprint
+arXiv:2502.05431, 2025.
+
+[30] Y. Yu, Y. Gan, L. Tsai, N. Sarda, J. Shen, Y. Zhou, A. Krishna-
+murthy, F. Lai, H. M. Levy, and D. Culler, “EchoLM: Accelerating
+LLM Serving with Real-Time Knowledge Distillation,” arXiv preprint
+arXiv:2501.12689, 2025.
+
+[31] A. Qiao, Z. Yao, S. Rajbhandari, and Y. He, “SwiftKV: Fast Prefill-
+Optimized Inference with Knowledge-Preserving Model Transforma-
+tion,” arXiv preprint arXiv:2410.03960, 2024.
+
+[32] Y. Tang, R. Cheng, P. Zhou, T. Liu, F. Liu, W. Tang, K. Bae, J. Chen,
+W. Xiang, and R. Shi, “Exploring CXL-Based KV Cache Storage for
+LLM Serving,” in Workshop on ML for Systems at NeurIPS, 2024.
+[33] S. Liu, Z. Zheng, X. Huang, F. Wu, G. Chen, and J. Wu, “Efficient
+Distributed Retrieval-Augmented Generation for Enhancing Language
+Model Performance,” arXiv preprint arXiv:2504.11197, 2025.
+
+[34] C. Couturier, S. Mastorakis, H. Shen, S. Rajmohan, and V. R¨uhle,
+“Semantic Caching of Contextual Summaries for Efficient Question-
+Answering with Language Models,” arXiv preprint arXiv:2505.11271,
+2025.
+
+[35] R. Yu, W. Huang, S. Bai, J. Zhou, and F. Wu, “AquaPipe: A Quality-
+Aware Pipeline for Knowledge Retrieval and Large Language Models,”
+Proceedings of the ACM on Management of Data, vol. 3, no. 1, pp.
+1–26, 2025.
+
+[36] Z. Yu, S. Liu, P. Denny, A. Bergen, and M. Liut, “Integrating Small
+Language Models with Retrieval-Augmented Generation in Computing
+Education: Key Takeaways, Setup, and Practical Insights,” in Proceed-
+ings of
+the 56th ACM Technical Symposium on Computer Science
+Education V. 1, 2025, pp. 1302–1308.
+
+[37] R. Liu, X. Xiao, H. Huang, Z. Chi, and Z. Wu, “FlashBack: Efficient
+Retrieval-Augmented Language Modeling for Long Context Inference,”
+arXiv preprint arXiv:2405.04065, 2024.
+
+[38] H. Qian, Z. Liu, C. Gao, Y. Wang, D. Lian, and Z. Dou, “HawkBench:
+Investigating Resilience of RAG Methods on Stratified Information-
+Seeking Tasks,” arXiv preprint arXiv:2502.13465, 2025.
+
+[39] M. Chen, Y. Li, K. Padthe, R. Shao, A. Sun, L. Zettlemoyer, G. Ghosh,
+and W.-t. Yih, “Improving Factuality with Explicit Working Memory,”
+arXiv preprint arXiv:2412.18069, 2024.
+
+[40] Z. Zheng, X. Ji, T. Fang, F. Zhou, C. Liu, and G. Peng, “Batch-
+LLM: Optimizing Large Batched LLM Inference with Global Pre-
+
+fix Sharing and Throughput-Oriented Token Batching,” arXiv preprint
+arXiv:2412.03594, 2024.
+
+[41] S. Wang, B. Z. Li, M. Khabsa, H. Fang, and H. Ma, “Linformer: Self-
+Attention with Linear Complexity,” arXiv preprint arXiv:2006.04768,
+2020.
+[42] J. Monteiro,
+
+´E. Marcotte, P.-A. No¨el, V. Zantedeschi, D. V´azquez,
+N. Chapados, C. Pal, and P. Taslakian, “XC-Cache: Cross-Attending
+for Efficient LLM Inference,” arXiv preprint
+to Cached Context
+arXiv:2404.15420, 2024.
+
+[43] Z. Zhang, Y. Sheng, T. Zhou, T. Chen, L. Zheng, R. Cai, Z. Song,
+Y. Tian, C. R´e, C. Barrett et al., “H2O: Heavy-Hitter Oracle for Efficient
+Generative Inference of Large Language Models,” Advances in Neural
+Information Processing Systems, vol. 36, pp. 34 661–34 710, 2023.
+[44] Z. Guo, L. Xia, Y. Yu, T. Ao, and C. Huang, “LightRAG:
+Simple and Fast Retrieval-Augmented Generation,” arXiv preprint
+arXiv:2410.05779, 2024.
+
+[45] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal,
+H. K¨uttler, M. Lewis, W.-t. Yih, T. Rockt¨aschel et al., “Retrieval-
+Augmented Generation for Knowledge-Intensive NLP Tasks,” Advances
+in Neural Information Processing Systems, vol. 33, pp. 9459–9474,
+2020.
+
+[46] T. Dao, D. Fu, S. Ermon, A. Rudra, and C. R´e, “FlashAttention: Fast
+and Memory-Efficient Exact Attention with IO-Awareness,” Advances
+in Neural Information Processing Systems, vol. 35, pp. 16 344–16 359,
+2022.
+
+[47] H. Touvron, L. Martin, K. Stone, P. Albert, A. Almahairi, Y. Babaei,
+N. Bashlykov, S. Batra, P. Bhargava, S. Bhosale et al., “LLaMA
+2: Open Foundation and Fine-Tuned Chat Models,” arXiv preprint
+arXiv:2307.09288, 2023.
+
+[48] T. Nguyen, M. Rosenberg, X. Song, J. Gao, S. Tiwary, R. Majumder,
+and L. Deng, “MS MARCO: A Human-Generated Machine Reading
+Comprehension Dataset,” 2016.
+
+[49] M. Joshi, E. Choi, D. S. Weld, and L. Zettlemoyer, “TriviaQA: A Large
+Scale Distantly Supervised Challenge Dataset for Reading Comprehen-
+sion,” arXiv preprint arXiv:1705.03551, 2017.
+
+[50] J. Gao, J. Shen, Y. Zhang, W. Ji, and H. Huang, “Precision-Aware
+Iterative Algorithms Based on Group-Shared Exponents of Floating-
+Point Numbers,” CoRR, vol. abs/2411.04686, 2024. [Online]. Available:
+https://doi.org/10.48550/arXiv.2411.04686
+
+[51] P. Micikevicius, D. Stosic, N. Burgess, M. Cornea, P. Dubey,
+R. Grisenthwaite, S. Ha, A. Heinecke, P.
+J. Kamalu,
+N. Mellempudi, S. F. Oberman, M. Shoeybi, M. Y. Siu, and H. Wu,
+“FP8 Formats for Deep Learning,” CoRR, vol. abs/2209.05433, 2022.
+[Online]. Available: https://doi.org/10.48550/arXiv.2209.05433
+
+Judd,
+
+[52] G.
+
+Izacard, M. Caron, L. Hosseini, S. Riedel, P. Bojanowski,
+A. Joulin, and E. Grave, “Unsupervised Dense Information Retrieval
+with Contrastive Learning,” Trans. Mach. Learn. Res., vol. 2022, 2022.
+[Online]. Available: https://openreview.net/forum?id=jKN1pXi7b0
+[53] C.-Y. Lin, “Rouge: A Package for Automatic Evaluation of Summaries,”
+
+in Text summarization branches out, 2004, pp. 74–81.
+
+[54] W. Fan, Y. Ding, L. Ning, S. Wang, H. Li, D. Yin, T. Chua,
+and Q. Li, “A Survey on RAG Meeting LLMs: Towards Retrieval-
+Augmented Large Language Models,” in Proceedings of
+the 30th
+ACM SIGKDD Conference on Knowledge Discovery and Data Mining,
+KDD 2024, Barcelona, Spain, August 25-29, 2024, R. Baeza-Yates
+and F. Bonchi, Eds. ACM, 2024, pp. 6491–6501. [Online]. Available:
+https://doi.org/10.1145/3637528.3671470
+
+[55] Z. Yu, S. Liu, P. Denny, A. Bergen, and M. Liut, “Integrating small
+language models with retrieval-augmented generation in computing
+education: Key takeaways, setup, and practical insights,” in Proceedings
+of the 56th ACM Technical Symposium on Computer Science Education
+V. 1, SIGCSE TS 2025, Pittsburgh, PA, USA, 26 February 2025 -
+1 March 2025, J. A. Stone, T. T. Yuen, L. Shoop, S. A. Rebelsky,
+and J. Prather, Eds. ACM, 2025, pp. 1302–1308. [Online]. Available:
+https://doi.org/10.1145/3641554.3701844
+
+[56] K. Luo, Z. Liu, P. Zhang, H. Qian, J. Zhao, and K. Liu, “Does RAG
+Really Perform Bad For Long-Context Processing?” arXiv preprint
+arXiv:2502.11444, 2025.
+
+[57] C. Ling, X. Zhao, J. Lu, C. Deng, C. Zheng, J. Wang, T. Chowdhury,
+Y. Li, H. Cui, X. Zhang et al., “Domain specialization as the key to
+make large language models disruptive: A comprehensive survey,” arXiv
+preprint arXiv:2305.18703, 2023.
+
+[58] J. Yang, H. Jin, R. Tang, X. Han, Q. Feng, H. Jiang, S. Zhong,
+B. Yin, and X. B. Hu, “Harnessing the power of llms in practice:
+
+A survey on chatgpt and beyond,” ACM Trans. Knowl. Discov.
+Data, vol. 18, no. 6, pp. 160:1–160:32, 2024. [Online]. Available:
+https://doi.org/10.1145/3649506
+
+[59] J. Robinson and D. Wingate, “Leveraging large language models for
+multiple choice question answering,” in The Eleventh International
+Conference on Learning Representations, ICLR 2023, Kigali, Rwanda,
+May 1-5, 2023. OpenReview.net, 2023. [Online]. Available: https:
+//openreview.net/forum?id=yKbprarjc5B
+
+[60] Y. Cao, S. Li, Y. Liu, Z. Yan, Y. Dai, P. S. Yu, and L. Sun, “A
+comprehensive survey of ai-generated content (AIGC): A history of
+generative AI from GAN to chatgpt,” CoRR, vol. abs/2303.04226,
+2023. [Online]. Available: https://doi.org/10.48550/arXiv.2303.04226
+
+[61] H. Xiao, F. Zhou, X. Liu, T. Liu, Z. Li, X. Liu, and X. Huang, “A
+Comprehensive Survey of Large Language Models and Multimodal
+Large Language Models in Medicine,” Inf. Fusion, vol. 117, p. 102888,
+2025. [Online]. Available: https://doi.org/10.1016/j.inffus.2024.102888
+[62] L. Huang, W. Yu, W. Ma, W. Zhong, Z. Feng, H. Wang, Q. Chen,
+W. Peng, X. Feng, B. Qin, and T. Liu, “A Survey on Hallucination in
+Large Language Models: Principles, Taxonomy, Challenges, and Open
+Questions,” ACM Trans. Inf. Syst., vol. 43, no. 2, pp. 42:1–42:55, 2025.
+[Online]. Available: https://doi.org/10.1145/3703155
+
+[63] G. Son, H. Lee, S. Kim, S. Kim, N. Muennighoff, T. Choi, C. Park,
+K. M. Yoo, and S. Biderman, “KMMLU: Measuring Massive Multitask
+Language Understanding in Korean,” in Proceedings of
+the 2025
+Conference of the Nations of the Americas Chapter of the Association
+for Computational Linguistics: Human Language Technologies, NAACL
+2025 - Volume 1: Long Papers, Albuquerque, New Mexico, USA,
+April 29 - May 4, 2025, L. Chiruzzo, A. Ritter, and L. Wang,
+Eds. Association for Computational Linguistics, 2025, pp. 4076–4104.
+[Online]. Available: https://doi.org/10.18653/v1/2025.naacl-long.206
+[64] Y. Huang, Y. Bai, Z. Zhu, J. Zhang, J. Zhang, T. Su, J. Liu,
+C. Lv, Y. Zhang, J. Lei, Y. Fu, M. Sun, and J. He, “C-Eval: A
+Multi-Level Multi-Discipline Chinese Evaluation Suite for Foundation
+Models,” in Advances in Neural
+Information Processing Systems
+36: Annual Conference on Neural Information Processing Systems
+2023, NeurIPS 2023, New Orleans, LA, USA, December 10 - 16,
+2023, A. Oh, T. Naumann, A. Globerson, K. Saenko, M. Hardt, and
+S. Levine, Eds., 2023. [Online]. Available: http://papers.nips.cc/paper
+files/paper/2023/hash/c6ec1844bec96d6d32ae95ae694e23d8-Abstract-
+Datasets and Benchmarks.html
+
+[65] T. Zhang, F. Ladhak, E. Durmus, P. Liang, K. R. McKeown, and
+T. B. Hashimoto, “Benchmarking Large Language Models for News
+Summarization,” Trans. Assoc. Comput. Linguistics, vol. 12, pp. 39–57,
+2024. [Online]. Available: https://doi.org/10.1162/tacl a 00632
+
+[66] W. Zhu, H. Liu, Q. Dong, J. Xu, S. Huang, L. Kong, J. Chen,
+and L. Li, “Multilingual Machine Translation with Large Language
+Models: Empirical Results and Analysis,” in Findings of the Association
+for Computational Linguistics: NAACL 2024, Mexico City, Mexico,
+June 16-21, 2024, K. Duh, H. G´omez-Adorno, and S. Bethard,
+Eds. Association for Computational Linguistics, 2024, pp. 2765–2781.
+[Online]. Available: https://doi.org/10.18653/v1/2024.findings-naacl.176
+[67] J. Wei, X. Wang, D. Schuurmans, M. Bosma, B. Ichter, F. Xia,
+E. H. Chi, Q. V. Le, and D. Zhou, “Chain-of-thought prompting
+elicits reasoning in large language models,” in Advances in Neural
+Information Processing Systems 35: Annual Conference on Neural
+Information Processing Systems 2022, NeurIPS 2022, New Orleans,
+LA, USA, November 28 - December 9, 2022, S. Koyejo, S. Mohamed,
+A. Agarwal, D. Belgrave, K. Cho, and A. Oh, Eds., 2022.
+[Online]. Available: http://papers.nips.cc/paper files/paper/2022/hash/
+9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html
+
+[68] F. Yu, H. Zhang, and B. Wang, “Nature language reasoning,
+A survey,” CoRR, vol. abs/2303.14725, 2023. [Online]. Available:
+https://doi.org/10.48550/arXiv.2303.14725
+
+[69] V. S. Sadasivan, A. Kumar, S. Balasubramanian, W. Wang, and
+S. Feizi, “Can AI-Generated Text be Reliably Detected? Stress Testing
+AI Text Detectors Under Various Attacks,” Trans. Mach. Learn. Res.,
+vol. 2025, 2025. [Online]. Available: https://openreview.net/forum?id=
+OOgsAZdFOt
+
+[70] Y. Bang, S. Cahyawijaya, N. Lee, W. Dai, D. Su, B. Wilie,
+H. Lovenia, Z. Ji, T. Yu, W. Chung, Q. V. Do, Y. Xu, and P. Fung,
+“A Multitask, Multilingual, Multimodal Evaluation of ChatGPT on
+Reasoning, Hallucination, and Interactivity,” in Proceedings of the 13th
+International Joint Conference on Natural Language Processing and
+the 3rd Conference of the Asia-Pacific Chapter of the Association for
+
+Computational Linguistics, IJCNLP 2023 -Volume 1: Long Papers,
+Nusa Dua, Bali, November 1 - 4, 2023, J. C. Park, Y. Arase,
+B. Hu, W. Lu, D. Wijaya, A. Purwarianti, and A. A. Krisnadhi,
+Eds. Association for Computational Linguistics, 2023, pp. 675–718.
+[Online]. Available: https://doi.org/10.18653/v1/2023.ijcnlp-main.45
+
+[71] N. M. Guerreiro, D. M. Alves,
+
+J. Waldendorf, B. Haddow,
+A. Birch, P. Colombo, and A. F. T. Martins, “Hallucinations
+in Large Multilingual Translation Models,” Trans. Assoc. Comput.
+Linguistics, vol. 11, pp. 1500–1517, 2023.
+[Online]. Available:
+https://doi.org/10.1162/tacl a 00615
+
+[72] Z. Ji, N. Lee, R. Frieske, T. Yu, D. Su, Y. Xu, E. Ishii, Y. Bang,
+A. Madotto, and P. Fung, “Survey of hallucination in natural language
+generation,” ACM Comput. Surv., vol. 55, no. 12, pp. 248:1–248:38,
+2023. [Online]. Available: https://doi.org/10.1145/3571730
+
+[73] Y. Huang, X. Feng, X. Feng, and B. Qin, “The factual inconsistency
+problem in abstractive text summarization: A survey,” CoRR, vol.
+abs/2104.14839, 2021. [Online]. Available: https://arxiv.org/abs/2104.
+14839
+
+[74] X. Hu, J. Chen, X. Li, Y. Guo, L. Wen, P. S. Yu, and Z. Guo, “Do Large
+Language Models Know about Facts?” CoRR, vol. abs/2310.05177,
+2023. [Online]. Available: https://doi.org/10.48550/arXiv.2310.05177

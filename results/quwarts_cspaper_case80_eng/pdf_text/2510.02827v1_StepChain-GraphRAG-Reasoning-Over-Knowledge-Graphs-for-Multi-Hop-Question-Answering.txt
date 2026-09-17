@@ -1,0 +1,934 @@
+5
+2
+0
+2
+
+t
+c
+O
+3
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+7
+2
+8
+2
+0
+.
+0
+1
+5
+2
+:
+v
+i
+X
+r
+a
+
+StepChain GraphRAG: Reasoning Over
+Knowledge Graphs for Multi-Hop Question
+Answering
+
+Tengjun Ni1, Xin Yuan2,4, Shenghong Li2, Kai Wu1, Ren Ping Liu1, Wei
+Ni3,4⋆, and Wenjie Zhang4
+
+1 University of Technology Sydney, Australia
+nitengjun2002@gmail.com
+Kai.Wu@uts.edu.au
+RenPing.Liu@uts.edu.au
+2 Data61, CSIRO, Australia
+xin.yuan@ieee.org
+shenghong.li@csiro.au
+3 School of Engineering, Edith Cowan University, Australia
+Wei.ni@ieee.org
+4 University of New South Wales, Australia
+wenjie.zhang@unsw.edu.au
+
+Abstract. Recent progress in retrieval-augmented generation (RAG)
+has led to more accurate and interpretable multi-hop question answering
+(QA). Yet, challenges persist in integrating iterative reasoning steps with
+external knowledge retrieval. To address this, we introduce StepChain
+GraphRAG, a framework that unites question decomposition with a
+Breadth-First Search (BFS) Reasoning Flow for enhanced multi-hop
+QA. Our approach first builds a global index over the corpus; at in-
+ference time, only retrieved passages are parsed on-the-fly into a knowl-
+edge graph, and the complex query is split into sub-questions. For each
+sub-question, a BFS-based traversal dynamically expands along relevant
+edges, assembling explicit evidence chains without overwhelming the lan-
+guage model with superfluous context. Experiments on MuSiQue, 2Wiki-
+MultiHopQA, and HotpotQA show that StepChain GraphRAG achieves
+state-of-the-art Exact Match and F1 scores. StepChain GraphRAG lifts
+average EM by 2.57% and F1 by 2.13% over the SOTA method, achiev-
+ing the largest gain on HotpotQA (+4.70% EM, +3.44% F1). StepChain
+GraphRAG also fosters enhanced explainability by preserving the chain-
+of-thought across intermediate retrieval steps. We conclude by discussing
+how future work can mitigate the computational overhead and address
+potential hallucinations from large language models to refine efficiency
+and reliability in multi-hop QA.
+
+Keywords: Multi-Hop Question Answering · Retrieval-Augmented Gen-
+eration · Knowledge Graph Construction.
+
+⋆ Corresponding author.
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+1
+
+T. Ni et al.
+
+Introduction
+
+Large language models (LLMs) have recently demonstrated remarkable capa-
+bilities in open-domain question answering (QA), summarization, and various
+knowledge-intensive tasks [31, 14]. Relying solely on parametric knowledge em-
+bedded within an LLM poses challenges for correctness, interpretability, and
+scalability [13]. As queries become more complex or domain-specific, a single
+pass through the model may overlook vital details, leading to incomplete or in-
+consistent answers [41]. To tackle this, researchers have increasingly embraced
+the paradigm of Retrieval-Augmented Generation (RAG), where external cor-
+pora or knowledge bases are leveraged to supplement the LLM’s internal repre-
+sentations [18].
+
+While RAG has emerged as a promising approach to mitigating the limita-
+tions of purely parametric knowledge, simply retrieving or concatenating exter-
+nal evidence without a coherent strategy can still lead to fragmented reasoning
+and opaque answers [18, 8]. Recent work has focused on Knowledge Graph RAG
+pipelines, such as GraphRAG, where evidence is organized into a single graph for
+improved interpretability [3, 25, 6, 15]. Existing GraphRAG methods often rely
+on ad-hoc strategies that fail to exploit the full potential of multi-hop reason-
+ing, especially when queries demand traversing multiple interconnected pieces of
+information.
+
+Improving these limitations requires overcoming several hurdles. Specifically,
+naively performing one-shot retrieval for multi-hop questions can lead to ei-
+ther missing critical details or overwhelming the model with superfluous infor-
+mation [12]. Such a lack of selectivity compromises the clarity of intermediate
+reasoning steps by making it difficult to identify and integrate only the most
+relevant evidence [20, 42]. Moreover, even when a graph structure is introduced
+to enhance explainability, it often remains static or fails to synchronize with
+the evolving inference process [34]. If nodes and edges are not updated at each
+intermediate step, the resulting graph can become cluttered or disconnected,
+creating gaps or redundancies that obscure the chain of reasoning [4]. These
+deficiencies are particularly evident in tasks that involve iterative or multi-turn
+queries, where previously retrieved knowledge must be revisited, refined, and
+logically connected to newly discovered evidence [26]. Without a systematic way
+to incorporate these ongoing updates, key insights may remain isolated or over-
+shadowed by irrelevant details, undermining the explainability and reliability of
+complex, multi-step reasoning.
+
+The above pitfalls of fragmented evidence aggregation, unwieldy graph up-
+dates, and limited multi-turn support motivate our StepChain GraphRAG
+framework, which interleaves a breadth-first search (BFS) Reasoning Flow
+(BFS-RF) decomposition with explicit graph-based maintenance of intermedi-
+ate results. Unlike conventional GraphRAG methods, which rely on static or
+shallow graph linking, StepChain GraphRAG dynamically updates the graph
+alongside each sub-question, allowing relevant evidence to be integrated in a
+principled manner [3]. Each sub-question triggers a targeted retrieval step, after
+which newly discovered evidence is inserted into the global graph via carefully
+
+StepChain GraphRAG
+
+3
+
+defined node and edge creation rules. This mitigates redundancy by reusing
+previously discovered information and provides a transparent record of partial
+inferences that can be seamlessly revisited or refined.
+
+The following are the key contributions of this paper:
+
+– Incremental Graph Updating: We propose an incremental graph aug-
+mentation mechanism that synchronizes the knowledge graph with every
+round of newly retrieved evidence, ensuring the reasoning context remains
+consistently up-to-date throughout the multi-hop process.
+
+– Iterative Multi-hop Reasoning: We combine our BFS-RF with expan-
+sions over the current graph to tackle queries requiring multiple rounds of
+inference. Each sub-question triggers a targeted BFS traversal that uncovers
+cross-textual dependencies without overwhelming the model with extraneous
+content, thus delivering a focused and efficient retrieval process.
+
+– Enhanced Explainability: By making intermediate results and their re-
+lationships explicit in a graph, our framework creates a more transparent
+and debuggable multi-hop QA pipeline than prior GraphRAG systems. The
+BFS-RF decomposition yields well-defined evidence paths at each step, al-
+lowing users and downstream modules to trace how partial inferences are
+built up from distinct pieces of retrieved information.
+
+By systematically capturing and reusing these intermediate insights, StepChain
+GraphRAG alleviates information overload, delivers enhanced transparency in
+complex reasoning, and offers a debuggable pipeline for multi-hop QA. Through
+this explicit interplay between BFS-RF and dynamic graph expansion, our frame-
+work maintains an up-to-date, coherent knowledge structure that improves clar-
+ity and allows robustness in iterative or multi-turn query scenarios. Concretely,
+StepChain GraphRAG improves over the strongest baseline (HopRAG) by +1.70/+0.48
+EM/F1 on MuSiQue, +1.30/+2.46 on 2WikiMultiHopQA, and +4.70/+3.44 on
+HotpotQA, yielding an average gain of +2.57 EM and +2.13 F1. We illustrate
+the end-to-end reasoning on an example in Fig. 1.
+
+2 Related Work
+
+2.1 Stepwise Reasoning for Multi-hop QA
+
+Recent research on multi-hop QA has increasingly focused on explicit stepwise
+reasoning, ensuring that models break down complex queries into more manage-
+able steps. Early methods introduced a pipeline that identifies simple queries and
+incrementally gathers evidence, demonstrating that step-by-step decomposition
+can improve accuracy and interpretability [27, 21]. More recent approaches lever-
+age LLMs by prompting them to articulate each reasoning step, often referred
+to as the “chain-of-thought (COT)” [33, 17].
+
+These COT strategies can operate either in few-shot or zero-shot settings, and
+additional techniques, e.g., self-consistency, have been developed to mitigate the
+variability of different reasoning paths [32]. A related idea is to guide the model
+
+4
+
+T. Ni et al.
+
+Fig. 1. Illustration of StepChain GraphRAG applied to a Harry Potter
+example. On the left, a partial knowledge graph encodes entities (e.g., Voldemort,
+Nagini) and relationships (“create,” “destroy”) derived via entity extraction and link-
+ing. On the right, our system decomposes the user’s query, “Who destroys the last
+Horcrux of Voldemort?”, into sub-questions about (1) how Horcruxes relate to Volde-
+mort, (2) which Horcrux is the final one, and (3) who destroys it. A BFS-based graph
+traversal gathers multi-hop evidence chains (e.g., “Voldemort → creates → Horcruxes,”
+“Nagini → final Horcrux,” “Neville → destroys → Nagini”), and partial answers from
+each sub-question are merged to form the conclusion: Neville is the one who destroys
+Voldemort’s last Horcrux.
+
+through a structured, incremental solving process, by addressing the simplest
+parts of the problem first [40] or interleaving tool usage with model reasoning
+[38]. Collectively, these studies highlight how prompting LLMs with intermediate
+steps can unlock powerful multi-hop reasoning capabilities, underscoring the
+importance of fine-grained decomposition to tackle complex queries.
+
+2.2 Retrieval-Augmented Generation
+
+A complementary research direction explores how to augment stepwise reasoning
+with external knowledge, giving rise to RAG models. Instead of relying solely on
+the language model’s parametric memory, these systems retrieve relevant pas-
+sages from a large text corpus or knowledge base [18, 8]. Once retrieved, the
+passages are fused into the generation process, often through specialized archi-
+tectures that can handle multiple candidate documents [10]. Scaling up these
+
+StepChain GraphRAG
+
+5
+
+retrieval-centric systems has enabled near state-of-the-art performance in both
+fully supervised and few-shot open-domain QA [11], emphasizing that external
+knowledge can bridge gaps in the model’s internal representation and reduce
+hallucinations. As multi-hop tasks grow in complexity, RAG methodologies be-
+come increasingly vital in ensuring that sufficient information is accessible to the
+reasoning module.
+
+2.3 Graph-based Retrieval and Reasoning
+
+Beyond plain text, there has been growing interest in leveraging graph struc-
+tures to organize and integrate knowledge for multi-hop reasoning. Some ap-
+proaches build entity graphs from retrieved passages, propagating information
+across nodes to establish consistent chains of evidence [22, 2, 4]. Others utilize
+existing knowledge graphs or hyperlink graphs, treating multi-hop QA as a path-
+finding problem [1]. More recent endeavors incorporate domain-specific knowl-
+edge graphs directly into the retrieval pipeline, enhancing the model’s awareness
+of structured relationships among entities [35, 43, 28]. Harnessing these relational
+cues, graph-based retrieval can improve both the interpretability and the accu-
+racy of multi-hop reasoning.
+
+In [3], a GraphRAG approach was proposed for query-focused summariza-
+tion, which constructs a graph to integrate both local and global contexts from
+retrieved documents. By organizing evidence in a graph and capturing relational
+dependencies, their method demonstrates how a graph-centric strategy can ef-
+fectively handle information fusion and improve the coherence of summarization.
+Although their work centers on summarization rather than QA, the principle of
+structuring retrieved evidence into interconnected graph nodes is readily trans-
+ferable to multi-hop QA settings, where stepwise reasoning stands to benefit
+from explicit relational representations.
+
+2.4 Summary
+
+Despite recent progress in multi-hop QA, most approaches rely on static or ad-
+hoc expansions of knowledge graphs, limiting their capacity to handle iterative
+queries or incorporate newly uncovered information. We address these gaps with
+our StepChain GraphRAG framework, which combines question decomposition
+and BFS-RF with dynamic graph maintenance. This unified pipeline dynami-
+cally inserts new evidence at each sub-question, refining the knowledge graph in
+real time. The result is a more transparent, debuggable process for multi-hop
+QA by fully exploiting both text-based retrieval and graph-structured insights.
+
+3 StepChain GraphRAG
+
+3.1 Overall Architecture
+
+As shown in Fig. 2, we propose a multi-stage pipeline to handle complex multi-
+hop queries while preserving interpretability. First, raw texts are chunked into
+
+6
+
+T. Ni et al.
+
+Fig. 2. An overview of the StepChain GraphRAG pipeline. First, the corpus is split
+into chunks, and retrieved chunks are parsed on-the-fly to extract entities and relations
+and are upserted into a knowledge graph. Next, a complex question is decomposed into
+multiple sub-questions, each answered via BFS-RF that traverses the graph to find
+relevant entities and relations. The discovered evidence chains are combined to yield
+partial answers for each sub-question. Finally, these partial answers are synthesized by
+the LLM to produce the final, fully grounded response.
+
+manageable segments and transformed incrementally into a knowledge graph
+that explicitly encodes entities and their relationships. This graph-based struc-
+ture maintains a clear, traceable representation of how pieces of information
+interlink. Rather than processing an entire query in a single shot, we decompose
+it into smaller, more focused sub-questions. This decomposition prevents the
+model from conflating multiple logic threads at once, allowing it to target and
+retrieve only the most relevant nodes and edges.
+
+Each sub-question is resolved through a BFS Reasoning Flow, where a breadth-
+
+first search systematically uncovers multi-hop evidence without overwhelming
+the model. Finally, the partial insights derived from each sub-question are merged
+into a single coherent answer, with a transparent trail illustrating how the ev-
+idence has been gathered and synthesized. By structuring the QA process into
+these steps, i.e., chunking and graph construction, question decomposition, BFS-
+based retrieval, and final synthesis, we reduce confusion, highlight key reason-
+ing paths, and deliver more interpretable, high-fidelity answers than single-pass
+methods.
+
+StepChain GraphRAG
+
+7
+
+3.2 Knowledge Graph Construction
+
+We start by transforming the raw document corpus into a structured knowledge
+graph to support multi-hop QA. First, each document τi in the corpus {τi}N
+is split into overlapping chunks for more manageable processing:
+
+i=1
+
+Di = Chunk(τi) = (cid:8)ci,1, ci,2, . . . , ci,ni
+
+(cid:9),
+
+and all such chunks across the corpus form the following set:
+
+D =
+
+N
+(cid:91)
+
+i=1
+
+Di.
+
+(1)
+
+(2)
+
+Next, we build the knowledge graph G = (V, E) by leveraging an LLM M
+to identify named entities and their relationships in each retrieved chunk ci,j. In
+particular, the model extracts all entity mentions (cid:0)e, αe
+(cid:1), where αe may include
+attributes such as entity type or alias:
+
+Extract(ci,j) = (cid:8)(e, αe) | e appears in ci,j
+
+(cid:9).
+
+(3)
+
+Any two entities (ea, eb) that co-occur in the same chunk lead to a relationship
+detection step,
+
+r = Link(ea, eb, ci,j),
+
+(4)
+
+producing an edge (cid:0)ea
+(cid:1) in G. By explicitly capturing entities and their
+relations in graph form, we construct multi-hop paths that might span multiple
+documents or distant passages.
+
+r−→ eb
+
+Note that, for the consideration of cost, we do not pre-parse the whole
+corpus into a graph. Only passages retrieved during reasoning are parsed into
+nodes/edges and upserted into G (see Sec. 3.5; for the first sub-question q1, we
+retrieve r passages from I to initialize G0 with V0). The entire corpus remains
+searchable in the global index I. This chunking reduces noise by limiting each
+segment to a smaller context window, yet retains enough local coherence for ac-
+curate entity extraction and relationship detection. It also helps avoid exceeding
+LLM token constraints during subsequent analysis.
+
+Finally, we optionally group highly interconnected entities via the Leiden
+
+community detection algorithm [29]:
+
+CG = Cluster(G) = {C1, C2, . . . , CK}.
+
+(5)
+
+Each community Ck ⊆ V can be summarized into a concise text snippet Sk with
+the LLM, which helps organize large graphs into topic-focused subgraphs. By
+capturing essential relationships in a structured form and optionally clustering
+them, we establish an explicit knowledge representation that better supports
+multi-hop reasoning.
+
+8
+
+T. Ni et al.
+
+3.3 Question Decomposition
+
+Complex, multi-faceted user queries q often conflate multiple objectives when
+being handled in a single pass, leading to confusion and incomplete answers.
+To mitigate this risk, we introduce a specialized question decomposition stage,
+defined as
+
+{q1, q2, . . . , qm} = Decompose(q),
+
+(6)
+
+where Decompose(q) splits the original query q into smaller or more targeted sub-
+questions. Each sub-question qi isolates a particular logical component, hidden
+assumption, or sequential dependency. In practice, decomposition often employs
+carefully designed prompt templates that guide the LLM to identify distinct
+facets (e.g., an entity definition vs. its causal relationships).
+
+This approach offers two advantages. On the one hand, it sharpens the focus
+of each retrieval step, ensuring that each sub-question draws upon only the
+most relevant evidence. On the other hand, it provides clearer interpretability
+by assigning each reasoning segment to a separate, traceable module. Unlike
+single-pass QA [17, 33], which risks blending multiple reasoning threads into one
+pass, our decomposition-based method produces reliable final answers and a
+transparent trail of how intermediate insights are derived.
+
+3.4 BFS-RF with Evidence Chain Provision
+
+Our framework designs BFS-RF to gather multi-hop evidence for each sub-
+question, reflecting the intuition that relevant information in a graph may lie
+several edges away from the starting point. By systematically expanding the
+search at each depth, BFS-RF mitigates the risk of missing crucial but indi-
+rectly connected nodes. Moreover, the evidence chains produced along each BFS
+path offer a clear, step-by-step audit trail of how specific entities and relations
+lead to partial answers, improving both interpretability and debuggability.
+
+After decomposing the original query into sub-questions {q1, . . . , qm}, we re-
+trieve the top-k entities in V whose embeddings (from a transformer or the LLM)
+best match each sub-question qj. Let {s1, . . . , sk} denote these seed entities. We
+perform a breadth-first search out to depth h, as given by
+(cid:12) dist(su, v) ≤ h(cid:9),
+
+BFS(su, h) = (cid:8)v ∈ V (cid:12)
+
+(7)
+
+where dist(su, v) is the shortest path distance in the knowledge graph G. We
+also collect the exact path structures, as given by
+
+Πsu={π | π : su → · · · → v, dist(su, v) ≤ h},
+
+(8)
+
+thus tracking how each reachable node links back to the seed entity. Each
+path π ∈ Πsu is translated into an “evidence chain,” for instance, EntityA
+– (relationX) –> EntityB – (relationY) –> EntityC, capturing not just
+which entities matter but how they connect. We concatenate these chain de-
+scriptions into a contextual string Cqj :
+
+Cqj = (cid:13)
+
+(cid:13)Desc(π)(cid:13)
+
+(cid:13)π∈(cid:83)k
+
+u=1 Πsu
+
+,
+
+(9)
+
+StepChain GraphRAG
+
+9
+
+where ∥ · ∥ denotes string concatenation. For j = 1, V denotes V0 obtained in
+the cold-start. Feeding Cqj and qj into the LLM M yields a partial answer Aj
+grounded in multi-hop evidence.
+
+The design behind BFS-RF and evidence chains rests on key objectives: cap-
+turing multi-hop links by examining nodes up to depth h, where indirect or
+cross-textual dependencies might reside; providing a transparent record of nodes
+and edges observed, which aids error analysis or further refinement; and main-
+taining a targeted focus on each sub-question rather than scattering attention
+across many unrelated paths. These features, combined with the question de-
+composition, supply a structured and interpretable solution for multi-faceted,
+multi-hop queries.
+
+Notably, in this paper, “retrieval on the graph” means that G constrains
+BFS expansions and provides path-level context; the actual passages are always
+fetched from the global index I.
+
+3.5
+
+Incremental Graph Augmentation
+
+After answering sub-question qj, we query the global index I conditioned on the
+current frontier Fj (entities/relations already visited) and obtain a small batch
+of passages Dnew. These passages are parsed on-the-fly to extract unseen entities
+and relations (V new, Enew), which are then upserted into the global graph G:
+
+G.add_nodes_from(V new), G.add_edges_from(Enew).
+
+This lazy regime reconciles the two descriptions: documents are retrieved from
+I, while G, possibly incomplete, steers BFS expansions and records path-level
+evidence chains. This retrieve-and-refresh loop keeps the knowledge graph syn-
+chronized with the latest evidence, ensuring that every subsequent BFS traversal
+operates over an up-to-date context while allowing earlier nodes/edges to be en-
+riched as information accrues.
+
+Moreover, Recall is preserved by searching I over the full corpus; precision is
+enforced via frontier-conditioned queries, dense+BM25 re-ranking, a minimum
+textual-support threshold before adding edges, and caps on BFS depth and fron-
+tier size. If V becomes empty, we directly retrieve r passages from I to re-seed
+before rerunning BFS.
+
+3.6 Merging Results and Final Model Output
+
+Once each sub-question qj has a partial answer Aj, we combine these interme-
+diate findings into a more holistic view of q. Specifically, we take {A1, . . . , Am}
+and the optional community summaries {S1, . . . , SK}, if relevant, and pass them
+to the LLM for a higher-level synthesis:
+
+Amerge=M
+
+(cid:17)
+(cid:16)
+{A1,. . ., Am}, {S1,. . ., SK}
+
+.
+
+(10)
+
+Each sub-question retrieves its own top-k seed entities, whereas the com-
+munity summaries {S1, . . . , SK} are computed once on the global graph and
+
+10
+
+T. Ni et al.
+
+Method
+
+MuSiQue
+
+2Wiki
+
+HotpotQA
+
+Average
+
+EM F1
+
+EM F1
+
+EM F1
+
+EM F1
+
+13.80 21.50 40.30 44.83 41.20 53.23 31.77 39.85
+BM25
+BGE
+20.80 30.10 40.10 44.96 47.60 60.36 36.17 45.14
+GraphRAG 12.10 20.22 22.50 27.49 31.70 42.74 22.10 30.15
+RAPTOR 36.40 49.09 53.80 61.45 58.00 73.08 49.40 61.21
+SiReRAG 40.50 53.08 59.60 67.94 61.70 76.48 53.93 65.83
+HopRAG 42.20 54.90 61.10 68.26 62.00 76.06 55.10 66.40
+
+Ours
+
+43.90 55.38 62.40 70.72 66.70 79.50 57.67 68.53
+
+Table 1. QA performance (EM and F1) on MuSiQue, 2Wiki, and HotpotQA with
+GPT-4o using top-20 passages, plus their averages.
+
+LLM
+
+EM F1
+
+Llama 3.3 (70B) 54.00 68.77
+Qwen 2.5 (72B) 59.30 71.33
+GPT-4o
+66.70 79.50
+
+Table 2. Ablation on HotpotQA with various LLMs.
+
+shared by all sub-questions. Here, M resolves potential overlaps or inconsis-
+tencies across sub-answers, integrates community-level context, and generates a
+coherent summary of how each sub-question informs the final solution.
+
+Finally, we feed the merged output Amerge back into the LLM alongside the
+
+original query q, i.e.,
+
+Afinal = M(cid:0)q ∥ Amerge
+thus producing a comprehensive response that reflects both the local textual
+information (at the chunk level) and the global topological insight (at the graph
+level). This final answer can undergo optional post-processing (e.g., formatting
+to match user preferences, additional fact-checking, or filtering sensitive content)
+before delivery to the user.
+
+(11)
+
+(cid:1),
+
+Overall, by emphasizing question decomposition, BFS-based retrieval of ev-
+idence paths, and a two-tiered merging strategy, StepChain GraphRAG tar-
+gets the shortcomings of purely single-turn QA systems. [33, 18] It allows trans-
+parency in how answers are formed, leverages multi-hop connections, and scales
+well to queries that require crossing multiple documents or reasoning over distant
+entities.
+
+4 Experiment
+
+4.1 Experimental Setup
+
+To demonstrate the effectiveness of StepChain GraphRAG, we select three rep-
+resentative multi-hop QA datasets: MuSiQue [30], 2WikiMultiHopQA [9], and
+
+StepChain GraphRAG
+
+11
+
+Table 3. Ablation study with GPT-4o on MuSiQue, 2Wiki, and HotpotQA. We report
+EM and F1 for each dataset, as well as the averaged EM/F1 across all three.
+
+Method
+
+MuSiQue
+
+2Wiki
+
+Hotpot
+
+Average
+
+EM F1
+
+EM F1
+
+EM F1
+
+EM F1
+
+10.80 18.52 21.20 25.68 30.30 40.41 20.77 28.20
+GPT-4o
+12.10 20.22 22.50 27.49 31.70 42.74 22.10 30.15
+GraphRAG Baseline
+21.50 31.40 43.90 47.06 43.60 58.94 36.33 45.80
+Question Decomposition Baseline
+36.40 49.09 50.80 61.45 56.90 70.08 48.03 60.21
+GraphRAG + Question Decomposition
+GraphRAG + Reasoning
+39.60 50.71 52.20 63.80 58.60 72.21 50.13 62.24
+GraphRAG + Reasoning + Question Decomposition 43.90 55.38 62.40 70.72 66.70 79.50 57.67 68.53
+
+HotpotQA [37]. Using the same corpus as HippoRAG [7], we choose 1,000 ques-
+tions from each validation set of these three datasets. All questions require multi-
+hop reasoning across multiple paragraphs, making them suitable benchmarks for
+evaluating complex retrieval and reasoning techniques.
+
+We use the standard Exact Match (EM) and F1 scores to measure the accu-
+racy of predicted answers compared to ground-truth labels. EM requires an exact
+string match with the gold answer; F1 rewards partial overlaps by considering
+token-level precision and Recall. These two metrics offer a balanced perspective
+on both strict correctness and partial completeness of the system’s responses.
+
+All experiments are conducted in Python with a graph-based retriever and
+BFS expansions. GPT-4o serves as the default QA model (for comparability
+with SOTA) unless otherwise noted. Chunks contain 1,200 tokens with 100-token
+overlap; BFS depth is 2. LLM calls are issued asynchronously with caching to
+reduce latency. All tests run on two RTX 6000 Ada GPUs using the same prompts
+and hyperparameters as prior retrieval-based work. [19]
+
+4.2 Main Results and Comparison with SOTA
+
+Table 1 compares StepChain GraphRAG against an array of baselines on MuSiQue,
+2Wiki, and HotpotQA, each evaluated with GPT-4o under a top-20 passage bud-
+get. Sparse (BM25) [23] and dense (BGE) [16] retrievers provide initial reference
+points, while GraphRAG [3], RAPTOR [24], SiReRAG [39], and HopRAG [19]
+represent state-of-the-art structured retrieval. StepChain GraphRAG attains su-
+perior EM and F1 on all three datasets, indicating that our BFS-driven graph
+expansions effectively capture multi-hop dependencies. Across all tasks, an aver-
+age EM/F1 of 57.67/68.53 is achieved, highlighting consistent gains even in the
+presence of distractors and diverse query types.
+
+We investigate the robustness of our pipeline under different LLMs by focus-
+ing on HotpotQA. Table 2 compares the final performance obtained when we
+substitute GPT-4o with Llama 3.3 (70B)and Qwen 2.5 (72B). While Llama 3.3
+and Qwen 2.5 both surpass earlier baselines [5, 36] , Qwen 2.5 offers a slight edge,
+indicating nuanced differences in model architecture and training data. Notably,
+GPT-4o attains the highest EM and F1 (66.70 and 79.50), suggesting that model
+choice significantly affects multi-hop QA performance. Our results reinforce the
+
+12
+
+T. Ni et al.
+
+synergy between advanced graph retrieval modules and robust generative models
+to handle multi-step reasoning effectively.
+
+4.3 Ablation Study
+
+We assess each component’s contribution to accuracy. Table 3 shows monotonic
+gains across MuSiQue, 2Wiki, and HotpotQA as retrieval and reasoning are
+added. GPT-4o (no retrieval) averages 20.77/28.20 (EM/F1); graph retrieval
+alone and question decomposition alone reach 22.10/30.15 and 36.33/45.80.
+Integrating decomposition with the graph achieves 48.03/60.21, adding explicit
+graph reasoning yields 50.13/62.24, and combining decomposition+reasoning
+peaks at 57.67/68.53, confirming the synergy of decomposition, graph retrieval,
+and chain-of-thought reasoning for multi-hop QA.
+
+4.4
+
+Inference time and latency analysis
+
+The end-to-end latency of the proposed approach is dominated by the LLM
+inference. GPT-4o API takes approximately 80s per query, due to network delays
+and service rate limits. Self-hosted Qwen-2.5-72B and Llama-3.3-70B require
+approximately 90s and 94s, respectively (on two RTX 6000Ada). In contrast,
+retrieval, BFS traversal, and incremental graph updating together introduce less
+than 3s overhead, showing that graph logic is not a bottleneck for throughput.
+The vast majority of the wall-clock time is therefore spent on LLM inference.
+Since graph updates are executed in-memory and streamed directly into the
+prompt, their cost grows modestly with the number of hops. As a result, practical
+latency improvements should focus on the LLM itself, including prompt caching,
+lightweight quantization, speculative decoding, or swapping in a smaller distilled
+checkpoint, rather than on the graph layer.
+
+5 Conclusion
+
+We have presented StepChain GraphRAG, a framework that integrates stepwise
+COT reasoning with graph-based retrieval to tackle multi-hop QA. By iteratively
+updating a knowledge graph with each sub-question and partial answer, our
+approach clarifies the evidence chain, curbs information overload, and bolsters
+interpretability. Empirical results on HotpotQA indicate that such a structured
+pipeline can surpass ad-hoc retrieval methods, yet StepChain GraphRAG’s re-
+liance on explicit graph construction imposes extra computational overhead and
+memory demands.
+
+6 Limitation and Future Work
+
+LLMs can hallucinate, allowing spurious facts to propagate through the pipeline
+and weaken answers. Additionally, in multi-hop datasets where sub-question qj
+
+StepChain GraphRAG
+
+13
+
+depends on qj−1, errors or uncertainty in early steps can make retrieval for qj
+brittle. Our StepChain GraphRAG pipeline partially mitigates this issue via per-
+sub-question retrieval from the global index I and explicit BFS evidence chains
+for interpretability. However, we do not quantify the residual impact here and
+plan to introduce uncertainty-aware re-decomposition and backtracking, as well
+as sub-question-level robustness metrics, in future work. Graph-centric retrieval
+struggles in specialized or rapidly changing domains, and GraphRAG imposes
+computational overhead at inference time. Future work will also reduce inference-
+time cost, deliver scalable updates to the graph, strengthen verification against
+hallucinations, and better handle incomplete or domain-specific data.
+
+References
+
+1. Asai, A., Hashimoto, K., Hajishirzi, H., Socher, R., Xiong, C.: Learning to re-
+trieve reasoning paths over wikipedia graph for question answering. arXiv preprint
+arXiv:1911.10470 (2019)
+
+2. Ding, M., Zhou, C., Chen, Q., Yang, H., Tang, J.: Cognitive graph for multi-hop
+
+reading comprehension at scale. arXiv preprint arXiv:1905.05460 (2019)
+
+3. Edge, D., Trinh, H., Cheng, N., Bradley, J., Chao, A., Mody, A., Truitt, S.,
+Metropolitansky, D., Ness, R.O., Larson, J.: From local to global: A graph rag
+approach to query-focused summarization. arXiv preprint arXiv:2404.16130 (2024)
+4. Fang, Y., Sun, S., Gan, Z., Pillai, R., Wang, S., Liu, J.: Hierarchical graph network
+
+for multi-hop question answering. arXiv preprint arXiv:1911.03631 (2019)
+
+5. Grattafiori, A., Dubey, A., Jauhri, A., Pandey, A., Kadian, A., Al-Dahle, A., Let-
+man, A., Mathur, A., Schelten, A., Vaughan, A., et al.: The llama 3 herd of models.
+arXiv preprint arXiv:2407.21783 (2024)
+
+6. Guo, Z., Xia, L., Yu, Y., Ao, T., Huang, C.: Lightrag: Simple and fast retrieval-
+
+augmented generation (2024)
+
+7. Gutiérrez, B.J., Shu, Y., Gu, Y., Yasunaga, M., Su, Y.: Hipporag: Neurobiologi-
+cally inspired long-term memory for large language models. In: The Thirty-eighth
+Annual Conference on Neural Information Processing Systems (2024)
+
+8. Guu, K., Lee, K., Tung, Z., Pasupat, P., Chang, M.: Retrieval augmented language
+model pre-training. In: International conference on machine learning. pp. 3929–
+3938. PMLR (2020)
+
+9. Ho, X., Nguyen, A.K.D., Sugawara, S., Aizawa, A.: Constructing a multi-
+hop qa dataset for comprehensive evaluation of reasoning steps. arXiv preprint
+arXiv:2011.01060 (2020)
+
+10. Izacard, G., Grave, E.: Leveraging passage retrieval with generative models for
+
+open domain question answering. arXiv preprint arXiv:2007.01282 (2020)
+
+11. Izacard, G., Lewis, P., Lomeli, M., Hosseini, L., Petroni, F., Schick, T., Dwivedi-
+Yu, J., Joulin, A., Riedel, S., Grave, E.: Atlas: Few-shot learning with retrieval
+augmented language models. Journal of Machine Learning Research 24(251), 1–43
+(2023)
+
+12. Jiang, Z., Sun, M., Liang, L., Zhang, Z.: Retrieve, summarize, plan: Advanc-
+ing multi-hop question answering with an iterative approach. arXiv preprint
+arXiv:2407.13101 (2024)
+
+13. Kaddour, J., Harris, J., Mozes, M., Bradley, H., Raileanu, R., McHardy, R.: Chal-
+lenges and applications of large language models. arXiv preprint arXiv:2307.10169
+(2023)
+
+14
+
+T. Ni et al.
+
+14. Kamalloo, E., Dziri, N., Clarke, C.L., Rafiei, D.: Evaluating open-domain question
+answering in the era of large language models. arXiv preprint arXiv:2305.06984
+(2023)
+
+15. Kang, M., Kwak, J.M., Baek, J., Hwang, S.J.: Knowledge graph-augmented
+language models for knowledge-grounded dialogue generation. arXiv preprint
+arXiv:2305.18846 (2023)
+
+16. Karpukhin, V., Oguz, B., Min, S., Lewis, P.S., Wu, L., Edunov, S., Chen, D., Yih,
+W.t.: Dense passage retrieval for open-domain question answering. In: EMNLP
+(1). pp. 6769–6781 (2020)
+
+17. Kojima, T., Gu, S.S., Reid, M., Matsuo, Y., Iwasawa, Y.: Large language models
+are zero-shot reasoners. Advances in neural information processing systems 35,
+22199–22213 (2022)
+
+18. Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H.,
+Lewis, M., Yih, W.t., Rocktäschel, T., et al.: Retrieval-augmented generation for
+knowledge-intensive nlp tasks. Advances in neural information processing systems
+33, 9459–9474 (2020)
+
+19. Liu, H., Wang, Z., Chen, X., Li, Z., Xiong, F., Yu, Q., Zhang, W.: Hoprag:
+Multi-hop reasoning for logic-aware retrieval-augmented generation. arXiv preprint
+arXiv:2502.12442 (2025)
+
+20. Luo, H., Zhang, J., Li, C.: Causal graphs meet thoughts: Enhancing complex rea-
+
+soning in graph-augmented llms. arXiv preprint arXiv:2501.14892 (2025)
+
+21. Min, S., Zhong, V., Zettlemoyer, L., Hajishirzi, H.: Multi-hop reading com-
+prehension through question decomposition and rescoring. arXiv preprint
+arXiv:1906.02916 (2019)
+
+22. Qiu, L., Xiao, Y., Qu, Y., Zhou, H., Li, L., Zhang, W., Yu, Y.: Dynamically fused
+graph network for multi-hop reasoning. In: Proceedings of the 57th annual meeting
+of the association for computational linguistics. pp. 6140–6150 (2019)
+
+23. Robertson, S., Zaragoza, H., et al.: The probabilistic relevance framework: Bm25
+and beyond. Foundations and Trends® in Information Retrieval 3(4), 333–389
+(2009)
+
+24. Sarthi, P., Abdullah, S., Tuli, A., Khanna, S., Goldie, A., Manning, C.D.: Rap-
+tor: Recursive abstractive processing for tree-organized retrieval. In: The Twelfth
+International Conference on Learning Representations (2024)
+
+25. Soman, K., Rose, P.W., Morris, J.H., Akbas, R.E., Smith, B., Peetoom, B.,
+Villouta-Reyes, C., Cerono, G., Shi, Y., Rizk-Jackson, A., et al.: Biomedical knowl-
+edge graph-optimized prompt generation for large language models. Bioinformatics
+40(9), btae560 (2024)
+
+26. Sun, H., Bedrax-Weiss, T., Cohen, W.W.: Pullnet: Open domain question an-
+swering with iterative retrieval on knowledge bases and text. arXiv preprint
+arXiv:1904.09537 (2019)
+
+27. Talmor, A., Berant, J.: The web as a knowledge-base for answering complex ques-
+
+tions. arXiv preprint arXiv:1803.06643 (2018)
+
+28. Tan, X., Wang, X., Liu, Q., Xu, X., Yuan, X., Zhang, W.: Paths-over-graph:
+Knowledge graph empowered large language model reasoning. arXiv preprint
+arXiv:2410.14211 (2024)
+
+29. Traag, V.A., Waltman, L., Van Eck, N.J.: From louvain to leiden: guaranteeing
+
+well-connected communities. Scientific reports 9(1), 1–12 (2019)
+
+30. Trivedi, H., Balasubramanian, N., Khot, T., Sabharwal, A.: Musique: Multihop
+questions via single-hop question composition. Transactions of the Association for
+Computational Linguistics 10, 539–554 (2022)
+
+StepChain GraphRAG
+
+15
+
+31. Wang, C., Liu, X., Yue, Y., Tang, X., Zhang, T., Jiayang, C., Yao, Y., Gao, W.,
+Hu, X., Qi, Z., et al.: Survey on factuality in large language models: Knowledge,
+retrieval and domain-specificity. arXiv preprint arXiv:2310.07521 (2023)
+
+32. Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang, S., Chowdhery, A.,
+Zhou, D.: Self-consistency improves chain of thought reasoning in language models.
+arXiv preprint arXiv:2203.11171 (2022)
+
+33. Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., Chi, E., Le, Q.V., Zhou,
+D., et al.: Chain-of-thought prompting elicits reasoning in large language models.
+Advances in neural information processing systems 35, 24824–24837 (2022)
+34. Xu, W., Zhang, H., Cai, D., Lam, W.: Dynamic semantic graph construction and
+reasoning for explainable multi-hop science question answering. arXiv preprint
+arXiv:2105.11776 (2021)
+
+35. Xu, Z., Cruz, M.J., Guevara, M., Wang, T., Deshpande, M., Wang, X., Li, Z.:
+Retrieval-augmented generation with knowledge graphs for customer service ques-
+tion answering. In: Proceedings of the 47th International ACM SIGIR Conference
+on Research and Development in Information Retrieval. pp. 2905–2909 (2024)
+36. Yang, A., Li, A., Yang, B., Zhang, B., Hui, B., Zheng, B., Yu, B., Gao, C., Huang,
+C., Lv, C., et al.: Qwen3 technical report. arXiv preprint arXiv:2505.09388 (2025)
+37. Yang, Z., Qi, P., Zhang, S., Bengio, Y., Cohen, W.W., Salakhutdinov, R., Manning,
+C.D.: Hotpotqa: A dataset for diverse, explainable multi-hop question answering.
+arXiv preprint arXiv:1809.09600 (2018)
+
+38. Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., Cao, Y.: React:
+Synergizing reasoning and acting in language models. In: International Conference
+on Learning Representations (ICLR) (2023)
+
+39. Zhang, N., Choubey, P.K., Fabbri, A., Bernadett-Shapiro, G., Zhang, R., Mitra, P.,
+Xiong, C., Wu, C.S.: Sirerag: Indexing similar and related information for multihop
+reasoning. arXiv preprint arXiv:2412.06206 (2024)
+
+40. Zhou, D., Schärli, N., Hou, L., Wei, J., Scales, N., Wang, X., Schuurmans, D.,
+Cui, C., Bousquet, O., Le, Q., et al.: Least-to-most prompting enables complex
+reasoning in large language models. arXiv preprint arXiv:2205.10625 (2022)
+41. Zhu, F., Lei, W., Wang, C., Zheng, J., Poria, S., Chua, T.S.: Retrieving and read-
+ing: A comprehensive survey on open-domain question answering. arXiv preprint
+arXiv:2101.00774 (2021)
+
+42. Zhu, R., Liu, X., Sun, Z., Wang, Y., Hu, W.: Mitigating lost-in-retrieval
+problems in retrieval augmented multi-hop question answering. arXiv preprint
+arXiv:2502.14245 (2025)
+
+43. Zhu, X., Guo, X., Cao, S., Li, S., Gong, J.: Structugraphrag: Structured document-
+informed knowledge graphs for retrieval-augmented generation. In: Proceedings of
+the AAAI Symposium Series. vol. 4, pp. 242–251 (2024)

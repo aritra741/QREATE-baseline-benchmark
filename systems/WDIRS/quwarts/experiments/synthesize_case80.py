@@ -308,6 +308,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             artifact_root=out / "artifacts",
             caller=caller,
             extract=extract,
+            workers=getattr(args, "workers", 16),
         )
     if not portfolio.databases:
         raise SystemExit("produced no databases")
@@ -392,6 +393,7 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--mode", choices=("compile", "search", "rematerialize"), default="compile")
+    parser.add_argument("--workers", type=int, default=16)
     args = parser.parse_args()
     if args.budget is None:
         args.budget = budget_from_docetl(args.dataset, args.budget_fraction)

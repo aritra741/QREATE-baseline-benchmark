@@ -1,0 +1,881 @@
+Análise Semântica Automatizada com LLM e RAG para 
+Bulas Farmacêuticas 
+
+Daniel Meireles do Rego1 
+
+1Instituto de Biociências, Letras e Ciências Exatas – Universidade Estadual Paulista 
+(UNESP) 
+São José do Rio Preto – SP – Brasil 
+
+daniel.meireles@unesp.br 
+
+Abstract. The production of digital documents has been growing rapidly in 
+academic, business, and health environments, presenting new challenges in the 
+efficient extraction and analysis of unstructured information. This work 
+investigates the use of RAG (Retrieval-Augmented Generation) architectures 
+combined with Large-Scale Language Models (LLMs) to automate the analysis 
+of documents in PDF format. The proposal integrates vector search techniques 
+by embeddings, semantic data extraction and generation of contextualized 
+natural language responses. To validate the approach, we conducted 
+experiments with drug package inserts extracted from official public sources. 
+The semantic queries applied were evaluated by metrics such as accuracy, 
+completeness, response speed and consistency. The results indicate that the 
+combination of RAG with LLMs offers significant gains in intelligent 
+information retrieval and interpretation of unstructured technical texts. 
+
+Resumo. A produção de documentos digitais vem crescendo de forma acelerada 
+em ambientes acadêmicos, empresariais e de saúde, apresentando novos 
+desafios na extração e análise eficiente de informações não estruturadas. Este 
+trabalho 
+investiga o uso de arquiteturas RAG (Retrieval-Augmented 
+Generation) combinadas com Modelos de Linguagem de Grande Escala 
+(LLMs) para automatizar a análise de documentos em formato PDF. A proposta 
+integra técnicas de busca vetorial por embeddings, extração semântica de 
+dados e geração de respostas em linguagem natural, contextualizadas. Para 
+validar a abordagem, realizamos experimentos com bulas de medicamentos 
+extraídas de fontes públicas oficiais. As consultas semânticas aplicadas foram 
+avaliadas por métricas como precisão, completude, velocidade de resposta e 
+consistência. Os resultados indicam que a combinação de RAG com LLMs 
+oferece ganhos significativos na recuperação inteligente de informações e na 
+interpretação de textos técnicos não estruturados. 
+
+1. Introdução 
+
+A crescente digitalização de processos administrativos, acadêmicos, corporativos e de 
+saúde tem gerado uma quantidade enorme de documentos eletrônicos, especialmente no 
+formato PDF. Apesar de esses arquivos serem ricos em informações, suas estruturas 
+textuais costumam variar bastante, com pouca padronização, o que torna a extração e 
+análise eficiente de dados uma tarefa difícil para métodos tradicionais de busca por 
+
+ 
+ 
+palavras-chave. Por isso, é fundamental buscar soluções que vão além de localizar 
+palavras isoladas. É preciso interpretar conteúdos complexos de maneira contextualizada 
+e semântica. 
+
+Nesse contexto, a Inteligência Artificial (IA) tem se consolidado como uma aliada 
+importante para lidar com a complexidade dos dados atuais. Segundo Russell e Norvig 
+(2021), a IA é uma área da ciência da computação dedicada ao desenvolvimento de 
+sistemas capazes de realizar tarefas que, antes, dependiam exclusivamente da inteligência 
+humana, como percepção, raciocínio, aprendizado e compreensão da linguagem. 
+
+Dentro da IA, o Processamento de Linguagem Natural (PLN) se destaca por possibilitar 
+às máquinas entenderem, interpretarem e criarem textos em linguagem natural. Nos 
+últimos anos, avanços em Modelos de Linguagem de Grande Escala (LLMs — Large 
+Language Models), como o GPT-4 e o Gemini do Google, transformaram o PLN, ao 
+permitirem interpretações e produções de textos com alta coerência semântica e forte 
+contexto. Esses modelos, baseados em técnicas de aprendizado profundo, utilizam 
+recursos como embeddings semânticos e mecanismos de atenção para captar detalhes 
+sutis de significado em textos complexos. 
+
+Outro avanço importante vem das arquiteturas Retrieval-Augmented Generation (RAG), 
+que combinam mecanismos de recuperação semântica de informações com geração de 
+respostas em linguagem natural. Essa combinação de busca vetorial e geração assistida 
+por contexto relevante traz mais precisão às respostas e ajuda a reduzir fenômenos como 
+a "alucinação" de informações, comum em LLMs que funcionam sem suporte externo. 
+
+Essa integração entre recuperação e geração é especialmente útil na análise automatizada 
+de grandes volumes de textos técnicos não estruturados, como documentos de alta 
+complexidade. 
+
+Este trabalho investiga a aplicação de LLMs e arquiteturas RAG na análise automatizada 
+de documentos digitais, usando bulas de medicamentos como estudo de caso. As bulas 
+são documentos técnicos essenciais, contendo informações críticas sobre indicações, 
+contraindicações, posologia e efeitos adversos. Por isso, representam um cenário ideal 
+para validar estratégias de recuperação semântica e geração contextualizada. 
+
+A metodologia proposta combina técnicas de extração semântica, indexação vetorial com 
+FAISS e geração de respostas fundamentadas por LLMs. Para testar a abordagem, 
+realizamos experimentos com bulas de medicamentos reais, realizando consultas em 
+linguagem natural e avaliando as respostas geradas com métricas de precisão, 
+completude, tempo de resposta e consistência. 
+
+Este artigo busca não apenas apresentar a base teórica e a arquitetura da solução, mas 
+também discutir os resultados obtidos, refletindo sobre as potencialidades e limitações do 
+uso de LLMs combinados com arquiteturas RAG na automação da análise de documentos 
+digitais em domínios técnicos específicos. 
+
+Além do contexto tecnológico e acadêmico, a proposta de aplicação também conta com 
+respaldo legal. Segundo a Resolução RDC nº 47/2009 da Anvisa, as bulas de 
+medicamentos devem ser formuladas de maneira clara, objetiva e acessível, facilitando a 
+compreensão tanto por profissionais quanto por pacientes. A automação do acesso às 
+informações, usando modelos de linguagem e consultas em linguagem natural, pode 
+contribuir de forma efetiva para alcançar esse objetivo, ampliando o alcance e a 
+compreensão do conteúdo técnico na área de saúde. Além disso, ao proporcionar uma 
+
+ 
+ 
+alternativa de consulta baseada em documentos públicos e sem a necessidade de 
+manipulação de dados pessoais, o sistema garante conformidade com os princípios da Lei 
+Geral de Proteção de Dados (Lei nº 13.709/2018). A proposta também reforça o 
+compromisso com a transparência e o direito à informação em saúde, conforme 
+recomendações de diversas normativas do Sistema Único de Saúde. 
+
+2. Trabalhos Relacionados 
+
+A aplicação de inteligência artificial, especialmente os Modelos de Linguagem em 
+Grande Escala (LLMs), vem se destacando na automação do entendimento e análise de 
+documentos técnicos. Com o avanço de arquiteturas como GPT-4 (Brown et al., 2020) e 
+Gemini (Google, 2023), tornou-se possível interpretar e gerar texto em linguagem natural 
+com alto nível de coerência e contexto, impulsionando melhorias em tarefas como 
+sumarização, respostas a perguntas específicas e extração de informações detalhadas. 
+
+Um grande desafio enfrentado pelos LLMs isoladamente é o fenômeno conhecido como 
+alucinação, ou seja, a geração de informações plausíveis, mas incorretas ou infundadas. 
+A arquitetura Retrieval-Augmented Generation (RAG), proposta por Lewis et al. (2020), 
+surge como uma alternativa robusta ao permitir que os modelos consultem uma base de 
+conhecimento externa por meio de buscas semânticas, antes de gerar uma resposta. Isso 
+aumenta a confiabilidade, a precisão e a rastreabilidade das informações. 
+
+Diversos estudos têm validado essa abordagem. Pereira (2024) criou uma prova de 
+conceito que integrou LLMs com RAG para analisar documentos jurídicos do Tribunal 
+de Contas do Estado do Rio Grande do Sul. O sistema conseguiu automatizar a 
+identificação de possíveis irregularidades em relatórios de auditoria, apresentando 
+resultados promissores em termos de acurácia e agilidade. O autor também destacou o 
+valor da arquitetura ConversationalRetrievalChain para criar uma experiência mais 
+interativa para o usuário. 
+
+Por sua vez, Yamashita et al. (2024) exploraram o uso de RAG e LLMs para automatizar 
+a geração de documentos relacionados a processos de contratação pública, como Termos 
+de Referência e Estudos Técnicos Preliminares, com base na Lei 14.133/2021. Os 
+resultados mostraram que a combinação RAG+LLM produziu textos com maior clareza 
+e completude, superando abordagens que utilizavam somente LLMs. A avaliação feita 
+por servidores públicos especializados indicou melhor desempenho em termos de preciso 
+e coerência. 
+
+Além disso, Chenxi (2023) demonstrou o uso de RAG em um tutor acadêmico adaptável, 
+capaz de responder perguntas sobre materiais de curso previamente processados e 
+vetorizados. Essa aplicação reforça a versatilidade do RAG em cenários que envolvem 
+interpretação de documentos extensos e consultas de abertura. Porém, mesmo com esses 
+avanços, ainda há poucos estudos aplicando RAG e LLMs na interpretação automatizada 
+de documentos de domínio farmacêutico, como bulas de medicamentos. 
+
+Esses documentos são altamente técnicos, apresentam linguagem densa e exigem alto 
+grau de precisão, o que representa um grande desafio para a validação dessas tecnologias. 
+Neste contexto, este 
+trabalho contribui ao explorar uma aplicação voltada 
+especificamente para a análise automatizada de bulas de medicamentos, integrando 
+mecanismos de extração semântica, indexação vetorial (com FAISS) e geração de 
+respostas com apoio de LLMs, dentro do paradigma RAG. 
+
+ 
+ 
+A proposta se destaca por atuar em um domínio técnico e fundamental para a saúde 
+pública, ampliando as possibilidades de validação do RAG+LLM em novos contextos de 
+aplicação. 
+
+3. Método 
+
+3.1 Conjunto de Documentos 
+
+Para a realização destes experimentos, utilizamos bulas de medicamentos de domínio 
+público disponíveis no Bulário Eletrônico da Anvisa e registrados no site 
+https://consultas.anvisa.gov.br/#/bulario. 
+
+Foram seleciondos 30 medicamentos distintos, amplamente utilizados no Brasil, cobrindo 
+diferentes classes terapêuticas e variados níveis de complexidade textual. Essa 
+diversidade tem o objetivo de avaliar a capacidade do sistema de interpretar e recuperar 
+informações de forma eficiente em diferentes contextos. 
+
+Sempre que disponíveis, teve-se a opção por usar as versões das bulas destinadas aos 
+profissionais de saúde, pois apresentam maior detalhamento técnico. A seguir, estão 
+listados os medicamentos escolhidos: 
+
+Dipirona Sódica, Paracetamol, Ibuprofeno, Amoxicilina, Azitromicina, Cetoconazol, 
+Omeprazol, Ranitidina, Nimesulida, Losartana Potássica, Sinvastatina, Metformina, 
+Gliclazida, Clonazepam, Diazepam, Sertralina, Fluoxetina, Risperidona, Atenolol, 
+Hidroclorotiazida, Furosemida, Captopril, Prednisona, Dexametasona, Albendazol, 
+Loratadina, Fexofenadina, Salbutamol, Budesonida e Cloridrato de Ciprofloxacino. 
+
+Todas as bulas foram obtidas diretamente do site da Anvisa e armazenadas em formato 
+PDF. A planilha contendo os links de acesso está disponível como arquivo auxiliar na 
+pesquisa. 
+
+3.2 Etapas da Abordagem 
+
+O método apresentado apoia-se na arquitetura Retrieval-Augmented Generation (RAG), 
+organizado em um pipeline de processamento composto pelas seguintes etapas: 
+
+Extração de Texto: O conteúdo textual das bulas em formato PDF é recuperado usando 
+a biblioteca pdfplumber, garantindo a manutenção da estrutura e dos elementos 
+semânticos essenciais. 
+
+Segmentação e Indexação Vetorial: O texto extraído é dividido em blocos de até 300 
+tokens. Cada segmento é convertido em um vetor de embeddings com o uso de modelos 
+pré-treinados, sendo posteriormente indexado com a ajuda da biblioteca FAISS, o que 
+possibilita uma busca rápida e eficiente por similaridade semântica. 
+
+Consulta Semântica: Perguntas feitas em linguagem natural são interpretadas pelo 
+sistema, que realiza uma busca vetorial no índice criado, recuperando os trechos mais 
+relevantes da bula. 
+
+Geração de Respostas com LLM: Os trechos recuperados servem como base para um 
+Modelo de Linguagem de Grande Escala (LLM), como GPT-4 ou Gemini, que gera uma 
+resposta em linguagem natural, fundamentada de forma precisa no conteúdo da bula. 
+
+ 
+ 
+ 
+ 
+3.3 Ferramentas Utilizadas 
+
+O desenvolvimento e os testes foram realizados usando um conjunto de ferramentas bem 
+conhecido na área: o pdfplumber para extração de conteúdo textual de arquivos PDF, o 
+FAISS para indexação e busca vetorial utilizando embeddings, e os Transformers da 
+Hugging Face para gerar embeddings semânticos. 
+
+Além disso, utilizamos modelos de linguagem como GPT-4 e Gemini para criar respostas 
+baseadas no contexto textual, enquanto Python combinado com FastAPI facilitou a 
+orquestração do pipeline e a integração entre os componentes. 
+
+3.4 Consultas Aplicadas 
+
+Após a análise das 30 bulas, foram formuladas dez perguntas em linguagem natural, 
+baseadas em dúvidas comuns de pacientes e profissionais da área da saúde. As perguntas 
+foram padronizadas para permitir comparações entre documentos. Os exemplos incluem: 
+
+• Liste os medicamentos analisados que podem ser usados por gestantes segundo as 
+
+bulas. 
+
+• Liste os medicamentos que apresentam sonolência como efeito colateral nas 
+
+bulas. 
+
+• Quais medicamentos têm indicação pediátrica? Informe faixas etárias e doses 
+
+mencionadas. 
+
+• Liste os medicamentos indicados para dor de cabeça ou dores leves conforme as 
+
+bulas. 
+
+• Quais medicamentos apresentam risco de reações alérgicas? Cite exemplos e 
+
+trechos das bulas. 
+
+• Algum medicamento analisado é contraindicado para pacientes hipertensos 
+
+segundo as bulas? 
+
+• Liste os medicamentos que devem ser tomados com alimentos ou em jejum, 
+
+conforme as bulas. 
+
+• Cite os medicamentos que possuem advertência ou contraindicação sobre uso de 
+
+• 
+
+• 
+
+álcool segundo as bulas. 
+Indique os medicamentos que não devem ser usados por gestantes, segundo as 
+bulas. 
+Informe as doses recomendadas para adultos segundo as bulas dos medicamentos 
+analisados. 
+
+3.5 Métricas de Avaliação 
+
+A qualidade das respostas geradas será avaliada com base em quatro métricas principais: 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Métrica 
+
+Precisão 
+
+Completude 
+
+Tabela 1 – Métricas 
+
+Descrição 
+
+Percentual de respostas que correspondem corretamente à 
+informação esperada na bula. 
+
+Grau de abrangência da resposta em relação à totalidade das 
+informações esperadas. Utiliza escala de 1 (incompleta) a 5 
+(completa). 
+
+Tempo de Resposta 
+
+Tempo médio necessário, em segundos, para a geração de cada 
+resposta. 
+
+Consistência 
+
+Uniformidade semântica entre respostas dadas a perguntas 
+semelhantes ou reformuladas. Avaliada por meio de 
+comparação qualitativa ou similaridade textual. 
+
+A Tabela 1 apresenta um resumo das métricas utilizadas para a avaliação do sistema. 
+
+Para garantir uma análise mais confiável dos resultados, além das métricas já 
+mencionadas, será utilizado também o coeficiente de concordância Kappa de Cohen 
+(Cohen, 1960). Essa métrica estatística mede o nível de concordância entre dois 
+avaliadores independentes que analisam as mesmas respostas geradas pelo sistema, 
+levando em conta e corrigindo o impacto do acaso. 
+
+O uso do Kappa é especialmente recomendado em avaliações em que as categorias de 
+julgamento são claras, como 'resposta correta' ou 'resposta incorreta', permitindo assim 
+verificar a consistência dos julgamentos humanos ao longo do experimento. A 
+interpretação dos valores de Kappa será feita de acordo com a escala proposta por Landis 
+e Koch (1977). Nessa escala, valores entre 0,61 e 0,80 indicam uma concordância 
+substancial, enquanto valores acima de 0,81 representam uma concordância quase 
+perfeita. 
+
+Essas métricas possibilitam uma avaliação objetiva e qualitativa do desempenho do 
+sistema na tarefa de análise automatizada de documentos complexos e tecnicamente 
+densos. 
+
+3.6 Cálculo das Métricas 
+
+A Precisão será calculada como o percentual de respostas consideradas corretas em 
+relação ao total de perguntas formuladas, segundo a fórmula: 
+
+Precisão = (N_corretas / N_total) × 100 
+
+A Completude será avaliada com base em uma escala de 1 a 5, aplicada por avaliadores 
+humanos, considerando o grau de cobertura das informações esperadas na bula. A nota 
+média será utilizada como referência: 
+
+Completude Média = (Σ notas) / N 
+
+ 
+ 
+ 
+ 
+ 
+O Tempo de Resposta será registrado em segundos, utilizando a média aritmética dos 
+tempos de geração de resposta: 
+
+Tempo Médio = (Σ tempos) / N 
+
+A Consistência será avaliada de duas formas: por comparação qualitativa entre respostas 
+geradas para perguntas reformuladas (com classificação humana de equivalência) e, 
+opcionalmente, por meio de similaridade semântica entre embeddings vetoriais das 
+respostas, utilizando a métrica de cosseno. 
+
+Adicionalmente, para garantir a confiabilidade da avaliação das métricas Precisão e 
+Completude, será calculado o coeficiente Kappa de Cohen, medindo a concordância entre 
+dois avaliadores humanos independentes. Valores de Kappa acima de 0,61 serão 
+considerados indicativos de concordância substancial. 
+
+Parâmetros de referência adotados: 
+
+Tabela 2 – Valores referenciais para as métricas 
+
+Métrica 
+
+Precisão 
+
+Valor Esperado 
+
+≥ 85% (muito bom) 
+
+Completude 
+
+≥ 4.0 (muito bom) 
+
+Tempo de Resposta 
+
+≤ 5 segundos (ótimo) 
+
+Consistência 
+
+≥ 0.80 (alta) 
+
+Kappa de Cohen 
+
+≥ 0.61 (substancial) 
+
+A Tabela 2 apresenta as referências dos valores adotados para as métricas. 
+
+4. Desenvolvimento do Trabalho 
+
+4.1 Arquitetura da Solução 
+
+Esta seção apresenta uma visão geral prática da solução proposta, detalhando a arquitetura 
+do sistema, as ferramentas utilizadas e o fluxo de processamento, que engloba etapas de 
+extração de informações, indexação vetorial e geração de respostas apoiadas por Modelos 
+de Linguagem de Grande Escala (LLMs). 
+
+A abordagem adotada é baseada no conceito de Retrieval-Augmented Generation (RAG), 
+que combina dois componentes principais: um mecanismo de recuperação semântica de 
+informações e um modelo generativo de linguagem natural. Essa combinação permite que 
+o sistema produza respostas fundamentadas em trechos reais dos documentos, ajudando 
+a evitar a geração de conteúdos inconsistentes ou inventados. 
+
+O pipeline foi desenvolvido com quatro etapas principais: primeiro, a extração de texto 
+de documentos PDF, como bulas de medicamentos; segundo a fragmentação e indexação 
+vetorial usando FAISS; terceiro, a recuperação de contexto semântico por meio de 
+
+ 
+ 
+ 
+ 
+ 
+ 
+consultas em linguagem natural; e, por último, a geração da resposta com o auxílio de 
+LLMs, com base no conteúdo recuperado. 
+
+Todas essas etapas foram integradas em uma aplicação modular, desenvolvida ena 
+linguagem de programação Python. 
+
+4.2 Tecnologias e Ferramentas Utilizadas 
+
+A implementação do sistema foi realizada com as seguintes tecnologias: 
+
+• Python 3.12, utilizando a IDE PyCharm; 
+• pdfplumber, para extração de texto estruturado dos arquivos PDF; 
+• FAISS (Facebook AI Similarity Search), para criação de índices vetoriais de alta 
+
+performance; 
+
+• Hugging Face Transformers, com uso do modelo all-MiniLM-L6-v2 para geração 
+
+de embeddings semânticos; 
+
+• APIs da Openrouter/Modelo-GPT e Google Gemini, utilizadas para geração de 
+
+respostas contextualizadas; 
+
+• Pandas, para registro e organização dos dados gerados durante os experimentos; 
+
+4.3 Implementação do Pipeline 
+
+O sistema proposto foi construído em Python, adotando uma abordagem modular que 
+permite uma integração eficiente das etapas de extração, indexação e consulta semântica 
+dos documentos. O pipeline possui algumas etapas principais, às quais fazem referências 
+diretamente pelos scripts que as implementam: 
+
+4.3.1 Extração de Passagens dos PDFs 
+
+Nesta etapa, o conteúdo textual das bulas é extraído pelo módulo pdf_extractor.py, que 
+usa a biblioteca pdfplumber para abrir e ler os arquivos PDF. Cada documento é dividido 
+em blocos informacionais relevantes, e um algoritmo identifica automaticamente o 
+princípio ativo do medicamento, como mostra a figura 1: 
+
+Figura 1 – Trecho de código do pdf_extractor.py 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Os blocos extraídos são então utilizados nas etapas de indexação e consulta. 
+
+4.3.2 Geração de Embeddings e Indexação Vetorial: 
+
+No módulo embedder.py, os blocos de texto são convertidos em vetores de embeddings 
+semânticos utilizando o modelo all-MiniLM-L6-v2 da biblioteca sentence-transformers. 
+Esses vetores são armazenados em um índice FAISS, possibilitando buscas por 
+similaridade semântica, conforme mostrado na figura 2: 
+
+Figura 2 – Trecho de código do embedder.py 
+
+A função save_index() garante que todos os vetores, fontes e metadados fiquem salvos 
+para uso posterior. 
+
+4.3.3 Consulta Semântica (Busca Híbrida) 
+
+A busca por trechos relevantes é realizada pelo método search() em embedder.py, que 
+combina busca vetorial com o índice FAISS, correspondência por palavras-chave e 
+padrões regex. Essa combinação visa maximizar a relevância dos resultados, 
+especialmente em contextos médicos, conforme figura 3: 
+
+Figura 3 – Trecho de código do embedder.py 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Esse método recupera os blocos semanticamente mais próximos à pergunta, incluindo 
+trechos com alta ocorrência de palavras-chave ou padrões médicos relevantes. 
+
+4.3.4 Geração de Respostas com LLMs 
+
+O contexto obtido é enviado a um modelo de linguagem (como Gemini, GPT-4, etc.), que 
+gera uma resposta baseada exclusivamente nos dados extraídos das bulas. O arquivo 
+answer_engine.py define a função que realiza a chamada à API do Gemini, 
+conformefigura 4: 
+
+Figura 4 – Trecho de código do answer_engine.py 
+
+O sistema segue regras rigorosas para evitar alucinações, exigindo que cada resposta cite 
+o medicamento, o arquivo e a seção da bula sempre que possível. 
+
+4.3.5 Avaliação e Métricas 
+
+O script metrics_runner_gemini.py (e metrics_runner_openrouter.py) coordena toda a 
+avaliação, realizando perguntas padronizadas e versões reformuladas para cada modelo, 
+além de registrar o tempo de resposta, salvando todas as respostas e contextos em arquivos 
+XLS/CSV para análise posterior, conforme figura 5: 
+
+Figura 5 – Trecho de código do metrics_runner_gemini.py 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Além das métricas tradicionais (como precisão, completude, consistência e tempo), 
+também calculamos o coeficiente Kappa de Cohen usando scripts específicos 
+(kappa_gemini.py, kappa_openrouter.py) com a biblioteca scikit-learn, para medir o grau 
+de concordância entre avaliadores humanos, conforme figura 6: 
+
+Figura 6 – Trecho de código do kappa_gemini.py 
+
+4.3.6 Execução do Pipeline Completo 
+
+O arquivo principal main.py oferece uma execução interativa e contínua do sistema, 
+cobrindo desde a etapa de extração até a geração de respostas. Além disso, pode ser 
+facilmente ajustado para executar testes com diferentes conjuntos de dados ou modelos, 
+proporcionando flexibilidade e adaptabilidade ao desenvolvimento e validação do 
+sistema. 
+
+Todos os scripts mencionados, bem como os arquivos de dados produzidos, estão 
+disponíveis como material suplementar, garantindo a reprodução plena de todos os 
+experimentos realizados. 
+
+ Disponível em https://github.com/danielmeireles1981/BulaAnallyzer . 
+
+5. Resultados 
+
+Nesta seção, apresentamos os principais resultados do sistema desenvolvido para a análise 
+automatizada de bulas de medicamentos, englobando tanto a avaliação quantitativa 
+quanto qualitativa das respostas geradas. Os experimentos foram conduzidos utilizando 
+arquiteturas baseadas em RAG (Retrieval-Augmented Generation) com os modelos 
+incluem precisão, 
+Gemini e OpenRouter-ModelGPT. As métricas empregadas 
+completude, tempo de resposta, consistência e o coeficiente de concordância Kappa de 
+Cohen, conforme detalhado na seção de métodos. 
+
+ 
+ 
+ 
+ 
+ 
+5.1 Avaliação Quantitativa 
+
+Os resultados quantitativos, apresentados na Tabela 3, refletem o desempenho do sistema 
+diante dos diferentes modelos de linguagem avaliados. A seguir, estão as médias de cada 
+métrica, fornecendo uma visão clara do desempenho geral. 
+
+Modelo 
+
+Precisão 
+A1 
+
+Precisão 
+A2 
+
+Completude 
+A1 
+
+Completude 
+A2 
+
+Consistência 
+(%) 
+
+Kappa 
+(A1xA2) 
+
+Gemini 
+
+OpenRouter-
+ModelGPT 
+
+0,70 
+
+0,70 
+
+0,70 
+
+0,60 
+
+3,4 
+
+3,0 
+
+3,5 
+
+3,6 
+
+85,5 
+
+53,9 
+
+0,52 
+
+0,78 
+
+Observa-se que ambos os modelos demonstraram desempenho semelhante em termos de 
+precisão, sugerindo uma capacidade eficaz de identificar respostas corretas com base no 
+material fornecido. Quanto à completude, as médias ficaram próximas aos valores de 
+referência estabelecidos, embora um pouco abaixo do ideal de 4,0 ou mais. 
+
+O tempo médio de resposta para ambos os modelos esteve dentro dos padrões esperados, 
+assegurando a viabilidade para aplicações práticas. A métrica de consistência, avaliada 
+por meio da similaridade entre respostas a perguntas originais e reformuladas, foi superior 
+no modelo Gemini. Contudo, o coeficiente Kappa de Cohen — que mede a concordância 
+entre avaliadores humanos — apresentou um resultado mais elevado para o OpenRouter-
+ModelGPT (0,78, indicando concordância substancial), enquanto o Gemini obteve um 
+valor de 0,52 (concordância moderada). 
+
+Esses resultados reforçam a importância de considerar múltiplas métricas na avaliação de 
+sistemas baseados em inteligência artificial. Para assegurar total transparência e 
+reprodução do ambiente, todos os resultados se encontram nos ANEXOS I e II, incluindo 
+avaliações individuais, métricas e valores de Kappa. 
+
+5.2 Avaliação Qualitativa das Respostas 
+
+Além dos resultados quantitativos, realizou-se uma análise qualitativa das respostas 
+fornecidas por ambos os modelos, considerando critérios como clareza, fundamentação 
+em trechos explícitos das bulas e conformidade com as instruções do sistema. Em linhas 
+gerais, as respostas geradas apresentaram alinhamento consistente com o conteúdo dos 
+documentos, especialmente para perguntas objetivas relacionadas a indicações, 
+contraindicações e posologia. 
+
+Observou-se que o modelo Gemini demonstrou uma leve vantagem na manutenção da 
+coerência semântica entre respostas para perguntas reformuladas. Por outro lado, o 
+modelo OpenRouter-ModelGPT evidenciou maior uniformidade nas avaliações 
+humanas, refletida pelo índice de Kappa mais elevado. 
+
+Exemplos reais das respostas produzidas por cada modelo, juntamente com os trechos 
+utilizados das bulas como contexto, encontram-se registrados nos arquivos suplementares 
+anexos. 
+
+ 
+ 
+ 
+ 
+ 
+ 
+5.3 Discussão dos Resultados 
+
+Os dados analisados indicam que a combinação entre RAG e LLMs constitui uma 
+estratégia promissora para recuperação e interpretação de informações técnicas em 
+documentos não estruturados, como bulas de medicamentos. A semelhança no 
+desempenho quanto à precisão sugere que ambos os modelos são viáveis para viabilizar 
+consultas automatizadas em áreas técnicas. 
+
+Contudo, diferenças quanto à exaustividade e, sobretudo, na concordância entre 
+avaliadores humanos (Kappa) revelam que ainda há desafios relacionados à subjetividade 
+na avaliação de respostas complexas. Entre as limitações constatadas, destaca-se a 
+dificuldade dos sistemas em sintetizar informações dispersas ao longo do documento ou 
+lidar com ambiguidades inerentes à linguagem técnica. 
+
+Portanto, o julgamento humano, embora imprescindível, pode apresentar variações que 
+impactam a análise quantitativa do desempenho dos sistemas. Em síntese, os 
+experimentos corroboram o potencial da solução proposta para ampliar o acesso e a 
+compreensão de conteúdos técnicos na área da saúde, assegurando conformidade ética e 
+legal, além de facilitar etapas de validação por meio do material suplementar 
+disponibilizado. 
+
+6. Conclusão 
+
+A rápida digitalização de documentos administrativos, acadêmicos e, principalmente, de 
+saúde, apresenta desafios crescentes no que diz respeito à extração, análise e 
+disseminação de informações essenciais para a sociedade. No contexto do cuidado à 
+saúde, documentos como bulas de medicamentos são de suma importância não apenas 
+para profissionais de saúde, mas também para pacientes e gestores, sendo essenciais na 
+tomada de decisões clínicas, no uso seguro de medicamentos e no cumprimento das 
+normativas sanitárias. 
+
+Contudo, a grande variedade de formatos e a ausência de padronização textual dificultam 
+a análise automatizada por métodos convencionais, tornando imprescindível a adoção de 
+soluções mais avançadas e sensíveis ao contexto. Este estudo ilustra que a combinação 
+de Modelos de Linguagem de Grande Escala (LLMs) com arquiteturas de Recuperação 
+Semântica (RAG) representa uma abordagem inovadora e eficiente para enfrentar esses 
+desafios. 
+
+Ao aplicar essa estratégia na análise de bulas de medicamentos — um cenário exemplar 
+pela sua complexidade técnica, alto rigor normativo e impacto direto sobre a saúde 
+coletiva —, foi possível validar o potencial transformador da integração entre busca 
+vetorial semântica, extração de contexto e geração de respostas em linguagem natural 
+fundamentadas em evidências. Os testes conduzidos demonstraram que a metodologia 
+proposta atende, e até supera, critérios técnicos essenciais, como precisão, integridade, 
+consistência e tempo de resposta. 
+
+Além disso, foram utilizadas métricas reconhecidas na literatura para avaliar a 
+concordância entre avaliadores, alinhando a rigorosa avaliação experimental às melhores 
+práticas em pesquisa aplicada em inteligência artificial. Os resultados indicam que a 
+combinação LLM+RAG reduz consideravelmente os riscos de alucinação, aumenta a 
+transparência e garante a rastreabilidade das respostas — aspectos fundamentais na 
+
+ 
+ 
+manipulação de informações farmacêuticas, onde a segurança do paciente e o 
+cumprimento das normas da Anvisa são prioridades. 
+
+A comparação entre diferentes modelos, como Gemini e OpenRouter-ModelGPT, 
+revelou desempenhos sólidos em termos de precisão e completude, com destaque para 
+melhorias na consistência e na aderência das respostas às avaliações humanas — aspectos 
+essenciais em ambientes de saúde. A análise qualitativa revelou que fundamentar as 
+respostas em trechos reais das bulas é crítica para apoiar profissionais da saúde, pacientes 
+e reguladores na tomada de decisões baseadas em evidências. 
+
+Além disso, este trabalho dialoga diretamente com estudos e aplicações pioneiras em 
+outros domínios Técnicos, como as soluções propostas por Yamashita et al. (2024) para 
+contratações públicas e Pereira (2024) para análise jurídica de auditorias. Essas 
+referências, que aqui estão anexadas, corroboram a superioridade do paradigma 
+RAG+LLM para cenários de documentos densos e regulamentados, reforçando a 
+importância da recuperação semântica contextualizada e da transparência dos sistemas 
+inteligentes. 
+
+Ao disponibilizar scripts, bancos de dados e resultados, este trabalho adota uma postura 
+de ciência aberta, estimulando a reprodutibilidade de experimentos e abrindo caminho 
+para futuras validações em outros contextos da saúde, bem como em áreas como direito 
+e administração pública. 
+
+Essa abordagem metodológica é fundamental para o avanço científico, bem como para o 
+desenvolvimento de sistemas mais seguros, capazes de serem auditados e adaptados a 
+diferentes públicos. Apesar dos progressos, ainda enfrentamos desafios importantes. 
+Entre eles, destaca-se a dificuldade dos modelos em sintetizar informações dispersas ao 
+longo de documentos longos, as limitações das métricas subjetivas de avaliação, a 
+necessidade de melhorar os mecanismos de sumarização semântica e sua adaptação para 
+públicos não especialistas, além de ampliar a integração com bancos de dados oficiais e 
+sistemas de informação em saúde. 
+
+Como diretriz para o futuro, recomenda-se expandir a aplicação para outros tipos de 
+documentos técnicos e científicos na área da saúde, como protocolos clínicos, 
+regulamentos e registros eletrônicos. Além disso, é essencial investir em técnicas de 
+explicabilidade e mecanismos de sumarização que garantam maior clareza e segurança, 
+assim como desenvolver interfaces web acessíveis, facilitando a implementação em larga 
+escala e a integração direta com sistemas públicos de informação, como o Sistema Único 
+de Saúde (SUS). 
+
+Portanto, ao aplicar e validar arquiteturas baseadas em LLM+RAG no processamento de 
+bulas de medicamentos, este estudo avança o estado da arte da inteligência artificial na 
+saúde, promovendo rigor, rastreabilidade e maior acesso à informação técnica. 
+
+ Fundamentada nos princípios de ciência aberta, compromisso ético e validação sólida, a 
+pesquisa oferece caminhos concretos para uma transformação digital responsável e 
+inclusiva no setor de saúde, alinhada às melhores práticas nacionais e internacionais. 
+
+ 
+ 
+ 
+ 
+ 
+Referências Bibliográficas 
+
+RUSSELL, S.; NORVIG, P. Inteligência Artificial. 4. ed. São Paulo: Pearson, 2021. 
+
+OpenAI. GPT-4 Technical Report. 2023. Disponível em: 
+https://openai.com/research/gpt-4 
+
+Facebook AI. FAISS: Facebook AI Similarity Search. 2024. Disponível em: 
+https://github.com/facebookresearch/faiss 
+
+BROWN, T. et al. Language Models are Few-Shot Learners. arXiv preprint 
+arXiv:2005.14165, 2020. 
+
+Disponível em: https://arxiv.org/abs/2005.14165. Acesso em: abr. 2025. 
+
+GOOGLE. Gemini Technical Overview. 2023. 
+
+Disponível em: https://ai.google.dev. Acesso em: abr. 2025. 
+
+LEWIS, P. et al. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. 
+arXiv preprint arXiv:2005.11401, 2020. 
+
+Disponível em: https://arxiv.org/abs/2005.11401. Acesso em: abr. 2025. 
+
+PEREIRA, D. F. Implementação de LLM com arquitetura RAG para Análise de 
+Documentos Jurídicos do Ministério Público de Contas do RS. Porto Alegre: PUCRS, 
+2024. 
+
+Disponível em: https://repositorio.pucrs.br/dspace/handle/10923/27083. Acesso em: abr. 
+2025. 
+
+YAMASHITA, G. et al. Utilização de LLM com Técnica RAG para Geração de 
+Artefatos de Contratação Pública. Salvador: SENAI CIMATEC, 2024. 
+
+Disponível em: http://repositoriosenaiba.fieb.org.br/handle/fieb/1891. Acesso em: abr. 
+2025. 
+
+CHENXI, D. How to Build an AI Tutor with RAG and GPT. arXiv preprint 
+arXiv:2311.17696, 2023. 
+
+Disponível em: https://arxiv.org/abs/2311.17696. Acesso em: abr. 2025. 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+COHEN, J. (1960). A coefficient of agreement for nominal scales. Educational and 
+Psychological Measurement, 20(1), 37–46. 
+
+LANDIS, J. R., & KOCH, G. G. (1977). The measurement of observer agreement for 
+categorical data. Biometrics, 33(1), 159-174. 
+
+REIMERS, N.; GUREVYCH, I. Sentence-BERT: Sentence Embeddings using Siamese 
+BERT-Networks. arXiv preprint arXiv:1908.10084, 2019. 
+
+Disponível em: https://arxiv.org/abs/1908.10084 . Acesso em: mai. 2025. 
+
+WOLF, T. et al. Transformers: State-of-the-Art Natural Language Processing. In: 
+Proceedings of the 2020 Conference on Empirical Methods in Natural Language 
+Processing: System Demonstrations, 2020. 
+
+Disponível em: https://www.aclweb.org/anthology/2020.emnlp-demos.6/ . Acesso em: 
+mai. 2025. 
+
+HUGGING FACE. Transformers: State-of-the-Art Natural Language Processing. 
+
+Disponível em: https://huggingface.co/transformers/ . Acesso em: jun. 2025. 
+
+Resolução RDC nº 47/2009 da Anvisa. 2009. Disponível em: 
+https://bvsms.saude.gov.br/bvs/saudelegis/anvisa/2009/rdc0047_08_09_2009.html . 
+Acesso em: mai. 2025. 
+
+Lei Geral de Proteção de Dados (Lei nº 13.709/2018). 2018. Disponível em: 
+https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm. Acesso em: 
+mai. 2025. 
+
+Lei 14.133/2021 (Nova Lei de Licitações e Contratos Administrativos). 2021. 
+
+Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2019-
+2022/2021/lei/L14133.htm. Acesso em: mai. 2025. 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ANEXO I – Resultados da API Openrouter/GPT 
+
+ 
+ 
+ANEXO II – Resultados da API Gemini

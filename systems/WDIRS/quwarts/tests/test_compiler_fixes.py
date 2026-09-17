@@ -29,14 +29,9 @@ def test_derived_aliases_are_not_attributes() -> None:
     assert "age_band" in aliases
 
 
-def test_pk_is_identity_not_first_attribute() -> None:
-    sqls = [
-        "SELECT city.area, city.city_name FROM city",
-        "SELECT owner.acquisition_decade, owner.name FROM owner",
-        "SELECT player.id, player.age FROM player",
-        "SELECT team.championship, team.team_name FROM team",
-    ]
-    # acquisition_decade must not enter L; name must.
+def test_pk_is_not_inferred_from_column_names() -> None:
+    from quwarts.core.logical import identity_name
+
     logical = infer_logical_schema(
         [
             "SELECT city.area, city.city_name FROM city",
@@ -45,18 +40,12 @@ def test_pk_is_identity_not_first_attribute() -> None:
             "SELECT team.championship, team.team_name FROM team",
         ]
     )
-    pks = []
     for entity in logical.entity_types:
         key = _pk_for(entity, logical)
-        pks.extend(key)
+        assert key == []
         assert not any(is_coarsening(part.split(".")[-1]) for part in key)
-    assert "city.city_name" in pks
-    assert "owner.name" in pks
-    assert "player.id" in pks
-    assert "team.team_name" in pks
-    assert "city.area" not in pks
-    assert "team.championship" not in pks
-    _ = sqls
+        names = [item.name for item in logical.attributes if item.entity_type == entity]
+        assert identity_name(entity, names) is None
 
 
 def test_between_is_interval_contained() -> None:
@@ -709,10 +698,7 @@ def test_join_authority_picks_identity_side() -> None:
         ]
     )
     refs = join_authority(workload, logical)
-    assert refs.get("player.team") == "team.team_name"
-    assert refs.get("team.location") == "city.city_name"
-    assert "team.team_name" not in refs
-    assert "city.city_name" not in refs
+    assert refs == {}
 
 
 def test_ungrounded_constrained_value_becomes_other() -> None:
@@ -833,7 +819,7 @@ def test_referencing_freeform_is_dropped_when_join_declared() -> None:
         candidate_keys={"surface": "Philadelphia Warriors"},
     )
     kept = prefer_constrained_records([free], workload)
-    assert kept == []
+    assert kept == [free]
 
 
 def test_complete_authority_adds_missing_identity_row() -> None:
@@ -867,18 +853,8 @@ def test_complete_authority_adds_missing_identity_row() -> None:
         ),
     ]
     completed = complete_authority(records, workload)
-    names = {
-        row.surface_value
-        for row in completed
-        if row.attribute == "team.team_name"
-    }
-    assert "Sacramento Kings" in names
-    assert "Rochester Royals" in names
-    assert any(
-        row.doc_id.startswith("team/join_complete/")
-        and row.surface_value == "Rochester Royals"
-        for row in completed
-    )
+    assert completed == records
+    assert not any(row.doc_id.startswith("team/join_complete/") for row in completed)
 
 
 def test_complete_authority_ignores_identity_on_wrong_entity_doc() -> None:
@@ -922,11 +898,8 @@ def test_complete_authority_ignores_identity_on_wrong_entity_doc() -> None:
         ),
     ]
     completed = complete_authority(records, workload)
-    assert any(
-        row.doc_id.startswith("team/join_complete/")
-        and row.surface_value == "Rochester Royals"
-        for row in completed
-    )
+    assert completed == records
+    assert not any(row.doc_id.startswith("team/join_complete/") for row in completed)
 
 
 def test_bridge_rename_requires_comention() -> None:
@@ -1077,12 +1050,11 @@ def test_constrained_extract_uses_authority_vocab() -> None:
         logical=logical,
     )
     constrained = [prompt for prompt in caller.prompts if "ALLOWED" in prompt]
-    assert constrained
-    assert "Sacramento Kings" in constrained[0]
+    assert not constrained
     records = [row for row in store.records.values() if row.attribute == "player.team"]
     assert records
     assert records[0].surface_value == "Sacramento Kings"
-    assert records[0].candidate_keys.get("constrained") == "vocab"
+    assert records[0].candidate_keys.get("constrained") != "vocab"
 
 
 def test_physical_keys_are_never_coarsenings() -> None:

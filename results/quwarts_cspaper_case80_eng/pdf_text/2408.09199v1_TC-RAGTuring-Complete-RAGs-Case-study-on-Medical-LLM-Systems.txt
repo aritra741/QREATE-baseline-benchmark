@@ -1,0 +1,2525 @@
+4
+2
+0
+2
+
+g
+u
+A
+7
+1
+
+]
+
+R
+
+I
+.
+s
+c
+[
+
+1
+v
+9
+9
+1
+9
+0
+.
+8
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+TC–RAG: Turing–Complete RAG’s Case study on Medical LLM Systems
+
+Xinke Jiang♠*, Yue Fang♠*, Rihong Qiu♠*, Haoyu Zhang♣, Yongxin Xu♠,
+Hao Chen♡, Wentao Zhang♡ Ruizhe Zhang♠, Yuchen Fang♢,
+Xu Chu♠†, Junfeng Zhao♠†‡, Yasha Wang♠†
+♠ Key Laboratory of High Confidence Software Technologies,
+Ministry of Education; School of Computer Science, Peking University, Beijing, China
+♣ School of Statistics and Mathematics, Zhongnan University of Economics and Law, Wuhan, China
+♡ University of Chinese Academy of Science, Beijing, China
+♢ School of Computer Science, University of Electronic Science and Technology of China, Chengdu, China
+
+{XinkeJiang,YueFang,RihongQiu}@pku.stu.edu.com
+
+https://https://github.com/Artessay/SAMA.git
+
+Abstract
+
+In the pursuit of enhancing domain-specific Large Language
+Models (LLMs), Retrieval-Augmented Generation (RAG)
+emerges as a promising solution to mitigate issues such as
+hallucinations, outdated knowledge, and limited expertise in
+highly specialized queries. However, existing approaches to
+RAG fall short by neglecting system state variables, which
+are crucial for ensuring adaptive control, retrieval halting, and
+system convergence. In this paper, we introduce the Turing–
+Complete–RAG (TC–RAG) through rigorous proof, a novel
+framework that addresses these challenges by incorporating a
+Turing Complete System to manage state variables, thereby
+enabling more efficient and accurate knowledge retrieval. By
+leveraging a memory stack system with adaptive retrieval,
+reasoning, and planning capabilities, TC–RAG not only en-
+sures the controlled halting of retrieval processes but also mit-
+igates the accumulation of erroneous knowledge via Push
+and Pop actions. In the case study of the medical domain,
+our extensive experiments on real-world healthcare datasets
+demonstrate the superiority of TC–RAG over existing meth-
+ods in accuracy by over 7.20%. Our dataset and code have
+been available at https://https://github.com/Artessay/SAMA.
+git.
+
+1
+
+Introduction
+
+Large Language Models (LLMs), such as ChatGPT (Ope-
+nAI 2022) and GPT-4 (OpenAI 2023), have achieved re-
+markable strides in pivotal areas, demonstrated exceptional
+performance across a variety of downstream tasks (Ka-
+plan et al. 2020; Vu et al. 2024). In the medical do-
+main—those medical LLMs (Wang et al. 2023a; Zhang et al.
+2023; Yang et al. 2023; Zhu et al. 2023; Pal and Sankara-
+subbu 2023)—exhibit great promise in the healthcare field,
+where accountability and trustworthiness are paramount (Ji
+
+*These authors contributed equally.
+†Corresponding authors.
+‡Junfeng Zhao is also at the Big Data Technology Research
+
+Center, Nanhu Laboratory, 314002, Jiaxing.
+
+et al. 2023a; Song et al. 2024). By incorporating com-
+prehensive medical knowledge through pre-training (Ka-
+plan et al. 2020), they can support physicians in making
+accurate diagnoses and formulating treatment plans (Jiang
+et al. 2023a), as well as enhance medical resource alloca-
+tion (Wang et al.; Xu et al.; Liu et al. 2024). Despite med-
+ical LLMs’ advancements, significant conundrums still re-
+main, including the difficulty in avoiding factual inaccura-
+cies (i.e., hallucinations) (Ji et al. 2023a; Cao et al. 2020; Ji
+et al. 2023b; Jiang et al. 2024), outdated knowledge (He,
+Zhang, and Roth 2022), and a lack of highly specialized
+expertise (Kandpal et al. 2023). Consequently, Retrieval-
+Augmented Generation (RAG) (Edge et al. 2024; Asai et al.
+2024; Yang et al. 2024b), which uses the external knowledge
+base to provide medical knowledge as contextual informa-
+tion to enhance content generation, combined with medical-
+LLMs with their massive parameterized knowledge can be
+likened to the expertise of doctors, is deemed as a promising
+and necessary solution to the aforementioned difficulties.
+
+However, while current approaches in enhancing LLMs
+with external knowledge through RAG show promise (Su
+et al. 2024; Asai et al. 2024; Jiang et al. 2023c), they have
+consistently overlooked the introduction of system state
+variables—an essential component for ensuring adaptive
+control, retrieval halting, and system convergence. More-
+over, these existing RAG methods are not Turing Complete,
+lacking the ability to dynamically manage and monitor the
+retrieval process in a way that guarantees convergence to a
+reliable conclusion. In complex medical scenarios, where
+decisions often require intricate, multi-step reasoning and
+adaptive responses (Mustafa, Saad, and Rizkallah 2023), the
+absence of Turing Completeness (Turing 1936) significantly
+limits a system’s effectiveness and reliability. This gap mo-
+tivates our approach: to construct a Turing Complete Sys-
+tem that effectively manages state variables, using a finite
+logical framework to enhance the RAG process. However,
+how to effectively construct a Turing Complete RAG sys-
+
+ 
+ 
+ 
+ 
+ 
+ 
+tem remains unexplored and faces substantial challenges:
+C1. How to design a Turing Complete RAG System with
+the monitored state variable. Designing a Turing Complete
+RAG system requires the integration of monitored state vari-
+ables that dynamically track and control the retrieval pro-
+cess—something that existing RAG methods lack. Current
+approaches (Jeong et al. 2024; Su et al. 2024) do not have an
+explicit mechanism to assess whether the system has con-
+verged to a reliable conclusion, which is a critical gap. A
+significant challenge lies in leveraging the forward propa-
+gation of the large model to accurately compute these state
+variables in real-time. This involves ensuring that the state
+variables effectively reflect the system’s evolving context,
+guiding crucial decisions on whether to continue, halt, or re-
+fine the retrieval process. Managing these variables within
+the model’s forward pass, while maintaining adaptability to
+complex and varied medical queries, is essential for achiev-
+ing both efficiency and accuracy, ensuring that the retrieval
+process finally reliably converges to an optimal conclusion.
+C2. Whether to, What to, and How to plan retrieval for ef-
+ficient and accurate knowledge to maintain optimal state.
+With the ability to assess the state, how to dynamically man-
+age it to achieve the expected state is significant. In a real-
+life consultation, doctors will decide whether to perform and
+what to search based on their state of mastery of this prob-
+lem (Cox et al. 2021), instead of the regardless search–which
+can lead to redundant information that the model already
+possesses, potentially causing confusion or even misleading
+the LLMs. Moreover, an experienced doctor can systemat-
+ically analyze and plan further steps with access to a vast
+medical knowledge base, while a layperson might struggle
+in a dilemma as to choose where to start or which tools to
+use (Yao et al. 2022a; Zhu et al. 2024). The medical LLM is
+analogous to a medical expert (DIS 2023), and the challenge
+lies in effectively utilizing the LLM’s internal parameterized
+knowledge to retrieve to maintain an optimal state.
+C3. How to avoid irrelevant noise affecting system state
+during RAG. Since the traditional RAG’s retrieval process is
+typically driven by query keywords (Soman et al. 2023b,a;
+Sen, Mavadia, and Saffari 2023; Kim et al. 2023) rather than
+the model’s specific needs, it may introduce extensive irrel-
+evant and noisy context. And the erroneous knowledge will
+continue to accumulate with the retrieval and reasoning pro-
+cess (Yao et al. 2022a; Shinn et al. 2024), which can cause
+to waste token resources (Jiang et al. 2024), accumulate in-
+valid memories, and encounter the “lost in the middle” (Liu
+et al. 2023) problems. Therefore, how to effectively remove
+erroneous knowledge is crucial for maintaining system state.
+these challenges, we propose Turing
+Complete-RAG (TC–RAG), a Turing Complete System for
+domain-specific LLMs to provide reliable and trustworthy
+medical analysis. 1) For C1, we designed a Turing Com-
+plete RAG system with a memory stack that monitors inter-
+mediate states, ensuring the retrieval process reliably con-
+verges to an optimal conclusion. 2) For C2, we extensively
+collected medical data and pre-trained a medical LLM, ele-
+vating its understanding from layperson to expert level, thus
+enhancing its reasoning and planning abilities. The model’s
+reasoning ability is leveraged to decide whether and what
+
+To address
+
+to retrieve adaptively, and its planning capacity guides tool
+usage and action planning, akin to how medical profession-
+als solve complex problems. 3) For C3, TC–RAG incorpo-
+rates a memory stack system with backtrack and summary
+operations to timely remove errors and condense redundant
+knowledge, mitigating accumulation of erroneous informa-
+tion and noise. In summary, our contributions are as follows:
+• To the best of our knowledge, TC–RAG is the first RAG
+framework to introduce the system state variable and the
+Turing Completeness mechanism, which could make the
+retrieval process controllable and halt.
+
+• By introducing the state variable, we theoretically prove
+
+the Turing Completeness of our white-box approach.
+
+• TC–RAG establishes a stack memory system, capable of
+adaptive retrieval, incorporating composed actions to ef-
+fectively manage memory, particularly in handling harm-
+ful or noisy knowledge.
+
+• We have open-sourced a meticulously curated Chinese
+medical pretraining dataset, along with extensive medical
+documents and a comprehensive knowledge graph.
+
+• Our thorough experimental evaluation on three real-world
+Medical Q&A datasets demonstrates the superior perfor-
+mance of TC–RAG over existing baselines, underscoring
+its accuracy and explainability. Furthermore, TC–RAG has
+been successfully deployed on an online platform (name
+omitted for anonymity).
+
+2 Related Work
+
+Retrieval-Augmented Generation (RAG), introduced by
+(Lewis et al. 2020), enhances LLM performance on
+knowledge-intensive tasks by integrating relevant informa-
+tion from external knowledge bases through prompt engi-
+neering. RAG not only mitigates hallucination issues during
+LLM inference but also provides up-to-date, task-specific
+knowledge, significantly boosting both interpretability and
+performance on downstream tasks (Izacard et al. 2022;
+Asai et al. 2023b,a). In the biomedical field, RAG has
+been widely used to improve LLMs’ reasoning and analyt-
+ical capabilities by leveraging external medical knowledge
+from sources such as medical papers, guidelines, textbooks,
+Wikipedia (Jin, Leaman, and Lu 2023; L´ala et al. 2023; Za-
+kka et al. 2024; Wang, Ma, and Chen 2023; Xiong et al.
+2024), and knowledge graphs (Soman et al. 2023b; Mat-
+sumoto et al. 2024; Jiang et al. 2024).
+
+Naive & Advanced RAG. Naive RAG typically follows
+a simple retrieve-and-read approach, where relevant infor-
+mation is retrieved based on the initial user query, and
+the answer is generated using that content (Soman et al.
+2023b,a; Sen, Mavadia, and Saffari 2023; Khandelwal et al.
+2020; Borgeaud et al. 2022; Ram et al. 2023). Advanced
+RAG, however, incorporates more sophisticated compo-
+nents such as retrievers (Qu et al. 2021; Ma et al. 2023),
+rerankers (Cheng et al. 2021; Yu et al. 2022), filters (Jiang
+et al. 2024), and readers (Yoran et al. 2024; Fang et al. 2024),
+to improve the quality of both retrieval and generation. How-
+ever, neither naive nor advanced RAG considers whether the
+LLM already possesses the necessary knowledge. This of-
+ten leads to the retrieval of excessive, redundant informa-
+
+tion, which can mislead the model and cause a “lost in the
+middle” dilemma (Liu et al. 2023). Our method addresses
+this issue by determining whether to retrieve and what to
+retrieve based on the model’s internal parameterized knowl-
+edge, resulting in more efficient and accurate retrieval.
+
+Adaptive RAG. Recent research has focused on develop-
+ing adaptive RAG strategies, enabling LLMs to determine
+whether and when to retrieve and to select the most appropri-
+ate retrieval tools from huge knowledge base. FLARE (Jiang
+et al. 2023d) predicts the next sentence and uses the gen-
+erated low-confidence tokens as query to re-retrieve rele-
+vant documents. DRAGIN (Su et al. 2024) leverages the
+LLM’s uncertainty in its generated content to decide when to
+trigger retrieval based on the internal self-attention weights
+and corresponding keywords. Adaptive-RAG (Jeong et al.
+2024) uses a smaller LLM as a classifier to query complex-
+ity and subsequently selects the most appropriate retrieval
+strategy—ranging from simple to advanced. However, these
+existing adaptive RAG methods are not Turing Complete,
+lacking the ability to dynamically manage and monitor the
+retrieval process in a way that guarantees convergence to a
+reliable conclusion. Moreover, they have yet to fully harness
+the step-by-step planning and tool-use abilities of LLMs in
+conjunction with RAG. Our approach addresses these lim-
+itations by integrating a Turing Complete framework that
+optimizes retrieval through advanced planning and tool-use
+strategies, ensuring more reliable and accurate outcomes.
+
+2.1 Reasoning and Planning Capabilities
+
+Recent advancements have focused on enhancing the rea-
+soning and planning capabilities of LLMs (Zhu et al. 2024;
+Yao et al. 2022a; Shinn et al. 2024; Koh et al. 2024). One no-
+table approach is Chain-of-Thought (CoT)(Wei et al. 2022),
+which demonstrates how LLMs can construct structured
+”thought processes” to solve complex problems. ReAct(Yao
+et al. 2022b) integrates reasoning traces with task-specific
+actions, enabling LLMs to plan, adjust actions, and man-
+age exceptions while gathering information from external
+sources such as knowledge bases. Reflexion (Shinn et al.
+2024) further improves LLMs by using linguistic feedback,
+allowing them to reflect on and store task feedback, en-
+hancing decision-making in future trials. Despite these ad-
+vancements, the reasoning and planning processes of LLMs
+often lead to the accumulation of errors and redundant in-
+formation. While these methods introduce new decision tri-
+als, they frequently fall short in managing previous mem-
+ory—particularly in removing ineffective decisions or re-
+fining historical records. To address these challenges, TC–
+RAG incorporates a memory stack system with backtrack
+and summary operations, allowing for timely error correc-
+tion and condensation of redundant knowledge. This ensures
+that the model’s reasoning process remains efficient and ac-
+curate, leading to more reliable outcomes.
+
+3 Prelinmary
+
+Definition 1. (Stack of Memory).
+In TC–RAG, the Mem-
+ory of LLMs is conceptualized as a White Box Turing Ma-
+chine (Turing 1936), with the rigorous theoretical proof in
+
+Appendix 8.1. Let TC = (S, A, M, δ, s0, F, σ) represent
+the stack memory of the LLMs, where:
+• S denotes the set of possible states the LLMs occupy.
+Specifically, we use numerical values like perplexity (Je-
+linek et al. 1977) & uncertainty (Peng et al. 2024) to define
+system’s state.
+
+• A represents the set of actions that the LLMs can perform.
+Following stack theory, we define the fundamental meta-
+actions: push and pop. Additionally, we have composite
+actions composed of the two meta-actions: “Thought”,
+“Tool Observation”, “Backtrack”, “Summary”,
+and “Conclusion”.
+
+• M is the stack memory, which includes the set of actions
+A and potentially other symbols may be used in stack
+operations, such as the initiation state “User Query”.
+Hence, A ⊆ M.
+
+• δ : S ×M → S ×A×M×(0, +∞) is the state transition
+function. It defines how the LLM transitions to a new state,
+selects an action, updates the stack memory, and calculates
+a new system state value based on the current state and
+stack memory. The transition involves selecting an action
+a ∈ A (which includes push and pop operations), leading
+to a new stack top and an updated system state value s ∈ S
+within the range (0, +∞). δ is decided by LLMs and state
+calculation function.
+
+• s0 ∈ S is the initial state, with its initial value defined
+as s0 = $Large Value$ (where a lower value indicates a
+more desirable system state).
+
+• F ⊆ S is the set of final states. The state f ∈ F is
+deemed final if the current action is “Conclusion” and
+the current state value f is less than the threshold σ. Oth-
+erwise, the system will either reset the state value to the
+threshold σ or change the action from “Conclusion” to
+“Thought” for further analysis.
+
+• σ ∈ (0, +∞) is the hyper-threshold for the final state.
+
+In this part, we define the
+
+Definition 2. (Meta-Actions).
+meta-actions in TC–RAG as follows:
+• Push: When the medical-LLM processes new informa-
+tion or obtains tool observations, a new action is deter-
+mined and pushed onto the stack M:
+
+(st+1, at+1) ← δ(st, Mt), Mt+1 ← push(Mt, at+1).
+
+(1)
+
+where st+1 represents the LLM’s next system state value,
+at+1 is the next action to be pushed onto the stack M.
+• Pop: If an error or inconsistency is detected, the LLM
+needs to revert to the previous state by popping the top
+element from the stack:
+
+(st+1, at+1) ← δ(st, Mt), Mt+1 ← pop(Mt).
+
+(2)
+
+Task Definition. Given the parameterized knowledge Θ
+embedded within the LLM, and non-parameterized knowl-
+edge base D which comprises diverse types of knowl-
+edge, the objective is to generate a reliable medical analysis
+Response given the natural language User Query:
+
+Response ← Θ(User Query, D | P),
+
+(3)
+
+where P is the task-specific prompt, i.e. CoT prompt (Wei
+et al. 2023), ReACT prompt (Yao et al. 2022a), etc.
+
+4 TURING-COMPLETE
+We define a stack-based memory system incorporating a sys-
+tem state variable and prove its equivalence to a universal
+Turing machine T through a series of formal definitions,
+lemmas, and a main theorem. The detailed proofs are pro-
+vided in Appendix 8.1. We prove this by showing that for
+any Turing machine T , there exists TC that can simulate T .
+
+Step 1: Construction of the Turing System. Given a Tur-
+ing machine T = (ST , AT , MT , δT , st0, staccept, streject),
+we interpret TC = (S, A, M, δ, s0, F, σ) with the following
+components:
+1. S = ST ∪ f , where f /∈ ST is the end state.
+2. A = AT , M = MT ∪ A, s0 = st0, F = {f }, σ is the
+
+hyper-threshold to decide accept or reject.
+
+3. The transition function δ is defined as:
+
+δ(s, a) =
+
+
+
+
+
+
+(s′, push, s ≥ σ)
+(s′, pop, s ≥ σ)
+(f, no op, a, s < σ)
+
+if δT (st, a) = (st′, a, R)
+if δT (st, a) = (st′, a, L)
+if st ∈ {staccept, streject}
+
+where a is the executing action for T or TC. The operations
+push and pop are corresponding to the right (R) and left (L)
+movements in T . Transition function δ(·, ·) is for TC and
+δT (·, ·) is for T . The operation no op indicates no operation
+is performed when the system is halting.
+
+Step 2: Configuration Mapping Next, we define a bi-
+jective mapping function h that maps each configuration
+of T to TC. We now define the configuration c of T as
+c = (st, w1aw2), w1, w2 represents the sequence of actions
+to the left / right of the tape head, where st ∈ ST , a ∈ AT
+is the tape head/action. The configuration of TC cTC is com-
+posed of the tuple as (system state, remaining actions, stack
+memory actions, whether to halt) as:
+h(st, w1aw2) = (s, w2, wR
+1 is the reverse of w1, which is necessary due to
+
+where wR
+Last-In-First-Out (LIFO) principle of M.
+
+1 a, s ≥ σ) = cTC
+
+Step 3: Simulation of Computation Steps We now prove
+that TC can simulate each step of T as in Lemma 3:
+Lemma 1 If c1 ⊢T c2 in T , then h(c1) ⊢∗
+TC h(c2) in TC,
+where ∗ denotes one or multiple steps of derivation, ⊢ is the
+action shift operator.
+Proof 4.1 Let c1 = (st1, w1a1w2) and c2 = (st2, w′
+1a2w′
+2)
+be configurations of T with at = {L, R}. We prove Lemma 3
+by considering the two cases push and pop corresponding
+to the possible directions of tape head movement in T .
+• Case 1: If δT (st1, a1) = (st2, a2, R), then:
+
+h(c1) = (st1, w2, wR
+⊢TC (s2, w′
+2, wR
+= h(st2, w1a1a2w′
+
+1 a1, st1 ≥ σ)
+1 a1a2, s2 ≥ σ)
+
+2) = h(st2, w′
+
+(push a2)
+1a2w′
+
+2) = h(c2)
+
+• Case 2: If δT (st1, a1) = (st2, a2, L), then:
+
+h(c1) = (st1, w2, wR
+⊢TC (s2, w2, wR
+2, w′R
+⊢TC (s2, w′
+1a2w′
+= h(st2, w′
+
+1 a1, st1 ≥ σ)
+1 , s2 ≥ σ)
+1 a2, s2 ≥ σ)
+2) = h(c2)
+
+(pop a1)
+
+(push a2, if a2 ̸= null)
+
+It is noted that the two cases correspond to the meta opera-
+tions of push (Case 1) and pop (Case 2) in TC–RAG.
+
+Step 4: Preservation of Acceptance and Rejection
+Lemma 2 T accepts (rejects) the whole input w if and only
+if TC reaches a configuration (f, N U LL, M, f < σ) from
+the initial configuration (s0, w, N U LL, s0 ≥ σ).
+Proof 4.2 We prove the consistency of reaching the termi-
+nation state from both T → TC and TC → T perspectives.
+(Forward ⇒) Assume T accepts (rejects) input w. Then:
+∃t ∈ N such that after t steps, T enters state staccept (or
+streject). Then, Let (stt, wt) be the configuration of T at
+step t, where stt ∈ {staccept, streject}. By our construction
+of δ, ∀a ∈ A, we have:
+
+δ(s, a) = (f, no op, a, f < σ) ∀st ∈ {staccept, streject}
+
+Therefore, if h(stt, wt) = (st, w2, wR
+responding configuration in TC, then:
+
+1 a, st ≥ σ) is the cor-
+
+(st, w2, wR
+
+1 a, st ≥ σ) ⊢t
+
+TC (f, N U LL, M, f < σ)
+
+Thus, TC achieve f with system state value lower than σ.
+
+(Backward ⇐) Assume TC reaches configuration
+(f, N U LL, M, f < σ) from (s0, w, N U LL, s0 ≥ σ).
+Then: ∃t ∈ N such that:
+
+(s0, w, N U LL, s0 ≥ σ) ⊢t
+
+TC (f, N U LL, M, f < σ).
+
+Let (st−1, w2, wR
+1 a, st−1 ≥ σ) be the configuration of TC
+at step t − 1. Then, by the construction of δ, the only way
+to reach f is if st−1 ∈ {staccept, streject}. Therefore, the
+corresponding configuration of T at step t − 1 must be
+(stt−1, w1aw2), where stt−1 ∈ {staccept, streject}. Thus,
+T must have entered staccept or streject, implying that T
+accepts or rejects w.
+
+From both the Forward and Backward proof, T accepts
+(rejects) input w if and only if TC reaches a configura-
+tion (f, N U LL, M, f < σ) from the initial configuration
+(s0, w, N U LL, s0 ≥ σ).
+
+By the above lemmas, we have shown that: (1) TC can
+simulate every move of T . (2) TC halts if and only if T
+achieve acceptance or rejection behavior. Thus, TC can
+simulate any computation of any Turing machine T ,
+which by definition makes TC Turing complete.
+
+5 Memory Stack and State Monitor
+In this section, we present our innovative framework, TC–
+RAG, as illustrated in Figure 1. Traditional methods, such
+as those based on thought chain (Yu et al. 2023; Li et al.
+2023a; Ma et al. 2023; Wei et al. 2023) and reasoning and
+acting approaches (Yao et al. 2022a; Shinn et al. 2024; Zhu
+et al. 2024), often suffer from lack of state management, re-
+trieval halting, accumulated erroneous knowledge, token in-
+efficiency, and the issue of being “lost in the middle”. To ad-
+dress these challenges, we introduce a stack-based memory
+system that leverages push and pop actions for efficient
+memory management for C1, C3. Additionally, to further
+improve the LLMs’ knowledge comprehension and adapt-
+ability, we incorporate an expert knowledge pre-training
+
+Figure 1: Overall framework of TC–RAG.
+
+module based on the general LLM, which enhances the
+LLMs’ understanding and reasoning capabilities (as detailed
+in Appendix 8.3) for C2. Next, in subsection 5.1, we define
+the stack memory structure and the composite actions such
+as “Thought”, “Tool Observation”, “Backtrack”,
+“Summary”, and “Conclusion”. We then outline the
+stack states—initiation, intermediate, and final—and pro-
+vide specific state calculations in subsection 5.2. In Ap-
+pendix 8.4, we describe the prompting strategy and the full
+algorithm employed in TC–RAG.
+
+5.1 Stack Memory and Composed Actions
+In managing memory for LLMs, memory can be conceptu-
+alized as a stack structure adhering to the “last-in, first-out”
+(LIFO) principle. Unlike Markov processes where future
+actions depend solely on the current actions, in TC–RAG,
+each new memory entry builds upon the accumulated mem-
+ory (Pimentel and Silva 2018; Miller and Chomsky 2003).
+To maintain the orderliness and consistency of the memory,
+erroneous entries are ejected sequentially from the top of
+the stack. This approach prevents “contamination” and con-
+fusion that might arise from directly removing intermedi-
+ate memories, thereby mitigating unreasonable interference
+during the reasoning process.
+
+As a consequence, as outlined in Definition 1, we lever-
+age the stack M to simulate the LLM’s memory. Based on
+the meta stack operations of push and pop in Section 4, the
+following composite actions have been devised to enhance
+the reasoning and planning capabilities of LLMs:
+• Thought: This action represents LLM’s analytical pro-
+cess. Once the model has processed information and gen-
+erated an insight, this analysis is pushed onto stack M.
+• Tool Observation: When the LLM interacts with ex-
+
+ternal tools to gather additional data or insights, the result
+of this interaction is captured as an observation. Both the
+tool’s name and the resulting observation are then pushed
+onto the stack M.
+
+• Backtrack: Triggered by the LLM’s reflection mecha-
+nism, this action occurs when the top of the stack is found
+to be irrelevant or harmful to the ongoing task. The model
+pops the top element off the stack M, removing the irrel-
+evant or harmful memory.
+
+• Summary: When the content at the top of the stack M be-
+comes too lengthy or cluttered with irrelevant information,
+the LLM initiates a summarizing process. The content is
+first popped off the stack, and then the concise summary is
+pushed back onto the M, ensuring that the stack remains
+focused on the most pertinent information.
+
+• Conclusion: This action occurs when the LLM be-
+lieves it has reached a final conclusion or solution
+in a black-box manner. However, if the current state
+does not satisfy the necessary stopping conditions, the
+Conclusion action is replaced with Thought, allow-
+ing the model to continue refining its reasoning.
+
+5.2 Stack Status and Memory Management
+Pipline We will systematically describe the changes in the
+memory stack and system status.
+• Stack and State Initialization: Initially,
+
+the overall
+system state value is assigned a large constant as
+$Large Value$. The memory stack, M, begins with only
+the “User Query” action. This entry is immutable,
+meaning it cannot be popped and permanently resides at
+the bottom of the stack.
+
+• State Value Evaluation: During the analytical process,
+outputs tagged with the actions “Conclusion” and
+
+MBacktrackpushThoughtMpushpopSummary A Long MessageSummary: …Q: Two months after a second curettage for a hydatidiform mole, irregular vaginal bleeding still persists, and urine HCG is positive. What could be the reason?QueryMedical LLMsIt seems not related to user query.MMpoptoolsObservationMTool_ObservationCallpushMMMemory Stack( M )pushpopState Monitorstate_s ≥ σI am still confused, I will keep onI am clear now and I can make a conclusionstate_s < σNot finished, next actionFinal ConclusionConclusionActionState & MemoryKnowledge BaseDocumentsKnowledge GraphsMedical Pedia and WebEHR Base...Composed Action SetTuring CompleteTable 1: Performance comparison (%) on CMB-Exam, MMCU-Medical and CMB-Clin datasets.
+
+LLM Turbo
+
+Qwen-32B
+
+Pretrained Qwen-32B
+
+Method
+
+Type
+
+Without RAG
+
+Naive RAG
+
+Baselines
+
+Advanced RAG
+
+Adaptive RAG
+
+Ours
+
+Adaptive RAG
+
+Dataset
+Metric
+Base
+CoT
+SR-RAG
+FL-RAG
+FS-RAG
+CoK
+SuRe
+HyKGE
+ReACT
+Self-RAG
+FLARE
+DRAGIN
+TC–RAG-cppl
+TC–RAG-uct
+
+*Performance Gain ↑
+
+Ablations Adaptive-RAG
+
+TC–RAG (w/o Backtrack)
+TC–RAG (w/o Summary)
+TC–RAG (w/o State Monitor)
+
+CMB-Exam MMCU-Medical
+
+EM
+67.33
+70.88
+66.73
+67.94
+64.65
+76.25
+76.96
+82.17
+82.20
+81.88
+82.89
+82.78
+84.90
+85.63
+03.31
+83.44
+84.82
+83.75
+
+EM
+80.92
+80.53
+80.31
+75.17
+71.62
+79.04
+83.08
+86.45
+87.34
+85.78
+87.26
+85.28
+89.61
+89.46
+02.60
+88.61
+89.00
+88.79
+
+“Thought” are monitored. For each output, a system
+state value is computed and carried forward in subsequent
+iterations. This value can be determined using metrics like
+conditional perplexity and uncertainty, with lower values
+indicating higher decision confidence.
+
+If
+
+• Conclusion Validation:
+
+a
+Conclusion,
+the system evaluates whether the as-
+sociated state value meets predefined stopping conditions.
+If not, action Conclusion is reclassified as Thought,
+signaling the need for further analysis.
+
+the LLMs
+
+output
+
+• State Restoration: If a Thought is popped from the
+stack (e.g., via Backtrack action), the system restores
+the system state value to its previous level before the addi-
+tion of that Thought. This management strategy ensures
+the system remains dynamic and responsive to memory,
+allowing for iterative refinement of LLM’s outputs. By
+continuously evaluating and adjusting based on the sys-
+tem state value, the LLMs can effectively navigate toward
+accurate and reliable conclusions.
+
+System Value Calculation To ensure that the system is
+progressing toward a reliable conclusion, a system state
+value is calculated by comparing the content generated by
+the LLMs at the top of the stack (from either a Thought
+or Conclusion) with the bottom “User Query”. This
+comparison, based on metrics such as conditional perplexity
+and uncertainty, quantifies how closely the system’s current
+reasoning aligns with the original intent of the task:
+• Conditional Perplexity: Conditional Perplexity is a met-
+ric used to evaluate the predictability of a language model
+given prior context (Jelinek et al. 1977). For the sequence
+of text Mtop at the top of the M, and the original query at
+the bottom (denoted as Mbottom), the conditional perplex-
+ity cppl is calculated as:
+
+cppl(Mtop | Mbottom) = exp
+
+(cid:16)
+
+−
+
+1
+N
+
+N
+(cid:88)
+
+i=1
+
+log
+
+P (tokeni | token1, . . . , tokeni−1, Mbottom)
+
+(cid:17)
+
+(4)
+
+,
+
+where N is the number of tokens in Mtop and P (tokeni |
+
+CMB-Clin
+BLEU-1 BLEU-4 ROUGE
+10.82
+11.64
+14.18
+15.32
+08.63
+25.33
+27.90
+41.84
+48.55
+46.82
+49.19
+44.18
+53.04
+53.24
+08.23
+51.38
+52.11
+49.44
+
+24.10
+24.30
+22.23
+22.96
+20.29
+31.49
+31.06
+38.92
+41.22
+44.70
+51.15
+45.23
+53.29
+54.98
+07.49
+52.40
+53.07
+51.07
+
+06.84
+07.23
+09.48
+10.67
+05.12
+13.96
+14.88
+19.02
+19.15
+18.23
+19.85
+19.48
+20.86
+21.03
+05.94
+20.04
+20.72
+19.82
+
+CMB-Exam MMCU-Medical
+
+EM
+68.34
+69.94
+68.54
+69.48
+67.20
+79.18
+78.55
+84.58
+84.08
+84.32
+85.14
+84.80
+87.33
+87.95
+03.30
+86.24
+84.79
+85.27
+
+EM
+80.70
+80.06
+83.15
+78.61
+75.20
+81.31
+85.56
+87.09
+88.19
+86.77
+87.37
+85.46
+92.80
+93.15
+05.62
+90.67
+88.47
+89.04
+
+CMB-Clin
+BLEU-1 BLEU-4 ROUGE
+11.24
+11.67
+16.72
+16.20
+09.20
+27.84
+28.01
+43.79
+49.96
+47.12
+50.38
+46.72
+56.94
+57.29
+13.72
+52.92
+54.39
+48.42
+
+06.93
+07.37
+11.56
+10.95
+05.76
+14.92
+15.26
+22.85
+22.37
+20.06
+20.91
+19.56
+24.65
+25.89
+13.30
+22.06
+24.48
+21.40
+
+23.75
+23.54
+22.38
+23.13
+21.34
+46.90
+44.38
+50.23
+50.45
+48.90
+52.96
+47.38
+57.46
+56.59
+08.50
+53.88
+54.72
+51.86
+
+token1, . . . , tokeni−1, Mbottom) represents the probabil-
+ity of the i-th token in Mtop given the preceding tokens
+and the context Mbottom.
+
+• Uncertainty: uct measures the confidence (Jiang et al.
+2023b) in the context Mtop and is derived from the en-
+tropy of the output probability distribution:
+
+uct(Mtop) = −
+
+N
+(cid:88)
+
+i=1
+
+P (tokeni | token1, . . . ,
+
+(5)
+
+tokeni−1) log P (tokeni | token1, . . . , tokeni−1),
+
+where higher entropy indicates greater uncertainty and
+less reliability.
+
+The system will then select either cppl or uct as the system
+state value st at step t. If st < σ, it suggests that the LLM’s
+output is both predictable and confident, indicating align-
+ment with the original query. Vice versa, a high-value signal
+that the output may not be reliable or relevant, necessitat-
+ing further refinement. The system will continuously update
+st during reasoning process, using it to guide decisions on
+whether to finalize or continue refining the output.
+
+6 Experiments
+In this section, we conduct a series of experiments on three
+medical datasets to answer the following research questions:
+
+• RQ1 (Section 6.2): Does TC–RAG outperform the SOTA
+
+RAG methods using the same database source?
+
+• RQ2 (Section 6.3): Is the stack framework we designed
+effective? What impact does each component have on the
+overall performance?
+
+• RQ3 (Section 6.4, Appendix 8.6): Can TC–RAG really
+pop up erroneous execution memory and noise injection
+and achieve memory management?
+
+• RQ4 (Section 6.5): How sensitive is TC–RAG to hyper-
+
+parameters σ to different system types cppl and uct?
+
+Noise poisoning attack experiment is in Appendix 8.6 and
+we also anonymously rank TC–RAG on the largest Chinese
+
+medical CMB Leaderboard, which includes detailed medi-
+cal scores for each subcategory (c.f. Appendix 8.7)1.
+
+6.1 Experimental Setup
+Datasets. Our experiments are conducted on two multi-task
+medical datasets MMCU-Medical (Zeng 2023) and CMB-
+Exam (Wang et al. 2023b), and one open-domain Q&A med-
+ical dataset CMB-Clin (Wang et al. 2023b). RAG Tools. We
+incorporate various RAG tools including knowledge graph
+search, document search, web and pedia search, and elec-
+tronic medical record database. LLM Turbo. The general-
+domain LLM Qwen-32B (Yang et al. 2024a) was selected as
+the base model, which we further pre-trained for the med-
+ical domain.Baselines. To assess the effectiveness of our
+approach, we compare TC–RAG with twelve baselines. (1)
+Without RAG: Base and CoT (Wei et al. 2023). (2) Naive
+RAG: SR-RAG (Soman et al. 2023b), FL-RAG (Khan-
+delwal et al. 2020) and FS-RAG (Trivedi et al. 2023).
+(3) Advanced RAG: CoK (Li et al. 2023b), SuRe (Kim
+et al. 2024), HyKGE (Jiang et al. 2024). (4) Adaptive
+RAG: ReACT (Yao et al. 2022a), Self-RAG (Asai et al.
+2024), FLARE (Jiang et al. 2023c) and DRAGIN (Su et al.
+2024). Evaluation Metrics. We use EM (Zhu et al. 2021;
+Karpukhin et al. 2020) metric for multi-task medical choice
+questions and ROUGE-R (Xu 2023) and BLEU-1, BLEU-
+4 (Xu 2023) for open-domain Q&A tasks. Detailed experi-
+mental settings are in Appendix 8.5.
+
+6.2 Main Result Analysis (RQ1)
+To answer RQ1, we conduct experiments and report results
+of the accuracy on the MMCU-Medical, CMB-Exam and
+CMB-Clin datasets with two LLMs in Table1. From the re-
+ported accuracy, we can find the following observations:
+
+Comparison of RAG methods and Base LLMs. Given
+the complexity of patient queries, we observe that the per-
+formance of the Naive RAG methods shows little to no im-
+provement compared to the No RAG baselines. In contrast,
+the effectiveness of Adaptive RAG is significantly higher
+than that of Advanced RAG and substantially outperforms
+other approaches. This underscores the necessity of employ-
+ing more sophisticated submodules for advanced and adap-
+tive retrieval in domain-specific scenarios.
+
+Comparison of TC–RAG and other RAG methods. Our
+model, TC–RAG, clearly outperforms the baseline models
+across all datasets, with an average performance gain of all
+metrics of up to 7.20%. For instance, the EM and BLEU-4
+scores improve by approximately 2.60%-5.62% and 8.23%-
+13.72%, respectively. These results highlight the effective-
+ness of our modules in system state & memory management,
+as well as adaptive retrieval. Additionally, it is worth noting
+that domain-specific LLMs significantly outperform general
+LLMs, further demonstrating the importance of pre-training
+a medical LLM to support TC–RAG, which aligns with C2.
+
+6.3 Ablation Study (RQ2)
+We perform ablation studies to evaluate the impact of
+each component within TC–RAG, as detailed in Table 1,
+
+1https://cmedbenchmark.llmzoo.com/static/leaderboard.html
+
+with three variants: (1) TC–RAG without Backtrack ac-
+tion (denoted as w/o Backtrack), (2) TC–RAG with-
+out Summary action (denoted as w/o Summary), (3) TC–
+RAG without State Monitor, relying solely on the LLM’s
+’Final Answer’ action to determine termination, transform-
+ing into a black-box system (denoted as w/o State
+Monitor). The results reveal that each component con-
+tributes positively to the overall performance of TC–RAG.
+The exclusion of any component leads to a noticeable re-
+duction in effectiveness. Particularly, the absence of the
+State Monitor results in significant performance degrada-
+tion, highlighting the critical importance of the system state
+variable in monitoring the process, in line with C1, which
+is essential for preventing overconfidence and ensuring ap-
+propriate termination, thereby avoiding excessive or inade-
+quate retrieval. Moreover, the removal of the Backtrack
+and Summary actions underscores the necessity of effective
+memory management. These actions are crucial for mitigat-
+ing irrelevant noise and maintaining an optimal system state,
+aligning with the challenges outlined in C3.
+
+6.4 Case Study (RQ3)
+
+The results indicate that
+
+In this case study, we examine the effectiveness of two
+RAG systems: one without memory and state management–
+ReACT, and TC–RAG. We evaluate how each system im-
+pacts the state management, retrieval, and reasoning process,
+particularly when dealing with irrelevant or incorrect noise.
+the ReACT-based approach
+struggles with accumulating irrelevant noise, leading to
+overconfidence and inaccurate conclusions, simply due to
+the unit conversion in Figure 2. In contrast, TC–RAG ef-
+fectively manages its memory and utilizes Summary &
+Backtrack actions to prune incorrect retrievals, result-
+ing in more concise and accurate conclusions, which under-
+scores TC–RAG’s superiority in handling complex tasks (for
+C3). Furthermore, we found that the ReACT-based approach
+tends to prematurely settle on answers when the system state
+value is high, due to the lack of state management. On the
+other hand, TC–RAG dynamically monitors the RAG pro-
+cess, ensuring that the system state value meets the termina-
+tion condition, which highlights the necessity of construct-
+ing a system state, in line with C1.
+
+6.5 Sensitivity Analysis (RQ4)
+
+To demonstrate the effectiveness of the system state vari-
+ables, we also conducted experiments on TC–RAG via two
+LLMs on MMCU-Medical and CMB-Exam. As shown in
+Figure 3, we found that as σ increases, the system state is im-
+posed with small constraints, and the LLM becomes “over-
+confident”, reaching conclusions before fully analyzing and
+planning the necessary steps. Conversely, when σ decreases,
+the state variable exerts a stronger influence on the output,
+making it harder to reach the termination state. Thus, the
+LLM becomes overly cautious, attempting multiple actions
+and slightly reducing effectiveness. Overall, we can balance
+σ to ensure optimal performance and accuracy of TC–RAG,
+aligning with the challenges outlined in C1.
+
+Figure 2: Case Study of ReACT-based and TC–RAG.
+
+focus on incorporating more complex composed actions, en-
+abling multi-LLM interactions, and exploring its application
+in other specialized domains.
+
+References
+2023. Bridging General Large Language Models and Real-
+World Medical Consultation.
+
+Asai, A.; Min, S.; Zhong, Z.; and Chen, D. 2023a. Retrieval-
+based language models and applications. In Proceedings of
+the 61st Annual Meeting of the Association for Computa-
+tional Linguistics (Volume 6: Tutorial Abstracts), 41–46.
+
+Asai, A.; Wu, Z.; Wang, Y.; Sil, A.; and Hajishirzi, H. 2023b.
+Self-RAG: Learning to Retrieve, Generate, and Critique
+through Self-Reflection. arXiv preprint arXiv:2310.11511.
+
+Asai, A.; Wu, Z.; Wang, Y.; Sil, A.; and Hajishirzi, H.
+2024. Self-RAG: Learning to Retrieve, Generate, and Cri-
+tique through Self-Reflection. In ICLR.
+
+Borgeaud, S.; Mensch, A.; Hoffmann, J.; Cai, T.; Ruther-
+ford, E.; Millican, K.; van den Driessche, G.; Lespiau, J.-B.;
+Damoc, B.; Clark, A.; de Las Casas, D.; Guy, A.; Menick, J.;
+Ring, R.; Hennigan, T.; Huang, S.; Maggiore, L.; Jones, C.;
+Cassirer, A.; Brock, A.; Paganini, M.; Irving, G.; Vinyals,
+O.; Osindero, S.; Simonyan, K.; Rae, J. W.; Elsen, E.; and
+Sifre, L. 2022.
+Improving language models by retrieving
+from trillions of tokens. arXiv:2112.04426.
+
+BYAMBASUREN, O.; YANG, Y.; SUI, Z.-f.; DAI, D.;
+CHANG, B.; LI, S.; and ZAN, H. 2020. Preliminary study
+
+Figure 3: Hyper-parameter study with the different threshold
+σ for cppl (Left) and uct (Right).
+
+7 Conclusions and Future Works
+
+We introduce the first Turing-Complete RAG system for
+medical LLMs, named TC–RAG. By incorporating a mon-
+itored state variable, we have developed a stack memory
+framework that enables more dynamic and adaptive retrieval
+processes, effectively addressing the endless and inaccu-
+rate retrieval challenges. The TC–RAG framework, with its
+memory stack system for backtracking and summarizing,
+effectively reduces the accumulation of erroneous knowl-
+edge and irrelevant noise. Our experiments suggest that TC–
+RAG outperforms existing baselines across multiple real-
+world medical datasets, showing potential improvements in
+accuracy and reliability. Furthermore, the successful deploy-
+ment of TC–RAG on an online platform also highlights its
+practical value in real-world applications. Future efforts will
+
+Pulse pressure refers to the difference between systolic and diastolic blood pressure. The normal range is 20-60 mmHg, and the average pulse pressure in adults is around 40 mmHg.normal range of CVPGraph retrieval path:CVP -> normal value -> 5~12 cmH2OCVP -> measurement methods -> Insert a central venous catheter...normal range of CVPpushpushTool_Observation: I am not sure what CVP is, so execute [Function: web search] to find [Query: CVP related information] firstBacktrack: normal range of CVP was not found, abandonedweb search Tool_Observation: Try to execute [Function: knowledge graph retrieval ] [Query: normal range of CVP ]pushpushpushSummary: According to graph retrieval , the normal value of CVP is 5-12 cmH2Opop1. pop2. pushThought: Based on the summary, I think I have solved.pushConclusion: According to the results, the normal value of CVP is 5~12 cmH2O, so the CVP index of 9cmH2O is normal.User_Query: My CVP indicator is 9cmH2O, is this normal?User_Query: My CVP indicator is 9cmH2O, is this normal?pushpushTool_Observation: I am not sure what CVP is, first perform [Function: web search] to find [Query: CVP related information]Tool_Observation: CVP refers to central venous pressure. I want to find [ Query: normal range of CVP ] through [Function: document retrieval ] Thought: The range of central venous pressure is about 40mmHg, the search results give the answer, I think I have solved.Conclusion: The normal value of pulse pressure is 40mmHg and 54cmH2O after conversion, so 9cmH20 is abnormal.MMMMMMMMMM[Web Search][Document Retrieval][Knowledge Graph Retrieval]ReACTTC-RAG s : Large_Value s : 57.34 f : 32.93 s : Large_Value s : 12.14 f : 8.79 Central Venous Pressure (CVP) is the pressure on the upper and lower vena cava to enter the right atrium, depending on the relationship between the ejection capacity of the heart and the volume of venous blood returning to the heart.What does CVP mean clinically[Web Search]510204070100747882869094EM (%)Pretrained@MMCUPretrained@CMBBase@MMCUBase@CMB5102040701007882869094EM (%)Pretrained@MMCUPretrained@CMBBase@MMCUBase@CMBon the construction of chinese medical knowledge graph.
+Journal of Chinese Information Processing.
+Cao, M.; Dong, Y.; Wu, J.; and Cheung, J. C. K. 2020. Fac-
+tual Error Correction for Abstractive Summarization Mod-
+In Proceedings of the 2020 Conference on Empirical
+els.
+Methods in Natural Language Processing (EMNLP), 6251–
+6258. Online: Association for Computational Linguistics.
+Cheng, H.; Shen, Y.; Liu, X.; He, P.; Chen, W.; and Gao,
+J. 2021. UnitedQA: A Hybrid Approach for Open Domain
+Question Answering. arXiv:2101.00178.
+Cox, C. L.; Miller, B. M.; Kuhn, I.; and Fritz, Z. 2021. Diag-
+nostic uncertainty in primary care: what is known about its
+communication, and what are the associated ethical issues?
+Family practice, 38(5): 654–668.
+Cuconasu, F.; Trappolini, G.; Siciliano, F.; Filice, S.; Cam-
+pagnano, C.; Maarek, Y.; Tonellotto, N.; and Silvestri, F.
+2024. The Power of Noise: Redefining Retrieval for RAG
+Systems. arXiv:2401.14887.
+Edge, D.; Trinh, H.; Cheng, N.; Bradley, J.; Chao, A.; Mody,
+A.; Truitt, S.; and Larson, J. 2024. From Local to Global:
+A Graph RAG Approach to Query-Focused Summarization.
+arXiv:2404.16130.
+Fang, F.; Bai, Y.; Ni, S.; Yang, M.; Chen, X.; and Xu,
+Enhancing Noise Robustness of Retrieval-
+R. 2024.
+Augmented Language Models with Adaptive Adversarial
+Training. arXiv:2405.20978.
+Gunasekar, S.; Zhang, Y.; Aneja, J.; Mendes, C. C. T.;
+Del Giorno, A.; Gopi, S.; Javaheripi, M.; Kauffmann, P.;
+de Rosa, G.; Saarikivi, O.; et al. 2023. Textbooks Are All
+You Need. ArXiv preprint, abs/2306.11644.
+He, H.; Zhang, H.; and Roth, D. 2022.
+Rethinking
+with Retrieval: Faithful Large Language Model Inference.
+arXiv:2301.00303.
+Hongying, Z.; Wenxin, L.; Kunli, Z.; Yajuan, Y.; Baobao,
+C.; and Zhifang, S. 2020. Building a Pediatric Medical Cor-
+pus: Word Segmentation and Named Entity Annotation. In
+Workshop on Chinese Lexical Semantics, 652–664.
+Izacard, G.; Lewis, P.; Lomeli, M.; Hosseini, L.; Petroni,
+F.; Schick, T.; Dwivedi-Yu, J.; Joulin, A.; Riedel, S.; and
+Grave, E. 2022. Atlas: Few-shot Learning with Retrieval
+Augmented Language Models. arXiv:2208.03299.
+Jelinek, F.; Mercer, R. L.; Bahl, L. R.; and Baker, J. K. 1977.
+Perplexity—a measure of the difficulty of speech recogni-
+tion tasks. J. Acoust.
+Jeong, S.; Baek, J.; Cho, S.; Hwang, S. J.; and Park, J. C.
+2024. Adaptive-rag: Learning to adapt retrieval-augmented
+large language models through question complexity. arXiv
+preprint arXiv:2403.14403.
+Ji, Z.; Lee, N.; Frieske, R.; Yu, T.; Su, D.; Xu, Y.; Ishii, E.;
+Bang, Y. J.; Madotto, A.; and Fung, P. 2023a. Survey of hal-
+lucination in natural language generation. ACM Computing
+Surveys, 55(12): 1–38.
+Ji, Z.; Lee, N.; Frieske, R.; Yu, T.; Su, D.; Xu, Y.; Ishii, E.;
+Bang, Y. J.; Madotto, A.; and Fung, P. 2023b. Survey of Hal-
+lucination in Natural Language Generation. ACM Comput.
+Surv., 55(12).
+
+Jiang, X.; Zhang, R.; Xu, Y.; Qiu, R.; Fang, Y.; Wang, Z.;
+Tang, J.; Ding, H.; Chu, X.; Zhao, J.; and Wang, Y. 2023a.
+Think and Retrieval: A Hypothesis Knowledge Graph En-
+hanced Medical Large Language Models.
+Jiang, X.; Zhang, R.; Xu, Y.; Qiu, R.; Fang, Y.; Wang, Z.;
+Tang, J.; Ding, H.; Chu, X.; Zhao, J.; and Wang, Y. 2024.
+HyKGE: A Hypothesis Knowledge Graph Enhanced Frame-
+work for Accurate and Reliable Medical LLMs Responses.
+arXiv:2312.15883.
+Jiang, X.; Zhuang, D.; Zhang, X.; Chen, H.; Luo, J.; and
+Gao, X. 2023b. Uncertainty Quantification via Spatial-
+Temporal Tweedie Model for Zero-inflated and Long-tail
+In Proceedings of the 32nd
+Travel Demand Prediction.
+ACM International Conference on Information and Knowl-
+edge Management, CIKM ’23. ACM.
+Jiang, Z.; Xu, F. F.; Gao, L.; Sun, Z.; Liu, Q.; Dwivedi-Yu, J.;
+Yang, Y.; Callan, J.; and Neubig, G. 2023c. Active Retrieval
+Augmented Generation. arXiv:2305.06983.
+Jiang, Z.; Xu, F. F.; Gao, L.; Sun, Z.; Liu, Q.; Dwivedi-Yu, J.;
+Yang, Y.; Callan, J.; and Neubig, G. 2023d. Active retrieval
+augmented generation. arXiv preprint arXiv:2305.06983.
+Jin, Q.; Leaman, R.; and Lu, Z. 2023. Retrieve, summarize,
+and verify: how will ChatGPT affect information seeking
+from the medical literature? Journal of the American Society
+of Nephrology, 34(8): 1302–1304.
+Johnson, A. E.; Bulgarelli, L.; Shen, L.; Gayles, A.; Sham-
+mout, A.; Horng, S.; Pollard, T. J.; Hao, S.; Moody, B.; Gow,
+B.; et al. 2023. MIMIC-IV, a freely accessible electronic
+health record dataset. Sci. Data, 10(1): 1.
+Johnson, A. E.; Pollard, T. J.; Shen, L.; Lehman, L.-w. H.;
+Feng, M.; Ghassemi, M.; Moody, B.; Szolovits, P.; An-
+thony Celi, L.; and Mark, R. G. 2016. MIMIC-III, a freely
+accessible critical care database. Sci. Data, 3(1): 1–9.
+Kandpal, N.; Deng, H.; Roberts, A.; Wallace, E.; and Raffel,
+C. 2023. Large language models struggle to learn long-tail
+knowledge. In International Conference on Machine Learn-
+ing, 15696–15707. PMLR.
+Kaplan, J.; McCandlish, S.; Henighan, T.; Brown, T. B.;
+Chess, B.; Child, R.; Gray, S.; Radford, A.; Wu, J.; and
+Amodei, D. 2020. Scaling Laws for Neural Language Mod-
+els. arXiv:2001.08361.
+Karpukhin, V.; O˘guz, B.; Min, S.; Lewis, P.; Wu, L.; Edunov,
+S.; Chen, D.; and tau Yih, W. 2020. Dense Passage Retrieval
+for Open-Domain Question Answering. arXiv:2004.04906.
+Khandelwal, U.; Levy, O.; Jurafsky, D.; Zettlemoyer, L.;
+and Lewis, M. 2020. Generalization through Memorization:
+Nearest Neighbor Language Models. arXiv:1911.00172.
+Kim, J.; Jaehyun Nam, S. M.; Park, J.; Lee, S.-W.; Seo, M.;
+Ha, J.-W.; and Shin, J. 2024. SuRe: Summarizing Retrievals
+using Answer Candidates for Open-domain QA of LLMs.
+In ICLR.
+Kim, J.; Kwon, Y.; Jo, Y.; and Choi, E. 2023. KG-GPT:
+A General Framework for Reasoning on Knowledge Graphs
+Using Large Language Models. In ACL.
+Kingma, D. P.; and Ba, J. 2015. Adam: A Method for
+Stochastic Optimization. In ICLR.
+
+Koh, J. Y.; McAleer, S.; Fried, D.; and Salakhutdinov,
+R. 2024.
+Tree Search for Language Model Agents.
+arXiv:2407.01476.
+L´ala, J.; O’Donoghue, O.; Shtedritski, A.; Cox, S.; Ro-
+driques, S. G.; and White, A. D. 2023. Paperqa: Retrieval-
+augmented generative agent for scientific research. arXiv
+preprint arXiv:2312.07559.
+Lewis, P.; Perez, E.; Piktus, A.; Petroni, F.; Karpukhin, V.;
+Goyal, N.; K¨uttler, H.; Lewis, M.; Yih, W.-t.; Rockt¨aschel,
+T.; et al. 2020.
+Retrieval-augmented generation for
+knowledge-intensive nlp tasks. Advances in Neural Infor-
+mation Processing Systems, 33: 9459–9474.
+Li, J.; Fei, H.; Liu, J.; Wu, S.; Zhang, M.; Teng, C.; Ji, D.;
+and Li, F. 2021. Unified Named Entity Recognition as Word-
+Word Relation Classification. arXiv:2112.10070.
+Li, X.; Zhao, R.; Chia, Y. K.; Ding, B.; Joty, S.; Poria, S.;
+and Bing, L. 2023a. Chain-of-Knowledge: Grounding Large
+Language Models via Dynamic Knowledge Adapting over
+Heterogeneous Sources. arXiv:2305.13269.
+Li, X.; Zhao, R.; Chia, Y. K.; Ding, B.; Joty, S.; Poria, S.;
+and Bing, L. 2023b. Chain-of-Knowledge: Grounding Large
+Language Models via Dynamic Knowledge Adapting over
+Heterogeneous Sources. arXiv:2305.13269.
+Li, Z.; Zhang, X.; Zhang, Y.; Long, D.; Xie, P.; and Zhang,
+M. 2023c. Towards General Text Embeddings with Multi-
+stage Contrastive Learning. arXiv:2308.03281.
+Liu, N. F.; Lin, K.; Hewitt, J.; Paranjape, A.; Bevilacqua,
+M.; Petroni, F.; and Liang, P. 2023. Lost in the Middle: How
+Language Models Use Long Contexts. arXiv:2307.03172.
+Liu, Q.; Wu, X.; Zhao, X.; Zhu, Y.; Zhang, Z.; Tian, F.; and
+Zheng, Y. 2024. Large Language Model Distilling Medica-
+tion Recommendation Model. arXiv:2402.02803.
+Luo, J.; Yang, S.; Qiu, X.; Chen, P.; Nai, Y.; Zeng, W.;
+Zhang, W.; and Jiang, X. 2024. Kuaiji: the First Chinese
+Accounting Large Language Model. arXiv:2402.13866.
+Ma, K.; Cheng, H.; Zhang, Y.; Liu, X.; Nyberg, E.; and Gao,
+J. 2023. Chain-of-Skills: A Configurable Model for Open-
+domain Question Answering. arXiv:2305.03130.
+Matsumoto, N.; Moran, J.; Choi, H.; Hernandez, M. E.;
+Venkatesan, M.; Wang, P.; and Moore, J. H. 2024. KRA-
+GEN: a knowledge graph-enhanced RAG framework for
+biomedical problem solving using large language models.
+Bioinformatics, 40(6).
+Miller, G. A.; and Chomsky, N. 2003. Memory and the Pro-
+cessing of Complex Sentences. Cognitive Science, 27(4):
+607–646.
+Mustafa, E. M.; Saad, M. M.; and Rizkallah, L. W. 2023.
+Building an enhanced case-based reasoning and rule-based
+systems for medical diagnosis. Journal of Engineering and
+Applied Science, 70(1): 139.
+OpenAI. 2022. Introducing ChatGPT. https://openai.com/
+blog/chatgpt.
+OpenAI. 2023.
+abs/2303.08774.
+
+GPT-4 Technical Report.
+
+ArXiv,
+
+Pal, A.; and Sankarasubbu, M. 2023. Gemini Goes to Med
+School: Exploring the Capabilities of Multimodal Large
+Language Models on Medical Challenge Problems and Hal-
+lucinations.
+Paszke, A.; Gross, S.; Massa, F.; Lerer, A.; Bradbury, J.;
+Chanan, G.; Killeen, T.; Lin, Z.; Gimelshein, N.; Antiga, L.;
+et al. 2019. Pytorch: An imperative style, high-performance
+deep learning library. In NeurIPS.
+Peng, K.; Ding, L.; Yuan, Y.; Liu, X.; Zhang, M.; Ouyang,
+Y.; and Tao, D. 2024. Revisiting Demonstration Selection
+Strategies in In-Context Learning. arXiv:2401.12087.
+Pimentel, D. S.; and Silva, M. A. 2018. A Review of Mem-
+ory Management Techniques in Computing Systems. ACM
+Computing Surveys (CSUR), 51(3): 1–35.
+Pollard, T. J.; Johnson, A. E.; Raffa, J. D.; Celi, L. A.; Mark,
+R. G.; and Badawi, O. 2018. The eICU Collaborative Re-
+search Database, a freely available multi-center database for
+critical care research. Sci. Data, 5(1): 1–13.
+Qu, Y.; Ding, Y.; Liu, J.; Liu, K.; Ren, R.; Zhao, W. X.;
+Dong, D.; Wu, H.; and Wang, H. 2021. RocketQA: An Op-
+timized Training Approach to Dense Passage Retrieval for
+Open-Domain Question Answering. arXiv:2010.08191.
+Ram, O.; Levine, Y.; Dalmedigos,
+I.; Muhlgay, D.;
+Shashua, A.; Leyton-Brown, K.; and Shoham, Y. 2023.
+In-Context Retrieval-Augmented
+Language Models.
+arXiv:2302.00083.
+Sen, P.; Mavadia, S.; and Saffari, A. 2023. Knowledge
+Graph-augmented Language Models for Complex Ques-
+Proceedings of the 1st Workshop on
+tion Answering.
+Natural Language Reasoning and Structured Explanations
+(NLRSE).
+Shinn, N.; Cassano, F.; Gopinath, A.; Narasimhan, K.; and
+Yao, S. 2024. Reflexion: Language agents with verbal re-
+inforcement learning. Advances in Neural Information Pro-
+cessing Systems, 36.
+Soman, K.; Rose, P. W.; Morris, J. H.; Akbas, R. E.; Smith,
+B.; Peetoom, B.; Villouta-Reyes, C.; Cerono, G.; Shi, Y.;
+Rizk-Jackson, A.; Israni, S.; Nelson, C. A.; Huang, S.; and
+Baranzini, S. E. 2023a. Biomedical knowledge graph-
+enhanced prompt generation for large language models.
+arXiv:2311.17330.
+Soman, K.; Rose, P. W.; Morris, J. H.; Akbas, R. E.; Smith,
+B.; Peetoom, B.; Villouta-Reyes, C.; Cerono, G.; Shi, Y.;
+Rizk-Jackson, A.; et al. 2023b. Biomedical knowledge
+graph-enhanced prompt generation for large language mod-
+els. arXiv preprint arXiv:2311.17330.
+Song,
+I.; Pendse, S. R.; Kumar, N.; and Choudhury,
+M. D. 2024. The Typing Cure: Experiences with Large
+Language Model Chatbots for Mental Health Support.
+arXiv:2401.14362.
+Su, W.; Tang, Y.; Ai, Q.; Wu, Z.; and Liu, Y. 2024. Dra-
+gin: Dynamic retrieval augmented generation based on the
+real-time information needs of large language models. arXiv
+preprint arXiv:2403.10081.
+Trivedi, H.; Balasubramanian, N.; Khot, T.; and Sabhar-
+wal, A. 2023. Interleaving Retrieval with Chain-of-Thought
+
+Yao, S.; Zhao, J.; Yu, D.; Du, N.; Shafran, I.; Narasimhan,
+ReAct: Synergizing Reason-
+K.; and Cao, Y. 2022a.
+arXiv preprint
+ing and Acting in Language Models.
+arXiv:2210.03629.
+Yao, S.; Zhao, J.; Yu, D.; Du, N.; Shafran, I.; Narasimhan,
+React: Synergizing reason-
+K.; and Cao, Y. 2022b.
+arXiv preprint
+ing and acting in language models.
+arXiv:2210.03629.
+Yoran, O.; Wolfson, T.; Ram, O.; and Berant, J. 2024. Mak-
+ing Retrieval-Augmented Language Models Robust to Irrel-
+evant Context. arXiv:2310.01558.
+Yu, D.; Zhu, C.; Fang, Y.; Yu, W.; Wang, S.; Xu, Y.; Ren,
+X.; Yang, Y.; and Zeng, M. 2022. KG-FiD: Infusing Knowl-
+edge Graph in Fusion-in-Decoder for Open-Domain Ques-
+tion Answering. arXiv:2110.04330.
+Yu, W.; Zhang, H.; Pan, X.; Ma, K.; Wang, H.; and Yu, D.
+2023. Chain-of-Note: Enhancing Robustness in Retrieval-
+Augmented Language Models. arXiv:2311.09210.
+Zakka, C.; Shad, R.; Chaurasia, A.; Dalal, A. R.; Kim, J. L.;
+Moor, M.; Fong, R.; Phillips, C.; Alexander, K.; Ashley, E.;
+et al. 2024. Almanac—retrieval-augmented language mod-
+els for clinical medicine. NEJM AI, 1(2): AIoa2300068.
+Zeng, H. 2023. Measuring Massive Multitask Chinese Un-
+derstanding. arXiv:2304.12986.
+Zhang, H.; Chen, J.; Jiang, F.; Yu, F.; Chen, Z.; Li, J.; Chen,
+G.; Wu, X.; Zhang, Z.; Xiao, Q.; Wan, X.; and Wang, B.
+2023. HuatuoGPT, towards Taming Language Model to Be
+a Doctor.
+Zhang, N.; Chen, M.; Bi, Z.; Liang, X.; Li, L.; Shang, X.;
+Yin, K.; Tan, C.; Xu, J.; Huang, F.; Si, L.; Ni, Y.; Xie,
+G.; Sui, Z.; Chang, B.; Zong, H.; Yuan, Z.; Li, L.; Yan, J.;
+Zan, H.; Zhang, K.; Tang, B.; and Chen, Q. 2022. CBLUE:
+A Chinese Biomedical Language Understanding Evaluation
+Benchmark. In Proceedings of the 60th Annual Meeting of
+the Association for Computational Linguistics (Volume 1:
+Long Papers), 7888–7915. Dublin, Ireland: Association for
+Computational Linguistics.
+Zhu, F.; Lei, W.; Wang, C.; Zheng, J.; Poria, S.; and
+Chua, T.-S. 2021.
+Retrieving and Reading: A Com-
+prehensive Survey on Open-domain Question Answering.
+arXiv:2101.00774.
+Zhu, H.; Togo, R.; Ogawa, T.; and Haseyama, M. 2023.
+A Medical Domain Visual Question Generation Model via
+Large Language Model.
+Zhu, Y.; Qiao, S.; Ou, Y.; Deng, S.; Zhang, N.; Lyu, S.;
+Shen, Y.; Liang, L.; Gu, J.; and Chen, H. 2024. KnowAgent:
+Knowledge-Augmented Planning for LLM-Based Agents.
+arXiv:2403.03101.
+
+Reasoning for Knowledge-Intensive Multi-Step Questions.
+arXiv:2212.10509.
+Turing, A. M. 1936. On computable numbers, with an appli-
+cation to the Entscheidungsproblem. Journal of Mathemat-
+ics, 58(345-363): 5.
+Vu, M. D.; Wang, H.; Li, Z.; Chen, J.; Zhao, S.; Xing, Z.;
+and Chen, C. 2024. GPTVoiceTasker: LLM-Powered Virtual
+Assistant for Smartphone. arXiv:2401.14268.
+Wang, H.; Liu, C.; Xi, N.; Qiang, Z.; Zhao, S.; Qin, B.; and
+Liu, T. 2023a. HuaTuo: Tuning LLaMA Model with Chinese
+Medical Knowledge.
+Wang, S.; Zhao, Z.; Ouyang, X.; Wang, Q.; Shen, D.; and
+Segmentor, L. ???? ChatCAD: Interactive Computer-Aided
+Diagnosis on Medical Image using Large Language Models.
+Wang, X.; Chen, G. H.; Song, D.; Zhang, Z.; Chen, Z.; Xiao,
+Q.; Jiang, F.; Li, J.; Wan, X.; Wang, B.; and Li, H. 2023b.
+CMB: A Comprehensive Medical Benchmark in Chinese.
+arXiv:2308.08833.
+Wang, Y.; Ma, X.; and Chen, W. 2023. Augmenting black-
+box llms with medical textbooks for clinical question an-
+swering. arXiv preprint arXiv:2309.02233.
+Wei, J.; Wang, X.; Schuurmans, D.; Bosma, M.; Ichter, B.;
+Xia, F.; Chi, E.; Le, Q.; and Zhou, D. 2023. Chain-of-
+Thought Prompting Elicits Reasoning in Large Language
+Models. arXiv:2201.11903.
+Wei, J.; Wang, X.; Schuurmans, D.; Bosma, M.; Xia, F.;
+Chi, E.; Le, Q. V.; Zhou, D.; et al. 2022. Chain-of-
+thought prompting elicits reasoning in large language mod-
+els. Advances in neural information processing systems, 35:
+24824–24837.
+Xiong, G.; Jin, Q.; Lu, Z.; and Zhang, A. 2024. Bench-
+marking retrieval-augmented generation for medicine. arXiv
+preprint arXiv:2402.13178.
+Xu, C.; Xu, Y.; Wang, S.; Liu, Y.; Zhu, C.; Mcauley, J.;
+and Diego, D. ???? Small Models are Valuable Plug-ins for
+Large Language Models.
+Xu, Z. 2023. Context-aware Decoding Reduces Hallucina-
+tion in Query-focused Summarization. arXiv:2312.14335.
+Yang, A.; Yang, B.; Hui, B.; Zheng, B.; Yu, B.; Zhou, C.;
+Li, C.; Li, C.; Liu, D.; Huang, F.; Dong, G.; Wei, H.; Lin,
+H.; Tang, J.; Wang, J.; Yang, J.; Tu, J.; Zhang, J.; Ma, J.;
+Yang, J.; Xu, J.; Zhou, J.; Bai, J.; He, J.; Lin, J.; Dang, K.;
+Lu, K.; Chen, K.; Yang, K.; Li, M.; Xue, M.; Ni, N.; Zhang,
+P.; Wang, P.; Peng, R.; Men, R.; Gao, R.; Lin, R.; Wang, S.;
+Bai, S.; Tan, S.; Zhu, T.; Li, T.; Liu, T.; Ge, W.; Deng, X.;
+Zhou, X.; Ren, X.; Zhang, X.; Wei, X.; Ren, X.; Liu, X.;
+Fan, Y.; Yao, Y.; Zhang, Y.; Wan, Y.; Chu, Y.; Liu, Y.; Cui,
+Z.; Zhang, Z.; Guo, Z.; and Fan, Z. 2024a. Qwen2 Technical
+Report. arXiv:2407.10671.
+Yang, S.; Jiang, X.; Zhao, H.; Zeng, W.; Liu, H.; and Jia,
+Y. 2024b. FaiMA: Feature-aware In-context Learning for
+In COL-
+Multi-domain Aspect-based Sentiment Analysis.
+ING.
+Yang, S.; Zhao, H.; Zhu, S.; Zhou, G.; Xu, H.; Jia, Y.; and
+Zan, H. 2023. Zhongjing: Enhancing the Chinese Medical
+Capabilities of Large Language Model through Expert Feed-
+back and Real-world Multi-turn Dialogue.
+
+8 Appendix
+
+3. The transition function δ is defined as:
+
+8.1 Full Proof of Turing-Complete
+We prove this by showing that for any Turing machine T ,
+there exists our TC that can simulate T :
+
+Let N denote the set of natural numbers, and R the set
+of real numbers. We consider computations over finite al-
+phabets and prove the Turing completeness of our proposed
+model.
+
+Definition 1. (Standard Turing Machine). A standard
+Turing Machine is a 7-tuple Turing machine T =
+(ST , AT , MT , δT , st0, staccept, streject) where:
+• ST is a finite set of states.
+• AT ⊂ MT is the input alphabet.
+• MT is the tape alphabet, with ⊔ ∈ MT \AT as the blank
+
+symbol.
+
+• δT : ST × MT → ST × MT × {L, R} is the transition
+
+function.
+
+• st0 ∈ ST is the initial state.
+• staccept, streject ∈ ST are the accept and reject states,
+
+respectively.
+
+Definition 2. (T Configuration). A configuration of T is
+a tuple cT = (st, w1aw)2), where:
+• st ∈ ST is the current system state value,
+• w1, w2 represents the sequence of actions a ∈ AT to the
+
+left / right of the tape head.
+
+Definition 3. (TC Configuration). A configuration of TC
+is a tuple cTC = (s, w, M, {halt || continue}) ∈ S × A ×
+M × {halt, continue}, where:
+• s ∈ S is the current system state value,
+• w is the remaining input actions,
+• M is the current stack content,
+• {halt || continue} is the conditions that determine
+
+whether the system will continue or halt.
+
+Definition 4. (Computation Step). For configurations of
+TC at step t ct = (st, wt, Mt, st ≥ σ) and ct+1 =
+(st+1, wt+1, Mt+1, ·), we say ct ⊢TC ct+1 if and only if:
+1. wt = awt+1 for some a ∈ A ∪ {ε}
+2. δ(st, a) = (s2, op, b)
+
+3. Mt+1 =
+
+(cid:26)push(Mt, b)
+pop(Mt)
+
+if op = push
+if op = pop
+4. The computation terminates if st+1 < σ
+where top(M) returns the top element of the stack M.
+
+Next, we will break down this proof process into the fol-
+
+lowing steps:
+
+Step 1: Construction of the Turing System. Given a Tur-
+ing machine T = (ST , AT , MT , δT , st0, staccept, streject),
+we interpret TC = (S, A, M, δ, s0, F, σ) with the following
+components:
+1. S = ST ∪ f , where f /∈ ST is the end state.
+2. A = AT , M = MT ∪ A, s0 = st0, F = {f }, σ is the
+
+hyper-threshold to decide accept or reject.
+
+δ(s, a) =
+
+
+
+
+
+
+(s′, push, s ≥ σ)
+(s′, pop, s ≥ σ)
+(f, no op, a, s < σ)
+
+if δT (st, a) = (st′, a, R)
+if δT (st, a) = (st′, a, L)
+if st ∈ {staccept, streject}
+
+where a is the executing action for T or TC. The operations
+push and pop are corresponding to the right (R) and left (L)
+movements in T . Transition function δ(·, ·) is for TC and
+δT (·, ·) is for T . The operation no op indicates no operation
+is performed when the system is halting.
+
+Step 2: Configuration Mapping Next, we define a bi-
+jective mapping function h that maps each configuration
+of T to TC. We now define the configuration c of T as
+c = (st, w1aw2), w1, w2 represents the sequence of actions
+to the left / right of the tape head, where st ∈ ST , a ∈ AT
+is the tape head/action. The configuration of TC cTC is com-
+posed of the tuple as (system state, remaining actions, stack
+memory actions, whether to halt) as:
+
+h(st, w1aw2) = (s, w2, wR
+
+1 a, s ≥ σ) = cTC
+
+where wR
+Last-In-First-Out (LIFO) principle of M.
+
+1 is the reverse of w1, which is necessary due to
+
+Step 3: Simulation of Computation Steps We now prove
+that TC can simulate each step of T as in Lemma 3:
+Lemma 3 If c1 ⊢T c2 in T , then h(c1) ⊢∗
+TC h(c2) in TC,
+where ∗ denotes one or multiple steps of derivation, ⊢ is the
+action shift operator.
+Proof 8.1 Let c1 = (st1, w1a1w2) and c2 = (st2, w′
+1a2w′
+2)
+be configurations of T with at = {L, R}. We prove Lemma 3
+by considering the two cases push and pop corresponding
+to the possible directions of tape head movement in T .
+• Case 1: If δT (st1, a1) = (st2, a2, R), then:
+
+h(c1) = (st1, w2, wR
+⊢TC (s2, w′
+2, wR
+= h(st2, w1a1a2w′
+
+1 a1, st1 ≥ σ)
+1 a1a2, s2 ≥ σ)
+
+2) = h(st2, w′
+
+(push a2)
+1a2w′
+
+2) = h(c2)
+
+• Case 2: If δT (st1, a1) = (st2, a2, L), then:
+
+h(c1) = (st1, w2, wR
+⊢TC (s2, w2, wR
+2, w′R
+⊢TC (s2, w′
+1a2w′
+= h(st2, w′
+
+1 a1, st1 ≥ σ)
+1 , s2 ≥ σ)
+1 a2, s2 ≥ σ)
+2) = h(c2)
+It is noted that the two cases correspond to the meta opera-
+tions of push (Case 1) and pop (Case 2) in TC–RAG.
+
+(pop a1)
+
+(push a2, if a2 ̸= null)
+
+Step 4: Preservation of Acceptance and Rejection
+Lemma 4 T accepts (rejects) the whole input w if and only
+if TC reaches a configuration (f, N U LL, M, f < σ) from
+the initial configuration (s0, w, N U LL, s0 ≥ σ).
+Proof 8.2 We prove the consistency of reaching the termi-
+nation state from both T → TC and TC → T perspectives.
+(Forward ⇒) Assume T accepts (rejects) input w. Then:
+∃t ∈ N such that after t steps, T enters state staccept (or
+
+streject). Then, Let (stt, wt) be the configuration of T at
+step t, where stt ∈ {staccept, streject}. By our construction
+of δ, ∀a ∈ A, we have:
+
+δ(s, a) = (f, no op, a, f < σ) ∀st ∈ {staccept, streject}
+
+Therefore, if h(stt, wt) = (st, w2, wR
+responding configuration in TC, then:
+
+1 a, st ≥ σ) is the cor-
+
+(st, w2, wR
+
+1 a, st ≥ σ) ⊢t
+
+TC (f, N U LL, M, f < σ)
+
+Thus, TC achieve f with system state value lower than σ.
+
+(Backward ⇐) Assume TC reaches configuration
+(f, N U LL, M, f < σ) from (s0, w, N U LL, s0 ≥ σ).
+Then: ∃t ∈ N such that:
+
+(s0, w, N U LL, s0 ≥ σ) ⊢t
+
+TC (f, N U LL, M, f < σ).
+
+Let (st−1, w2, wR
+1 a, st−1 ≥ σ) be the configuration of TC
+at step t − 1. Then, by the construction of δ, the only way
+to reach f is if st−1 ∈ {staccept, streject}. Therefore, the
+corresponding configuration of T at step t − 1 must be
+(stt−1, w1aw2), where stt−1 ∈ {staccept, streject}. Thus,
+T must have entered staccept or streject, implying that T
+accepts or rejects w.
+
+From both the Forward and Backward proof, T accepts
+(rejects) input w if and only if TC reaches a configura-
+tion (f, N U LL, M, f < σ) from the initial configuration
+(s0, w, N U LL, s0 ≥ σ).
+
+By the above lemmas, we have shown that: (1) TC can
+simulate every move of T . (2) TC halts if and only if T
+achieve acceptance or rejection behavior. Thus, TC can
+simulate any computation of any Turing machine T ,
+which by definition makes TC Turing complete.
+
+8.2 Review of LLMs
+Definition (Large Language Models). Generative LLMs
+are powerful language models capable of generating coher-
+ent and contextually relevant text. Through pretraining on
+large-scale text corpora and alignment fine-tuning to fol-
+low human instructions, they can generate human-like text
+based on given prompts or inputs. Typically, LLMs Θ model
+the probability of a sentence (i.e., a sequence of word to-
+kens) l = (token1, token2, . . . , tokenn) as P (s; Θ) =
+(cid:81)n
+i P (tokeni | token<i; Θ), where tokeni denotes the i-
+th token of the sentence l and token<i denotes the partial
+word token sequence before the i-th step.
+
+8.3 Model Pretrain
+Pretrain LLMs The high-quality pre-training corpus can
+greatly improve the performance of LLM and even break the
+scaling laws to some extent (Gunasekar et al. 2023). Among
+them, continuous pre-training is a crucial phase where the
+language model undergoes extensive training on vast and di-
+verse unlabeled datasets. This process spans multiple iter-
+ations, each aimed at refining the model’s language under-
+standing capabilities (Luo et al. 2024). Initially, the LLM
+is initialized with the pre-trained weights of basic LLMs
+and learns to predict missing words or segments within
+sentences using self-supervised learning objectives such as
+
+masked language modeling (MLM) and next-sentence pre-
+diction (NSP). Through exposure to a wide variety of textual
+data sources, the model gradually acquires a rich domain un-
+derstanding of language structure, semantics, and context in
+the medical domain. Additionally, techniques like attention
+mechanisms and multi-layer architectures are employed to
+capture complex linguistic patterns and dependencies.
+
+It should be noted that we did not use supervised fine-
+tuning because it would lead to overconfidence in the large
+model, resulting in the large model often receiving diagnos-
+tic results directly without planning and calling professional
+medical knowledge retrieval tools.
+
+Table 2: Medical pre-train data statistics
+
+Type
+
+Dataset
+
+Size
+
+Dialogues
+
+RealHospital-QA
+Web-QA
+
+2318 MB
+567 MB
+
+Knowledge graphs
+
+Medical-KG
+
+379 MB
+
+Exams
+
+Medical-Exam
+
+443 MB
+
+Textbooks
+
+Chinese-Textbook
+English-Textbook
+
+52 MB
+212 MB
+
+Guidelines
+
+Med-Guidelines
+
+878 MB
+
+Encyclopedia
+
+Med-Encyclopedia
+
+798 MB
+
+Total
+
+5647 MB
+
+Data Preparement To build a diverse medical corpus, we
+compiled data from multiple sources, ensuring broad cover-
+age across various medical domains.
+
+• Dialogues: The RealHospital-QA dataset includes real-
+world clinical conversations, while Web-QA provides
+Q&A pairs from online health forums, capturing com-
+mon public inquiries.
+
+• Knowledge Graphs: Medical-KG organizes medical
+knowledge into entities and relationships, integrating
+data from clinical guidelines, research papers, and text-
+books.
+
+• Exams: The Medical-Exam dataset consists of ques-
+tions from medical exams, aiding the model in handling
+complex diagnostic scenarios.
+
+• Textbooks: We
+
+included Chinese-Textbook and
+English-Textbook datasets to provide foundational
+knowledge in both languages.
+
+• Guidelines: Med-Guidelines comprises official medical
+
+guidelines, essential for evidence-based practice.
+
+• Encyclopedia: The Med-Encyclopedia offers concise
+
+explanations of medical terms and conditions.
+
+These datasets span multiple specialties, giving the model
+a comprehensive understanding of medical knowledge. The
+total corpus size is 5647 MB, as shown in Table 2.
+
+Pretrain Loss Function The pertaining loss function is
+defined as follows:
+
+(cid:88)
+
+L =
+
+t∈masked
+
+log P (tokent | l\t; Θ),
+
+(6)
+
+where l\t represents the remaining part of the sequence l
+after masking the t-th word.
+
+Training Setup We performed the continuous pre-training
+on Qwen1.5-32B-Chat using the aforementioned medical
+datasets. The pre-training was conducted on eight H100
+GPUs for one epoch with a learning rate of 1e-4, and the en-
+tire training process spanned 4 days. This configuration was
+chosen to balance computational efficiency with the need
+for thorough learning, allowing the model to effectively in-
+ternalize the extensive medical knowledge embedded in the
+training data. Through this process, we aimed to enhance the
+model’s reasoning and planning capabilities, ensuring it can
+provide accurate and reliable medical analysis in real-world
+applications.
+
+8.4 Prompt and Algorithm
+
+Prompt Format.
+In this module, we will provide a de-
+tailed introduction to the Prompt used in our entire model
+in the following Prompt:
+
+TC–RAG Algotithm. Algorithm 1 describes the reason-
+ing loop of TC–RAG for generating a final answer based on
+user query using a pre-trained Medical LLM. The process
+begins by initializing the stack memory and the initial state
+(Lines 1-2). The user query is then pushed into the stack
+memory (Line 3).
+
+Within the loop, which continues until the action limit is
+reached or the system state value drops below the thresh-
+old σ, the model generates an action based on the current
+memory stack (Lines 5-6). If the action type is identified as a
+Conclusion, the system state is recalculated; if it remains
+within acceptable bounds, the final answer is confirmed and
+pushed into the stack, terminating the loop (Lines 7-11).
+Otherwise, the final answer is reclassified as a Thought,
+and processing continues (Lines 12-14).
+
+If the action type is a Thought, the system state is up-
+dated, and the thought result is pushed into the stack (Lines
+15-17). For Tool Use, the model retrieves relevant obser-
+vations using specified tools or a knowledge base, which are
+then pushed into the stack (Lines 18-20). When the action
+type is Backtrack, the top of the stack is popped, and
+the previous system state is restored (Lines 21-23). If the
+action is a Summary, the stack is adjusted by popping ir-
+relevant content, summarizing it, and pushing the summary
+back onto the stack (Lines 24-26).
+
+Finally, after exiting the loop, the top of the stack is re-
+
+turned as the final answer (Lines 27-28).
+
+Algorithm 1: TC–RAG Inference Algorithm
+
+Push Action into M
+Break
+
+Action ← Θ(M | P)
+if Action is Conclusion then
+
+f ← calculate state(U ser Query, Action)
+if f < σ then
+
+Require: U ser Query, pretrained Medical LLM Θ,
+knowledge base D, system value threshold σ, TC–
+RAG Prompt P
+Ensure: Conclusion
+1: Initialize stack memory M, state s ← $Large Value$
+2: Push U ser Query into M
+3: actions taken ← 0
+4: while actions taken < max loop and s ≥ σ do
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12:
+13:
+14:
+15:
+16:
+17:
+18:
+19:
+20:
+21:
+22:
+23:
+24:
+
+observation ← call(tool type) & search D
+Push observation into M
+else if Action is Backtrack then
+old action = Pop from M
+If old action is Thought then reset s to the
+
+s ← calculate state(U ser Query, Action)
+If s < σ Then s ← σ
+Push Action into M
+
+action type ← Thought, s ← f
+Push Action into M
+
+else if Action is Tool Use then
+
+else if Action is Thought then
+
+end if
+
+else
+
+previous state
+
+else if Action is Summary then
+
+Pop from M
+Push Action into M
+
+25:
+26:
+27:
+28:
+29:
+30: end while
+31: Return Conclusion ← top(M)
+
+end if
+actions taken ← actions taken + 1
+
+8.5 Detailed Experimental Setup
+
+Dataset. Our experiments are conducted on two open-
+source query sets: MMCU-Medical (Zeng 2023) and CMB-
+Exam (Wang et al. 2023b) datasets, which are designed
+for multi-task Q&A and encompass single and multiple-
+choice questions in the medical field, and one open-domain
+Q&A dataset CMB-Clin (Wang et al. 2023b) which is the
+inaugural multi-round question-answering dataset based on
+real, complex medical diagnosis and treatment records. For
+MMCU-Medical, the questions are from the university med-
+ical professional examination, covering the three basic med-
+ical sciences, pharmacology, nursing, pathology, clinical
+medicine, infectious diseases, surgery, anatomy, etc., with
+a total of 2,819 questions. The CMB-Exam dataset uti-
+lizes qualifying exams as a data source in the four clinical
+medicine specialties of physicians, nurses, medical techni-
+cians, and pharmacists, with a total of 269,359 questions.
+The CMB-Clin dataset contains 74 high-quality, complex,
+and real patient cases with 208 medical questions.
+
+TC–RAG Prompt
+
+Answer the following questions as best you can.
+You have access to the following tools:
+
+[Insert tool descriptions here]
+i.e. DOC RAG: You can obtain medical knowledge
+from authoritative documents via this tool to help
+you reply.
+
+Please think strictly according to the provided
+way of thinking without omission, and use the
+following format:
+
+[Actions Pipeline Format]
+User Query: User’s questions or observed infor-
+mation,
+Thought: You should think about what to do,
+whether to answer questions based on the results of
+the tool or decide which tool to use.
+Tool Use: The tool to be used must be one of
+[tool name], do not add any extra characters or sym-
+bols! Only the name of the tool can be output!
+Tool Observation: The answer provided by the
+tool (not generated by you)
+Summary: When the previous action outputs a large
+amount of vocabulary and you need to summarize
+it, please output a detailed summary based on your
+knowledge.
+Backtrack: When the result of the previous ac-
+tion is meaningless to your task and you need to re-
+execute it, apply this.
+...(Thought/Tool Use/Summary/Backtrack
+here can be repeated zero or more times)
+Thought:
+answer.
+now know the final
+I
+Conclusion:
+the final answer to the original
+input question.
+
+[Start Conversation]
+Begin!
+User Query:...
+
+(1) Knowledge Graph Search.
+
+RAG Tools. We have involved several types of RAG tools:
+CMeKG (Clinical
+Medicine Knowledge Graph)23
+(BYAMBASUREN et al.
+2020), CPubMed-KG (Large-scale Chinese Open Medi-
+cal Knowledge Graph) 4 and Disease-KG (Chinese disease
+Knowledge Graph)5 are open-source medical KGs, which
+integrates extensive medical text data, including diseases,
+medications, symptoms and diagnostic treatment technolo-
+gies. The fused KG has 1,288,721 entities and 3,569,427
+relations. However, due to the lack of medical entity de-
+scriptions in its entities, we collect relevant entity knowl-
+
+2https://cmekg.pcl.ac.cn/
+3https://github.com/king-yyf/CMeKG tools
+4https://cpubmed.openi.org.cn/graph/wiki
+5https://github.com/nuolade/disease-kb
+
+edge from Wikipedia6, Baidu Baike7, and Medical Baike8,
+and store them as entity descriptions. As mentioned by
+HyKGE (Jiang et al. 2024) and GraphRAG (Edge et al.
+2024), we choose the reasoning chains and knowledge com-
+munities as knowledge carriers.
+
+(2) Documents Search. We have collected over 2 million
+medical documents of 3B size from drug instructions, medi-
+cal textbooks, medical encyclopedias, clinical diagnosis and
+treatment guidelines, medical papers, and medical electronic
+medical records. To be specific, we utilize the GTE embed-
+ding model (Li et al. 2023c) “gte sentence-embedding”9 to
+obtain the embedding for each document, which is currently
+the top-performing model for text vector embedding in the
+retrieval field. We set the document chunk size to 128 with
+overlap size 50.
+
+(3) Web and Pedia Search. In order to support the im-
+plementation of online retrieval, we also support searching
+on encyclopedias such as Wikipedia and MedNet (for this
+purpose, we pre-trained a W2NER model (Li et al. 2021)
+for medicine to extract medical entities). In addition, we
+also use search engines such as Bing and Google for web
+retrieval.
+
+(4) Electronic Medical Record Database Search. In or-
+der to support the retrieval of similar patient information, we
+also apply mimic-III (Johnson et al. 2016), mimic-IV (John-
+son et al. 2023), and eICU (Pollard et al. 2018) datasets, fol-
+lowing the code translation “ICD9-CM” principle to support
+the retrieval of similar patients
+
+LLM Turbo. To fairly verify whether TC–RAG can effec-
+tively enhance LLMs, we selected the general-domain large
+model and the medical-domain large model as the base mod-
+els and explored the gains brought by TC–RAG: Qwen-1.5-
+32B-chat.
+
+Compared Methods.
+In order to explore the advantages
+of the TC–RAG, we compare the TC–RAG results against
+twelve other models: (1) Base Model (Base) servers as
+the model without any external knowledge, used to check
+the improvement effect of different RAG methods. We use
+Qwen and pre-trained ones as base models. (2) CHAIN-
+OF-THOUGHT (CoT) (Wei et al. 2023) generates a series
+of intermediate reasoning steps to perform complex reason-
+ing. (3) Single Round-RAG (SR-RAG) is selected with the
+combination of KGRAG (Soman et al. 2023b,a; Sen, Mava-
+dia, and Saffari 2023), embedding-based Document RAG
+and web search based on the initial question. (4) Fix Length
+RAG (FL-RAG) (Khandelwal et al. 2020; Borgeaud et al.
+2022; Ram et al. 2023) triggers the retrieval module ev-
+ery n tokens and the tokens generated in the previous token
+window are utilized as the query. (5) Fix Sentence RAG
+(FS-RAG) (Trivedi et al. 2023): Similar to FL-RAG, we
+retrieves based on every sentence. (6) CHAIN-OF-NOTE
+(CoK) (Li et al. 2023b) generates sequential thoughts af-
+
+6https://www.wikipedia.org/
+7https://baike.baidu.com/
+8https://www.yixue.com/
+9https://www.modelscope.cn/models/damo/nlp gte sentence-
+
+embedding
+
+ter retrieved knowledge, enabling a thorough evaluation of
+their relevance to the given question and integrating these
+thoughts to formulate the final answer. (7) Summarizing
+Retrievals (SuRe) (Kim et al. 2024) constructs summaries
+of the retrieved passages for each of the multiple answer
+candidates and confirms the most plausible answer from the
+candidate set by evaluating the validity and ranking of the
+generated summaries. (8) Hypothesis Knowledge Graph
+Enhanced Framework (HyKGE) (Jiang et al. 2024) lever-
+ages the hypothesis output and knowledge graph to enhance
+model inference. (9) Reasoning And Acting (ReACT) (Yao
+et al. 2022a) overcomes issues of hallucination and error
+propagation prevalent in chain-of-thought reasoning ahd ac-
+tions. (10) Self-Reflective RAG (Self-RAG) (Asai et al.
+2024) enhances an LM’s quality and factuality through API
+retrieval and self-reflection. (11) Forward-Looking Active
+RAG (FLARE) (Jiang et al. 2023c) iteratively uses a pre-
+diction of the upcoming sentence to anticipate future content
+and retrieve relevant documents to regenerate the sentence if
+it contains low-confidence tokens. (12) Dynamic Retrieval
+Augmented Generation based on the Information Needs
+(DRAGIN) (Su et al. 2024) is designed to make decisions
+on when and what to retrieve based on real-time informa-
+tion needs. Note that we strictly follow the prompts for the
+baselines as stated.
+
+Evaluation Metrics. As for the evaluation of multi-task
+medical choice question performance, we guide LLMs to
+only answer the correct answer and employ established met-
+ric Exact Match (EM) as suggested by prior work (Zhu
+et al. 2021; Karpukhin et al. 2020). For the EM score, an an-
+swer is deemed acceptable if its form corresponds to all cor-
+rect answers in the provided list. For open-domain medical
+Q&A tasks, we utilize ROUGE-R (Xu 2023) and Bilingual
+Evaluation Understudy (BLEU-1 for answer precision,
+BLEU-4 for answer fluency) (Xu 2023) to gauge the sim-
+ilarity of LLMs responses to the ground-truth doctor anal-
+ysis. ROUGE-R measures the extent to which the LLMs’
+responses cover the retrieved knowledge, which is crucial
+for ensuring comprehensive information coverage.
+
+In TC–RAG, σ = 10 for
+Experimental Implementation.
+cppl and 20 for uct. Moreover, for all the baselines and TC–
+RAG, we set the maximum number of returned tokens for
+LLMs to 500 and the temperature to 0.6. For a fair compari-
+son, we apply the same W2NER, GTE (Li et al. 2023c) mod-
+els for all baselines. Moreover, the parameters of W2NER
+are optimized with Adam optimizer (Kingma and Ba 2015)
+with L2 regularization and dropout on high-quality medi-
+cal dataset (Zhang et al. 2022; Hongying et al. 2020), the
+learning rate is set to 1e-3, the hidden unit is set to 1024
+and weight decay is 1e-4. Implementations are done using
+the PyTorch 1.9.0 framework (Paszke et al. 2019) in Python
+3.9, on an Ubuntu server equipped with 8 A100 GPU and an
+Intel(R) Xeon(R) CPU.
+
+8.6 Noise Poisoning Attack (RQ3)
+To assess the robustness of TC–RAG against noise poison-
+ing attacks, we conducted two distinct types of attacks: Par-
+tial Attack and Structural Attack. These attacks simulate
+
+scenarios involving excessive redundant information or situ-
+ations where retrieval mechanisms fail, leaving no effective
+information. Additionally, we introduced two categories of
+noise—Irrelevant Retrieval Noise & Relevant Retrieval
+Noise (Yoran et al. 2024; Cuconasu et al. 2024; Fang et al.
+2024)—to evaluate the effectiveness of the Backtrack
+and Summary actions.
+
+In terms of implementation, we artificially constructed
+100 pieces of noise based on CMB-Exam for each type of
+noise. It is worth noting that for partial attacks, we directly
+concatenate the noise knowledge after the retrieved results.
+For structural attacks, we replace the retrieved knowledge
+instead. We conduct the poison attack during the first func-
+tion call:
+
+Table 3: Results for Structural and Partial Attacks
+
+Noise Type
+
+Summary Prob.
+
+Backtrack Prob.
+
+EM
+
+Structural Attack
+
+Irrelevant Retrieval Noise
+Relevant Retrieval Noise
+Mixed Retrieval Noise
+
+Partial Attack
+
+Irrelevant Retrieval Noise
+Relevant Retrieval Noise
+Mixed Retrieval Noise
+
+01.00%
+12.00%
+04.00%
+
+37.00%
+52.00%
+41.00%
+
+94.00%
+76.00%
+91.00%
+
+49.00%
+29.00%
+47.00%
+
+91.00
+84.00
+89.00
+
+85.00
+79.00
+81.00
+
+Impact of Structural Attack and Partial Attack In the
+context of Structural Attack, the influence of Partial At-
+tack is particularly pronounced. Since this type of noise is
+directly embedded within the sentence, it exerts a greater
+interference on TC–RAG. The experimental results indicate
+that under Partial Attack, (1) TC–RAG is more likely to trig-
+ger the Summary action, attempting to condense and pro-
+cess the excess information. This suggests that the model
+tends to utilize summarization as a means to handle noise
+in such scenarios. (2) Nevertheless, TC–RAG still triggers
+the Backtrack action in some cases, though with a lower
+probability compared to Structural Attack. (3) More no-
+tably, due to the greater impact of this embedded noise, the
+model’s EM score significantly decreases, indicating that
+Partial Missing noise has the most substantial impact on
+TC–RAG during Structural Attack.
+
+Comparison of Noise Types
+(1) In contrast, the impact
+of Relevant Noise is even more severe, particularly in the
+context of Partial Attack. Since Relevant Noise is highly
+related to the task, TC–RAG struggles to determine whether
+the noise contains the required answer, leading to a signif-
+icantly lower EM compared to when dealing with Irrele-
+vant Noise. (2) Relevant Noise is more likely to trigger
+the Summary action, indicating that when faced with task-
+related noise, the model may prefer summarizing the infor-
+mation rather than directly identifying and discarding irrel-
+evant content. (3) In contrast, Irrelevant Noise is more eas-
+ily detected by TC–RAG and effectively removed through
+the Backtrack action. The model handles it more effi-
+ciently, with the Backtrack execution probability reach-
+ing as high as 94%. (4) The results for Mixed Noise fall be-
+
+Table 4: Performance of Various Approaches on CMB Leaderboard
+
+Professional
+Technician Knowledge
+
+Method
+
+TC–RAG
+HuatuoGPTII-34B
+Qwen-72B-Chat
+Yi-34B-Chat
+Yi-6B-Chat
+GPT-4
+Qwen-14B-Chat
+Baichuan2-13B-chat
+ChatGLM2-6B
+Baichuan-13B-chat
+HuatuoGPT
+ChatMed-Consult
+
+Average
+Score
+87.95
+76.80
+74.38
+69.17
+65.87
+59.46
+57.64
+39.88
+38.51
+38.20
+29.49
+20.23
+
+Medical
+Qualification
+89.50
+75.65
+78.55
+71.10
+67.25
+59.90
+60.40
+40.04
+40.25
+37.70
+29.90
+19.40
+
+Nursing Pharmacist Medical
+Exam
+Exam
+88.00
+92.63
+76.81
+82.31
+79.78
+83.56
+73.16
+77.56
+68.50
+76.38
+52.19
+69.31
+60.94
+65.63
+40.60
+45.65
+36.06
+47.56
+41.22
+44.75
+29.06
+34.00
+20.00
+21.69
+
+86.75
+76.17
+77.92
+73.67
+67.83
+61.50
+58.83
+39.25
+36.58
+34.67
+30.92
+22.83
+
+Medical
+Postgraduate
+87.25
+75.56
+58.19
+52.94
+53.50
+54.19
+45.56
+34.45
+35.06
+32.94
+25.69
+18.56
+
+83.56
+74.38
+68.25
+66.56
+61.75
+59.69
+54.50
+39.25
+35.56
+37.94
+27.38
+18.88
+
+tween the two, but since it contains Irrelevant Noise, which
+is easier for the model to detect, its performance is closer to
+that of Irrelevant Noise.
+
+Overall Robustness under Attack Overall, under the at-
+tacks, TC–RAG demonstrates strong robustness, with the
+execution probabilities of Summary and Backtrack re-
+maining above 81%, and sometimes reaching as high as
+95%. This clearly illustrates the effectiveness of TC–RAG in
+managing the memory stack, effectively preventing the in-
+troduction of erroneous knowledge and irrelevant informa-
+tion, thereby maintaining the purity of the memory stack, in
+line with C3.
+
+8.7 CMB Leaderboard
+Here, we compared the specific testing results of our model
+on CMB with the publicly available rankings on CMB
+Leaderboard with open-source baselines in Table 4.

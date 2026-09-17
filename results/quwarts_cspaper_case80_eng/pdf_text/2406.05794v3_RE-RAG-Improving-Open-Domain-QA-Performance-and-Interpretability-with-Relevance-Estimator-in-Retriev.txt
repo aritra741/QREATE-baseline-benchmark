@@ -1,0 +1,2155 @@
+RE-RAG: Improving Open-Domain QA Performance and Interpretability
+with Relevance Estimator in Retrieval-Augmented Generation
+
+Kiseung Kim
+
+Jay-Yoon Lee*
+
+Graduate School of Data Science, Seoul National University
+{kkskp, lee.jayyoon}@snu.ac.kr
+
+Abstract
+
+The Retrieval Augmented Generation (RAG)
+framework utilizes a combination of parametric
+knowledge and external knowledge to demon-
+strate state-of-the-art performance on open-
+domain question answering tasks. However,
+the RAG framework suffers from performance
+degradation when the query is accompanied by
+irrelevant contexts. In this work, we propose
+the RE-RAG framework, which introduces a
+relevance estimator (RE) that not only provides
+relative relevance between contexts as previ-
+ous rerankers did, but also provides confidence,
+which can be used to classify whether given
+context is useful for answering the given ques-
+tion. We propose a weakly supervised method
+for training the RE simply utilizing question-
+answer data without any labels for correct con-
+texts. We show that RE trained with a small
+generator (sLM) can not only improve the sLM
+fine-tuned together with RE but also improve
+previously unreferenced large language mod-
+els (LLMs). Furthermore, we investigate new
+decoding strategies that utilize the proposed
+confidence measured by RE such as choosing
+to let the user know that it is “unanswerable”
+to answer the question given the retrieved con-
+texts or choosing to rely on LLM’s parametric
+knowledge rather than unrelated contexts. 1
+
+1
+
+Introduction
+
+In recent years, the retrieval augmented generation
+framework has shown promising progress in natu-
+ral language generation, specifically on knowledge-
+intensive tasks. This approach has been studied in
+many forms, from traditional RAG (Lewis et al.,
+2020b), which aggregates answers from multi-
+ple contexts using document relevance scores as
+weights, to approaches like RALM (Ram et al.,
+2023), which simply utilizes concatenated con-
+text as an in-context learning approach for large-
+language models (LLMs). Retrieval augmented
+
+*Corresponding author
+1Code is available at here
+
+generation enhances the model’s faithfulness and
+reliability by leveraging nonparametric knowledge
+on top of parametric knowledge (Luo et al., 2023).
+In particular, the RAG framework has the advan-
+tage of being easily adaptable to modern LLMs
+(Brown et al., 2020; Touvron et al., 2023). These
+advantages have sparked a significant amount of
+new research (Asai et al., 2023; Lin et al., 2023;
+Shi et al., 2023) focused on the RAG framework.
+
+Despite the great potential of the retrieval aug-
+mented generation framework, if the language
+model is provided with contexts that are not rel-
+evant to the query, it will be distracted by these
+inappropriate contexts, negatively affecting the ac-
+curacy of the answers (Yoran et al., 2023). While
+retrievers or re-rankers in existing research have
+been effective at measuring the relative ranking
+across contexts to a query, these modules often fail
+to determine whether top-ranked contexts are actu-
+ally relevant to the query or not. Furthermore, if a
+precise relevance score is not used in the traditional
+RAG framework, it can cause problems such as
+directing attention to documents that are less likely
+to answer the query.
+
+In this work, we propose the RE-RAG framework,
+which extends traditional RAG by incorporating a
+relevance estimator (RE) to simultaneously measure
+the precise relative relevance between retrieved con-
+texts and evaluate their confidence, which can be
+used to classify whether given context is useful
+for answering the given question. By more accu-
+rately measuring the relative relevance between
+contexts, RE computes precise relevance scores
+suitable for weighted aggregated answers in the
+traditional RAG framework and also acts as an ef-
+ficient reranker. RE trained on a small generator
+(sLM) not only benefits sLM fine-tuned together
+with RE but can also be separated and applied to
+LLMs as well, benefiting both.
+
+By explicitly classifying whether the context is
+useful for answering the query, the confidence of
+
+4
+2
+0
+2
+
+t
+c
+O
+4
+2
+
+]
+L
+C
+.
+s
+c
+[
+
+3
+v
+4
+9
+7
+5
+0
+.
+6
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+ 
+ 
+ 
+ 
+ 
+ 
+context measured by RE provides various decod-
+ing strategies.
+If the retrieved context set is ir-
+relevant, we can choose to classify the query as
+“unanswerable”, while maintaining most of the ac-
+curacy for the answerable set. Additionally, if a
+low-confidence context set is retrieved, which will
+likely result in wrong answers by parroting the con-
+text as is (Jia and Liang, 2017), we can instead
+selectively leverage the LLM’s parametric knowl-
+edge to improve answer accuracy in most cases.
+
+The main contributions of our work are:
+
+1. We propose a new framework called RE-RAG
+by adding an external Relevance Estimator
+(RE) module. We further suggest a weak super-
+vision training method that can train RE with-
+out explicit labeled data on question-context
+compatibility. (§2.2)
+
+2. We demonstrate that RE-RAG, enhanced with
+RE, significantly improves upon the existing
+RAG. Additionally, we show that RE trained
+on a small language model can improve the
+answer performance of LLMs. (§4.1)
+
+3. We propose to use the confidence level of the
+context set measured by RE to answer “unan-
+swerable” for unanswerable context sets with
+minimal negative effects, or to complement
+LLM’s parametric knowledge. (§5.1)
+
+2 Method
+
+In this section, after reviewing the traditional RAG
+framework, we present the RE-RAG model com-
+bined with our relevance estimator.
+
+2.1 Traditional RAG overview
+
+Retriever Retriever searches for information in
+an external knowledge base and returns a related
+context set Ci. In general, RAG systems use a
+bi-encoder type retriever such as DPR (Karpukhin
+et al., 2020), which is effective and fast in retriev-
+ing information. A question qi ∈ Q and a context
+cj ∈ Ci are input to the encoder independently to
+obtain an embedding of Embq = Encoder(qi),
+Embc = Encoder(cj). The similarity score
+Si,j = Embq · Embc is calculated from the ob-
+tained embedding and then used to perform top-k
+context retrieval.
+Generator Generators that utilize the sequence-
+to-sequence model typically take a question and
+context as input and produce an answer yi,j with
+probability PG(yi,j|qi, cj).
+
+Figure 1: Overview of our proposed RE-RAG frame-
+work. The black lines represent the flow of information
+and the red lines represent the flow of gradients.
+
+Answer marginalization RAG (Lewis et al.,
+2020b) introduced the answer generation models of
+RAG-sequence and RAG-token. We focus on the
+RAG-sequence model which marginalizes proba-
+bility of yl ∈ Yi where Yi is an aggregated set of
+yi,j. which achieves higher performance than the
+RAG-token model and ensures the interpretability
+of the answer generation process. Individually gen-
+erated answers yi,j per cj are marginalized as yl
+using the similarity score Si,j as shown in eq.(2).
+
+PR(Si,j) =
+
+eSi,j
+k eSi,k
+
+(cid:80)
+
+(1)
+
+Pa(yl|qi, Ci) =
+
+(cid:88)
+
+j
+
+PR(Si,j) · PG(yl|qi, cj)
+
+(2)
+
+2.2 RE-RAG framework
+
+The retriever similarity score Si,j is trained to
+achieve high recall when retrieving multiple con-
+texts, however, it was not initially designed to pro-
+vide fine-grained relevancy score PR(Si,j) for aid-
+ing RAG generation steps in eq.(2). To address this
+issue, we propose a relevance estimator (RE) that
+re-ranks contexts and provides precise relevance
+scores to the generator.
+
+Relevance Estimator Relevance estimator (RE)
+measures the relevance between a question and con-
+text. We utilize a similar architecture to Nogueira
+et al. (2020) which utilizes a sequence-to-sequence
+model as a passage reranker.
+
+Our RE receives the same input of question and
+context as the generator, but is trained to generate
+a classification token ("true" or "false") based on
+the relevance of the context to the input question.
+We normalize the probability of generating "true"
+and "false" tokens to get the final probability of
+generating the classification token. The obtained
+probability of a "true" token can independently be
+
+an indicator of the relevance of a single context
+to a given question. When comparing between
+multiple contexts, the "true" token probability can
+be converted to logit and used as the relevance
+score of the retrieved context.
+
+Second, to obtain a learning signal for train-
+ing the relevance estimator, we calculate the log-
+likelihood loss of the generator per retrieved con-
+text and compute its distribution across contexts as
+follows:
+
+REi,j =
+
+P(“true”|qi, cj)
+P(“true”|qi, cj) + P(“f alse”|qi, cj)
+
+(3)
+
+Reranking of contexts by relevance With the
+trained relevance estimator RE, we can rerank con-
+texts in the initial retrieved set Ci by their relevance
+and only take top-k contexts to redefine Ci before
+the answer-generation step. With a precise rele-
+vance score from RE, we can expect the RE-RAG to
+be more efficient, i.e. stronger performance with
+lower computation (see §4.2).
+
+Answer marginalization with context RE The
+question and context are concatenated and input
+to the generator model, and the generator gener-
+ates PG(yi,j|qi, cj) per question. We replace the
+probability distribution PR(Si,j) in eq.(2) with the
+relevance scores from context RE to form eq.(6) as
+following:
+
+σ(REi,j) = log
+
+PRE(qi, cj) =
+
+(cid:18) REi,j
+
+(cid:19)
+
+1 − REi,j
+
+eσ(REi,j )
+k eσ(REi,k)
+
+(cid:80)
+
+(4)
+
+(5)
+
+Pa(Yi|qi, Ci) =
+
+(cid:88)
+
+j
+
+PRE(qi, cj) · PG(yi,j|qi, cj).
+
+(6)
+
+We can expect higher performance with the
+marginalized answer yl if RE can provide an accu-
+rate relevance distribution PRE (see §5.3).
+
+2.3
+
+Joint training of RE-RAG
+
+We propose to utilize three different types of losses
+to train RE-RAG with our proposed relevance esti-
+mator. First, to train the generator model, we use
+a loss that combines the commonly used negative
+likelihood loss for ground truth ai with a probabil-
+ity that represents the relevance of the question and
+context.
+
+Fi,j = log(PG(ai|qi, cj))
+
+QG(qi, cj) =
+
+eFi,j
+k eFi,k
+
+(cid:80)
+
+.
+
+(8)
+
+(9)
+
+The log-likelihood loss varies depending on
+whether an answer can be inferred from the input
+context. Therefore, applying the softmax function
+to the log-likelihood loss values yields a probability
+distribution that represents the relevance between
+the given set of contexts and the question. We do
+not leverage any labeled data that entails the rele-
+vance of questions and contexts.
+
+QG(qi, cj) represents relative relevance be-
+
+tween qi and cj
+
+We calculate the KL-divergence loss between
+the probability distributions of the generator and
+the RE, and use this loss to train the model.
+
+Lre = DKL(PRE(qi, cj)||QG(qi, cj))
+
+(10)
+
+Lastly, in addition to applying a training loss on
+the probability of generating the classification to-
+ken, we need to set an additional loss to prevent the
+RE from generating tokens other than the classifica-
+tion token. To do this, we utilize the additional loss
+as the sum of the probability of RE of generating
+all tokens other than classification token.
+
+Ltok =
+
+(cid:88)
+
+P(t|qi, ck)
+
+(11)
+
+t∈T \{"true","false"}
+
+To train an effective system, the two models are
+trained jointly utilizing all three losses as follows:
+
+Ltot = Lgen + α1Lre + α2Ltok
+
+(12)
+
+where α1 and α2 are hyperparameters that act as
+scaling factors to balance the impact of each loss.
+
+Lgen = −
+
+(cid:88)
+
+i,j
+
+log (PRE(qi, cj) · PG(ai|qi, cj))
+
+(7)
+
+3 Experimental Setup
+
+Lgen simultaneously adjusts the probability of
+generating the classification token for the relevance
+estimator while training the generator.
+
+We evaluated the performance of our model on
+an open-domain QA dataset. In this section, we
+describe the dataset we used in our experiments
+and the details of our experiments.
+
+Model
+
+Extra Generator
+
+EM
+
+NQ
+
+Acc
+
+F1
+
+EM
+
+Small language models (≤ 2B)
+
+44.5
+48.2
+51.4
+50.1
+54.4
+54.7
+48.6
+53.9
+55.9
+49.9
+51.9
+54.0
+55.4
+
+-
+-
+-
+-
+-
+-
+-
+-
+-
+53.1
+55.2
+56.7
+58.3
+
+Large language models (≥ 7B)
+
+-
+-
+45.7
+46.6
+
+-
+-
+48.4
+49.8
+
+-
+-
+-
+-
+-
+-
+-
+-
+-
+56.9
+58.9
+61.0
+62.5
+
+-
+-
+54.3
+55.6
+
+56.8
+65.0
+67.6
+69.3
+72.5
+-
+67.4
+71.2
+69.9
+68.2
+70.1
+70.2
+72.9
+
+-
+-
+67.1
+70.8
+
+RAG (Lewis et al., 2020b)
+FiDbase (Izacard and Grave, 2021b)
+FiDlarge (Izacard and Grave, 2021b)
+FiD-KDbase (Izacard and Grave, 2021a)
+FiD-KDlarge (Izacard and Grave, 2021a)
+ReAtt (Jiang et al., 2022)
+FiD-KDbase (Izacard and Grave, 2021a)
+FiD-KDlarge (Izacard and Grave, 2021a)
+R2-D2 (Fajcik et al., 2021)
+RE-RAGbase
+RE-RAGF lan−base
+RE-RAGlarge
+RE-RAGF lan−large
+
+Self-RAG7B (Asai et al., 2023)
+Self-RAG13B (Asai et al., 2023)
+Llama27b + RE
+Llama213b + RE
+
+RA-DIT (Lin et al., 2023)
+Llama38b + FiD-KDret
+Llama270b + FiD-KDret
+Llama370b + FiD-KDret
+ChatGPT + FiD-KDret
+Codex + REPLUG LSR (Shi et al., 2023)
+Llama38b + RE
+Llama270b + RE
+Llama370b + RE
+ChatGPT + RE
+
+-
+-
+-
+-
+-
+-
+-
+-
+125M
+220M
+220M
+770M
+770M
+
+-
+-
+770M
+770M
+
+-
+-
+-
+-
+-
+-
+770M
+770M
+770M
+770M
+
+445M
+220M
+770M
+220M
+770M
+770M
+220M
+770M
+1.04B
+220M
+220M
+770M
+770M
+
+7B
+13B
+7B
+13B
+
+65B
+8B
+70B
+70B
+175B
+175B
+8B
+70B
+70B
+175B
+
+43.9
+37.9(38.2)
+38.1(40.7)
+39.5(46.8)
+42.9(45.9)
+45.5
+49.6
+48.0
+50.8
+49.3
+
+-
+43.9(40.2)
+43.0(47.4)
+44.3(52.4)
+46.6(50.0)
+-
+54.5
+52.0
+54.8
+55.2
+
+-
+47.5(47.4)
+47.5(50.8)
+48.5(56.9)
+52.2(56.2)
+-
+59.0
+57.6
+60.1
+59.6
+
+75.1
+63.8(57.6)
+63.5(66.3)
+68.1(72.1)
+69.0(70.7)
+77.3
+73.0
+72.4
+75.5
+72.6
+
+-
+66.7(59.3)
+66.4(71.4)
+70.8(75.3)
+74.5(74.0)
+-
+75.4
+74.8
+77.7
+77.7
+
+-
+70.7(63.3)
+70.0(73.2)
+74.7(79.1)
+76.8(77.8)
+-
+79.3
+78.6
+81.7
+80.3
+
+TQA
+
+Acc
+
+-
+-
+-
+-
+-
+-
+-
+-
+-
+70.0
+72.0
+71.7
+74.4
+
+66.4
+69.3
+70.1
+73.2
+
+F1
+
+-
+-
+-
+-
+-
+-
+-
+-
+-
+73.6
+75.8
+75.9
+78.7
+
+-
+-
+73.3
+77.2
+
+# Contexts
+
+50
+100
+100
+100
+100
+100
+25
+25
+25
+25
+25
+25
+25
+
+5
+5
+5
+5
+
+10
+10
+10
+10
+10
+10
+10
+10
+10
+10
+
+Table 1: EM scores on Natural Questions and TriviaQA datasets. The parameters of the generator and the extra
+module that evaluates a given context are listed separately. # Contexts refer to the number of contexts utilized for
+inference. For an effective comparison, we divided the groups based on the size of the generator model and the
+number of contexts utilized for inference. Llama2 7B and 13B models were additionally tested with five contexts for
+a fair comparison with the Self-RAG (Asai et al., 2023) baseline. Experiments on LLM (≥ 7B) followed the method
+of aggregating answers using relevance score weights per. However, in the case of applying the FiD-KD retriever
+to LLMs, we add one more number in the (right) to represent the zero-shot RALM method. which concatenates
+contexts to generate answers. We provide this extra result in brackets to compare fairly with the FiD-KD retriever as
+its performance in the traditional RAG setting was incomparable due to its subpar performance. This shows that
+the FiD-KD score may be good for reranking but not a suitable relevance score for the traditional RAG method to
+perform well. The bold is the best score in each group, and the underline is the second best. The bold and underline
+are only for figures that can be compared to the baseline.
+
+3.1 Dataset
+
+We evaluate our performance on two open-domain
+QA datasets:Natural Questions (Kwiatkowski et al.,
+2019), TriviaQA (Joshi et al., 2017). To train and
+evaluate our model, we utilize the context datasets
+retrieved for each question from NQ and TQA, as
+used in FiD-KD (Izacard and Grave, 2021a) and
+Akari (Asai et al., 2022). The dataset includes the
+top-20 training contexts, while the dev and test
+sets contain the top-100 contexts retrieved by the
+retriever. We used 20 contexts for training and
+the top-25 contexts extracted by the RE from the
+top-100 retrieved contexts for inference.
+Natural
+Questions
+is a dataset of
+(Kwiatkowski et al., 2019)
+real questions asked by users on the web. The
+dataset consists of questions collected from the
+web, a long answer that can be viewed as gold
+
+Questions
+
+Natural
+
+context for the question, and a short answer with a
+short span. The open-domain QA version dataset
+of Natural Questions is a dataset that collects
+only questions where the answer span of the short
+answer is 5 tokens or less in length. We use the
+NQ-open dataset.
+TriviaQA TriviaQA (Joshi et al., 2017) is a dataset
+of question-answer pairs collected from trivia en-
+thusiasts. Each question and answer in the dataset
+has been reviewed by human annotators. We want
+to use the unfiltered version of TriviaQA dataset.
+
+3.2 Evaluation Metric
+
+The predicted answers are evaluated using EM
+score, a commonly used metric as in Izacard and
+Grave (2021b), Rajpurkar et al. (2016). The gener-
+ated answers are normalized (e.g., lowercase, punc-
+tuation, article stripping) and compared to the cor-
+
+rect answers in the dataset. We consider a gener-
+ated answer to be correct if it exactly matches one
+of the correct answers in the given dataset after
+normalization.
+
+We also provide F1 score and accuracy (Acc) as
+an additional evaluation metric as some previous
+paper only report Acc (Asai et al., 2023), which
+assesses whether the generated string contains the
+gold answer. These scores show a similar trend
+with the EM score, that RE-RAG outperforms the
+baseline methods. Nonetheless, since most base-
+lines report EM scores exclusively, our comparison
+is focused on EM scores.
+
+3.3 Baseline
+
+We investigate whether the performance of RE-RAG
+is competitive with that of the FiD (Izacard and
+Grave, 2021b)-based system. FiD has achieved
+excellent performance on the Question-Answering
+task, and the FiD-based application system also
+outperforms the RAG (Lewis et al., 2020b)-based
+system on the QA task.
+
+We consider an additional baseline to compare
+the performance of RE when applied to LLMs. We
+compare the performance of RE and FiD-KD re-
+triever when applied to LLMs. When applying
+the FiD-KD retriever to LLMs, we compared two
+methods: traditional RAG, which uses the retriever
+similarity score to perform answer marginalization,
+and RALM, which concatenates all context. When
+generating answers for individual contexts using
+the traditional RAG method, we used 8-shot exam-
+ples, while the RALM method employed a zero-
+shot approach due to context length limitations.
+Furthermore, we compare our performance with
+other studies (Asai et al., 2023; Lin et al., 2023; Shi
+et al., 2023) that have implemented RAG in LLMs.
+
+3.4 Model
+
+The two components of our framework, RE and
+the generator, utilize the T5 model (Raffel et al.,
+2020) and Flan-T5 (Chung et al., 2024). We utilize
+the base and large size models, and explore three
+different model sizes depending on the combination
+of the two models.
+
+Additionally, we utilize Llama2 (7B, 13B, 70B),
+Llama3 2 (8B, 70B), and ChatGPT (“gpt-3.5-turbo-
+0125” version) as generators to assess if RE brings
+performance improvements when applied to LLMs.
+In our experiments, the LLMs used as generators
+
+2https://github.com/meta-llama/llama3
+
+are not fine-tuned for the downstream task.
+
+4 Experiment Results
+
+We investigate the QA performance of the RAG
+system with our newly proposed relevance estima-
+tor (RE). In addition to the QA performance of the
+whole system, we also examine the performance of
+the RE independently.
+
+4.1 Main Results
+
+The overall accuracy of our system on the two
+datasets (NQ and TQA) is shown in Table 1. Com-
+pared to the traditional RAG, our system, RE-RAG,
+performs better despite having the same total num-
+ber of parameters. Our proposed RE improves
+the reliability of the RAG system by more accu-
+rately measuring the relevance between question
+and context. Our model performed competitively
+with models based on FiD structures(Izacard and
+Grave, 2021a; Jiang et al., 2022; Fajcik et al., 2021).
+We also found that our methodology was more effi-
+cient than the instructed tuned T5.
+
+The accuracy of the RE module when applied to
+Large Language Models (LLMs) is shown at the
+bottom of Table 1. We only included the RAG-
+based model in our comparison because the FiD-
+based model is not applicable to LLMs due to struc-
+tural differences. The RE module outperforms the
+FiD-KD retriever when applied to LLMs. When
+the RE module is applied to Llama2, it surpasses
+the Self-RAG, where the LMs themselves inspect
+the retrieved context and generated answers. In
+TQA, REPLUG with Codex scores slightly higher.
+The performance of TQA seems to depend more
+on the generator model than NQ (see Figure 2 for
+a related discussion), and we believe that this is the
+reason for the performance difference with Codex.
+Our model performs better on NQ, which is a more
+knowledge intensive task.
+
+4.2 Performance of RE as a reranker and
+
+unanswerable set classifier
+
+Table 2 shows the performance of our proposed
+RE-RAG’s RE as a reranker. For the Recall@k met-
+ric, we use the retrieval accuracy used by DPR
+(Karpukhin et al., 2020), FiD-KD (Izacard and
+Grave, 2021a), and ColbertQA (Khattab et al.,
+2021). Although the comparison retriever has been
+enhanced through knowledge distillation methods
+using FiD attention scores, our proposed RE still
+demonstrated superior performance.
+In particu-
+lar, RE performs better as the number of contexts
+
+Dataset Model
+
+Recall@k
+R@1 R@5 R@10 R@20
+
+NQ
+
+TQA
+
+FiD-KD
+MonoT5large
+RE-RAGbase
+RE-RAGlarge
+
+FiD-KD
+MonoT5large
+RE-RAGbase
+RE-RAGlarge
+
+49.4
+46.2
+59.5
+61.9
+
+60.1
+64.7
+67.0
+70.4
+
+73.8
+72.4
+77.8
+79.4
+
+77.0
+79.7
+81.5
+82.2
+
+79.6
+80.1
+82.7
+83.6
+
+80.9
+82.9
+83.6
+84.4
+
+84.3
+84.7
+85.5
+86.4
+
+83.6
+84.8
+85.4
+86.1
+
+Table 2: Performance of RE as a re-ranker. The re-
+ranking performance for the top-100 contexts retrieved
+by the FiD-KD retriever is denoted by recall@k.
+
+Dataset Model
+
+Recall Precision
+
+F1
+
+NQ
+
+TQA
+
+FiD-KD
+MonoT5large
+RE-RAGbase
+RE-RAGlarge
+
+FiD-KD
+MonoT5large
+RE-RAGbase
+RE-RAGlarge
+
+73.2
+10.3
+51.3
+45.9
+
+64.3
+27.2
+38.9
+39.0
+
+21.9
+31.0
+33.9
+38.3
+
+24.5
+34.2
+46.7
+43.2
+
+33.7
+15.5
+40.9
+41.7
+
+35.5
+30.3
+42.5
+41.0
+
+Table 3: Classification results for context sets that do
+not contain an answer within the top-25 context set. We
+used cosine similarity for FiD-KD’s retriever and “true”
+token probability for our method and MonoT5.
+
+decreases, which means that RE is more efficient
+when there are fewer contexts to utilize.
+
+Table 3 shows the performance of the context
+relevance estimator (RE) as a “unanswerable” set
+classifier. “unanswerable” set means that the con-
+text set of the top-25 contexts does not contain a
+gold answer in any context. For classification, we
+used the cosine similarity score of the hidden rep-
+resentation of the question and context for retriever
+and the probability of generating a “true” token by
+the model for RE and MonoT5 (Nogueira et al.,
+2020). For the optimal threshold, we searched for
+the value that maximizes F1 score in steps of 0.1
+from 0.5 to 0.9 at dev set.
+
+Our RE showed better “unanswerable” set clas-
+sification performance than FiD-KD retriever or
+MonoT5 based on F1 score. Looking at the detailed
+performance, we found that the retriever performed
+better for recall, but the RE performed better for
+precision. This is because the retriever classified
+a large number of context sets as all “unanswer-
+able” sets, while our proposed RE showed a good
+balance between precision and recall.
+
+Dataset Model
+
+Score
+
+Answerable context set
+
+O
+
+NQ
+
+TQA
+
+RE-RAGbase
+RE-RAGbase
+RE-RAGlarge
+RE-RAGlarge RE
+
+FiD-KD 58.3 → 32.7
+58.3 → 54.9
+RE
+FiD-KD 61.5 → 34.9
+61.5 → 57.9
+
+RE-RAGbase
+RE-RAGbase
+RE-RAGlarge
+RE-RAGlarge RE
+
+FiD-KD 78.7 → 51.2
+78.7 → 77.0
+RE
+FiD-KD 80.4 → 51.6
+80.4 → 77.9
+
+X
+73.4
+51.3
+71.3
+45.9
+
+63.5
+38.9
+62.7
+39.0
+
+Table 4: We examine whether RE can successfully iden-
+tify unanswerable scenarios where retrieved contexts do
+not hold true answers. O refers to the retrieval context
+set that contains true answers and X refers to the set
+without which we dim as unanswerable. Under the X,
+we denote the classification accuracy for the unanswer-
+able set. Under the O, we denote the accuracy change as
+the RE thresholding will inevitably classify the context
+sets with answers as unanswerable. Left of the arrow
+denotes original accuracy on O and the right denotes
+accuracy after RE score thresholding.
+
+5 Analysis
+
+5.1 Exploring decoding strategies in low
+
+confidence context sets
+
+In this section, we review two strategies that can be
+used when a context set with a low confidence score
+is retrieved. The confidence score for a context
+set is determined using the maximum value of the
+“true” token probability computed by RE for the
+contexts within the set. We examine the strategy of
+answering “unanswerable” when a low confidence
+context set is returned in a small Language Model
+(sLM), where parametric knowledge is scarce. Ad-
+ditionally, we examine the strategy of directly uti-
+lizing parametric knowledge in Large Language
+Models (LLMs), where parametric knowledge is
+abundant.
+
+Classify as “unanswerable” Table 4 shows the
+change in accuracy after letting the model respond
+with “unanswerable” when the retrieved context set
+has low confidence. For the confidence threshold
+value that determines whether the model should
+respond with “unanswerable”, we chose the value
+that optimizes the classification performance as
+determined in Table 3. We evaluate the accuracy
+by dividing the entire test set into answerable sets,
+which contain at least one gold answer in the con-
+text set, and unanswerable sets, which contain
+none.
+
+Our RE model shows relatively minor accuracy
+loss on the answerable set when responding with
+“unanswerable” for context sets measured with low
+
+P-Generator
+
+Llama270b
+(NQ: 31.1/TQA: 64.3)
+
+R-Generator
+Llama27b
+Llama213b
+Llama270b
+
+NQ
+46.2 → 45.9(-0.3)
+47.3 → 46.5(-0.8)
+48.0 → 46.9(-1.1)
+
+TQA
+68.0 → 69.3(+1.3)
+71.5 → 72.1(+0.6)
+72.4 → 72.9(+0.5)
+
+Llama370b
+(NQ: 41.3/TQA: 75.1)
+
+Llama38b
+Llama370b
+
+49.6 → 49.8(+0.2)
+50.8 → 50.8(-)
+
+73.0 → 75.4(+2.4)
+75.5 → 76.7(+1.2)
+
+ChatGPT
+(NQ: 37.7/TQA: 72.0)
+
+ChatGPT
+
+49.3 → 49.3(-)
+
+72.6 → 73.6(+1.0)
+
+Table 5: Change in EM scores when utilizing the LLM’s
+parametric knowledge for low-confidence context sets.
+P-Generator model, which relies solely on its paramet-
+ric knowledge, has EM scores shown below its name.
+R-Generator refers to a model that utilizes RAG. For
+both datasets, the confidence score threshold for model
+selection is set to 0.7. See appendix D for results on
+FiD-KD retriever.
+
+Figure 2: The relationship between confidence score
+and accuracy by model size. RAG means that the model
+utilizes contextual knowledge and Parametric means
+that the model utilizes only parametric knowledge with-
+out external knowledge.
+
+confidence, but gains significant ability on the unan-
+swerable set.
+In contrast, the FiD-KD retriever
+loses a substantial amount of accuracy on the an-
+swerable set when it responds with “unanswerable”
+for low-confidence context sets, resulting in a larger
+negative effect compared to our model. If we want
+to preserve the answerable set accuracy of the FiD-
+KD retriever, its ability to classify “unanswerable”
+is significantly reduced compared to RE (see Ap-
+pendix E).
+
+Selectively using parametric knowledge We
+
+Model
+Baseline
+Baseline w/ RE score
+Baseline w/ RE rerank
+Baseline w/ RE rerank, score
+RE-RAGbase
+
+NQ TQA
+54.9
+39.5
+60.1
+43.1
+63.9
+46.8
+67.8
+49.6
+68.2
+49.9
+
+Table 6: An ablation study to decompose the effect
+of RE in RE-RAG. We compared the traditional RAG
+model without RE, with reranking of RE (RE rerank),
+with RE score in answer generation (RE score), and
+with both (RE rerank, score).
+
+further explore how we can effectively utilize the
+rich parametric knowledge of LLMs. When the
+confidence of the retrieved context is low, we ex-
+amine a mixed strategy that optionally bypasses the
+context and relies solely on the parametric knowl-
+edge of the largest model to generate the correct
+answer. For the confidence threshold value that
+determines whether the model should answer us-
+ing only parametric knowledge, we selected the
+value that optimizes classification performance as
+determined in Table 3. For each type of model, we
+utilize the one with the largest number of parame-
+ters as the parametric knowledge base.
+
+Table 5 shows the change in accuracy when de-
+coding the answer using the mixed strategy. In
+most cases, our strategy achieves accuracy gains
+in TQA without significant losses in NQ, except
+in cases where parametric knowledge is particu-
+larly scarce, such as in NQ on Llama2. NQ is a
+more knowledge-intensive task compared to TQA,
+where there is less benefit from utilizing parametric
+knowledge.
+
+When parametric knowledge can be used effec-
+tively, the mixed strategy achieves larger gains in
+smaller models, and the performance gap narrows
+compared to larger models. Figure 2 illustrates
+the relationship between confidence score and ac-
+curacy by model size. At high confidence scores
+on the TQA dataset, small size models achieve
+similar accuracy to large size models. At low con-
+fidence scores, the difference in performance be-
+tween small and large models becomes more pro-
+nounced. When using small size models, higher
+efficiency can be achieved by utilizing retrieval aug-
+mented generation only when a high confidence
+context set is retrieved, and selectively leverag-
+ing the parametric knowledge of large size models
+when a low confidence context set is retrieved.
+
+(0.0, 0.1](0.1, 0.2](0.2, 0.3](0.3, 0.4](0.4, 0.5](0.5, 0.6](0.6, 0.7](0.7, 0.8](0.8, 0.9](0.9, 1.0]Confidence score of context set0.00.10.20.30.40.50.60.7AccuracyNatural QuestionsRAG (Llama3 7B)RAG (Llama3 70B)Parametric (Llama3 70B)(0.0, 0.1](0.1, 0.2](0.2, 0.3](0.3, 0.4](0.4, 0.5](0.5, 0.6](0.6, 0.7](0.7, 0.8](0.8, 0.9](0.9, 1.0]Confidence score of context set0.00.10.20.30.40.50.60.70.80.9AccuracyTriviaQARAG (Llama3 7B)RAG (Llama3 70B)Parametric (Llama3 70B)Dataset Model
+
+R@1
+
+R@5
+
+R@10
+
+R@20
+
+Recall@k
+
+NQ
+
+TQA
+
+FiD-KD(NQ → NQ)
+FiD-KD(TQA → NQ)
+RE-RAGlarge(NQ → NQ)
+RE-RAGlarge(TQA → NQ)
+
+FiD-KD(TQA → TQA)
+FiD-KD(NQ → TQA)
+RE-RAGlarge(TQA → TQA)
+RE-RAGlarge(NQ → TQA)
+
+49.4
+35.9(−27.3%)
+61.9
+46.2(−25.4%)
+
+60.1
+47.6(−20.8%)
+70.4
+67.8(−3.7%)
+
+73.8
+63.2(−14.4%)
+79.4
+71.6(−9.8%)
+
+77.0
+70.8(−8.1%)
+82.2
+80.2(−2.4%)
+
+79.6
+73.1(−8.2%)
+83.6
+79.3(−5.1%)
+
+80.9
+76.8(−5.1%)
+84.4
+83.0(−1.7%)
+
+84.3
+80.5(−4.5%)
+86.4
+83.9(−2.9%)
+
+83.6
+81.1(−3.0%)
+86.1
+85.1(−1.2%)
+
+Table 7: Change in rerank performance when applying the RE module and FiD-KD retriever to unseen datasets.
+The numbers in parentheses indicate the percentage drop on the unseen datasets.
+
+Model
+
+NQ (EM/Acc) TQA (EM/Acc)
+
+#Contexts
+
+Llama38b + FiD-KD
+Llama38b + RE
+
+Llama38b + FiD-KDTQA
+Llama38b + RETQA
+
+Llama38b + FiD-KDNQ
+Llama38b + RENQ
+
+37.9/43.9
+49.6/54.5
+
+30.3/34.7
+42.1/46.1
+
+-
+-
+
+63.8/66.7
+73.0/75.4
+
+-
+-
+
+57.6/60.4
+70.3/73.0
+
+10
+10
+
+10
+10
+
+10
+10
+
+retriever are applied to the Llama3 8B generator
+on unreferenced datasets. The RE module consis-
+tently exhibits a smaller performance degradation
+compared to the FiD-KD retriever on both datasets,
+similar to the recall performance in Table 7.
+
+Table 8: Changes in answer performance when applying
+RE module and FiD-KD retriever to unseen datasets. In
+the model column, the subscript indicates the trained
+dataset, and NQ and TQA columns represent test data.
+
+5.2 Evaluation of relevance estimator on
+
+unseen dataset
+
+We evaluate the effectiveness of the relevance es-
+timator (RE) module on unseen datasets that were
+not utilized during training from two perspectives:
+rerank performance and answer performance. The
+RE module and the baseline FiD-KD are trained
+only using a single dataset such as NQ (TQA). We
+analyze the changes in performance when applying
+the RE module and FiD-KD retriever to the new
+unseen dataset TQA (NQ).
+
+Table 7 compares the rerank performance of the
+RE module and the FiD-KD retriever on datasets
+that were not referenced in training. Overall, the
+RE module consistently shows a smaller perfor-
+mance drop compared to the FiD-KD retriever on
+these unseen datasets. In particular, when the RE
+module trained on Natural Questions is extended
+to the TriviaQA dataset (NQ→TQA), both models
+show smaller performance drop than the opposite
+case (TQA→NQ). However, the performance drop
+of the RE module is notably smaller (-3.7%) than
+FiD-KD’s (-20.8%). This suggests that the RE
+module is more effective than FiD-KD retriever on
+unreferenced datasets when trained on datasets that
+are conducive to generalization.
+
+Table 8 presents a comparison of the answer
+performance when the RE module and FiD-KD
+
+5.3 Ablation Study
+
+Effectiveness of RE We perform an ablation study
+to investigate the effectiveness of the added RE in
+RE-RAG. The effect of our proposed RE is twofold.
+First, it performs better re-ranking than the re-
+triever, selecting more accurate context and passing
+it to the generator. Second, it calculates a more ac-
+curate relevance score than retriever’s similarity
+score and uses it in the answer marginalization pro-
+cess. In Table 6, the performance of methods with
+each component of the RE added is presented, us-
+ing a model that was trained with only the T5-base
+generator, after removing the RE, as the baseline.
+We construct the following experiment to isolate
+the two effects. First, we apply the top 25 contexts
+from retriever and their similarity scores to the
+baseline model. Next, there are the top-25 contexts
+from the retriever with the RE’s score applied (RE
+score) and the top-25 contexts from the RE with
+the retriever’s similarity score applied (RE rerank).
+Finally, we compare the performance of applying
+the RE’s top-25 contexts and score to the baseline
+model (RE rerank, score).
+
+Both effects of the RE are found to be signifi-
+cant in improving the performance of the baseline
+model. This shows that not only the quality of the
+context input to the generator plays an important
+role, but also the score, which means the impor-
+tance of each context.
+
+Remove training components We investigate
+the impact of removing the regularization process
+in eq.(3) on the classification performance of RE
+while training on the RE-RAGbase model. Table 9
+shows how the “true” token probability level output
+
+Model
+Baseline
+- normalization
+
+NQ
+0.435
+0.0005
+
+TQA
+0.561
+0.0002
+
+Table 9: Average value of the probability that RE gener-
+ates the "true" token for answerable contexts when the
+normalization process is removed.
+
+Model
+Baseline
+- Lre
+
+NQ TQA
+67.8
+49.1
+66.7
+48.0
+
+Table 10: Difference in EM scores on the dev set when
+Lre is removed from the training process.
+
+by the RE changes when the normalization process
+is removed. It can be seen that when the normal-
+ization process is removed, RE can only perform
+the function of re-ranking but loses the function
+of measuring confidence. This is because the nor-
+malization process allows the model to adjust its
+output strictly between “true” and “false” tokens.
+Table 10 shows the difference in EM scores on
+the dev set when Lre is removed from the train-
+ing process. We observed that removing Lre from
+the training process decreases answer performance.
+We believe that Lre contributes to achieving more
+optimal performance by using loss information
+from generator to directly propagate the relative
+importance of contexts to the RE.
+
+6 Related Works
+
+Previous research has shown that the performance
+of Question Answering systems can be improved
+by utilizing external knowledge about questions
+(Chen et al., 2017). Methods for more accurate
+retrieval of external knowledge (Karpukhin et al.,
+2020; Khattab et al., 2021; Gao and Callan, 2022)
+have been studied to make these systems more ef-
+ficient. In open-domain QA, models that extract
+and use answers from retrieved documents have
+been studied (Karpukhin et al., 2020; Khattab et al.,
+2021; Cheng et al., 2021), but studies that utilize
+generative models such as T5 (Raffel et al., 2020)
+or BART (Lewis et al., 2020a) have become more
+common (Lewis et al., 2020b; Izacard and Grave,
+2021b). RAG and FiD achieved powerful perfor-
+mance in open-domain QA using different methods.
+Subsequently, models (Izacard and Grave, 2021a;
+Fajcik et al., 2021; Singh et al., 2021; Jiang et al.,
+2022) that leverage and improve upon the struc-
+tural advantages of FiD have been proposed. For
+
+Atlas (Izacard et al., 2022), state-of-the-art perfor-
+mance was achieved through an improved retriever
+(Izacard et al., 2021) and scaling up the model. In
+the case of RAG, there is a study that improved
+performance by introducing a BERT (Devlin et al.,
+2019)-based reranker (Glass et al., 2022), but it
+utilized additional data and high-quality label data
+when training the reranker.
+
+Recently, large language models (LLMs) such
+as GPT (Brown et al., 2020) and Llama (Touvron
+et al., 2023), which have been developed in re-
+cent years, face limitations with FiD methods that
+require encoded data. Consequently, research on
+RAG models, which can directly input context, has
+received renewed attention. (Asai et al., 2023; Lin
+et al., 2023; Shi et al., 2023) These approaches have
+achieved performance improvements by training a
+retriever, which can also be applied to LLMs, or
+by performing the review of questions and context
+within the model itself.
+
+7 Conclusion
+
+We propose the RE-RAG framework, which extends
+traditional RAG by incorporating RE that can mea-
+sure the relative relevance and confidence of con-
+texts. We demonstrate that the RE-RAG framework
+can enhance the performance of traditional RAG.
+We show that the RE module, as a detachable
+component, can be combined with modern large
+language models (LLMs) to improve their perfor-
+mance. Furthermore, we exploree some decod-
+ing strategies that leverage the confidence informa-
+tion measured by the RE module to either answer
+“unanswerable” or selectively utilize the parametric
+knowledge of the LLMs when a low confidence
+context set is retrieved. We hope that our research
+will inspire the exploration of various additional
+modules for retrieval-augmented generation.
+
+8 Limitation
+
+Our research has primarily focused on improving
+answer performance in single-hop QA tasks. We
+have not sufficiently verified the effectiveness of
+our proposed framework in multi-hop QA tasks.
+We believe that in the future, we can explore
+whether the RE-RAG framework can be extended
+to multi-hop QA.
+
+In our work, we explored a decoding strategy
+that measures with confidence whether a context
+is truly useful for a query and classifies low confi-
+dence contexts as unanswerable. However, a truly
+
+unanswerable query is one where the query cannot
+be adequately answered even when utilizing the
+model’s parametric knowledge. We believe that
+future research needs to be conducted to detect
+whether the parametric knowledge has knowledge
+that can adequately answer the query in order to
+finally classify the unanswerable problem.
+
+9 Acknowledgements
+
+This work was supported in part by the National Re-
+search Foundation of Korea (NRF) grant (RS-2023-
+00280883, RS-2023-00222663) and New Faculty
+Startup Fund from Seoul National University, and
+with the aid of computing resources from Artificial
+Intelligence Industry Center Agency, and Google
+cloud platform research credits, and National Su-
+per computing Center with super computing re-
+sources including technical support (KSC-2023-
+CRE-0176).
+
+References
+
+Akari Asai, Matt Gardner,
+
+and Hannaneh Ha-
+jishirzi. 2022. Evidentiality-guided generation for
+In Proceedings of
+knowledge-intensive nlp tasks.
+the 2022 Conference of the North American Chap-
+ter of the Association for Computational Linguistics:
+Human Language Technologies, pages 2226–2243.
+
+Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and
+Hannaneh Hajishirzi. 2023. Self-rag: Learning to
+retrieve, generate, and critique through self-reflection.
+arXiv preprint arXiv:2310.11511.
+
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, et al. 2020. Language models are few-shot
+learners. Advances in neural information processing
+systems, 33:1877–1901.
+
+Danqi Chen, Adam Fisch, Jason Weston, and Antoine
+Bordes. 2017. Reading Wikipedia to answer open-
+domain questions. In Proceedings of the 55th Annual
+Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers), pages 1870–1879,
+Vancouver, Canada. Association for Computational
+Linguistics.
+
+Hao Cheng, Yelong Shen, Xiaodong Liu, Pengcheng He,
+Weizhu Chen, and Jianfeng Gao. 2021. UnitedQA:
+A hybrid approach for open domain question answer-
+ing. In Proceedings of the 59th Annual Meeting of the
+Association for Computational Linguistics and the
+11th International Joint Conference on Natural Lan-
+guage Processing (Volume 1: Long Papers), pages
+3080–3090, Online. Association for Computational
+Linguistics.
+
+Hyung Won Chung, Le Hou, Shayne Longpre, Barret
+Zoph, Yi Tay, William Fedus, Yunxuan Li, Xuezhi
+Wang, Mostafa Dehghani, Siddhartha Brahma, et al.
+2024. Scaling instruction-finetuned language models.
+Journal of Machine Learning Research, 25(70):1–53.
+
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and
+Kristina Toutanova. 2019. BERT: Pre-training of
+deep bidirectional transformers for language under-
+standing. In Proceedings of the 2019 Conference of
+the North American Chapter of the Association for
+Computational Linguistics: Human Language Tech-
+nologies, Volume 1 (Long and Short Papers), pages
+4171–4186, Minneapolis, Minnesota. Association for
+Computational Linguistics.
+
+Martin Fajcik, Martin Docekal, Karel Ondrej, and Pavel
+Smrz. 2021. R2-d2: A modular baseline for open-
+domain question answering. In Findings of the Asso-
+ciation for Computational Linguistics: EMNLP 2021,
+pages 854–870.
+
+Luyu Gao and Jamie Callan. 2022. Unsupervised cor-
+pus aware language model pre-training for dense pas-
+sage retrieval. In Proceedings of the 60th Annual
+Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers), pages 2843–2853,
+Dublin, Ireland. Association for Computational Lin-
+guistics.
+
+Michael Glass, Gaetano Rossiello, Md Faisal Mahbub
+Chowdhury, Ankita Naik, Pengshan Cai, and Alfio
+Gliozzo. 2022. Re2G: Retrieve, rerank, generate.
+In Proceedings of the 2022 Conference of the North
+American Chapter of the Association for Computa-
+tional Linguistics: Human Language Technologies,
+pages 2701–2715, Seattle, United States. Association
+for Computational Linguistics.
+
+Gautier Izacard, Mathilde Caron, Lucas Hosseini, Se-
+bastian Riedel, Piotr Bojanowski, Armand Joulin,
+and Edouard Grave. 2021. Unsupervised dense in-
+formation retrieval with contrastive learning. arXiv
+preprint arXiv:2112.09118.
+
+Gautier Izacard and Edouard Grave. 2021a. Distilling
+knowledge from reader to retriever for question an-
+swering. In ICLR 2021-9th International Conference
+on Learning Representations.
+
+Gautier Izacard and Edouard Grave. 2021b. Leveraging
+passage retrieval with generative models for open
+In EACL 2021-16th
+domain question answering.
+Conference of the European Chapter of the Associa-
+tion for Computational Linguistics, pages 874–880.
+Association for Computational Linguistics.
+
+Gautier Izacard, Patrick Lewis, Maria Lomeli, Lu-
+cas Hosseini, Fabio Petroni, Timo Schick, Jane
+Dwivedi-Yu, Armand Joulin, Sebastian Riedel, and
+Edouard Grave. 2022. Few-shot learning with re-
+trieval augmented language models. arXiv preprint
+arXiv:2208.03299.
+
+Robin Jia and Percy Liang. 2017. Adversarial examples
+for evaluating reading comprehension systems. arXiv
+preprint arXiv:1707.07328.
+
+Zhengbao Jiang, Luyu Gao, Zhiruo Wang, Jun Araki,
+Haibo Ding, Jamie Callan, and Graham Neubig.
+2022. Retrieval as attention: End-to-end learning
+of retrieval and reading within a single transformer.
+In Proceedings of the 2022 Conference on Empiri-
+cal Methods in Natural Language Processing, pages
+2336–2349.
+
+Mandar Joshi, Eunsol Choi, Daniel S Weld, and Luke
+Zettlemoyer. 2017. Triviaqa: A large scale distantly
+supervised challenge dataset for reading comprehen-
+sion. In Proceedings of the 55th Annual Meeting of
+the Association for Computational Linguistics (Vol-
+ume 1: Long Papers), pages 1601–1611.
+
+Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick
+Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, and
+Wen-tau Yih. 2020. Dense passage retrieval for open-
+domain question answering. In Proceedings of the
+2020 Conference on Empirical Methods in Natural
+Language Processing (EMNLP), pages 6769–6781,
+Online. Association for Computational Linguistics.
+
+Omar Khattab, Christopher Potts, and Matei Zaharia.
+2021. Relevance-guided supervision for OpenQA
+with ColBERT. Transactions of the Association for
+Computational Linguistics, 9:929–944.
+
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-
+field, Michael Collins, Ankur Parikh, Chris Alberti,
+Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-
+ton Lee, Kristina Toutanova, Llion Jones, Matthew
+Kelcey, Ming-Wei Chang, Andrew M. Dai, Jakob
+Uszkoreit, Quoc Le, and Slav Petrov. 2019. Natu-
+ral questions: A benchmark for question answering
+research. Transactions of the Association for Compu-
+tational Linguistics, 7:452–466.
+
+Mike Lewis, Yinhan Liu, Naman Goyal, Marjan
+Ghazvininejad, Abdelrahman Mohamed, Omer Levy,
+Veselin Stoyanov, and Luke Zettlemoyer. 2020a.
+BART: Denoising sequence-to-sequence pre-training
+for natural language generation, translation, and com-
+prehension. In Proceedings of the 58th Annual Meet-
+ing of the Association for Computational Linguistics,
+pages 7871–7880, Online. Association for Computa-
+tional Linguistics.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+täschel, et al. 2020b. Retrieval-augmented generation
+for knowledge-intensive nlp tasks. Advances in Neu-
+ral Information Processing Systems, 33:9459–9474.
+
+Xi Victoria Lin, Xilun Chen, Mingda Chen, Weijia Shi,
+Maria Lomeli, Rich James, Pedro Rodriguez, Jacob
+Kahn, Gergely Szilvasy, Mike Lewis, et al. 2023.
+Ra-dit: Retrieval-augmented dual instruction tuning.
+arXiv preprint arXiv:2310.01352.
+
+Ziyang Luo, Can Xu, Pu Zhao, Xiubo Geng, Chongyang
+Tao, Jing Ma, Qingwei Lin, and Daxin Jiang.
+2023. Augmented large language models with
+arXiv preprint
+parametric knowledge guiding.
+arXiv:2305.04757.
+
+Rodrigo Nogueira, Zhiying Jiang, Ronak Pradeep, and
+Jimmy Lin. 2020. Document ranking with a pre-
+In Findings
+trained sequence-to-sequence model.
+of the Association for Computational Linguistics:
+EMNLP 2020, pages 708–718.
+
+Colin Raffel, Noam Shazeer, Adam Roberts, Katherine
+Lee, Sharan Narang, Michael Matena, Yanqi Zhou,
+Wei Li, and Peter J Liu. 2020. Exploring the limits
+of transfer learning with a unified text-to-text trans-
+former. The Journal of Machine Learning Research,
+21(1):5485–5551.
+
+Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and
+Percy Liang. 2016. Squad: 100,000+ questions for
+machine comprehension of text. In Proceedings of
+the 2016 Conference on Empirical Methods in Natu-
+ral Language Processing, pages 2383–2392.
+
+Ori Ram, Yoav Levine, Itay Dalmedigos, Dor Muhlgay,
+Amnon Shashua, Kevin Leyton-Brown, and Yoav
+Shoham. 2023. In-context retrieval-augmented lan-
+guage models. Transactions of the Association for
+Computational Linguistics, 11:1316–1331.
+
+Weijia Shi, Sewon Min, Michihiro Yasunaga, Min-
+joon Seo, Rich James, Mike Lewis, Luke Zettle-
+moyer, and Wen-tau Yih. 2023. Replug: Retrieval-
+arXiv
+augmented black-box language models.
+preprint arXiv:2301.12652.
+
+Devendra Singh, Siva Reddy, Will Hamilton, Chris
+Dyer, and Dani Yogatama. 2021. End-to-end train-
+ing of multi-document reader and retriever for open-
+domain question answering. Advances in Neural
+Information Processing Systems, 34:25968–25981.
+
+Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-
+bert, Amjad Almahairi, Yasmine Babaei, Nikolay
+Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+Bhosale, et al. 2023. Llama 2: Open founda-
+tion and fine-tuned chat models. arXiv preprint
+arXiv:2307.09288.
+
+Ori Yoran, Tomer Wolfson, Ori Ram, and Jonathan
+Berant. 2023. Making retrieval-augmented language
+models robust to irrelevant context. arXiv preprint
+arXiv:2310.01558.
+
+A Dataset Statistics
+
+Table 11 shows the statistics for the Natural Ques-
+tions and TriviaQA unfilitated datasets we used.
+
+Dataset
+Natural Questions
+TriviaQA
+
+Train
+79,168
+78,785
+
+Dev
+8,757
+8,837
+
+Test
+3,610
+11,313
+
+Table 11: Dataset statistics for Natural Questions and
+TriviaQA
+
+Question
+
+Context
+
+who played mark on the show
+the rifleman
+
+...Mark McCain is the son of fictitious rancher Lucas
+McCain in the ABC Western television series "The Rifle-
+man," starring Chuck Connors, which ran from 1958 to 1963.
+Singer/actor and former Mouseketeer Johnny Crawford was
+cast in the role and...
+
+when does the cannes film fes-
+tival take place
+
+...2017 Cannes Film Festival The 70th Cannes Film Festi-
+val took place from 17 to 28 May 2017, in Cannes, France
+...
+
+how many strong verbs are
+there in german
+
+...Germanic strong verbs are commonly divided into 7
+classes, based on the type of vowel alternation. This is in turn
+based mostly...
+
+Gold Answer
+
+John Ernest Crawford
+
+"True" prob
+
+0.987
+
+Cannes, France, usually in May
+
+0.994
+
+more than 200, more than 200 strong
+
+0.949
+
+how many episodes of corrie
+has there been
+
+...The show airs six times a week: Monday, Wednesday and
+Friday 7:30-8 pm and 8:30-9 pm. Since 2017, ten sequential
+classic episodes of the series from 1986...
+
+9,436
+
+0.147
+
+Table 12: The relevance measure of the question and context output by the RE. The first two show relevant contexts
+that contain the correct answer even if the context does not include exactly the same surface form compared to the
+true answer. The last two examples show irrelevant contexts that actually have high overlap with question tokens,
+however, without pertaining the correct answer.
+
+B Training Details
+
+We used T5-base with a parameter size of 223M
+and T5-large model with a parameter size of 770M
+as modulators in all experiments. We trained
+the RE-RAGbase system on 4 A6000 GPUs, while
+RE-RAGmixed and RE-RAGlarge were trained on 2
+A100 and 4 A100 GPUs, respectively.
+
+We used a constant learning rate of 10−4 for all
+sizes of RE-RAG systems. We used AdamW as the
+optimizer and weight decay was 10−3. For batch
+size, we used gradient accumulation for all sizes of
+models, resulting in an effective batch size of 64.
+For the hyperparameters that balance the proposed
+losses, we utilized the default value of 1 for both α1
+and α2. We did not explore hyperparameters that
+achieve better performance due to time and limited
+computing resources.
+
+For model selection, we evaluated every 1 epoch
+and selected the case with the highest answer accu-
+racy of the dev set. The dev set answer accuracy
+was measured using the top-10 context of the RE.
+Since the answer accuracy of the top-10 context
+of the RE is similar to the answer accuracy of the
+top-25 context, this helped to save computational
+resources and time while still producing valid re-
+sults.
+
+C Effectiveness of the RE
+
+We perform a qualitative analysis to see if our pro-
+posed relevance estimator (RE) is effectively clas-
+sifying relevant contexts. Table 12 shows a few
+contexts in the NQ test set.
+
+Some of the contexts that the RE predicts are
+highly relevant to the question even when they do
+
+Dataset Type
+
+NQ
+
+TQA
+
+Answerable
+Unanswerable
+
+Answerable
+Unanswerable
+
+0.5
+61.3
+2.3
+
+77.3
+14.3
+
+0.6
+56.2
+27.8
+
+51.6
+62.7
+
+Threshold
+0.7
+34.9
+71.3
+
+0.8
+6.4
+97.2
+
+0.9
+0.0
+99.8
+
+9.2
+94.7
+
+0.1
+100.0
+
+0.0
+100.0
+
+Table 13: Performance variation of FiD-KD retriever on
+answerable and unanswerable sets for different thresh-
+olds.
+
+not contain the exact ground truth answer. The
+first few examples in Table 3 are examples that are
+categorized as true context because they contain
+phrases that are semantically equivalent to the cor-
+rect answer albeit not having the exact same form
+in the context. This shows that although the RE is
+trained to measure the relevance of a question to
+a context through a limited set of ground truth an-
+swers, it is actually capable of measuring a broader
+range of relevance.
+
+In addition to the examples above, there are cases
+where the RE misclassified contexts as containing
+the correct answer. As shown in the example in
+Table 12, the RE classified the context containing
+“the number of classes of strong verbs in German”
+as the correct context for the question about “the
+number of strong verbs in German”, which means
+that our RE is still limited in its ability to capture
+the fine-grained meaning of the question in the
+retrieved context. On the other hand, in the last
+example, for the question about “the number of
+episodes”, it succeeded in classifying the context
+containing “the number of classical episodes” as
+an incorrect context.
+
+P-Generator R-Generator
+
+Llama27b
+Llama213b
+Llama270b
+
+Llama38b
+Llama370b
+
+Llama270b
+(N31.1/T64.3)
+
+Llama370b
+(N41.3/T75.1)
+
+ChatGPT
+(N37.7/T72.0)
+
+NQ
+36.1 → 35.8(-0.3)
+38.8 → 36.9(-1.9)
+40.7 → 37.4(-3.3)
+
+TQA
+58.4 → 62.8(+4.4)
+64.9 → 65.4(+0.5)
+66.3 → 66.2(-0.1)
+
+38.2 → 42.1(+3.9)
+46.8 → 45.6(-1.2)
+
+57.6 → 66.9(+9.3)
+72.1 → 74.0(+1.9)
+
+ChatGPT
+
+45.9 → 43.2(-2.7)
+
+70.7 → 72.1(+1.4)
+
+Table 14: The change in EM score when using the co-
+sine similarity score of the FiD-KD retriever for the con-
+fidence score, when utilizing LLM’s parameter knowl-
+edge for a set of low confidence contexts. The thresholds
+were set to 0.7 for NQ and 0.6 for TQA, as specified in
+Table 3.
+
+D Selectively using parametric knowledge
+
+with FiD-KD
+
+Table 14 shows the change in EM score when ap-
+plying the mixed decoding strategy, using the co-
+sine similarity score of the FiD-KD retriever as the
+confidence score. For small parameter generators,
+the EM score is low when applying the FiD-KD
+retriever to LLMs, which results in a high gain
+when utilizing parametric knowledge of large pa-
+rameter models. However, since the classification
+performance of the FiD-KD retriever is lower than
+that of RE, even utilizing parametric knowledge
+does not significantly outperform the baseline per-
+formance of parametric knowledge. Especially for
+more knowledge-intensive tasks such as NQ, the
+performance loss is substantial.
+
+E FiD-KD retriever’s performance in
+
+“unanswerable” scenarios
+
+Table 13 shows the performance of the FiD-KD re-
+triever in unanswerable scenarios according to dif-
+ferent threshold values. For the FiD-KD retriever,
+it is observed that while trying to maintain per-
+formance on the answerable set, the classification
+ability on the unanswerable set significantly de-
+creases.

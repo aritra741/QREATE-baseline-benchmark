@@ -1,0 +1,1012 @@
+PCA-RAG: Principal Component Analysis for
+Efficient Retrieval-Augmented Generation
+
+Arman Khaledian∗
+
+Amirreza Ghadiridehkordi†
+
+Nariman Khaledian‡
+
+5
+2
+0
+2
+
+r
+p
+A
+1
+1
+
+]
+
+G
+L
+.
+s
+c
+[
+
+1
+v
+6
+8
+3
+8
+0
+.
+4
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+April 14, 2025
+
+Abstract
+
+Retrieval-Augmented Generation (RAG) has emerged as a powerful paradigm
+for grounding large language models in external knowledge sources, improving the
+precision of agents responses. However, high-dimensional language model embed-
+dings—often in the range of hundreds to thousands of dimensions—can present
+scalability challenges in terms of storage and latency, especially when processing
+massive financial text corpora. This paper investigates the use of Principal Com-
+ponent Analysis (PCA) to reduce embedding dimensionality, thereby mitigating
+computational bottlenecks without incurring large accuracy losses. We experiment
+with a real-world dataset and compare different similarity and distance metrics
+under both full-dimensional and PCA-compressed embeddings. Our results show
+that reducing vectors from 3,072 to 110 dimensions provides a sizeable (up to 60×)
+speedup in retrieval operations and a ∼ 28.6× reduction in index size, with only
+moderate declines in correlation metrics relative to human-annotated similarity
+scores. These findings demonstrate that PCA-based compression offers a viable
+balance between retrieval fidelity and resource efficiency, essential for real-time
+systems such as Zanista AI’s Newswitch platform. Ultimately, our study under-
+scores the practicality of leveraging classical dimensionality reduction techniques to
+scale RAG architectures for knowledge-intensive applications in finance and trading,
+where speed, memory efficiency, and accuracy must jointly be optimized.
+
+1
+
+Introduction
+
+Recent advances in large language models (LLMs) and retrieval-based systems have
+paved the way for new applications in finance and trading, where swift access to ac-
+curate, domain-specific information is critical [7, 19]. At Zanista AI, we have developed
+
+∗Zanista AI
+†Zanista AI
+‡Zanista AI
+
+arman.khaledian@zanista.ai
+amir.dehkordi@zanista.ai
+nariman.khaledian@zanista.ai
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+Newswitch, a platform designed to serve real-time news retrieval and sentiment analysis
+in the financial sector. Newswitch leverages Retrieval-Augmented Generation (RAG) to
+ground AI Investment Agent responses on up-to-date market data, enabling more precise
+and context-aware answers to financial queries [21, 15].
+
+Yet, a well-known challenge in RAG pipelines is the high-dimensional nature of the em-
+bedding vectors used for retrieval. Models like BERT and other Transformer-based en-
+coders often produce 768- to 3,000-dimensional vectors [11, 27], creating large storage
+requirements and incurring significant computational costs—both of which are amplified
+when dealing with massive financial text corpora such as news articles and regulatory
+filings [14].
+
+To address this challenge, researchers have turned to dimensionality reduction techniques,
+with Principal Component Analysis (PCA) emerging as a simple yet powerful tool [25, 35].
+By projecting high-dimensional embeddings onto a lower-dimensional subspace, PCA
+significantly reduces index size and query latency, often with minimal impact on retrieval
+accuracy [23]. In finance-focused applications such as Newswitch, where speed and scale
+are paramount, PCA thus presents an attractive trade-off between retaining semantic
+fidelity in embeddings and managing practical constraints like memory and throughput.
+
+In this paper, we examine how PCA-based compression can improve the efficiency of
+RAG pipelines for retrieval and question answering. We draw on prior work indicating
+that most variance in dense embeddings can be preserved with a modest fraction of di-
+mensions [25]. By assessing the trade-off between retrieval accuracy and computational
+performance—both in terms of latency and memory footprint—we show that PCA main-
+tains robust alignment with human judgments of semantic similarity while dramatically
+cutting storage requirements. Taken together, these findings underscore how Zanista AI’s
+Newswitch platform is more effectively integrating RAG techniques at scale, ultimately
+enhancing Investment Agent’s responsiveness in real-time financial decision-making sce-
+narios.
+
+2 Relevant Work
+
+2.1 Principal Component Analysis in Retrieval-Augmented Gen-
+
+eration (RAG)
+
+Retrieval-Augmented Generation (RAG) combines information retrieval with text gener-
+ation to ground large language models on external knowledge [21, 12]. A key challenge
+in RAG is efficiency – both in retrieving relevant documents and in processing them
+during generation [36]. High-dimensional vector representations (e.g. 768-dimensional
+BERT embeddings) provide strong retrieval accuracy but incur large storage and latency
+costs [19, 15, 34]. Dimensionality reduction techniques like Principal Component Anal-
+ysis (PCA) have thus emerged as important tools to compress embeddings, speeding up
+retrieval and reducing memory usage while preserving accuracy [25, 35].
+
+2
+
+2.2 PCA for Efficient Neural Retrieval in NLP
+
+In natural language processing, PCA and related methods are used to identify and re-
+move redundancy in embedding vectors [10, 4]. Recent studies show that dense retrievers’
+embedding dimensions are often larger than necessary. For example, Ma et al. [25] found
+that a 768-dimensional DPR vector has substantial redundancy – about 99% of the vari-
+ance and mutual information is captured in the first ∼256 dimensions. They proposed
+an unsupervised compression pipeline using PCA (followed by product quantization) to
+shrink embedding size, achieving a 48× index compression with under 3% loss in top-
+100 retrieval accuracy, and even 96× compression with < 4% drop, all with minimal
+retrieval effectiveness degradation. Notably, their results showed that unsupervised PCA
+can match or outperform learned reduction methods at moderate dimensions (128–256).
+In a similar vein, Yang and Seo [35] demonstrated that using only the first 128 dimensions
+of 512-d BERT embeddings in an open-domain QA retriever yields a linear 4× index size
+reduction with negligible accuracy loss (∼1–2%).
+
+Beyond PCA, learned compressive models have been explored. Autoencoder approaches
+can reduce dimensionality while learning to preserve more task-specific features [8, 23].
+Liu et al. [23] introduce a Conditional Autoencoder (ConAE) to compress dense retriever
+embeddings, achieving nearly the same ranking performance at 128 dimensions as the
+original 768-d model. For instance, on MS MARCO passage retrieval, compressing em-
+beddings from 768→128 dims via ConAE only marginally lowered MRR@10 (0.3302 to
+0.3245), whereas a naive PCA compression to 128 dims had a larger drop (0.2348). This
+suggests that while plain PCA finds the directions of maximal variance, learned models
+can better preserve task-specific signal. Nevertheless, PCA remains a simple and strong
+baseline for dimensionality reduction in retrieval, often serving as the first step in efficient
+pipeline designs [29]. By stripping out low-variance components, PCA tends to remove
+noise or redundant features in embeddings, which can even improve retrieval robustness
+in some cases [25, 35].
+
+2.3 Applications in Finance and Trading Systems
+
+The finance and trading domain presents massive data – from lengthy regulatory filings
+to real-time market feeds – where RAG can offer significant value [26, 9]. Recent work
+applies RAG to financial document question answering and analytics, leveraging retrieval
+to inject up-to-date domain knowledge into LLMs (Daizy V2). For instance, Iaroshev et
+al. [14] evaluate RAG for answering questions from annual reports, using a pipeline that
+chunks documents and encodes them into embeddings stored in a vector database. Such
+systems typically rely on high-dimensional language model embeddings (e.g. 768-dim)
+to capture fine-grained financial jargon and context. Dimensionality reduction can be
+especially beneficial here: financial corpora are large, so compressing embeddings reduces
+index size and query latency, crucial for real-time trading applications. Although specific
+uses of PCA in finance-focused retrieval are not always singled out, the general principle
+carries over – fewer dimensions often means faster retrieval – enabling quick lookup of
+relevant news or reports during trading decisions. Moreover, PCA is a familiar tool in
+quantitative finance (e.g. for factor analysis and risk factor extraction), and analogous use
+
+3
+
+in NLP-based financial systems helps distill essential information from text embeddings.
+Xiao et al. [33] even extend RAG to time-series forecasting, retrieving historical market
+patterns to assist an LLM in stock trend prediction.
+
+2.4 Advances in RAG Architectures and Efficiency
+
+Beyond embedding compression, recent advances in RAG architectures tackle efficiency
+at multiple levels. On the retrieval side, approximate nearest neighbor search methods
+(e.g. HNSW graphs, product quantization) are commonly used alongside dimensionality
+reduction to speed up similarity search in large vector collections [19, 17]. Efficient index
+structures and caching can mitigate the curse of dimensionality when scaling to billions
+of vectors. On the generation side, researchers have addressed the inference bottleneck
+that arises from conditioning on many retrieved documents. A standard RAG model
+prepends k retrieved passages to the query, causing input length (and thus Transformer
+cost) to grow linearly with k [15]. Techniques like Fusion-in-Decoder (FiD) integrate
+multiple documents by encoding them separately and fusing their representations in the
+decoder, which improved answer quality for multi-document QA [15]. However, FiD can
+be resource-intensive, and follow-up work has sought better speed-quality tradeoffs, such
+as Parallel Context Windows (PCW) [36]. More recently, Sparse RAG [36] introduces a
+selective attention mechanism: the language model decides which retrieved documents
+to attend to, dropping others from the context to reduce computation. By only loading
+the most relevant facts into the decoder, Sparse RAG cuts down on memory and la-
+tency, nearly doubling generation speed in experiments without hurting answer accuracy.
+These architectural innovations are complementary to embedding-level tweaks like PCA.
+From early RAG systems [21] to optimized, finance-ready architectures, the trajectory
+of development reflects a growing need for both retrieval power and responsiveness in
+LLM-driven applications.
+
+3 Methodology
+
+3.1 Overview of PCA and RAG in Retrieval
+
+Principal Component Analysis (PCA) is a dimensionality reduction technique that trans-
+forms high-dimensional data into a lower-dimensional form while preserving as much vari-
+ance (information) as possible [18]. By projecting data onto a few principal components
+(orthogonal directions of maximal variance), PCA can denoise representations and re-
+move redundancies [1]. In information retrieval, such dimensionality reduction has long
+been used to capture latent semantics [10]. The intuition is that a lower-dimensional
+representation focuses on the most important features of the text, potentially improving
+similarity detection by eliminating spurious details [2].
+
+Retrieval-Augmented Generation (RAG) refers to systems that combine a generative
+model with an external retrieval mechanism. A RAG system employs a retriever to find
+
+4
+
+relevant documents (from a knowledge base or dataset) given a query, and then feeds those
+documents into a generator (often a large language model) to produce a final output. This
+approach allows large language models (LLMs) to augment their internal knowledge with
+up-to-date or domain-specific information, addressing issues like hallucination and stale
+knowledge. In practice, RAG implementations use a vector database or index of docu-
+ments encoded as high-dimensional embeddings, and a similarity search to retrieve the
+top-k relevant pieces of text for a given query embedding [21]. For example, Lewis et
+al. introduced RAG by coupling a parametric seq2seq model (the generator) with a non-
+parametric memory of Wikipedia passages indexed by dense vectors, accessed via a neural
+retriever. This architecture has proven effective for knowledge-intensive tasks by marry-
+ing LLMs’ natural language generation ability with precise, recall-oriented information
+retrieval.
+
+In the context of our work at Zanista AI – which develops Newswitch, a platform quan-
+tifying news and news sentiment for finance and trading – RAG enables the system to
+retrieve relevant news articles or snippets from a news archive to support real-time anal-
+ysis. However, the embeddings used for retrieval (for instance, those from Transformer
+models) are often high-dimensional. This can pose challenges: storing and searching
+through millions of high-dimension vectors is computationally heavy, and the curse of di-
+mensionality can sometimes degrade retrieval accuracy [2]. By applying PCA to RAG’s
+embedding space, we aim to retain the essential semantic content needed for retrieval,
+while reducing vector size and noise.
+
+3.2 Dataset and Preprocessing
+
+For our evaluation, we curated a dataset from HuggingFace1 sentence pairs with human-
+annotated similarity scores. Each data point consists of two news sentences (Sentence1
+and Sentence2) along with a relevance score in [0, 1] indicating their semantic similarity
+or relatedness. A score of 1 denotes that the two sentences are highly related, whereas
+0 means they are entirely unrelated. The total dataset consists of approximately 8,600
+sentence pairs, split evenly and randomly into training and test sets for experimentation.
+
+Text Embeddings: We used a state-of-the-art language model to convert each sen-
+tence into an embedding vector. In particular, we leveraged text-embedding-3-large,
+a pretrained transformer-based encoder, to generate a numeric vector for every sentence
+[27]. The resulting embeddings were high-dimensional (the raw vectors had 3,072 di-
+mensions in our case, which is consistent with modern LLM embedding sizes). These
+embeddings capture semantic meaning – sentences about similar topics or events have
+closer vectors in this high-dimensional space.
+
+Preprocessing: Before applying PCA, we performed standard preprocessing on the
+embeddings. Each embedding was standardized by removing the mean and scaling to
+
+1https://huggingface.co/datasets/sentence-transformers/stsb
+
+5
+
+unit variance (using StandardScaler). This step ensures that all dimensions are on
+a comparable scale so that PCA does not overweight dimensions simply due to scale
+differences. It is a common practice to normalize features prior to PCA, especially since
+different embedding dimensions could have different value distributions [1].
+
+3.3 Implementation Details (PCA Integration)
+
+We implemented PCA compression using the scikit-learn library. First, we fit a PCA
+model on the training set of normalized sentence embeddings. The PCA algorithm com-
+putes the principal components of the embedding space. We examined the cumulative
+explained variance ratio to decide how many components to retain. We found that the
+first few dozen principal components accounted for the vast majority of variance in the
+3,072-dimension embeddings. In fact, an analysis of explained variance showed a sharp
+elbow: by the time we include about 100–150 components, additional components con-
+tributed diminishing returns. Ultimately, we set the number of components to 110, which
+retained more than 50% of the variance. This is a trade-off between loss of information
+and efficiency.
+
+Figure 1: The cumulative explained variance of the PCA components.
+
+Variance Threshold Number of Components
+At least 50%
+At least 60%
+At least 70%
+At least 80%
+At least 90%
+At least 95%
+At least 99%
+
+105
+169
+266
+430
+774
+1159
+2025
+
+Table 1: Number of PCA components required to preserve specified levels of variance.
+
+After determining n = 110, we transformed all sentence embeddings (train and test) into
+this PCA space. Each 3,072-dimension vector was thus converted into a 110-dimension
+vector. Importantly, this transformation is unsupervised, which means we are not tuning
+
+6
+
+to our specific retrieval task labels but rather finding a general low-dimensional represen-
+tation of the news data. The benefit is that the PCA projection could be learned on any
+large collection of unlabeled text embeddings (for instance, all news articles), making it
+widely applicable. It also means we are not overfitting to our particular ground truth;
+we are relying on the assumption that preserving variance in embeddings correlates with
+preserving semantic distinguishability for retrieval.
+
+Figure 2: The cumulative explained variance of the PCA components till n = 110.
+
+We then incorporated these reduced-dimensional embeddings into a retrieval pipeline. For
+the baseline approach, we use the original high-dimensional embeddings: given a query
+sentence embedding, we compute cosine similarity (and optionally L1 or L2 distance)
+against candidate sentence embeddings and rank the results. For the PCA-enhanced
+approach, we do the same except using the 110-dimension PCA vectors for both query
+and candidates when computing metrics.
+
+To ensure fairness, all other aspects of the retrieval pipeline were identical between base-
+line and PCA-compressed versions. We index the same set of sentences, use the same
+similarity function, and evaluate on the same queries. The only difference is the vector
+representation. This allows us to isolate the effect of dimensionality reduction. Notably,
+by reducing vector size from 3,072 to 110 (a ∼28× reduction), the memory footprint of
+the index and the computation per lookup are drastically reduced. Storing an N × 3072
+embedding matrix vs. N × 110 (for thousands or millions of sentences) is a significant
+
+7
+
+difference. In a production setting like Newswitch processing streaming news, this trans-
+lates to lower latency and cost for retrieval. Prior work emphasizes this efficiency gain:
+smaller dense vectors mean faster distance computations and less storage, at hopefully
+only a minimal trade-off in accuracy . Liu et al. (2022) specifically address dense re-
+trieval efficiency, noting that high-dimensional embeddings “lead to larger index storage
+and higher retrieval latency,” and demonstrate that compression can maintain ranking
+performance while making retrieval more efficient. Our implementation leverages this
+insight by using PCA to achieve a more efficient RAG retrieval pipeline for news.
+
+3.4 Evaluation Framework
+
+We evaluated retrieval performance using both quantitative metrics and qualitative anal-
+ysis. The evaluation is designed to answer: Does PCA compression hurt or help the
+ability to retrieve relevant information compared to using full embeddings?
+
+Ground Truth and Task: We treat each sentence in a pair as a query and the other
+sentence as the relevant document. Given the nature of our dataset (pairwise similarity
+scores), this calculates the dissimilarity between the two sentences and compares it against
+the scores given in the data frame.
+
+Correlation with Similarity Scores: Additionally, since our data has graded simi-
+larity scores (not just a binary relevant/irrelevant judgment), we evaluated how well the
+embedding similarities correlate with the human scores. We computed the Pearson cor-
+relation between the similarity functions produced by the model and the ground-truth
+similarity score [5], as well as the Spearman rank correlation between the model’s simi-
+larity ranking and the human ranking [30]. A high Pearson correlation indicates that the
+model’s continuous similarity predictions align well with actual semantic similarity, and
+a high Spearman correlation indicates the model is good at ranking pairs in the correct
+order of relevance. For these calculations, each pair’s sentences were embedded, the co-
+sine similarity was computed (using either full or PCA embeddings), and then correlated
+with the given score. We also calculated correlations for other distance metrics (L1, L2)
+for completeness.
+
+3.5 Distance and Similarity Metrics
+
+We employ four metrics to quantify the similarity (or distance) between sentence embed-
+dings for measuring the accuracy and also the computation time for each of these:
+
+• L1 Norm (Manhattan Distance):
+
+L1Norm(u, v) =
+
+n
+(cid:88)
+
+i=1
+
+(cid:12)
+(cid:12)ui − vi
+
+(cid:12)
+(cid:12),
+
+8
+
+where u, v ∈ Rn. This measures the “taxicab” distance between embeddings.
+
+• L2 Norm (Euclidean Distance):
+
+L2Norm(u, v) =
+
+(cid:118)
+(cid:117)
+(cid:117)
+(cid:116)
+
+n
+(cid:88)
+
+i=1
+
+(cid:0)ui − vi
+
+(cid:1)2.
+
+This is the standard Euclidean distance in Rn.
+
+• L1 Similarity:
+
+L1Similarity(u, v) =
+
+u · v
+i=1|ui| (cid:80)n
+i=1 uivi. This metric normalizes the dot product by the L1 norm
+
+i=1|vi|
+
+(cid:80)n
+
+,
+
+where u · v = (cid:80)n
+(sum of absolute values) of each vector.
+
+• Cosine Similarity:
+
+CosineSimilarity(u, v) =
+
+u · v
+∥u∥∥v∥
+
+,
+
+where ∥u∥ = (cid:112)(cid:80)n
+the two embedding vectors.
+
+i=1 u2
+
+i . Cosine similarity measures the cosine of the angle between
+
+All evaluations were done independently for the baseline and PCA-compressed systems.
+We then compared the metrics side by side. In summary, our framework covers both the
+effectiveness of retrieval and the consistency of similarity scoring with human judgment,
+providing a comprehensive view of performance.
+
+4 Results
+
+4.1 Accuracy-Speed Trade-Off of PCA Compression
+
+To assess the impact of PCA-based dimensionality reduction, we computed the mean
+absolute error (MAE) between the ground-truth similarity scores and the distances/sim-
+ilarities produced by both full and PCA-compressed vectors. Table 2 and Table 3 sum-
+marizes the key findings. For Cosine Similarity, we observed a ∼ 0.103-point increase
+in MAE when using PCA embeddings compared to the full 3,072-dimensional vectors,
+but achieved a roughly 60× speedup in similarity computation. Notably, L1 Similarity
+exhibited a smaller accuracy cost (∼ 0.041-point increase in MAE) while retaining the
+same 60× speedup. The two norm-based distances (L1 Norm, L2 Norm) yielded only a
+small (∼ 0.02) rise in MAE but showed lower gains in raw speed (about 2×).
+
+These trends confirm that PCA compression introduces a clear trade-off between effi-
+ciency and retrieval fidelity. In practice, this trade-off is tunable by adjusting the number
+of retained principal components. As our PCA analysis suggested, retaining more com-
+ponents can recover additional variance and improve accuracy, albeit at the cost of slower
+
+9
+
+Metric
+Cosine Similarity
+L1 Similarity
+L1 Norm
+L2 Norm
+Cosine Similarity - PCA
+L1 Similarity - PCA
+L1 Norm - PCA
+L2 Norm - PCA
+
+Time Performance (in Milliseconds)
+0.5792
+0.5933
+0.0148
+0.0158
+0.0099
+0.0127
+0.0056
+0.0078
+
+Table 2: Time performance for different distance/similarity metrics in Milliseconds.
+
+Metric
+Cosine Similarity
+L1 Similarity
+L1 Norm
+L2 Norm
+Cosine Similarity - PCA
+L1 Similarity - PCA
+L1 Norm - PCA
+L2 Norm - PCA
+
+Accuracy Performance (MAE)
+0.1492
+0.1454
+0.4257
+0.4270
+0.2524
+0.1868
+0.4416
+0.4452
+
+Table 3: Accuracy performance (MAE) for each metric.
+
+inference and a larger index. Conversely, reducing to fewer components accelerates dis-
+tance computations, which is valuable in real-time environments (e.g. streaming financial
+news and mid/high-frequency trading).
+
+4.2 Memory Efficiency and Index Size Reduction
+
+Another key benefit of PCA-driven compression lies in memory usage. Despite the modest
+size of our test corpus (8,600 rows), the PCA vectors consumed 28.6× less storage than the
+full 3,072-dimensional embeddings. Such a reduction is nontrivial when scaling to millions
+of vectors in production systems, such as retrieving news articles and regulatory filings.
+By storing fewer dimensions in the index, we reduce hardware and operational costs,
+making large-scale retrieval feasible under real-world constraints. These findings align
+with prior work [25, 35] demonstrating that compressed representations substantially
+lower index footprint without sacrificing too much retrieval accuracy.
+
+4.3 Distributional Analyses: Errors vs. Raw Metrics
+
+We conducted two complementary distributional analyses to better understand how PCA
+compression affects our retrieval metrics. First, we examined the absolute errors of each
+distance/similarity metric relative to the annotated ground-truth scores. Second, we
+evaluated how PCA alters the raw distributions of these metrics—i.e., the observed ranges
+
+10
+
+and shapes of Cosine Similarity, L1 Similarity, L1 Norm, and L2 Norm when comparing
+sentence pairs.
+
+Absolute Error Distributions: Plotting the absolute errors in Figure 3 and com-
+paring the distributions reveals that PCA typically shifts the error distributions slightly
+outward, reflecting the information loss from dimensionality reduction. For instance,
+both Cosine Similarity and L1 Similarity show peaks near zero absolute error for the
+full-dimensional embeddings, while the PCA versions exhibit slightly wider error curves.
+However, the majority of values remain clustered toward lower errors, indicating that
+most sentence pairs retain strong alignment with ground truth. Minimal “heavy tails”
+in the PCA distributions suggest that a small subset of pairs suffers increased distortion,
+but overall accuracy remains largely intact. Norm-based errors (L1 and L2) are similarly
+impacted, though their PCA distributions exhibit somewhat narrower ranges, suggesting
+that in some cases the PCA projection smooths out extreme distance values.
+
+Figure 3: Distribution of Absolute Errors for Distance and Dissimilarity Metrics.
+
+Raw Metric Distributions: Turning to the raw metric values themselves, we observe,
+in Figure 4, a consistent narrowing of ranges under PCA for Cosine Similarity and L1
+Similarity. Specifically, the PCA-compressed embeddings tend to compress the highest
+and lowest similarity scores closer to the mean, resulting in increased kurtosis (i.e., more
+pronounced central mass and lighter tails). This phenomenon aligns with PCA’s objective
+of preserving the dominant variance directions; noise or less informative directions get
+collapsed, leading to fewer extreme similarity values. Meanwhile, L1 Norm and L2 Norm
+distributions also become more concentrated under PCA, implying that distance outliers
+
+11
+
+shrink toward the bulk of the distribution. Empirically, this can be beneficial in retrieval
+contexts, as extreme vector norms may reflect noise or irrelevant variability in the original
+embedding space.
+
+Figure 4: Distribution of Raw Distance and Dissimilarity Metrics.
+
+4.4 Ranking Consistency and Correlations
+
+To evaluate retrieval ranking consistency, we ranked unscaled metrics (Cosine, L1, and
+L2) against human-annotated scores. Because the gold-standard similarity ratings span
+only 90 unique values in [0, 1], we expect some “chunking” in the data. Nevertheless, QQ
+plots in Figure 5 revealed no drastic shifts for PCA-compressed embeddings: the ranked
+order of similarities largely mirrored that of the full-dimensional baseline.
+
+Figure 5: QQ Plots of Ranked Cosine Similarity, L1 Norm, and Their PCA vs. Score.
+
+We further examined the Pearson and Spearman correlations between the computed dis-
+tances/similarities and the reference scores. Across all metrics (Cosine, L1, L2, and their
+variations), correlation coefficients remained comparable for PCA vs. full embeddings, in-
+dicating minimal to no loss in how well the models capture semantic relatedness. These
+results support the notion that preserving most of the variance with PCA suffices for
+robust correlation with human judgments.
+
+12
+
+Figure 6: Correlation Heatmap of Ranked and Raw Distance, Similarity Metrics, and
+Score.
+
+4.5 Regression Analysis with Ground-Truth Scores
+
+To more formally quantify how each distance or similarity measure predicts the human-
+labeled scores, we performed a linear regression of the form
+
+Score = β0 + β1 × (Distance/Similarity) + ϵ,
+
+where β1 is the slope. Table 4 reports the intercepts, slopes, t-statistics, p-values, coeffi-
+cients of determination (R2), and overall model significance.
+
+Predictor
+Cosine Similarity
+L1 Similarity
+L1 Norm
+L2 Norm
+Cosine Similarity - PCA
+L1 Similarity - PCA
+L1 Norm - PCA
+L2 Norm - PCA
+
+Intercept
+-0.2066
+-0.2022
+1.3012
+1.2987
+-0.2179
+-0.0769
+1.0647
+1.0362
+
+Slope
+1.1489
+2104.3703
+0.0222
+0.9575
+1.0162
+48.7458
+0.1507
+1.1668
+
+t-stat p-value
+0.0
+115.39
+0.0
+114.21
+0.0
+112.02
+0.0
+112.42
+0.0
+97.66
+0.0
+71.02
+0.0
+106.49
+0.0
+103.58
+
+R2
+0.7554
+0.7515
+0.7442
+0.7456
+0.6886
+0.5391
+0.7245
+0.7133
+
+F-stat
+13315.24
+13043.49
+12548.12
+12637.60
+9537.19
+5044.53
+11339.80
+10728.38
+
+Table 4: Regression coefficients, t-statistics, p-values, and performance measures.
+
+• Full Embeddings. Cosine Similarity yielded the highest R2 (∼ 0.755), closely fol-
+lowed by L1 Similarity(0.7515), L2 Norm (0.7456), and L1 Norm (0.7442). These
+metrics explain over 70% of the variance in human scores, underscoring their suit-
+ability for semantic retrieval tasks.
+
+• PCA-Compressed Embeddings. Although R-squared values dipped slightly,
+PCA versions generally remained robust. For instance, Cosine Similarity - PCA
+attained R2 = 0.6886, while L2 Norm - PCA reached 0.7133, still capturing the
+bulk of variance in human judgments. The largest drop was for L1 Similarity - PCA
+(0.5391), suggesting that combining L1 normalization with Cosine in a compressed
+space is more susceptible to variance loss.
+
+13
+
+• Interpretation of Regression Parameters. For full-embedding metrics, in-
+tercepts near zero (in Cosine-based approaches) or near one (in L1/L2 distances)
+reflect the baseline offset needed to align with average human scores. Slope values
+reveal how sensitively each metric scales with respect to the annotated similarity.
+While PCA modifies both intercept and slope, its explained variance remains within
+practical bounds, aligning with our correlation findings that the compressed vectors
+still track human similarity ratings closely.
+
+Overall, these regression results reinforce the primary takeaway that PCA-based com-
+pression, at 110 principal components, preserves a substantial fraction of the explanatory
+power for semantic similarity. Although certain metrics (notably L1 Similarity) are more
+sensitive to dimensionality reduction, the total performance impact remains modest, es-
+pecially considering the significant gains in speed and memory.
+
+4.6 Summary of Findings
+
+Our experiments show that PCA compression of 3,072-dimensional sentence embeddings
+to 110 dimensions yields:
+
+i) Significantly Faster Inference. For Cosine and L1 Similarity, we observed up
+to a 60× reduction in distance computation time, which is crucial for real-time or
+near-real-time retrieval scenarios.
+
+ii) Reduced Memory Footprint. The PCA index consumes ∼ 28.6× less storage,
+
+enabling more scalable deployment when indexing millions of vectors.
+
+iii) Minimal Accuracy Degradation. While error metrics (MAE, correlation, re-
+gression R2) slightly worsen under PCA, the deficits remain within acceptable
+bounds for many downstream applications—particularly those willing to trade a
+small drop in fidelity for large gains in efficiency.
+
+iv) Flexible Trade-Off. Adjusting the number of principal components offers a tun-
+able balance between retrieval accuracy and computational cost, supporting a range
+of real-world usage scenarios.
+
+In sum, these results confirm that PCA-driven dimensionality reduction is a viable strat-
+egy for speeding up dense retrieval in RAG pipelines. Despite modest losses in retrieval
+precision and correlation with human judgments, the memory and runtime savings are
+substantial, especially when scaling to large text corpora. Such efficiency benefits align
+well with practical requirements in finance-focused systems like Newswitch, where sub-
+second query response and high-volume index storage are critical.
+
+14
+
+5 Limitations and Future Work
+
+1. Unsupervised Nature of PCA and Domain-Specific Concerns.
+
+PCA selects directions of maximal variance without explicitly accounting for task-
+or domain-specific features [1]. Although this captures much semantic information,
+critical nuances—especially in specialized domains like finance—may not align with
+the principal components. Outlier or niche financial terms could be overly com-
+pressed, impacting specialized retrieval tasks. As a result, future work should con-
+sider training PCA on domain-homogeneous corpora or employing domain-adaptive
+dimensionality reduction techniques [13, 20] to ensure that salient features are pre-
+served.
+
+2. Rank-Focused Metrics vs. Absolute Similarity.
+
+While our experiments noted increases in absolute error metrics (e.g., MAE) after
+compression, the real impact in retrieval-based applications often depends on rank-
+ing quality rather than the exact distance values. If the correct documents remain
+within the top-k neighbors, retrieval performance may be minimally affected. In-
+corporating rank-based metrics such as precision@k, recall@k, and mean reciprocal
+rank (MRR) [32] can thus offer a clearer picture of real-world system effectiveness.
+
+3. Hybrid Compression Methods.
+
+Although PCA provides a straightforward and interpretable baseline, more ad-
+vanced approaches—such as product quantization (PQ) [16], transformer-based
+bottleneck layers [31], or learned autoencoders [23]—may preserve finer-grained
+or domain-specific information. Combining PCA with these methods (e.g., PCA +
+PQ) could balance interpretability, compression ratio, and retrieval accuracy. Iden-
+tifying optimal configurations under strict latency or memory constraints remains
+a promising area for further exploration.
+
+4. Small, General-Purpose Dataset vs. Domain-Specific Training.
+
+Our experiments used a moderately sized, general semantic similarity dataset. In
+realistic, large-volume financial or regulatory text collections, domain-adaptive PCA
+training may deliver better results by focusing on relevant domain features [6].
+Future studies should assess whether training PCA on specialized corpora allows
+more aggressive compression without sacrificing retrieval fidelity.
+
+5. Fixed Dimensionality and Adaptive Strategies.
+
+We chose 110 principal components to strike a general balance between efficiency
+and accuracy. However, this fixed choice may be suboptimal for certain subdomains
+or specific query types. A more dynamic or query-adaptive compression mechanism
+[22] could tailor the number of retained components to each context, improving
+resource utilization without compromising on crucial semantic detail.
+
+6. Integration with Approximate Nearest Neighbor (ANN) Search.
+
+ANN methods such as Hierarchical Navigable Small World (HNSW) graphs or In-
+verted File with Product Quantization (IVFPQ) [17] can further accelerate retrieval,
+and their synergy with PCA-compressed embeddings warrants investigation. Opti-
+mizing top-k performance and query speed in tandem—especially under real-time
+conditions—would help identify ideal end-to-end configurations for production sys-
+tems like Newswitch.
+
+15
+
+7. Deployment at Scale and End-to-End Validation.
+
+Finally, large-scale deployment of a PCA-compressed RAG pipeline in high-throughput
+settings (e.g., live financial news retrieval) remains an important next step. Eval-
+uating end-to-end performance—such as final answers, latency, and decision qual-
+ity—under concurrency, evolving indices, and domain drift will clarify whether small
+distortions in embedding space translate into measurable degradation of outputs
+[24].
+
+Overall, while PCA-based compression offers tangible benefits in speed and index effi-
+ciency, these considerations highlight the need to tailor dimensionality reduction to each
+domain’s requirements, preserve subtle yet crucial distinctions, and evaluate retrieval
+outcomes using metrics that align with real-world application goals.
+
+6 Conclusion
+
+Our investigation demonstrates that PCA-driven dimensionality reduction can substan-
+tially improve the efficiency of RAG pipelines without incurring large drops in retrieval
+effectiveness. Across varied similarity and distance metrics, reducing high-dimensional
+sentence embeddings to around 110 principal components yields a marked decrease in
+both computation time and index footprint [25, 35]. These gains are especially pertinent
+for finance and trading applications, where rapid responses to high volumes of news and
+market data are crucial [14, 33].
+
+Though we observed a modest increase in error metrics compared to full-dimensional
+embeddings, the overall drop in accuracy remained within an acceptable range for real-
+world usage, particularly given the scalability benefits. By reducing storage requirements
+and accelerating distance computations, PCA enables the construction of more respon-
+sive, cost-effective retrieval systems—such as Zanista AI’s Newswitch platform—in which
+sub-second search results are essential to inform fast-paced trading decisions [19, 21].
+
+Future work may explore hybrid compression strategies, including learned autoencoders
+or product quantization, that build upon PCA’s efficiency gains [23, 16]. Ultimately,
+our findings reaffirm that dimensionality reduction constitutes a vital component in the
+evolving landscape of retrieval-augmented architectures [36, 31], fostering more agile and
+robust solutions for knowledge-intensive domains like finance.
+
+References
+
+[1] Abdi, H., & Williams, L. J. (2010). “Principal Component Analysis.” Wiley Inter-
+
+disciplinary Reviews: Computational Statistics, 2(4), 433–459.
+
+[2] Aggarwal, C. C., Hinneburg, A., & Keim, D. A. (2001). “On the Surprising Be-
+havior of Distance Metrics in High Dimensional Space.” In Proceedings of the 8th
+International Conference on Database Theory (ICDT), 420–434.
+
+16
+
+[3] Anderson, P., Janardhanan, M. V., He, J., Cheng, W., & Flanagan, C. (2024).
+“Greenback Bears and Fiscal Hawks: Finance is a Jungle and Text Embeddings
+Must Adapt.” In Proceedings of EMNLP (Industry Track).
+
+[4] Arora, S., Liang, Y., & Ma, T. (2017). “A Simple but Tough-to-Beat Baseline for
+Sentence Embeddings.” In International Conference on Learning Representations
+(ICLR).
+
+[5] Benesty, J., Chen, J., Huang, Y., & Cohen, I. (2009). “Pearson Correlation Coeffi-
+
+cient.” In Noise Reduction in Speech Processing (pp. 1–4). Springer.
+
+[6] Beltagy, I., Lo, K., & Cohan, A. (2019). “SciBERT: A Pretrained Language Model
+
+for Scientific Text.” In Proceedings of EMNLP, 3615–3620.
+
+[7] Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., Dhariwal, P., Neelakan-
+tan, A., Shyam, P., Sastry, G., Askell, A., Agarwal, S., Herbert-Voss, A., Krueger,
+G., Henighan, T., Child, R., Ramesh, A., Ziegler, D. M., Wu, J., Winter, C., Hesse,
+C., Chen, M., Sigler, E., Litwin, M., Gray, S., Chess, B., Clark, J., Berner, C., Mc-
+Candlish, S., Radford, A., Sutskever, I., & Amodei, D. (2020). “Language Models
+are Few-Shot Learners.” In Advances in Neural Information Processing Systems, 33,
+1877–1901.
+
+[8] Chen, X., Duan, Y., Houthooft, R., Schulman, J., Sutskever, I., & Abbeel, P. (2016).
+“InfoGAN: Interpretable Representation Learning by Information Maximizing Gen-
+erative Adversarial Nets.” In Advances in Neural Information Processing Systems,
+29.
+
+[9] Chen, Q., Li, Y., Fu, Y., & Li, H. (2023). “FinGPT: Large Language Models for
+
+Financial Text Analysis.” arXiv preprint arXiv:2306.10945.
+
+[10] Deerwester, S., Dumais, S. T., Furnas, G. W., Landauer, T. K., & Harshman, R.
+(1990). “Indexing by Latent Semantic Analysis.” Journal of the American Society
+for Information Science, 41(6), 391–407.
+
+[11] Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). “BERT: Pre-training
+of Deep Bidirectional Transformers for Language Understanding.” In Proceedings of
+NAACL-HLT, 4171–4186.
+
+[12] Guu, K., Lee, K., Tung, Z., Pasupat, P., & Chang, M. (2020). “REALM: Retrieval-
+Augmented Language Model Pre-Training.” In Proceedings of ICML, 3929–3939.
+
+[13] Gururangan, S., Marasovi´c, A., Swayamdipta, S., Lo, K., Beltagy, I., Downey, D., &
+Smith, N. A. (2020). “Don’t Stop Pretraining: Adapt Language Models to Domains
+and Tasks.” In Proceedings of ACL, 8342–8360.
+
+[14] Iaroshev, I., Pillai, R., Vaglietti, L., & Hanne, T. (2024). “Evaluating Retrieval-
+Augmented Generation Models for Financial Report Q&A.” Applied Sciences,
+14(20), 9318.
+
+[15] Izacard, L., & Grave, E. (2020). “Leveraging Passage Retrieval with Generative
+
+Models (Fusion-in-Decoder).” arXiv preprint arXiv:2007.01282.
+
+17
+
+[16] J´egou, H., Douze, M., & Schmid, C. (2011). “Product Quantization for Nearest
+Neighbor Search.” IEEE Transactions on Pattern Analysis and Machine Intelligence,
+33(1), 117–128.
+
+[17] Johnson, J., Douze, M., & J´egou, H. (2019). “Billion-Scale Similarity Search with
+
+GPUs.” IEEE Transactions on Big Data, 7(3), 535–547.
+
+[18] Jolliffe, I. T. (2002). Principal Component Analysis (2nd ed.). Springer Series in
+
+Statistics.
+
+[19] Karpukhin, V., O˘guz, B., Min, S., Lewis, P., Wu, L., Edunov, S., Chen, D., & Yih,
+W.-T. (2020). “Dense Passage Retrieval for Open-Domain Question Answering.” In
+Proceedings of EMNLP, 6769–6781.
+
+[20] Lee, J., Yoon, W., Kim, S., Kim, D., Kim, S., So, C. H., & Kang, J. (2020).
+“BioBERT: A Pre-trained Biomedical Language Representation Model for Biomed-
+ical Text Mining.” Bioinformatics, 36(4), 1234–1240.
+
+[21] Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., K¨uttler, H.,
+Lewis, M., Yih, W.-t., Rockt¨aschel, T., Riedel, S., & Kiela, D. (2020). “Retrieval-
+Augmented Generation for Knowledge-Intensive NLP Tasks.” In Advances in Neural
+Information Processing Systems, 33, 9459–9474.
+
+[22] Li, Q., Zhao, W., Su, Y., Wang, X., Hou, Y., & Che, W. (2022). “Adaptive Di-
+mensionality Reduction for Efficient and Accurate Dense Retrieval.” arXiv preprint
+arXiv:2205.05039.
+
+[23] Liu, Z., Zhang, H., Xiong, C., Liu, Z., Gu, Y., & Li, X. (2022). “Dimension Reduction
+for Efficient Dense Retrieval via Conditional Autoencoder (ConAE).” In Proceedings
+of ACL, 5323–5336.
+
+[24] Liu, S., Zhang, J., Liang, X., Zheng, Q., Zhou, M., & Tang, R. (2023). “Towards
+Deployable Retrieval-Augmented Generation: A Survey on Efficient RAG.” arXiv
+preprint arXiv:2305.13855.
+
+[25] Ma, X., Li, M., Sun, K., Xin, J., & Lin, J. (2021). “Simple and Effective Unsuper-
+vised Redundancy Elimination to Compress Dense Vectors for Passage Retrieval.”
+In Proceedings of EMNLP, 6059–6065.
+
+[26] Matsubara, M., Nakayama, K., & Morita, H. (2023). “Financial Document Analysis
+
+with Retrieval-Augmented Generation.” arXiv preprint arXiv:2310.01162.
+
+[27] OpenAI. (2023). “Text Embeddings Overview.” OpenAI Documentation. Available
+
+at: https://platform.openai.com/docs/guides/embeddings.
+
+[28] Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O.,
+Blondel, M., Prettenhofer, P., Weiss, R., Dubourg, V., Vanderplas, J., Passos, A.,
+Cournapeau, D., Brucher, M., Perrot, M., & Duchesnay, ´E. (2011). “Scikit-learn:
+Machine Learning in Python.” Journal of Machine Learning Research, 12, 2825–
+2830.
+
+[29] Reimers, N., & Gurevych, I. (2019). “Sentence-BERT: Sentence Embeddings Using
+
+Siamese BERT-Networks.” In Proceedings of EMNLP-IJCNLP, 3982–3992.
+
+18
+
+[30] Spearman, C. (1904). “The Proof and Measurement of Association Between Two
+
+Things.” The American Journal of Psychology, 15(1), 72–101.
+
+[31] Tay, Y., Dehghani, M., Bahri, D., & Metzler, D. (2020). “Efficient Transformers: A
+
+Survey.” arXiv preprint arXiv:2009.06732.
+
+[32] Voorhees, E. M. (1999). “The TREC-8 Question Answering Track Report.” In Pro-
+
+ceedings of TREC.
+
+[33] Xiao, M., Jiang, Z., Qian, L., Chen, Z., He, Y., Xu, Y., & Xie, Q. (2025). “Enhanc-
+ing Financial Time-Series Forecasting with Retrieval-Augmented Large Language
+Models.” arXiv preprint arXiv:2503.67890.
+
+[34] Xiong, L., Xiong, C., Li, Y., Tang, K., Liu, J., Duan, N., Jiang, D., & Gao, J.
+(2021). “Approximate Nearest Neighbor Negative Contrastive Learning for Dense
+Text Retrieval.” In Proceedings of ICLR.
+
+[35] Yang, S., & Seo, M. (2021). “Designing a Minimal Retrieve-and-Read System for
+
+Open-Domain Question Answering.” In Proceedings of NAACL, 1303–1317.
+
+[36] Zhu, Y., Gu, J.-C., Sikora, C., Ko, H., Liu, Y., Lin, C.-C., & Chen, J. (2024). “Accel-
+erating Inference of Retrieval-Augmented Generation via Sparse Context Selection.”
+arXiv preprint arXiv:2401.12345.
+
+19

@@ -284,6 +284,14 @@ class APIWrapper(object):
                         extra_kwargs = {}
                         if self.default_lm_api_base:
                             extra_kwargs["api_base"] = self.default_lm_api_base
+                        if os.getenv("DOCETL_DISABLE_THINKING", "").strip().lower() in {
+                            "1",
+                            "true",
+                            "yes",
+                        }:
+                            extra_kwargs["extra_body"] = {
+                                "thinking": {"type": "disabled"}
+                            }
                         if is_snowflake(model):
                             extra_kwargs["allowed_openai_params"] = [
                                 "tools",
@@ -719,6 +727,12 @@ Your main result must be sent via send_output. The updated_scratchpad is only fo
             extra_litellm_kwargs["allowed_openai_params"] = ["tools", "tool_choice"]
         if self.default_lm_api_base:
             extra_litellm_kwargs["api_base"] = self.default_lm_api_base
+        if os.getenv("DOCETL_DISABLE_THINKING", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+        }:
+            extra_litellm_kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
 
         if tools is not None:
             try:

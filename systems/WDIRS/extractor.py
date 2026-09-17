@@ -18,6 +18,12 @@ from pathlib import Path
 import requests
 from openai import OpenAI
 
+try:
+    from openai import APIConnectionError, APITimeoutError
+except ImportError:  # pragma: no cover
+    APIConnectionError = ()  # type: ignore[misc, assignment]
+    APITimeoutError = ()  # type: ignore[misc, assignment]
+
 from token_counter import GLOBAL_COUNTER, count_tokens
 from attribute_index import AttributeIndex, AttributeDiscovery
 
@@ -38,6 +44,56 @@ from config import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def is_transient_llm_error(exc: BaseException) -> bool:
+    """True for dropped sockets, timeouts, and similar transport failures."""
+
+    transient_types: tuple[type[BaseException], ...] = (
+        ConnectionError,
+        TimeoutError,
+    )
+    if isinstance(APIConnectionError, type):
+        transient_types = transient_types + (APIConnectionError, APITimeoutError)
+    if isinstance(exc, transient_types):
+        return True
+    name = type(exc).__name__
+    if name in {
+        "APIConnectionError",
+        "APITimeoutError",
+        "ConnectError",
+        "ConnectTimeout",
+        "ReadTimeout",
+        "RemoteProtocolError",
+        "LocalProtocolError",
+    }:
+        return True
+    message = str(exc).lower()
+    if "connection error" in message or "connect timeout" in message:
+        return True
+    cause = getattr(exc, "__cause__", None)
+    if isinstance(cause, BaseException) and cause is not exc:
+        return is_transient_llm_error(cause)
+    return False
+
+
+class InsufficientLLMBalanceError(RuntimeError):
+    """The provider rejected the call because the account has no credit."""
+
+
+def is_billing_llm_error(exc: BaseException) -> bool:
+    """True for HTTP 402 / insufficient-balance provider errors."""
+
+    status = getattr(exc, "status_code", None)
+    if status == 402:
+        return True
+    text = str(exc).lower()
+    if "insufficient balance" in text or "error code: 402" in text:
+        return True
+    cause = getattr(exc, "__cause__", None)
+    if isinstance(cause, BaseException) and cause is not exc:
+        return is_billing_llm_error(cause)
+    return False
 
 
 # ============================================================================
@@ -260,12 +316,12 @@ class OllamaClient:
                     )
                 return content
 
-        # The new offline SPP system wraps this client with an external ledger.
-        # In that mode each failed dispatch must be visible and charged as its
-        # own call, so hidden retries are disabled.
+        # Budgeted SPP calls still retry transport failures. Application-level
+        # errors (4xx, schema) fail immediately so the ledger stays honest.
+        budgeted = bool(getattr(self, "external_budget_retry_control", False))
         max_attempts = (
-            1
-            if getattr(self, "external_budget_retry_control", False)
+            max(1, int(os.getenv("SPP_LLM_TRANSIENT_RETRIES", "5")))
+            if budgeted
             else OLLAMA_MAX_RETRIES
         )
         for attempt in range(max_attempts):
@@ -340,12 +396,29 @@ class OllamaClient:
                 return content
 
             except Exception as e:
-                logger.warning(f"Ollama API error (attempt {attempt + 1}/{max_attempts}): {e}")
-
-                if attempt < max_attempts - 1:
-                    time.sleep(OLLAMA_RETRY_DELAY)
-                else:
-                    raise
+                if is_billing_llm_error(e):
+                    raise InsufficientLLMBalanceError(
+                        "LLM provider returned HTTP 402 Insufficient Balance. "
+                        "Add credits on the provider account, then rerun with "
+                        "--resume to continue from cached extractions."
+                    ) from e
+                transient = is_transient_llm_error(e)
+                can_retry = attempt < max_attempts - 1 and (
+                    (not budgeted) or transient
+                )
+                logger.warning(
+                    "Ollama API error (attempt %s/%s, transient=%s): %s",
+                    attempt + 1,
+                    max_attempts,
+                    transient,
+                    e,
+                )
+                if can_retry:
+                    time.sleep(
+                        min(OLLAMA_RETRY_DELAY * (2 ** attempt), 30)
+                    )
+                    continue
+                raise
 
         raise Exception("Failed to get response from Ollama after retries")
 

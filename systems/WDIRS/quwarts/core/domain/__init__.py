@@ -213,10 +213,11 @@ def _unify_pair(
     declared = []
     for name in (left, right):
         req = workload.requirements.get(name)
-        declared.append(req.dtype if req is not None else "string")
+        declared.append(req.dtype if req is not None else "unknown")
     left_vals = surfaces.get(left) or surfaces.get(left.split(".")[-1]) or set()
     right_vals = surfaces.get(right) or surfaces.get(right.split(".")[-1]) or set()
     values = set(left_vals) | set(right_vals)
+    declared = [dtype for dtype in declared if dtype not in {None, "", "unknown"}]
     string_forced = any(dtype in _STRING_TYPES for dtype in declared)
     if aliases:
         string_forced = True
@@ -226,7 +227,7 @@ def _unify_pair(
         return "string"
     unique = {dtype for dtype in declared if dtype}
     if len(unique) <= 1:
-        return next(iter(unique), "string")
+        return next(iter(unique), "unknown")
     raise TypeUnificationError(
         f"equijoin {left} = {right} cannot unify types {sorted(unique)}"
     )
@@ -244,7 +245,9 @@ def _looks_numeric(value: str) -> bool:
 
 
 def apply_predicate_types(workload: Workload, logical=None) -> dict[str, str]:
-    """Comparison literals declare type and dominate name heuristics."""
+    """SQL literals, casts, comparisons, and aggregate operators set type."""
+
+    from quwarts.core.models import Role
 
     derived: dict[str, str] = {}
     for template in workload.templates:
@@ -259,6 +262,17 @@ def apply_predicate_types(workload: Workload, logical=None) -> dict[str, str]:
                     derived[name] = inferred
                 elif current != inferred:
                     derived[name] = "string"
+        for name, inferred in _types_from_sql_operators(template).items():
+            current = derived.get(name)
+            if current is None:
+                derived[name] = inferred
+                derived[name.split(".")[-1]] = inferred
+            elif current != inferred:
+                derived[name] = "string"
+        for attr, roles in (template.roles_by_attribute or {}).items():
+            if Role.AGG_ADDITIVE in roles and attr not in derived:
+                derived[attr] = "numeric"
+                derived[attr.split(".")[-1]] = "numeric"
     for name, dtype in derived.items():
         req = workload.requirements.get(name)
         if req is None:
@@ -279,20 +293,79 @@ def apply_predicate_types(workload: Workload, logical=None) -> dict[str, str]:
 
 
 def apply_evidence_types(workload: Workload, records: list[EvidenceRecord]) -> dict[str, str]:
-    """Corpus evidence types attributes that no predicate literal touched."""
+    """Evidence types attributes that SQL did not already type."""
 
     surfaces = _surfaces(records)
     updated: dict[str, str] = {}
     for name, req in workload.requirements.items():
         if name in workload.literal_types or name.split(".")[-1] in workload.literal_types:
             continue
+        if req.dtype not in {None, "", "unknown"}:
+            continue
         values = set()
         for key in (name, name.split(".")[-1]):
             values.update(surfaces.get(key, ()))
-        if values and any(not _looks_numeric(item) for item in values):
+        if not values:
+            continue
+        if any(not _looks_numeric(item) for item in values):
             req.dtype = "string"
             updated[name] = "string"
+        else:
+            req.dtype = "numeric"
+            updated[name] = "numeric"
     return updated
+
+
+def _types_from_sql_operators(template) -> dict[str, str]:
+    """Casts and SUM/AVG declare type. Names are ignored."""
+
+    from sqlglot import exp
+    from quwarts.core.workload import parse_sql
+
+    found: dict[str, str] = {}
+    sql = template.raw_sql or template.canonical_sql
+    if not sql:
+        return found
+    try:
+        tree = parse_sql(sql)
+    except Exception:
+        return found
+    tables = [node.name.lower() for node in tree.find_all(exp.Table) if node.name]
+    default = tables[0] if len(tables) == 1 else None
+
+    def _col(node) -> str | None:
+        table = (node.table or default or "").lower()
+        name = (node.name or "").lower()
+        if not name:
+            return None
+        return f"{table}.{name}" if table else name
+
+    for node in tree.find_all(exp.Cast):
+        dtype = _cast_dtype(node)
+        if dtype is None:
+            continue
+        for col in node.find_all(exp.Column):
+            qualified = _col(col)
+            if qualified:
+                found[qualified] = dtype
+    for node in tree.find_all((exp.Sum, exp.Avg)):
+        for col in node.find_all(exp.Column):
+            qualified = _col(col)
+            if qualified:
+                found[qualified] = "numeric"
+    return found
+
+
+def _cast_dtype(node) -> str | None:
+    target = node.args.get("to")
+    text = str(target).lower() if target is not None else ""
+    if any(token in text for token in ("int", "real", "float", "numeric", "decimal", "double")):
+        return "numeric"
+    if any(token in text for token in ("date", "time")):
+        return "date"
+    if any(token in text for token in ("char", "text", "string", "varchar")):
+        return "string"
+    return None
 
 
 def _type_from_slot(slot) -> str | None:

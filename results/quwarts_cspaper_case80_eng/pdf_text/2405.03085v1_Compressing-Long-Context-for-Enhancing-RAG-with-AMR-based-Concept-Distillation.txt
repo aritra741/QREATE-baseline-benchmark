@@ -1,0 +1,3728 @@
+4
+2
+0
+2
+
+y
+a
+M
+6
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+5
+8
+0
+3
+0
+.
+5
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+Compressing Long Context for Enhancing RAG with
+AMR-based Concept Distillation
+
+Kaize Shi ♡, Xueyao Sun♡,♣, Qing Li ♣, Guandong Xu♡,♢
+
+♡University of Technology Sydney
+♣The Hong Kong Polytechnic University
+♢The Education University of Hong Kong
+
+Abstract
+
+Large Language Models (LLMs) have made significant strides in information
+acquisition. However, their overreliance on potentially flawed parametric knowl-
+edge leads to hallucinations and inaccuracies, particularly when handling long-tail,
+domain-specific queries. Retrieval Augmented Generation (RAG) addresses this
+limitation by incorporating external, non-parametric knowledge. Nevertheless,
+the retrieved long-context documents often contain noisy, irrelevant information
+alongside vital knowledge, negatively diluting LLMs’ attention. Inspired by the
+supportive role of essential concepts in individuals’ reading comprehension, we
+propose a novel concept-based RAG framework with the Abstract Meaning Rep-
+resentation (AMR)-based concept distillation algorithm. The proposed algorithm
+compresses the cluttered raw retrieved documents into a compact set of crucial
+concepts distilled from the informative nodes of AMR by referring to reliable
+linguistic features. The concepts explicitly constrain LLMs to focus solely on vital
+information in the inference process. We conduct extensive experiments on open-
+domain question-answering datasets to empirically evaluate the proposed method’s
+effectiveness. The results indicate that the concept-based RAG framework outper-
+forms other baseline methods, particularly as the number of supporting documents
+increases, while also exhibiting robustness across various backbone LLMs. This
+emphasizes the distilled concepts are informative for augmenting the RAG process
+by filtering out interference information. To the best of our knowledge, this is the
+first work introducing AMR to enhance the RAG, presenting a potential solution to
+augment inference performance with semantic-based context compression.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) have emerged as indispensable tools for daily information acquisi-
+tion, owing to their extensive knowledge base and ability to fulfil diverse user instructions [6, 47, 1].
+By leveraging large-scale pre-training on massive datasets, LLMs memorize vast amounts of knowl-
+edge within their parameters as internal memory, known as parametric knowledge [33]. However, the
+presence of outdated or incorrect knowledge within internal memory can lead to hallucinations, hin-
+dering the performance of LLMs’ inferencing process [46]. This limitation is particularly pronounced
+when handling long-tail knowledge for domain-specific or highly specialized queries, as the inherent
+difficulty in memorizing rare entities persists even in the most robust models. Consequently, the
+overreliance on potentially flawed parametric knowledge can significantly interfere with the reliability
+of LLMs’ outputs, especially in scenarios with fine-grained knowledge requirements [58, 36].
+
+Retrieval Augmented Generation (RAG) employs additional retrievers to augment LLMs with external,
+non-parametric knowledge, effectively expanding their internal knowledge boundaries [27, 14]. This
+
+Preprint. Under review.
+
+ 
+ 
+ 
+ 
+ 
+ 
+allows LLMs to access up-to-date, query-focused information that may not be adequately memorized
+within their parametric memory to alleviate the aforementioned limitations [24]. In contrast to fine-
+tuning by updating the model parameters, RAG preserves pre-trained knowledge while dynamically
+incorporating relevant external context. This paradigm offers greater flexibility and scalability, as the
+retrievers can be easily plug-and-play without modifying the underlying language model’s parameters,
+thus circumventing complex computational hurdles [17, 16]. However, RAG is easily confused when
+dealing with long contextual retrieved support documents, which often consist of multiple shreds of
+evidence for providing vital knowledgeable context but are also accompanied by noisy and irrelevant
+information [56]. The distracting contexts can dilute the LLMs’ attention and adversely affect their
+performance with misrepresentation [30, 25]. Compressing lengthy contexts to distil vital knowledge
+is crucial for enhancing LLMs and ensuring factually consistent responses in the RAG process.
+
+Numerous studies have demonstrated that in-
+dividuals tend to directly search for key con-
+cepts when reading long documents as the brain
+will complete the remaining details based on
+prior knowledge, expectations, background, and
+motivations [15, 22]. This selective attention
+to critical information allows ignoring redun-
+dant details and rearranging the text informa-
+tively [51]. As illustrated in Fig. 1, given only
+the key concepts of the question-related support-
+ing documents that still enable us to grasp the
+crucial semantics. LLMs parameterize massive
+common knowledge, enabling them to exhibit
+a similar ability in context understanding even
+when the word or character-level information
+is disrupted [43, 7]. This provides the possibil-
+ity of whether LLMs can comprehend scenarios
+solely based on discrete informative concepts. Linguistic features, such as semantic and syntactic,
+have significantly improved the interpretability, controllability, and diversity of Natural Language
+Generation (NLG) [28]. Language models can implicitly discover these features during pre-training
+to ensure the logic of the generated text [21]. It has been demonstrated that explicitly leveraging
+linguistic features for downstream tasks is beneficial, as it refactors the source documents into concise
+representations that reduce entropy by focusing on the critical information, thereby aiding in a
+comprehensive understanding of the described scenarios [41, 48, 44, 28, 23, 55]. This advantage
+enables the stable linguistic features to reliably assist context understanding.
+
+Figure 1: The examples of concept-based RAG1.
+
+Inspired by the aforementioned insights, we propose enhancing RAG’s performance with the crucial
+concepts distilled from the raw retrieved supporting documents. To effectively capture the informative
+concepts, we introduce Abstract Meaning Representation (AMR), a semantic formalism that encodes
+the meaning of serialized texts by a rooted, directed, labelled, acyclic graph [3]. Compared to
+other linguistic representations, AMR prioritizes semantic consistency among concepts carried
+by nodes when representing sentences, offering the advantage of automatically rectifying surface-
+level variations or understanding abbreviated terms, ensuring the structured concepts represent the
+underlying meaning to transcend the limitations of linguistic noise [59]. Specifically, we propose the
+concept-based RAG framework with the AMR-based concept distillation algorithm, which formats
+the concepts for augmenting LLMs by compressing the lengthy context to concentrate on crucial
+information exclusively. We empirically experiment on two open-domain Q&A datasets, PopQA [32]
+and EntityQuestions [40]. The results show that the performance of our method improves significantly
+as the number of supporting documents increases, outperforming baselines with various compression
+methods and backbone LLMs. The contributions of this paper can be summarized as follows:
+
+• This paper proposes the concept-based RAG framework that explicitly integrates AMR, a
+semantic representation, to enable LLMs to focus on essential rather than messy knowledge
+
+1The corresponding complete sentences: [1] The Outfit is a 1973 crime film directed by John Flynn. [2] It
+stars Robert Duvall, Karen Black, Joe Don Baker and Robert Ryan. [3] Flynn’s screenplay is an adaptation of
+the novel of the same name by Richard Stark. [4] Two hitmen drive to Eddie Macklin’s house to assassinate him
+as he builds a brick wall in his backyard.
+
+2
+
+when processing long-context retrieved supporting documents. To the best of our knowledge,
+this is the first research introducing AMR to enhance RAG for more reliable inference.
+
+• We propose an AMR-based concept distillation algorithm, which compresses long-context
+raw supporting documents into concepts by formatting the informative nodes. The distilled
+concepts are more knowledge-centralized than the raw supporting documents, reducing the
+interference of irrelevant information during the inference process of LLMs.
+
+• We conduct extensive experiments on open-domain Q&A datasets. The results indicate that
+our framework effectively enhances inference performance as the number of supporting
+documents increases, outperforming baselines with various context compression methods
+and backbone LLMs. This demonstrates its applicability in long-context RAG scenarios.
+
+2 Related Works
+
+2.1 Long-context Understanding
+
+The increasing complexity of downstream tasks and the demand for models capable of capturing
+intricate dependencies have driven significant attention to the long-context understanding of LLMs [37,
+19, 53]. One prominent research avenue involves modifying the basic architecture of LLMs. For
+instance, Dai et al.[11] introduced a segment-level recurrence mechanism with their Transformer-XL
+model, enabling it to retain longer contextual information than the standard Transformer structure.
+Similarly, Beltagy et al.[4] extended the self-attention mechanism in their Longformer model to
+handle longer sequences by introducing a sparse attention pattern, thereby facilitating the efficient
+processing of documents with thousands of tokens. However, a significant drawback of modifying
+model architecture is the necessity for complex re-training processes. In contrast, research on prompt
+compression aims to understand long-token prompts by compressing them into low-dimensional soft
+prompts [50, 9, 34]. While offering a more efficient alternative to architecture modification, this
+approach constrains the transferability of learned prompts across various LLMs.
+
+Recent research has advanced to a more intuitive level, aiming to comprehensively understand the
+context by directly expanding the context window or explicit compression. Chen et al.[8] introduced
+position interpolation to extend the context window of pre-trained LLMs, scaling LLaMA’s context
+window to 32k tokens with few fine-tuning steps. Ding et al.[12] proposed LongRoPE to extend
+LLMs’ context window to 2048k tokens while maintaining the performance of the original short
+context window through a positional and interpolation progressive extension strategy. However, the
+long context window raises another challenge of diluting core information with redundant data [53].
+To address this, Li et al.[29] filtered out irrelevant context with low self-information for compressing
+the long prompts. Chuang et al.[10] proposed the Nano-Capsulator to compress original prompts
+into capsule prompts, decreasing inference latency across diverse LLMs. Compression methods can
+benefit the RAG by allowing LLMs to focus on essential knowledge in supporting documents [54].
+
+2.2 Linguistics-augmented NLG
+
+Incorporating linguistic principles into LLMs has shown promise in improving the coherence and
+semantic fidelity of generated text [55]. Augmentation techniques like syntactic trees [35] and lexical
+patterns [28] assist in linguistic feature injection, enabling language models to generate more faithful
+text. Ahmed et al. [2] proposed automatic semantic augmentation of prompts to enhance LLMs with
+tagged facts, resulting in improved code summarization performance. Zhou et al. [60] introduced
+InstructCTG, a framework for controlling LLMs’ generation based on syntax constraints, facilitating
+flexibility and adaptation to new conditions without complex model modification. LLMs can be
+explicitly guided by leveraging linguistic insights to mitigate biases inherent in parameterized-only
+approaches, hereby enhancing performance in tasks demanding strict factual consistency.
+
+Abstract Meaning Representation (AMR) has proven its efficacy in enhancing downstream generation
+tasks by providing a structured semantic representation that encapsulates static concepts [18]. Frisoni
+et al. [13] integrated AMR with pre-trained language models to enhance biomedical summarization
+by capturing inter-entity relations. Ribeiro et al. [38] employed AMR to improve factuality evaluation
+in abstractive summarization by identifying content verifiability errors and subsentence-level factual
+inconsistencies. Shi et al. [42] proposed AMR-TST, which generates fluent and reliable texts with
+the target style by optimizing core concept nodes. Jangra et al. [20] preserved style-agnostic content
+
+3
+
+while generating transferred text by utilizing AMR as an intermediate representation. These studies
+illustrate AMR’s advantages in capturing essential concepts containing informative linguistic features.
+
+3 Method
+
+3.1 Concept-based RAG Framework
+
+This section introduces the proposed concept-based RAG framework for inference utilising the
+concepts distilled from the raw supporting documents. The overview of the framework is in Fig. 2.
+
+Figure 2: The overview of the concept-based RAG framework, which consists of three main compo-
+nents: (a) information retrieval, (b) concept distillation, and (c) concept-based inference.
+
+Given an input question Q, the (a) information retrieval component aims to utilize a retriever to return
+the top-K knowledgeable supporting documents D = {D1, ..., DK} relevant to Q from sources such
+as Wikipedia or other information repositories. At this stage, the retriever’s performance significantly
+influences the resulting answer set A = {A1, ..., AM } [33, 14]. However, the retriever’s performance
+is beyond this paper’s scope. We hypothesize that all retrieved supporting documents D contain the
+correct answer corresponding to Q, expressed as a proposition: ∀Dk ∈ D, ∃Am ∈ A, Am ⊆ Dk.
+
+The (b) concept distillation component is devised to format the concept C from the retrieved supporting
+document D by the proposed AMR-based concept distillation algorithm. This algorithm converts
+the supporting documents from continuous sequences to discrete concepts formatted from the AMR
+graph, denoted as G. Further details of this algorithm will be elucidated in the subsequent section.
+
+After obtaining the distilled concept C, the (c) concept-based inference component proceeds to
+integrate it with various backbone LLMs to derive answers A using a faithful-intensive prompt
+template as follows: [Refer to the following facts to answer the question. Facts: C. Question: Q].
+The intensity of prompts has been demonstrated to influence LLMs’ adherence to knowledge from
+internal memory and retrieved documents [52]. Since our hypothesis is that the retrieved documents
+contain correct answers, we encourage the LLMs to leverage the knowledge encapsulated in C when
+responding to queries. This strategy helps minimize potential conflicts caused by their memorized
+parametric knowledge. To achieve this objective, we designate the concept as a "fact" within the
+instructional prompt, explicitly delineating a delimited sandbox for LLMs to presuppose the absolute
+correctness of the knowledge conveyed by C. This non-parametric knowledge can seamlessly integrate
+into LLMs in a plug-and-play manner. The overarching framework can be represented as Eq. 1.
+
+P (A|Q) = P (A|C, Q)P (C|D, Q)P (D|Q).
+
+(1)
+
+3.2 AMR-based Concept Distillation
+
+Abstract Meaning Representation (AMR) serves as a logical formal semantic structure proficient in
+encapsulating common-sense knowledge necessary for representing events, time, participants, and
+other elements within serialized texts [39]. Given a supporting document Dk ∈ D, the AMR parser is
+utilized to parse Dk into the corresponding AMR graph G =< N , E >, where C represents the nodes
+for concepts and E denotes the edges for the correlation relationships. In this context, we utilize a
+
+4
+
+mBart-based [31] parser2 trained on the AMR 3.0 corpus3 to address potential multilingual concerns.
+The detailed illustration of the AMR graph parsing is depicted in Table A1.
+
+5
+
+3
+
+6
+
+4
+
+9
+
+8
+
+7
+
+:AMR Graph (G)
+
+if IsName(N ) then
+
+if IsWiki(N ) then
+
+AppendRole(HandleName(N ))
+
+Algorithm 1: Concept Distillation
+
+Input
+Output :concept (C)
+
+1 Function Concept_Distillation(G):
+concept ← [], role ← [];
+2
+for Gsntn in SplitSnt (G) do
+for N in DFS(Gsntn ) do
+if IsRole(N ) then
+
+We propose the concept distil-
+lation algorithm to format the
+concepts represented in G, as
+described in Algorithm 1. The
+supporting document Dk en-
+compasses multiple sentences
+(sntn), and the AMR parser
+can structurally parse Dk into a
+pre-defined multi-sentence
+structure. The SplitSnt(·)
+function is designed to parti-
+tion G and organize the result-
+ing sentence-based sub-graphs
+according to the sequential or-
+der.
+Notably, we simplify
+G by disregarding the agent
+and patient of the concepts,
+i.e.,
+the edges denoting rela-
+tions between the connected
+concepts (Frame args, ARGX).
+Consequently, G is streamlined
+into a unidirectional connect-
+ing structure. Leveraging this
+structure, we perform a Depth
+First Search, DFS(·) on the N
+of G to traverse the concepts
+while maintaining the relative
+positional correlation of adja-
+cent nodes. This approach em-
+phasizes the connection as it ex-
+ists in the preceding sequential representation, and the process is elaborated in Fig. A1. Previous
+research has investigated the influence of context order on LLMs [30]. We delve into the various
+traversal methods for testing their potential impact in Section D.
+
+concept ← ConceptFormat (concept);
+concept ← ConceptBacktrace (concept);
+return C ← concept
+
+AppendConcept(HandleRole(role));
+role ← [];
+
+repeat :Algorithm.Line 5-11
+AppendConcept(HandleRole(role));
+
+if (N is Last) and (role is not None) then
+
+AppendRole(HandleWiki(N ))
+
+AppendRole(HandleDate(N ))
+
+if role is not None then
+
+AppendConcept(N );
+
+if IsDate(N ) then
+
+else
+
+12
+
+13
+
+14
+
+15
+
+16
+
+17
+
+18
+
+19
+
+20
+
+21
+
+10
+
+11
+
+The AMR defines a set of roles to meticulously delineate the semantic fabric of sentences. This
+paper underscores the meticulous handling of three roles, namely :name, :wiki, and date-entity,
+employing IsRole(·) to identify the predefined roles comprehensively. The :name role signifies
+a property node within the AMR graph, signifying entities such as individuals, organizations, or
+geographic locations. In instances where the concept expressed by :name spans multiple words,
+the parsing process of AMR decomposes each word within the :name into predicate roles (:op),
+thereby dispersing the holistic concept across multiple nodes. During the DFS(·) traversal process,
+fragmented nodes can potentially confuse LLMs due to incomplete meaning expressions. To maintain
+the integrity of concepts carried by :name, we introduce HandleName(·), organizing predicates
+in a stack structure. The :wiki role provides reliable external concept references sourced from
+Wikipedia. For standardizing concepts’ diverse expressions referring to the same named entities, we
+utilize the HandleWiki (·) function, which aligns the concepts with the corresponding definitions
+in Wikipedia. If the concept in :name differs from :wiki, we designate the concept expressed by
+this node as :wiki to avoid semantic disambiguation. In addition, there is a date-entity role that
+depicts temporal concepts. In our algorithm, we specifically manage the roles :year, :month, and
+:day by HandleDate (·). This function consolidates roles under the same date-entity, forming
+concepts like "19 04 2024" with numerical months translated into textual representations, "19 April
+2024", for clear expression. AMR incorporates special numerical annotations for certain parsing
+nodes, such as work-01, where the number appended to the word indicates different meanings of
+the same word in distinct contexts as defined in OntoNotes [49]. In the RAG scenario, we provide
+
+2https://github.com/BramVanroy/multilingual-text-to-amr
+3https://catalog.ldc.upenn.edu/LDC2020T02
+
+5
+
+LLMs with supporting documents comprising a set of concepts. This suggests that concepts are
+understood in relation to relevant contexts rather than in isolation. Therefore, the proposed concept-
+based RAG framework depends on the contextual learning capability of LLMs to distinguish between
+polysemous concepts, instead of relying on intricate semantic references. The nodes belonging to the
+aforementioned roles are integrated into the preliminary concept set with the HandleRole(·), while
+the AppendConcept(·) directly integrate the remaining nodes based on the corresponding instances.
+
+The structure of AMR comprises a collection of canonical nodes (city-district, market-sector,
+etc.) designed to enforce knowledge and prevent hallucination regarding entity types. However, in
+the concept-based RAG scenario, the inference process isn’t directly based on AMR but distilled
+concepts. The auxiliary semantics embedded within these nodes, which are absent in the source
+supporting documents, may dilute the essence of the core concept. To address this concern, we em-
+ploy ConceptFormat(·) to filter out these nodes to reduce the potential interference. Additionally,
+frequently occurring concepts are filtered out based on their Inverse Document Frequency (IDF).
+Furthermore, the selection of representations in AMR is based on the principle of abstraction and
+generalization rather than the exact lexical items. This representation may mislead the nodes into
+ignoring variations such as tense, which are informative for concept-based RAG without reference
+annotations. To mitigate this, we develop the ConceptBacktrace(·) function to maintain consis-
+tency with concepts expressed in the source supporting documents. This function facilitates the
+backtracking of formatted concepts by incorporating representations from the supporting documents,
+ensuring they closely adhere to the original semantics without deviation. Subsequently, the backtraced
+concepts serve as the finalized concepts C, providing conceptual support for LLMs in RAG inference.
+
+4 Experiments
+
+4.1 Datasets
+
+We conducted extensive experiments to verify the efficacy of the concept-based RAG framework
+on open-domain Q&A datasets: PopQA [32] and EntityQuestions [40]. Each dataset includes a
+label ("hasanswer") for every supporting document, indicating whether it contains the answer to the
+associated question. To ensure a focused evaluation, we screened out the "<Q-A-D>" pairs where
+hasanswer=True. This selection criterion accommodates scenarios where all retrieved documents
+contribute positively to answering questions, thus mitigating interference from extraneous factors.
+The experiments involved verifying the LLMs’ inference performance with different K, which denotes
+the amount of supporting documents to Q. For the PopQA dataset, we filtered out questions with
+subject entities having monthly Wikipedia pageviews (spop) ≥ 500. This step excludes frequently
+accessed entities, preserving the dataset focused on long-tail knowledge. This approach serves the
+dual purpose of preventing data contamination and encouraging LLMs to rely more on retrieved
+documents than memorized knowledge, mitigating potential knowledge conflicts in the RAG process.
+The statistical results of the number of the selected pairs with different K settings are in Table 1.
+
+Table 1: Statistical results of the number of screened-out <Q-A-D> pairs from the datasets.
+
+K=
+PopQA [32]
+EntityQuestions [40]
+
+1
+738
+1671
+
+2
+1307
+1127
+
+3
+422
+670
+
+4
+262
+454
+
+5
+161
+335
+
+6
+151
+264
+
+7
+108
+196
+
+8
+79
+166
+
+9
+66
+163
+
+10
+70
+103
+
+4.2 Baselines
+
+The baseline evaluations encompass two aspects: (1) exploration of diverse backbone LLMs, and
+(2) experimentation with different context compression methods. Specifically, we consider various
+mainstream LLMs as backbones, including GPT-Neo-1.3B, GPT-Neo-2.7B [5], OPT-1.3b, OPT-
+2.7b [57], bloom-560m, bloom-1b1, bloom-1b7, bloom-3b [26], LLaMA-2-7b-chat-hf, LLaMA-2-
+13b-chat-hf [47]. The backbone LLMs coupled with the original supporting documents serve as the
+Vanilla methods. Regarding the alternative aspect, we explore the three context compression methods:
+context keywords extraction, context summarization, and Selective Context (SelCon) [29]. These
+methods aim to validate the efficacy of context compression while preserving essential information for
+inference, emphasizing discrete key features, fluent representation, and non-redundant information.
+
+6
+
+Inspired by Chuang et al. [10], we employ a novel open-access LLM, LLaMA-2-13b-chat-hf [47],
+for context keyword extraction and summarization. This process involves extracting key phrases
+or terms from the context and generating a concise summary of the provided content, constrained
+by prompts of "[Generate a short summary of the following content.]" and "[Extract
+a few keywords from the following content.]". The detailed prompts are available in Ap-
+pendix B. The SelCon enhances the efficiency of LLMs’ inference by identifying and eliminating
+redundant content from the source context for compression. The reduction ratio of the SelCon
+compared here is set to 0.5. These baseline settings effectively demonstrate the comprehensive
+advantages of the proposed algorithm in capturing informative concepts when compared to various
+alternative compression techniques, whether generative-based or semantic-based methods.
+
+4.3 Evaluation Metrics
+
+We employ two metrics to evaluate the concept-based RAG: accuracy (Acc.) and integration (Intg.).
+Accuracy (Acc.) is determined by assessing whether any answer A matches any of the gold answers
+corresponding to the question Q. The integration metric (Intg.) is designed to comprehensively
+evaluate the performance across various K of the retrieved supporting documents D. Specifically,
+the Intg. signifies the area beneath the accuracy curve of each model plotted against the X-axis (K).
+The calculation of Intg. is as Eq. 2, where K ∈ [xs, xe], and xs and xe represent the minimum and
+maximum number of supporting documents respectively. A higher value of Intg. indicates superior
+overall performance. Given that the proposed framework aims to enhance long-context RAG, we
+segment the evaluation of Intg. into two distinct intervals: normal interval (In = [1, 10], K ∈ In)
+and longer interval (Il = [6, 10], K ∈ Il). This division is intended to emphasize the effectiveness of
+the concept-based RAG framework, particularly in scenarios involving longer contexts.
+
+Intg. =
+
+(cid:90) xe
+
+xs
+
+Acc(x) dx ≈
+
+1
+2
+
+xe−xs+1
+(cid:88)
+
+i=1
+
+5 Results and Analysis
+
+(xi − xi−1) [Acc(xi) + Acc(xi−1)]
+
+(2)
+
+The evaluation results for the PopQA and EntityQuestion datasets are depicted in Fig. 3 and Fig. 4,
+respectively, providing graphical trends of Acc. as K increases intuitively. Furthermore, Table 2 and
+Table 3 present quantitative results of Intg. for the datasets. These tables include the calculation of ∆,
+quantifying the improvement achieved by our proposed method over the Vanilla methods. Specifically,
+∆ is computed as follows: ∆ = Intg.ours − Intg.vanilla. The detailed quantitative evaluation results
+of Acc. are provided in Table A3 and Table A4. Section E and section F examine compression ratio
+and inference latency comparison to demonstrate the advantages of concept-compressed contexts.
+
+Figure 3: The evaluation results of the Acc. ↑ trends and Intg. ↑ on the PopQA dataset. The vertical
+axis represents Acc., and the horizontal axis represents the number of supporting documents, K. The
+polyline reflects the changing trend of Acc. with different K, and the under area is Intg.
+
+A key intuitive finding reflected by Fig. 3 and Fig. 4 is the superior performance of our method
+in long-context scenarios, particularly evident when K is high. As K increases, especially within
+
+7
+
+Figure 4: The evaluation results of the Acc. ↑ trends and Intg. ↑ on the EntityQuestion dataset. The
+definitions of the axis and symbols are the same with the Fig. 3.
+
+Table 2: The quantitative results of Intg. ↑ for the PopQA dataset, where the full name order
+of the LLMs is: GPT-Neo-1.3B, GPT-Neo-2.7B, OPT-1.3b, OPT-2.7b, bloom-560m, bloom-1b1,
+bloom-1b7, bloom-3b, LLaMA-2-chat-7b, LLaMA-2-chat-13b. The best results are in bold, and the
+second best results are in underlined. The increased and decreased ∆ are marked differently.
+
+D
+
+Vanilla
+
+Keywords
+
+Summary
+
+SelCon
+
+Ours
+
+∆
+
+K
+In
+Il
+In
+Il
+In
+Il
+In
+Il
+In
+Il
+In
+Il
+
+G-1.3
+620.68
+291.08
+468.94
+257.12
+517.57
+263.14
+444.29
+237.49
+625.31
+322.37
++4.63
++31.29
+
+G-2.7
+631.39
+275.32
+484.98
+244.24
+513.37
+260.64
+524.54
+262.78
+652.71
+321.73
++21.32
++46.41
+
+O-1.3
+656.68
+300.85
+554.67
+297.70
+619.78
+316.80
+615.78
+313.39
+668.86
+329.65
++12.18
++28.8
+
+O-2.7
+687.15
+322.23
+571.38
+305.64
+575.32
+290.50
+607.12
+323.69
+688.47
+344.31
++1.32
++22.08
+
+b-560
+619.86
+294.94
+502.70
+275.39
+573.95
+304.55
+423.22
+230.20
+608.31
+314.34
+-11.55
++19.40
+
+b-1b1
+692.68
+325.37
+610.69
+327.70
+608.41
+313.36
+634.81
+318.64
+686.29
+347.71
+-6.93
++22.34
+
+b-1b7
+707.25
+326.29
+621.85
+338.01
+637.55
+336.20
+606.15
+306.72
+698.91
+355.52
+-8.34
++29.23
+
+b-3
+671.88
+305.91
+600.65
+318.37
+591.12
+297.44
+625.66
+314.07
+681.22
+344.08
++9.34
++38.17
+
+L-7
+682.30
+337.19
+628.78
+326.41
+564.51
+291.50
+715.90
+344.10
+738.82
+357.56
++56.52
++20.37
+
+L-13
+672.03
+312.62
+617.06
+315.93
+553.24
+291.39
+703.29
+332.51
+716.55
+339.38
++44.52
++26.76
+
+Table 3: The quantitative results of Intg. ↑ for the EntityQuestions dataset. The LLMs’ order and
+symbol definitions are the same as Table 2.
+
+D
+
+Vanilla
+
+Keywords
+
+Summary
+
+SelCon
+
+Ours
+
+∆
+
+K
+In
+Il
+In
+Il
+In
+Il
+In
+Il
+In
+Il
+In
+Il
+
+G-1.3
+531.54
+247.50
+280.76
+134.96
+366.73
+179.97
+298.49
+144.69
+551.50
+267.12
++19.96
++19.62
+
+G-2.7
+605.06
+284.47
+360.00
+167.13
+406.72
+205.02
+405.22
+195.05
+618.18
+298.74
++13.12
++14.27
+
+O-1.3
+602.52
+277.47
+403.37
+196.04
+501.51
+255.51
+471.36
+231.76
+609.88
+285.06
++7.36
++7.59
+
+O-2.7
+634.28
+299.03
+439.73
+215.41
+446.50
+210.93
+468.18
+223.55
+652.48
+303.49
++18.2
++4.45
+
+b-560
+488.95
+222.99
+295.02
+143.68
+388.36
+187.75
+215.52
+108.45
+483.02
+243.55
+-5.93
++20.56
+
+b-1b1
+594.88
+266.91
+428.54
+207.59
+415.61
+197.43
+460.37
+214.94
+600.72
+286.20
++5.84
++19.29
+
+b-1b7
+608.85
+284.00
+465.15
+227.84
+501.90
+257.16
+451.41
+217.40
+624.53
+295.45
++15.58
++11.45
+
+b-3
+619.30
+289.26
+462.65
+223.38
+435.49
+211.83
+539.49
+261.79
+621.36
+300.29
++2.06
++11.03
+
+L-7
+607.22
+289.95
+584.67
+287.84
+425.70
+210.34
+623.91
+295.33
+664.18
+303.39
++56.96
++13.44
+
+L-13
+632.24
+287.48
+574.61
+284.53
+438.31
+222.92
+641.01
+304.57
+703.67
+320.87
++71.43
++33.39
+
+8
+
+the longer context setting (Il), the Acc. of our method consistently outperforms that of various
+backbone LLMs coupled with other context compression methods. This trend suggests that the
+concepts distilled by our method are supportive of reducing interference and enabling the LLMs to
+concentrate on key knowledge. Moreover, the positive values of ∆ in Table 2 and Table 3 for the Il
+interval further underscore the improvement achieved by our framework over baseline methods when
+handling longer contexts. This observation emphasizes the effectiveness of the AMR-based concept
+distillation algorithm in capturing essential semantic information from supporting documents, thereby
+enabling LLMs to generate more accurate answers even when confronted with messy contexts.
+
+When setting the bloom-560m model as the backbone LLMs, an interesting finding is that ∆ exhibits
+negative trends in the In interval of both datasets, while the SelCon does not perform ideally either.
+We hypothesize that this is due to the limitation of small-scale models to associate semantic scenarios
+through discrete concepts, which results in the model’s inability to understand the core information
+expressed in the compressed supporting documents. Conversely, when coupling advanced LLMs,
+such as LLaMA-2, the contexts compressed by the proposed method and SelCon exhibit the most
+significant and second most significant enhancements to the LLMs, respectively. This observation
+likely arises from these large-scale models’ superior contextual understanding capabilities, which
+corroborates our hypothesis. Regarding the improvements of ∆ on Il interval of two datasets, our
+method’s enhancement on the PopQA dataset is more pronounced. This is because PopQA was
+released recently, and its knowledge is less likely to be memorized by earlier models such as GPT-Neo
+and OPT. Moreover, the screening of long-tail knowledge further accentuates the unique scenario
+provided by PopQA, making it an ideal testbed for evaluating context compression methods.
+
+The proposed AMR-based concept distillation method demonstrates clear advantages over generative
+compression methods of keyword extraction and summarization. While these methods utilise the
+LLMs to generate compressed representations and show competitive results in certain cases, they may
+inadvertently introduce noise or lose essential details during the compression process. Moreover, the
+generative nature of these methods makes them inherently difficult to control, even when provided
+with instructions as constraints. Consequently, the generated keywords and summaries may exhibit
+randomness, potentially deviating from the core concepts conveyed in the original supporting docu-
+ments. In contrast, our framework leverages the inherent structured semantic representation of AMR
+to capture the core concepts explicitly. This semantic-level abstraction enables the framework to
+faithfully format the concepts to provide more reliable and informative support for the RAG process.
+
+Compared to the linguistics context compression baseline, SelCon, which identifies and prunes
+redundant content based on self-information computed at the lexical level, the proposed method based
+on the semantic level achieves superior results. SelCon’s effectiveness depends on determining the
+right granularity for redundancy removal, making it sensitive to lexical unit choice. In contrast, our
+method takes a macro view by focusing on the semantic consistency carried by the AMR structure,
+making it insensitive to the delicate lexical bias. This characteristic enables it to be a reliable plug-and-
+play component in various RAG systems dealing with supporting documents containing irrelevant
+information and potential lexical errors. The robustness of the proposed framework is demonstrated
+by its consistent performance improvements across various LLMs. The experimental results on both
+datasets showcase the generalizability of our method, irrespective of the underlying LLM architecture.
+This finding suggests that the concept-based RAG framework can be effectively coupled with diverse
+LLMs, making it a versatile solution for enhancing inference performance in long-context scenarios.
+
+6 Conclusion and Future Research
+
+This paper introduces a novel concept-based RAG framework that utilizes AMR to distil essential
+concepts from long-context supporting documents, enabling LLMs to focus on the most supportive
+knowledge for accurate question-answering efficiently. The proposed AMR-based concept distillation
+algorithm systematically traverses the AMR graph to format key concept nodes with informative
+semantic features, transforming redundant supporting documents into a concise concept set. The
+proposed framework significantly enhances RAG performance compared with baselines comprising
+various backbone LLMs and context compression methods. To the best of our knowledge, this is the
+first work to augment RAG with AMR, offering a novel direction for integrating reliable structured
+semantic representations with RAG to handle tasks requiring high fidelity to the knowledge.
+
+9
+
+It has been demonstrated that the LLMs with fewer parameters within the proposed framework can
+also exhibit comparable or superior performance to larger models in certain cases. Consequently,
+it is plausible to speculate on the feasibility of employing small-scale LLMs solely equipped with
+the general natural language understanding capabilities, coupled with comprehensive and informa-
+tive concept sets, to implement the lightweight Q&A systems. This approach would alleviate the
+constraints imposed by the computational complexity of large-scale LLMs during their practical
+application and deployment. Exploring this possibility will be one of the focus of our future research.
+
+10
+
+References
+
+[1] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni
+Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4
+technical report. arXiv preprint arXiv:2303.08774, 2023.
+
+[2] T. Ahmed, K. Pai, P. Devanbu, and E. T. Barr. Automatic semantic augmentation of language
+model prompts (for code summarization). In 2024 IEEE/ACM 46th International Conference
+on Software Engineering (ICSE), pages 1004–1004, Los Alamitos, CA, USA, apr 2024. IEEE
+Computer Society. URL https://doi.ieeecomputersociety.org/.
+
+[3] Laura Banarescu, Claire Bonial, Shu Cai, Madalina Georgescu, Kira Griffitt, Ulf Hermjakob,
+Kevin Knight, Philipp Koehn, Martha Palmer, and Nathan Schneider. Abstract Meaning
+Representation for sembanking. In Proceedings of the 7th Linguistic Annotation Workshop
+and Interoperability with Discourse, pages 178–186, Sofia, Bulgaria, August 2013. Association
+for Computational Linguistics. URL https://aclanthology.org/W13-2322.
+
+[4] Iz Beltagy, Matthew E Peters, and Arman Cohan. Longformer: The long-document transformer.
+
+arXiv preprint arXiv:2004.05150, 2020.
+
+[5] Sid Black, Gao Leo, Phil Wang, Connor Leahy, and Stella Biderman. GPT-Neo: Large
+Scale Autoregressive Language Modeling with Mesh-Tensorflow, March 2021. URL https:
+//doi.org/10.5281/zenodo.5297715. If you use this software, please cite it using these
+metadata.
+
+[6] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhari-
+wal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agar-
+wal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh,
+Daniel Ziegler, Jeffrey Wu, Clemens Winter, Chris Hesse, Mark Chen, Eric Sigler, Ma-
+teusz Litwin, Scott Gray, Benjamin Chess, Jack Clark, Christopher Berner, Sam McCandlish,
+Alec Radford, Ilya Sutskever, and Dario Amodei. Language models are few-shot learners.
+In H. Larochelle, M. Ranzato, R. Hadsell, M.F. Balcan, and H. Lin, editors, Advances in
+Neural Information Processing Systems, volume 33, pages 1877–1901. Curran Associates,
+Inc., 2020. URL https://proceedings.neurips.cc/paper_files/paper/2020/file/
+1457c0d6bfcb4967418bfb8ac142f64a-Paper.pdf.
+
+[7] Qi Cao, Takeshi Kojima, Yutaka Matsuo, and Yusuke Iwasawa. Unnatural error correc-
+tion: GPT-4 can almost perfectly handle unnatural scrambled text.
+In Houda Bouamor,
+Juan Pino, and Kalika Bali, editors, Proceedings of the 2023 Conference on Empirical
+Methods in Natural Language Processing, pages 8898–8913, Singapore, December 2023.
+Association for Computational Linguistics. doi: 10.18653/v1/2023.emnlp-main.550. URL
+https://aclanthology.org/2023.emnlp-main.550.
+
+[8] Shouyuan Chen, Sherman Wong, Liangjian Chen, and Yuandong Tian. Extending context
+window of large language models via positional interpolation. arXiv preprint arXiv:2306.15595,
+2023.
+
+[9] Alexis Chevalier, Alexander Wettig, Anirudh Ajith, and Danqi Chen. Adapting language models
+to compress contexts. In Houda Bouamor, Juan Pino, and Kalika Bali, editors, Proceedings
+of the 2023 Conference on Empirical Methods in Natural Language Processing, pages 3829–
+3846, Singapore, December 2023. Association for Computational Linguistics. doi: 10.18653/
+v1/2023.emnlp-main.232. URL https://aclanthology.org/2023.emnlp-main.232.
+
+[10] Yu-Neng Chuang, Tianwei Xing, Chia-Yuan Chang, Zirui Liu, Xun Chen, and Xia Hu. Learning
+to compress prompt in natural language formats. arXiv preprint arXiv:2402.18700, 2024.
+
+[11] Zihang Dai, Zhilin Yang, Yiming Yang, Jaime Carbonell, Quoc Le, and Ruslan Salakhut-
+dinov. Transformer-XL: Attentive language models beyond a fixed-length context.
+In
+Anna Korhonen, David Traum, and Lluís Màrquez, editors, Proceedings of the 57th Annual
+Meeting of the Association for Computational Linguistics, pages 2978–2988, Florence, Italy,
+July 2019. Association for Computational Linguistics. doi: 10.18653/v1/P19-1285. URL
+https://aclanthology.org/P19-1285.
+
+11
+
+[12] Yiran Ding, Li Lyna Zhang, Chengruidong Zhang, Yuanyuan Xu, Ning Shang, Jiahang Xu, Fan
+Yang, and Mao Yang. Longrope: Extending llm context window beyond 2 million tokens. arXiv
+preprint arXiv:2402.13753, 2024.
+
+[13] Giacomo Frisoni, Paolo Italiani, Stefano Salvatori, and Gianluca Moro. Cogito ergo summ:
+Abstractive summarization of biomedical papers via semantic parsing graphs and consistency
+rewards. Proceedings of the AAAI Conference on Artificial Intelligence, 37(11):12781–12789,
+Jun. 2023. doi: 10.1609/aaai.v37i11.26503. URL https://ojs.aaai.org/index.php/
+AAAI/article/view/26503.
+
+[14] Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia, Jinliu Pan, Yuxi Bi, Yi Dai, Jiawei Sun,
+and Haofen Wang. Retrieval-augmented generation for large language models: A survey. arXiv
+preprint arXiv:2312.10997, 2023.
+
+[15] Arthur C Graesser, Murray Singer, and Tom Trabasso. Constructing inferences during narrative
+
+text comprehension. Psychological review, 101(3):371, 1994.
+
+[16] Aman Gupta, Anup Shirgaonkar, Angels de Luis Balaguer, Bruno Silva, Daniel Holstein, Dawei
+Li, Jennifer Marsman, Leonardo O Nunes, Mahsa Rouzbahman, Morris Sharp, et al. Rag vs fine-
+tuning: Pipelines, tradeoffs, and a case study on agriculture. arXiv preprint arXiv:2401.08406,
+2024.
+
+[17] Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pasupat, and Mingwei Chang. Retrieval
+augmented language model pre-training. In Hal Daumé III and Aarti Singh, editors, Proceedings
+of the 37th International Conference on Machine Learning, volume 119 of Proceedings of
+Machine Learning Research, pages 3929–3938. PMLR, 13–18 Jul 2020. URL https://
+proceedings.mlr.press/v119/guu20a.html.
+
+[18] Thanh Lam Hoang, Gabriele Picco, Yufang Hou, Young-Suk Lee, Lam Nguyen, Dzung Phan,
+Vanessa Lopez, and Ramon Fernandez Astudillo. Ensembling graph predictions for amr parsing.
+In M. Ranzato, A. Beygelzimer, Y. Dauphin, P.S. Liang, and J. Wortman Vaughan, editors,
+Advances in Neural Information Processing Systems, volume 34, pages 8495–8505. Curran
+Associates, Inc., 2021. URL https://proceedings.neurips.cc/paper_files/paper/
+2021/file/479b4864e55e12e0fb411eadb115c095-Paper.pdf.
+
+[19] Yunpeng Huang, Jingwei Xu, Zixu Jiang, Junyu Lai, Zenan Li, Yuan Yao, Taolue Chen, Lijuan
+Yang, Zhou Xin, and Xiaoxing Ma. Advancing transformer architecture in long-context large
+language models: A comprehensive survey. arXiv preprint arXiv:2311.12351, 2023.
+
+[20] Anubhav Jangra, Preksha Nema, and Aravindan Raghuveer. T-STAR: Truthful style transfer
+using AMR graph as intermediate representation. In Yoav Goldberg, Zornitsa Kozareva, and
+Yue Zhang, editors, Proceedings of the 2022 Conference on Empirical Methods in Natural
+Language Processing, pages 8805–8825, Abu Dhabi, United Arab Emirates, December 2022.
+Association for Computational Linguistics. doi: 10.18653/v1/2022.emnlp-main.602. URL
+https://aclanthology.org/2022.emnlp-main.602.
+
+[21] Ganesh Jawahar, Benoît Sagot, and Djamé Seddah. What does BERT learn about the structure
+of language? In Anna Korhonen, David Traum, and Lluís Màrquez, editors, Proceedings of
+the 57th Annual Meeting of the Association for Computational Linguistics, pages 3651–3657,
+Florence, Italy, July 2019. Association for Computational Linguistics. doi: 10.18653/v1/
+P19-1356. URL https://aclanthology.org/P19-1356.
+
+[22] Rebecca L Johnson, Manuel Perea, and Keith Rayner. Transposed-letter effects in reading:
+evidence from eye movements and parafoveal preview. Journal of Experimental psychology:
+Human perception and performance, 33(1):209, 2007.
+
+[23] Jaehun Jung, Ximing Lu, Liwei Jiang, Faeze Brahman, Peter West, Pang Wei Koh, and Yejin
+Information-theoretic distillation for reference-less summarization. arXiv preprint
+
+Choi.
+arXiv:2403.13780, 2024.
+
+[24] Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick Lewis, Ledell Wu, Sergey Edunov,
+Danqi Chen, and Wen-tau Yih. Dense passage retrieval for open-domain question answering.
+In Bonnie Webber, Trevor Cohn, Yulan He, and Yang Liu, editors, Proceedings of the 2020
+
+12
+
+Conference on Empirical Methods in Natural Language Processing (EMNLP), pages 6769–
+6781, Online, November 2020. Association for Computational Linguistics. doi: 10.18653/v1/
+2020.emnlp-main.550. URL https://aclanthology.org/2020.emnlp-main.550.
+
+[25] Kalpesh Krishna, Aurko Roy, and Mohit Iyyer. Hurdles to progress in long-form question
+answering. In Kristina Toutanova, Anna Rumshisky, Luke Zettlemoyer, Dilek Hakkani-Tur,
+Iz Beltagy, Steven Bethard, Ryan Cotterell, Tanmoy Chakraborty, and Yichao Zhou, editors,
+Proceedings of the 2021 Conference of the North American Chapter of the Association for
+Computational Linguistics: Human Language Technologies, pages 4940–4957, Online, June
+2021. Association for Computational Linguistics. doi: 10.18653/v1/2021.naacl-main.393. URL
+https://aclanthology.org/2021.naacl-main.393.
+
+[26] Teven Le Scao, Angela Fan, Christopher Akiki, Ellie Pavlick, Suzana Ili´c, Daniel Hesslow,
+Roman Castagné, Alexandra Sasha Luccioni, François Yvon, Matthias Gallé, et al. Bloom: A
+176b-parameter open-access multilingual language model. 2022.
+
+[27] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman
+Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel,
+and Douwe Kiela. Retrieval-augmented generation for knowledge-intensive nlp tasks.
+In
+H. Larochelle, M. Ranzato, R. Hadsell, M.F. Balcan, and H. Lin, editors, Advances in
+Neural Information Processing Systems, volume 33, pages 9459–9474. Curran Associates,
+Inc., 2020. URL https://proceedings.neurips.cc/paper_files/paper/2020/file/
+6b493230205f780e1bc26945df7481e5-Paper.pdf.
+
+[28] Yafu Li, Leyang Cui, Jianhao Yan, Yongjing Yin, Wei Bi, Shuming Shi, and Yue Zhang.
+Explicit syntactic guidance for neural text generation. In Anna Rogers, Jordan Boyd-Graber,
+and Naoaki Okazaki, editors, Proceedings of the 61st Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers), pages 14095–14112, Toronto, Canada,
+July 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.acl-long.788.
+URL https://aclanthology.org/2023.acl-long.788.
+
+[29] Yucheng Li, Bo Dong, Frank Guerin, and Chenghua Lin. Compressing context to enhance
+inference efficiency of large language models. In Houda Bouamor, Juan Pino, and Kalika
+Bali, editors, Proceedings of the 2023 Conference on Empirical Methods in Natural Language
+Processing, pages 6342–6353, Singapore, December 2023. Association for Computational
+Linguistics. doi: 10.18653/v1/2023.emnlp-main.391. URL https://aclanthology.org/
+2023.emnlp-main.391.
+
+[30] Nelson F. Liu, Kevin Lin, John Hewitt, Ashwin Paranjape, Michele Bevilacqua, Fabio Petroni,
+and Percy Liang. Lost in the Middle: How Language Models Use Long Contexts. Transactions
+of the Association for Computational Linguistics, 12:157–173, 02 2024. ISSN 2307-387X. doi:
+10.1162/tacl_a_00638. URL https://doi.org/10.1162/tacl_a_00638.
+
+[31] Yinhan Liu, Jiatao Gu, Naman Goyal, Xian Li, Sergey Edunov, Marjan Ghazvininejad, Mike
+Lewis, and Luke Zettlemoyer. Multilingual denoising pre-training for neural machine translation.
+Transactions of the Association for Computational Linguistics, 8:726–742, 2020.
+
+[32] Alex Mallen, Akari Asai, Victor Zhong, Rajarshi Das, Daniel Khashabi, and Hannaneh Ha-
+jishirzi. When not to trust language models: Investigating effectiveness of parametric and
+non-parametric memories. In Anna Rogers, Jordan Boyd-Graber, and Naoaki Okazaki, edi-
+tors, Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics
+(Volume 1: Long Papers), pages 9802–9822, Toronto, Canada, July 2023. Association for Com-
+putational Linguistics. doi: 10.18653/v1/2023.acl-long.546. URL https://aclanthology.
+org/2023.acl-long.546.
+
+[33] Kevin Meng, David Bau, Alex Andonian, and Yonatan Belinkov. Locating and editing factual
+associations in gpt. In S. Koyejo, S. Mohamed, A. Agarwal, D. Belgrave, K. Cho, and A. Oh,
+editors, Advances in Neural Information Processing Systems, volume 35, pages 17359–17372.
+Curran Associates, Inc., 2022. URL https://proceedings.neurips.cc/paper_files/
+paper/2022/file/6f1d43d5a82a37e89b0665b33bf3a182-Paper-Conference.pdf.
+
+[34] Jesse Mu, Xiang Li, and Noah Goodman. Learning to compress prompts with gist tokens.
+
+Advances in Neural Information Processing Systems, 36, 2024.
+
+13
+
+[35] Aaron Mueller and Tal Linzen. How to plant trees in language models: Data and architectural
+effects on the emergence of syntactic inductive biases. In Anna Rogers, Jordan Boyd-Graber,
+and Naoaki Okazaki, editors, Proceedings of the 61st Annual Meeting of the Association for
+Computational Linguistics (Volume 1: Long Papers), pages 11237–11252, Toronto, Canada,
+July 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023.acl-long.629.
+URL https://aclanthology.org/2023.acl-long.629.
+
+[36] Dor Muhlgay, Ori Ram, Inbal Magar, Yoav Levine, Nir Ratner, Yonatan Belinkov, Omri Abend,
+Kevin Leyton-Brown, Amnon Shashua, and Yoav Shoham. Generating benchmarks for factuality
+evaluation of language models. arXiv preprint arXiv:2307.06908, 2023.
+
+[37] Saurav Pawar, SM Tonmoy, SM Zaman, Vinija Jain, Aman Chadha, and Amitava Das. The
+what, why, and how of context length extension techniques in large language models–a detailed
+survey. arXiv preprint arXiv:2401.07872, 2024.
+
+[38] Leonardo F. R. Ribeiro, Mengwen Liu, Iryna Gurevych, Markus Dreyer, and Mohit Bansal.
+FactGraph: Evaluating factuality in summarization with semantic graph representations. In Ma-
+rine Carpuat, Marie-Catherine de Marneffe, and Ivan Vladimir Meza Ruiz, editors, Proceedings
+of the 2022 Conference of the North American Chapter of the Association for Computational
+Linguistics: Human Language Technologies, pages 3238–3253, Seattle, United States, July
+2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.naacl-main.236. URL
+https://aclanthology.org/2022.naacl-main.236.
+
+[39] Brenda Santana, Ricardo Campos, Evelin Amorim, Alípio Jorge, Purificação Silvano, and Sérgio
+Nunes. A survey on narrative extraction from textual data. Artificial Intelligence Review, 56
+(8):8393–8435, 2023.
+
+[40] Christopher Sciavolino, Zexuan Zhong, Jinhyuk Lee, and Danqi Chen. Simple entity-centric
+questions challenge dense retrievers. In Marie-Francine Moens, Xuanjing Huang, Lucia Specia,
+and Scott Wen-tau Yih, editors, Proceedings of the 2021 Conference on Empirical Methods
+in Natural Language Processing, pages 6138–6148, Online and Punta Cana, Dominican Re-
+public, November 2021. Association for Computational Linguistics. doi: 10.18653/v1/2021.
+emnlp-main.496. URL https://aclanthology.org/2021.emnlp-main.496.
+
+[41] Claude Elwood Shannon. A mathematical theory of communication. The Bell system technical
+
+journal, 27(3):379–423, 1948.
+
+[42] Kaize Shi, Xueyao Sun, Li He, Dingxian Wang, Qing Li, and Guandong Xu. AMR-TST: Ab-
+stract Meaning Representation-based text style transfer. In Anna Rogers, Jordan Boyd-Graber,
+and Naoaki Okazaki, editors, Findings of the Association for Computational Linguistics: ACL
+2023, pages 4231–4243, Toronto, Canada, July 2023. Association for Computational Linguis-
+tics. doi: 10.18653/v1/2023.findings-acl.260. URL https://aclanthology.org/2023.
+findings-acl.260.
+
+[43] Koustuv Sinha, Robin Jia, Dieuwke Hupkes, Joelle Pineau, Adina Williams, and Douwe
+Kiela. Masked language modeling and the distributional hypothesis: Order word matters pre-
+training for little. In Marie-Francine Moens, Xuanjing Huang, Lucia Specia, and Scott Wen-tau
+Yih, editors, Proceedings of the 2021 Conference on Empirical Methods in Natural Language
+Processing, pages 2888–2913, Online and Punta Cana, Dominican Republic, November 2021.
+Association for Computational Linguistics. doi: 10.18653/v1/2021.emnlp-main.230. URL
+https://aclanthology.org/2021.emnlp-main.230.
+
+[44] Jiao Sun, Xuezhe Ma, and Nanyun Peng. AESOP: Paraphrase generation with adaptive
+syntactic control. In Marie-Francine Moens, Xuanjing Huang, Lucia Specia, and Scott Wen-tau
+Yih, editors, Proceedings of the 2021 Conference on Empirical Methods in Natural Language
+Processing, pages 5176–5189, Online and Punta Cana, Dominican Republic, November 2021.
+Association for Computational Linguistics. doi: 10.18653/v1/2021.emnlp-main.420. URL
+https://aclanthology.org/2021.emnlp-main.420.
+
+[45] Rohan Taori, Ishaan Gulrajani, Tianyi Zhang, Yann Dubois, Xuechen Li, Carlos Guestrin, Percy
+Liang, and Tatsunori B. Hashimoto. Stanford alpaca: An instruction-following llama model.
+https://github.com/tatsu-lab/stanford_alpaca, 2023.
+
+14
+
+[46] SM Tonmoy, SM Zaman, Vinija Jain, Anku Rani, Vipula Rawte, Aman Chadha, and Amitava
+Das. A comprehensive survey of hallucination mitigation techniques in large language models.
+arXiv preprint arXiv:2401.01313, 2024.
+
+[47] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei,
+Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al. Llama 2: Open
+foundation and fine-tuned chat models. arXiv preprint arXiv:2307.09288, 2023.
+
+[48] Xinyi Wang, Hieu Pham, Pengcheng Yin, and Graham Neubig. A tree-based decoder for
+neural machine translation. In Ellen Riloff, David Chiang, Julia Hockenmaier, and Jun’ichi
+Tsujii, editors, Proceedings of the 2018 Conference on Empirical Methods in Natural Language
+Processing, pages 4772–4777, Brussels, Belgium, October-November 2018. Association for
+Computational Linguistics. doi: 10.18653/v1/D18-1509. URL https://aclanthology.
+org/D18-1509.
+
+[49] Ralph Weischedel, Martha Palmer, Mitchell Marcus, Eduard Hovy, Sameer Pradhan, Lance
+Ramshaw, Nianwen Xue, Ann Taylor, Jeff Kaufman, Michelle Franchini, et al. Ontonotes
+release 5.0 ldc2013t19. Linguistic Data Consortium, Philadelphia, PA, 23:170, 2013.
+
+[50] David Wingate, Mohammad Shoeybi, and Taylor Sorensen. Prompt compression and contrastive
+conditioning for controllability and toxicity reduction in language models. In Yoav Goldberg,
+Zornitsa Kozareva, and Yue Zhang, editors, Findings of the Association for Computational
+Linguistics: EMNLP 2022, pages 5621–5634, Abu Dhabi, United Arab Emirates, December
+2022. Association for Computational Linguistics. doi: 10.18653/v1/2022.findings-emnlp.412.
+URL https://aclanthology.org/2022.findings-emnlp.412.
+
+[51] EC Wit and Marie Gillette. What is linguistic redundancy. University of Chicago, 1999.
+
+[52] Kevin Wu, Eric Wu, and James Zou. How faithful are rag models? quantifying the tug-of-war
+
+between rag and llms’ internal prior, 2024.
+
+[53] Peng Xu, Wei Ping, Xianchao Wu, Lawrence McAfee, Chen Zhu, Zihan Liu, Sandeep Subrama-
+nian, Evelina Bakhturina, Mohammad Shoeybi, and Bryan Catanzaro. Retrieval meets long
+context large language models. arXiv preprint arXiv:2310.03025, 2023.
+
+[54] Shi-Qi Yan, Jia-Chen Gu, Yun Zhu, and Zhen-Hua Ling. Corrective retrieval augmented
+
+generation. arXiv preprint arXiv:2401.15884, 2024.
+
+[55] Wenhao Yu, Chenguang Zhu, Zaitang Li, Zhiting Hu, Qingyun Wang, Heng Ji, and Meng Jiang.
+A survey of knowledge-enhanced text generation. ACM Computing Surveys, 54(11s):1–38,
+2022.
+
+[56] Hamed Zamani, Bhaskar Mitra, Everest Chen, Gord Lueck, Fernando Diaz, Paul N. Bennett,
+Nick Craswell, and Susan T. Dumais. Analyzing and learning from user interactions for search
+clarification. In Proceedings of the 43rd International ACM SIGIR Conference on Research and
+Development in Information Retrieval, SIGIR ’20, page 1181–1190, New York, NY, USA, 2020.
+Association for Computing Machinery. ISBN 9781450380164. doi: 10.1145/3397271.3401160.
+URL https://doi-org.ezproxy.lib.uts.edu.au/10.1145/3397271.3401160.
+
+[57] Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe, Moya Chen, Shuohui Chen,
+Christopher Dewan, Mona Diab, Xian Li, Xi Victoria Lin, et al. Opt: Open pre-trained
+transformer language models. arXiv preprint arXiv:2205.01068, 2022.
+
+[58] Yue Zhang, Yafu Li, Leyang Cui, Deng Cai, Lemao Liu, Tingchen Fu, Xinting Huang, Enbo
+Zhao, Yu Zhang, Yulong Chen, et al. Siren’s song in the ai ocean: a survey on hallucination in
+large language models. arXiv preprint arXiv:2309.01219, 2023.
+
+[59] Zixuan Zhang, Nikolaus Parulian, Heng Ji, Ahmed Elsayed, Skatje Myers, and Martha
+Palmer. Fine-grained information extraction from biomedical literature based on knowledge-
+enriched Abstract Meaning Representation.
+In Chengqing Zong, Fei Xia, Wenjie Li, and
+Roberto Navigli, editors, Proceedings of the 59th Annual Meeting of the Association for
+Computational Linguistics and the 11th International Joint Conference on Natural Language
+
+15
+
+Processing (Volume 1: Long Papers), pages 6261–6270, Online, August 2021. Associa-
+tion for Computational Linguistics. doi: 10.18653/v1/2021.acl-long.489. URL https:
+//aclanthology.org/2021.acl-long.489.
+
+[60] Wangchunshu Zhou, Yuchen Eleanor Jiang, Ethan Wilcox, Ryan Cotterell, and Mrinmaya
+Sachan. Controlled text generation with natural language instructions. In Andreas Krause,
+Emma Brunskill, Kyunghyun Cho, Barbara Engelhardt, Sivan Sabato, and Jonathan Scarlett,
+editors, Proceedings of the 40th International Conference on Machine Learning, volume 202
+of Proceedings of Machine Learning Research, pages 42602–42613. PMLR, 23–29 Jul 2023.
+URL https://proceedings.mlr.press/v202/zhou23g.html.
+
+16
+
+A AMR Examples
+
+This appendix presents an example of an AMR graph parsed from the supporting doc-
+"Alexander Rinnooy Kan of Amsterdam. In 1972–73, he worked as a
+ument,
+Fig. A1 showcases the DFS order for
+mathematician at Spectrum Encyclopedia".
+traversing the nodes in the AMR graph. Table A1 delineates the parsed AMR graph marked with the
+distilled concepts, showing that DFS traversal maintains the relative position of the adjacent concepts
+contained in the raw retrieved supporting document.
+
+Figure A1: The node order of the DFS traversal within the AMR graph, with nodes marked in
+different colours for the two sentences. The marked nodes here are not the final distilled concepts.
+
+Table A1: Example of the parsed AMR graph. The nodes carrying concepts are bolded, including
+"Alexander Rinnooy Kan, Amsterdam. work, mathematics, Spectrum Encyclopedia, 1972, 1973".
+The special roles, :wiki , :year , and :name are highlighted.
+
+Supporting Document: Alexander Rinnooy Kan of Amsterdam. In
+1972–73, he worked as a mathematician at Spectrum Encyclopedia.
+
+(m / multi-sentence
+:snt1 (p / person
+
+:name (n / name
+
+:op1 "Alexander"
+:op2 "Rinnooy"
+:op3 "Kan")
+
+:location (c / city
+
+:wiki "Amsterdam"
+:name (n2 / name
+
+:op1 "Amsterdam")))
+
+:snt2 (w / work-01
+
+:ARG0 (h / he)
+:ARG1 (m2 / mathematics)
+:ARG2 (r / research-institute
+
+:wiki "Spectrum_Encyclopedia"
+:name (n3 / name
+
+:op1 "Spectrum"
+:op2 "Encyclopedia"))
+
+:time (d / date-interval
+
+:op1 (d2 / date-entity
+:year 1972)
+:op2 (d3 / date-entity
+
+:year 1973))))
+
+17
+
+B Prompts for Baselines
+
+We refer to Taori et al. [45] to set up prompt templates for baselines with different instructions, as
+illustrated in Table A2.
+
+Table A2: The prompt for extracting and generating the keywords and summaries of supporting
+documents as baselines.
+
+Instruction (Keywords): Extract a few keywords from the following content.
+Instruction (Summary): Generate a short summary of the following content.
+Prompt = """Below is an instruction that describes a task, paired with an input that provides
+content.
+### Instruction: {""" + Instruction + """}
+### Input: {""" + D + """}
+### Response: """
+
+C Accuracy Details
+
+The detailed accuracy (Acc.) for the different concept compression methods on PopQA and Enti-
+tyQuestions datasets are presented in Table A3 and Table A4, respectively.
+
+D Concept Random Traverse
+
+D.1 Global Random Traverse
+
+Global random traversal involves randomly traversing nodes throughout the AMR graph to capture
+concepts in a non-DFS manner, covering all sentences in the supporting documents. Concepts
+obtained in this setting have no specific positional relationship. The results are presented in Table A5
+and Table A6. These results reveal changes in Acc. due to the concepts derived from global random
+traversal. Apart from a few Acc. values higher than the concepts derived from the AMR-based
+concept distillation algorithm, most of the other Acc. values corresponding to the same settings
+decrease. However, these changes in trend are not significant. We speculate that the reason is that
+global random traverse alters the positions of key concepts supporting the question within the concept
+set, leading to changes in LLMs’ performance. This observation aligns with conclusions drawn
+by Liu et al. [30], which also demonstrates the necessity and rationality of using the DFS method
+to traverse the AMR graph to maintain the inherent positional relationship of concepts between the
+source texts.
+
+D.2 Local Random Traverse
+
+Local random traversal involves traversing nodes within a specific sentence of the AMR graph
+in a non-DFS manner to capture concepts. The concepts obtained through this approach do not
+maintain the positional relationship within individual sentences but preserve it between sentences in
+the retrieved supporting document. The results are shown in Table A7 and Table A8. Similar to global
+random traversal, in this case, Acc. shows a decreasing trend, but the magnitude of the decline is not
+substantial. We speculate that the reason is that, compared to the Vanilla methods, the word-level
+length of the distilled concept set is shorter, which reduces the sensitivity of LLMs in RAG to the
+position of key information when dealing with long contexts. The compression ratio of the original
+supporting documents using different methods will be elaborated in the next section.
+
+E Compression Ratio
+
+This section compares the word-level compression ratio achieved by different context compression
+methods with the results shown in Fig. A2. The findings demonstrate that the proposed AMR-based
+context distillation algorithm achieves competitive context-compression performance. Compared to
+the standard Vanilla method, our method can compress the average word-level length by over 60%
+while preserving the core concepts to the greatest extent possible. Notably, our method achieves the
+
+18
+
+Table A3: Accuracy (Acc. ↑) comparison on the PopQA dataset. The best results for each LLM
+with setting K are in bold, and the second best results are in underlined. ∆ here represents the
+difference between the methods of "Ours" and "Vanilla", and the increased and decreased ∆ are
+marked differently. The best results for each of K are marked.
+
+LLMs
+
+B
+3
+.
+1
+-
+o
+e
+N
+-
+T
+P
+G
+
+B
+7
+.
+2
+-
+o
+e
+N
+-
+T
+P
+G
+
+b
+3
+
+.
+1
+-
+T
+P
+O
+
+b
+7
+.
+2
+-
+T
+P
+O
+
+m
+0
+6
+5
+-
+m
+o
+o
+l
+B
+
+1
+b
+1
+-
+m
+o
+o
+l
+B
+
+7
+b
+1
+-
+m
+o
+o
+l
+B
+
+b
+3
+-
+m
+o
+o
+l
+B
+
+7
+-
+c
+-
+2
+-
+A
+M
+a
+L
+L
+
+3
+1
+-
+c
+-
+2
+-
+A
+M
+a
+L
+L
+
+K
+
+C
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+47.69
+20.46
+22.76
+21.14
+34.96
+-12.73
+58.13
+23.98
+23.71
+33.88
+43.09
+-15.04
+62.47
+25.07
+27.91
+40.11
+47.56
+-14.91
+62.33
+27.51
+26.29
+33.74
+49.86
+-12.47
+52.30
+21.68
+24.39
+22.90
+35.91
+-16.39
+63.01
+26.15
+27.10
+45.53
+42.55
+-20.46
+65.04
+28.05
+29.54
+40.51
+47.43
+-17.61
+64.36
+28.86
+26.29
+46.34
+50.00
+-14.36
+57.32
+35.91
+29.54
+58.81
+67.74
++10.42
+59.21
+37.40
+28.86
+64.36
+62.06
++2.85
+
+71.38
+27.85
+41.70
+34.74
+55.62
+-15.76
+76.13
+33.51
+40.63
+48.58
+61.44
+-14.69
+75.52
+33.89
+47.05
+56.77
+63.12
+-12.40
+77.43
+32.44
+46.14
+51.34
+65.11
+-12.32
+64.58
+29.23
+42.16
+30.68
+49.12
+-15.46
+75.06
+39.40
+46.37
+59.68
+58.68
+-16.38
+78.35
+39.86
+46.98
+57.15
+61.74
+-16.61
+78.81
+40.24
+46.60
+58.45
+60.67
+-18.14
+69.93
+49.50
+42.77
+74.37
+74.06
++4.13
+77.74
+50.11
+46.29
+74.90
+73.14
+-4.60
+
+69.19
+39.81
+50.24
+39.57
+61.61
+-7.58
+71.56
+46.92
+49.29
+46.45
+64.45
+-7.11
+63.51
+49.05
+59.48
+58.06
+63.51
+0.00
+72.99
+49.05
+58.06
+50.24
+68.96
+-4.03
+63.03
+46.21
+53.79
+34.83
+54.50
+-8.53
+70.62
+56.87
+56.87
+54.74
+65.64
+-4.98
+76.30
+55.21
+59.24
+54.74
+66.82
+-9.48
+73.70
+56.87
+56.40
+59.48
+64.69
+-9.01
+62.09
+64.93
+51.66
+73.93
+74.64
++12.55
+68.96
+59.48
+52.13
+74.64
+76.54
++7.58
+
+60.87
+59.63
+57.14
+52.17
+64.60
++3.73
+69.56
+58.39
+59.01
+62.73
+74.53
++4.97
+70.81
+68.94
+72.67
+65.22
+72.67
++1.86
+66.45
+70.81
+63.98
+65.22
+72.67
++6.22
+67.08
+57.76
+61.49
+48.45
+68.32
++1.24
+73.29
+72.67
+69.57
+75.16
+79.50
++6.21
+73.29
+72.67
+70.19
+63.35
+74.53
++1.24
+70.80
+70.19
+69.57
+68.32
+74.53
++3.73
+70.81
+63.35
+60.87
+72.05
+78.26
++7.45
+68.94
+67.08
+58.39
+71.43
+75.78
++6.84
+
+67.56
+48.47
+59.54
+41.60
+64.89
+-2.67
+73.66
+56.49
+59.16
+57.25
+70.61
+-3.05
+76.34
+58.78
+69.08
+67.18
+76.72
++0.38
+77.48
+62.60
+66.41
+60.69
+71.76
+-5.72
+68.32
+51.15
+63.36
+40.46
+68.32
+0.00
+77.10
+64.89
+70.61
+66.41
+71.76
+-5.34
+79.77
+65.65
+71.76
+67.18
+75.19
+-4.58
+74.05
+64.12
+70.22
+66.41
+72.52
+-1.53
+72.90
+67.56
+67.18
+79.00
+76.72
++3.82
+74.43
+66.03
+59.16
+75.57
+78.63
++4.20
+
+19
+
+73.51
+51.66
+68.87
+56.29
+77.48
++3.97
+72.19
+66.89
+65.56
+59.60
+76.82
++4.63
+76.82
+67.55
+81.46
+70.20
+78.81
++1.99
+78.80
+74.17
+74.17
+78.15
+81.46
++2.66
+71.52
+64.24
+72.82
+54.30
+71.52
+0.00
+79.47
+72.19
+76.16
+74.83
+83.44
++3.97
+81.46
+72.85
+76.82
+73.51
+82.78
++1.32
+72.85
+72.85
+75.50
+71.52
+79.47
++6.62
+81.45
+78.15
+71.52
+86.09
+87.42
++5.97
+79.47
+79.47
+62.91
+84.11
+84.11
++4.64
+
+69.44
+58.33
+56.48
+47.22
+75.93
++6.49
+73.15
+59.26
+68.52
+58.33
+77.78
++4.63
+68.52
+75.00
+73.15
+72.22
+77.78
++9.26
+77.78
+68.52
+71.30
+75.93
+83.33
++5.55
+73.14
+63.89
+75.00
+50.93
+67.59
+-5.55
+75.93
+75.93
+78.70
+78.70
+83.33
++7.40
+78.70
+78.70
+78.70
+71.30
+84.26
++5.56
+79.62
+76.85
+72.22
+68.52
+86.11
++6.49
+85.19
+82.41
+77.78
+82.41
+89.81
++4.62
+75.93
+75.00
+72.22
+82.41
+84.26
++8.33
+
+72.15
+68.35
+59.49
+58.23
+77.22
++5.07
+59.49
+59.49
+55.70
+74.68
+89.87
++30.38
+74.68
+74.68
+74.68
+82.28
+87.34
++12.66
+79.75
+78.48
+65.82
+84.81
+89.87
++10.12
+77.22
+73.42
+75.95
+63.29
+83.54
++6.32
+87.34
+87.34
+73.42
+77.22
+89.87
++2.53
+82.28
+92.41
+88.61
+82.28
+94.94
++12.66
+78.48
+83.54
+64.56
+87.34
+84.81
++6.33
+78.48
+77.22
+68.35
+83.54
+86.08
++7.60
+74.68
+72.15
+64.56
+83.54
+84.81
++10.13
+
+72.73
+68.18
+72.73
+68.18
+83.33
++10.60
+65.15
+60.61
+63.64
+62.12
+74.24
++9.09
+74.24
+74.24
+81.82
+78.79
+77.27
++3.03
+80.30
+77.27
+72.72
+80.30
+81.81
++1.51
+66.67
+66.67
+75.76
+54.55
+80.30
++13.63
+78.79
+83.33
+80.30
+80.30
+86.36
++7.57
+80.30
+83.33
+83.33
+74.24
+86.36
++6.06
+74.24
+77.27
+75.76
+80.30
+84.85
++10.61
+86.36
+84.85
+68.18
+89.39
+89.39
++3.03
+77.27
+83.33
+80.30
+78.79
+81.82
++4.55
+
+80.00
+72.86
+80.00
+71.43
+94.29
++14.29
+82.86
+62.86
+80.00
+75.71
+82.86
+0.00
+90.00
+80.00
+92.86
+90.00
+95.71
++5.71
+90.00
+88.57
+87.14
+87.14
+97.14
++7.14
+84.29
+78.57
+82.86
+68.57
+94.29
++10.00
+87.14
+90.00
+85.71
+90.00
+92.86
++5.72
+88.57
+94.29
+94.29
+84.29
+97.14
++8.57
+74.29
+88.57
+94.29
+84.29
+97.14
++22.85
+92.86
+85.71
+82.86
+91.43
+97.14
++4.28
+90.00
+91.43
+85.71
+91.43
+92.86
++2.86
+
+Table A4: Accuracy (Acc. ↑) comparison the EntityQuestions dataset. The definitions of symbols are
+the same with Table A3.
+
+LLMs
+
+B
+3
+
+.
+
+1
+-
+o
+e
+N
+-
+T
+P
+G
+
+B
+7
+
+.
+
+2
+-
+o
+e
+N
+-
+T
+P
+G
+
+b
+3
+
+.
+
+1
+-
+T
+P
+O
+
+b
+7
+.
+2
+-
+T
+P
+O
+
+m
+0
+6
+5
+-
+m
+o
+o
+l
+B
+
+1
+b
+1
+-
+m
+o
+o
+l
+B
+
+7
+b
+1
+-
+m
+o
+o
+l
+B
+
+b
+3
+-
+m
+o
+o
+l
+B
+
+7
+-
+c
+-
+2
+-
+A
+M
+a
+L
+L
+
+3
+1
+-
+c
+-
+2
+-
+A
+M
+a
+L
+L
+
+K
+
+C
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+Vanilla
+Keywords
+Summary
+SelCon
+Ours
+∆
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+61.49
+30.75
+41.19
+34.63
+63.58
++2.09
+65.67
+38.51
+45.07
+46.27
+69.25
++3.58
+65.07
+47.46
+55.22
+54.03
+68.06
++2.99
+69.85
+50.15
+51.94
+54.63
+72.83
++2.98
+57.31
+29.25
+43.58
+22.09
+49.85
+-7.46
+68.36
+44.78
+47.76
+52.24
+66.27
+-2.09
+66.87
+49.25
+58.51
+50.15
+72.24
++5.37
+68.36
+51.94
+48.06
+61.49
+69.85
++1.49
+70.15
+65.37
+44.18
+68.96
+74.03
++3.88
+69.25
+65.67
+42.39
+70.45
+80.00
++10.75
+
+65.15
+36.36
+46.21
+41.67
+67.05
++1.90
+70.83
+51.51
+48.11
+50.00
+72.72
++1.89
+71.97
+54.55
+62.50
+56.82
+74.24
++2.27
+77.65
+57.58
+56.06
+62.88
+79.55
++1.90
+60.23
+37.50
+53.41
+29.55
+65.53
++5.30
+73.11
+57.20
+50.00
+60.23
+73.48
++0.37
+71.97
+65.15
+59.09
+55.68
+75.38
++3.41
+74.62
+60.98
+56.44
+67.80
+75.38
++0.76
+75.00
+72.35
+50.00
+75.00
+77.27
++2.27
+75.76
+68.94
+46.59
+73.86
+81.44
++5.68
+
+59.18
+31.12
+43.88
+32.65
+65.31
++6.13
+69.90
+42.86
+48.47
+44.90
+72.96
++3.06
+66.33
+51.53
+58.67
+55.10
+70.41
++4.08
+73.47
+52.04
+53.57
+52.04
+67.86
+-5.61
+52.55
+37.24
+42.35
+26.53
+57.65
++5.10
+63.27
+53.06
+48.98
+55.10
+68.37
++5.10
+68.37
+57.14
+62.76
+54.08
+71.94
++3.57
+69.90
+58.16
+47.96
+60.20
+71.94
++2.04
+73.47
+70.41
+49.49
+72.45
+72.45
+-1.02
+67.35
+72.96
+52.04
+74.49
+79.08
++11.73
+
+57.83
+30.12
+37.95
+32.53
+62.65
++4.82
+70.48
+34.34
+53.01
+43.98
+71.08
++0.60
+69.88
+50.60
+63.25
+52.41
+65.66
+-4.22
+73.49
+54.22
+53.01
+52.41
+75.90
++2.41
+51.81
+32.53
+50.60
+24.10
+54.22
++2.41
+63.65
+49.40
+50.60
+50.00
+71.08
++7.43
+70.48
+53.01
+62.65
+47.59
+73.49
++3.01
+72.89
+51.20
+52.41
+60.24
+77.11
++4.22
+74.39
+70.48
+50.00
+71.08
+75.30
++0.91
+69.28
+69.28
+57.23
+75.30
+78.31
++9.03
+
+64.42
+40.49
+47.85
+39.26
+71.17
++6.75
+71.78
+42.33
+55.21
+53.99
+78.53
++6.75
+71.78
+44.79
+69.33
+63.80
+75.46
++3.68
+79.75
+57.06
+53.99
+59.51
+81.60
++1.85
+58.90
+38.65
+44.79
+29.45
+66.87
++7.97
+69.94
+50.31
+46.63
+53.99
+71.17
++1.23
+71.78
+58.90
+68.71
+58.28
+73.01
++1.23
+71.78
+58.28
+54.60
+70.55
+74.23
++2.45
+76.69
+74.85
+60.12
+75.46
+79.14
++2.45
+76.07
+72.39
+60.74
+78.53
+83.44
++7.37
+
+66.99
+30.10
+54.36
+38.83
+68.93
++1.94
+73.79
+43.69
+48.54
+54.36
+79.61
++5.82
+66.99
+43.69
+66.02
+64.08
+72.82
++5.83
+66.99
+46.60
+44.66
+56.31
+76.70
++9.71
+59.22
+33.01
+46.60
+27.18
+64.08
++4.86
+66.99
+52.43
+52.43
+51.46
+77.67
++10.68
+74.76
+52.43
+66.99
+59.22
+78.64
++3.88
+74.76
+50.49
+57.28
+73.79
+78.64
++3.88
+73.79
+71.84
+51.46
+77.67
+75.73
++1.94
+73.79
+70.87
+59.22
+78.64
+78.64
++4.85
+
+42.43
+19.39
+26.21
+21.13
+36.74
+-5.69
+51.05
+26.70
+25.91
+30.04
+48.95
+-2.10
+54.04
+29.68
+31.18
+36.27
+49.13
+-4.91
+57.87
+33.51
+31.11
+35.43
+55.36
+-2.51
+39.86
+20.89
+24.18
+19.87
+32.91
+-6.95
+50.75
+26.81
+30.46
+35.73
+43.87
+-6.88
+51.89
+29.74
+31.18
+34.41
+50.87
+-1.02
+51.94
+31.60
+30.10
+42.97
+49.97
+-1.97
+49.67
+41.53
+36.39
+50.99
+60.80
++11.13
+52.36
+41.77
+36.80
+52.54
+63.61
++11.25
+
+53.15
+26.62
+34.07
+27.68
+51.38
+-1.77
+61.58
+32.74
+36.73
+38.86
+58.03
+-3.55
+65.66
+33.54
+42.86
+44.54
+61.93
+-3.73
+67.70
+36.82
+42.77
+44.19
+66.99
+-0.71
+50.40
+27.15
+35.40
+23.96
+44.90
+-5.50
+62.64
+38.24
+41.08
+45.70
+58.74
+-3.90
+64.24
+43.03
+43.48
+43.66
+62.29
+-1.95
+62.73
+41.08
+38.69
+49.16
+58.65
+-4.08
+51.73
+56.52
+40.73
+62.91
+70.45
++18.72
+69.48
+52.97
+45.06
+65.04
+74.37
++4.89
+
+58.34
+30.15
+38.51
+28.81
+57.61
+-0.73
+65.22
+40.00
+40.60
+40.75
+64.33
+-0.89
+65.67
+40.60
+49.10
+45.37
+65.52
+-0.15
+70.44
+42.69
+49.70
+46.87
+68.81
+-1.63
+53.58
+34.03
+42.09
+20.90
+48.36
+-5.22
+64.78
+43.73
+44.18
+46.87
+63.88
+-0.90
+64.63
+45.82
+47.61
+44.93
+63.58
+-1.05
+67.61
+47.76
+46.72
+54.18
+64.03
+-3.58
+57.76
+55.67
+42.54
+65.22
+71.94
++14.18
+71.04
+55.07
+44.18
+69.25
+74.18
++3.14
+
+57.27
+30.40
+36.78
+31.28
+59.91
++2.64
+67.18
+42.51
+42.29
+44.27
+67.00
+-0.18
+65.64
+43.61
+51.98
+49.12
+67.62
++1.98
+68.50
+49.12
+47.58
+49.78
+72.91
++4.41
+54.63
+31.72
+40.75
+15.42
+47.14
+-7.49
+70.26
+52.20
+44.93
+52.64
+66.96
+-3.30
+67.18
+51.76
+50.00
+50.22
+67.84
++0.66
+68.06
+52.20
+46.92
+57.49
+65.86
+-2.20
+66.30
+62.33
+44.71
+68.50
+75.33
++9.03
+70.93
+61.01
+42.07
+68.50
+81.72
++10.79
+
+20
+
+Table A5: The Acc. ↑ results on the PopQA dataset by concept obtained with the global random
+traverse. Any changes compared to the original proposed AMR-based concept distillation algorithm
+are marked.
+
+K
+
+LLMs
+
+GPT-N-1.3B
+GPT-N-2.7B
+OPT-1.3B
+OPT-2.7B
+Bloom-560m
+Bloom-1b1
+Bloom-1b7
+Bloom-3b
+LLaMA-2-chat-7b
+LLaMA-2-chat-13b
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+34.96
+43.09
+47.56
+49.86
+35.91
+42.28
+47.43
+49.73
+62.73
+62.06
+
+55.62
+61.36
+63.12
+65.11
+48.58
+58.68
+61.51
+60.67
+74.06
+73.14
+
+60.43
+63.51
+63.51
+68.96
+53.08
+65.40
+66.82
+64.22
+74.64
+76.54
+
+64.50
+69.85
+76.34
+71.76
+67.56
+71.76
+74.81
+71.76
+76.72
+78.63
+
+63.35
+74.53
+72.05
+70.80
+68.32
+78.81
+73.91
+74.53
+78.26
+75.78
+
+76.82
+72.84
+74.17
+80.79
+71.52
+83.44
+82.78
+79.47
+87.42
+84.11
+
+75.00
+77.78
+77.78
+81.48
+67.59
+83.33
+84.26
+85.19
+85.19
+82.41
+
+75.93
+89.87
+87.34
+89.87
+83.54
+88.61
+93.67
+84.81
+86.08
+83.54
+
+80.30
+74.24
+77.27
+81.81
+80.30
+86.36
+84.85
+83.33
+86.36
+78.79
+
+94.29
+82.86
+95.71
+90.00
+94.29
+90.00
+95.71
+95.71
+92.86
+90.00
+
+Table A6: The Acc. ↑ results on the EntityQuestions dataset by concept obtained with the global
+random traverse. The symbol definitions are the same with Table A5.
+
+K
+
+LLMs
+
+GPT-N-1.3B
+GPT-N-2.7B
+OPT-1.3B
+OPT-2.7B
+Bloom-560m
+Bloom-1b1
+Bloom-1b7
+Bloom-3b
+LLaMA-2-chat-7b
+LLaMA-2-chat-13b
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+36.74
+48.95
+49.13
+55.36
+32.91
+43.87
+50.87
+49.97
+60.80
+63.61
+
+51.38
+58.03
+61.93
+66.99
+44.90
+58.74
+62.29
+58.65
+70.45
+74.37
+
+57.61
+64.33
+65.52
+68.81
+48.36
+63.88
+63.58
+64.03
+71.94
+74.18
+
+59.91
+66.96
+67.62
+72.91
+47.14
+66.96
+67.84
+65.86
+75.33
+81.72
+
+61.49
+65.67
+65.07
+69.85
+49.85
+66.27
+66.87
+68.36
+74.03
+80.00
+
+67.05
+70.83
+71.97
+77.65
+60.23
+73.11
+75.38
+74.62
+77.27
+81.44
+
+65.31
+72.96
+70.41
+67.86
+57.65
+68.37
+68.37
+69.90
+72.45
+79.08
+
+57.83
+70.48
+65.66
+73.49
+51.81
+62.65
+73.49
+72.89
+75.30
+78.31
+
+71.17
+78.53
+75.46
+81.60
+66.87
+71.17
+71.78
+74.23
+79.14
+83.44
+
+66.99
+73.79
+66.99
+66.99
+59.22
+66.99
+74.76
+74.76
+73.79
+78.64
+
+Table A7: The Acc. ↑ results on the PopQA dataset by concept obtained with the local random
+traverse. Any changes compared to the original proposed AMR-based concept distillation algorithm
+are marked.
+
+K
+
+LLMs
+
+GPT-N-1.3B
+GPT-N-2.7B
+OPT-1.3B
+OPT-2.7B
+Bloom-560m
+Bloom-1b1
+Bloom-1b7
+Bloom-3b
+LLaMA-2-chat-7b
+LLaMA-2-chat-13b
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+34.55
+42.82
+47.56
+49.86
+35.37
+42.55
+47.56
+49.59
+62.60
+61.52
+
+55.39
+61.36
+62.82
+65.11
+48.43
+58.45
+61.44
+60.67
+74.06
+73.60
+
+60.90
+63.51
+63.03
+68.96
+54.98
+65.88
+66.82
+64.21
+74.64
+76.30
+
+64.89
+69.85
+75.57
+71.37
+67.56
+71.37
+75.19
+71.76
+76.72
+77.86
+
+63.98
+73.29
+72.67
+70.81
+68.32
+79.50
+73.91
+74.53
+78.88
+75.16
+
+76.82
+72.85
+75.50
+80.79
+71.52
+83.44
+82.78
+79.47
+87.42
+84.11
+
+75.93
+77.78
+76.85
+81.48
+65.79
+83.33
+83.33
+86.11
+83.33
+83.33
+
+75.95
+89.87
+87.34
+89.87
+83.54
+87.34
+93.67
+84.81
+86.08
+83.54
+
+80.30
+72.73
+77.27
+81.81
+80.30
+86.36
+84.85
+83.33
+84.85
+75.76
+
+94.29
+81.43
+95.71
+90.00
+92.86
+90.00
+94.29
+94.29
+91.43
+91.43
+
+21
+
+Table A8: The Acc. ↑ results on the EntityQuestions dataset by concept obtained with the local
+random traverse. The symbol definitions are the same with Table A7.
+
+K
+
+LLMs
+
+GPT-N-1.3B
+GPT-N-2.7B
+OPT-1.3B
+OPT-2.7B
+Bloom-560m
+Bloom-1b1
+Bloom-1b7
+Bloom-3b
+LLaMA-2-chat-7b
+LLaMA-2-chat-13b
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+36.44
+48.89
+49.07
+55.36
+32.91
+43.87
+50.87
+49.85
+59.90
+64.09
+
+51.20
+58.30
+62.20
+66.90
+44.90
+58.65
+62.29
+58.39
+70.90
+73.82
+
+57.61
+64.48
+65.22
+68.81
+47.76
+63.88
+64.03
+64.03
+72.39
+73.43
+
+59.91
+67.00
+67.62
+72.69
+47.14
+66.96
+67.84
+65.86
+73.73
+81.72
+
+61.49
+65.67
+68.06
+72.83
+49.25
+65.67
+72.24
+68.36
+74.03
+80.00
+
+66.67
+72.21
+74.24
+77.65
+65.53
+72.73
+75.38
+75.38
+77.27
+80.30
+
+65.31
+72.96
+70.41
+67.35
+56.63
+68.37
+68.37
+69.90
+72.45
+78.57
+
+62.65
+71.08
+65.66
+73.49
+54.22
+71.08
+74.09
+77.11
+75.30
+77.11
+
+71.17
+78.53
+73.62
+82.20
+65.03
+70.55
+71.16
+75.46
+80.37
+82.82
+
+66.02
+79.61
+72.82
+76.70
+60.19
+77.67
+73.79
+78.64
+74.76
+78.64
+
+highest compression ratio on the PopQA dataset. In contrast, although the Keywords-based compres-
+sion method exhibits a 6.92% higher compression ratio on the EntityQuestions dataset compared to
+ours, its performance lags behind the proposed algorithm in preserving core concepts. Compared to
+the other two baselines, our method shows a significant advantage in terms of compression ratio.
+
+Figure A2: The word-level compression ratio of different context compression methods, while we
+take the length of the "Vanilla" method as the standard (100.00%), and the numbers above the
+histogram represent the length reduction compared to "Vanilla".
+
+F Inference Latency
+
+This section analyses the inference latency by providing the inference time comparison of backbone
+LLMs with different compression methods, the result is shown in Fig. A3. The findings reveal that
+the context compressed by our method has a significant advantage in the inference of most LLMs.
+Moreover, the context compressed by the Keywords method also exhibits shorter inference times,
+which aligns with the trend observed in the previous compression ratio analysis.
+
+22
+
+Figure A3: The inference time comparison of different context compression methods. The values in
+the histogram represent the inference time for each model on a single item, measured in milliseconds.
+
+23

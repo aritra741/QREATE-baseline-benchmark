@@ -1,0 +1,2224 @@
+BudgetLeak: Membership Inference Attacks on RAG Systems
+via the Generation Budget Side Channel
+
+Hao Li1, Jiajun He1, Guangshuo Wang1, Dengguo Feng1, Zheng Li2,†, and Min Zhang1,†
+
+1Institute of Software, Chinese Academy of Sciences
+2Shandong University
+
+5
+2
+0
+2
+
+v
+o
+N
+5
+1
+
+]
+
+R
+C
+.
+s
+c
+[
+
+1
+v
+3
+4
+0
+2
+1
+.
+1
+1
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Retrieval-Augmented Generation (RAG) enhances large lan-
+guage models by integrating external knowledge, but re-
+liance on proprietary or sensitive corpora poses various data
+risks, including privacy leakage and unauthorized data usage.
+Membership inference attacks (MIAs) are a common tech-
+nique to assess such risks, yet existing approaches underper-
+form in RAG due to black-box constraints and the absence of
+strong membership signals.
+
+In this paper, we identify a previously unexplored side
+channel in RAG systems: the generation budget, which con-
+trols the maximum number of tokens allowed in a generated
+response. Varying this budget reveals observable behavioral
+patterns between member and non-member queries, as mem-
+bers gain quality more rapidly with larger budgets. Building
+on this insight, we propose BudgetLeak, a novel membership
+inference attack that probes responses under different bud-
+gets and analyzes metric evolution via sequence modeling or
+clustering. Extensive experiments across four datasets, three
+LLM generators, and two retrievers demonstrate that Bud-
+getLeak consistently outperforms existing baselines, while
+maintaining high efficiency and practical viability. Our find-
+ings reveal a previously overlooked data risk in RAG systems
+and highlight the need for new defenses.
+
+1 Introduction
+
+With the rapid expansion of training corpora and model
+sizes, large language models (LLMs) such as GPT-4 [4],
+LLaMA [52], Mistral [24], and ChatGLM [67] have demon-
+strated remarkable generative capabilities, significantly im-
+pacting both professional domains and everyday interactions.
+Despite these advances, LLMs continue to face fundamen-
+tal challenges, including hallucinations [49, 63] and outdated
+knowledge [15, 26], which raise serious concerns about their
+reliability in real-world applications. A widely adopted ap-
+proach to address these issues is Retrieval-Augmented Gen-
+eration (RAG) [14, 15, 28], which improves response quality
+by incorporating up-to-date and contextually relevant exter-
+nal information into the generation process.
+
+†Corresponding authors.
+
+(a) Similarity Scores
+
+(b) Response Accuracy
+
+Figure 1: Distribution of similarity scores and response accu-
+racy on RAG with LLaMA over HealthCareMagic-100k.
+
+At the same time, the dependence of RAG systems on ex-
+ternal databases, particularly those containing sensitive in-
+formation, introduces significant privacy and security risks.
+In the healthcare domain, systems such as MedPlan may en-
+rich with patient-specific information retrieved from external
+sources, enhancing the quality of clinical assessments and
+personalized recommendations. Such integration, however,
+raises concerns about unauthorized access to highly sensi-
+tive patient data [21]. A similar issue arises in the finan-
+cial sector, where RAG systems employed for financial in-
+tent detection like BAI-Fintent often rely on key transaction
+records, which—if improperly secured—could expose con-
+fidential financial information [51, 55]. In the cryptography
+domain, tools like CRYPTOSCOPE search for vulnerability
+cases stored in an external database to support cryptographic
+logic vulnerability detection. This practice increases the like-
+lihood of security preferences being exposed [34]. These
+examples underscore the importance of carefully examining
+how sensitive data is ingested and protected in RAG-based
+applications.
+
+To address this challenge, we investigate membership in-
+ference attacks (MIAs), a well-established class of tech-
+niques for evaluating privacy risks and unauthorized data ex-
+posure. MIAs assess whether a given sample was included in
+a model’s training set by analyzing the model’s prediction be-
+havior. In RAG systems, however, the goal shifts to identify-
+ing whether a data sample resides in the system’s knowledge
+base. Several methods have been proposed for this purpose.
+Li et al. [32] divided a target sample into two segments, sub-
+
+1
+
+0.00.20.40.60.81.0050100150200FrequencyMemberNon-member0.00.20.40.60.81.00204060FrequencyMemberNon-member 
+ 
+ 
+ 
+ 
+ 
+mitted the first segment to the RAG system, and measured the
+similarity between the generated continuation and the second
+segment as a membership indicator. Liu et al. [36] masked
+key tokens in the target sample and queried the RAG system
+to fill in the blanks, using fill-in accuracy as the member-
+ship score. Naseh et al. [39] converted the target sample into
+a set of Yes/No questions and evaluated the RAG system’s
+responses, with accuracy serving as the membership signal.
+These approaches compensate for the lack of conventional
+numerical signals (e.g., loss, confidence, entropy) in RAG
+outputs. In general, member samples yield higher similar-
+ity, fill-in accuracy, and response accuracy, reflecting better
+overall output quality.
+
+Unfortunately, these signals are insufficient for reliable
+membership inference. As shown in Figure 1 (see more in
+Appendix Figure 12), members and non-members exhibit
+substantial overlap across these metrics. This ambiguity
+stems from the fact that RAG output quality is influenced by
+multiple factors beyond membership. First, responses quality
+depends not only on whether the input appears in the external
+knowledge base, but also on whether the internal language
+model encodes semantically related information. Bi et al. [9]
+show that the balance between internal and external knowl-
+edge can be tuned during generation, but such control is in-
+feasible in real-world black-box scenarios. Second, response
+quality varies with sample diversity, a well-known challenge
+in membership inference [10, 19, 44, 58]. Wang et al. [54]
+address this by assuming that the adversary has access to all
+target samples and apply a one-time calibration using shared
+in/out RAGs. While effective, this reduces the MIA task to
+ranking samples within a fixed dataset, which is unrealistic
+in practice. Therefore, extracting reliable membership sig-
+nals from RAG systems without such assumptions remains
+technically challenging.
+
+To fill this gap, we introduce a previously unexplored side-
+the generation budget,
+channel for membership inference:
+defined as the maximum token limit for generated responses.
+To our knowledge, this is the first study to show that this
+parameter systematically leaks membership information in
+RAG systems. When the generation budget is small, re-
+sponses are compressed, often omitting details and reduc-
+ing similarity to the ground-truth answer. With a large bud-
+get, the system produces more informative and specific con-
+tent, yielding outputs that better align semantically with the
+ground truth. This effect differs between member and non-
+member queries. For member queries, where the ground-
+truth answer is typically included in the retrieved context,
+larger budgets enable the generator to reconstruct detailed
+responses more effectively, leading to sharper improvements
+in similarity or fidelity metrics. Non-member queries show
+weaker gains under the same conditions. This divergence in
+response patterns constitutes a novel and practical side chan-
+nel for membership inference attacks.
+
+Based on this observation, we present BudgetLeak, a
+novel side-channel membership inference attack that exploits
+the generation budget as a leakage signal in RAG systems.
+Specifically, BudgetLeak leverages generation budget sensi-
+tivity to distinguish members from non-members. The adver-
+
+2
+
+sary repeatedly queries the RAG system with a target sam-
+ple under varying the generation budget (e.g., 10, 20, 30 to-
+kens) until it exceeds the ground-truth answer length. For
+each response, the adversary computes its semantic similar-
+ity or other fidelity metrics relative to the ground-truth an-
+swer. These metric values are then ordered by the genera-
+tion budget to form sequences, which are aggregated into a
+unified multi-metric representation. This representation cap-
+tures how metrics evolve with increasing budgets, including
+growth patterns, fluctuations, and cross-metric correlations.
+The adversary inputs this representation into a sequence at-
+tack model, such as a Recurrent Neural Network (RNN),
+to learn the temporal and relational patterns that distinguish
+members from non-members. We also propose an unsu-
+pervised variant that removes the need for model training.
+Here, the adversary directly clusters the feature vectors de-
+rived from metric sequences, with the cluster showing higher
+similarity identified as the member group.
+
+We conduct extensive experiments on four benchmark
+datasets across multiple RAG configurations, combining two
+retrievers with three LLMs. BudgetLeak consistently out-
+For
+performs baseline methods in nearly all scenarios.
+example, with LLaMA as the generator and MiniLM as
+the retriever, BudgetLeak achieves 0.982 accuracy on the
+HealthCareMagic-100k dataset, compared to a maximum of
+0.761 by the baselines. Furthermore, we investigate factors
+affecting attack performance and evaluate the robustness un-
+der various defense mechanisms. The results confirm that
+BudgetLeak achieves the best attack performance.
+In summary, our contributions are as follows:
+
+• We identify an unexplored side channel in RAG sys-
+tems, the generation budget, defined as the maximum
+token limit for generated responses. We reveal distinct
+patterns between member and non-member queries and
+further analyze the root causes.
+
+• We propose BudgetLeak, a side-channel membership
+inference attack that exploits generation budget sensi-
+tivity to distinguish members from non-members. Bud-
+getLeak operates under two adversarial settings: (i) a
+partial-knowledge adversary, who can create a shadow
+RAG using knowledge of both the data distribution
+and the RAG architecture, and train a sequential at-
+tack model on multi-metric sequences; and (ii) a zero-
+knowledge adversary, who lacks any knowledge of the
+RAG and relies on unsupervised clustering of feature
+vectors from these sequences.
+
+• We evaluate BudgetLeak through extensive experi-
+ments, showing that it consistently outperforms all base-
+lines. We also analyze key factors that affect its ef-
+fectiveness, and confirm that BudgetLeak consistently
+achieves the best attack performance.
+
+2 Preliminaries and Related Works
+
+2.1 Retrieval-Augmented Generation
+Retrieval-Augmented Generation (RAG), first introduced by
+Lewis et al. [28], integrates retrieval mechanisms with gen-
+
+erative models by dynamically incorporating external knowl-
+edge as contextual input. This approach reduces reliance
+on static parameters and has inspired extensive follow-up
+work to improve retrieval accuracy and output relevance
+[6, 22, 25, 62].
+
+Recent research has extended RAG systems with more ex-
+pressive knowledge representations. One direction is Graph-
+RAG, which constructs knowledge graphs or semantic net-
+works to capture inter-entity relationships, enhancing seman-
+tic coverage and contextual coherence [17, 43]. Another line
+of work focuses on multimodal RAG, which integrates in-
+formation from multiple modalities such as text, images, and
+video to better reflect the heterogeneous nature of real-world
+knowledge [60, 61].
+
+While these developments aim to improve generation
+quality, the data risks of traditional RAG systems, such as
+privacy leakage and unauthorized data usage, remain under-
+explored. Motivated by this gap, our work focuses on the
+canonical RAG pipeline, which consists of two components:
+a retriever and a generator.
+Retriever. The retriever R is designed to search for k relevant
+results X = {x1, x2, ..., xk} from an external knowledge base
+D given an input query q, as formalized in Equation 1.
+
+X = R(q, D).
+
+(1)
+
+Generator. The generator G takes the retrieved results X
+as contextual information for the input query q and guides
+a large language model M to generate an answer token by
+token. The generation of the next token tl is defined in Equa-
+tion 2. The final answer a consists of the generated tokens
+t1:n, that is, a = t1:n.
+
+tl = G(q, X,t1:l−1, M).
+
+(2)
+
+2.2 Metrics for RAG
+Here, we introduce several widely used metrics for evaluat-
+ing the quality of text generated by RAG systems.
+Semantic Similarity. Semantic similarity is a key metric for
+assessing the quality of RAG outputs [45, 59]. While various
+methods exist for measuring semantic similarity, following
+[32], we adopt cosine similarity as a standard approach in this
+work. It computes similarity by encoding the generated and
+original texts into embedding vectors using the same model,
+and then measuring the cosine of the angle between them.
+Higher scores indicate stronger semantic alignment and bet-
+ter generation quality.
+ROUGE. ROUGE (Recall-Oriented Understudy for Gisting
+Evaluation) [18, 35] is a widely used metric for evaluating
+the quality of generated text.
+In the context of RAG sys-
+tems, it measures lexical similarity by computing n-gram
+overlap between generated responses and ground-truth ref-
+erences. Common variants include ROUGE-N, which cal-
+culates n-gram overlap, and ROUGE-L, which captures the
+longest common subsequence. Higher ROUGE scores indi-
+cate stronger lexical recall concerning the reference.
+BLEU. BLEU (Bilingual Evaluation Understudy) [42] is an-
+other widely used metric, originally proposed for machine
+translation. It computes n-gram precision between generated
+
+outputs and reference texts. BLEU has also been adopted
+in RAG evaluation settings [18] to quantify lexical overlap.
+Unlike ROUGE, which emphasizes recall, BLEU focuses on
+precision. Higher BLEU scores indicate greater lexical pre-
+cision and thus better alignment with the reference.
+Edit Distance. Edit distance, also known as Levenshtein
+distance [66], measures the minimum number of edit op-
+erations, including insertions, deletions, and substitutions,
+required to transform one string into another. A smaller
+edit distance indicates greater character-level similarity be-
+tween generated responses and ground-truth references, cor-
+responding to higher generation quality.
+
+2.3 Membership Inference Attacks
+
+Membership inference attacks (MIAs) aim to determine
+whether a given sample was used in a model’s training set.
+Since the seminal work by Shokri et al. [48], MIAs have
+been extensively studied across various settings, including
+white-box [44], black-box [46, 65], label-only [31, 33], and
+federated learning [11, 41].
+
+Early approaches, such as those by Shokri et al. [48] and
+Salem et al. [46], introduced the shadow model framework,
+where multiple shadow models simulate the target model’s
+behavior, and an attack classifier is trained on their outputs.
+Later, Song et al. [50] proposed a more direct threshold-
+based method, which compares metrics (e.g., loss, entropy)
+derived from model outputs against predefined thresholds.
+Carlini et al. [10] further improved this by introducing dif-
+ficulty calibration, adjusting thresholds based on the learning
+difficulty of each sample. This idea was expanded in subse-
+quent studies [19,58,64]. More recently, Li et al. [30] demon-
+strated that membership signals can be effectively extracted
+during training. With the rise of LLMs, MIAs have also been
+explored in this context. The Min-K% Prob method [47]
+assumes that tokens with higher predicted probabilities are
+more likely to be from training data. Zhang et al. [68] pro-
+posed a divergence-based calibration method that compares
+the token probability distribution with the token frequency
+distribution to derive detection scores.
+
+In contrast to conventional LLMs, RAG incorporates ex-
+ternal information from a knowledge base during generation,
+without requiring fine-tuning. The MIA goal in this setting
+is to determine whether a given sample x is present in the
+knowledge base D. To achieve this, adversaries craft tar-
+geted prompts and analyze the RAG’s responses. For ex-
+ample, Anderson et al. [5] directly queried the RAG system
+about the presence of x in the knowledge base, though this
+was shown to be easily mitigated using defense prompts [39].
+Further, Li et al. [32] truncated the target sample and inferred
+membership by measuring the cosine similarity between the
+RAG-generated continuation and the omitted portion. Wang
+et al. [54] extended this approach by applying a likelihood
+ratio test to further improve attack accuracy. Liu et al. [36]
+designed a mask-based attack, in which specific tokens are
+masked and the accuracy of their recovery is used for infer-
+ence. Naseh et al. [39] constructed a set of Yes/No questions
+from the target sample and queried the RAG system for an-
+swers, using response accuracy as a membership signal.
+
+3
+
+(a) Change Rate of ROUGE-1 (b) Fluctuations of ROUGE-1
+
+Figure 2: Metric change rate and cumulative fluctuation distri-
+bution under varying generation budgets in RAG with LLaMA
+on HealthCareMagic-100k.
+
+(a) Member
+
+(b) Non-member
+
+Figure 3: Differences in cross-metric correlations between
+members and non-members
+in RAG with LLaMA on
+HealthCareMagic-100k.
+
+3 Attack Methodology
+
+3.1 Threat Model
+
+We study membership inference attacks against RAG sys-
+tems under black-box access. We consider two adversarial
+settings: a partial-knowledge adversary, which aligns with
+prior work, and a stricter zero-knowledge adversary, which
+better reflects real-world deployments.
+Adversarial Scenario. The adversary interacts with the
+RAG system only through its public interface. By submitting
+queries and observing textual outputs, the adversary aims to
+infer whether a target sample belongs to the private knowl-
+edge base D.
+Adversary’s Goal. The adversary’s objective is to determine
+membership of specific data records in D without direct ac-
+cess to the retriever R, the generator G, or intermediate com-
+putations. This can violate data confidentiality. Besides, data
+owners can also leverage this technique to protect their data
+copyright when data is used without permission.
+Adversary’s Capabilities. We distinguish two levels of ad-
+versarial knowledge:
+
+• Partial-knowledge adversary. This model reflects as-
+
+sumptions made in prior studies [32, 36, 39, 54].
+
+– Black-box access: The adversary can query the
+
+system and observe outputs only.
+
+– Knowledge of data distribution: The adversary
+knows the distribution underlying D and can sam-
+ple from it, but cannot access D directly.
+
+– Knowledge of architecture: The adversary knows
+the high-level structure of the RAG system, e.g.,
+retriever and generator types.
+
+• Zero-knowledge adversary. This stricter model cap-
+
+tures more realistic deployment scenarios.
+
+– Black-box access only: Same as above.
+
+– No prior knowledge: The adversary lacks any in-
+formation about the data distribution or the RAG
+system’s architecture.
+
+The zero-knowledge adversary represents a practical yet
+
+underexplored threat model in current literature.
+
+3.2 Design Intuition
+
+As noted earlier, existing MIAs on RAG systems [32, 36, 39]
+often suffer from weak membership signals. This motivates
+us to examine alternative channels of membership leakage.
+We observe a strong correlation between output quality (i.e.,
+closeness to ground truth) and generation budget (i.e., output
+length). In general, a larger generation budget enables a RAG
+system to produce more detailed responses, thereby improv-
+ing answer quality. Building on this intuition, we analyzed
+the mechanism and identified three key patterns, namely rate-
+of-change, cumulative fluctuation, and cross-metric correla-
+tions.
+Rate-of-Change. We first observe that RAG systems ex-
+hibit a much faster quality improvement in response quality
+for member queries as the generation budget increases. Fig-
+ure 2a shows this trend using ROUGE-1 scores over 1,000
+member and 1,000 non-member queries, with the budget
+ranging from 10 to 270 tokens. This discrepancy stems from
+the RAG system’s ability to retrieve ground-truth content for
+member queries, enabling both semantic and lexical align-
+ment. With a larger budget, the system efficiently approxi-
+mates the correct answer. In contrast, non-member queries
+lack such support and rely solely on the generator’s paramet-
+ric knowledge, resulting in slower and often lower-quality
+improvements. We define this varying rate of quality im-
+provement as a rate-of-change signal.
+Cumulative Fluctuation. Next, we analyze how the out-
+put quality fluctuates with increasing generation budget, and
+whether this behavior differs between member and non-
+member samples. Figure 2b shows the distribution of cumu-
+lative quality fluctuation, measured as the sum of absolute
+differences in ROUGE-1 scores between adjacent generation
+budgets, for 1,000 member and 1,000 non-member queries.
+A clear divergence emerges: member samples exhibit greater
+fluctuation. This occurs because, as the budget grows, mem-
+ber queries leverage ground-truth content from the knowl-
+edge base, producing sharper quality gains. In contrast, non-
+member queries lack such support, resulting in smaller varia-
+tions. We refer to this divergence as a cumulative fluctuation
+signal.
+Cross-metric Correlations.
+Furthermore, we explore
+whether different quality metrics—such as semantic similar-
+ity and lexical measures like ROUGE-1 and BLEU—exhibit
+
+4
+
+105090130170210250Tokens0.20.40.60.8ROUGE-1MemberNon-member0.00.20.40.60.81.0NormalizedFluctuation0100200FrequencyMemberNon-memberSimilarityROUGE-1ROUGE-2BLEUSimilarityROUGE-1ROUGE-2BLEU10.770.60.530.7710.920.880.60.9210.890.530.880.8910.60.70.80.91.0SimilarityROUGE-1ROUGE-2BLEUSimilarityROUGE-1ROUGE-2BLEU10.770.490.360.7710.690.610.490.6910.840.360.610.8410.40.60.81.0consistent trends as the generation budget increases. Fig-
+ure 3 shows the correlation of these metrics across varying
+budgets. We observe that member queries tend to exhibit
+stronger cross-metric correlations. For instance, the corre-
+lation between ROUGE-1 and BLEU is 0.88 for member
+queries, compared to 0.61 for non-member queries. This
+occurs because RAG responses for member queries tend to
+align with the ground-truth answer both semantically and
+lexically. In contrast, non-member responses may be seman-
+tically close to the ground-truth but use different wording,
+resulting in lower lexical similarity. We refer to this dis-
+tinction as a correlation signal between member and non-
+member samples.
+Attack Strategy. At a high level, our attack strategy queries
+the RAG system multiple times for each target data sample,
+varying the generation budget each time. Then we record
+quality metrics at each budget to form a multi-metric se-
+quence that captures how output quality evolves. We finally
+distinguish members from non-members by leveraging pat-
+terns in quality dynamics and cross-metric correlations.
+
+3.3 Partial-knowledge Adversary
+
+Based on the above, we introduce BudgetLeak, a novel mem-
+bership inference attack against RAG systems that exploits
+generation budget as a side channel. We refer to BudgetLeak
+under the partial-knowledge adversary as BudgetLeak-P.
+As illustrated in Figure 4, the attack involves four stages:
+shadow RAG construction, multi-metric sequence genera-
+tion, attack model training, and membership inference.
+Shadow RAG Construction. Under the partial-knowledge
+setting, the adversary holds a shadow dataset that is i.i.d.
+with the target RAG system’s knowledge base. This dataset
+is split into two parts: one to build a shadow RAG (mem-
+ber samples) and the other to serve as non-member samples.
+Given that the adversary knows the generator and retriever
+of the target RAG system, the shadow RAG is built with
+the same components and an i.i.d. knowledge base. Con-
+sequently, the shadow RAG reproduces the target’s behavior,
+yielding high-quality outputs for member queries and lower-
+quality outputs for non-member queries, as measured by se-
+mantic similarity or related metrics.
+Multi-metric Sequence Generation. The adversary builds
+a multi-metric sequence for each member and non-member
+sample of the shadow RAG system using the generation
+budget side channel. Each sample is queried with n dif-
+ferent budgets, producing n responses. For each response,
+a similarity score to the ground-truth answer is computed,
+and the scores are ordered according to increasing genera-
+tion budgets, forming a similarity sequence. Additional se-
+quences are computed using metrics such as ROUGE-1 and
+BLEU. Combining m such sequences yields an m × n matrix,
+called the multi-metric sequence, which captures how re-
+sponse quality evolves across metrics as the generation bud-
+get increases.
+Attack Model Training. Because the shadow RAG is fully
+controlled by the adversary, membership labels can be ac-
+curately assigned to all sequences from the previous stage,
+yielding a labeled dataset of multi-metric sequences. This
+
+5
+
+dataset is then used to train a binary classifier for membership
+inference. The three membership-related patterns identified
+in Section 3.2 are sequential in nature, motivating the use
+of sequence models such as RNNs, attention-based RNNs,
+transformers, or recent variants like Mamba, which are well-
+suited to capture temporal dependencies. We evaluate sev-
+eral sequence-based models in Section 5.2 and find that the
+attention-based RNN performs best for our task. Its parame-
+ters are optimized by minimizing cross-entropy loss.
+Membership Inference. Once trained, the attack model in-
+fers membership status for target samples. The adversary
+follows the same procedure from the multi-metric sequence
+generation stage, querying the target RAG system multiple
+times under varying generation budgets. The responses gen-
+erate a multi-metric sequence for the target sample. The at-
+tack model processes this sequence and predicts whether the
+sample belongs to the target system’s knowledge base.
+
+3.4 Zero-knowledge Adversary
+
+We now present the zero-knowledge adversary, where the
+adversary lacks knowledge of the target RAG system’s in-
+ternal configurations and does not have access to a shadow
+dataset similar to the target knowledge base. This realistic
+scenario remains unexplored in prior MIA studies on RAG
+systems [32, 36, 39, 54]. To address this gap, we propose
+BudgetLeak-Z, a zero-knowledge MIA method using clus-
+tering techniques. As illustrated in Figure 4, the method
+comprises three stages: feature vector generation, clustering
+analysis, and membership inference.
+Feature Vector Generation. Similar to the Multi-metric
+Sequence Generation stage in BudgetLeak-P, the adversary
+leverages the generation budget side channel to obtain se-
+quences of similarity scores, ROUGE-1, or other metric val-
+ues for each sample. To satisfy the input requirements of
+clustering algorithms, these sequences are not aligned and
+assembled into a matrix but are instead directly concatenated
+into a single feature vector. To mitigate the impact of high di-
+mensionality, one semantic and one lexical metric sequence
+are selected and combined to capture how the sample’s re-
+sponse quality evolves with increasing generation budgets.
+Clustering Analysis. The adversary feeds the feature vec-
+tors of all target samples into a clustering module with two
+clusters, representing members and non-members. To iden-
+tify the member cluster, the adversary compares the average
+quality metrics of the clusters under the same generation bud-
+get. For example, in the case of similarity, the cluster with
+the higher average score is labeled as the member cluster,
+since member samples generally produce higher-quality re-
+sponses.
+Membership Inference. Based on the clustering results,
+the adversary infers membership by classifying samples in
+the member cluster as members and those in the other clus-
+ter as non-members. If fuzzy clustering algorithms such as
+Fuzzy C-Means (FCM) [8] are used in the Clustering Analy-
+sis stage, the adversary obtains membership probabilities for
+each sample, allowing more flexible thresholding to refine
+predictions. However, FCM is not mandatory—other clus-
+tering methods like K-means can also be used. Finally, for
+
+Figure 4: Overview of BudgetLeak.
+
+new samples not involved in the initial clustering, classifica-
+tion algorithms like K-Nearest Neighbors (KNN) [12] can be
+applied to infer membership without reclustering or retrain-
+ing.
+
+4 Experimental Setup
+
+4.1 Datasets
+
+To thoroughly evaluate the performance of our method,
+we conduct experiments on three question-answering (QA)
+datasets and one text classification dataset, covering both
+specialized and open-domain scenarios. HealthCareMagic-
+100k [1] consists of real-world conversations between pa-
+tients and doctors. MS-MARCO [7] and Natural Ques-
+tions [27] are widely used open-domain QA datasets released
+by Microsoft and Google, respectively. AGNews [69] is
+a four-class news topic classification dataset collected from
+over 2,000 news sources.
+
+We then partition the datasets for both attack and evalua-
+tion purposes. First, we preprocess by removing overly short
+entries, retaining only samples with at least 50 tokens. Fol-
+lowing the knowledge base size used in [36, 54], we ran-
+domly select 8,000 samples each to build the target RAG
+knowledge base Dt and the shadow RAG knowledge base
+Ds, ensuring no overlap between them. To enhance evalua-
+tion stability, we use a larger number of member and non-
+member samples than [36]. Specifically, we select 1,000
+
+samples from Dt and Ds as member samples for the target
+and shadow RAG systems, denoted as Dt
+in, respec-
+tively. Another 1,000 samples are drawn from the remaining
+data D \ (Dt ∪ Ds) for each system to serve as non-member
+samples, forming Dt
+out . All subsets are mutually
+exclusive.
+
+out and Ds
+
+in and Ds
+
+In this setup, the adversary cannot access the target knowl-
+in, nor the
+out . For BudgetLeak-P, the adversary
+in and
+out . For BudgetLeak-Z, the adversary has no access to any
+
+edge base Dt , including its member samples Dt
+non-member samples Dt
+has full access to the shadow dataset Ds, including Ds
+Ds
+shadow data.
+
+4.2 RAG Settings
+
+[24]
+
+In our experiments, we employ three widely used open-
+source LLMs as RAG generators: LLaMA [52] (Meta-
+Llama-3-8B-Instruct), Mistral
+(Mistral-7B-Instruct-
+v0.2), and ChatGLM [67] (GLM-4-9B-Chat). For the re-
+triever component, we use two commonly adopted em-
+bedding models: MiniLM [2](all-MiniLM-L6-v2) and
+BGE [3](bge-small-en-v1.5). By default, the number of re-
+trieved entries (top-k) is set to 4. We also evaluate alternative
+top-k values in the Section 5.2 to assess their impact.
+
+Similar to [32,39,54], we set the system prompt as “Please
+answer the question based on the provided context. Context:
+{context}. Question: {userInput}.” This prompt is part of
+the RAG system’s internal configuration and cannot be mod-
+
+6
+
+Target SamplesMNNNMembersNon-membersShadow RAG Construction1Multi-metric Sequence Generation2Membership Inference4Attack Model Training34…m metric sequencesn responses3Attack ModelMember orNon-member4Shadow RAGKnowledge baseShadow Dataset122n responses…2Target RAGKnowledge basen responses…444BudgetLeak-PTarget SamplesTarget RAGKnowledge baseFeature Vector Generation1Membership Inference3Clustering Analysis2BudgetLeak-Zn responses…111Semantic Feature ValuesnLexical Feature ValuesnClustering Module2Member orNon-member33ified by users or adversaries. Although slight variations may
+exist across different RAG systems to improve response qual-
+ity, all baselines and our method use the same system prompt
+for consistency.
+
+Regarding userInput, which refers to the input provided
+by the user or adversary to the RAG system, we follow the
+default configurations specified by each baseline. For our
+method, we use the question part of each QA dataset instance
+as the user prompt. In the case of the AGNews dataset, we
+adopt the approach from [32,54] and set userInput as “Com-
+plete this sentence {text} based on the context,” where text
+consists of the first 10 tokens of the news article.
+
+4.3 BudgetLeak Hyper-parameters
+
+The generation budget side channel is a core component of
+our approach. By default, we vary the generation budget,
+which refers to the maximum number of tokens that can be
+generated, from 10 to 270 in steps of 20. Each query is issued
+once under each budget setting. To further evaluate the prac-
+ticality of our method, we also explore its effectiveness with
+fewer queries to the target RAG system, as discussed in Sec-
+tion 6.2. In addition, we adopt an attention-based LSTM as
+the attack model. The number of training epochs ranges from
+200 to 500, depending on the complexity of the datasets. The
+learning rate is initially set to 0.01 and gradually decays to
+0.0005.
+
+4.4 Baselines
+
+To demonstrate the effectiveness of our proposed methods,
+we compare them against several recent MIA approaches tar-
+geting RAG systems, including S2MIA [32], DC-MIA [54],
+MBA [36], and IA [39]. Among these, MBA and IA repre-
+sent the current state-of-the-art.
+S2MIA. S2MIA [32] splits a target sample into two parts, in-
+puts the first part into the RAG system, and computes the
+similarity between the generated response and the second
+part. This similarity score serves as the membership in-
+ference signal, as member samples generally yield higher
+scores than non-members. Based on this, S2MIA proposes
+two supervised attack variants: one selects a threshold using
+a shadow dataset (S2MIA-T), and the other trains a binary
+classifier on shadow data (S2MIA-M). Although S2MIA also
+explores using response perplexity as an auxiliary signal, this
+requires access to internal model outputs and is thus infeasi-
+ble in black-box settings. Therefore, we evaluate only the
+similarity-based versions, S2MIA-T and S2MIA-M, in our
+experiments.
+Difficulty-Calibrated Membership Inference Attack (DC-
+MIA). DC-MIA [54] adopts a strategy akin to S2MIA
+for measuring the closeness between RAG-generated and
+ground-truth answers. Its key improvement lies in consider-
+ing varying query difficulty, which impacts similarity scores
+and membership inference. To address this, DC-MIA cali-
+brates membership scores via a likelihood ratio test [10, 19],
+leveraging multiple reference RAGs to enhance robustness
+and inference accuracy.
+Mask-Based Membership Inference Attack (MBA).
+MBA [36] masks a fixed number of specific tokens in a tar-
+
+7
+
+get text and feeds it to the RAG system for completion. The
+fill-in accuracy is used as the membership signal, since RAG
+systems typically perform better on member samples than on
+non-members.
+Interrogation Attack (IA). IA [39] uses an LLM to extract
+a summary from the target text and generates n Yes/No ques-
+tions along with their ground truth answers. For each ques-
+tion, the summary and the question are concatenated to form
+a query, which is then submitted to the target RAG system.
+This results in n queries per text. The membership inference
+signal is based on the accuracy of the target RAG system’s
+answers, which are typically higher for member samples than
+for non-members.
+
+Lastly, we adopt the default settings for key hyperparame-
+ters as specified in prior works [36, 39, 54]. Specifically, DC-
+MIA utilizes 16 reference RAGs; MBA masks 5 or 10 tokens
+per target sample depending on its length; and IA generates
+30 Yes/No questions per sample.
+
+4.5 Evaluation Metrics
+
+We consider the following evaluation metrics, which are
+widely adopted in recent studies on membership inference
+attacks [10, 19, 30, 32, 36, 39].
+Accuracy. Accuracy is one of the most commonly used met-
+rics for evaluating the performance of binary classification
+tasks. In our evaluation setup, the number of member and
+non-member samples is balanced, allowing this metric to
+reflect the model’s predictive performance on both classes.
+This is also referred to as balanced accuracy.
+AUC. The Area Under the Receiver Operating Characteristic
+Curve (AUC) measures a binary classifier’s ability to distin-
+guish between member and non-member samples. Higher
+AUC indicates better discriminative performance.
+TPR at Low FPR. The True Positive Rate (TPR) at low
+False Positive Rate (FPR), recommended by Carlini et
+al. [10], is widely used in recent membership inference stud-
+ies [10, 19, 30, 39].
+It reflects attack effectiveness under
+strict FPR constraints, highlighting practical utility. Follow-
+ing [10, 19, 30], we report TPR at 0.1% FPR.
+
+5 Experimental Results
+
+5.1 Overall Performance
+Performance of BudgetLeak-P. Figure 5, Figure 6, Fig-
+ure 7, and Figure 8 compare the performance of BudgetLeak-
+P with baseline attacks. The target RAG in these experiments
+uses MiniLM as the retriever, and the impact of different re-
+trievers is further analyzed in Section 5.2.
+
+BudgetLeak-P consistently achieves the best results across
+all cases.
+In particular, for TPR at 0.1% FPR, it outper-
+forms baselines by a large margin. For example, in Fig-
+ure 6, when attacking a RAG system with LLaMA on MS-
+MARCO, BudgetLeak-P achieves a TPR of 11.5%, while
+the best baseline reaches only 1.5%, representing a nearly
+8× improvement. In the same setting, BudgetLeak-P attains
+an accuracy of 0.959, compared to 0.734 from the best base-
+line—an absolute gain of 0.225, or a 30% relative improve-
+ment.
+
+Figure 5: Performance of various attacks against RAGs on the HealthCareMagic-100k dataset (BudgetLeak-P).
+
+Figure 6: Performance of various attacks against RAGs on the MS-MARCO dataset (BudgetLeak-P).
+
+Figure 7: Performance of various attacks against RAGs on the Natural Questions dataset (BudgetLeak-P).
+
+Figure 8: Performance of various attacks against RAGs on the AGNews dataset (BudgetLeak-P).
+
+In contrast, baseline attacks exhibit unstable performance
+across datasets. For instance, IA achieves the second-best
+AUC against ChatGLM on HealthCareMagic-100k (Fig-
+ure 5), yet ranks among the worst when attacking ChatGLM
+
+on MS-MARCO (Figure 6).
+
+The superior and stable performance of BudgetLeak-
+P stems from its ability to exploit a previously over-
+looked generation-budget side channel, where output quality
+
+8
+
+LLaMAMistralChatGLM0.010.020.030.040.050.060.0TPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PLLaMAMistralChatGLM0.50.60.70.80.91.0AccuracyLLaMAMistralChatGLM0.50.60.70.80.91.0AUCLLaMAMistralChatGLM0.05.010.015.020.025.0TPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PLLaMAMistralChatGLM0.50.60.70.80.91.0AccuracyLLaMAMistralChatGLM0.50.60.70.80.91.0AUCLLaMAMistralChatGLM0.00.51.01.52.02.5TPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PLLaMAMistralChatGLM0.50.60.70.80.91.0AccuracyLLaMAMistralChatGLM0.50.60.70.80.91.0AUCLLaMAMistralChatGLM0.05.010.015.020.025.0TPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PLLaMAMistralChatGLM0.50.60.70.80.91.0AccuracyLLaMAMistralChatGLM0.50.60.70.80.91.0AUCTable 1: Performance of various attacks against RAGs on four datasets (BudgetLeak-Z).
+
+Dataset
+
+LLaMA
+
+Mistral
+
+Method
+
+AUC Accuracy
+
+TPR at 0.1%
+FPR(%)
+
+Method
+
+AUC Accuracy
+
+TPR at 0.1%
+FPR(%)
+
+HealthCareMagic-100k
+
+Natural Questions
+
+MS-MARCO
+
+AGNews
+
+S2MIA
+DC-MIA
+MBA
+IA
+
+0.542
+0.587
+0.730
+0.714
+
+BudgetLeak-Z 0.978
+
+S2MIA
+DC-MIA
+MBA
+IA
+
+0.511
+0.521
+0.706
+0.766
+
+BudgetLeak-Z 0.884
+
+S2MIA
+DC-MIA
+MBA
+IA
+
+0.583
+0.551
+0.720
+0.723
+
+BudgetLeak-Z 0.983
+
+S2MIA
+DC-MIA
+MBA
+IA
+
+0.612
+0.641
+0.694
+0.910
+
+BudgetLeak-Z 0.978
+
+0.518
+0.587
+0.735
+0.700
+
+0.860
+
+0.516
+0.519
+0.702
+0.743
+
+0.738
+
+0.553
+0.550
+0.734
+0.668
+
+0.910
+
+0.610
+0.625
+0.693
+0.838
+
+0.888
+
+0.0
+0.0
+1.8
+1.5
+
+S2MIA
+DC-MIA
+MBA
+IA
+
+0.621
+0.715
+0.553
+0.809
+
+18.5
+
+BudgetLeak-Z 0.813
+
+0.2
+0.0
+0.0
+0.0
+
+0.1
+
+0.2
+0.0
+0.0
+1.5
+
+2.5
+
+0.0
+0.0
+0.0
+0.0
+
+1.4
+
+S2MIA
+DC-MIA
+MBA
+IA
+
+0.643
+0.626
+0.686
+0.733
+
+BudgetLeak-Z 0.689
+
+S2MIA
+DC-MIA
+MBA
+IA
+
+0.636
+0.645
+0.773
+0.744
+
+BudgetLeak-Z 0.914
+
+S2MIA
+DC-MIA
+MBA
+IA
+
+0.691
+0.799
+0.694
+0.880
+
+BudgetLeak-Z 0.905
+
+0.603
+0.595
+0.553
+0.755
+
+0.665
+
+0.626
+0.701
+0.661
+0.720
+
+0.702
+
+0.614
+0.612
+0.724
+0.710
+
+0.769
+
+0.644
+0.689
+0.657
+0.795
+
+0.807
+
+0.5
+1.4
+0.0
+0.0
+
+4.8
+
+0.1
+0.2
+0.0
+6.5
+
+0.3
+
+0.2
+0.0
+0.0
+0.0
+
+0.1
+
+0.4
+0.3
+0.0
+0.5
+
+2.3
+
+strongly correlates with output length. Consequently, mem-
+ber queries exhibit significant variations in response quality
+under different output length constraints, while non-member
+queries show less pronounced changes. These differences
+provide clear membership signals that BudgetLeak-P effec-
+tively leverages, leading to consistently strong performance
+across all evaluated datasets.
+Performance of BudgetLeak-Z. Here, we consider a more
+realistic and challenging attack setting where the adversary
+has no internal knowledge of the target RAG system and no
+access to data from the same distribution as its knowledge
+base. While some baseline methods were not designed for
+this scenario, we adapt them for comparison by applying the
+same clustering strategy as our BudgetLeak-Z. Specifically,
+we use semantic similarity for S2MIA, fill-in accuracy for
+MBA, response accuracy for IA, and calibrated score for DC-
+MIA, followed by FCM clustering to assign each sample a
+fuzzy membership score. These scores are then used to com-
+pute TPR at 0.1% FPR and AUC. For accuracy, we classify
+samples with a membership score above 0.5 as members.
+
+Table 1 compares the performance of BudgetLeak-Z with
+In most cases, BudgetLeak-Z achieves
+baseline methods.
+the best or second-best results. For instance, when attacking
+LLaMA with HealthCareMagic-100k, BudgetLeak-Z attains
+an AUC of 0.978, while the strongest baseline reaches only
+0.730, which corresponds to a 34% relative improvement.
+This highlights the strong discriminative power of the mem-
+bership signal derived from the generation budget side chan-
+nel. Although BudgetLeak-Z does not always outperform all
+baselines, its performance remains consistently close to the
+best. Notably, applying fuzzy clustering to the baseline mem-
+bership scores is an integral part of our methodology, which
+was not considered in the original designs of these baselines.
+
+5.2 Ablation Study
+
+In this section, we investigate several factors that influence
+the effectiveness of BudgetLeak attacks.
+Retrievers. The retriever is central to RAG systems. To as-
+sess its impact on attack performance, we test our method
+and baselines with an alternative embedding model, BGE [3],
+in addition to the default MiniLM [2] used in Section 5.1. We
+also design an ideal retriever that always returns the target
+member sample at the top of the context, serving as an upper
+bound on retrieval quality. As shown in Figure 9 and Fig-
+ure 10, BudgetLeak-P consistently outperforms all baselines
+across retrievers and settings. At a 0.1% FPR, it achieves a
+markedly higher TPR than competing methods. Additional
+results on BGE are provided in Appendix Table 6.
+
+This robustness stems from two factors. First, we use the
+question part of each sample, which reliably retrieves the cor-
+rect QA pair. Second, our side-channel manipulation ampli-
+fies the membership signal, making it easier to detect.
+Number of Retrieved Items (top-k). Generally, a larger
+top-k increases the likelihood of retrieving the target sam-
+ple but also leads to longer context lengths, thereby im-
+posing a greater computational burden on the RAG system.
+Therefore, we evaluate the impact of top-k on attack perfor-
+mance. As shown in Figure 11, for most attack methods,
+including BudgetLeak-P, initially increasing top-k improves
+attack effectiveness due to a higher probability of retriev-
+ing the target sample. However, as top-k continues to grow,
+the attack performance tends to decline. This is because
+the context becomes cluttered with many less relevant items,
+which degrades the quality of RAG’s responses and weak-
+ens the distinction between members and non-members. No-
+tably, throughout the increase of top-k, BudgetLeak con-
+
+9
+
+(a) MiniLM
+
+(b) BGE
+
+(c) Ideal
+
+Figure 9: Attack performance on RAGs built on LLaMA with different retrievers on the HealthCareMagic-100k dataset.
+
+(a) MiniLM
+
+(b) BGE
+
+(c) Ideal
+
+Figure 10: Attack performance on RAGs built on LLaMA with different retrievers on the Natural Questions dataset.
+
+sistently outperforms other baselines, demonstrating its ro-
+bustness. For example, when top-k increases from 2 to 20,
+BudgetLeak-P maintains an accuracy above 0.972, whereas
+all other baselines remain below 0.761.
+
+Different Metric Sequences.
+In the overall performance
+comparison shown in Section 5.1, we employ a range of
+including semantic similarity (Cosine
+evaluation metrics,
+Similarity) and lexical metrics such as ROUGE (ROUGE-
+1, ROUGE-2, ROUGE-L), BLEU, and Edit Distance. This
+section further investigates which types of metrics carry
+stronger membership signals and whether it is necessary to
+use all of them. For simplicity, we select one representa-
+tive metric from each category. As shown in Table 2, lexical
+metrics generally capture stronger membership information.
+For example, using only the BLEU sequence, BudgetLeak-
+P achieves the second-best performance in terms of AUC,
+Accuracy, and TPR at 0.1% FPR on the Natural Questions
+dataset. In contrast, semantic similarity tends to be less ef-
+fective when used alone. However, combining both semantic
+and lexical metrics leads to the best overall results, indicating
+that these metrics provide complementary membership sig-
+nals. We recommend using the full set when computational
+resources allow, and prioritizing lexical metrics in resource-
+
+constrained scenarios.
+
+Table 2: Impact of metric sequence variants on attack perfor-
+mance on RAG with LLaMA.
+
+Dataset
+
+Metric
+
+AUC Accuracy
+
+TPR at 0.1%
+FPR(%)
+
+HealthCareMagic-100k
+
+Natural Questions
+
+Cosine Similarity 0.794
+0.987
+0.985
+0.985
+0.997
+
+BLEU
+ROUGE-1
+Edit Distance
+Multi-metric
+
+Cosine Similarity 0.749
+0.867
+0.850
+0.834
+0.903
+
+BLEU
+ROUGE-1
+Edit Distance
+Multi-metric
+
+0.736
+0.947
+0.955
+0.958
+0.982
+
+0.696
+0.817
+0.783
+0.780
+0.846
+
+1.6
+21.6
+24.5
+42.0
+42.9
+
+0.6
+1.0
+1.0
+0.2
+1.6
+
+Architecture of Attack Model. Our method hinges on
+exploiting the differing sensitivities of RAG systems’ re-
+sponse quality to generation budget variations between mem-
+ber and non-member samples for membership inference. For
+BudgetLeak-P, we construct multi-metric sequences and use
+sequence-based attack models to capture these distinct be-
+havioral patterns. We compare several architectures includ-
+
+10
+
+AUCAccuracyTPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PAUCAccuracyTPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PAUCAccuracyTPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PAUCAccuracyTPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PAUCAccuracyTPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PAUCAccuracyTPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-PFigure 11: Impact of retrieved item count (top-k) on attack performance on RAG with LLaMA over HealthCareMagic-100k.
+
+Table 3: Impact of attack model architecture on attack performance across multiple RAG systems.
+
+Dataset
+
+LLaMA
+
+Mistral
+
+Method
+
+AUC
+
+Accuracy
+
+TPR at 0.1%
+FPR(%)
+
+Method
+
+AUC
+
+Accuracy
+
+TPR at 0.1%
+FPR(%)
+
+HealthCareMagic-100k
+
+MS-MARCO
+
+LSTM
+
+0.991
+Attention-based LSTM 0.997
+0.959
+0.996
+
+Transformers
+Mamba
+
+LSTM
+
+0.979
+Attention-based LSTM 0.980
+0.980
+0.986
+
+Transformers
+Mamba
+
+0.980
+0.982
+0.859
+0.983
+
+0.953
+0.959
+0.953
+0.967
+
+36.8
+42.9
+32.4
+30.2
+
+11.4
+11.5
+4.5
+5.3
+
+LSTM
+
+0.882
+Attention-based LSTM 0.892
+0.840
+0.881
+
+Transformers
+Mamba
+
+LSTM
+
+0.952
+Attention-based LSTM 0.953
+0.936
+0.943
+
+Transformers
+Mamba
+
+0.811
+0.812
+0.628
+0.805
+
+0.893
+0.896
+0.779
+0.895
+
+14.4
+14.6
+6.6
+14.4
+
+9.9
+17.4
+0.6
+2.7
+
+ing LSTM [20], Attention-based LSTM [29, 56], Transform-
+ers [53], and the recently proposed Mamba [16]. As shown
+in Table 3, Attention-based LSTM typically achieves the best
+or second-best results, while Transformers and Mamba un-
+derperform, likely due to the short length of the sequences,
+which limits their advantage in modeling long dependencies.
+Therefore, we adopt Attention-based LSTM as our default
+attack model.
+
+6 Discussion
+
+In this section, we discuss the robustness, practicality, and
+limitations of BudgetLeak.
+
+6.1 Evaluation of Robustness
+
+To mitigate jailbreak attacks [23, 37], LLM-based systems,
+including RAG, often apply query rewriting to preserve se-
+mantics while altering surface form [38, 57]. This disrupts
+MIAs that rely on carefully crafted inputs. Inspired by de-
+fenses such as AdvReg [40], which perturb output proba-
+bilities in classification models, we also consider response
+rewriting in the RAG setting.
+In this section, we evaluate
+how such rewriting techniques affect MIA performance.
+
+Following [39], we use GPT-4o [4] to paraphrase both
+queries and responses via a rewriting prompt. Results are
+summarized in Table 4 and Appendix Table 7.
+
+BudgetLeak-P remains the most effective attack under
+both query and response rewriting defenses, consistently
+outperforming all baselines. For instance, in Table 4, un-
+der response rewriting, BudgetLeak-P achieves an AUC of
+0.991, compared to 0.636 from the best baseline. Its robust-
+ness stems from leveraging generation-budget side channels
+
+by modeling semantic and non-semantic quality dynamics,
+rather than depending on static output content, making it less
+sensitive to rewriting.
+
+Among the two defenses, response rewriting proves more
+effective. By altering the output of the model, rewriting
+with an LLM distorts observable membership cues. For
+instance, fill-in accuracy used by MBA drops significantly
+when masked tokens are paraphrased with synonyms, reduc-
+ing discriminability. As shown in Table 4, MBA’s AUC falls
+to 0.584 under response rewriting. IA is even more affected,
+with performance degrading to near-random levels. IA for-
+mulates 30 Yes/No questions per sample and infers mem-
+bership based on answer accuracy. However, rewritten re-
+sponses often substitute Yes/No/Unknown with expressions
+like Affirmative, Not specified, or Negative, breaking align-
+ment with IA’s scoring logic. While one could add an output
+polarity classifier to recover original intent, even with per-
+fect recovery, IA still underperforms BudgetLeak-P. For ex-
+ample, IA (no defense) achieves an AUC of 0.820, whereas
+BudgetLeak-P under response rewriting yields a higher AUC
+of 0.991 (see Table 4).
+
+In summary, our BudgetLeak-P demonstrates strong ro-
+bustness against both rewriting-based defenses by exploiting
+the generation budget side channel, consistently outperform-
+ing prior attacks.
+
+6.2 Practical Investigation
+
+To observe the trend in answer quality under varying gener-
+ation budgets, BudgetLeak performs multiple queries to the
+RAG system using different budget limits. By default, we
+adopt the Budget Sweep Strategy, issuing queries with gen-
+eration budgets ranging from 10 to 270 tokens in steps of 20.
+
+11
+
+241020Top-k0102030405060TPRat0.1%FPR(%)S2MIA-TS2MIA-MDC-MIAMBAIABudgetLeak-P241020Top-k0.50.60.70.80.91.0Accuracy241020Top-k0.50.60.70.80.91.0AUCTable 4: Attack performance on RAG with LLaMA over
+HealthCareMagic-100k under query or response rewriting. Re-
+ductions relative to the no-rewriting setting are shown in paren-
+theses.
+
+Defense
+
+Method
+
+AUC
+
+Accuracy
+
+Query Rewriting
+
+Response Rewriting
+
+S2MIA-T
+0.594 (0.056) 0.595 (0.030)
+S2MIA-M 0.656 (0.030) 0.611 (0.025)
+0.533 (0.037) 0.533 (0.037)
+DC-MIA
+0.647 (0.083) 0.637 (0.098)
+MBA
+0.818 (0.002) 0.756 (0.005)
+IA
+
+BudgetLeak-P 0.984 (0.013) 0.970 (0.012)
+
+S2MIA-T
+0.603 (0.047) 0.593 (0.032)
+S2MIA-M 0.636 (0.050) 0.605 (0.031)
+0.561 (0.009) 0.561 (0.009)
+DC-MIA
+0.584 (0.146) 0.582 (0.153)
+MBA
+0.490 (0.330) 0.493 (0.268)
+IA
+
+Table 5: Attack performance under different query budget set-
+tings on RAG with MS-MARCO.
+
+Model
+
+Method
+
+AUC Accuracy
+
+TPR at 0.1%
+FPR(%)
+
+LLaMA
+
+Mistral
+
+Bi-Budget(MinMean) 0.960
+Bi-Budget(MinMax)
+0.960
+Bi-Budget(MeanMax) 0.974
+0.974
+0.980
+
+Tri-Budget
+Sweep
+
+Bi-Budget(MinMean) 0.942
+Bi-Budget(MinMax)
+0.955
+Bi-Budget(MeanMax) 0.942
+0.956
+0.953
+
+Tri-Budget
+Sweep
+
+0.906
+0.918
+0.939
+0.940
+0.959
+
+0.884
+0.901
+0.892
+0.902
+0.896
+
+1.1
+2.5
+1.1
+1.3
+11.5
+
+1.4
+3.9
+8.4
+7.6
+17.4
+
+BudgetLeak-P 0.991 (0.006) 0.962 (0.020)
+
+6.3 Limitations
+
+While effective, this approach incurs high query costs (due
+to per-token charges) and may increase the risk of detection.
+Thus, we explore whether the number of queries can be re-
+duced without sacrificing attack effectiveness.
+
+Specifically, we evaluate a Tri-Budget Setting, using three
+representative generation budgets: a minimal budget of 10
+tokens (Min), the average token length in the dataset (Mean),
+and twice the mean value (Max). These values correspond to
+compact, economical, and relaxed RAG response conditions,
+respectively.
+
+As shown in Table 5, the Tri-Budget setting often achieves
+AUC and accuracy comparable to the full sweep approach,
+though it exhibits a notable decrease in TPR at 0.1% FPR.
+For instance, on a RAG system with LLaMA, the Tri-Budget
+setting attains an AUC of 0.974 and an accuracy of 0.940,
+slightly below the Sweep’s 0.980 AUC and 0.959 accuracy,
+while the TPR at 0.1% FPR drops more substantially from
+11.5 to 1.3. Even with only two queries, as in the Bi-
+Budget(MeanMax) setting, the attack still achieves strong
+results with an AUC of 0.974 and accuracy of 0.939, only
+marginally lower than the Tri-Budget configuration. This
+demonstrates that BudgetLeak can generate robust member-
+ship inference signals with just two or three queries.
+
+Moreover, BudgetLeak with the Tri-Budget setting consis-
+tently outperforms all baselines in AUC and accuracy while
+maintaining comparable TPR at 0.1% FPR. For example,
+under the MS-MARCO and LLaMA setup, the Tri-Budget
+setting achieves an AUC of 0.974, accuracy of 0.940, and
+TPR at 0.1% FPR of 1.3. In contrast, while S2MIA-M at-
+tains the highest AUC among baselines in this case, it only
+reaches 0.789 AUC, 0.731 accuracy, and a TPR of 0 at 0.1%
+FPR. Additionally, a recent method, IA, requires 30 queries
+per target sample to attain its optimal performance. In con-
+trast, BudgetLeak achieves superior results using only three
+queries, demonstrating significant efficiency and practical
+advantages.
+
+12
+
+BudgetLeak is designed for traditional RAG systems, espe-
+cially those in question answering settings where responses
+are grounded in specific retrieved passages. In such contexts,
+the goal is to infer whether a particular text segment exists
+in the underlying knowledge corpus. However, our method
+is not directly applicable to emerging RAG variants such as
+Graph-RAG [13, 17, 43], where responses are influenced by
+global knowledge aggregation through structured knowledge
+graphs. These systems rely less on isolated passage retrieval
+and more on reasoning over interconnected entities and rela-
+tions, which complicates the extraction of localized member-
+ship signals. Extending membership inference techniques to
+such globally-aware RAG architectures remains an open and
+important direction for future research.
+
+7 Conclusion
+
+In this work, we identify a previously unexplored side chan-
+nel in RAG systems: the generation budget, which specifies
+the maximum token limit for responses. We show that vary-
+ing this parameter leads to different patterns in output qual-
+ity between member and non-member queries, particularly in
+semantic and lexical similarity to the ground-truth answers.
+Leveraging this insight, we propose BudgetLeak, a member-
+ship inference framework that issues multiple queries with
+different generation budgets and analyzes the resulting fi-
+delity metrics. BudgetLeak includes both a supervised vari-
+ant using a sequential model (i.e., BudgetLeak-P) and an un-
+supervised version based on clustering (i.e., BudgetLeak-Z).
+Extensive experiments across diverse datasets, retrievers, and
+generators demonstrate that BudgetLeak consistently outper-
+forms existing baselines. Our findings highlight the genera-
+tion budget as a practical and robust source of membership
+leakage in RAG systems, emphasizing the need for improved
+data protection in this growing application domain.
+
+References
+
+[1] https://huggingface.co/datasets/RafaelMPer
+eira/HealthCareMagic-100k-Chat-Format-en. 6
+
+[2] https://huggingface.co/sentence-transforme
+
+rs/all-MiniLM-L6-v2. 6, 9
+
+the 30th ACM SIGKDD Conference on Knowledge Dis-
+covery and Data Mining, pages 6491–6501, 2024. 1
+
+[3] https://huggingface.co/BAAI/bge-small-en-
+
+v1.5. 6, 9
+
+[4] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama
+Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo
+Almeida, Janko Altenschmidt, Sam Altman, Shyamal
+Anadkat, et al. Gpt-4 technical report. arXiv preprint
+arXiv:2303.08774, 2023. 1, 11
+
+[5] Maya Anderson, Guy Amit, and Abigail Goldsteen. Is
+my data in your retrieval database? membership in-
+ference attacks against retrieval augmented generation.
+arXiv preprint arXiv:2405.20446, 2024. 3
+
+[6] Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and
+Hannaneh Hajishirzi. Self-rag: Learning to retrieve,
+In The
+generate, and critique through self-reflection.
+Twelfth International Conference on Learning Repre-
+sentations, 2023. 3
+
+[7] Payal Bajaj, Daniel Campos, Nick Craswell, Li Deng,
+Jianfeng Gao, Xiaodong Liu, Rangan Majumder, An-
+drew McNamara, Bhaskar Mitra, Tri Nguyen, et al.
+Ms marco: A human generated machine reading com-
+prehension dataset. arXiv preprint arXiv:1611.09268,
+2016. 6
+
+[8] James C Bezdek, Robert Ehrlich, and William Full.
+Fcm: The fuzzy c-means clustering algorithm. Com-
+puters & geosciences, 10(2-3):191–203, 1984. 5
+
+[9] Baolong Bi, Shenghua Liu, Yiwei Wang, Yilong Xu,
+Junfeng Fang, Lingrui Mei, and Xueqi Cheng. Pa-
+rameters vs. context: Fine-grained control of knowl-
+arXiv preprint
+edge reliance in language models.
+arXiv:2503.15888, 2025. 2
+
+[10] Nicholas Carlini, Steve Chien, Milad Nasr, Shuang
+Song, Andreas Terzis, and Florian Tramer. Member-
+In 2022
+ship inference attacks from first principles.
+IEEE Symposium on Security and Privacy (SP), pages
+1897–1914. IEEE, 2022. 2, 3, 7
+
+[11] Hongyan Chang, Brandon Edwards, Anindya S Paul,
+and Reza Shokri. Efficient privacy auditing in feder-
+In 33rd USENIX Security Symposium
+ated learning.
+(USENIX Security 24), pages 307–323, 2024. 3
+
+[12] Padraig Cunningham and Sarah Jane Delany. K-nearest
+neighbour classifiers-a tutorial. ACM computing sur-
+veys (CSUR), 54(6):1–25, 2021. 6
+
+[13] Darren Edge, Ha Trinh, Newman Cheng, Joshua
+Bradley, Alex Chao, Apurva Mody, Steven Truitt,
+Dasha Metropolitansky, Robert Osazuwa Ness, and
+Jonathan Larson. From local to global: A graph rag ap-
+proach to query-focused summarization. arXiv preprint
+arXiv:2404.16130, 2024. 12
+
+[15] Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia,
+Jinliu Pan, Yuxi Bi, Yixin Dai, Jiawei Sun, Haofen
+Wang, and Haofen Wang. Retrieval-augmented gen-
+eration for large language models: A survey. arXiv
+preprint arXiv:2312.10997, 2:1, 2023. 1
+
+[16] Albert Gu and Tri Dao. Mamba: Linear-time sequence
+modeling with selective state spaces. arXiv preprint
+arXiv:2312.00752, 2023. 11
+
+[17] Haoyu Han, Yu Wang, Harry Shomer, Kai Guo, Ji-
+ayuan Ding, Yongjia Lei, Mahantesh Halappanavar,
+Ryan A Rossi, Subhabrata Mukherjee, Xianfeng Tang,
+et al. Retrieval-augmented generation with graphs
+(graphrag). arXiv preprint arXiv:2501.00309, 2024. 3,
+12
+
+[18] Jacky He, Guiran Liu, Binrong Zhu, Hanlu Zhang,
+Hongye Zheng, and Xiaokai Wang. Context-guided dy-
+namic retrieval for improving generation quality in rag
+models. arXiv preprint arXiv:2504.19436, 2025. 3
+
+[19] Yu He, Boheng Li, Yao Wang, Mengda Yang, Juan
+Wang, Hongxin Hu, and Xingyu Zhao. Is difficulty cal-
+ibration all we need? towards more practical member-
+ship inference attacks. In Proceedings of the 2024 on
+ACM SIGSAC Conference on Computer and Communi-
+cations Security, pages 1226–1240, 2024. 2, 3, 7
+
+[20] Sepp Hochreiter and Jürgen Schmidhuber. Long short-
+term memory. Neural Computation, 9(8):1735–1780,
+1997. 11
+
+[21] Hsin-Ling Hsu, Cong-Tinh Dao, Luning Wang, Zitao
+Shuai, Thao Nguyen Minh Phan, Jun-En Ding, Chun-
+Chieh Liao, Pengfei Hu, Xiaoxue Han, Chih-Ho Hsu,
+et al. Medplan: A two-stage rag-based system for
+personalized medical plan generation. arXiv preprint
+arXiv:2503.17900, 2025. 1
+
+[22] Gautier Izacard, Mathilde Caron, Lucas Hosseini,
+Sebastian Riedel, Piotr Bojanowski, Armand Joulin,
+and Edouard Grave. Unsupervised dense informa-
+tion retrieval with contrastive learning. arXiv preprint
+arXiv:2112.09118, 2021. 3
+
+[23] Xiaojun Jia, Tianyu Pang, Chao Du, Yihao Huang,
+Jindong Gu, Yang Liu, Xiaochun Cao, and Min
+Lin. Improved techniques for optimization-based jail-
+arXiv preprint
+breaking on large language models.
+arXiv:2405.21018, 2024. 11
+
+[24] Albert Q. Jiang, Alexandre Sablayrolles, Arthur Men-
+sch, Chris Bamford, Devendra Singh Chaplot, Diego
+de las Casas, Florian Bressand, Gianna Lengyel, Guil-
+laume Lample, Lucile Saulnier, et al. Mistral 7b. arXiv
+preprint arXiv:2310.06825, 2023. 1, 6
+
+[14] Wenqi Fan, Yujuan Ding, Liangbo Ning, Shijie Wang,
+Hengyun Li, Dawei Yin, Tat-Seng Chua, and Qing
+Li. A survey on rag meeting llms: Towards retrieval-
+augmented large language models. In Proceedings of
+
+[25] Zhengbao Jiang, Frank F Xu, Luyu Gao, Zhiqing
+Sun, Qian Liu, Jane Dwivedi-Yu, Yiming Yang, Jamie
+Callan, and Graham Neubig. Active retrieval aug-
+mented generation. In Proceedings of the 2023 Confer-
+
+13
+
+ence on Empirical Methods in Natural Language Pro-
+cessing, pages 7969–7992, 2023. 3
+
+Web Conference 2025, pages 2894–2907, 2025. 2, 3, 4,
+5, 6, 7
+
+[26] Nikhil Kandpal, Haikang Deng, Adam Roberts, Eric
+Wallace, and Colin Raffel. Large language models
+struggle to learn long-tail knowledge. In International
+Conference on Machine Learning, pages 15696–15707.
+PMLR, 2023. 1
+
+[27] Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-
+field, Michael Collins, Ankur Parikh, Chris Alberti,
+Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-
+ton Lee, et al. Natural questions: a benchmark for ques-
+tion answering research. Transactions of the Associa-
+tion for Computational Linguistics, 7:453–466, 2019.
+6
+
+[28] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich
+Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel,
+et al. Retrieval-augmented generation for knowledge-
+intensive nlp tasks. Advances in neural information
+processing systems, 33:9459–9474, 2020. 1, 2
+
+[29] Hao Li, Shuyu Cao, Yaqing Chen, Min Zhang, and
+Dengguo Feng. Tulam: trajectory-user linking via at-
+tention mechanism. Science China Information Sci-
+ences, 67(1):112103, 2024. 11
+
+[30] Hao Li, Zheng Li, Siyuan Wu, Chengrui Hu, Yutong
+Ye, Min Zhang, Dengguo Feng, and Yang Zhang. Se-
+qmia: Sequential-metric based membership inference
+In Proceedings of the 2024 on ACM SIGSAC
+attack.
+Conference on Computer and Communications Secu-
+rity, pages 3496–3510, 2024. 3, 7
+
+[31] Hao Li, Zheng Li, Siyuan Wu, Yutong Ye, Min Zhang,
+Dengguo Feng, and Yang Zhang. Enhanced label-only
+In
+membership inference attacks with fewer queries.
+34th USENIX Security Symposium (USENIX Security
+25), 2025. 3
+
+[32] Yuying Li, Gaoyang Liu, Chen Wang, and Yang Yang.
+Generating is believing: Membership inference attacks
+In ICASSP
+against retrieval-augmented generation.
+2025-2025 IEEE International Conference on Acous-
+tics, Speech and Signal Processing (ICASSP), pages 1–
+5. IEEE, 2025. 1, 3, 4, 5, 6, 7
+
+[33] Zheng Li and Yang Zhang. Membership leakage in
+label-only exposures. In Proceedings of the 2021 ACM
+SIGSAC Conference on Computer and Communica-
+tions Security, pages 880–895, 2021. 3
+
+[34] Zhihao Li, Zimo Ji, Tao Zheng, Hao Ren, and Xiao
+Lan. Cryptoscope: Utilizing large language models for
+automated cryptographic logic vulnerability detection.
+arXiv preprint arXiv:2508.11599, 2025. 1
+
+[35] Chin-Yew Lin. Rouge: A package for automatic eval-
+uation of summaries. In Text summarization branches
+out, pages 74–81, 2004. 3
+
+[36] Mingrui Liu, Sixiao Zhang, and Cheng Long. Mask-
+based membership inference attacks for
+retrieval-
+augmented generation. In Proceedings of the ACM on
+
+[37] Xiaogeng Liu, Nan Xu, Muhao Chen, and Chaowei
+Xiao. Autodan: Generating stealthy jailbreak prompts
+arXiv preprint
+on aligned large language models.
+arXiv:2310.04451, 2023. 11
+
+[38] Xinbei Ma, Yeyun Gong, Pengcheng He, Hai Zhao,
+and Nan Duan. Query rewriting in retrieval-augmented
+In Proceedings of the 2023
+large language models.
+Conference on Empirical Methods in Natural Language
+Processing, pages 5303–5315, 2023. 11
+
+[39] Ali Naseh, Yuefeng Peng, Anshuman Suri, Harsh
+Chaudhari, Alina Oprea, and Amir Houmansadr.
+stealthy membership inference
+Riddle me this!
+arXiv preprint
+for retrieval-augmented generation.
+arXiv:2502.00306, 2025. 2, 3, 4, 5, 6, 7, 11
+
+[40] Milad Nasr, Reza Shokri, and Amir Houmansadr. Ma-
+chine learning with membership privacy using adver-
+sarial regularization. In Proceedings of the 2018 ACM
+SIGSAC conference on computer and communications
+security, pages 634–646, 2018. 11
+
+[41] Milad Nasr, Reza Shokri, and Amir Houmansadr. Com-
+prehensive privacy analysis of deep learning: Passive
+and active white-box inference attacks against central-
+ized and federated learning. In 2019 IEEE symposium
+on security and privacy (SP), pages 739–753. IEEE,
+2019. 3
+
+[42] Kishore Papineni, Salim Roukos, Todd Ward, and Wei-
+Jing Zhu. Bleu: a method for automatic evaluation of
+machine translation. In Proceedings of the 40th annual
+meeting of the Association for Computational Linguis-
+tics, pages 311–318, 2002. 3
+
+[43] Boci Peng, Yun Zhu, Yongchao Liu, Xiaohe Bo,
+Haizhou Shi, Chuntao Hong, Yan Zhang, and Siliang
+Tang. Graph retrieval-augmented generation: A survey.
+arXiv preprint arXiv:2408.08921, 2024. 3, 12
+
+[44] Alexandre Sablayrolles, Matthijs Douze, Cordelia
+Schmid, Yann Ollivier, and Herve Jegou. White-box vs
+black-box: Bayes optimal strategies for membership in-
+ference. In Proceedings of the 36th International Con-
+ference on Machine Learning, volume 97 of Proceed-
+ings of Machine Learning Research, pages 5558–5567.
+PMLR, 2019. 2, 3
+
+[45] Tolga ¸Sakar and Hakan Emekci. Maximizing rag effi-
+ciency: A comparative analysis of rag methods. Natu-
+ral Language Processing, 31(1):1–25, 2025. 3
+
+[46] Ahmed Salem, Yang Zhang, Mathias Humbert, Pascal
+Berrang, Mario Fritz, and Michael Backes. Ml-leaks:
+Model and data independent membership inference at-
+tacks and defenses on machine learning models. In Net-
+work and Distributed Systems Security (NDSS) Sympo-
+sium 2019, 2019. 3
+
+[47] Weijia Shi, Anirudh Ajith, Mengzhou Xia, Yangsibo
+Huang, Daogao Liu, Terra Blevins, Danqi Chen,
+
+14
+
+and Luke Zettlemoyer. Detecting pretraining data
+arXiv preprint
+from large language models.
+arXiv:2310.16789, 2023. 3
+
+[48] R. Shokri, M. Stronati, C. Song, and V. Shmatikov.
+Membership inference attacks against machine learning
+models. In 2017 IEEE Symposium on Security and Pri-
+vacy (SP), pages 3–18. IEEE Computer Society, 2017.
+3
+
+[49] Kurt Shuster, Spencer Poff, Moya Chen, Douwe
+Kiela, and Jason Weston. Retrieval augmentation re-
+arXiv preprint
+duces hallucination in conversation.
+arXiv:2104.07567, 2021. 1
+
+[50] Liwei Song and Prateek Mittal. Systematic evaluation
+In 30th
+of privacy risks of machine learning models.
+USENIX Security Symposium (USENIX Security 21),
+pages 2615–2632. USENIX Association, 2021. 3
+
+[51] Varad Srivastava. Lending an ear: How llms hear your
+banking intentions. Proceedings of the 5th ACM Inter-
+national Conference on AI in Finance, 2024. 1
+
+[52] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier
+Martinet, Marie-Anne Lachaux, Timothée Lacroix,
+Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal
+Azhar, et al. Llama: Open and efficient foundation lan-
+guage models. arXiv preprint arXiv:2302.13971, 2023.
+1, 6
+
+[53] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz
+Kaiser, and Illia Polosukhin. Attention is all you need.
+In Proceedings of the 31st International Conference on
+Neural Information Processing Systems, NIPS’17, page
+6000–6010, Red Hook, NY, USA, 2017. Curran Asso-
+ciates Inc. 11
+
+[54] Guangshuo Wang, Jiajun He, Hao Li, Min Zhang, and
+Dengguo Feng. Rag-leaks: difficulty-calibrated mem-
+bership inference attacks on retrieval-augmented gener-
+ation. Science China Information Sciences, 68(6):1–18,
+2025. 2, 3, 4, 5, 6, 7
+
+[55] Xinyu Wang,
+
+Jijun Chi, Zhenghan Tai, Tung
+Sum Thomas Kwok, Muzhi Li, Zhuhong Li, Hailin He,
+Yuchen Hua, Peng Lu, Suyuchen Wang, et al. Finsage:
+A multi-aspect rag system for financial filings question
+answering. arXiv preprint arXiv:2504.14493, 2025. 1
+
+[56] Yequan Wang, Minlie Huang, Xiaoyan Zhu, and
+Li Zhao. Attention-based LSTM for aspect-level senti-
+ment classification. In Jian Su, Kevin Duh, and Xavier
+Carreras, editors, Proceedings of the 2016 Conference
+on Empirical Methods in Natural Language Process-
+ing, pages 606–615, Austin, Texas, November 2016.
+Association for Computational Linguistics. 11
+
+[57] Yujing Wang, Hainan Zhang, Liang Pang, Binghui
+Guo, Hongwei Zheng, and Zhiming Zheng. Maferw:
+for
+Query rewriting with multi-aspect
+In Pro-
+retrieval-augmented large language models.
+ceedings of the AAAI Conference on Artificial Intelli-
+gence, volume 39, pages 25434–25442, 2025. 11
+
+feedbacks
+
+[58] Lauren Watson, Chuan Guo, Graham Cormode, and
+Alexandre Sablayrolles. On the importance of diffi-
+culty calibration in membership inference attacks.
+In
+International Conference on Learning Representations,
+2022. 2, 3
+
+[59] Peipei Xia, Li Zhang, and Fanzhang Li. Learning simi-
+larity with cosine similarity ensemble. Information sci-
+ences, 307:39–52, 2015. 3
+
+[60] Peng Xia, Kangyu Zhu, Haoran Li, Tianze Wang, Wei-
+jia Shi, Sheng Wang, Linjun Zhang, James Zou, and
+Huaxiu Yao. Mmed-rag: Versatile multimodal rag sys-
+tem for medical vision language models. arXiv preprint
+arXiv:2410.13085, 2024. 3
+
+[61] Peng Xia, Kangyu Zhu, Haoran Li, Hongtu Zhu, Yun
+Li, Gang Li, Linjun Zhang, and Huaxiu Yao. Rule: Re-
+liable multimodal rag for factuality in medical vision
+language models. In Proceedings of the 2024 Confer-
+ence on Empirical Methods in Natural Language Pro-
+cessing, pages 1081–1093, 2024. 3
+
+[62] Lee Xiong, Chenyan Xiong, Ye Li, Kwok-Fung Tang,
+Jialin Liu, Paul Bennett, Junaid Ahmed, and Arnold
+Overwijk. Approximate nearest neighbor negative con-
+trastive learning for dense text retrieval. arXiv preprint
+arXiv:2007.00808, 2020. 3
+
+[63] Jia-Yu Yao, Kun-Peng Ning, Zhen-Hui Liu, Mu-Nan
+Ning, Yu-Yang Liu, and Li Yuan. Llm lies: Hallucina-
+tions are not bugs, but features as adversarial examples.
+arXiv preprint arXiv:2310.01469, 2023. 1
+
+[64] Jiayuan Ye, Aadyaa Maddi, Sasi Kumar Murakonda,
+Vincent Bindschaedler, and Reza Shokri. Enhanced
+membership inference attacks against machine learn-
+ing models. In Proceedings of the 2022 ACM SIGSAC
+Conference on Computer and Communications Secu-
+rity, CCS ’22, page 3093–3106. Association for Com-
+puting Machinery, 2022. 3
+
+[65] Samuel Yeom, Irene Giacomelli, Matt Fredrikson, and
+Somesh Jha. Privacy risk in machine learning: An-
+In 2018 IEEE
+alyzing the connection to overfitting.
+31st computer security foundations symposium (CSF),
+pages 268–282. IEEE, 2018. 3
+
+[66] Li Yujian and Liu Bo. A normalized levenshtein dis-
+IEEE transactions on pattern analysis
+
+tance metric.
+and machine intelligence, 29(6):1091–1095, 2007. 3
+
+[67] Aohan Zeng, Xiao Liu, Zhengxiao Du, Zihan Wang,
+Hanyu Lai, Ming Ding, Zhuoyi Yang, Yifan Xu, Wendi
+Zheng, Xiao Xia, et al. Glm-130b: An open bilingual
+pre-trained model. arXiv preprint arXiv:2210.02414,
+2022. 1, 6
+
+[68] Weichao Zhang, Ruqing Zhang, Jiafeng Guo, Maarten
+de Rijke, Yixing Fan, and Xueqi Cheng. Pretrain-
+ing data detection for large language models: A
+divergence-based calibration method. arXiv preprint
+arXiv:2409.14781, 2024. 3
+
+15
+
+[69] Xiang Zhang,
+
+Junbo Zhao,
+
+and Yann LeCun.
+Character-level convolutional networks for text classifi-
+cation. Advances in neural information processing sys-
+tems, 28, 2015. 6
+
+Appendix A Additional Results
+
+Figure 12: Distribution of fill-in accuracy on RAG with LLaMA
+over HealthCareMagic-100k.
+
+Table 6: Attack performance on RAG built on Mistral with
+BGE as retriever.
+
+Dataset
+
+Method
+
+AUC Accuracy
+
+TPR at 0.1%
+FPR(%)
+
+HealthCareMagic-100k
+
+Natural Questions
+
+S2MIA-T
+0.712
+S2MIA-M 0.706
+0.681
+DC-MIA
+0.789
+MBA
+0.851
+IA
+
+BudgetLeak-P 0.868
+
+S2MIA-T
+0.703
+S2MIA-M 0.698
+0.772
+DC-MIA
+0.737
+MBA
+0.861
+IA
+
+BudgetLeak-P 0.882
+
+0.654
+0.654
+0.681
+0.763
+0.763
+
+0.795
+
+0.658
+0.658
+0.772
+0.703
+0.750
+
+0.820
+
+0.0
+0.0
+0.2
+4.0
+6.5
+
+13.4
+
+1.0
+0.0
+0.3
+0.0
+1.3
+
+2.9
+
+Table 7: Attack performance on RAG with Mistral over
+HealthCareMagic-100k under query or response rewriting. Re-
+ductions relative to the no-rewriting setting are shown in paren-
+theses.
+
+Defense
+
+Method
+
+AUC
+
+Accuracy
+
+Query Rewriting
+
+Response Rewriting
+
+S2MIA-T
+0.609 (0.052) 0.579 (0.037)
+S2MIA-M 0.595 (0.049) 0.574 (0.033)
+0.524 (0.173) 0.524(0.173)
+DC-MIA
+0.665 (0.088) 0.654 (0.073)
+MBA
+0.824 (0.009) 0.745 (0.023)
+IA
+
+BudgetLeak-P 0.891 (0.001) 0.810 (0.002)
+
+S2MIA-T
+0.644 (0.017) 0.601 (0.015)
+S2MIA-M 0.641 (0.003) 0.607 (0.000)
+0.683 (0.014) 0.683(0.014)
+DC-MIA
+0.558 (0.195) 0.558 (0.169)
+MBA
+0.640 (0.193) 0.563 (0.205)
+IA
+
+BudgetLeak-P 0.845 (0.047) 0.763 (0.049)
+
+16
+
+0.00.20.40.60.81.00200400600FrequencyMemberNon-member

@@ -1,0 +1,1088 @@
+5
+2
+0
+2
+
+n
+a
+J
+
+5
+2
+
+]
+
+R
+C
+.
+s
+c
+[
+
+1
+v
+0
+9
+2
+5
+1
+.
+1
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Advanced Real-Time Fraud Detection Using RAG-Based LLMs
+
+Gurjot Singh
+University of Waterloo, Canada
+
+Prabhjot Singh
+University of Waterloo, Canada
+
+Maninder Singh
+Thapar Institute of Engineering and Technology, India
+
+Abstract
+
+Artificial Intelligence (AI) has become a double-edged sword
+in modern society, being both a boon and a bane. While it
+empowers individuals, it also enables malicious actors to per-
+petrate scams such as fraudulent phone calls and user imper-
+sonations. This growing threat necessitates a robust system to
+protect individuals. In this paper, we introduce a novel real-
+time fraud detection mechanism using Retrieval Augmented
+Generation (RAG) technology to address this challenge on
+two fronts. First, our system incorporates a continuously up-
+dating policy-checking feature that transcribes phone calls
+in real-time and uses RAG-based models to verify that the
+caller is not soliciting private information, thus ensuring trans-
+parency and the authenticity of the conversation. Second,
+we implement a real-time user impersonation check with a
+two-step verification process to confirm the caller’s identity,
+ensuring accountability. A key innovation of our system is
+the ability to update policies without retraining the entire
+model, enhancing its adaptability. We validated our RAG-
+based approach using synthetic call recordings, achieving an
+accuracy of 97.98% and an F1-score of 97.44% with 100
+calls, outperforming state-of-the-art methods. This robust and
+flexible fraud detection system is well-suited for real-world
+deployment.
+
+1 Introduction
+
+The issue of fraudulent activities through phone calls has
+grown in importance and has caused large financial losses for
+both individuals and organizations globally. According to a
+study done in 2021 by the Communications Fraud Control
+Association (CFCA-2021) [2], fraud in the telecom industry
+costs billions of dollars every year. In comparison to 2019
+there has been a 28% increase in fraud, or roughly USD 11.6
+billion. These losses impact not only the economy as a whole
+but also personal security since they undermine confidence
+in reliable channels of communication. One of the primary
+reasons for these scams’ success is a lack of public awareness.
+
+Many people are unaware of the sophisticated techniques used
+by fraudsters and the kinds of questions they may pose. This
+lack of awareness makes it easier for attackers to exploit their
+victims. Impersonating bank representatives, government offi-
+cials, or technical support agents [17] is often used technique
+for obtaining sensitive information. Fraudsters frequently ask
+victims to verify their account number and PIN for security
+reasons, or they claim that suspicious activity has been de-
+tected on their account, prompting them to provide their most
+recent transaction information [20]. Another common tactic is
+to request the victim’s social security number and date of birth
+in the name of updating records. These tactics take advantage
+of human psychology by instilling a sense of urgency and
+leveraging perceived authority, making it difficult for people
+to identify fraudulent phone calls [12]. Such fraud has far-
+reaching consequences, causing not only financial losses but
+also emotional distress and a significant violation of personal
+privacy.
+
+Traditional fraud detection methods have primarily relied
+on rule-based systems and manual monitoring, both of which
+have limitations in terms of scaling and adaptability to evolv-
+ing fraud techniques. The introduction of machine learning
+(ML) and deep learning (DL) has transformed this field, pro-
+viding dynamic analysis and pattern recognition capabilities
+that far exceed traditional methods. Neural networks, partic-
+ularly those based on transformer architectures, have shown
+remarkable success in detecting anomalies and fraudulent
+activities by learning from massive datasets of legitimate and
+fraudulent interactions.
+
+Large Language Models (LLMs) improve these capabili-
+ties by understanding and processing natural language with
+high precision. LLMs, such as OpenAI’s GPT-3, can under-
+stand context, detect subtle cues in conversations, and predict
+potential fraudulent behavior using learned patterns. However,
+their use in real-time fraud detection systems has been lim-
+ited [19], [8], resulting in a missed opportunity to fully realize
+their potential. Retrieval-Augmented Generation (RAG) is a
+cutting-edge technique that combines the power LLMs with
+the ability to retrieve relevant information from vast databases.
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+RAG’s major benefit is its ability to stay updated with the
+latest information and policies without needing retraining,
+ensuring it remains current and effective.
+
+In our methodology, we use RAG to detect fraud by fol-
+lowing policies established by various banks and companies
+about what employees should and should not ask. This ensures
+that the LLMs can make informed decisions based on the
+most recent policies, thereby detecting potential fraud more
+effectively. This paper provides a detailed analysis of our
+RAG-based policy check system using synthetic call record-
+ings. We compare its performance to traditional deep learning
+models and simpler LLM-based approaches. Furthermore,
+we discuss the practical application of our system, which
+includes Automatic Speech Recognition (ASR) and LLM
+agents, emphasizing its potential to revolutionize real-time
+fraud detection in phone calls. Our contributions in this paper
+include:
+
+1. Adaptive Policy Compliance with RAG: Unlike tradi-
+tional LLMs that require retraining to maintain accuracy,
+our RAG model dynamically adjusts to policy changes in
+real-time, ensuring continuous compliance and enhanced
+security without the need for retraining.
+
+2. Personalized Organizational Integration: The RAG
+system seamlessly integrates with each organization’s
+unique knowledge base, delivering tailored responses
+that align with specific policies and operational needs,
+making it a highly personalized solution.
+
+3. Enhanced Transparency and Explanatory Capabili-
+ties: Unlike conventional NLP models that merely clas-
+sify and label, our RAG-enabled LLM provides detailed
+explanations for detected policy violations, promoting
+transparency, increasing user awareness, and encourag-
+ing better compliance practices.
+
+By addressing these points, our methodology not only en-
+hances fraud detection capabilities but also ensures that the
+system remains adaptable, transparent, and integrated with
+organizational policies, providing a comprehensive solution
+for real-time fraud detection in phone calls.
+
+2 Literature Review
+
+The detection of real-time fraud in the telecom industry is a
+challenging task. Identifying fraudulent schemes is crucial
+to minimize revenue losses and enhancing customer satisfac-
+tion. In recent years, various solutions have been proposed to
+address this issue.
+
+Factorization Machines (NFM) with an Autoencoder (AE) to
+model customer calling patterns, adding a memory module
+to adapt to changing behaviors. Evaluated on a large dataset
+of call detail records (CDR), authors claim that the proposed
+model outperformed existing methods. Kumar et al. [9] fo-
+cused on detecting fraudulent calls using Supervised Intelli-
+gent Learning Algorithms. Authors trained various machine
+learning models on a dataset (kept anonymous for privacy
+reasons). Wu et al. [21] proposed LSG-FD, a telecom fraud
+detection model using latent synergy graph (LSG) learning to
+detect collaborative and disguised fraudulent behaviors. The
+model reconstructs synergy-oriented graphs, captures indi-
+vidual calling patterns with an LSTM-based encoder, and ad-
+dresses imbalance issues with a dual-channel graph learning
+module and a label-aware sampler. Sayyed et al. [1] demon-
+strated the importance of data visualization in fraud detection,
+using the PAYSIM dataset to show how early visual analy-
+sis helps identify anomalies and validate dataset suitability,
+ultimately enhancing the accuracy and efficiency of fraud de-
+tection systems. Hapase et al. [7] proposed a Fraud Resilient
+Framework using an Enhanced CNN-based approach for SMS
+phishing detection in telecommunications. By introducing
+PCC-PCA for efficient feature extraction and Parameterized
+ReLU in the CNN architecture, the framework significantly
+improves accuracy and efficiency in categorizing ham and
+spam messages compared to existing methods. Ravi et al. [15]
+analyzed Wangiri fraud patterns using both supervised and
+unsupervised ML methods on a large CDR dataset, finding
+that classification algorithms excel in detecting specific fraud
+patterns, though the optimal algorithm may vary depending
+on the pattern.
+
+Call Fraud Detection using Call Contents Miramirkhani
+et al. [14] studied technical support scams, using an automated
+system to identify scam-related phone numbers and domains
+over eight months. They analyzed scammers’ tactics through
+controlled experiments and proposed countermeasures to help
+users avoid these scams and assist law enforcement. Zhao
+et al. [23] focused on telecommunication fraud detection by
+analyzing the content of calls rather than relying on caller
+numbers. This approach involved using machine learning and
+Natural Language Processing (NLP) to extract features from
+collected descriptions of fraud. However, by using basic NLP
+analysis on call data, the method faces challenges in adapting
+to real-time changes, potentially limiting its effectiveness
+in dynamic fraud scenarios. A similar approach was taken
+by Bajaj et al. [3], who utilized transcribed conversations as
+features and employed multiple machine learning models to
+classify fraudulent activities.
+
+Call Fraud Detection using Call data Records Wahid et
+al. [18] developed an online fraud detection model using a
+Neural Factorization Autoencoder (NFA) to address the in-
+creasing problem of telecom fraud. They combined Neural
+
+Advancements of LLMs in Fraud Detection Bakumenko
+et al. [4] proposed a novel approach to detecting anomalies in
+financial data by leveraging LLM embeddings. They tested
+
+2
+
+three pre-trained sentence-transformer models to encode non-
+semantic categorical data from financial records and evaluated
+five optimized ML models for anomaly detection. Their find-
+ings show that LLMs significantly enhance the detection of
+irregularities in financial journal entries, outperforming base-
+line models and effectively addressing feature sparsity in the
+data. Liming Jiang [8] explored the use of LLMs for detect-
+ing scams like phishing, emphasizing the steps for building
+a scam detector. Preliminary tests with GPT-3.5 and GPT-4
+showed effectiveness in spotting phishing signs, but further
+refinement and collaboration with cybersecurity experts are
+needed to address evolving threats. In recent years, several
+studies have highlighted the innovative use of LLMs in the
+field of fraud detection. These approaches have explored the
+potential of LLMs to enhance security across various domains,
+including the detection of outliers in evolving data streams,
+which are critical in identifying fraudulent activities. Notable
+works such as [10], [22], [5], [16] and [11] have demonstrated
+the effectiveness of LLMs in addressing challenges associ-
+ated with fraud detection, emphasizing their versatility and
+adaptability in real-world scenarios.
+
+As advancements in fraud tactics and the increasing ability
+to bypass CDR technologies pose new challenges, the need
+for more sophisticated methods has become evident. Tradi-
+tional CDR-based detection is becoming less effective due to
+the rise of adversarial AI capabilities, which can easily evade
+these systems. To address these gaps, our research focuses
+on analyzing call contents, a relatively underexplored area,
+for fraud detection. By leveraging LLMs, our methodology
+seeks to enhance the precision and robustness of fraud de-
+tection systems, adapting to the evolving landscape of fraud
+techniques and providing a more reliable solution in dynamic
+environments.
+
+3 Methodology
+
+Figure 1: Comprehensive Flowchart of the Methodological
+Framework Employed in the Study
+
+This section outlines the methodology employed in this re-
+search project, covering two key areas. Part 1 focuses on using
+RAG based LLMs to check policy violations. Part 2 delves
+into how this approach can be effectively applied in real-time
+scenarios, while ensuring maximum security and privacy. Fig-
+ure 1 illustrates the core architecture of the proposed method
+for identifying fraudulent calls. The detailed breakdown of
+the various components involved in Part 1 of the pipeline is
+provided in this section, as explained below.
+
+3.1 Dataset Collection
+
+Privacy and security are critical considerations when working
+with call records. Call records of some individuals are not pub-
+lic data, and sending them online to a server is a task. So, in
+our methodology (part 2), we explained how real-time encryp-
+tion of these audio calls can help send data onto the network
+with the person’s consent while maintaining the necessary
+
+privacy. Finding real data (phone calls that were fraudulent or
+normal) was a challenge for this research. Some researchers
+have worked with real call data; however, due to legal and
+ethical concerns, the dataset has not been made publicly avail-
+able (see Section 2). So, in order to test the efficacy of our
+work, we generated a number of synthetic calls using LLM to
+simulate real-time scenarios. For our methodology, we used
+three bank examples: Bank1, Bank2, and Bank3. Each bank
+provides various services and has its own set of policies. Each
+bank was given a set of legitimate, intermediate, and fraud-
+ulent cases. The LLM was given a prompt using the cases
+defined in Table 1, in order to generate calls with a variety of
+real-life scenarios based on the defined boundaries. To eval-
+uate our system and compare it to state-of-the-art methods,
+we generated three sets of synthetic data: 100 calls, 500 calls,
+and 1000 calls, respectively.
+
+3
+
+CustomerEmployee/ImpersonatorCall RecordingLLM Analyzing the callExtracting the CompnayNameFeature ExtractionFoundNot FoundCompany NameActive Directory SearchExtracting specificCompany Policy DocumentExtracting basicEthics PolicyDocumentEmbedding modelVector DatabaseLLM analyzing calls to label(Fraud/Not Fraud) based onspecific Company Policy.Creating and StoringEmbeddings from DocumentsPrompt + Retrived enhanced contextExplanaiton of any Policy ViolationBank
+
+Bank1
+
+Bank2
+
+Table 1: Legitimate, Fraudulent, and Intermediate activities for different banks
+Type
+Legitimate
+Fraudulent
+
+Description
+Confirming contact information, asking for feedback on digital tools.
+Requesting full debit card numbers, demanding CVV code and expiry
+date.
+
+Intermediate Asking for the last 6 digits of account numbers for verification.
+Legitimate
+
+Verifying identity using the last four digits of the Social Security number,
+confirming recent transactions.
+Requesting immediate transfers of all funds, demanding the customer
+transfer their balance to an external account.
+
+Fraudulent
+
+Bank3
+
+Fraudulent
+
+Intermediate Asking for the last 4 digits of the account number for verification.
+Legitimate
+
+Asking for feedback on digital tools, participating in surveys about bank-
+ing services.
+Asking customers to download software or remote access tools, demand-
+ing the installation of a security application.
+
+Intermediate Requesting the last 6 digits of the customer’s account number for verifi-
+
+cation.
+
+3.2 Feature Extraction using LLM
+
+In our methodology, we use LLMs to analyze and extract
+key features from call recordings (text). The first step is to
+extract specific features, such as the employee’s name and the
+company name. Identifying the company name is critical for
+locating pertinent documents, which are required to explain
+and label calls as fraudulent or legitimate. Each company has
+unique policies and privacy concerns, so we must tailor our
+analysis to the specific company. After extracting the company
+name, we address potential issues like spelling errors and
+variations in the extracted text. To deal with this, we use
+a cosine similarity check rather than direct matching. First,
+the extracted company name and the names in our database
+are vectorized using word embeddings. The cosine similarity
+between two vectors, A and B, is then calculated using the
+following formula:
+
+cosine_similarity(A, B) =
+
+A · B
+∥A∥∥B∥
+
+(1)
+
+where A · B is the dot product of the vectors, and ∥A∥ and
+∥B∥ are the magnitudes of the vectors. By applying cosine
+similarity, we effectively match the extracted company name
+with the closest entry in our database, even if there are minor
+spelling errors. This ensures accurate document selection for
+the next steps in our methodology.
+
+3.3 Retrieval-Augmented Generation (RAG)
+
+Retrieval-Augmented Generation (RAG) is a potent method
+that combines text generation and information retrieval capa-
+bilities. By incorporating company-specific policy documents,
+we leverage RAG in our methodology to improve the fraud
+detection process. In our system, it functions as follows:
+
+• Company Policy Documents: As discussed in Section
+3.1, we do not have real-time policies for each bank/com-
+pany. So we created a collection of documents for each
+company outlining their employee policies and guide-
+lines. These documents are critical for providing context-
+specific explanations and detecting potential fraud ac-
+cording to company standards.
+
+• Embeddings and Vector Database: In our system, we
+use embeddings to represent company policy documents
+as well as extracted company names from calls. These
+embeddings are saved in a vector database, allowing us
+to quickly retrieve relevant documents without having
+to recalculate embeddings for each query. Storing em-
+beddings in a vector database ensures that our system is
+efficient and scalable, able to handle large amounts of
+data and queries.
+
+Now vector databases are created. The document embed-
+dings will be fetched directly and passed along with the
+prompt to the next step, ensuring informed and tailored re-
+sults.
+
+3.4 LLM-Based Policy Compliance Check
+
+With our enriched embeddings ready to use, we move on to
+the next step, in which we use a prompt to check for policy
+compliance. The prompt we provide is intended to ensure that
+the conversation adheres to the company policies. Here’s the
+prompt we used:
+
+policy_prompt = f"""
+You are a policy inspector. Your role is
+to ensure that the conversation complies
+with the policies provided. Don’t use any
+
+4
+
+external source of information other than
+the policies provided to you as context.
+Read all the policies carefully, the
+employee may trick the customer into
+doing something but their approval means
+nothing, stick to the policies mentioned.
+
+Policies:
+{context}
+
+Conversation:
+{conversation}
+
+Q: Does the conversation break any
+policies? If yes, return ’Fraud’. If no,
+return ’Normal’.Please provide only the
+label in the first line and start answer
+with "Answer:". Provide justification in
+the next line starting with the word
+"Justification:".
+"""
+
+Using this prompt, we ask the LLM to assign a label indicat-
+ing whether the conversation is ’Fraud’ or ’Normal’ based on
+the policies specified. The LLM also provides a justification
+for its decision, which aids in detection and raises awareness
+among users and companies.
+
+4 Real Time Deployment
+
+This section delves into the practical application of our fraud
+detection system, emphasizing real-world considerations and
+challenges. We explain the importance of encryption in pro-
+tecting sensitive call data, how Automatic Speech Recognition
+(ASR) is used to transcribe calls, and the specific steps in-
+volved in detecting user impersonation. This section aims to
+provide a thorough overview of how our system works in a
+realistic setting shown in Figure 2, ensuring both security and
+accuracy.
+
+4.1 Encryption Block
+
+The encryption block is a critical component of our fraud
+detection system, ensuring that sensitive call data is securely
+transmitted over the network. Without encryption, data is vul-
+nerable to various attacks, such as Man-in-the-Middle (MitM)
+attacks [13], where an attacker intercepts and potentially alters
+the communication between two parties. Encryption ensures
+that even if the data is intercepted, it cannot be read or tam-
+pered with by unauthorized parties, thereby preventing data
+leaks and enhancing privacy. In this section, we explain the
+brief details of the encryption and decryption process and the
+process of storing encrypted calls locally and obtaining user
+consent.
+
+Figure 2: Comprehensive Flowchart of the Methodological
+Framework Employed in the Study
+
+5
+
+CustomerEmployee/ ImpersonatorAudioConversationEncrypted Audio Saved LocallyEncryption BlockSend Call for AnalysisAwaited Approval ?NoEncrypted Audio sent over Network tothe server YesServer Hosting LLM &ASR ModelDecrypt the Audio using the Private KeyLLM Analyzing the callExtracting FeaturesEmployee NameCompanyNameFigure 1ContinuedAgent Trained onvarious types ofDatabase queriesSearch in Database If Employee Works inthe CompanyAlert FraudNoExtract Features from thedatabase like Phone numberand Email AddressYesSend Push Notifications for VerificationResponse Awaited?NoEmployee VerifiedYesAutomatic Speech Recoginition Model4.1.1 Encryption and Decryption Process
+
+We use public and private key cryptography to secure call
+data, ensuring that only authorized parties can access the
+encrypted information. Our implementation employs AES for
+data encryption and RSA for securely transmitting the AES
+key.
+
+• Encryption Process : First, we generate a random AES
+key to encrypt the call recordings. The encrypted call
+data (C) and the AES key (K) are then transmitted se-
+curely. The AES key is encrypted using the server’s
+public RSA key (Kenc), ensuring that only the server can
+decrypt it.
+
+• Decryption Process : At the server, the AES key is
+decrypted using the server’s private RSA key. This key
+is then used to decrypt the call recordings, converting
+the encrypted data back into its original form.
+
+By using AES and RSA together, we ensure that call record-
+ings are securely transmitted and protected against unautho-
+rized access.
+
+4.1.2 Local Storage and User Consent
+
+To further protect user privacy, we store encrypted calls locally.
+During the call, a pop-up message is shown to the user, asking
+if they want to share the call for analysis. This process allows
+users to share only the calls they want to analyze, while the
+rest are removed from the local system, addressing potential
+storage issues.
+
+4.2 Automatic Speech Recognition (ASR)
+
+In our proposed work, we use LLMs, which are specifically
+designed to understand text and identify patterns in it based
+on its learning. So, in order to convert the decrypted call on
+the server to text format, we employ the Automatic Speech
+Recognition (ASR) model. ASR systems use machine learn-
+ing models that have been trained on large datasets of audio
+recordings and transcripts. The primary goal of ASR is to
+accurately transcribe spoken language in real time, allowing
+for subsequent analysis and processing.
+
+4.3 Feature Extraction
+
+Once the call data is securely decrypted and transcribed into
+text on the server, the next step involves analyzing the call to
+extract critical features using a LLM. For our application, the
+primary features of interest are the employee name and com-
+pany name. These features are essential for further analysis
+and verification steps. It extracts key information based on
+predefined prompts and patterns. Here is an example prompt
+used by the LLM to extract features:
+
+Extract the following information from the
+conversation:
+- Employee Name
+- Company Name
+
+Conversation:
+{conversation}
+
+Extracted Information:
+- Employee Name: [Name]
+- Company Name: [Company]
+
+The extracted feature "company name" is also used in the
+first part of our methodology (see Section 3.1). This includes
+ensuring compliance with company policies and detecting
+potential fraud. Because there are no dependent variables,
+both steps run in parallel following the feature extraction
+step.
+
+4.4 User Impersonation Detection
+
+User impersonation involves an attacker assuming the iden-
+tity of a legitimate user, typically to deceive others and gain
+access to privileged information or perform unauthorized ac-
+tions. This can occur in various ways, such as through social
+engineering, phishing attacks, or exploiting vulnerabilities in
+authentication systems. In the context of our system, imper-
+sonation can happen when an individual falsely claims to be
+an employee of a company during a call.
+
+4.4.1 Detection Steps
+
+To detect user impersonation, our system uses a two-step
+verification process. The first step is to check in the database if
+there is a company name in the database; if so, check to see if
+the employee works for the company; if that is also true, then
+proceed to the second verification step, which involves the
+individual to verify its identity. Both the steps are explained
+in detail below.
+
+• First Verification Step: Checking Comapny name
+and Employee Name : The first step involves verifying
+whether the extracted compnay name exists in the public
+database. Then systems checks if employee name exists
+in the company’s public dataset. This is crucial for ensur-
+ing that the individual on the call is indeed an employee
+of the company.
+
+– Cosine Similarity: Given the limitations of ASR
+accuracy, we use cosine similarity (explained in eq
+1) to match the extracted employee name with the
+names in the company’s public dataset.
+
+– Verification: If the cosine similarity score indicates
+a strong match, the employee name is considered
+valid, and we proceed to the next verification step.
+If not, the call is flagged as potential fraud.
+
+6
+
+• Second Verification Step: Sending Push Notifications:
+The second step involves verifying the identity of the em-
+ployee by sending push notifications to their registered
+phone number and email address. This step ensures that
+the individual on the call is indeed the person they claim
+to be.
+
+– Extracting Contact Information: From the public
+dataset, we extract the phone number and email ad-
+dress associated with the verified employee name.
+
+– Sending Notifications: Push notifications are sent
+to the extracted phone number and email address,
+requesting confirmation of the call. The message
+may include a unique code or a simple confirmation
+request.
+
+– Awaiting Response: The system awaits a response
+from the legitimate employee. If the employee con-
+firms the call, their identity is verified, and we rely
+on the LLM’s policy check for further analysis. If
+the employee does not confirm or rejects the notifi-
+cation, it indicates potential impersonation, and an
+alert is raised.
+
+In this methodology section, we have outlined the compre-
+hensive steps involved in our real-time fraud detection system.
+By combining the two components, our methodology pro-
+vides a robust and scalable solution for real-time fraud detec-
+tion, ensuring both accuracy and security. This comprehensive
+approach addresses the various challenges associated with
+detecting fraudulent activities, making our system a valuable
+tool for enhancing trust and reliability in communications.
+
+5 Results
+
+In this section, we present the results of our fraud detection
+system evaluated on synthetic call data. As previously dis-
+cussed (in Section 3.1), we created three sets of synthetic data
+consisting of 100, 500, and 1000 calls respectively. These
+datasets were used to test the performance of our model with
+comparison to state of the art methods: A complete Trans-
+former Model (in our case we have used BERT), an untrained
+(on our data) LLM, and our Retrieval-Augmented Generation
+(RAG) model. Table 2 provides a comprehensive comparison
+of the models based on various metrics such as Accuracy, Pre-
+cision, Recall, and F1 Score. The results clearly demonstrate
+the effectiveness of our RAG model in accurately detecting
+fraudulent activities.
+
+0.8281 with 100 calls, and reaching 0.9530 and 0.9623 respec-
+tively with 1000 calls. This demonstrates BERT’s dependency
+on larger datasets for higher accuracy and reliability. In con-
+trast, the untrained simple LLM underperforms, achieving an
+accuracy of 0.6632 and an F1 score of 0.4074 with 100 calls,
+with only marginal improvements as the dataset size increases,
+indicating its unsuitability for effective fraud detection with-
+out extensive training. However, our RAG model consistently
+outperforms both BERT and the untrained LLM across all
+dataset sizes, achieving an impressive accuracy of 0.9798 and
+an F1 score of 0.9744 with 100 calls, and maintaining high
+performance with larger datasets. This suggests that the RAG
+model’s ability to integrate relevant document retrieval with
+text generation allows it to provide more accurate and con-
+textually appropriate responses. This means that while BERT
+and LLM require substantial training, our proposed approach
+is scalable and does not require extensive training.
+
+5.2 Advantages of LLM-based RAG Model
+
+over BERT
+
+This section discusses the primary advantages of the RAG
+based LLM model over the BERT model. Three scenarios are
+used to illustrate this point as showcased in detail in Table 3.
+
+• Scenario 1: Ease of Adaptation to Policy Changes:
+Let’s assume TrustyBank updates its policy to allow
+seven digits for verification.
+
+– LLM-RAG: Capable of understanding and incor-
+porating new policies immediately without retrain-
+ing, ensuring continuous compliance and security.
+
+– BERT: Requires retraining on new datasets to
+include updated policies, which can be time-
+consuming and resource-intensive, potentially lead-
+ing to delays.
+
+• Scenario 2: Personalized Responses for Each Organi-
+zation: As outlined in Table 1, only Secure Bank permits
+asking for the last four digits, while all others allow the
+last six digits for verification.
+
+– LLM-RAG: Accurately extracts relevant embed-
+dings and provides personalized responses based
+on each organization’s policy.
+
+– BERT: Struggles to adapt to personalized features
+due to generalized training, requiring additional
+focused training or attention mechanisms to incor-
+porate such specific features.
+
+5.1 Model Performance Analysis
+
+• Scenario 3: Detailed Reasoning and Explanation
+
+The performance analysis indicates that the BERT model
+shows significant improvement with an increasing number
+of calls, achieving an accuracy of 0.7800 and an F1 score of
+
+– LLM-RAG: Provides comprehensive explanations
+for detected policy violations, aiding in trans-
+parency and understanding.
+
+7
+
+Table 2: Comparison of BERT, Simple LLM Untrained, and RAG models based on different numbers of calls
+
+Model
+
+BERT
+
+Simple LLM Untrained
+
+RAG Based LLM
+
+Number of Calls Accuracy Precision Recall
+1.000
+0.7800
+0.9778
+0.9360
+0.9772
+0.9530
+0.2895
+0.6632
+0.2995
+0.6605
+0.2880
+0.6716
+0.9798
+0.9744
+0.9776
+0.9545
+0.9766
+0.9577
+
+100 calls
+500 calls
+1000 calls
+100 calls
+500 calls
+1000 calls
+100 calls
+500 calls
+1000 calls
+
+0.7067
+0.9249
+0.9479
+0.6875
+0.6941
+0.7013
+0.9744
+0.9895
+0.9810
+
+F1 Score
+0.8281
+0.9506
+0.9623
+0.4074
+0.4184
+0.4083
+0.9744
+0.9717
+0.9692
+
+Table 3: Comparison of proposed model (RAG based LLM) and BERT responses for different scenarios.
+BERT Response
+Classified
+Fraud
+
+as:
+
+Scenario
+Ease
+of Adap-
+tation to Policy
+Changes
+
+Example Call
+Hello, this is John from Bank1.
+May I ask you to confirm the last
+seven digits of your card number
+for security purposes?
+
+Classified as: Nor-
+mal
+
+Classified
+Fraud
+
+as:
+
+LLM-RAG Response
+No, the conversation does not
+break any policies. The request
+for partial account details (last
+seven digits of the card num-
+ber) is allowed as per the Inter-
+mediate Verifications policy.
+Yes, the conversation does break
+the policy. Specifically, it vio-
+lates the policy "Partial Ac-
+count Details" under "Interme-
+diate Verifications". The pol-
+icy states that employees may
+ask for the last 4 digits of the
+customer’s account number or
+debit card for security verifica-
+tion. However, the conversation
+asks for the last six digits, which
+exceeds the allowed limit of four
+digits.
+Yes, the conversation breaks the
+"Software Downloads" and "Se-
+curity Applications" prohibited
+request policies. The agent is
+asking the customer to trans-
+fer funds to a temporary ’safe
+account’, which implies the
+use of software or remote
+access tools. Furthermore, the
+agent’s language could be in-
+terpreted as requesting the cus-
+tomer to install a security appli-
+cation for verification purposes.
+
+Personalized An-
+swers for each Or-
+ganisation
+
+Hello, this is John from Bank2.
+May I ask you to confirm the last
+six digits of your card number
+for security purposes?
+
+Detailed Reason-
+ing and Explana-
+tion
+
+Hello, this is Sarah from Bank3.
+We’ve noticed some unusual ac-
+tivity on your account. Can you
+confirm the last three transac-
+tions you made? Sure, I spent 50
+at SuperMart, 30 at GasGo, and
+15 at BookWorld. Thank you for
+confirming. To ensure your se-
+curity, could you please transfer
+your funds to a temporary ’safe
+account’ while we investigate?
+
+8
+
+– BERT: Identifies whether a call is fraud/not but
+lacks detailed explanations, limiting effectiveness
+in complex scenarios.
+
+The results demonstrate that the RAG model excels in real-
+time fraud detection, outperforming BERT and an untrained
+LLM, proving its effectiveness and suitability for real-world
+scenarios.
+
+flexible, and easily updatable defense against AI-driven fraud.
+Future work will focus on expanding the system’s capabili-
+ties, including broader applications beyond phone call fraud,
+and further refining the RAG models to enhance accuracy
+and efficiency. As AI continues to evolve, our strategies for
+preventing its misuse must also advance, and this system rep-
+resents a significant step forward in that ongoing effort.
+
+6 Limitations and Future Work
+
+One of the key limitations of the proposed work is that it has
+been primarily tested on synthetic data. While synthetic data
+allows for controlled experimentation and testing of various
+edge cases, the proposed methodology has not yet been tested
+on real-world data. The performance of the system in a real-
+world setting, where data can be far more diverse and less
+predictable, will need to be carefully evaluated. Additionally,
+the challenge of LLM hallucination, where the model may
+generate unnecessary or incorrect outputs, persists. These hal-
+lucinations, which may not align with the provided context
+or policies, remain a critical issue. However, advancements
+in LLM technology and techniques like prompt engineering
+have shown promise in mitigating these errors. Future work
+will focus on deploying this system in real-world environ-
+ments to validate its effectiveness and improve upon areas
+such as reducing hallucinations and integrating more secure
+and accurate verification methods [6]. Enhancing the Auto-
+matic Speech Recognition (ASR) component, especially for
+multiple languages, is another area that could significantly
+improve the overall integration and effectiveness of the sys-
+tem in fraud detection. These improvements could make this
+methodology a groundbreaking approach in integrating AI
+for security and fraud detection.
+
+7 Conclusion
+
+In this study, we have presented a novel real-time fraud detec-
+tion system utilizing Retrieval Augmented Generation (RAG)
+technology, addressing the growing concern of AI-enabled
+scams such as fraudulent phone calls and user impersonations.
+Our approach leverages RAG’s unique capability to continu-
+ously update policies without requiring full model retraining,
+making it highly adaptable to evolving threats. The system
+operates on two primary fronts: real-time transcription and
+policy checking to ensure conversation authenticity, and a
+robust two-step verification process to confirm caller iden-
+tity, enhancing both transparency and accountability. Through
+rigorous testing using synthetic call recordings, our RAG-
+based system demonstrated superior performance, achieving
+an impressive accuracy of 97.98% and an F1-score of 97.44%,
+outperforming existing state-of-the-art methods. These results
+underscore the effectiveness of our approach and its potential
+to be deployed in real-world scenarios, providing a strong,
+
+References
+
+[1] Rizik Al-Sayyed, Esra’a Alhenawi, Hadeel Alazzam,
+Ala’a Wrikat, and Dima Suleiman. Mobile money
+fraud detection using data analysis and visualiza-
+tion techniques. Multimedia Tools and Applications,
+83(6):17093–17108, 2024.
+
+[2] Communications Fraud Control Association et al.
+Fraud loss survey. Technical report, Technical Report.
+https://cfca. org/wp-content/uploads/2021/12/CFCA-
+Fraud . . . , 2021.
+
+[3] Nikesh Bajaj, Tracy Goodluck Constance, Marvin Ra-
+jwadi, Julie Wall, Mansour Moniri, Cornelius Glackin,
+Nigel Cannings, Chris Woodruff, and James Laird.
+Fraud detection in telephone conversations for finan-
+cial services using linguistic features. arXiv preprint
+arXiv:1912.04748, 2019.
+
+[4] Alexander Bakumenko, Kateˇrina Hlaváˇcková-Schindler,
+Claudia Plant, and Nina C Hubig. Advancing anomaly
+detection: Non-semantic financial data encoding with
+llms. arXiv preprint arXiv:2406.03614, 2024.
+
+[5] Dainis Boumber, Bryan E Tuck, Rakesh M Verma, and
+Fatima Zahra Qachfar. Llms for explainable few-shot
+deception detection. In Proceedings of the 10th ACM In-
+ternational Workshop on Security and Privacy Analytics,
+pages 37–47, 2024.
+
+[6] Gilad Gressel, Rahul Pankajakshan, and Yisroel Mirsky.
+Discussion paper: Exploiting llms for scam automa-
+tion: A looming threat. In Proceedings of the 3rd ACM
+Workshop on the Security Implications of Deepfakes and
+Cheapfakes, pages 20–24, 2024.
+
+[7] Devendra Sambhaji Hapase and Lalit Vasantrao Patil.
+Telecommunication fraud resilient framework for effi-
+cient and accurate detection of sms phishing using ar-
+tificial intelligence techniques. Multimedia Tools and
+Applications, pages 1–23, 2024.
+
+[8] Liming Jiang. Detecting scams using large language
+models. arXiv preprint arXiv:2402.03147, 2024.
+
+[9] Pijush Kanti Kumar, Samrat Ray, Lakshmanan Ku-
+marasankaralingam, Athilingam Ramamoorthy, Pad-
+manavan Kumar, and Anurag Dutta. Detecting fraud
+
+9
+
+[21] Junhang Wu, Ruimin Hu, Dengshi Li, Lingfei Ren, Zijun
+Huang, and Yilong Zang. Beyond the individual: An
+improved telecom fraud detection approach based on
+latent synergy graph learning. Neural Networks, 169:20–
+31, 2024.
+
+[22] Huaqin Zhao, Zhengliang Liu, Zihao Wu, Yiwei Li,
+Tianze Yang, Peng Shu, Shaochen Xu, Haixing Dai, Lin
+Zhao, Gengchen Mai, et al. Revolutionizing finance with
+llms: An overview of applications and insights. arXiv
+preprint arXiv:2401.11641, 2024.
+
+[23] Qianqian Zhao, Kai Chen, Tongxin Li, Yi Yang, and
+XiaoFeng Wang. Detecting telecommunication fraud
+by understanding the contents of a call. Cybersecurity,
+1:1–12, 2018.
+
+In 2024
+calls vis-à-vis natural language processing.
+2nd International Conference on Advancement in Com-
+putation & Computer Technologies (InCACCT), pages
+457–462. IEEE, 2024.
+
+[10] JIANG LIMING. Detecting scams using large language
+models. arXiv preprint arXiv:2402.03147, 2024.
+
+[11] Ayuns Luz. Enhancing the interpretability and explain-
+ability of ai-driven risk models using llm capabilities.
+Technical report, EasyChair, 2024.
+
+[12] Saloni Malhotra, Ginni Arora, and Ruchika Bathla. De-
+tection and analysis of fraud phone calls using artifi-
+cial intelligence. In 2023 International Conference on
+Recent Advances in Electrical, Electronics & Digital
+Healthcare Technologies (REEDCON), pages 592–595.
+IEEE, 2023.
+
+[13] Avijit Mallik. Man-in-the-middle-attack: Understand-
+ing in simple words. Cyberspace: Jurnal Pendidikan
+Teknologi Informasi, 2(2):109–134, 2019.
+
+[14] Najmeh Miramirkhani, Oleksii Starov, and Nick Niki-
+forakis. Dial one for scam: Analyzing and detecting tech-
+nical support scams. In 22nd Annual Network and Dis-
+tributed System Security Symposium (NDSS, volume 16,
+2016.
+
+[15] Akshaya Ravi, Mounira Msahli, Han Qiu, Gerard
+Memmi, Albert Bifet, and Meikang Qiu. Wangiri
+fraud: Pattern analysis and machine-learning-based de-
+tection. IEEE Internet of Things Journal, 10(8):6794–
+6802, 2022.
+
+[16] Smadar Rinat. Fraud detection and gaas topics. CPA
+
+Journal, 93, 2023.
+
+[17] Merve Sahin, Aurélien Francillon, Payas Gupta, and
+Mustaque Ahamad. Sok: Fraud in telephony networks.
+In 2017 IEEE European Symposium on Security and
+Privacy (EuroS&P), pages 235–250. IEEE, 2017.
+
+[18] Abdul Wahid, Mounira Msahli, Albert Bifet, and Gerard
+Memmi. Nfa: A neural factorization autoencoder based
+online telephony fraud detection. Digital Communica-
+tions and Networks, 10(1):158–167, 2024.
+
+[19] Laura Weidinger, John Mellor, Maribeth Rauh, Conor
+Griffin, Jonathan Uesato, Po-Sen Huang, Myra Cheng,
+Mia Glaese, Borja Balle, Atoosa Kasirzadeh, et al. Eth-
+ical and social risks of harm from language models.
+arXiv preprint arXiv:2112.04359, 2021.
+
+[20] Ian Wood, Michal Kepkowski, Leron Zinatullin, Travis
+Darnley, and Mohamed Ali Kaafar. An analysis of scam
+baiting calls: Identifying and extracting scam stages and
+scripts. arXiv preprint arXiv:2307.01965, 2023.
+
+10

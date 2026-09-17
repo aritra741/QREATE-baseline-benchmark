@@ -1,0 +1,2354 @@
+4
+2
+0
+2
+
+p
+e
+S
+1
+2
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+2
+9
+9
+3
+1
+.
+9
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+SMART-RAG: Selection using Determinantal Matrices for Augmented
+Retrieval
+
+Jiatao Li1,2, Xinyu Hu1, Xiaojun Wan1,
+1Wangxuan Institute of Computer Technology, Peking University ,
+2Information Management Department, Peking University
+leejames@stu.pku.edu.cn, {huxinyu,wanxiaojun}@pku.edu.cn
+
+Abstract
+
+Retrieval-Augmented Generation (RAG) has
+greatly improved large language models
+(LLMs) by enabling them to generate accurate,
+contextually grounded responses through the
+integration of external information. However,
+conventional RAG approaches, which prioritize
+top-ranked documents based solely on query-
+context relevance, often introduce redundancy
+and conflicting information. This issue is partic-
+ularly evident in unsupervised retrieval settings,
+where there are no mechanisms to effectively
+mitigate these problems, leading to subopti-
+mal context selection. To address this, we pro-
+pose Selection using Matrices for Augmented
+ReTrieval (SMART) in question answering
+tasks , a fully unsupervised and training-free
+framework designed to optimize context selec-
+tion in RAG. SMART leverages Determinan-
+tal Point Processes (DPPs) to simultaneously
+model relevance, diversity and conflict, ensur-
+ing the selection of potentially high-quality
+contexts. Experimental results across multiple
+datasets demonstrate that SMART significantly
+enhances QA performance and surpasses pre-
+vious unsupervised context selection methods,
+showing a promising strategy for RAG.
+
+1
+
+Introduction
+
+Recent advancements in large language models
+(LLMs) have significantly boosted performance in
+various natural language processing (NLP) tasks,
+especially in question answering (QA) (Brown
+et al., 2020). Despite their fluent and coherent
+generation, LLMs often face issues of hallucina-
+tion and lack of factual grounding (Maynez et al.,
+2020; Zhou et al., 2021), resulting in inconsistent
+or unreliable responses—particularly problematic
+in domains where factual accuracy is crucial, such
+as law, medicine, and education.
+
+To address these issues, Retrieval-Augmented
+Generation (RAG) have emerged as a powerful so-
+lution. By integrating external sources of factual
+
+1
+
+evidence, RAG enhance the reliability and consis-
+tency of QA models (Khattab et al., 2023; Izac-
+ard et al., 2022). However, selecting relevant, di-
+verse, and non-conflicting contexts remains a major
+challenge. Supervised RAG methods require large
+amounts of labeled data, which is impractical in
+low-resource domains (Wang et al., 2023b; Dong
+et al., 2024). Even unsupervised methods often
+rely on pre-training or fine-tuning, which incurs
+significant computational costs.
+
+One of the key challenges in RAG is selecting
+contexts that are not only relevant but also diverse
+and free of contradictions. While retrieved con-
+texts are typically aligned with the query, they can
+introduce redundancy or conflicting information,
+especially when drawn from large datasets. For
+instance, one context might claim that “Treatment
+X has been shown to reduce symptoms by 50%
+in trials,” while another might state, “Treatment
+X is ineffective and provides no significant bene-
+fits.” Such contradictions can confuse the QA sys-
+tem, leading to unreliable or incoherent responses,
+which is particularly problematic in high-stakes
+domains like education and healthcare, where mis-
+information can have serious consequences.
+
+This problem occurs because retrieval methods
+tend to prioritize relevance at the expense of diver-
+sity, leading to the over-selection of similar con-
+texts. Furthermore, when multiple contexts present
+conflicting perspectives on the same information,
+the coherence of the generated answers suffers. A
+crucial factor for producing accurate, coherent an-
+swers lies in striking a balance between relevance
+and diversity while minimizing contradictions.
+
+Therefore, we introduce Selection using
+Matrices for Augmented ReTrieval in Question
+Answering (SMART), a fully unsupervised, train-
+free framework that directly tackles the challenges
+of context selection in RAG. The key innovation of
+SMART lies in its use of Determinantal Point Pro-
+cesses (DPPs) to model relevance, diversity, and
+
+ 
+ 
+ 
+ 
+ 
+ 
+conflict relations among retrieved contexts. This
+approach enables SMART to select highly valu-
+able contexts while effectively addressing issues
+of redundancy and conflict, which often hinder the
+performance of traditional RAG methods.
+
+SMART integrates conflict modeling into con-
+text selection to enhance the coherence and fac-
+tual accuracy of generated answers. By leveraging
+Determinantal Point Processes (DPPs), SMART
+balances relevance and diversity while minimizing
+redundancy, preventing the selection of conflicting
+or repetitive contexts (Kulesza et al., 2012). Cosine
+similarity is used to assess relevance, and Natural
+Language Inference (NLI) identifies and penalizes
+contradictions, ensuring that selected contexts are
+both diverse and consistent. As a fully unsuper-
+vised, train-free method, SMART efficiently adapts
+to various tasks without requiring large-scale la-
+beled data or computationally intensive retraining.
+
+Our contributions are as follows:
+
+1. We introduce a novel extension of DPP that
+integrates conflict modeling into context se-
+lection for RAG.
+
+2. We present SMART, a fully unsupervised and
+training-free framework that surpasses previ-
+ous unsupervised RAG methods.
+
+3. We demonstrate the effectiveness of our
+SMART in improving context selection for
+QA by balancing relevance, diversity, and con-
+flict, resulting in better performance across
+multiple datasets.
+
+2 Methodology
+
+In this section, we present the SMART framework,
+which employs DPP to select relevant, diverse,
+and conflict-free contexts. By explicitly model-
+ing conflict relations between contexts, SMART
+improves coherence and factual consistency in
+question-answering (QA) tasks, ensuring more reli-
+able and accurate answers.
+
+2.1 Relation Modeling
+
+In SMART, each context c is segmented into indi-
+vidual sentences {s1, s2, . . . , sn}, after which the
+framework models three essential relationships:
+textual similarity, conflict relations, and query-
+context relevance.
+
+Textual Similarity To assess content overlap, we
+compute pairwise cosine similarity between dense
+
+vector representations of contexts. The cosine sim-
+ilarity between two contexts ci and cj, denoted as
+s(ci, cj), is calculated as:
+
+s(ci, cj) =
+
+vci · vcj
+∥vci∥∥vcj ∥
+
+where vci and vcj are the embeddings of contexts
+ci and cj. This similarity score contributes to the
+similarity matrix Ksim, which captures the degree
+of textual similarity between contexts.
+
+Conflict Relations
+In addition to modeling rel-
+evance and diversity, SMART also accounts for
+conflict relations between contexts to avoid select-
+ing contradictory information. For each context
+pair ci and cj, we employ a Natural Language In-
+ference (NLI) model to compute the probability
+of conflict. The conflict relation c(ci, cj) is sym-
+metrized by averaging the directional probabilities
+P (ci → cj) and P (cj → ci):
+
+c(ci, cj) =
+
+1
+2
+
+(P (ci → cj) + P (cj → ci))
+
+This results in a conflict matrix C, which penal-
+izes the selection of contradictory contexts, thereby
+ensuring that the final set is coherent and free
+from conflicts. By incorporating conflict modeling,
+SMART enhances the factual consistency of the
+selected contexts, going beyond standard relevance-
+based methods.
+
+Query-Context Relevance
+In addition to mod-
+eling relationships between contexts, SMART cal-
+culates the relevance of each context to the query.
+Using cosine similarity between the query Q and
+each context c, the relevance score r(Q, c) is given
+by:
+
+r(Q, c) =
+
+vQ · vc
+∥vQ∥∥vc∥
+
+where vQ and vc represent the embeddings of the
+query and the context, respectively. This relevance
+score ensures that the selected contexts are closely
+aligned with the query, leading to higher-quality
+answers.
+
+2.2 DPP-Based Context Selection
+
+Based on the context relations constructed as above,
+we modify and improve the Determinantal Point
+Process (DPP) approach to select an optimal subset
+of contexts. It ensures an effectively balanced selec-
+tion in terms of relevance, diversity, and coherence.
+We will introduce the main method of our SMART,
+with the related theoretical derivations and proofs
+presented in Appendix D.
+
+2
+
+Figure 1: SMART pipeline for context selection in question answering. Given an initial query, the retriever identifies
+relevant documents, which are then split into sentences. A pre-ranking step is applied to narrow down the top
+candidate sentences. The pipeline involves two key stages: (1) Data Processing, where Query-Context (QC) and
+Context-Context (CC) relations are constructed, and (2) Context Selection, leveraging Determinantal Point Processes
+(DPP) to balance relevance and diversity while resolving conflicts between contexts. The result is a set of diverse,
+non-redundant, and coherent final contexts.
+
+Kernel Matrix Construction The kernel matrix
+L ensures that selected contexts are relevant, di-
+verse, and conflict-free. It is constructed as follows:
+
+L = Diag(r) · Kweighted · Diag(r)
+
+where r represents the relevance scores between
+the query and each context, and Kweighted is a
+conflict-adjusted similarity matrix that balances
+textual similarity and conflict penalties. The sym-
+metrized conflict matrix C is computed as de-
+scribed in Section 2.1, and the weighted similarity
+matrix is initialized as:
+
+Kweighted = Ksim ◦ exp(−γ(1 − C))
+
+where Ksim represents the cosine similarity be-
+tween contexts. The decay function exp(−γ(1 −
+C)) adjusts the similarity based on conflict, with
+γ ≥ 0 controlling how strongly conflict impacts
+similarity. This penalizes contexts with higher con-
+flict scores as proved in Section D.7.
+
+Subset Selection via DPP After constructing the
+conflict-aware kernel matrix L, DPP selects a sub-
+set Yg ⊆ Y of contexts that optimally balances
+relevance, diversity, and coherence. The probabil-
+ity of selecting a subset Yg is given by:
+
+3
+
+P (Yg) =
+
+(cid:81)
+
+i∈Yg
+
+q2
+i · det(Kweighted,Yg )
+det(L + I)
+
+,
+
+where Kweighted,Yg is the submatrix of Kweighted
+corresponding to the selected subset Yg. This en-
+sures that selected contexts are both relevant and
+non-conflicting, mitigating the risk of incoherent
+or contradictory answers.
+
+Efficient Subset Selection via Greedy MAP In-
+ference To efficiently select an optimal subset of
+contexts, we use a greedy Maximum A Posteriori
+(MAP) inference algorithm, iteratively selecting the
+context cj that maximizes the marginal gain in the
+determinant:
+
+cj = arg max
+i∈Y \Yg
+
+(cid:0)log det(LYg∪{i}) − log det(LYg )(cid:1)
+
+This ensures that each selected context enhances
+relevance and diversity while avoiding redundancy
+and contradictions.
+
+Balancing Relevance and Diversity To adjust
+the trade-off between relevance and diversity, we
+introduce a hyperparameter β, governing the selec-
+
+tion process:
+
+log det(LYg ) = β ·
+
+log(q2
+
+i )+
+
+(cid:88)
+
+i∈Yg
+
+(1 − β) · log det(Kweighted,Yg )
+
+where β ∈ [0, 1] controls the emphasis on rele-
+vance versus diversity. Higher β values favor rele-
+vance, while lower values prioritize diversity and
+conflict minimization, ensuring that selected con-
+texts are both coherent and non-redundant.
+
+By modeling conflict relations and combining
+them with relevance and diversity, SMART delivers
+a robust, conflict-free context selection process that
+significantly improves the quality and coherence of
+generated answers in QA systems.
+
+3 Experiments
+
+3.1 Experimental Setup
+
+We evaluate SMART on three diverse knowledge-
+intensive tasks using few-shot in-context learn-
+ing (Radford et al., 2019; Brown et al., 2020; Ram
+et al., 2023). Following prior work (Trivedi et al.,
+2022), we limit the experiments to the first 500 sam-
+ples from each dataset to manage computational
+costs. Since test sets are unavailable for datasets
+from the KILT benchmark (Petroni et al., 2020)
+(e.g., HotpotQA, FEVER), we report results on the
+development sets. The tasks include open-domain
+question answering, multi-hop reasoning, and fact
+verification, evaluated on established datasets such
+as NaturalQuestions (NQ), TriviaQA (TQA), Hot-
+potQA, FEVER, and FOOL ME TWICE (FM2).
+An overview of the datasets, evaluation metrics,
+and experimental settings is provided in Table 1.
+
+a set of questions q paired with short answers o,
+and we use the processed version from Lee et al.
+(2019), focusing on instances where answers are
+five tokens or fewer. TriviaQA (TQA) consists
+of questions q with corresponding answers o, ex-
+tracted from supporting Wikipedia documents P .
+We evaluate model performance on both datasets
+using the Exact Match (EM) metric, following the
+evaluation framework in Lewis et al. (2020a).
+
+Multi-Hop Question Answering For multi-hop
+QA, we adopt the HotpotQA dataset (Yang et al.,
+2018), which requires reasoning over multiple pas-
+sages P to answer each question q. HotpotQA in-
+cludes 113K question-answer pairs, many of which
+demand abstractive reasoning rather than direct
+extraction from supporting documents P . As the
+answers often require deeper reasoning and syn-
+thesis, we use the unigram F1 score for evaluation,
+consistent with Yang et al. (2018).
+
+Fact Verification To evaluate the system’s abil-
+ity to verify factual claims, we use the FEVER
+dataset (Thorne et al., 2018), a core part of the
+KILT benchmark (Petroni et al., 2021). Each sam-
+ple consists of a claim q that either supports or re-
+futes information sourced from Wikipedia. Claims
+are labeled as "SUPPORTS" if they align with the
+facts and "REFUTES" if they contradict the facts.
+Model performance is assessed using accuracy, in
+line with previous work (Thorne et al., 2018). Addi-
+tionally, we test on the FOOL ME TWICE (FM2)
+dataset (Eisenschlos et al., 2021), which presents
+challenging claims designed to deceive players into
+selecting false facts. This dataset is particularly
+useful for evaluating the model’s robustness in iden-
+tifying subtle factual inconsistencies.
+
+Settings
+
+Task
+
+#ICL Metrics
+
+3.3 Baseline Methods
+
+ODQA
+ODQA
+
+NQ
+TQA
+HotpotQA Multihop QA
+FEVER
+FM2
+
+Fact Verification
+Fact Verification
+
+5-shot
+5-shot
+5-shot
+5-shot
+5-shot
+
+EM
+EM
+F1
+EM
+EM
+
+Table 1: Dataset statistics and experimental settings for
+NQ, TQA, HotpotQA, FEVER, and FM2 tasks.
+
+3.2 Tasks and Datasets
+
+Open-Domain Question Answering (QA) For
+open-domain QA, we use the NaturalQuestions
+(NQ) (Kwiatkowski et al., 2019) and TriviaQA
+(TQA) (Joshi et al., 2017) datasets. NQ provides
+
+4
+
+To evaluate the performance of SMART, we
+compare it against several well-established un-
+supervised baseline methods, which include
+relevance-focused and diversity-aware approaches.
+BGE (Xiao et al., 2023) selects the most rele-
+vant contexts based on the query-context relevance
+scores using the bge-large-en-v1.5 model, focus-
+ing purely on relevance without considering di-
+versity or conflicts. Affinity Propagation (Wang
+et al., 2008) selects exemplar contexts from clusters
+to ensure diversity, while Agglomerative Cluster-
+ing (Sharaff et al., 2016) hierarchically groups sim-
+ilar contexts and selects representatives from differ-
+ent clusters. Greedy Selection simply iteratively
+
+chooses the most dissimilar contexts to maximize
+diversity, without considering relevance. Maxi-
+mal Marginal Relevance (MMR) (Carbonell and
+Goldstein, 1998) balances relevance and diversity
+by selecting contexts that are both relevant and dis-
+similar to previously chosen ones. Non-negative
+Matrix Factorization (NMF) (Lee and Seung,
+2000) groups contexts into topics and selects repre-
+sentatives from each to cover diverse aspects. Spec-
+tral Clustering (Gupta et al., 2019) organizes con-
+texts based on similarity and selects representatives
+to maintain diversity. TextRank (Mihalcea and Ta-
+rau, 2004) is a graph-based method that ranks con-
+texts by their centrality within a similarity graph,
+focusing on relevance, while LexRank (Erkan and
+Radev, 2004) also ranks contexts based on central-
+ity but emphasizes representativeness of the dataset.
+For further details on each method, refer to Ap-
+pendix A.
+
+3.4
+
+Implementation Details
+
+We evaluate the Llama3-8b-instruct model using
+the December 2018 Wikipedia dump as the re-
+trieval corpus in a 5-shot in-context learning setup.
+Initially, we use Contriever (Izacard et al., 2021)
+to retrieve the top 50 documents per query. We
+then apply BGE for pre-ranking, selecting the top
+30 sentences with the highest BGE query-context
+scores. Finally, the SMART method and other con-
+text selection baselines are used to select the final
+set of sentences from this pre-ranked pool for in-
+put. Table 2 shows the optimal β and γ values for
+each dataset used in our experiments. Additional
+details on decoding strategies, prompts, few-shot
+examples, context segmentation, and embedding
+models are provided in Appendix B.
+
+Parameter
+
+NQ TQA HotpotQA FEVER FM2
+
+Beta (β)
+Gamma (γ)
+
+0.8
+0.8
+
+0.9
+0.3
+
+0.9
+0.2
+
+0.9
+0.2
+
+0.8
+0.7
+
+Table 2: Optimal hyperparameters (β and γ) used for
+each dataset.
+
+3.5 Experimental Results
+
+Table 3 presents the performance of SMART along-
+side baseline methods across multiple datasets, us-
+ing Exact Match (EM) for NQ, TQA, FEVER,
+FM2, and F1 for HotpotQA.
+
+FEVER and FM2, where conflict resolution is crit-
+ical, achieving EM scores of 93.5 and 75.6, respec-
+tively. SMART also demonstrates superior perfor-
+mance in HOTPOTQA (F1: 40.8), showcasing its
+effectiveness in multi-hop reasoning tasks. Across
+other datasets such as NQ and TQA, SMART
+maintains its advantage, highlighting its robustness
+and scalability in context selection for question
+answering.
+
+4 Analyses and Discussions
+
+4.1 Ablation Experiments
+
+To evaluate the contributions of key components in
+the SMART framework, we conducted a series of
+ablation experiments by systematically modifying
+specific elements of the model. These experiments
+assess the impact of relevance and conflict model-
+ing on overall performance across multiple datasets.
+The ablations focus on four key variations: (1) re-
+moving conflict resolution while retaining query-
+context relevance, (2) removing both relevance and
+conflict modeling, (3) using only BGE relevance
+scores, and (4) using the raw top 5 contexts re-
+trieved by Contriever (Izacard et al., 2021).
+
+SMART (Full) The full SMART model com-
+bines both relevance and conflict modeling, con-
+structing the kernel matrix L as:
+
+L = Diag(r) · Kweighted · Diag(r)
+
+This approach effectively balances relevance, di-
+versity, and conflict resolution, resulting in supe-
+rior performance across all datasets. For instance,
+in FEVER, the model achieves an Accuracy of
+93.5, outperforming other settings by a clear mar-
+gin. Similarly, in FM2, SMART reaches an EM
+score of 75.6, highlighting the significant impact
+of conflict management on fact-based QA tasks.
+Across datasets like HOTPOTQA, where multi-hop
+reasoning is critical, the model also excels with
+an F1 score of 40.8, showcasing its ability to han-
+dle complex queries through diverse and coherent
+context selection.
+
+SMART w/o Conflict
+In this ablation, we re-
+moved conflict modeling while retaining query-
+context relevance and textual similarity. The kernel
+matrix L is simplified as:
+
+L = Diag(r) · Ksim · Diag(r)
+
+SMART consistently outperforms baseline meth-
+ods across all datasets. It excels particularly in
+
+While this variant continues to perform well, it
+struggles with selecting conflicting contexts, which
+
+5
+
+Method
+
+NQ (EM) TQA (EM) HOTPOTQA (F1) FEVER (EM) FM2 (EM)
+
+BGE
+CONTRIEVER
+AGGLOMERATIVECLUSTERING
+GREEDY
+MMR
+NMF
+SPECTRALCLUSTERING
+TEXTRANK
+LEXRANK
+RANDOM
+
+SMART(OURS)
+
+25.1
+21.6
+21.0
+21.2
+20.4
+21.6
+22.4
+23.4
+23.2
+21.6
+
+25.9
+
+48.9
+36.6
+40.8
+33.5
+36.6
+40.6
+41.8
+47.3
+47.7
+38.0
+
+49.3
+
+38.8
+32.4
+33.9
+29.5
+27.5
+32.5
+36.4
+33.4
+33.4
+30.4
+
+40.8
+
+91.1
+83.8
+86.7
+78.4
+78.2
+81.8
+89.7
+86.3
+86.5
+84.2
+
+93.5
+
+72.0
+71.1
+67.3
+65.5
+66.5
+72.1
+72.3
+68.7
+69.1
+67.3
+
+75.6
+
+Table 3: Performance comparison of various context selection methods across datasets, using the primary evaluation
+metric mentioned in Table 1.
+
+Method
+
+NQ (EM) TQA (EM) HOTPOTQA (F1) FEVER (Acc) FM2 (EM)
+
+SMART (FULL)
+SMART W/O CONFLICT
+SMART W/O RELEVANCE + CONFLICT
+SMART W/O DIVERSITY + CONFLICT
+SMART W/O DIVERSITY + CONFLICT + RELEVANCE
+
+25.9
+25.1
+23.2
+25.1
+21.6
+
+49.3
+49.9
+37.8
+48.9
+36.6
+
+40.8
+40.5
+31.3
+38.8
+32.4
+
+93.5
+92.3
+78.4
+91.1
+83.8
+
+75.6
+74.3
+66.3
+72.0
+71.1
+
+Table 4: Ablation study comparing the performance of SMART with different settings for relevance and conflict
+modeling across datasets.
+
+impacts coherence and factual consistency. This
+is particularly evident in fact-based tasks like
+FEVER and FM2. For example, in FEVER, the
+Accuracy decreases by 1.2 points (93.5 to 92.3),
+and in FM2, the EM score drops by 1.3 points
+(75.6 to 74.3). These results underscore the critical
+role of conflict resolution in maintaining reliable,
+non-contradictory context selection.
+
+SMART w/o Relevance + Conflict
+In this ab-
+lation, both query-context relevance and conflict
+modeling are removed, leaving SMART to rely
+solely on DPP to maintain diversity using the simi-
+larity matrix:
+
+L = Ksim
+
+While DPP promotes diverse context selection, this
+approach lacks mechanisms for ensuring the se-
+lected contexts are aligned with the query or free
+from contradictions. As a result, performance suf-
+fers significantly across all datasets, particularly
+in tasks requiring multi-hop reasoning and factual
+accuracy, such as HOTPOTQA and FM2. For in-
+stance, in FM2, the EM score drops by 9.3 points
+(from 75.6 to 66.3), underscoring the critical role of
+both relevance and conflict modeling for effective
+context selection.
+
+SMART w/o Diversity + Conflict
+In this con-
+figuration, context selection is based solely on the
+
+BGE query-context relevance score, without incor-
+porating similarity or conflict modeling. While
+this approach performs reasonably well, it lacks
+the ability to manage conflicting contexts or ensure
+diversity. As a result, its performance is lower com-
+pared to the full SMART model. For instance, in
+FM2, the EM score is 72.0, falling short of the 75.6
+achieved by the full model. Similarly, in FEVER,
+the Accuracy drops to 91.1, underscoring the impor-
+tance of conflict resolution in tasks where factual
+consistency is critical. Although BGE Relevance
+Only performs better than more basic baselines, it
+remains limited by its inability to address conflicts
+and promote diversity.
+
+SMART w/o Diversity + Conflict + Relevance
+This baseline directly selects the top 5 sentences
+from documents retrieved by Contriever without
+any additional modeling. As expected, this ap-
+proach yields the weakest performance, with no-
+table declines across all datasets. The model is
+unable to handle conflicting or redundant contexts,
+particularly in fact-based tasks like FEVER, where
+Accuracy drops significantly to 83.8.
+
+Key Findings The results from the ablation ex-
+periments (Table 4) clearly highlight the crucial
+role of both relevance and conflict modeling in
+SMART’s performance. Removing conflict resolu-
+
+6
+
+tion leads to a significant decline in factual consis-
+tency, especially in datasets like FM2 and FEVER,
+where maintaining coherence and accuracy is es-
+sential. The most pronounced performance drops
+are observed when both relevance and conflict mod-
+eling are excluded, underscoring the importance
+of integrating these components for high-quality,
+diverse, and coherent context selection. These find-
+ings reaffirm that managing relevance and conflict
+is essential for achieving optimal performance in
+fact-based QA tasks.
+
+4.2 Effects of Key Hyperparameters
+
+While SMART requires no additional training, tun-
+ing two key hyperparameters—β and γ—is essen-
+tial for optimizing performance. β balances rele-
+vance and diversity, while γ manages conflict reso-
+lution across contexts.
+
+Relevance-Diversity Trade-off (β) β controls
+the balance between relevance and diversity in con-
+text selection. As shown in Figure 2, the best re-
+sults are typically obtained with β values between
+0.7 and 0.8, depending on the dataset. For example,
+in FM2, β = 0.8 strikes an ideal balance, avoiding
+redundancy while maintaining relevance. In NQ,
+β = 0.7 provides sufficient diversity to cover mul-
+tiple facets of the query. Setting β too high leads to
+diminished performance due to redundant context
+selection.
+
+Conflict Resolution (γ) γ determines how
+strongly conflicting contexts are penalized. Its ef-
+fects are especially pronounced in fact-based tasks
+like FEVER and FM2, where consistency is critical.
+For FEVER, γ = 0.2 provides the best balance,
+while FM2 benefits from a stricter penalty with
+γ = 0.7. In NQ, a higher γ = 0.8 helps eliminate
+contradictory information. However, setting γ too
+high risks excluding useful, slightly conflicting con-
+texts, reducing diversity and overall performance.
+
+5 Related Work
+
+5.1 Unsupervised Context Selection Methods
+
+Unsupervised context selection is crucial in low-
+data scenarios. Techniques like Affinity Propaga-
+tion (Wang et al., 2008) and TextRank (Mihalcea
+and Tarau, 2004) focus on either relevance or di-
+versity but often fail to balance both. Greedy Se-
+lection maximizes diversity by selecting the most
+dissimilar contexts, ignoring relevance. In contrast,
+Maximal Marginal Relevance (MMR) (Carbonell
+
+and Goldstein, 1998) balances relevance and di-
+versity, choosing contexts that are both relevant
+and distinct. Non-negative Matrix Factorization
+(NMF) (Lee and Seung, 2000) promotes topic di-
+versity but does not directly prioritize relevance in
+its selections.
+
+Recent unsupervised approaches
+
+such as
+REALM (Guu et al., 2020a) and REPLUG (Shi
+et al., 2023b) have reduced reliance on labeled data
+by involving some level of training, though they
+still require pre-training or fine-tuning.
+In con-
+trast, SMART offers a fully train-free solution, in-
+tegrating Determinantal Point Processes (DPPs) to
+jointly model relevance, diversity, and conflict. By
+addressing both query-context relationships and po-
+tential conflicts, SMART ensures a more balanced
+and effective selection of contexts, providing sig-
+nificant improvements in question-answering tasks
+without the need for extensive pre-training.
+
+5.2 Retrieval-Augmented Generation and
+
+Context Optimization
+
+Retrieval-Augmented Generation (RAG) improves
+language models by incorporating external infor-
+mation, but it often faces challenges such as noise,
+irrelevant details, and redundancy in the retrieved
+texts, which can degrade performance (Lewis et al.,
+2020c; Guu et al., 2020b; Xu et al., 2023; Wang
+et al., 2023a). Most existing RAG context selection
+methods are supervised, relying heavily on labeled
+data, which limits their scalability in low-resource
+environments where such data is scarce (Dong
+et al., 2024).
+
+While unsupervised RAG approaches reduce the
+need for labeled data, they typically still require
+pre-training or fine-tuning and often struggle to bal-
+ance relevance and diversity in context selection.
+SMART overcomes these limitations by introduc-
+ing a fully unsupervised, train-free framework that
+leverages Determinantal Point Processes (DPPs).
+This ensures a balanced selection of contexts that
+minimizes redundancy, resolves conflicts, and op-
+timizes relevance and diversity—filling a critical
+gap in existing RAG methodologies.
+
+In augmented generation tasks, where additional
+contexts support the generation process, balanc-
+ing relevance, diversity, and coherence is essen-
+tial (Lewis et al., 2020b; Guu et al., 2020a). Al-
+though retrieving longer passages may offer more
+information, they often introduce irrelevant or con-
+flicting details that harm output quality (Shi et al.,
+2023a). SMART addresses this by selecting con-
+
+7
+
+Figure 2: The different performance of SMART across datasets, with each hyperparameter (β or γ) tuned indepen-
+dently while keeping the other fixed at its optimal value (as reported in Table 2). The dashed lines represent the
+results of directly using top 5 sentences from documents retrieved by contriever.
+
+texts that are both relevant and diverse while re-
+maining free from contradictions, enhancing both
+factual accuracy and coherence in generated text.
+
+Existing retrieval optimization techniques of-
+ten focus on reranking based on relevance or util-
+ity (Nogueira and Cho, 2020), but neglect the need
+for diversity and conflict resolution. SMART im-
+proves upon these approaches by integrating con-
+flict resolution, ensuring retrieved content is rele-
+vant, non-redundant, and consistent. This conflict-
+aware approach strengthens the performance of
+generation tasks, delivering more robust, coherent,
+and factually accurate outputs across diverse appli-
+cations.
+
+larity to deliver high-quality outputs.
+
+Extensive experiments across various datasets
+demonstrated that SMART outperforms existing
+methods, particularly in tasks such as fact verifi-
+cation and multi-hop reasoning. Its training-free
+nature makes it highly scalable for real-world ap-
+plications, including virtual assistants, legal sys-
+tems, and educational tools. By offering high-
+quality, conflict-free context selection, SMART has
+the potential to drive significant advancements in
+retrieval-augmented question answering and gener-
+ation systems.
+
+Limitations
+
+6 Conclusion
+
+In this paper, we presented SMART, a novel unsu-
+pervised framework for enhancing context selec-
+tion in retrieval-augmented generation (RAG). By
+incorporating conflict modeling into Determinantal
+Point Processes (DPPs), SMART addresses a key
+challenge in context selection: balancing relevance,
+diversity, and conflict resolution. Unlike traditional
+methods, SMART explicitly models and mitigates
+conflicts between retrieved contexts, ensuring that
+selected contexts are both coherent and factually
+consistent. This conflict-aware approach operates
+without the need for pre-training or fine-tuning, in-
+tegrating query-context relevance and textual simi-
+
+A notable limitation of SMART is the time cost
+associated with computing conflict relations us-
+ing the Natural Language Inference (NLI) model.
+While the DPP-based selection is efficient, the pro-
+cess of identifying contradictions between contexts
+through NLI introduces additional computational
+overhead, particularly when dealing with large-
+scale datasets. Moreover, the current sentence-level
+segmentation approach may not fully capture inter-
+sentence dependencies or broader document coher-
+ence, potentially missing key contextual relation-
+ships. Future work could focus on optimizing the
+NLI conflict detection process and exploring more
+sophisticated segmentation strategies to enhance
+both efficiency and context selection quality.
+
+8
+
+0.50.60.70.80.91.0Beta2223242526EMNQ0.50.60.70.80.91.0Beta707172737475EMFM20.50.60.70.80.91.0Beta848688909294EMFEVER0.00.20.40.60.8Gamma2223242526EMNQ0.00.20.40.60.8Gamma7172737475EMFM20.00.20.40.60.8Gamma848688909294EMFEVERSMARTContrieverAcknowledgments
+
+This work was supported by National Key R&D
+Program of China (2021YFF0901502), National
+Science Foundation of China (No. 62161160339),
+State Key Laboratory of Media Convergence Pro-
+duction Technology and Systems, and Key Lab-
+oratory of Science, Technology and Standard in
+Press Industry (Key Laboratory of Intelligent Press
+Media Technology). We appreciate the anonymous
+reviewers for their helpful comments. Xiaojun Wan
+is the corresponding author.
+
+References
+
+AI@Meta. 2024. Llama 3 model card.
+
+Steven Bird and Edward Loper. 2004. NLTK: The natu-
+ral language toolkit. In Proceedings of the ACL In-
+teractive Poster and Demonstration Sessions, pages
+214–217, Barcelona, Spain. Association for Compu-
+tational Linguistics.
+
+Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, Sandhini Agarwal, Ariel Herbert-Voss,
+Gretchen Krueger, Tom Henighan, Rewon Child,
+Aditya Ramesh, Daniel Ziegler, Jeffrey Wu, Clemens
+Winter, Chris Hesse, Mark Chen, Eric Sigler, Ma-
+teusz Litwin, Scott Gray, Benjamin Chess, Jack
+Clark, Christopher Berner, Sam McCandlish, Alec
+Radford, Ilya Sutskever, and Dario Amodei. 2020.
+In Ad-
+Language models are few-shot learners.
+vances in Neural Information Processing Systems,
+volume 33, pages 1877–1901. Curran Associates,
+Inc.
+
+Jaime Carbonell and Jade Goldstein. 1998. The use of
+mmr, diversity-based reranking for reordering doc-
+uments and producing summaries. In Proceedings
+of the 21st annual international ACM SIGIR confer-
+ence on Research and development in information
+retrieval, pages 335–336.
+
+Jialin Dong, Bahare Fatemi, Bryan Perozzi, Lin F Yang,
+and Anton Tsitsulin. 2024. Don’t forget to connect!
+improving rag with graph-based reranking. arXiv
+preprint arXiv:2405.18414.
+
+Julian Martin Eisenschlos, Bhuwan Dhingra, Jannis Bu-
+lian, Benjamin Börschinger, and Jordan Boyd-Graber.
+2021. Fool me twice: Entailment from wikipedia
+gamification. Preprint, arXiv:2104.04725.
+
+Günes Erkan and Dragomir R. Radev. 2004. Lexrank:
+Graph-based lexical centrality as salience in text sum-
+marization. ArXiv, abs/1109.2128.
+
+Anand Gupta, Manpreet Kaur, Ahsaas Bajaj, and Ansh
+Khanna. 2019. Entailment and spectral clustering
+based single and multiple document summarization.
+
+International Journal of Intelligent Systems and Ap-
+plications, 11:39–51.
+
+Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pasu-
+pat, and Ming-Wei Chang. 2020a. Realm: Retrieval-
+augmented language model pre-training. Preprint,
+arXiv:2002.08909.
+
+Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pasupat,
+and Mingwei Chang. 2020b. Retrieval augmented
+language model pre-training. In International confer-
+ence on machine learning, pages 3929–3938. PMLR.
+
+Gautier Izacard, Mathilde Caron, Lucas Hosseini, Se-
+bastian Riedel, Piotr Bojanowski, Armand Joulin,
+and Edouard Grave. 2021. Unsupervised dense in-
+formation retrieval with contrastive learning. Trans.
+Mach. Learn. Res., 2022.
+
+Gautier Izacard, Patrick Lewis, Maria Lomeli, Lu-
+cas Hosseini, Fabio Petroni, Timo Schick, Jane
+Dwivedi-Yu, Armand Joulin, Sebastian Riedel, and
+Edouard Grave. 2022. Atlas: Few-shot learning
+with retrieval augmented language models. Preprint,
+arXiv:2208.03299.
+
+Mandar Joshi, Eunsol Choi, Daniel Weld, and Luke
+Zettlemoyer. 2017. TriviaQA: A large scale distantly
+supervised challenge dataset for reading comprehen-
+sion. In Proceedings of the 55th Annual Meeting of
+the Association for Computational Linguistics (Vol-
+ume 1: Long Papers), pages 1601–1611, Vancouver,
+Canada. Association for Computational Linguistics.
+
+Omar Khattab, Keshav Santhanam, Xiang Lisa
+Li, David Hall, Percy Liang, Christopher Potts,
+and Matei Zaharia. 2023. Demonstrate-search-
+predict: Composing retrieval and language mod-
+Preprint,
+els
+arXiv:2212.14024.
+
+for knowledge-intensive nlp.
+
+Alex Kulesza, Ben Taskar, et al. 2012. Determinantal
+point processes for machine learning. Foundations
+and Trends® in Machine Learning, 5(2–3):123–286.
+
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-
+field, Michael Collins, Ankur Parikh, Chris Alberti,
+Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-
+ton Lee, et al. 2019. Natural questions: a benchmark
+for question answering research. Transactions of the
+Association for Computational Linguistics, 7:453–
+466.
+
+Daniel Lee and H Sebastian Seung. 2000. Algorithms
+for non-negative matrix factorization. Advances in
+neural information processing systems, 13.
+
+Kenton Lee, Ming-Wei Chang, and Kristina Toutanova.
+2019. Latent retrieval for weakly supervised open
+domain question answering. In Proceedings of the
+57th Annual Meeting of the Association for Computa-
+tional Linguistics, pages 6086–6096, Florence, Italy.
+Association for Computational Linguistics.
+
+9
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+täschel, Sebastian Riedel, and Douwe Kiela. 2020a.
+Retrieval-augmented generation for knowledge-
+In Advances in Neural Infor-
+intensive nlp tasks.
+mation Processing Systems, volume 33, pages 9459–
+9474. Curran Associates, Inc.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+täschel, et al. 2020b. Retrieval-augmented generation
+for knowledge-intensive nlp tasks. Advances in Neu-
+ral Information Processing Systems, 33:9459–9474.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus,
+et al. 2020c. Retrieval-augmented generation for
+knowledge-intensive nlp tasks. Advances in Neural
+Information Processing Systems, 33:9459–9474.
+
+Joshua Maynez, Shashi Narayan, Bernd Bohnet, and
+Ryan McDonald. 2020. On faithfulness and factu-
+ality in abstractive summarization. In Proceedings
+of the 58th Annual Meeting of the Association for
+Computational Linguistics, pages 1906–1919, On-
+line. Association for Computational Linguistics.
+
+Rada Mihalcea and Paul Tarau. 2004. Textrank: Bring-
+ing order into text. In Proceedings of the 2004 con-
+ference on empirical methods in natural language
+processing, pages 404–411.
+
+Rodrigo Nogueira and Kyunghyun Cho. 2020. Pas-
+arXiv preprint
+
+sage re-ranking with bert.
+arXiv:1901.04085.
+
+Oskar Perron. 1907. Zur theorie der matrices. Mathe-
+
+matische Annalen, 64:248–263.
+
+Fabio Petroni, Aleksandra Piktus, Angela Fan, Patrick
+Lewis, Majid Yazdani, Nicola De Cao, James Thorne,
+Yacine Jernite, Vladimir Karpukhin, Jean Maillard,
+Vassilis Plachouras, Tim Rocktäschel, and Sebastian
+Riedel. 2021. Kilt: a benchmark for knowledge in-
+tensive language tasks. Preprint, arXiv:2009.02252.
+
+Fabio Petroni, Aleksandra Piktus, Angela Fan, Patrick
+Lewis, Majid Yazdani, Nicola De Cao, James Thorne,
+Yacine Jernite, Vassilis Plachouras, Tim Rocktaschel,
+and Sebastian Riedel. 2020. Kilt: a benchmark for
+knowledge intensive language tasks. In North Amer-
+ican Chapter of the Association for Computational
+Linguistics.
+
+Alec Radford, Jeff Wu, Rewon Child, David Luan,
+Dario Amodei, and Ilya Sutskever. 2019. Language
+models are unsupervised multitask learners.
+
+J. Schur. 1911. Bemerkungen zur theorie der beschränk-
+ten bilinearformen mit unendlich vielen veränder-
+lichen. Journal für die reine und angewandte Mathe-
+matik, 1911(140):1–28.
+
+Aakanksha Sharaff, Hari Shrawgi, Priyank Arora, and
+Anshul Verma. 2016. Document summarization by
+agglomerative nested clustering approach. In 2016
+IEEE International Conference on Advances in Elec-
+tronics, Communication and Computer Technology
+(ICAECCT), pages 187–191.
+
+Freda Shi, Xinyun Chen, Kanishka Misra, Nathan
+Scales, David Dohan, Ed Chi, Nathanael Schärli, and
+Denny Zhou. 2023a. Large language models can be
+easily distracted by irrelevant context. arXiv preprint
+arXiv:2302.00093.
+
+Weijia Shi, Sewon Min, Michihiro Yasunaga, Min-
+joon Seo, Rich James, Mike Lewis, Luke Zettle-
+moyer, and Wen tau Yih. 2023b. Replug: Retrieval-
+arXiv
+augmented black-box language models.
+preprint arXiv:2301.12652.
+
+Damien Sileo. 2023.
+
+tasksource: Structured dataset
+preprocessing annotations for frictionless extreme
+multi-task learning and evaluation. arXiv preprint
+arXiv:2301.05948.
+
+James
+
+Andreas Vlachos,
+
+Christos
+Thorne,
+Christodoulopoulos,
+and Arpit Mittal. 2018.
+Fever: a large-scale dataset for fact extraction and
+verification. Preprint, arXiv:1803.05355.
+
+Harsh Trivedi, Niranjan Balasubramanian, Tushar
+Khot, and Ashish Sabharwal. 2022.
+Interleav-
+ing retrieval with chain-of-thought reasoning for
+knowledge-intensive multi-step questions. arXiv
+preprint arXiv:2212.10509.
+
+Kaijun Wang, Junying Zhang, Dan Li, Xinna Zhang,
+and Tao Guo. 2008. Adaptive affinity propagation
+clustering. arXiv preprint arXiv:0805.1096.
+
+Yile Wang, Peng Li, Maosong Sun, and Yang Liu.
+2023a. Self-knowledge guided retrieval augmen-
+tation for large language models. arXiv preprint
+arXiv:2310.05002.
+
+Zhiruo Wang, Jun Araki, Zhengbao Jiang, Md Rizwan
+Parvez, and Graham Neubig. 2023b. Learning to fil-
+ter context for retrieval-augmented generation. arXiv
+preprint arXiv:2311.08377.
+
+Shitao Xiao, Zheng Liu, Peitian Zhang, and Niklas
+Muennighoff. 2023. C-pack: Packaged resources
+to advance general chinese embedding. Preprint,
+arXiv:2309.07597.
+
+Ori Ram, Yoav Levine, Itay Dalmedigos, Dor Muhlgay,
+Amnon Shashua, Kevin Leyton-Brown, and Yoav
+Shoham. 2023. In-context retrieval-augmented lan-
+guage models. Transactions of the Association for
+Computational Linguistics, 11:1316–1331.
+
+Shicheng Xu, Liang Pang, Huawei Shen, Xueqi Cheng,
+and Tat-seng Chua. 2023. Search-in-the-chain: To-
+wards the accurate, credible and traceable content
+generation for complex knowledge-intensive tasks.
+arXiv preprint arXiv:2304.14732.
+
+10
+
+Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Ben-
+gio, William W. Cohen, Ruslan Salakhutdinov, and
+Christopher D. Manning. 2018. Hotpotqa: A dataset
+for diverse, explainable multi-hop question answer-
+ing. Preprint, arXiv:1809.09600.
+
+Chunting Zhou, Graham Neubig, Jiatao Gu, Mona Diab,
+Francisco Guzmán, Luke Zettlemoyer, and Marjan
+Ghazvininejad. 2021. Detecting hallucinated content
+in conditional neural sequence generation. In Find-
+ings of the Association for Computational Linguis-
+tics: ACL-IJCNLP 2021, pages 1393–1404, Online.
+Association for Computational Linguistics.
+
+11
+
+A Detailed Baseline Methods
+
+In this section, we provide a comprehensive ex-
+planation of the baseline methods used to evalu-
+ate SMART’s performance in retrieval-augmented
+generation (RAG) for question answering (QA).
+Since SMART operates in a fully unsupervised and
+train-free manner, it offers a fair and meaningful
+comparison with other unsupervised baselines.
+
+Below are the unsupervised methods used in
+our evaluation, including both traditional relevance-
+focused approaches and diversity-aware clustering
+techniques.
+
+baseline
+
+leverages
+
+BGE This
+the
+bge-large-en-v1.5 model, which is a state-of-
+the-art query-context (QC) relevance calculator.
+The top contexts are selected based solely on their
+relevance scores. While this method focuses purely
+on maximizing relevance, it does not incorporate
+mechanisms for promoting diversity or addressing
+potential conflicts between the contexts. Due
+to the strength of the BGE model in capturing
+this baseline represents a
+semantic relevance,
+strong competitor, particularly in scenarios where
+relevance is the primary concern.
+
+Affinity Propagation Affinity Propagation is a
+clustering-based algorithm that identifies exem-
+plars, which are contexts that represent the most
+typical members of each cluster. It does this by
+exchanging messages between data points until
+a high-quality set of exemplars emerges. Once
+the clusters are formed, a representative context
+is selected from each cluster, ensuring diversity.
+However, this method does not explicitly prioritize
+relevance, leading to possible trade-offs in the final
+selection process.
+
+Agglomerative Clustering Agglomerative Clus-
+tering is a hierarchical method that begins by treat-
+ing each context as an individual cluster. The algo-
+rithm then iteratively merges pairs of clusters based
+on their similarity, creating a hierarchical tree (den-
+drogram). Once the clustering process is complete,
+contexts are selected from different clusters to pro-
+mote diversity. This method ensures that the final
+selection covers a wide range of information, al-
+though it does not explicitly prioritize relevance to
+the query.
+
+Greedy Selection Greedy Selection is an itera-
+tive approach that selects contexts one by one, fo-
+cusing exclusively on maximizing diversity. Each
+
+12
+
+new context is chosen to be as dissimilar as possible
+from the already selected contexts, ensuring that
+the final set covers a broad range of information.
+However, this method sacrifices relevance to the
+query, as it does not incorporate any mechanisms
+for optimizing relevance scores.
+
+Maximal Marginal Relevance (MMR) MMR
+is a well-known method for balancing relevance
+and diversity. It iteratively selects contexts that
+are highly relevant to the query while penalizing
+those that are too similar to the already selected
+contexts. This ensures that the selected contexts
+are both relevant and diverse, making MMR a more
+balanced approach than methods focused solely on
+relevance or diversity.
+
+Non-negative Matrix Factorization (NMF)
+NMF is a factorization technique that decomposes
+the query-context similarity matrix into a set of la-
+tent components, where each component represents
+a topic. Contexts are then grouped into these topics,
+and a representative context is selected from each
+topic to ensure topic-wise coverage. While NMF
+promotes diversity by capturing different aspects
+of the data, it does not handle conflicts or directly
+optimize relevance for each selected context.
+
+Spectral Clustering Spectral Clustering uses the
+eigenvalues of the similarity matrix to perform di-
+mensionality reduction before clustering. By cap-
+turing the underlying structure of the context space,
+Spectral Clustering groups similar contexts and
+selects representative contexts from each cluster.
+This method promotes diversity, ensuring that a
+range of perspectives is covered, though it does not
+explicitly model relevance or conflict.
+
+TextRank TextRank is a graph-based algorithm
+used for text ranking, similar to Google’s PageR-
+ank. In the context of RAG tasks, TextRank rep-
+resents contexts as nodes in a graph, with edges
+weighted by the cosine similarity between contexts.
+The algorithm assigns higher ranks to more central
+contexts (those connected to other relevant con-
+texts), making it an effective method for identify-
+ing key contexts based on their relevance within
+the set. However, it does not address conflict or
+redundancy directly.
+
+LexRank LexRank is another graph-based
+method similar to TextRank but focuses more on
+centrality within the context graph. LexRank ranks
+contexts based on their importance, determined by
+
+their connection to other contexts in the graph. It
+ensures that the selected contexts are representative
+of the whole dataset, promoting diversity. However,
+like TextRank, LexRank does not handle conflicts
+or redundancy.
+
+Random Selection This baseline randomly se-
+lects contexts from the pool, without any consider-
+ation for relevance, diversity, or conflict. Although
+simplistic, it serves as a lower-bound comparison,
+illustrating the importance of more sophisticated
+context selection methods in RAG tasks.
+
+B Implementation Details
+
+To ensure reproducibility, we provide a detailed
+overview of the key implementation settings and
+parameters used in our experiments.
+
+B.1 Data Retrieval and Preprocessing
+
+Retrieval and Context Segmentation We use
+the Contriever model to retrieve the top 50 doc-
+uments per query. After retrieval, documents
+are split into individual sentences using the Nat-
+ural Language Toolkit (NLTK) (Bird and Loper,
+2004). This sentence-level segmentation allows for
+more precise analysis. The sentences are then re-
+ranked using the bge-large-en-v1.5 embedding
+model (Xiao et al., 2023), ensuring more relevant
+and focused context selection. After pre-ranking,
+SMART and other baseline methods are used to
+select the final sentences from the pre-ranked pool,
+optimizing the balance between relevance, diver-
+sity, and conflict resolution.
+
+BGE preranking
+In the SMART framework, re-
+lations between contexts and queries are estab-
+lished at the sentence level. However, generating
+relation matrices for all sentences is inefficient,
+as many sentences are of low quality or noisy.
+Moreover, processing all relations—particularly
+the context-context conflict relation, with its com-
+plexity of O(n2)—becomes computationally pro-
+hibitive as n increases. To address this, we employ
+a pre-ranking step using the BGE ranker, selecting
+the top 30 sentences. Our method is then applied
+to choose the top 5 sentences from this set. All
+baseline methods also utilize this same pre-ranking
+step to ensure a fair comparison. For initial docu-
+ment retrieval, we use the Contriever model, which
+retrieves the top 50 documents. These documents
+are then split into sentences, and the BGE ranker is
+applied at the sentence level.
+
+B.2 Models
+
+QA models For all QA tasks, we use the Llama3-
+8b-instruct model (AI@Meta, 2024). Greedy de-
+coding is applied with a temperature setting of
+temp = 0, ensuring deterministic outputs by al-
+ways selecting the most probable token at each
+step.
+
+Embedding Model For dense vector repre-
+sentations of contexts and queries, we utilize
+the bge-large-en-v1.5 embedding model (Xiao
+et al., 2023), which captures semantic similarities
+across textual inputs.
+
+Natural Language Inference (NLI) Model To
+detect and resolve conflicts between contexts, we
+employ the DeBERTa-v3 model (Sileo, 2023). This
+model identifies contradictions and entailments be-
+tween text pairs, crucial for maintaining coherence
+in selected contexts.
+
+B.3 Hyperparameters
+
+The number of selected sentences, topk, is fixed
+at 5. We perform a grid search over a subset of
+the development set to determine the optimal hy-
+perparameters, with the results detailed in Table 2.
+The beta parameter β, which controls the trade-off
+between relevance and diversity, is adjusted across
+values {0.5, 0.6, 0.7, 0.8, 0.9, 1.0}. For β = 1.0,
+the model relies almost entirely on relevance, and
+we provide the BGE-ranking-only results for com-
+parison. The gamma parameter γ, which influences
+the handling of conflict resolution, is tuned within
+the range {0.1, 0.2, . . . , 0.9}.
+
+B.4 Hardware and Computational Efficiency
+
+Hardware Setup All experiments were con-
+ducted on an NVIDIA A40 GPU.
+
+Computational Efficiency The construction of
+the kernel matrix L for Determinantal Point Pro-
+cesses (DPP) involves a time complexity of O(n2),
+where n represents the number of contexts. Once
+the kernel matrix is constructed, the DPP sampling
+operates with a complexity of O(n3), providing
+an efficient framework for context selection with-
+out requiring extensive model training. Given the
+absence of any training phases, SMART is compu-
+tationally efficient and scalable, suitable for real-
+time or large-scale applications with constrained
+resources.
+
+13
+
+Prompts and Few-Shot Examples The prompts
+used for question answering (QA) and query de-
+composition are crucial to the performance of our
+method. The specific prompts, along with the
+few-shot examples employed, are detailed in Ap-
+pendix E. These examples guide the model in gen-
+erating contextually appropriate and accurate re-
+sponses.
+
+C Algorithm
+
+Algorithm 1 Data Preprocessing for SMART
+Input: Contexts C, Queries Q
+Output: Preprocessed contexts C, Preprocessed
+
+queries Q,
+
+Context similarity matrix Scc,
+Context conflict matrix Ccc,
+Query-Context relevance matrix Sqc
+
+1: Initialize empty lists C and Q
+2: Initialize empty matrices Scc, Ccc, Sqc
+3: for each c ∈ C do
+4:
+
+Segment context c into individual sentences
+{s1, s2, . . . , sn} using NLTK
+Add segmented context to C
+
+5:
+6: end for
+7: for each ci, cj ∈ C do
+8:
+
+9:
+
+10:
+
+Compute cosine similarity between ci and
+cj using dense vectors from BGE
+Store similarity in Scc[i, j]
+Compute conflict between ci and cj using
+NLI models
+Store conflict probability in Ccc[i, j]
+
+11:
+12: end for
+13: for each q ∈ Q, c ∈ C do
+14:
+
+Compute cosine similarity between q and c
+using BGE to measure the relevance of c to
+q
+Store relevance in Sqc[q, c]
+
+15:
+16: end for
+17: return C, Q, Scc, Ccc, Sqc
+
+Algorithm 2 DPP-based Context Selection with
+Symmetrized Conflict Matrix
+Input: Preprocessed contexts C, Context rele-
+
+vance vector q,
+
+Context similarity matrix Ksim,
+Conflict matrix C,
+Hyperparameters γ and θ, Number of con-
+
+texts to select k
+
+Output: Selected contexts Cselected
+1: Compute the symmetrized conflict matrix C′:
+
+C′
+
+ij =
+
+1
+2
+
+(Cij + Cji)
+
+2: Initialize the weighted similarity matrix:
+
+Kweighted = Ksim ◦ exp(−γ(1 − C′))
+
+3: Construct the kernel matrix L for DPP:
+
+L = Diag(q) · Kweighted · Diag(q)
+
+4: Initialize an empty set Cselected
+5: while |Cselected| < k do
+6:
+
+For each context c ∈ C \ Cselected, compute
+the marginal gain:
+
+∆c = log det(LCselected∪{c})−log det(LCselected)
+
+7:
+
+Select the context cbest that maximizes ∆c:
+
+cbest = arg max
+c∈C\Cselected
+
+∆c
+
+Add cbest to Cselected
+
+8:
+9: end while
+10: Adjust the selected contexts by tuning the bal-
+
+ance between relevance and diversity:
+
+log det(LCselected) = β ·
+
+(cid:88)
+
+log(q2
+i )
+
+i∈Cselected
+
++ (1 − β) · log det(SCselected)
+
+11: return Cselected
+
+14
+
+D Theoretical Proofs
+
+D.1 Proof of Proposition 3.1(DPP kernel PSD)
+
+Theorem 1. The kernel matrix L of a Determi-
+nantal Point Process (DPP) must be positive semi-
+definite (PSD).
+
+Proof. A Determinantal Point Process (DPP) is
+a probabilistic model used to define distributions
+over subsets of a ground set Y = {1, 2, . . . , N }.
+The DPP is parameterized by a kernel matrix
+L ∈ RN ×N , where each entry Lij captures the
+similarity between items i and j. The DPP defines
+a probability distribution over all subsets Y ⊆ Y
+as:
+
+P(Y ) ∝ det(LY ),
+
+where LY is the submatrix of L indexed by the
+elements of Y .
+
+to be valid,
+
+For the DPP model
+the kernel
+matrix L must satisfy two key conditions: (1) The
+matrix L must be symmetric, i.e., Lij = Lji for
+all i, j ∈ Y. (2) The matrix L must be positive
+semi-definite (PSD), which requires that for any
+vector x ∈ RN ,
+
+x⊤Lx ≥ 0.
+
+The necessity for L to be PSD arises from the
+properties of the determinant in the DPP model.
+the probability assigned to any
+Specifically,
+subset Y is proportional to the determinant of
+the submatrix LY . For this probability to be
+non-negative, det(LY ) must be non-negative for
+all subsets Y . This condition is satisfied if L is
+PSD, as the determinant of any principal submatrix
+of a PSD matrix is non-negative. Additionally,
+the probability P(Y ) of selecting a subset Y must
+be non-negative, implying that det(LY ) ≥ 0. If
+L were not PSD, some submatrices LY could
+have negative determinants, resulting in invalid
+(negative) probabilities.
+
+To ensure that P(Y ) ≥ 0 for all subsets Y ,
+the matrix L must be such that for any vector
+x ∈ RN , the quadratic form x⊤Lx ≥ 0 holds.
+This condition implies that all eigenvalues of
+L must be non-negative, which is a defining
+characteristic of a PSD matrix.
+
+determinants of all principal submatrices LY must
+be non-negative to ensure valid (non-negative)
+probabilities, and the quadratic form x⊤Lx ≥ 0
+must hold for all x ∈ RN , necessitating that L
+be PSD. Hence, the positive semi-definiteness of
+the kernel matrix L is a fundamental requirement
+for the DPP model to define a valid probability
+distribution.
+
+D.2 Proof of Proposition 3.2(CosSim PSD)
+
+Theorem 2. The cosine similarity matrix A ∈
+Rn×n, where each element Aij represents the co-
+sine similarity between vectors vi and vj, is positive
+semi-definite (PSD).
+
+Proof. The cosine similarity between two vectors
+vi and vj in Rd is defined as:
+
+Aij = cos(θij) =
+
+v⊤
+i vj
+∥vi∥∥vj∥
+
+,
+
+where θij is the angle between the vectors vi and
+vj, and ∥vi∥ denotes the Euclidean norm of vector
+vi. The matrix A is symmetric, with each entry
+Aij representing the cosine similarity between the
+i-th and j-th vectors.
+
+Let V = [v1, v2, . . . , vn] ∈ Rd×n be a ma-
+trix whose columns are the vectors vi. The cosine
+similarity matrix A can be expressed as:
+
+A = D−1V ⊤V D−1,
+
+where D is a diagonal matrix with entries
+Dii = ∥vi∥. Here, V ⊤V is the Gram matrix of the
+vectors vi.
+
+To prove that A is positive semi-definite,
+we must show that for any vector x ∈ Rn, the
+inequality x⊤Ax ≥ 0 holds.
+
+Using the expression for A, we write:
+
+x⊤Ax = x⊤D−1V ⊤V D−1x.
+
+Letting y = D−1x, we have:
+
+x⊤Ax = y⊤V ⊤V y = (V y)⊤(V y) = ∥V y∥2.
+
+Since the squared Euclidean norm ∥V y∥2 ≥ 0 for
+all vectors y, it follows that:
+
+x⊤Ax ≥ 0.
+
+the kernel matrix L of a DPP
+Therefore,
+must be positive semi-definite because the
+
+Thus, the cosine similarity matrix A is positive
+semi-definite.
+
+15
+
+D.3 Proof of Proposition 3.3(C not PSD)
+
+Theorem 3. The conflict matrix C, constructed
+from contradiction probabilities derived from a
+Natural Language Inference (NLI) model, is not
+guaranteed to be positive semi-definite (PSD) be-
+cause it can be non-symmetric and may have nega-
+tive eigenvalues.
+
+Proof. Let C be an n × n matrix where each ele-
+ment Cij represents the probability of contradiction
+between two sentences Ci and Cj in an NLI frame-
+work:
+
+Cij = P (contradiction | premise = Ci,
+
+hypothesis = Cj).
+
+In this context, one sentence is treated as the
+premise and the other as the hypothesis. Conse-
+quently, the contradiction probability Cij may
+differ from Cji, implying that the conflict matrix
+C is not necessarily symmetric.
+
+it
+For a matrix to be positive semi-definite,
+must satisfy two conditions: it must be symmetric,
+meaning Cij = Cji for all i and j, and all of its
+eigenvalues must be non-negative.
+
+Given that C is not symmetric in general, it does
+not satisfy the first condition necessary for positive
+semi-definiteness. Moreover, non-symmetric
+matrices can have complex or negative eigenvalues,
+further challenging their positive semi-definiteness.
+
+the following
+To demonstrate this, consider
+specific case where the conflict matrix is non-
+symmetric:
+
+Let n = 3, and consider the conflict matrix
+C for three sentences C1, C2, and C3:
+
+C =
+
+
+
+
+
+0.8 0.7
+0
+0.9
+0
+0.8
+0
+0.7 0.8
+
+
+
+ .
+
+the non-symmetry and the exis-
+Therefore,
+tence of negative eigenvalues in the conflict
+matrix C demonstrate that it cannot be guaranteed
+to be positive semi-definite. This outcome is
+expected, as positive semi-definiteness requires
+both symmetry and non-negative eigenvalues,
+conditions that are not inherently satisfied by the
+conflict matrix in this context.
+
+D.4 Proof of Proposition 3.4(C’ not PSD)
+
+Theorem 4. The conflict matrix C, constructed
+from the average of contradiction probabilities de-
+rived from a Natural Language Inference (NLI)
+model,
+is not guaranteed to be positive semi-
+definite (PSD) even after symmetrization. Although
+symmetrizing C ensures it is symmetric, it may still
+have negative eigenvalues, thus failing to satisfy
+the criteria for positive semi-definiteness.
+
+Proof. Let C be an n × n matrix where each ele-
+ment Cij represents the symmetrized probability
+of contradiction between two sentences Ci and Cj
+in an NLI framework. The symmetrized conflict
+matrix is constructed as follows:
+
+Cij =
+
+1
+2
+
+(cid:0)P (Ci → Cj)
++ P (Cj → Ci)(cid:1).
+
+This symmetrization ensures that Cij = Cji for
+all i and j, making the conflict matrix symmet-
+ric. Symmetry is a necessary condition for positive
+semi-definiteness, but it is not sufficient on its own.
+For C to be PSD, all eigenvalues of C must also be
+non-negative.
+
+However, even with symmetrization, the conflict
+matrix may have negative eigenvalues, indicating
+that it is not necessarily PSD. To demonstrate this,
+consider the following specific case where the con-
+flict matrix is symmetrized but still fails to be PSD:
+Let n = 3, and consider the conflict matrix C
+for three sentences C1, C2, and C3. Suppose the
+initial (non-symmetric) contradiction probabilities
+are given by:
+
+This matrix is clearly non-symmetric, as Cij ̸= Cji
+for some pairs (i, j). The eigenvalues of this matrix
+are approximately:
+
+P (C1 → C2) = 0.8,
+P (C1 → C3) = 0.7,
+P (C2 → C3) = 0.9,
+
+P (C2 → C1) = 0.6,
+P (C3 → C1) = 0.5,
+P (C3 → C2) = 0.8.
+
+λ1 ≈ 1.568,
+
+λ2 ≈ −0.868,
+
+λ3 ≈ −0.7.
+
+The symmetrized conflict matrix C is then:
+
+The presence of negative eigenvalues λ2 and λ3
+indicates that C is not positive semi-definite.
+
+C =
+
+16
+
+
+
+
+
+0.7
+0
+
+0
+0.7
+0.6 0.85
+
+
+
+ .
+
+0.6
+0.85
+0
+
+This matrix is symmetric, satisfying the first condi-
+tion for being PSD. However, to determine whether
+C is PSD, we must examine its eigenvalues.
+
+The eigenvalues of this matrix are approxi-
+
+mately:
+
+λ1 ≈ 1.438,
+
+λ2 ≈ −0.864,
+
+λ3 ≈ −0.575.
+
+The presence of negative eigenvalues λ2 and λ3 in-
+dicates that C is not positive semi-definite, despite
+being symmetric.
+
+Therefore, even though the symmetrization pro-
+cess Cij = 1
+2 (Cij + Cji) guarantees that the con-
+flict matrix is symmetric, it does not ensure posi-
+tive semi-definiteness. The conflict matrix may still
+have negative eigenvalues, which means it does not
+satisfy the necessary condition for positive semi-
+definiteness. This outcome highlights the limita-
+tion of merely symmetrizing the conflict matrix in
+guaranteeing its positive semi-definiteness.
+
+D.5 Proof of Proposition 3.5(exp PSD)
+Theorem 5. For any symmetric matrix C ∈ Rn×n
+with all elements Cij ≥ 0 and any non-negative
+scalar γ ≥ 0, the matrix exp(−γC) is positive
+semi-definite (PSD).
+
+Proof. Let C be an n × n symmetric matrix where
+Cij ≥ 0 for all i, j, and let γ ≥ 0 be a non-negative
+scalar.
+
+Since C is symmetric, C = C⊤, meaning C can
+be diagonalized by an orthogonal matrix. Specif-
+ically, there exists an orthogonal matrix V and a
+diagonal matrix Λ such that:
+
+C = V ΛV ⊤,
+
+where Λ is a diagonal matrix whose diagonal en-
+tries λ1, λ2, . . . , λn are the eigenvalues of C.
+
+The matrix exponential of −γC is given by:
+
+exp(−γC) = V exp(−γΛ)V ⊤,
+
+where exp(−γΛ) is a diagonal matrix with en-
+tries exp(−γλ1), exp(−γλ2), . . . , exp(−γλn) on
+the diagonal.
+
+Since C is symmetric and all elements Cij ≥ 0,
+the eigenvalues λ1, λ2, . . . , λn of C are real. Be-
+cause Cij ≥ 0, the eigenvalues are also non-
+negative (by the Perron-Frobenius theorem for non-
+negative symmetric matrices, which states that all
+eigenvalues are non-negative)(Perron, 1907).
+
+Now consider the matrix exp(−γΛ), where
+
+exp(−γλi) for each eigenvalue λi is given by:
+
+exp(−γλi) > 0,
+
+because the exponential function exp(x) is positive
+for any real number x. Therefore, all the diagonal
+entries of exp(−γΛ) are positive.
+
+The matrix exp(−γC) = V exp(−γΛ)V ⊤ is a
+similarity transformation of the diagonal matrix
+exp(−γΛ). Since exp(−γΛ) is diagonal with pos-
+itive entries, it is positive definite, and hence PSD.
+Because similarity transformations preserve
+eigenvalues, the eigenvalues of exp(−γC) are the
+same as those of exp(−γΛ), which are positive.
+Therefore, exp(−γC) is positive definite, and thus
+positive semi-definite (PSD).
+
+Since exp(−γC) is symmetric and all of its
+eigenvalues are non-negative, it is positive semi-
+definite. This completes the proof.
+
+D.6 Proof of Proposition 3.6(Product PSD)
+
+Theorem 6. Given a positive semi-definite (PSD)
+similarity matrix Ksim ∈ Rn×n and a conflict ma-
+trix C ∈ Rn×n, the weighted similarity matrix
+Kweighted = Ksim ◦exp(−γC), where ◦ denotes the
+element-wise (Hadamard) product and exp(−γC)
+applies an element-wise exponential function to
+C with γ ≥ 0, is guaranteed to be positive semi-
+definite.
+
+Proof. Let Ksim ∈ Rn×n be a PSD matrix. By
+definition, this means that for any vector x ∈ Rn,
+the quadratic form associated with Ksim satisfies:
+
+x⊤Ksimx ≥ 0.
+
+Let C ∈ Rn×n be a conflict matrix, and let γ ≥ 0
+be a non-negative scalar.
+
+Define exp(−γC) as the element-wise expo-
+nential of −γC, meaning that each element
+[exp(−γC)]ij is given by:
+
+[exp(−γC)]ij = exp(−γCij),
+
+where exp(−γCij) > 0 for all i, j.
+
+two matrices A
+The Hadamard product of
+and B (denoted A ◦ B) is a matrix D where each
+element Dij = AijBij.
+
+A key result from Schur product
+theorem is
+that the Hadamard product of two PSD matrices
+
+17
+
+is also PSD, provided that both matrices are PSD
+themselves(Schur, 1911).
+
+Next, consider the matrix exp(−γC).
+Since
+C is symetric and each element of C > 0, from
+Proposition 3.6 we know exp(−γC) is also PSD.
+
+Proof. Let Y = {1, 2, . . . , n} represent a set of
+sentences. In a Determinantal Point Process (DPP),
+the probability distribution over subsets Yg ⊆ Y
+is determined by the determinant of the submatrix
+LYg , which corresponds to the elements in Yg. The
+probability of selecting a subset Yg is given by
+
+Now, define the weighted similarity matrix
+as:
+
+Kweighted = Ksim ◦ exp(−γC).
+
+Kweighted is the Hadamard product of Ksim and
+exp(−γC).
+
+Since Ksim is PSD by assumption and exp(−γC)
+is positive definite (and therefore PSD), their
+Hadamard product Kweighted is also PSD.
+
+Specifically,
+the
+quadratic form for Kweighted can be expressed as:
+
+for any vector x ∈ Rn,
+
+x⊤Kweightedx =
+
+n
+(cid:88)
+
+n
+(cid:88)
+
+i=1
+
+j=1
+
+xixjKsim,ij exp(−γCij).
+
+Since Ksim,ij ≥ 0 and exp(−γCij) > 0, it follows
+that:
+
+x⊤Kweightedx ≥ 0 for all x ∈ Rn.
+
+Therefore, Kweighted is PSD.
+
+Corollary 6.1. The weighted similarity matrix
+Kweighted = Ksim ◦ exp(−γC) is guaranteed to
+be positive semi-definite as long as Ksim is PSD
+and exp(−γC) is a matrix with positive elements,
+which it is by construction. The Hadamard prod-
+uct of two PSD matrices is PSD, ensuring that
+Kweighted retains the PSD property.
+
+D.7 Proof of Proposition 3.7 (C Reduce)
+
+Theorem 7. Given a positive semi-definite (PSD)
+similarity matrix Ksim ∈ Rn×n and a conflict ma-
+trix C ∈ Rn×n, the incorporation of conflict infor-
+mation into the Determinantal Point Process (DPP)
+via the weighted similarity matrix:
+
+Kweighted = Ksim ◦ exp(−γ(1 − C)),
+
+where γ ≥ 0, increases the probability of selecting
+pairs of sentences with low conflict and reduces
+the probability of selecting pairs of sentences with
+high conflict.
+
+P (Yg) ∝ det(LYg ),
+
+where LYg is the submatrix of L corresponding to
+the sentences in Yg.
+
+The kernel matrix L is constructed as
+
+L = Diag(q) · Kweighted · Diag(q),
+
+where Kweighted = Ksim◦exp(−γ(1−C)), and q ∈
+Rn is a vector of relevance scores, with Diag(q)
+representing a diagonal matrix whose entries are
+the elements of q. The matrix Ksim encodes the
+pairwise similarity between sentences, and C rep-
+resents the conflict matrix, where Cij ∈ [0, 1] de-
+notes the level of conflict between sentences i and
+j.
+
+The weighted similarity matrix Kweighted incor-
+porates conflict information through an element-
+wise exponential transformation:
+
+Kweighted,ij = Ksim,ij · exp(−γ(1 − Cij)).
+
+This ensures that when Cij (the conflict between
+sentences i and j) is large, exp(−γ(1 − Cij)) is
+close to 1, preserving the similarity Ksim,ij.
+In
+contrast, when Cij is small, exp(−γ(1 − Cij)) is
+close to 0, reducing the similarity and encouraging
+the selection of non-conflicting sentences.
+
+The kernel matrix L is influenced by the conflict-
+adjusted similarity matrix Kweighted. Specifically,
+the off-diagonal elements Lij and Lji, which en-
+code the relationship between sentences i and j,
+are given by
+
+Lij = qi · Kweighted,ij · qj
+
+= qi · Ksim,ij · exp (−γ(1 − Cij)) · qj.
+
+This reduces Lij when Cij is small, correspond-
+
+ing to high conflict between sentences i and j.
+
+Consider a subset Yg = {i, j} consisting of two
+sentences i and j. The determinant of the corre-
+sponding 2 × 2 submatrix LYg is
+(cid:19)(cid:19)
+
+det(LYg ) = det
+
+(cid:18)(cid:18)Lii Lij
+Lji Ljj
+
+= LiiLjj − L2
+ij,
+
+i · Ksim,ii and Ljj = q2
+
+where Lii = q2
+j · Ksim,jj
+represent the relevance of sentences i and j, and
+Lij = qi · Ksim,ij · exp(−γ(1 − Cij)) · qj.
+
+18
+
+Prompt E.4: NQ
+
+You are a helpful and meticulous assistant.
+
+You are provided with one or more contexts that
+may contain evidence to help you arrive at the answer.
+Answer the given question directly and briefly, starting
+with "Answer:".
+
+Prompt E.5: FM2
+
+You are an AI assistant specialized in fact-checking and
+natural language inference. Your task is to evaluate claims
+based on provided evidence from Wikipedia and determine
+whether the claim is true or false. Carefully examine the
+evidence, considering details such as timeframes, factual
+consistency, and logical coherence.
+
+For each claim:
+- If the evidence supports the claim, respond with "True".
+- If the evidence refutes the claim, respond with "False".
+
+Provide a brief explanation for your decision, clearly
+citing relevant parts of the evidence. Your response should
+start with "Answer:".
+
+Prompt E.6: Prompt Format
+
+[system prompt]
+
+Context1: [context c1]
+Context2: [context c2]
+...
+Contextn: [context cn]
+Question: [question q]
+
+Answer: [answer a]
+
+Context1: [context c1]
+Context2: [context c2]
+...
+Contextn: [context cn]
+Question: [question q]
+
+Answer: [answer a]
+
+Question: [question q]
+
+Answer: [answer a]
+
+Context1: [context c1]
+Context2: [context c2]
+...
+Contextn: [context cn]
+Question: [question q]
+
+If the conflict between sentences i and j is high
+(i.e., Cij is small), then exp(−γ(1−Cij)) becomes
+small, which makes Lij small. As a result, the
+negative term L2
+ij in the determinant expression
+is reduced, increasing det(LYg ). This indicates
+that the DPP discourages selecting both conflicting
+sentences, since doing so would reduce the deter-
+minant of the submatrix LYg .
+
+On the other hand, if the conflict between i and
+j is low (i.e., Cij is large), the term exp(−γ(1 −
+Cij)) is close to 1, preserving the magnitude of
+Lij. In this case, the determinant det(LYg ) reflects
+a higher probability of selecting both sentences i
+and j together.
+
+Corollary 7.1. The incorporation of conflict
+information via the weighted similarity matrix
+Kweighted = Ksim ◦ exp(−γ(1 − C)) ensures that
+conflicting sentences are less likely to be selected
+together in the DPP, while sentences with low con-
+flict are more likely to be jointly selected. This out-
+come is achieved by modulating the off-diagonal
+terms Lij in the kernel matrix L, which directly
+affects the determinant and the subset selection
+probabilities.
+
+E Prompts and Few-shot Exemplars
+
+Prompt E.1: FEVER
+
+You are an AI assistant specialized in fact-checking claims
+against a reliable knowledge base, such as Wikipedia. Your
+goal is to verify the accuracy of the given claims by finding
+supporting or refuting evidence. For each claim, determine
+if it is "SUPPORTS" or "REFUTES". Clearly cite the
+sources of your evidence, and ensure your explanations
+are concise and accurate. Your response should start with
+"Answer:". And your response is either "SUPPORTS" or
+"REFUTES".
+
+Prompt E.2: TQA
+
+You are an AI assistant specialized in answering questions
+based on a given text. Your goal is to read the provided
+text carefully and extract accurate answers to the questions
+based on the information within the text. Ensure your
+answers are concise and directly relevant to the questions
+asked. Do not use any information that is not present in the
+provided text. Your response should start with "Answer:".
+
+Prompt E.3: HotpotQA
+
+You are an AI assistant specialized in answering complex
+questions by performing multi-hop reasoning. Your goal is
+to gather and combine information from multiple sources
+to provide accurate answers to the given questions. Ensure
+your answers are clear, concise, and based on the informa-
+tion from the provided sources. Answer the given question
+directly and briefly, starting with "Answer:".
+
+19

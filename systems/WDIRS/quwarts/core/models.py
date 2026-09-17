@@ -39,7 +39,7 @@ class TemplateShape(str, Enum):
 class LogicalAttribute(VersionedModel):
     name: str
     entity_type: str
-    dtype: Literal["string", "numeric", "date", "categorical", "multivalued"]
+    dtype: Literal["string", "numeric", "date", "categorical", "multivalued", "unknown"]
     unit_domain: str | None = None
     nullable: bool = True
 

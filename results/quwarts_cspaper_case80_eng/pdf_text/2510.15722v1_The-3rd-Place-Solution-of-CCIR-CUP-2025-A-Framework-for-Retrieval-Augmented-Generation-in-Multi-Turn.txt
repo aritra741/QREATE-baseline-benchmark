@@ -1,0 +1,893 @@
+5
+2
+0
+2
+
+t
+c
+O
+7
+1
+
+]
+
+R
+
+I
+.
+s
+c
+[
+
+1
+v
+2
+2
+7
+5
+1
+.
+0
+1
+5
+2
+:
+v
+i
+X
+r
+a
+
+The 3rd Place Solution of CCIR CUP 2025: A Framework for
+Retrieval-Augmented Generation in Multi-Turn Legal
+Conversation
+Zecheng Fang
+fangzecheng20z@ict.ac.cn
+Institute of Computing Technology,
+Chinese Academy of Sciences
+University of Chinese Academy of
+Sciences
+Beijing, China
+
+Da Li
+lida.ucas@gmail.com
+CAS Key Lab of Network Data
+Science and Technology, ICT, CAS
+State Key Laboratory of AI Safety
+University of Chinese Academy of
+Sciences
+Beijing, China
+
+Qiang Yan
+yanqiang@ict.ac.cn
+CAS Key Lab of Network Data
+Science and Technology, ICT, CAS
+State Key Laboratory of AI Safety
+University of Chinese Academy of
+Sciences
+Beijing, China
+
+Wei Huang
+huangwei21b@ict.ac.cn
+CAS Key Lab of Network Data
+Science and Technology, ICT, CAS
+State Key Laboratory of AI Safety
+University of Chinese Academy of
+Sciences
+Beijing, China
+
+Xuanpu Luo
+seuviplxp@163.com
+CAS Key Lab of Network Data
+Science and Technology, ICT, CAS
+State Key Laboratory of AI Safety
+University of Chinese Academy of
+Sciences
+Beijing, China
+
+Abstract
+Retrieval-Augmented Generation has made significant progress in
+the field of natural language processing. By combining the advan-
+tages of information retrieval and large language models, RAG can
+generate relevant and contextually appropriate responses based on
+items retrieved from reliable sources. This technology has demon-
+strated outstanding performance across multiple domains, but its
+application in the legal field remains in its exploratory phase. In this
+paper, we introduce our approach for "Legal Knowledge Retrieval
+and Generation" in CCIR CUP 2025, which leverages large language
+models and information retrieval systems to provide responses
+based on laws in response to user questions.
+
+CCS Concepts
+• Information systems → Question answering.
+
+ACM Reference Format:
+Da Li, Zecheng Fang, Qiang Yan, Wei Huang, and Xuanpu Luo. 2018. The 3rd
+Place Solution of CCIR CUP 2025: A Framework for Retrieval-Augmented
+Generation in Multi-Turn Legal Conversation. In Proceedings of Make sure
+to enter the correct conference title from your rights confirmation email
+(Conference acronym ’XX). ACM, New York, NY, USA, 7 pages. https:
+//doi.org/XXXXXXX.XXXXXXX
+
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+Conference acronym ’XX, Woodstock, NY
+© 2018 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-1-4503-XXXX-X/2018/06
+https://doi.org/XXXXXXX.XXXXXXX
+
+1 Introduction
+Retrieval-Augmented Generation (RAG) has emerged as a powerful
+paradigm in natural language processing, combining the strengths
+of large language models (LLMs) with dynamic knowledge retrieval
+to enhance the relevance and factual grounding of generated re-
+sponses. Unlike traditional generative models that rely solely on
+parametric knowledge, RAG systems integrate real-time informa-
+tion retrieval from external corpora, enabling them to adapt to
+evolving contexts and domain-specific queries. This approach is
+particularly valuable in the fields of law and journalism, where
+users often demand up-to-date information, nuanced reasoning, or
+specialized knowledge beyond a model’s pretrained scope.
+
+In this paper, we explore the application of RAG to conversa-
+tion about legal knowledge, demonstrating how retrieval mecha-
+nisms—such as dense vector search or keyword-based indexing—can
+synergize with LLMs like LlaMA [12] or Qwen [15] to improve per-
+formance metrics like answer precision, coherence, and diversity.
+We placed 3rd in the CCIR CUP 2025 competition. We further ana-
+lyze challenges such as noise filtering and optimal integration strate-
+gies, proposing innovations tailored to the competition’s unique
+requirements. Our work underscores RAG’s potential to bridge the
+gap between static pretraining and dynamic real-world demands,
+offering a scalable solution for knowledge-intensive NLP tasks.
+
+Our work makes several important contributions to the field of
+
+legal information retrieval and generation:
+
+(1) Conversational Context Handling: We developed an effec-
+tive query rewriting mechanism that addresses coreference
+resolution and topic drift in multi-turn legal conversations.
+(2) Multi-Route Retrieval Strategy: Our multi-route retrieval
+approach combines the semantic understanding capabilities
+
+ 
+ 
+ 
+ 
+ 
+ 
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+
+Da Li et al.
+
+of dense retrieval with the precision of keyword-based sparse
+retrieval, achieving better coverage of relevant legal provisions.
+(3) Efficient Filtering Pipeline: The article filtering mechanism
+reduces noise during the retrieval process and provides accurate
+legal references for generation.
+
+(4) Legal-Specific Generation: Our response generation mod-
+ule produces legally accurate and appropriately formatted re-
+sponses that follow the "syllogistic" reasoning style typical of
+legal documents.
+
+2 Related Work
+Large language models (LLMs) based on the Transformer architec-
+ture, since the advent of seminal works like BERT [4] and GPT [10],
+have become the core technology for addressing knowledge-intensive
+and multi-hop reasoning tasks. However, the inherent issue of “hal-
+lucination” in these models limits their applicability in high-stakes
+domains. To mitigate this, Retrieval-Augmented Generation (RAG)
+has emerged as a dominant paradigm [5, 6]. By retrieving relevant
+information from external knowledge sources to ground the gener-
+ation process, RAG significantly enhances the fidelity of the output.
+The work presented in this paper is situated within this context,
+specifically exploring the application of RAG in the legal domain.
+In recent years, interdisciplinary research combining RAG with
+legal applications has burgeoned, leading to a wealth of system-
+atic studies. On one hand, the academic community has begun to
+establish evaluation standards for Legal-RAG, marked by the intro-
+duction of benchmarking suites like LegalBench-RAG [9] and com-
+prehensive reviews of the state-of-the-art by works such as [7]. On
+the other hand, researchers are actively exploring how to integrate
+the unique structures of legal knowledge into the RAG framework.
+For instance, studies like Graph-RAG [3] and the work by [2] have
+investigated leveraging the hierarchical nature of statutes to opti-
+mize retrieval. Similarly, CBR-RAG [14] draws on case-based rea-
+soning to improve question-answering performance by referencing
+historical judgments. Furthermore, other research focuses on the
+dynamic optimization of retrieval strategies, such as the adaptive
+retrieval method proposed in HyPA-RAG [8]. These system-level ex-
+plorations have catalyzed a diverse range of applications, including
+general-purpose legal assistants [13], dispute resolution solutions
+for specific legal areas [11], and federated RAG architectures that
+account for data privacy [1], collectively advancing the maturity of
+Legal-RAG technology.
+
+3 Preliminary
+3.1 Pipeline of RAG
+The Retrieval-Augmented Generation (RAG) pipeline consists of
+three fundamental stages: Retrieval, Augmentation, and Generation.
+First, the system retrieves relevant documents or data chunks from
+a knowledge base (e.g., a vector database) based on the user’s query
+using embedding models and similarity search. Next, the retrieved
+context is combined with the original query to form an augmented
+prompt, providing the LLM with grounded information. Finally,
+the language model generates a coherent and context-aware re-
+sponse using the enriched input. Optionally, pre-processing (e.g.,
+data chunking) and post-processing (e.g., output refinement) can
+
+enhance the workflow, but the core RAG mechanism relies on these
+three key steps to bridge knowledge retrieval with generative AI.
+
+3.2 Dataset
+We have statistics on the dataset, which are shown in the table
+below.
+
+Table 1: Basic statistics of benchmark
+
+Statistic
+Total Conversations
+Total Queries
+Total Legal Articles
+Total Legal Literature
+Avg. Query Length
+Avg. Response Length
+Avg. Relevant Articles per Query
+Avg. Keywords per Query
+
+#Number
+1,013
+5,065
+17,229
+212
+19.43
+165.92
+1.09
+3.57
+
+3.3 Evaluation
+To comprehensively assess the performance across the entire task
+pipeline. Three metrics are involved to evaluate the retrieval result
+and the response.
+
+Retrieval. This competition uses NDCG@5 (Normalized Dis-
+counted Cumulative Gain) to measure retrieval performance. Nor-
+malized Discounted Cumulative Gain is a widely used metric in
+information retrieval systems to evaluate the quality of search re-
+sults. It measures how well a ranking algorithm orders items by
+their relevance, taking into account both the position and the graded
+relevance of each item in the ranked list.
+
+𝑆𝑐𝑜𝑟𝑒𝑟𝑒𝑡𝑟𝑖𝑒𝑣𝑎𝑙 = 100 ∗ 𝑁 𝐷𝐶𝐺@5.
+
+(1)
+
+Generation. The generation stage evaluates the quality of the
+response, focusing on two key aspects: semantic consistency with
+the reference answer and completeness of critical information. The
+metrics consist of the following two parts.
+• BERT-F1: This metric quantifies semantic similarity between the
+generated response and the reference answer. It leverages a pre-
+trained BERT model to compute word-level similarity scores, then
+aggregates these into an F1 score (harmonic mean of precision
+and recall), reflecting fine-grained semantic alignment.
+
+• Keyword_Accuracy: This metric assesses the coverage of critical
+information. Given a set of pre-annotated key keywords (essential
+to the reference answer), it calculates the proportion of these
+keywords that appear in the generated response, ensuring the
+retention of core factual content.
+
+The generation stage score is computed by equally weighting the
+two metric:
+
+𝑆𝑐𝑜𝑟𝑒𝑔𝑒𝑛𝑒𝑟𝑎𝑡𝑖𝑜𝑛 = 50 ∗ BERT-F1 + 50 ∗ Keyword_Accuracy.
+
+(2)
+
+To balance the importance of retrieval and generation, the final
+score is obtained by equally weighting the two stage scores:
+
+𝑆𝑐𝑜𝑟𝑒 = 0.5 ∗ 𝑆𝑐𝑜𝑟𝑒𝑟𝑒𝑡𝑟𝑖𝑒𝑣𝑎𝑙 + 0.5 ∗ 𝑆𝑐𝑜𝑟𝑒𝑔𝑒𝑛𝑒𝑟𝑎𝑡𝑖𝑜𝑛.
+
+(3)
+
+The 3rd Place Solution of CCIR CUP 2025: A Framework for Retrieval-Augmented Generation in Multi-Turn Legal Conversation
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+
+This evaluation framework ensures a holistic assessment, capturing
+both the retrieval system’s ranking capability and the generation
+model’s semantic and factual accuracy.
+
+Rewriting Prompt:
+
+[System]: You are an expert proficient in legal knowledge,
+capable of accurately understanding users’ questions
+and identifying users’ intentions. Given the following
+questions (including historical questions and the current
+question), please rewrite the user’s current question
+into a query for a legal search system to support you in
+accurately searching legal provisions to answer the user’s
+question. When outputting the corresponding query of
+the search system, pay special attention to the following
+requirements:
+1. Focus on the legal field, and avoid unnecessary wording
+modifications or the introduction of new terms or concepts
+not mentioned in the question.
+2. Summarize or extract the core search intention of the
+user’s current question from the historical questions.
+...
+9. Analyze the rewritten result into 3 to 5 key legal terms,
+and attach the legal terms after the rewritten result. The
+legal terms must be wrapped in <keyword></keyword>
+tags, and commas should separate the legal terms. The
+legal terms need to be directly related to the core legal
+facts in the rewritten result, and avoid irrelevant terms.
+[User]: Historical Question: User: Hello, my health
+certificate has expired, and I was told that I will be fined
+10,000 yuan. How should I deal with it?
+Current Question: I have re-applied for a health certificate
+and submitted a medical examination report. Can the
+penalty be reduced or waived?
+[Assistant]: Whether re-applying for a health certificate
+and submitting a medical examination report belong to
+the circumstances where an administrative penalty can
+be reduced. <keyword>Re-applying for health certificate,
+Submitting medical examination report, Reduction of
+administrative penalty, Timely correction of illegal act,
+Mitigation of harmful consequences</keyword>.
+
+Figure 2: The prompt of query rewriting. The italicized text
+is the output of the LLM.
+
+4.4 Reranking
+In retrieval-augmented generation (RAG), reranking serves as a
+critical intermediate step to address limitations of retrievers and en-
+hance the quality of context fed into LLMs. Because of efficiency, the
+retrieval phase usually uses a dual-encoder as a retriever to find a
+candidate set from a huge corpus. By leveraging sophisticated mod-
+els (e.g., cross-encoders) that capture bidirectional query-document
+interactions, reranking refines the initial candidate set through
+deeper contextual understanding, enabling fine-grained relevance
+assessment for complex or ambiguous queries. This process reduces
+noise by filtering low-quality candidates, resolving ranking conflicts
+
+Figure 1: The pipeline of our method.
+
+4 Methodology
+Based on the vanilla RAG process, we added the following modules
+to improve the quality of responses. For the competition, partici-
+pants are required to find legal provisions that can be used to answer
+user questions. Secondly, they are required to generate responses
+that are satisfactory to users. We optimized multiple processing
+steps and generated end-to-end optimized responses.
+
+4.1 Query Rewriting
+User questions are stored in dialogue format, and historical user
+questions cannot be ignored when answering each round of user
+questions. We first use Qwen3 to rewrite user questions and gener-
+ate queries for the retrieval system.
+
+4.2 Multi-Route Retrieval
+In legal information retrieval systems, semantic matching tech-
+niques demonstrate constrained effectiveness in addressing user
+queries, which frequently necessitate keyword-dependent matching
+mechanisms. We adopt a multi-route retrieval strategy. In addition
+to dense retrieval, we utilize BM25 to expand the candidate set
+by retrieving relevant legal provisions based on keywords derived
+from query rewriting.
+
+4.3 Legal Literature Filtering
+Given the applicability of legal articles, there is no need to search
+the entire corpus for relevant candidates when answering user
+questions. User questions are only applicable to a small portion
+of the corpus. We first use LLMs to filter out legal provisions that
+are irrelevant to user questions. After obtaining a candidate set
+through multi-path retrieval, we use LLM to filter each legal article
+in the candidate set secondarily.
+
+LLMMy girlfriend was already pregnant when we weretogether! Can the child be registered in the household?Query[0.1, 0.3, 0.02, ...]Code Selectionvector indexorganized by codeRetrievalLegal LiteratureFilteringRerankCandidateArticlesFilteredArticlesFind Top K Based on RelevanceInject into thepromptEmbeddingRewrite QueryAnswer the question based onthis context:Question:According to Article 7 of the ‘House-hold RegistrationRegulations of the People’s Republic of China ...Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+
+Da Li et al.
+
+Literature Selection:
+[System]: You are a helpful assistant.
+[User]: Given the following user-question and the name
+of the article, determine whether the user-question may
+involve the area described by the article. If it is possible,
+output "Yes", and if not, output "No".
+Output Format Requirements:
+1. Any content other than "Yes" or "No" is not allowed in
+the output.
+2. Please directly output "Yes" or "No" at the beginning,
+and do not add any analysis process.
+
+User Question:
+Whether re-applying for a health certificate and submitting
+a medical examination report belong to the circumstances
+where an administrative penalty can be reduced?
+
+Code Name:
+Law of the People’s Republic of China on Administrative
+Penalties
+[Assistant]: Yes
+
+Figure 3: The prompt of literature selection. The italicized
+text is the output of the LLM.
+
+to prioritize high-informative documents. Ultimately, reranking di-
+rectly improves RAG performance by aligning retrieved context
+with query intent, minimizing hallucinations, and enhancing the
+factual consistency and coherence of generated outputs. As the
+bottleneck of the RAG system, reranking is closely related to the
+quality of the response. Based on the training dataset, we retrained
+a reranking model to learn the relevant matching in the legal field
+effectively.
+
+4.5 Response Generation
+The top 5 legal provisions obtained by reranking are then used
+as input for the LLM, along with the user’s dialogue, to generate
+the corresponding response. The responses in the dataset exhibit
+similar styles. To ensure that the LLMs’ output maintains the same
+style, we use in-context learning to provide two response examples
+in the prompt, thereby ensuring consistency in response style.
+
+5 Experiments
+5.1 Experimental Setup
+We conducted comprehensive experiments to evaluate our pro-
+posed approach for legal knowledge retrieval and generation. The
+experimental setup includes the selection of appropriate models for
+different modules and careful hyperparameter tuning.
+
+5.1.1 Model Selection. We employed different specialized mod-
+els for each component of our pipeline, as shown in Table 2. For
+query rewriting and response generation, we utilized Qwen3-235B-
+a22b due to its superior performance in understanding complex
+
+Legal Article Filtering:
+[System]: You are a helpful assistant.
+[User]: Given the following user’s question and legal
+provision, comprehensively judge whether the legal
+provision is impossible to be used as the key basis for
+answering the user’s question based on the code to which
+the legal provision belongs (such as the Civil Code of the
+People’s Republic of China) and the content of the legal
+provision. If yes, output "Yes"; if no, output "No".
+Output Format Requirements:
+1. Any content other than "Yes" or "No" is not allowed in
+the output.
+2. Please directly output "Yes" or "No" at the beginning,
+and do not add any analysis process.
+
+User Question:
+Whether re-applying for a health certificate and submitting
+a medical examination report belong to the circumstances
+where administrative penalty can be reduced?
+
+Literature Name:
+Article 32 of the Law of the People’s Republic of China
+on Administrative Penalties: A party who is in any of
+the following circumstances shall be given a lighter or
+mitigated administrative penalty: ...
+[Assistant]: Yes
+
+Figure 4: The prompt of filtering. The italicized text is the
+output of the LLM.
+
+legal contexts and generating coherent responses. For legal liter-
+ature filtering, we adopted Qwen3-14B to balance computational
+efficiency with filtering accuracy. The embedding and reranking
+tasks employed Qwen3-Embedding-8B and Qwen3-Reranker-8B,
+respectively, which were specifically designed for retrieval tasks.
+
+Table 2: Model selection for different stages
+
+Subtask
+
+Conversational Retrieval
+
+Response Generation
+
+LLM
+Qwen3-235B-a22b
+
+Module
+Query Rewriting
+Legal Literature Filtering Qwen3-14B
+Dense Retrieval
+Literature Filtering
+Reranking
+Response Generation
+
+Qwen3-Embedding-8B
+Qwen3-14B
+Qwen3-Reranker-8B
+Qwen3-235B-a22b
+
+5.1.2 Hyperparameter Configuration. For the multi-route retrieval
+system, we configured the dense retriever to recall 50 legal articles
+from each legal literature, while the sparse retriever (BM25) was
+set to retrieve 1,000 articles from the entire corpus. The weight pa-
+rameter 𝛼 for the dense retriever was set to 1.0, indicating complete
+reliance on dense retrieval for the final scoring. During the filtering
+stage, we processed the top 500 results from the hybrid retrieval
+to balance computational efficiency with recall performance. The
+
+The 3rd Place Solution of CCIR CUP 2025: A Framework for Retrieval-Augmented Generation in Multi-Turn Legal Conversation
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+
+Response Generation
+[System]: You are an expert proficient in legal knowledge,
+dedicated to providing users with accurate and professional
+legal consultation. Your responses should be rigorous and
+efficient, and maintain consistency in style with previous
+rounds of answers (if any). If the user’s question involves
+specific legal provisions, relevant legal clauses should be
+cited as much as possible to enhance the authority of the
+answer. When outputting, special attention should be paid
+to the following requirements:
+1. Priority should be given to selecting legal provisions
+from the given reference legal clauses that can be used
+to answer the user’s question as references. Select and
+cite them in order from the beginning to the end of the
+reference legal clauses.
+...
+5. Please refer to and generate replies similar to the
+following style.
+Examples:
+"According to the provisions of Article 428 of the Civil
+Code of the People’s Republic of China, the vehicle
+installment payment contract and the vehicle insurance
+contract should be handled separately. If you repay
+the monthly payment on time and do not violate the
+repayment obligations in the installment agreement, the
+installment company has no right to seize the vehicle.
+As for insurance purchase, unless the contract clearly
+stipulates that insurance must be purchased through the
+installment company, the installment company has no
+right to seize the vehicle on this ground."
+[User]:I have re-applied for a health certificate and
+submitted a medical examination report. Can the penalty
+be reduced or waived?
+The following are the legal clauses you can refer to:
+1. Article 32 of the Law of the People’s Republic of China
+on Administrative Penalties: A party who is in any of
+the following circumstances shall be given a lighter or
+mitigated administrative penalty:
+...
+[Assistant]: According to the provisions of Item (1) of
+Article 32 and Article 33 of the Law of the People’s Republic
+of China on Administrative Penalties, if you have actively
+re-applied for a health certificate and submitted a medical
+examination report, you may apply for a reduction or waiver
+of the penalty in accordance with the law under the following
+circumstances:...
+
+Figure 5: The prompt of response generation. The italicized
+text is the output of the LLM.
+
+final reranking stage selected the top 5 most relevant legal articles
+for response generation.
+
+5.1.3 Rerank Model Fine-tuning. We fine-tuned the rerank model
+using the Swift framework. For the selection of training data, we
+used the annotations of legal provisions from user queries in the
+training data as positive samples. However, when selecting negative
+samples for training, we did not randomly pick legal provisions ir-
+relevant to user queries. Instead, we randomly selected 5 provisions
+from the top 10 most relevant ones obtained after legal provision re-
+trieval and filtering to serve as negative samples. It is worth noting
+that these 5 negative samples do not include the annotated positive
+samples.
+
+5.2 Ablation Study
+We conducted extensive ablation studies to validate the effective-
+ness of each component in our pipeline. Table 3 presents the results
+of our ablation experiments across different configurations.
+
+Table 3: Ablation study results.
+
+Configuration
+Vanilla RAG
++ Query Rewriting
++ Rerank
++ Multi-route Retrieval
++ Legal Literature Filtering
+
+Overall Score
+30.74
+31.66
+33.60
+35.57
+36.89
+
+The results demonstrate that each component contributes posi-
+tively to the overall performance. Query rewriting provides signifi-
+cant improvement in overall performance, highlighting the impor-
+tance of contextualizing multi-turn conversations. The literature
+filtering mechanism effectively reduces noise in the candidate set,
+leading to improvements in both retrieval and generation metrics.
+The multi-route retrieval strategy combining dense and sparse
+methods shows modest but consistent gains across all metrics.
+
+5.3 Performance Analysis
+Our approach achieved competitive performance on both the vali-
+dation and test sets. Extensive experiments on the CCIR CUP 2025
+dataset demonstrate the effectiveness of our approach. Our sys-
+tem achieved a competitive score on the test set. Ablation studies
+confirm that each component contributes meaningfully to over-
+all performance. Figure 6 illustrates the performance evolution
+across different experimental configurations during our develop-
+ment phase.
+
+The final system achieved a score of 39.38 on the test set, demon-
+
+strating good generalization capability.
+
+5.3.1 Component Analysis. We analyzed the performance contri-
+bution of each component: Query Rewriting: The query rewriting
+module successfully addressed coreference resolution and topic
+drift issues in multi-turn conversations. Manual analysis of 100 ran-
+domly sampled conversations showed that 87% of rewritten queries
+better captured user intent compared to using only the current
+turn’s question.
+
+Literature Filtering: The legal literature filtering stage effec-
+tively reduced the search space while maintaining high recall. On
+average, this stage filtered out 73% of irrelevant legal codes while
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+
+Da Li et al.
+
+This case demonstrates our system’s ability to maintain context
+across multiple turns while accurately identifying and retrieving
+relevant legal provisions.
+
+Case 2: Complex Legal Reasoning
+In another case involving vehicle installment payments and in-
+
+surance requirements, our system successfully:
+
+• Identified the dual legal issues (contract law and consumer pro-
+
+tection)
+
+• Retrieved Article 428 of the Civil Code regarding installment
+
+contracts
+
+• Generated a comprehensive response addressing both the pay-
+
+ment obligations and insurance requirements
+
+• Maintained the professional legal consultation tone throughout
+
+the response
+
+6.2 Challenging Cases
+Case 3: Ambiguous Legal Context
+
+Some cases revealed limitations in our approach. For instance,
+when users provided vague descriptions of legal situations with-
+out sufficient context, our query rewriting module occasionally
+over-interpreted the user’s intent, leading to the retrieval of overly
+specific legal provisions that didn’t fully address the broader legal
+context.
+
+Case 4: Emerging Legal Issues
+In cases involving recently enacted laws or legal interpretations
+not well-represented in the training data, our system showed re-
+duced performance in both retrieval accuracy and response genera-
+tion quality.
+
+6.3 Error Analysis
+Our analysis of system errors revealed three primary categories:
+
+(1) Context Misunderstanding (32% of errors): The query rewrit-
+ing module occasionally misinterpreted user intent, particularly
+in cases with complex pronoun references or implicit legal rela-
+tionships.
+
+(2) Retrieval Gaps (28% of errors): Some relevant legal provisions
+were not retrieved due to vocabulary mismatches between user
+queries and legal text, despite semantic similarity.
+
+(3) Generation Inconsistencies (40% of errors): The response
+generation module sometimes produced responses that, while
+legally accurate, didn’t fully address the user’s specific concerns
+or lacked appropriate legal citation format.
+
+These insights highlight both the practical utility of our approach
+
+and areas for future enhancement.
+
+7 Conclusion
+In this paper, we presented a comprehensive approach for legal
+knowledge retrieval and generation that addresses the unique chal-
+lenges of conversational legal consultation. Our system integrates
+multiple specialized components, including query rewriting, lit-
+erature filtering, multi-route retrieval, and reranking to create an
+end-to-end solution for legal question answering.
+
+Our work contributes to the growing body of research on ap-
+plying AI to legal domains, with potential applications in legal
+education, public legal assistance, and professional legal research.
+
+Figure 6: Performance trend across different experimental
+configurations. The x-axis represents different submission
+versions, and the y-axis shows the overall score.
+
+retaining 96% of relevant ones, significantly improving downstream
+processing efficiency.
+
+Multi-route Retrieval: The combination of dense and sparse re-
+trieval methods provided complementary benefits. Dense retrieval
+excelled at capturing semantic similarity, while BM25 effectively
+handled exact keyword matches critical in legal contexts.
+
+Reranking: The fine-tuned reranking model achieved the high-
+est precision in the final ranking stage, with an average improve-
+ment of 0.08 in NDCG@5 compared to using retrieval scores alone.
+
+6 Case Analysis
+To better understand the effectiveness of our approach, we present
+detailed analyses of representative cases that demonstrate both the
+strengths and limitations of our system.
+
+6.1 Successful Cases
+Case 1: Multi-turn Legal Consultation
+
+Consider a multi-turn conversation where a user initially asks:
+"Someone came to my house and hid..." and later follows up with:
+"But my brother knew he was committing murder. Can his behavior
+still be considered self-defense?" and finally:“My brother is only
+thirteen years old. Does he need to bear responsibility in this sit-
+uation?” Our system successfully handled this complex scenario
+through the following steps:
+(1) Query Rewriting: The system correctly identified that the cur-
+rent question about age-related criminal responsibility needed
+to be contextualized with the previous discussion about self-
+defense and murder.
+
+(2) Retrieval Results: The system retrieved relevant articles, in-
+cluding Article 17 of the Criminal Law of the People’s Republic
+of China (regarding age of criminal responsibility) and Article
+20 (regarding self-defense).
+
+(3) Generated Response: The final response appropriately cited:
+"According to Article 17 of the Criminal Law of the People’s
+Republic of China, persons under fourteen years of age are not
+subject to criminal responsibility. Therefore, your thirteen-year-
+old brother does not need to bear criminal responsibility in this
+situation."
+
+The 3rd Place Solution of CCIR CUP 2025: A Framework for Retrieval-Augmented Generation in Multi-Turn Legal Conversation
+
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+
+[10]
+
+Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, Ilya
+Sutskever, et al. 2019. Language models are unsupervised multitask learners.
+OpenAI blog, 1, 8, 9.
+
+[11] Md Irfan Rafat. 2024. Ai-powered legal virtual assistant: utilizing rag-optimized
+
+llm for housing dispute resolution in finland.
+
+[14]
+
+[13]
+
+[12] Hugo Touvron et al. 2023. Llama: open and efficient foundation language
+models. (2023). https://arxiv.org/abs/2302.13971 arXiv: 2302.13971 [cs.CL].
+Rahman SM Wahidur, Sumin Kim, Haeung Choi, David S Bhatti, and Heung-No
+Lee. 2025. Legal query rag. IEEE Access.
+Nirmalie Wiratunga, Ramitha Abeyratne, Lasal Jayawardena, Kyle Martin,
+Stewart Massie, Ikechukwu Nkisi-Orji, Ruvan Weerasinghe, Anne Liret, and
+Bruno Fleisch. 2024. Cbr-rag: case-based reasoning for retrieval augmented
+generation in llms for legal question answering. In International Conference on
+Case-Based Reasoning. Springer, 445–460.
+An Yang et al. 2025. Qwen3 technical report. (2025). https://arxiv.org/abs/2505
+.09388 arXiv: 2505.09388 [cs.CL].
+
+[15]
+
+Received 20 February 2007; revised 12 March 2009; accepted 5 June 2009
+
+By making legal information more accessible through conversa-
+tional interfaces, such systems could help bridge the gap between
+complex legal knowledge and public understanding.
+
+However, we acknowledge the importance of responsible de-
+ployment of AI systems in legal contexts. Our system should be
+viewed as a tool to assist legal professionals and educate users
+about legal concepts, rather than a replacement for professional
+legal advice. Future deployments should include appropriate dis-
+claimers and safeguards to ensure users understand the limitations
+of AI-generated legal information.
+
+8 Limitations and Future Work
+Despite the promising results, several limitations remain that present
+opportunities for future research:
+(1) Domain Adaptation: The current system’s performance varies
+
+across different legal domains. Future work could explore domain-
+specific fine-tuning to improve consistency across all areas of
+law.
+
+(2) Reasoning Complexity: While our system handles straight-
+forward legal queries well, it struggles with cases requiring
+complex multi-step legal reasoning or integration of multiple
+legal principles.
+
+(3) Dynamic Knowledge Updates: The static nature of our legal
+corpus limits the system’s ability to handle queries about recent
+legal developments or emerging jurisprudence.
+
+(4) Evaluation Metrics: Current evaluation metrics focus primar-
+ily on retrieval accuracy and semantic similarity. Future work
+could develop more comprehensive evaluation frameworks that
+assess legal reasoning quality and practical utility.
+
+References
+[1]
+
+Flora Amato, Egidia Cirillo, Mattia Fonisto, and Alberto Moccardi. 2024. Opti-
+mizing legal information access: federated search and rag for secure ai-powered
+legal solutions. In 2024 IEEE International Conference on Big Data (BigData).
+IEEE, 7632–7639.
+Ryan C Barron, Maksim E Eren, Olga M Serafimova, Cynthia Matuszek, and
+Boian S Alexandrov. 2025. Bridging legal knowledge and ai: retrieval-augmented
+generation with vector stores, knowledge graphs, and hierarchical non-negative
+matrix factorization. arXiv preprint arXiv:2502.20364.
+
+[2]
+
+[3] Hudson de Martim. 2025. Graph rag for legal norms: a hierarchical and temporal
+
+[4]
+
+[5]
+
+[6]
+
+approach. arXiv preprint arXiv:2505.00039.
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2019. Bert:
+pre-training of deep bidirectional transformers for language understanding. In
+Proceedings of the 2019 conference of the North American chapter of the association
+for computational linguistics: human language technologies, volume 1 (long and
+short papers), 4171–4186.
+Rujun Han, Yuhao Zhang, Peng Qi, Yumo Xu, Jenyuan Wang, Lan Liu, William
+Yang Wang, Bonan Min, and Vittorio Castelli. 2024. Rag-qa arena: evaluating
+domain robustness for long-form retrieval augmented question answering.
+arXiv preprint arXiv:2407.13998.
+Zijian Hei, Weiling Liu, Wenjie Ou, Juyi Qiao, Junming Jiao, Guowen Song,
+Ting Tian, and Yi Lin. 2024. Dr-rag: applying dynamic document relevance
+to retrieval-augmented generation for question-answering. arXiv preprint
+arXiv:2406.07348.
+
+[8]
+
+[7] Mahd Hindi, Linda Mohammed, Ommama Maaz, and Abdulmalik Alwarafy.
+2025. Enhancing the precision and interpretability of retrieval-augmented
+generation (rag) in legal technology: a survey. IEEE Access.
+Rishi Kalra, Zekun Wu, Ayesha Gulley, Airlie Hilliard, Xin Guan, Adriano
+Koshiyama, and Philip Treleaven. 2024. Hypa-rag: a hybrid parameter adaptive
+retrieval-augmented generation system for ai legal and policy applications.
+arXiv preprint arXiv:2409.09046.
+Nicholas Pipitone and Ghita Houir Alami. 2024. Legalbench-rag: a bench-
+mark for retrieval-augmented generation in the legal domain. arXiv preprint
+arXiv:2408.10343.
+
+[9]

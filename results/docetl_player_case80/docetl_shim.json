@@ -1,0 +1,88 @@
+{
+  "per_config": {
+    "player_case80": {
+      "per_query": [
+        {
+          "query_id": "player_multiagg20:q4",
+          "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.olympic_gold_medals IS NOT NULL THEN p.olympic_gold_medals ELSE 0 END) AS total_recorded_olympic_golds FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2"
+        },
+        {
+          "query_id": "player_join20:q9",
+          "sql": "SELECT o.nationality, AVG(t.championship) AS avg_titles FROM team t JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.nationality != '' GROUP BY o.nationality"
+        },
+        {
+          "query_id": "player_join20:q7",
+          "sql": "SELECT c.state_name, MAX(c.population) AS max_city_population FROM team t JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name != '' GROUP BY c.state_name"
+        },
+        {
+          "query_id": "player_filterjoin20:q8",
+          "sql": "SELECT state_name, COUNT(*) AS city_count FROM city WHERE population > 500000 AND state_name != '' GROUP BY state_name"
+        },
+        {
+          "query_id": "player_filterjoin20:q17",
+          "sql": "SELECT c.state_name, SUM(p.fiba_world_cup) AS total_fiba FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.fiba_world_cup >= 1 AND c.population > 500000 AND c.state_name != '' GROUP BY c.state_name"
+        },
+        {
+          "query_id": "docetl_Player_v7:q4",
+          "sql": "SELECT position, SUM(mvp_awards) AS total_mvp_awards FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+        },
+        {
+          "query_id": "player_groupby20:q14",
+          "sql": "SELECT nationality, CAST(own_year / 10 AS INTEGER) * 10 AS acquisition_decade, COUNT(*) AS owner_count FROM owner WHERE nationality != '' AND own_year > 0 GROUP BY nationality, acquisition_decade"
+        },
+        {
+          "query_id": "player_multiagg20:q15",
+          "sql": "SELECT o.name, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.nba_championships >= 1 THEN 1 ELSE 0 END) AS champion_player_count, MAX(t.championship) AS team_titles FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) GROUP BY o.name HAVING COUNT(*) >= 2"
+        },
+        {
+          "query_id": "docetl_Player_v7:q11",
+          "sql": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE age BETWEEN 20 AND 40 AND nationality != '' GROUP BY nationality"
+        },
+        {
+          "query_id": "player_multiagg20:q9",
+          "sql": "SELECT CAST(founded_year / 10 AS INTEGER) * 10 AS founded_decade, COUNT(*) AS team_count, SUM(championship) AS total_titles, AVG(championship) AS avg_titles, MIN(founded_year) AS earliest_founded FROM team WHERE founded_year > 0 GROUP BY founded_decade"
+        },
+        {
+          "query_id": "player_filterjoin20:q6",
+          "sql": "SELECT c.state_name, COUNT(*) AS team_count FROM team t JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE t.founded_year < 1970 AND t.championship >= 1 AND c.state_name != '' GROUP BY c.state_name"
+        },
+        {
+          "query_id": "docetl_Player_v7:q13",
+          "sql": "SELECT location, COUNT(*) AS team_count FROM team WHERE founded_year < 1970 AND location != '' GROUP BY location"
+        },
+        {
+          "query_id": "docetl_Player_v7:q17",
+          "sql": "SELECT nationality, MIN(own_year) AS earliest_own_year FROM owner WHERE own_year >= 2000 GROUP BY nationality"
+        },
+        {
+          "query_id": "player_join20:q8",
+          "sql": "SELECT o.nationality, COUNT(*) AS team_count FROM team t JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.nationality != '' GROUP BY o.nationality"
+        },
+        {
+          "query_id": "player_join20:q11",
+          "sql": "SELECT c.state_name, AVG(p.nba_championships) AS avg_player_titles FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.nba_championships IS NOT NULL AND c.state_name != '' GROUP BY c.state_name"
+        },
+        {
+          "query_id": "player_join20:q15",
+          "sql": "SELECT o.nationality, AVG(p.age) AS avg_player_age FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.nationality != '' GROUP BY o.nationality"
+        },
+        {
+          "query_id": "player_filterjoin20:q14",
+          "sql": "SELECT c.state_name, AVG(p.age) AS avg_age FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.draft_pick BETWEEN 1 AND 14 AND p.age BETWEEN 20 AND 45 AND c.state_name != '' GROUP BY c.state_name"
+        },
+        {
+          "query_id": "docetl_Player_v7:q3",
+          "sql": "SELECT college, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE college != '' GROUP BY college HAVING COUNT(*) > 1"
+        },
+        {
+          "query_id": "docetl_Player_v7:q14",
+          "sql": "SELECT ownership, SUM(championship) AS total_championships FROM team WHERE ownership != '' GROUP BY ownership"
+        },
+        {
+          "query_id": "player_filterjoin20:q1",
+          "sql": "SELECT position, COUNT(*) AS player_count FROM player WHERE draft_pick BETWEEN 1 AND 10 AND draft_year >= 2010 AND position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+        }
+      ]
+    }
+  }
+}

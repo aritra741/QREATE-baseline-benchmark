@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Iterable
 
 from quwarts.core.amplify import attach_amplification, allocation_weights
-from quwarts.core.bridge import build_bridges, write_bridges
 from quwarts.core.conflict import cluster_templates, conflict_graph, conflict_mix
 from quwarts.core.domain import (
     TypeUnificationError,
@@ -27,9 +26,11 @@ from quwarts.core.extract import (
     ground_constrained_records,
     prefer_constrained_records,
 )
+from quwarts.core.quality import CELL_CHANGE_STOP
+from quwarts.core.repair import resolve_shared_ids, run_repair_agent, stamp_shared_ids
 from quwarts.core.ledger import BudgetExhausted, BudgetedCaller, TokenLedger
 from quwarts.core.logical import infer_logical_schema
-from quwarts.core.materialize import file_sha256, materialize
+from quwarts.core.materialize import materialize
 from quwarts.core.models import (
     Configuration,
     FrozenPortfolio,
@@ -42,7 +43,7 @@ from quwarts.core.models import (
 )
 from quwarts.core.pilot import run_pilot
 from quwarts.core.population import apply_population, policy_from_demands
-from quwarts.core.rewrite import apply_bridges, apply_identity_keys, join_yield, rewritable
+from quwarts.core.rewrite import apply_identity_keys, join_yield, rewritable
 from quwarts.core.route import route_workload
 from quwarts.core.schema import canonical_schema
 from quwarts.core.search import config_id, generate_candidates, marginal_cost, select_portfolio
@@ -255,6 +256,7 @@ def compile_workload(
     logical: LogicalSchema | None = None,
     caller: BudgetedCaller | None = None,
     extract: bool = True,
+    workers: int = 16,
 ) -> FrozenPortfolio:
     """Compile Q to a shared extraction plan. No search, no surrogate."""
 
@@ -288,7 +290,9 @@ def compile_workload(
     policy = PreprocessPolicy(mode="whole_document")
     extractor = None
     if extract:
-        extractor = StagedExtractor(store=store, ledger=ledger, caller=caller, seed=seed)
+        extractor = StagedExtractor(
+            store=store, ledger=ledger, caller=caller, seed=seed, workers=workers,
+        )
         extractor.extract(documents, workload, policy, tiers, logical=logical)
 
     records = list(store.records.values())
@@ -299,8 +303,12 @@ def compile_workload(
     except TypeUnificationError:
         # Do not abort a corpus. Irreconcilable joins stay infeasible and score 0.
         pass
+    quality_report: dict = {}
+    bugfix_log: list[dict] = []
     if extract and extractor is not None:
-        extractor.reextract_coerced(documents, workload, policy, tiers, logical=logical)
+        n_coerced = extractor.reextract_coerced(documents, workload, policy, tiers, logical=logical)
+        bugfix_log.append({"kind": "reextract_coerced", "n": n_coerced})
+        quality_report = {"compile_extract": "once", "bugfix": bugfix_log}
 
     schema = canonical_schema(logical)
     records = complete_authority(
@@ -317,6 +325,11 @@ def compile_workload(
         maps, identity_report = build_domain_maps(records, workload, caller, logical)
     except BudgetExhausted:
         maps, identity_report = {}, {}
+    try:
+        shared = resolve_shared_ids(records, workload, caller)
+        identity_report = stamp_shared_ids(identity_report, shared)
+    except BudgetExhausted:
+        pass
     selected_configs: list[Configuration] = []
     selected_dbs = []
     rejected_disjoint: list[dict[str, object]] = []
@@ -371,17 +384,7 @@ def compile_workload(
     config_by_id = {config.id: config for config in selected_configs}
     needed_pairs = _all_join_pairs(workload)
     zero_yield_pairs = _zero_yield_pairs(workload, routing, config_by_id, db_by_config)
-    bridges = build_bridges(
-        needed_pairs,
-        records,
-        workload,
-        caller,
-        linkage=identity_report.get("linkage") or {},
-        documents=documents,
-    )
-    for db in selected_dbs:
-        write_bridges(db.sqlite_path, bridges)
-        db.sha256 = file_sha256(Path(db.sqlite_path))
+    bridges: dict = {}
     for template in workload.templates:
         chosen = routing.get(template.id)
         if chosen is None and selected_configs:
@@ -400,6 +403,73 @@ def compile_workload(
         rewrites[template.id] = sql
         for stmt_id in template.statement_ids:
             rewrites[stmt_id] = sql
+
+    portfolio = FrozenPortfolio(
+        configurations=selected_configs,
+        route=routing,
+        rewrites=rewrites,
+        databases=selected_dbs,
+        tokens_spent=ledger.spent,
+        cache_hit_rate=store.cache_hit_rate(),
+        seed=seed,
+        logical_schema=logical,
+    )
+    repair_report = None
+    if extract and extractor is not None and caller is not None:
+        try:
+            repair_report = run_repair_agent(
+                extractor,
+                documents,
+                workload,
+                portfolio,
+                statements,
+                logical=logical,
+                identity_report=identity_report,
+                maps=maps,
+                artifact_root=artifact_root,
+                policy=policy,
+            )
+            selected_dbs = list(portfolio.databases)
+            selected_configs = list(portfolio.configurations)
+            db_by_config = {db.config_id: db for db in selected_dbs}
+            config_by_id = {config.id: config for config in selected_configs}
+            routing = dict(portfolio.route)
+            rewrites = {}
+            for template in workload.templates:
+                chosen = routing.get(template.id)
+                if chosen is None and selected_configs:
+                    chosen = selected_configs[0].id
+                if chosen is None or chosen not in config_by_id:
+                    continue
+                result = rewritable(
+                    template,
+                    config_by_id[chosen].schema_,
+                    db_by_config[chosen].coverage,
+                    workload.requirements,
+                )
+                if not result.ok or result.sql is None:
+                    continue
+                sql = _join_aware_sql(result.sql, db_by_config[chosen].sqlite_path)
+                rewrites[template.id] = sql
+                for stmt_id in template.statement_ids:
+                    rewrites[stmt_id] = sql
+            quality_report = {
+                "compile_extract": "once",
+                "bugfix": bugfix_log + list(repair_report.bugfix_log),
+                "repair": {
+                    "stopped": repair_report.stopped,
+                    "tokens_spent": repair_report.tokens_spent,
+                    "steps": repair_report.steps,
+                    "before": repair_report.before,
+                    "after": repair_report.after,
+                },
+            }
+        except BudgetExhausted:
+            quality_report = {
+                "compile_extract": "once",
+                "bugfix": bugfix_log,
+                "repair": {"stopped": "budget"},
+            }
 
     rejected_empty: list[dict[str, object]] = []
     if selected_dbs:
@@ -437,11 +507,12 @@ def compile_workload(
                 "domain_disjoint_rejections": rejected_disjoint,
                 "empty_result_rejections": rejected_empty,
                 "empty_result_threshold": EMPTY_RESULT_REJECT,
+                "quality": quality_report,
+                "cell_change_stop": CELL_CHANGE_STOP,
                 "conflict_mix": mix,
                 "cluster_count": len(clusters),
-                "bridges": {
-                    f"{left}={right}": rows for (left, right), rows in bridges.items()
-                },
+                "bridges": {},
+                "shared_er": (identity_report or {}).get("shared_er") or {},
                 "zero_yield_pairs": [list(pair) for pair in zero_yield_pairs],
                 "binding_failures": workload.binding_failures,
                 "requirements": {
@@ -520,12 +591,56 @@ def _canonical_columns(sqlite_path: str) -> set[str]:
     return names
 
 
+def rematerialize_databases(
+    *,
+    store: EvidenceStore,
+    workload: Workload,
+    documents: list[SourceDocument],
+    configs: list[Configuration],
+    db_dir: Path,
+    ledger: TokenLedger,
+    identity_report: dict | None = None,
+    overwrite: bool = True,
+) -> list:
+    """Write the same configurations again. Routing is left to the caller."""
+
+    records = complete_authority(
+        ground_constrained_records(
+            prefer_constrained_records(list(store.records.values()), workload, None),
+            documents,
+        ),
+        workload,
+        None,
+    )
+    authority = authority_domains(records, workload, None)
+    maps, _ignored = {}, identity_report or {}
+    try:
+        maps, built = build_domain_maps(records, workload, None, None)
+        identity_report = stamp_shared_ids(identity_report or built, resolve_shared_ids(records, workload, None))
+    except BudgetExhausted:
+        identity_report = identity_report or {}
+    selected = []
+    for config in configs:
+        _stamp_domain_norms(config.pop, workload, maps, identity_report)
+        if overwrite:
+            stale = db_dir / f"{config.id}.db"
+            if stale.exists():
+                stale.unlink()
+        db = materialize(
+            config, records, workload, documents, db_dir, tokens_spent=ledger.spent,
+            authority=authority,
+        )
+        selected.append(db)
+    return selected
+
+
 def _join_aware_sql(sql: str, sqlite_path: str) -> str:
-    """Surface equijoins first; route through a bridge if yield is zero."""
+    """Joins and identity operations use the shared canonical ID."""
 
     canons = _canonical_columns(sqlite_path)
-    grouped = apply_identity_keys(sql, "surface", "canonical", canons) if canons else sql
-    return apply_bridges(grouped, sqlite_path)
+    if not canons:
+        return sql
+    return apply_identity_keys(sql, "canonical", "canonical", canons)
 
 
 def _empty_result_rate(

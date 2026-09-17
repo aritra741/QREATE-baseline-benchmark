@@ -1,0 +1,1472 @@
+5
+2
+0
+2
+
+p
+e
+S
+6
+2
+
+]
+
+V
+C
+.
+s
+c
+[
+
+3
+v
+6
+5
+9
+1
+2
+.
+5
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+CROSS-MODAL RAG: SUB-DIMENSIONAL TEXT-TO-
+IMAGE RETRIEVAL-AUGMENTED GENERATION
+
+Mengdan Zhu1, Senhao Cheng2, Guangji Bai1, Yifei Zhang1, Liang Zhao1
+1Emory University
+2University of Michigan, Ann Arbor
+{mengdan.zhu, guangji.bai, yifei.zhang2, liang.zhao}@emory.edu
+senhaoc@umich.edu
+
+ABSTRACT
+
+Text-to-image generation increasingly demands access to domain-specific, fine-
+grained, and rapidly evolving knowledge that pretrained models cannot fully
+capture, necessitating the integration of retrieval methods. Existing Retrieval-
+Augmented Generation (RAG) methods attempt to address this by retrieving glob-
+ally relevant images, but they fail when no single image contains all desired
+elements from a complex user query. We propose Cross-modal RAG, a novel
+framework that decomposes both queries and images into sub-dimensional compo-
+nents, enabling subquery-aware retrieval and generation. Our method introduces
+a hybrid retrieval strategy—combining a sub-dimensional sparse retriever with
+a dense retriever—to identify a Pareto-optimal set of images, each contributing
+complementary aspects of the query. During generation, a multimodal large lan-
+guage model is guided to selectively condition on relevant visual features aligned
+to specific subqueries, ensuring subquery-aware image synthesis. Extensive experi-
+ments on MS-COCO, Flickr30K, WikiArt, CUB, and ImageNet-LT demonstrate
+that Cross-modal RAG significantly outperforms existing baselines in the retrieval
+and further contributes to generation quality, while maintaining high efficiency.
+
+1
+
+INTRODUCTION
+
+Text-to-Image Generation (T2I-G) has witnessed
+rapid progress in recent years, driven by advances
+in diffusion models (Rombach et al., 2022; Saharia
+et al., 2022; Nichol et al., 2021) and multimodal large
+language models (MLLMs) (OpenAI, 2025; Google,
+2025; Jin et al., 2023), enabling the synthesis of in-
+creasingly realistic and diverse images from natural
+language descriptions. However, in many real-world
+applications, domain-specific image generation re-
+quires knowledge that is not readily encoded within
+pre-trained image generators, especially when such
+information is highly long-tailed, fast-updated, and
+proprietary. To address this limitation, Retrieval-
+Augmented Generation (RAG) has emerged as a
+promising paradigm by incorporating an external im-
+age database to supply factual reference during gener-
+ation (Zheng et al., 2025; Zhao et al., 2024). Notable
+RAG-based image generation approaches such as Re-
+Imagen (Chen et al., 2022), RDM (Blattmann et al.,
+2022), and KNN-Diffusion (Sheynin et al., 2022)
+integrate retrieved images with diffusion models to
+improve output fidelity. However, these existing RAG methods typically rely on off-the-shelf retriev-
+ers (e.g., those based on CLIP (Radford et al., 2021)) which compute global image-text similarities
+and retrieve whole images based on the full user query. This coarse-grained retrieval strategy often
+fails in complex scenarios where the query involves multiple fine-grained entities or attributes (Varma
+et al., 2023) – especially when no single image contains all required components in the query. In
+
+Figure 1: Visualization of retrieval and gen-
+eration in Cross-modal RAG (ours) versus
+previous RAG.
+
+1
+
+User query:A Cybertruckwith a third-generation Labubuon the roof is parked in front of a Tesla store onVenusground.PreviousRAGOurs(Cross-modalRAG)RetrievedImagesTop-kGlobalRetrievalMulti-objectiveJointRetrievalGenerationquery+retrievedimagesquery+retrievedimageswithsub-dimensionalsatisfiedinformationCybertruck,Tesla storeCybertruck,Tesla storeCybertruck,Tesla storeCybertruck,Tesla storeVenusgroundVenusgroundthird-generation Labubu 
+ 
+ 
+ 
+ 
+ 
+practice, it is extremely common that single images in the retrieval database only satisfy a subset of
+the query. As in Fig. 1, no single image in the retrieval database perfectly covers all four aspects in
+the query; instead, each covers different subsets of the query. Existing RAG methods often retrieve
+top-k images based on the entire query, so images that redundantly contain most aspects of the
+query tend to be retrieved (e.g., three images that all include “Cybertruck” and “Tesla store”), while
+some aspects may be underweighted (e.g., “Venus ground”) or even missed (e.g., “third-generation
+Labubu”), leading to the distortion in the missed aspects. Also, during generation, existing RAG has
+not been precisely instructed about which aspects of each image should be leveraged, resulting in the
+superfluous lightning in the generated image by previous RAG.
+
+Therefore, instead of being restricted to considering whether each whole image is related to the
+entirety of the query, it is desired to advance to pinpointing which aspects (i.e., sub-dimensions) of
+which images can address which aspects of the query for image generation. Such desire is boiled
+down to several open questions. First, how to precisely gauge which part of the queries match
+which aspects of each image? Existing global embedding methods, like CLIP, do not naturally
+support sub-dimensional alignment (Radford et al., 2021), and current fine-grained vision-language
+matching is limited to region-level object patterns (Varma et al., 2023; Zhong et al., 2022), which are
+computationally expensive and error-prone. Second, how to retrieve the smallest number of images
+that cover all necessary information? It is desired to retrieve an optimal set of images such that each
+covers different aspects of the query while avoiding redundancy in order to maximize the amount of
+relevant information under a limited context window size. Third, how to precisely inform the image
+generator of what aspect of each image to refer to when generating? Existing image generators
+typically can take in the input query or images, but here it requires adding fine-grained instructions
+about how to leverage relevant aspects of images when generating, which is not well explored.
+
+To address these open problems, we propose Cross-modal Sub-dimensional Retrieval Augmented
+Generation (Cross-modal RAG), a novel text-to-image retrieval-augmented framework that can
+identify, retrieve, and leverage image sub-dimensions to satisfy different query aspects:
+
+• To decompose and identify key image sub-dimensions, we decompose the user query into sub-
+queries and candidate images into sub-dimensional representations with respect to the subqueries,
+enabling accurate subquery-level alignment.
+
+• To retrieve comprehensive and complementary image sub-dimensions, we formulate the retrieval
+goal as a multi-objective optimization problem and introduce an efficient hybrid retrieval strategy
+– combining a lightweight sub-dimensional sparse retriever with a sub-dimensional dense retriever
+– to retrieve a set of Pareto-optimal images that collectively cover all subqueries in the query as in
+Fig. 1 (right).
+
+• To effectively instruct image generators with the retrieved image sub-dimensions, we present a
+model-agnostic and subquery-aware generation with MLLMs, which explicitly preserves and
+composes the subquery-aligned components from the retrieved images into a coherent final image.
+For instance, our method only preserves the “Venus ground” in the final image, while previous
+RAG can also preserve the irrelevant lightning in Fig. 1.
+
+Extensive experiments demonstrate that Cross-modal RAG achieves state-of-the-art performance in
+the text-to-image retrieval and also benefits generation tasks across multiple fine-grained, domain-
+specific, and long-tailed image benchmarks, while maintaining excellent computational efficiency.
+
+2 RELATED WORK
+
+2.1 TEXT-TO-IMAGE GENERATION
+
+Text-to-Image Generation (T2I-G) has made significant strides, evolving through methodologies such
+as Generative Adversarial Networks (GANs) (Goodfellow et al., 2014; Brock et al., 2018), auto-
+regressive models (Van Den Oord et al., 2016; Ramesh et al., 2021), and diffusion models (Ho et al.,
+2020; Nichol & Dhariwal, 2021). Recent breakthroughs in diffusion models and multimodal large
+language models (MLLMs), driven by scaling laws (Kaplan et al., 2020), have significantly advanced
+the capabilities of T2I-G. Notable examples include the DALL-E series (Ramesh et al., 2021; Betker
+et al., 2023), the Imagen series (Saharia et al., 2022), and the Stable Diffusion (SD) series (Rombach
+et al., 2022; Podell et al., 2023; Esser et al., 2024). More recently, image generation functionalities
+have been integrated directly into advanced MLLMs such as GPT Image (OpenAI, 2025) and
+
+2
+
+Gemini Image Generation (Google, 2025). However, despite these advancements, traditional T2I-G
+methods often struggle with knowledge-intensive, long-tailed, and fine-grained image-generation
+tasks. These scenarios typically require additional context to generate accurate images, necessitating
+RAG techniques.
+
+2.2 TEXT-TO-IMAGE RETRIEVAL
+
+Text-to-Image Retrieval (T2I-R) has become a crucial subtask in supporting fine-grained image
+understanding and generation. CLIP (Radford et al., 2021) is currently the most widely adopted
+approach, mapping images and texts into a shared embedding space via contrastive learning. While
+CLIP excels at coarse-grained alignment, it underperforms in fine-grained text-to-image retrieval,
+especially in scenes involving multiple objects or nuanced attributes. ViLLA (Varma et al., 2023)
+explicitly highlights this limitation, demonstrating that CLIP fails to capture detailed correspondences
+between image regions and textual attributes. SigLIP (Zhai et al., 2023), along with other refinements
+such as FILIP (Yao et al., 2021) and SLIP (Mu et al., 2022), improves CLIP’s contrastive learning
+framework and achieves superior zero-shot classification performance. However, these methods still
+rely on global image-text embeddings, which are inadequate for resolving localized visual details
+required by fine-grained queries.
+
+To address this, recent works on fine-grained text-to-image retrieval (e.g., ViLLA (Varma et al.,
+2023), RegionCLIP (Zhong et al., 2022)) have adopted region-based approaches that involve cropping
+image patches for localized alignment. In contrast, our vision-based sub-dimensional dense retriever
+bypasses the need for explicit cropping. By constructing sub-dimensional vision embeddings directly
+from the full image, we enable more efficient and effective matching against subqueries.
+
+2.3 RETRIEVAL-AUGMENTED GENERATION
+
+Retrieval-Augmented Generation has demonstrated significant progress in improving factuality for
+both natural language generation (Gao et al., 2023; Zhu et al., 2023) and image generation (Chen
+et al., 2022; Yasunaga et al., 2022). Most RAG-based approaches for image generation are built
+upon diffusion models (e.g., Re-Imagen (Chen et al., 2022), RDM (Blattmann et al., 2022), KNN-
+Diffusion (Sheynin et al., 2022)), but these methods largely overlook fine-grained semantic alignment.
+FineRAG (Yuan et al., 2025) takes a step toward fine-grained image generation by decomposing the
+textual input into fine-grained entities; however, it does not incorporate fine-grained decomposition
+on the visual side. In contrast, our approach performs dual decomposition: (i) the query is parsed into
+subqueries that capture distinct semantic components, and (ii) the candidate images are decomposed
+into sub-dimensional vision embeddings aligned with the corresponding subqueries. Furthermore,
+while existing RAG-based image models typically rely on off-the-shelf retrievers, we introduce a
+novel retrieval method that combines a sub-dimensional sparse filtering stage with a sub-dimensional
+dense retriever. Finally, with the recent surge of MLLM-based image generation, we explore how our
+fine-grained retrieval information can be integrated to guide generation at the sub-dimensional level.
+
+3 PROPOSED METHOD
+
+We introduce Cross-modal RAG, as shown in Figure 2. The framework consists of four stages: (1) Sub-
+dimensional sparse retriever based on lexical match on subqueries in Sec. 3.1.2; (2) Sub-dimensional
+dense retriever based on semantic match on sub-dimensional vision embeddings and textual subquery
+embeddings in Sec. 3.1.1; (3) Multi-objective joint retrieval to select a set of Pareto-optimal images
+in Sec. 3.1.3; and (4) Subquery-aware image generation with retrieved images in Sec. 3.2.
+
+The framework of Cross-modal RAG focuses on: 1) how to retrieve the optimal images from the
+retrieval database given multiple subqueries, and 2) how to guide the generator to generate images
+preserving the satisfied subquery features in each retrieved image.
+
+3.1 MULTI-OBJECTIVE RETRIEVAL FOR IMAGE GENERATION
+
+3.1.1 SUB-DIMENSIONAL DENSE RETRIEVER
+
+Given a user query Q and a candidate image Ij, we decompose Q into a set of subqueries
+{q1, q2, ..., qn}, where each subquery qi captures a specific aspect of Q, such as object categories
+or attributes, and we further compute the similarity scores between its normalized sub-dimensional
+
+3
+
+Figure 2: Overview of the Cross-modal RAG framework. The framework consists of four stages:
+(1) Sub-dimensional Sparse Retriever, where images are filtered based on lexical subquery matches;
+(2) Sub-dimensional Dense Retriever, where candidate images are re-ranked using the mean of
+pairwise cosine similarities between sub-dimensional vision embeddings and subquery embeddings;
+(3) Multi-objective Joint Retrieval, where a Pareto-optimal set of images is selected by Eq.6 to
+collectively cover the subqueries. Pf is composed of three orange points( ) (solid points are on the
+line while dashed points are off the line); and (4) Generation, where a MLLM composes a final image
+by aligning subquery-level visual components from retrieved images.
+
+vision embeddings and textual subquery embeddings as follows:
+
+S(Q, Ij) =
+
+1
+n
+
+n
+(cid:88)
+
+i=1
+
+sim(vji, ti).
+
+(1)
+
+Here, the similarity score sim is cosine similarity. The similarity scores are aggregated across n
+subqueries to form an overall similarity metric S(Q, Ij). Images are ranked based on their similarity
+S(Q, Ij) for the given query, and the top-ranked images are retrieved.
+
+The subquery embeddings ti with respect to subquery qi can be computed as:
+
+ti = Φclip-t( g(qi)),
+
+(2)
+
+where g(·) denotes the tokenization, and Φclip-t(·) denotes the pre-trained CLIP text encoder.
+
+In terms of the sub-dimensional vision embeddings vji, after the image Ij is fed into a pretrained
+CLIP vision encoder (Φclip-v(·)), a multi-head cross-attention module is introduced, functioning as
+the vision adapter fa, to compute fine-grained sub-dimensional vision subembeddings:
+
+vji = fa (Φclip-v(Ij), Ti) .
+
+(3)
+
+The vision adapter consists of: 1) A multi-head vision cross-attention layer where the learnable
+query tokens attend to the vision embeddings extracted from the frozen CLIP visual encoder; 2) A
+multi-head text cross-attention layer where the output of the vision cross-attention further attends to
+the subquery embeddings extracted from the frozen CLIP text encoder; 3) An MLP head that maps
+the attended features to a shared multimodal embedding space, followed by layer normalization. The
+output vji represents Ij’s ith-dimensional vision embedding corresponding to the core concept of
+subquery qi, which is decomposed from Q and can be obtained by an off-the-shelf LLM (e.g. GPT-4o
+mini) using the structured prompt in Appendix A. Ti denotes the embedding of the core concept
+extracted from qi, representing the object category without attribute modifiers.
+
+The vision adapter fa is optimized using the Info-NCE loss:
+
+LInfo-NCE = − log
+
+(cid:80)
+
+(vji,ti)∈P exp
+
+(cid:18) ⟨vT
+
+ji,ti⟩
+τ
+
++ (cid:80)
+
+(v′
+
+ji,t′
+
+i)∼N exp
+
+(cid:19) ,
+
+(cid:18) ⟨v′T
+
+i⟩
+ji ,t′
+τ
+
+(4)
+
+(cid:80)
+
+(vji,ti)∈P exp
+(cid:19)
+
+(cid:19)
+
+(cid:18) ⟨vT
+
+ji,ti⟩
+τ
+
+where P is a set of positive pairs with all sub-dimensional vision embeddings and subquery embed-
+dings, N conversely refers to an associated set of negative pairs. τ is a temperature parameter.
+
+4
+
+Cli$ near Dieppe in the style of Claude MonetACliffinthestyleofPavelSvinyinDieppe in the style of Charles ConderCli$ at Dieppe in the style of Claude MonetStabblenear Dieppein the style of Paul GauguinSeascape with cow on the edge of a cli$ in the style of Paul Gauguin“Cli% near Dieppe in the style of Paul Gauguin.”User queryCli$DieppeThe style of Paul Gauguin✔✔✔✔✖✖CLIPVisualEnoderCLIP TextEnoderStage 1: Sub-dimensional Sparse RetrieverStage 2: Sub-dimensional Dense RetrieverStage 3: Multi-objective Joint RetrievalStage 4: Generation111Pareto Front Pareto Optimal Image Set Cli;, Dieppe Dieppe, The style of Paul Gauguin Dieppe, The style of Paul Gauguin SatisﬁedSubqueriesMLLMGeneratedImagepairwise cosine similarityweighted meanuser query/visual/subquery tokensvisual embeddingstext embeddingsRetrievalDatabaseLearnable querytokensCrossattentionCross attention FeedForwardAdaptor3.1.2 SUB-DIMENSIONAL SPARSE RETRIEVER
+
+Definition 3.1 (Sub-dimensional Sparse Retriever). For each retrieval candidate image Ij, we define
+a binary satisfaction score for the sub-dimensional sparse retriever:
+
+si (Ij) =
+
+(cid:26)1,
+0,
+
+if the caption of Ij contains qi
+otherwise
+
+(5)
+
+Hence, each image Ij yields an n-dimensional satisfaction vector [s1 (Ij) , . . . , sn (Ij)].
+Definition 3.2 (Image Dominance). Consider two images Ia and Ib from the retrieval database
+D, with corresponding subquery satisfaction vectors s (Ia) = [s1 (Ia) , . . . , sn (Ia)] and s (Ib) =
+[s1 (Ib) , . . . , sn (Ib)]. We say Ia dominates Ib , denoted Ia ≻ Ib, if:
+
+(1) si (Ia) ≥ si (Ib), ∀ i ∈ {1, . . . , n}, and (2) ∃ j ∈ {1, . . . , n} s.t. sj (Ia) > sj (Ib).
+
+That is, Ia is never worse in any subquery’s score and is strictly better in at least one subquery.
+Ia ∈ D is retrieved by the sub-dimensional sparse retriever if there exists no other image Ib ∈ D
+such that Ib dominates Ia. Formally, ∄Ib ∈ D s.t. Ib ≻ Ia.
+
+3.1.3 MULTI-OBJECTIVE OPTIMIZATION FORMULATION AND ALGORITHM
+
+Each subquery can be regarded as a distinct objective, giving rise to a multi-objective optimization
+problem for retrieval. Our primary goal is to select images that collectively maximize text-based
+subquery satisfaction (sub-dimensional sparse retrieval), while also maximizing fine-grained vision-
+based similarity (sub-dimensional dense retrieval). Thus, the overall objective is formalized as:
+
+I ∗
+j = arg max
+
+Ij
+
+n
+(cid:88)
+
+i=1
+
+αisi(Ij) + β · nS(Q, Ij), s.t. ∀αi : αi > 0,
+
+n
+(cid:88)
+
+i=1
+
+αi = 1, β ∈ (0, βmax),
+
+(6)
+
+where αi is the relative importance of each subquery qi in the sub-dimensional sparse retrieval, and
+the weight β trades off between the sub-dimensional sparse and dense retrieval.
+Definition 3.3 (Pareto Optimal Images). The solution to Eq.6 is called the set of Pareto optimal
+images, such that I ∗
+j is not dominated by by any other image Ik ∈ D in terms of both s(I) and
+S(Q, I). Formally,
+
+j ∈ D | ∄Ik ∈ D s.t. F (Ik) > F (I ∗
+j )},
+where F (Ij) = (cid:80)n
+i=1 αisi(Ij) + β · nS(Q, Ij), s.t. ∀αi : αi > 0, (cid:80)n
+i=1 αi = 1, β ∈ (0, βmax).
+Definition 3.4 (Pareto Front of the Pareto Optimal Images). P is sometimes referred to as the Pareto
+set in the decision space (here, the set of images). Pareto front Pf of the Pareto optimal image is the
+corresponding set of non-dominated tuples in the objective space:
+
+P = {I ∗
+
+(7)
+
+Pf = {(s(I ∗
+
+j ), S(Q, I ∗
+
+j )) : I ∗
+
+j ∈ P}.
+
+(8)
+
+Therefore, the Pareto optimal images in P represent the “best trade-offs” across all subqueries, since
+no single image in D can strictly improve the Pareto front Pf on every subquery dimension.
+
+We propose the multi-objective joint retrieval algorithm in Algorithm 1. If an image is Pareto optimal,
+there exists at least one choice of {αi} for which it can maximize (cid:80)n
+i=1 αisi(Ij). In particular, if
+multiple images share the same subquery satisfaction vector s(Ij), we can use the sub-dimensional
+dense retriever to further distinguish among images.
+Theorem 3.1 (Retrieval Efficiency). Let N be the total number of images in D, (cid:101)N ≪ N be the
+number of images in (cid:101)D, K is a grid of α-values and n be the number of subqueries. Also let Tclip
+represent the cost of processing a single image with the CLIP vision encoder, and Tadaptor represent
+the cost of the adaptor. The time complexity of Algorithm 1 is O(N ) + O(K × (cid:101)N ) + O(K ×
+(cid:101)N × n × (Tclip + Tadaptor)) and the time complexity of a pure sub-dimensional dense retriever is
+O(N × n × (Tclip + Tadaptor)).
+
+Proof. The formal proof can be found in Appendix B.
+
+Since (cid:101)N ≪ N and K is a relatively small constant, the dominant term of Algorithm 1 is far less than
+a pure sub-dimensional dense retriever. In terms of retrieval efficiency, we adopt Algorithm 1 - a
+hybrid of sub-dimensional sparse and dense retriever.
+
+5
+
+Algorithm 1 MULTI-OBJECTIVE JOINT RETRIEVAL ALGORITHM
+Require: Query Q decomposed into subqueries {qi}n
+
+{αi}n
+
+i=1 with αi > 0, (cid:80)
+
+i αi = 1, trade-off parameter β with 0 < β < βmax
+
+i=1, image retrieval database D, weights
+
+compute s (Ij) = [s1 (Ij) , . . . , sn (Ij)]
+
+Ensure: The set of Pareto optimal images P = {I ∗
+j }
+1: for Ij ∈ D do
+2:
+3: end for
+4: (cid:101)D ← {Ij | s (Ij) is not all zeros}
+5: P ← ∅
+6: for α in a discretized grid over the simplex do
+7:
+8: end for
+
+P ← P ∪ arg maxIj ∈ (cid:101)D
+
+(cid:80)n
+
+i=1 αisi(Ij) + β · nS(Q, Ij)
+
+Theorem 3.2 (Algorithm Optimality). Let δmin = min {αi | αi > 0} be the smallest nonzero
+subquery weight, and Cmax = max (cid:80)n
+, Algorithm 1
+returns all Pareto-optimal solutions to Eq.6.
+
+i=1 cos (vj,i, ti). For any 0 < β < βmax = δmin
+Cmax
+
+Proof. The formal proof can be found in Appendix C.
+
+3.2
+
+IMAGE GENERATION WITH RETRIEVED IMAGES
+
+To generate an image from the user query Q while ensuring that the satisfied subquery features in P
+are preserved, we utilize a pretrained MLLM with subquery-aware instructions.
+Given the set of retrieved images is P = {I ∗
+satisfaction vector s(I ∗
+
+j }, each retrieved image I ∗
+
+j is associated with a subquery
+
+j ). Let
+
+| si(I ∗
+be the subset of subqueries from the user query Q that I ∗
+
+j ) = 1}
+j actually satisfies.
+j ∈ P, we construct an in-context example in a form: ⟨I ∗
+
+For each image I ∗
+
+Qj = { qi
+
+j ⟩ Use only [Qj] in [I ∗
+
+j ].
+
+(9)
+
+j ] is "the j-th retrieved image".
+
+j ⟩ denotes the visual tokens for the j-th retrieved image, [Qj] is the satisfied subqueries in
+
+Here, ⟨I ∗
+j , and [I ∗
+I ∗
+Next, we feed the in-context examples to a pretrained MLLM together with the original query Q. The
+MLLM, which operates in an autoregressive manner, is thus guided to generate the final image ˆI as:
+
+(cid:0) ˆI (cid:12)
+
+(cid:12) Q, {I ∗
+
+j }, {Qj}(cid:1) =
+
+pθ
+
+T
+(cid:89)
+
+(cid:16) ˆIt
+
+pθ
+
+(cid:12)
+(cid:12)
+(cid:12)
+
+ˆI<t, Q, {I ∗
+
+j }, {Qj}(cid:1),
+
+(10)
+
+t=1
+where ˆIt denotes the t-th visual token in the generated image representation, and θ rep-
+resents the parameters of the pretrained MLLM. By referencing the full prompt: [Q]
+⟨I ∗
+j ], the MLLM learns to preserve the relevant subquery features
+that each retrieved image I ∗
+
+j ⟩ Use only [Qj] in [I ∗
+
+j contributes.
+
+4 EXPERIMENTS
+
+4.1 EXPERIMENT SETUP
+
+Baselines and Evaluation Metrics We compare our proposed method with several baselines on
+text-to-image retrieval and text-to-image generation.
+
+• Text-to-Image Retrieval Baselines: CLIP (ViT-L/14) (Radford et al., 2021) is a dual-encoder model
+pretrained on large-scale image-text pairs and remains the most widely adopted baseline for T2I
+retrieval. SigLIP (ViT-SO400M/14@384) (Zhai et al., 2023) improves retrieval precision over
+CLIP by replacing the contrastive loss with a sigmoid-based loss. ViLLA (Varma et al., 2023) is
+a large-scale vision-language pretraining model with multi-granularity objectives. BLIP-2 is an
+efficient vision-language model (Li et al., 2023). We report BLIP-2 results as cited from (Ge et al.,
+2024). GILL (Koh et al., 2023) is a unified framework that combines retrieval and generation.
+
+6
+
+Table 1: Evaluation of Text-to-Image Retrieval on MS-COCO and Flickr30K.
+
+Method
+
+MS-COCO (5K)
+
+Flickr30K (1K)
+
+R@1
+
+R@5 R@10 R@1
+
+R@5
+
+R@10
+
+CLIP (ViT-L/14)
+Finetuned CLIP (ViT-L/14)
+SigLIP
+ViLLA
+BLIP-2
+GILL
+Ours
+
+43.26
+46.10
+46.96
+34.77
+59.10
+32.12
+81.82
+
+68.70
+72.52
+71.72
+60.67
+82.70
+57.73
+97.46
+
+78.12
+82.20
+80.64
+70.69
+89.40
+66.55
+99.38
+
+77.40
+78.50
+82.20
+59.41
+82.40
+55.41
+97.50
+
+94.80
+95.00
+95.90
+85.02
+96.50
+81.94
+100.00
+
+96.60
+97.30
+97.70
+92.82
+98.40
+89.77
+100.00
+
+• Text-to-Image Generation Baselines: SDXL (Podell et al., 2023) is a widely used high-quality T2I
+diffusion model. FLUX.1-dev (Labs, 2024) is a T2I DiT-based model with high-fidelity outputs.
+LaVIT (Jin et al., 2023) is a vision-language model that supports T2I generation. RDM (Blattmann
+et al., 2022) is a representative retrieval-augmented diffusion model. UniRAG (Sharifymoghaddam
+et al., 2024) is a recent retrieval-augmented vision-language model. GILL (Koh et al., 2023) can
+perform both T2I-R and T2I-G. We use gpt-image-1 (OpenAI, 2025) and gemini-2.0-flash (Google,
+2025) as our MLLM backbones, and compare them against their MLLM baselines without retrieval.
+
+For T2I-R, we adopt the standard retrieval metric Recall at K(R@K, K=1, 5, and 10). For T2I-G,
+we evaluate the quality of generated images by computing the average pairwise cosine similarity
+of generated and ground-truth images with CLIP(ViT-L/14) (Radford et al., 2021), DINOv2(ViT-
+L/14) (Stein et al., 2023), and SigLIP(ViT-SO400M/14@384) (Zhai et al., 2023) embeddings. We
+also employ style loss (Gatys et al., 2015) to assess artistic style transfer in WikiArt (Ushio, 2024).
+
+Dataset Construction We evaluate the text-to-image retrieval on the standard benchmark MS-
+COCO (Chen et al., 2015) and Flickr30K (Young et al., 2014) test sets. As for the text-to-image
+generation, we evaluate the model’s image generation capabilities across different aspects and choose
+three datasets: artistic style transfer in the WikiArt (Ushio, 2024), fine-grained image generation
+in the CUB (Wah et al., 2011), and long-tailed image generation in the ImageNet-LT (Liu et al.,
+2019). For each generation dataset, we select some test samples and use the remaining as the retrieval
+database. More details in Appendix D.
+
+Implementation Details For T2I-R, our sub-dimensional dense retriever is composed of a pretrained
+CLIP vision encoder (ViT-L/14) and an adaptor. We train the sub-dimensional dense retriever on the
+COCO training set using the InfoNCE loss with a temperature of 0.07. The adaptor is optimized
+using the Adam optimizer with an initial learning rate of 5e-5, and a StepLR scheduler with a step
+size of 3 epochs and a decay factor of 0.6. The finetuned CLIP (ViT-L/14) is finetuned on the same
+COCO training set. We set β = 0.015 based on Therorem 3.2. The experiments1 are conducted on a
+64-bit machine with 24-core Intel 13th Gen Core i9-13900K@5.80GHz, 32GB memory and NVIDIA
+GeForce RTX 4090.
+
+4.2 QUANTITATIVE EVALUATION OF TEXT-TO-IMAGE RETRIEVAL
+
+We test our sub-dimensional dense retriever model with various types of T2I-R models. As shown in
+Tab. 1, our proposed sub-dimensional dense retriever achieves state-of-the-art performance across
+all metrics and outperforms all baselines by a substantial margin on both MS-COCO and Flickr30K
+datasets. On MS-COCO, our method achieves R@1 = 81.82%, R@5 = 97.46%, and R@10 = 99.38%,
+which are significantly higher than the best-performing baseline BLIP-2. The relative improvements
+are 38.4% on R@1, 17.8% on R@5, and 11.2% on R@10, demonstrating our model’s superior
+capability in text-to-image retrieval. Notably, it exhibits strong zero-shot T2I-R performance on
+Flickr30K, achieving near-perfect accuracy with R@1 = 97.50%, R@5 = 100.00%, and R@10
+= 100.00%, and surpassing CLIP’s R@1 = 77.40% by nearly 26%. These results confirm that
+our proposed sub-dimensional dense retriever significantly enhances fine-grained T2I-R compared
+to global embedding alignment such as CLIP, finetuned CLIP, SigLIP, and BLIP-2, region-based
+fine-grained match on ViLLA, and the retrieval and generation unified framework GILL.
+
+4.3 QUANTITATIVE EVALUATION OF TEXT-TO-IMAGE GENERATION
+
+We benchmark our Cross-modal RAG method against state-of-the-art text-to-image generation models,
+including diffusion-based (SDXL, FLUX), autoregressive (LaVIT, gemini-2.0-flash, gpt-image-1),
+
+1The code is available at https://github.com/mengdanzhu/Cross-modal-RAG.
+
+7
+
+Table 2: Evaluation of Text-to-Image Generation on WikiArt, CUB, and ImageNet-LT.
+
+Method
+
+WikiArt
+
+CUB
+
+ImageNet-LT
+
+CLIP ↑ DINO ↑
+
+SigLIP ↑
+
+Style Loss ↓ CLIP ↑ DINO ↑
+
+SigLIP ↑ CLIP ↑ DINO ↑
+
+SigLIP ↑
+
+FLUX.1-dev
+SDXL
+LaVIT
+RDM
+UniRAG
+GILL
+gemini-2.0-flash
+gpt-image-1
+Ours (gemini-2.0-flash)
+Ours (gpt-image-1)
+
+0.605
+0.688
+0.689
+0.507
+0.646
+0.629
+0.721
+0.730
+0.735
+0.746
+
+0.307
+0.504
+0.485
+0.237
+0.362
+0.439
+0.537
+0.542
+0.568
+0.604
+
+0.617
+0.720
+0.721
+0.528
+0.654
+0.654
+0.723
+0.733
+0.738
+0.744
+
+0.056
+0.022
+0.036
+0.024
+0.068
+0.027
+0.026
+0.024
+0.021
+0.019
+
+0.720
+0.743
+0.676
+0.638
+0.746
+0.719
+0.726
+0.735
+0.760
+0.764
+
+0.372
+0.519
+0.245
+0.326
+0.344
+0.185
+0.569
+0.575
+0.595
+0.600
+
+0.681
+0.738
+0.647
+0.663
+0.718
+0.675
+0.713
+0.708
+0.747
+0.744
+
+0.654
+0.668
+0.662
+0.576
+0.610
+0.635
+0.692
+0.695
+0.825
+0.815
+
+0.381
+0.403
+0.365
+0.333
+0.255
+0.228
+0.456
+0.476
+0.717
+0.761
+
+0.625
+0.653
+0.652
+0.603
+0.600
+0.615
+0.682
+0.683
+0.814
+0.812
+
+Figure 3: The retrieved pareto optimal images with their corresponding satisfied subqueries in (a)
+WikiArt, (b) CUB and (c) ImageNet-LT datasets and generation results of Cross-modal RAG.
+
+retrieval-augmented (RDM, UniRAG), and retrieval and generation unified (GILL) baselines. The
+evaluation is conducted on three datasets that span different generation challenges: WikiArt (artistic
+style transfer), CUB (fine-grained), and ImageNet-LT (long-tailed). As shown in Tab. 2, our Cross-
+modal RAG achieves the highest scores across all models and datasets, outperforming both its MLLM
+backbone without retrieval and other text-to-image generation models. These results demonstrate that
+our retrieval module is highly generalizable across different MLLM backbones and more effective
+than existing retrieval-augmented methods. On WikiArt, our method achieves the best performance
+in CLIP, DINO, and SigLIP, along with the lowest style loss, indicating it can capture the particular
+artistic style specified in the retrieved images effectively. On CUB, Cross-modal RAG also performs
+strongly across all three metrics, because it can localize and leverage the specific visual details in the
+retrieved images to facilitate generation. On ImageNet-LT, our method can retrieve images that best
+match the query, which greatly benefits T2I-G in the long-tailed situation.
+
+4.4 QUALITATIVE ANALYSIS
+
+To qualitatively illustrate the effectiveness of our Cross-modal RAG model, we visualize some
+examples of our retrieved pareto optimal images with their corresponding satisfied subqueries and
+generated outputs across all datasets in Fig. 3. The satisfied subqueries of each retrieved Pareto-
+optimal image are non-overlapping, and each retrieved image is optimal with respect to the sub-
+dimensions it satisfies. Therefore, we can guarantee that the Pareto set P collectively covers images
+with all satisfied subqueries in the retrieval database D. Moreover, since the model knows which
+subqueries are satisfied by each retrieved image, MLLMs can be guided to condition on the relevant
+subquery-aligned parts of each retrieved image during generation. As shown Fig. 3(a), the model is
+
+8
+
+Ours(gpt-image-1)(a)WikiArtUserQueryRoadin theforest ofFontainebleau in the style of Theodore Rousseau.1.road,2.forest, 3.Fontainebleau,4.the style of Theodore RousseauRetrievedimage1Retrievedimage2Retrievedimage31.road2.forest3.Fontainebleau2.forest3.Fontainebleau4.the style of Theodore Rousseau1.road4.the style of Theodore RousseauDecomposedSubqueriesPareto Optimal Images with Satisfied SubqueriesGenerationOurs(gemini-2.0-flash)Ours(gpt-image-1)(b)CUBUserQueryDecomposedSubqueriesPareto Optimal Images with Satisfied SubqueriesGenerationOurs(gemini-2.0-flash)Ours(gpt-image-1)(c)ImageNet-LTUserQueryDecomposedSubqueriesPareto Optimal Images with Satisfied SubqueriesGenerationOurs(gemini-2.0-flash)Retrievedimage1Retrievedimage21.Hooded Warbler2.black crown4.yellow belly1.Hooded Warbler2.black crown3.black throat1.Hooded Warbler3.black throat4.yellow bellyRetrievedimage3Retrievedimage11.[totempole]Draw a Hooded Warbler. This bird has a black crown with black throat and yellow belly.1.Hooded Warbler,2.black crown, 3.black throat,4.yellow belly1.[totempole]A photo of [totempole].Table 3: Evaluation of the retrieval efficiency on the COCO. Our methods are denoted in gray .
+
+Method
+
+GPU Memory (MB)
+
+# of Parameters (M) Query Latency (ms)
+
+CLIP (ViT-L/14)
+dense (all)
+dense (adaptor)
+sparse
+
+2172.19
+2195.26
+23.07
+0
+
+427.62
+433.55
+7.31
+0
+
+8.68
+14.22
+4.35
+2.17
+
+capable of style transfer, learning the artistic style of a certain artist (e.g., Theodore Rousseau) while
+preserving the details corresponding to each subquery (e.g., road, forest, Fontainebleau). The model
+is also able to retrieve accurate fine-grained information and compose the entities in subqueries (e.g.,
+black crown, black throat, yellow belly) to perform fine-grained image generation on the CUB dataset
+in Fig. 3(b). Moreover, the model is good at long-tailed or knowledge-intensive image generation.
+In Fig. 3(c), ImageNet-LT is a long-tailed distribution dataset with many rare entities (e.g., totem
+pole). Retrieving such correct images can help improve generation fidelity. Baseline models without
+retrieval capabilities tend to struggle in these scenarios. More comparisons of generated images with
+other baselines are provided in Appendix H.
+
+4.5 EFFICIENCY ANALYSIS
+
+As shown in Tab. 3, we compare the retrieval efficiency of CLIP (ViT-L/14) with our sub-dimensional
+dense and sparse retrievers on the COCO test set. Our sub-dimensional dense retriever is com-
+posed of a frozen CLIP encoder (ViT-L/14) and a lightweight adaptor. As reported in Table 1, the
+sub-dimensional dense retriever improves Recall@1 by +89.14% over CLIP on COCO. Despite
+the adaptor’s minimal overhead – only 0.01× CLIP’s GPU memory usage, 0.017× its number of
+parameters, and 0.5× its query latency – its performance gain is substantial. Our sub-dimensional
+sparse retriever is text-based and operates solely on the CPU, requiring no GPU memory consumption,
+no learnable parameters and achieving the lowest query latency. Our Cross-modal RAG method, a
+hybrid of our sub-dimensional sparse and dense retriever, can leverage the complementary strengths
+of both and achieve query latency that lies between the pure sparse and dense retrievers – closer to
+that of the sparse. These results show Cross-modal RAG’s efficiency and scalability for large-scale
+text-to-image retrieval tasks without compromising effectiveness.
+
+4.6 ABLATION STUDY
+
+Ablation Study on Subquery Decomposition
+
+We evaluate retrieval performance without subquery
+decomposition on multi-subquery datasets, WikiArt
+and CUB, by directly using a BM25 retriever to re-
+trieve the top-1, top-2, and top-3 images based on
+the full user query. Our multi-objective joint retrieval
+method achieves a higher subquery coverage rate
+compared to the conventional text-based BM25 re-
+trieval on both WikiArt and CUB in Fig. 4. This
+result indicates that our multi-objective joint retrieval
+method retrieves a set of images P that collectively cover the largest number of subqueries from D,
+demonstrating its superior ability to capture the full semantic intent of the user query.
+
+Figure 4: Ablation Study on Subquery De-
+composition on the WikiArt and CUB.
+
+Ablation Study on the Sub-dimensional Dense Retriever
+
+We retain the sub-dimensional sparse retriever and
+replace the sub-dimensional dense retriever in Cross-
+modal RAG with a randomly selected image. The
+results in Tab. 4 show that our dense retriever is
+able to retrieve images that best match the entity in
+the query in the ImageNet-LT. Notably, our dense
+retriever, though trained only on the COCO, general-
+izes well to unseen entities on the ImageNet-LT.
+
+5 CONCLUSION
+
+Table 4: Ablation Study of our Cross-modal
+RAG w/o dense retriever on the ImageNet-LT.
+
+Method
+Ours (gpt-image-1)
+w/o dense
+
+CLIP ↑ DINO ↑
+0.761
+0.815
+0.607
+0.773
+
+SigLIP ↑
+0.812
+0.752
+
+We proposed Cross-modal RAG, a novel sub-dimensional text-to-image retrieval-augmented genera-
+tion framework. By efficient and fine-grained T2I retrieval, it facilitates domain-specific, fine-grained,
+
+9
+
+and long-tailed image generation. Our method leverages a hybrid retrieval strategy combining sub-
+dimensional sparse filtering with dense retrieval to precisely align subqueries with visual elements,
+guiding a MLLM to generate coherent images on the subquery level. The Pareto-optimal image
+selection ensures the largest coverage of various aspects in the query. Extensive experiments demon-
+strated Cross-modal RAG’s superior performance over state-of-the-art baselines in T2I-R and can
+also benefit T2I-G. The ablation study and efficiency analysis highlight the effectiveness of each
+component and efficiency in the Cross-modal RAG.
+
+REFERENCES
+
+James Betker, Gabriel Goh, Li Jing, Tim Brooks, Jianfeng Wang, Linjie Li, Long Ouyang, Juntang
+Zhuang, Joyce Lee, Yufei Guo, et al. Improving image generation with better captions. Computer
+Science. https://cdn. openai. com/papers/dall-e-3. pdf, 2(3):8, 2023.
+
+Andreas Blattmann, Robin Rombach, Kaan Oktay, Jonas Müller, and Björn Ommer. Retrieval-
+augmented diffusion models. Advances in Neural Information Processing Systems, 35:15309–
+15324, 2022.
+
+Andrew Brock, Jeff Donahue, and Karen Simonyan. Large scale gan training for high fidelity natural
+
+image synthesis. arXiv preprint arXiv:1809.11096, 2018.
+
+Wenhu Chen, Hexiang Hu, Chitwan Saharia, and William W Cohen. Re-imagen: Retrieval-augmented
+
+text-to-image generator. arXiv preprint arXiv:2209.14491, 2022.
+
+Xinlei Chen, Hao Fang, Tsung-Yi Lin, Ramakrishna Vedantam, Saurabh Gupta, Piotr Dollár, and
+C Lawrence Zitnick. Microsoft coco captions: Data collection and evaluation server. arXiv preprint
+arXiv:1504.00325, 2015.
+
+Patrick Esser, Sumith Kulal, Andreas Blattmann, Rahim Entezari, Jonas Müller, Harry Saini, Yam
+Levi, Dominik Lorenz, Axel Sauer, Frederic Boesel, et al. Scaling rectified flow transformers for
+high-resolution image synthesis. In Forty-first international conference on machine learning, 2024.
+
+Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia, Jinliu Pan, Yuxi Bi, Yixin Dai, Jiawei Sun,
+Haofen Wang, and Haofen Wang. Retrieval-augmented generation for large language models: A
+survey. arXiv preprint arXiv:2312.10997, 2:1, 2023.
+
+Leon A Gatys, Alexander S Ecker, and Matthias Bethge. A neural algorithm of artistic style. arXiv
+
+preprint arXiv:1508.06576, 2015.
+
+Yuying Ge, Sijie Zhao, Ziyun Zeng, Yixiao Ge, Chen Li, Xintao Wang, and Ying Shan. Making
+llama see and draw with seed tokenizer. The Twelfth International Conference on Learning
+Representations, 2024.
+
+Ian J Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair,
+Aaron Courville, and Yoshua Bengio. Generative adversarial nets. Advances in neural information
+processing systems, 27, 2014.
+
+generation,
+native
+Google.
+https://developers.googleblog.com/en/
+April
+experiment-with-gemini-20-flash-native-image-generation/. Accessed:
+2025-05-08.
+
+Experiment with
+URL
+
+gemini
+
+image
+
+2025.
+
+flash
+
+2.0
+
+Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffusion probabilistic models. Advances in
+
+neural information processing systems, 33:6840–6851, 2020.
+
+Yang Jin, Kun Xu, Liwei Chen, Chao Liao, Jianchao Tan, Quzhe Huang, Bin Chen, Chenyi Lei,
+An Liu, Chengru Song, et al. Unified language-vision pretraining in llm with dynamic discrete
+visual tokenization. arXiv preprint arXiv:2309.04669, 2023.
+
+Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B Brown, Benjamin Chess, Rewon Child, Scott
+Gray, Alec Radford, Jeffrey Wu, and Dario Amodei. Scaling laws for neural language models.
+arXiv preprint arXiv:2001.08361, 2020.
+
+10
+
+Jing Yu Koh, Daniel Fried, and Russ R Salakhutdinov. Generating images with multimodal language
+
+models. Advances in Neural Information Processing Systems, 36:21487–21506, 2023.
+
+Black Forest Labs. Flux. https://github.com/black-forest-labs/flux, 2024. Ac-
+
+cessed: May 2025.
+
+Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping language-image
+pre-training with frozen image encoders and large language models. In International conference
+on machine learning, pp. 19730–19742. PMLR, 2023.
+
+Ziwei Liu, Zhongqi Miao, Xiaohang Zhan, Jiayun Wang, Boqing Gong, and Stella X Yu. Large-scale
+long-tailed recognition in an open world. In Proceedings of the IEEE/CVF conference on computer
+vision and pattern recognition, pp. 2537–2546, 2019.
+
+Norman Mu, Alexander Kirillov, David Wagner, and Saining Xie. Slip: Self-supervision meets
+language-image pre-training. In European conference on computer vision, pp. 529–544. Springer,
+2022.
+
+Alex Nichol, Prafulla Dhariwal, Aditya Ramesh, Pranav Shyam, Pamela Mishkin, Bob McGrew,
+Ilya Sutskever, and Mark Chen. Glide: Towards photorealistic image generation and editing with
+text-guided diffusion models. arXiv preprint arXiv:2112.10741, 2021.
+
+Alexander Quinn Nichol and Prafulla Dhariwal. Improved denoising diffusion probabilistic models.
+
+In International conference on machine learning, pp. 8162–8171. PMLR, 2021.
+
+OpenAI. Addendum to gpt-4o system card: Native image generation, March 2025. URL https:
+//openai.com/index/gpt-4o-image-generation-system-card-addendum/.
+Accessed: 2025-05-08.
+
+Dustin Podell, Zion English, Kyle Lacey, Andreas Blattmann, Tim Dockhorn, Jonas Müller, Joe
+Penna, and Robin Rombach. Sdxl: Improving latent diffusion models for high-resolution image
+synthesis. arXiv preprint arXiv:2307.01952, 2023.
+
+Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal,
+Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual
+models from natural language supervision. In International conference on machine learning, pp.
+8748–8763. PmLR, 2021.
+
+Aditya Ramesh, Mikhail Pavlov, Gabriel Goh, Scott Gray, Chelsea Voss, Alec Radford, Mark Chen,
+and Ilya Sutskever. Zero-shot text-to-image generation. In International conference on machine
+learning, pp. 8821–8831. Pmlr, 2021.
+
+Scott Reed, Zeynep Akata, Honglak Lee, and Bernt Schiele. Learning deep representations of
+fine-grained visual descriptions. In Proceedings of the IEEE conference on computer vision and
+pattern recognition, pp. 49–58, 2016.
+
+Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Björn Ommer. High-
+resolution image synthesis with latent diffusion models. In Proceedings of the IEEE/CVF confer-
+ence on computer vision and pattern recognition, pp. 10684–10695, 2022.
+
+Chitwan Saharia, William Chan, Saurabh Saxena, Lala Li, Jay Whang, Emily L Denton, Kamyar
+Ghasemipour, Raphael Gontijo Lopes, Burcu Karagol Ayan, Tim Salimans, et al. Photorealistic
+text-to-image diffusion models with deep language understanding. Advances in neural information
+processing systems, 35:36479–36494, 2022.
+
+Sahel Sharifymoghaddam, Shivani Upadhyay, Wenhu Chen, and Jimmy Lin. Unirag: Universal
+retrieval augmentation for multi-modal large language models. arXiv preprint arXiv:2405.10311,
+2024.
+
+Shelly Sheynin, Oron Ashual, Adam Polyak, Uriel Singer, Oran Gafni, Eliya Nachmani, and
+Yaniv Taigman. Knn-diffusion: Image generation via large-scale retrieval. arXiv preprint
+arXiv:2204.02849, 2022.
+
+11
+
+George Stein, Jesse Cresswell, Rasa Hosseinzadeh, Yi Sui, Brendan Ross, Valentin Villecroze,
+Zhaoyan Liu, Anthony L Caterini, Eric Taylor, and Gabriel Loaiza-Ganem. Exposing flaws of
+generative model evaluation metrics and their unfair treatment of diffusion models. Advances in
+Neural Information Processing Systems, 36:3732–3784, 2023.
+
+Asahi Ushio. Wikiart general dataset. https://huggingface.co/datasets/asahi417/
+
+wikiart-all, 2024. Accessed: 2025-05-08.
+
+Aäron Van Den Oord, Nal Kalchbrenner, and Koray Kavukcuoglu. Pixel recurrent neural networks.
+
+In International conference on machine learning, pp. 1747–1756. PMLR, 2016.
+
+Maya Varma, Jean-Benoit Delbrouck, Sarah Hooper, Akshay Chaudhari, and Curtis Langlotz. Villa:
+Fine-grained vision-language representation learning from real-world data. In Proceedings of the
+IEEE/CVF International Conference on Computer Vision, pp. 22225–22235, 2023.
+
+C. Wah, S. Branson, P. Welinder, P. Perona, and S. Belongie. The caltech-ucsd birds-200-2011 dataset.
+
+Technical Report CNS-TR-2011-001, California Institute of Technology, 2011.
+
+Lewei Yao, Runhui Huang, Lu Hou, Guansong Lu, Minzhe Niu, Hang Xu, Xiaodan Liang, Zhenguo
+Li, Xin Jiang, and Chunjing Xu. Filip: Fine-grained interactive language-image pre-training. arXiv
+preprint arXiv:2111.07783, 2021.
+
+Michihiro Yasunaga, Armen Aghajanyan, Weijia Shi, Rich James, Jure Leskovec, Percy Liang, Mike
+Lewis, Luke Zettlemoyer, and Wen-tau Yih. Retrieval-augmented multimodal language modeling.
+arXiv preprint arXiv:2211.12561, 2022.
+
+Peter Young, Alice Lai, Micah Hodosh, and Julia Hockenmaier. From image descriptions to visual
+denotations: New similarity metrics for semantic inference over event descriptions. Transactions
+of the association for computational linguistics, 2:67–78, 2014.
+
+Huaying Yuan, Ziliang Zhao, Shuting Wang, Shitao Xiao, Minheng Ni, Zheng Liu, and Zhicheng
+Dou. Finerag: Fine-grained retrieval-augmented text-to-image generation. In Proceedings of the
+31st International Conference on Computational Linguistics, pp. 11196–11205, 2025.
+
+Xiaohua Zhai, Basil Mustafa, Alexander Kolesnikov, and Lucas Beyer. Sigmoid loss for language
+image pre-training. In Proceedings of the IEEE/CVF international conference on computer vision,
+pp. 11975–11986, 2023.
+
+Penghao Zhao, Hailin Zhang, Qinhan Yu, Zhengren Wang, Yunteng Geng, Fangcheng Fu, Ling Yang,
+Wentao Zhang, Jie Jiang, and Bin Cui. Retrieval-augmented generation for ai-generated content: A
+survey. arXiv preprint arXiv:2402.19473, 2024.
+
+Xu Zheng, Ziqiao Weng, Yuanhuiyi Lyu, Lutao Jiang, Haiwei Xue, Bin Ren, Danda Paudel, Nicu
+Sebe, Luc Van Gool, and Xuming Hu. Retrieval augmented generation and understanding in vision:
+A survey and new outlook. arXiv preprint arXiv:2503.18016, 2025.
+
+Yiwu Zhong, Jianwei Yang, Pengchuan Zhang, Chunyuan Li, Noel Codella, Liunian Harold Li,
+Luowei Zhou, Xiyang Dai, Lu Yuan, Yin Li, et al. Regionclip: Region-based language-image pre-
+training. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition,
+pp. 16793–16803, 2022.
+
+Yutao Zhu, Huaying Yuan, Shuting Wang, Jiongnan Liu, Wenhan Liu, Chenlong Deng, Haonan Chen,
+Zheng Liu, Zhicheng Dou, and Ji-Rong Wen. Large language models for information retrieval: A
+survey. arXiv preprint arXiv:2308.07107, 2023.
+
+12
+
+A DECOMPOSING QUERIES Q INTO SUBQUERIES qi
+
+We decompose queries Q into subqueries qi using the prompt template in Fig. 5 to obtain ti. Fur-
+thermore, we remove the attribute modifiers in qi to derive Ti with an LLM (e.g., GPT-4o mini). For
+example, if ti corresponds to the embedding of “orange cat”, then Ti corresponds to the embedding
+of “cat”. In some cases where qi does not contain any attribute modifiers, ti and Ti are identical.
+
+Decomposing Queries into Subqueries
+
+Given an image caption, decompose the caption into an atomic entity. Each entity should
+preserve descriptive details (e.g., size, color, material, location) together with the entity in a
+natural, readable phrase. The entity should contain a noun and reserve noun modifiers in the
+caption. Please ignore the entities like ‘a photo of’, ‘an image of’, ‘an overhead shot’, ‘the
+window showing’ that are invisible in the image and ignore the entities like ’one’ and ’the
+other’ that have duplicate entities before.
+
+Caption: two cars are traveling on the road and waiting at the traffic light.
+Entity: cars, road, traffic light
+
+Caption: duplicate images of a girl with a blue tank top and black tennis skirt holding a tennis
+racquet and swinging at a ball.
+Entity: girl, blue tank top, black tennis skirt, tennis racqet, ball
+
+Caption: the window showing a traffic signal is covered in droplets of rainwater.
+Entity: traffic signal, droplets of rainwater
+
+Caption: an overhead shot captures an intersection with a "go colts" sign.
+Entity: intersection, "go colts" sign
+
+Caption: a van with a face painted on its hood driving through street in china.
+Entity: van, a face painted on its hood, street in china
+
+Caption: two men, one with a black shirt and the other with a white shirt, are kicking each
+other without making contact.
+Entity: men, black shirt, white shirt
+
+Caption: {caption}
+Entity:
+
+Figure 5: The Prompt Example for Decomposing User Queries into Subqueries on MS-COCO.
+
+B PROOF OF THE TIME COMPLEXITY IN RETRIEVAL EFFICIENCY
+
+1. Proof of the time complexity for Algorithm 1
+
+Let N be the total number of images in D. We can score each image’s sparse textual match
+in O(N ). We discard images that do not satisfy any subquery, leaving a reduced set (cid:101)D ⊆ D
+of size (cid:101)N .
+We then discretize the simplex of subquery weights α into K possible combinations. Each
+combination requires checking (cid:80)
+Each adaptor pass handles both CLIP-based vision encoding (costing Tclip and the adaptor’s
+own cross-attention (costing Tadaptor)). If we assume one pass per subquery set (of size n),
+the total cost is (cid:101)N × n × (Tclip + Tadaptor ). Multiplied by K weight vectors, this yields
+O
+
+i αisi (Ij) in O( (cid:101)N ) time , thus O(K × (cid:101)N ) in total.
+
+(cid:16)
+
+(cid:17)
+
+K × (cid:101)N × n × (Tclip + Tadaptor )
+Combining the steps above, total time is:
+
+.
+
+O(N ) + O(K × (cid:101)N ) + O
+
+(cid:16)
+
+K × (cid:101)N × n × (Tclip + Tadaptor)
+
+13
+
+(cid:17)
+
+.
+
+2. Proof of the time complexity for a pure sub-dimensional dense retriever
+
+If we skip the sparse filter, we must embed all N images for each subquery. Thus, the pure
+dense approach demands O (N × n × (Tclip + Tadaptor)).
+
+Because (cid:101)N ≪ N and K is small, this total is typically far lower than scanning all N images with the
+sub-dimensional dense retriever.
+
+C PROOF OF ALGORITHM OPTIMALITY
+Because si (Ij) ∈ {0, 1} and (cid:80)
+(cid:80)
+
+i αi = 1, (cid:80)
+
+i cos (vj,i, ti) ≤ n. Hence Cmax ≤ n.
+
+i αisi (Ij) lies in [0, 1]. Since cos (vj,i, ti) ∈ [0, 1],
+
+Suppose Ia dominates Ib. Then
+
+Let
+
+∆sparse =
+
+(cid:88)
+
+i
+
+αisi (Ia) −
+
+(cid:88)
+
+i
+
+αisi (Ib) > 0.
+
+∆dense =
+
+(cid:88)
+
+i
+
+cos (va,i, ti) −
+
+(cid:88)
+
+i
+
+cos (vb,i, ti) .
+
+(11)
+
+(12)
+
+We want ∆sparse + β∆dense > 0. In the worst case for Ia, ∆dense < 0, potentially as low as −Cmax. A
+sufficient condition for Ia to stay preferred is
+
+∆sparse − βCmax > 0.
+
+Because ∆sparse ≥ δmin if Ia indeed satisfies at least one more subquery and β > 0 is assumed by
+definition, we obtain:
+
+0 < β <
+
+δmin
+Cmax
+
+= βmax.
+
+(13)
+
+We discretize the simplex {α : αi ≥ 0, (cid:80)
+i αi = 1}. Because subqueries are strictly enumerated by
+α, if an image satisfies a unique subquery set, it must appear as an arg max (cid:80)
+i αisi (Ij) for some α.
+Thus, no non-dominated s (Ij) is missed. ∆dense can be further used to find an optimal image among
+those sharing the same s (Ij). Therefore, all Pareto-optimal solutions are obtained and s(Ij) in the
+Pareto front Pf is unique.
+
+D DATASETS
+
+For T2I-R on MS-COCO, we follow the Karpathy split using 82,783 training images, 5,000 validation
+images, and 5,000 test images. For Flickr30K, we only use 1,000 images in the test set for evaluation.
+
+Regarding T2I-G, WikiArt dataset is a comprehensive collection of fine art images sourced from
+the WikiArt online encyclopedia. Our implementation is based on the version provided in (Ushio,
+2024). To construct the test set, we compare artwork titles across different images and identify pairs
+that differ by at most three tokens. From each matched pair, we retain one sample, resulting in
+2,619 distinct test examples. The query for each test sample is formatted as: <title> in the style of
+<artistName>. The retrieval database is composed of the remaining WikiArt images after excluding
+all test samples, ensuring no overlap between ground-truth and retrieval candidates, as shown in
+Tab. 5. The Caltech-UCSD Birds-200-2011 (CUB-200-2011) (Wah et al., 2011) is a widely used
+benchmark for fine-grained image classification and generation tasks. It contains 11,788 images
+across 200 bird species. We use the CUB dataset with 10 single-sentence visual descriptions per
+image collected by (Reed et al., 2016). Similarly, to construct the test set, we compare captions across
+different images and identify pairs that differ by one token, resulting in 5,485 distinct test samples.
+The query for each test sample is formatted as: Draw a <speciesName>. <caption>. For each
+test sample, the retrieval candidates consist of all remaining images in the CUB dataset, excluding
+that test image. The ImageNet-LT dataset (Liu et al., 2019) is a long-tailed version of the original
+ImageNet dataset. It contains 1,000 classes with 5 images per class. We randomly choose one image
+from each class to construct the test samples. The retrieval database is composed of the remaining
+ImageNet-LT images after excluding all test samples. The query for each test sample is formatted as:
+A photo of <className>.
+
+14
+
+Table 5: Data construction of the T2I-G datasets
+
+Dataset
+
+# of image in the dataset
+
+# of test samples
+
+# of images in the retrieval database
+
+WikiArt
+CUB
+ImageNet-LT
+
+63,061
+11,788
+50,000
+
+2,619
+5,485
+1,000
+
+60,442
+11,787
+49,000
+
+E LIMITATIONS
+
+While our multi-objective joint retrieval combining sub-dimensional sparse and dense retrievers is
+efficient and achieves good granularity, if the image retrieval database D does not contain any images
+relevant to the query, the retrieval cannot provide benefits to the generation. However, this drawback
+is not an issue unique to our RAG model; rather, the success of any RAG approach depends on the
+presence of relevant data (i.e., images in our case) in the database. As long as there exist partially
+related images in the database—even if they do not perfectly match all aspects of the query—our
+method can identify the most overlapping images with the query to effectively support generation.
+
+F LLM USAGE DISCLOSURE
+
+We use large language models to correct the grammar and improve the clarity of writing in this paper.
+
+G HYPER-PARAMETER ANALYSIS
+
+For the trade-off parameter β and the weight vector α, in our experiments, we set β = 0.015 based
+on Theorem 3.2, where for any 0 < β < βmax = δmin
+, our algorithm guarantees to return all
+Cmax
+Pareto-optimal solutions. The maximum number of subqueries is 8 in our experiments. Assuming
+equal weight for each subquery, we have βmax = 1/8
+8 ≈ 0.0156, so we set β = 0.015 accordingly.
+The design of α is intended to ensure the selection of a Pareto-optimal set of images would collectively
+cover all subqueries in the input user query. If an image satisfies a subquery that is not covered by
+other images, then there exists at least one choice of {αi} for which it can maximize (cid:80)n
+i=1 αisi(Ij),
+allowing that image to be selected. Therefore, in our experiments, we vary α across all possible
+extreme values to ensure that every possible combination of subqueries is taken into account.
+
+H MORE VISUALIZATIONS OF OUR METHOD COMPARED WITH OTHER
+
+BASELINES
+
+More visualizations of our proposed method Cross-modal RAG compared with other baselines can
+be found in Fig. 6 to 8. Across all three datasets, our method achieves superior image generation
+capability. For the CUB in Fig. 6, our Cross-modal RAG can generate realistic images that align
+with all subqueries, which are often ignored or distorted in GILL and UniRAG. Besides, SDXL,
+LaVIT, and RDM tend to generate the sketch-like images rather than photo-realistic birds. On
+the ImageNet-LT in Fig. 7, retrieving relevant images plays a crucial role in generating accurate
+long-tailed objects. Our method successfully generates all three long-tailed objects with high visual
+fidelity. In contrast, none of the baselines are able to generate all three correctly - UniRAG and GILL
+even fail to produce a single accurate image. For WikiArt in Fig. 8, creative image generation poses a
+unique challenge, as it is inherently difficult to reproduce the exact ground-truth image. However,
+our method explicitly retrieve the images with satisfied subqueries and can capture the particular
+artistic style specified in the query. As a result, all six generated images of Cross-modal RAG closely
+resemble the style of the target artist in the query. In contrast, other RAG baselines can not guarantee
+if the retrieved images grounded in the intended artist’s style. RDM even suffers from low visual
+fidelity when generating human faces.
+
+15
+
+Figure 6: Visualizations of generation on CUB compared with other baselines.
+
+Figure 7: Visualizations of generation on ImageNet-LT compared with other baselines.
+
+Figure 8: Visualizations of generation on WikiArt compared with other baselines.
+
+16
+
+UserQueryPareto Optimal Images with Satisfied SubqueriesRetrievedimage1Retrievedimage2Retrievedimage3Draw a Hooded Warbler. This bird has a blackcrown with black throat and yellow belly.1.Hooded Warbler2.black crown4.yellow belly1.Hooded Warbler2.black crown3.black throat1.Hooded Warbler3.black throat4.yellow bellyUserQueryPareto Optimal Images with Satisfied SubqueriesRetrievedimage1Retrievedimage2Retrievedimage3Draw a White throated Sparrow. This bird has wings that are brownand has a white bellyand yellow crown.UserQueryPareto Optimal Images with Satisfied SubqueriesRetrievedimage1Retrievedimage2Retrievedimage31.White throated Sparrow3.white belly4.yellow crown1.White throated Sparrow2.Wingsthatarebrown3.Whitebelly1.White throated Sparrow2.Wingsthatarebrown4.yellow crownDraw a Vermilion Flycatcher. Asmall red bird with black wings and a small black beak.1.Vermilion Flycatcher 2.small red bird3.black wings1.Vermilion Flycatcher 2.small red bird4.small black beak1.Vermilion Flycatcher 3.black wings4.small black beakOurs (gpt-image-1)SDXLLaVITRDMUniRAGGILLOurs (gemini-2.0-flash)FLUXOurs (gpt-image-1)SDXLLaVITRDMUniRAGGILLOurs (gemini-2.0-flash)FLUXOurs (gpt-image-1)SDXLLaVITRDMUniRAGGILLOurs (gemini-2.0-flash)FLUXSDXLFLUXSDXLFLUXUserQueryPareto Optimal Images with Satisfied SubqueriesRetrievedimage1A photo of [cardoon].Ours (gpt-image-1)SDXLLaVITRDMUniRAGGILLUserQueryPareto Optimal Images with Satisfied SubqueriesRetrievedimage1A photo of [wire-haired fox terrier].Ours (gpt-image-1)UserQueryPareto Optimal Images with Satisfied SubqueriesRetrievedimage1A photo of [yurt].Ours (gpt-image-1)[cardoon][wire-haired fox terrier][yurt]Ours (gemini-2.0-flash)Ours (gemini-2.0-flash)Ours (gemini-2.0-flash)FLUXSDXLLaVITRDMUniRAGGILLFLUXSDXLLaVITRDMUniRAGGILLFLUXUserQueryPareto Optimal Images with Satisfied SubqueriesRetrievedimage1Retrievedimage2Retrievedimage3Fisherwomenon the Beach, Valenciain the style of Joaquín Sorolla.UserQueryPareto Optimal Images with Satisfied SubqueriesRetrievedimage1Retrievedimage2Retrievedimage3Roadnear Cagnesinthe style of Pierre-Auguste Renoir.UserQueryPareto Optimal Images with Satisfied SubqueriesRetrievedimage1Retrievedimage2Retrievedimage3Portraitof a Young Womanin the style of Alfred Stevens.2.Beach3.Valencia4.the style of Joaquín Sorolla1.fisherwomen2.Beach1.Fisherwomen3.Valencia4.the style of Joaquín Sorolla1.Road2.Cagnes2.Cagnes3.the style of Pierre-Auguste Renoir1.Road3.the style of Pierre-Auguste Renoir1.Portrait 2.YoungWoman 1.Portrait 3.the style of Alfred Stevens2.YoungWoman 3.the style of Alfred StevensOurs (gpt-image-1)SDXLLaVITRDMUniRAGGILLOurs (gemini-2.0-flash)FLUXOurs (gpt-image-1)SDXLLaVITRDMUniRAGGILLOurs (gemini-2.0-flash)FLUXOurs (gpt-image-1)SDXLLaVITRDMUniRAGGILLOurs (gemini-2.0-flash)FLUX

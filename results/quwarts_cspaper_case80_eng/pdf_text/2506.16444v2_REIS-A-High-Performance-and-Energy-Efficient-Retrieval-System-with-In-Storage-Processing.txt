@@ -1,0 +1,3347 @@
+REIS: A High-Performance and Energy-Efficient Retrieval System
+with In-Storage Processing
+Rakesh Nadig1
+
+Andreas Kosmas Kakolyris1
+
+Manos Frouzakis1
+
+Kangqi Chen1
+
+Nika Mansouri Ghiasi1
+
+Yu Liang1
+
+Haiyu Mao1,2
+
+Jisung Park3
+
+Mohammad Sadrosadati1
+
+Onur Mutlu1
+
+ETH Zürich1
+
+King’s College London2
+
+POSTECH3
+
+5
+2
+0
+2
+
+v
+o
+N
+1
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+4
+4
+4
+6
+1
+.
+6
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Large Language Models (LLMs) face an inherent challenge:
+their knowledge is confined to the data that they have been
+trained on. This limitation, combined with the significant cost
+of retraining renders them incapable of providing up-to-date
+responses. To overcome these issues, Retrieval-Augmented Gener-
+ation (RAG) complements the static training-derived knowledge
+of LLMs with an external knowledge repository. RAG consists of
+three stages: (i) indexing, which creates a database that facili-
+tates similarity search on text embeddings, (ii) retrieval, which,
+given a user query, searches and retrieves relevant data from the
+database and (iii) generation, which uses the user query and the
+retrieved data to generate a response.
+
+The retrieval stage of RAG in particular becomes a significant
+performance bottleneck in inference pipelines. In this stage, (i)
+a given user query is mapped to an embedding vector and (ii)
+an Approximate Nearest Neighbor Search (ANNS) algorithm
+searches for the most semantically similar embedding vectors in
+the database to identify relevant items. Due to the large database
+sizes, ANNS incurs significant data movement overheads between
+the host and the storage system. To alleviate these overheads,
+prior works propose In-Storage Processing (ISP) techniques that
+accelerate ANNS workloads by performing computations inside
+the storage system. However, existing works that leverage ISP for
+ANNS (i) employ algorithms that are not tailored to ISP systems,
+(ii) do not accelerate data retrieval operations for data selected
+by ANNS, and (iii) introduce significant hardware modifications
+to the storage system, limiting performance and hindering their
+adoption.
+
+We propose REIS, the first Retrieval system tailored for RAG
+with In-Storage processing that addresses the limitations of ex-
+isting implementations with three key mechanisms. First, REIS
+employs a database layout that links database embedding vec-
+tors to their associated documents, enabling efficient retrieval.
+Second, it enables efficient ANNS by introducing an ISP-tailored
+algorithm and data placement technique that: (i) distributes
+embeddings across all planes of the storage system to exploit par-
+allelism, and (ii) employs a lightweight Flash Translation Layer
+(FTL) to improve performance. Third, REIS leverages an ANNS
+engine that uses the existing computational resources inside the
+storage system, without requiring hardware modifications. The
+three key mechanisms form a cohesive framework that largely
+enhances both the performance and energy efficiency of RAG
+pipelines. Compared to a high-end server-grade system, REIS im-
+proves the performance (energy efficiency) of the retrieval stage
+
+by an average of 13× (55×). REIS offers improved performance
+against existing ISP-based ANNS accelerators, without introduc-
+ing any hardware modifications, enabling easier adoption for
+RAG pipelines.
+
+1. Introduction
+The rapid development of Large Language Models (LLMs) [72,
+181, 272, 122, 73, 331] during the past decade has led to
+their widespread adoption, as witnessed by the popularity
+of chatbots such as ChatGPT [222], Gemini [271, 272] and
+DeepSeek [181]. Despite this progress, modern LLMs remain
+limited in generating responses only from data present in
+their training sets. The significant cost and hardware require-
+ments [72, 181, 285] of training further compound this problem,
+making frequent retraining on new data impractical, thus lim-
+iting the effectiveness of LLMs in especially domain-specific
+and real-time scenarios [119, 120, 200].
+
+Retrieval-Augmented Generation (RAG) [326, 233, 124, 301,
+169, 166, 83, 111, 82, 123, 76, 145, 313, 324, 40, 45, 24, 232, 253]
+presents a compelling solution to this problem by leveraging in-
+formation retrieval techniques to feed relevant content from a
+document database into LLMs for text generation. At inference-
+time, RAG systems retrieve documents from the database that
+are relevant to user queries, using these to complement the
+training-derived knowledge of LLMs and generate contextually
+relevant responses. Many recent works demonstrate the appli-
+cability of RAG to fields such as healthcare [309, 287, 325, 186],
+law [304, 105, 185, 56], finance [322, 329, 336], and scientific
+research [156, 303].
+
+The general workflow of RAG consists of a pipeline com-
+prised of three stages:
+(i) indexing, (ii) retrieval, and (iii)
+generation. First, the indexing stage is an offline process
+that builds a vector database of high-dimensional embed-
+dings [212, 274, 160, 221, 163, 57, 158]. Indexing employs al-
+gorithms that cluster similar data or create graph-like struc-
+tures [343, 62, 194, 67], in order to facilitate future search op-
+erations on the data. Second, for each incoming query, the
+retrieval stage identifies document chunks that are semanti-
+cally relevant to the query. To perform this, RAG employs
+a process known as dense retrieval [335, 108, 80], which en-
+codes the query in the same vector space as document chunks
+and performs a similarity search between the query and the
+database embeddings. Third, the generation stage feeds both
+the identified document chunks and the query into the LLM to
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+generate the final response.
+
+Although dense retrieval enables accurate semantic simi-
+larity comparison between incoming queries and document
+chunks [82, 273, 335, 274], the large embedding space results
+in expensive distance computations. For RAG pipelines, a re-
+triever that achieves both high recall and low latency is essen-
+tial because it (i) determines the quality of generated responses,
+and (ii) resides in the critical path of the response generation
+process. To strike a balance between these two conflicting
+objectives, RAG commonly performs dense retrieval with Ap-
+proximate Nearest Neighbor Search (ANNS) techniques, e.g.,
+[172, 109, 195, 295, 183, 97, 77, 153, 78, 232]. Examples of such
+techniques are: (i) employing data structures that accelerate
+the search [343, 62, 328, 194], and (ii) quantizing data to reduce
+the computational complexity [116, 239] of search operations
+without significantly affecting recall.
+
+The reduced computational complexity of ANNS renders
+I/O data transfers a significant bottleneck that limits search
+performance [178, 299, 106, 310]. As a result, several works
+[178, 299, 106, 310] propose In-Storage Processing (ISP) as
+a promising solution to accelerate ANNS-based workloads
+[333, 108, 330, 170, 80, 78].
+In particular, NDSearch [299]
+demonstrates that (i) storage I/O accounts for up to 75% of
+the end-to-end ANNS latency, and (ii) ISP improves ANNS
+performance by 31.7× over a conventional CPU-based system,
+effectively mitigating the aforementioned I/O bottleneck.
+
+We empirically make a similar observation for RAG
+pipelines, where the ANNS-based retrieval stage becomes the
+performance bottleneck due to substantial I/O overheads, as
+presented in Sec. 3.1. For example, when examining a RAG
+database containing 41.5 million document entries [59], the I/O
+traffic from the storage system accounts for 84% of the overall
+latency of the entire RAG pipeline. Although various software
+and hardware solutions that reduce the storage footprint do
+exist, these approaches are either unscalable (e.g., quantiza-
+tion methods [209, 80, 135]) or unsustainable (e.g., memory
+expansion [113]). We conclude that In-Storage Processing (ISP)
+techniques are essential for fundamentally addressing the crit-
+ical I/O data movement bottleneck in RAG pipelines.
+
+Existing ISP-based ANNS accelerators [178, 299, 106, 310]
+face three key limitations that hinder their application to RAG
+workloads. First, previous works employ search algorithms
+that cause performance degradation in ISP systems. Graph-
+based algorithms [194, 115] used by ISP accelerators [178, 299]
+perform searches using graph traversal, a sequential process.
+During graph traversal, the algorithm determines the next
+vertex to visit in the graph based on the analysis of the ver-
+tex currently being visited. However, this process exhibits
+irregular data [74, 75] access patterns, complicating optimiza-
+tion and efficient execution in ISP systems. Second, existing
+ISP schemes mainly focus on accelerating ANNS, the search
+stage in RAG applications, without optimizing the document
+retrieval stage, which, as we show in Sec. 3.2, contributes sig-
+nificant latency to the RAG pipeline. Third, in their quest to
+accelerate ANNS applications, existing ISP schemes introduce
+
+significant storage [106] or hardware [192] overheads.
+
+Our goal is to fundamentally alleviate the I/O data move-
+ment bottlenecks in the retrieval stage of the RAG pipeline. To
+this end, we propose REIS, A Retrieval system with In-Storage
+Processing that employs three new key ideas: 1) an efficient
+ISP implementation of the clustering-based Inverted File (IVF)
+algorithm [343, 62, 328] to improve end-to-end retrieval perfor-
+mance, 2) a new low-cost hardware-assisted mechanism in the
+storage system to link embeddings to their corresponding doc-
+ument chunks, enabling their faster retrieval, 3) a customized
+in-storage ANNS computation engine using the already avail-
+able resources within a modern storage system to enhance the
+energy efficiency of the retrieval process without additional
+hardware.
+
+Key Mechanism. To implement the aforementioned ideas,
+
+REIS leverages three key mechanisms.
+
+First, we propose an ISP-tailored data placement technique
+and execution flow that take into account the properties of the
+Inverted File (IVF) algorithm [343, 62]. Since IVF organizes em-
+beddings into clusters of similar vectors, our data placement
+technique (i) stores embeddings contiguously, reducing the
+address translation overhead from the Flash Translation Layer
+(FTL) and, (ii) distributes embeddings across planes to exploit
+the available parallelism. To execute the IVF algorithm, REIS
+uses: (i) the existing logic within the planes to calculate the
+similarity between embeddings and (ii) the SSD controller to
+identify the most similar embeddings. Second, to efficiently
+link embeddings to documents, REIS employs a new database
+layout, that (i) stores embeddings and document chunks in
+separate regions, and (ii) creates connections between the two
+using the Out-Of-Band (OOB) area of the NAND Flash array,
+enabling efficient document retrieval. Third, we customize
+the ANNS engine by using binary quantization [80, 209, 260]
+and a hybrid SSD design [36]. Binary quantization reduces
+the computational complexity of ANNS, while the hybrid SSD
+design combines reliable ISP with high storage density. Specif-
+ically, our hybrid SSD design employs (i) SLC, using Enhanced
+SLC programming [225] for high-performance and reliable In-
+Storage computation on embeddings and (ii) TLC for storing
+document chunks at high density.
+
+Key Results. We evaluate REIS on two SSD configurations
+based on a cost- [250] and a performance-oriented [207] SSD
+design. We compare its performance and energy efficiency
+against a high-end 256-core CPU system on two commonly
+used benchmark datasets from BEIR [274] and a large-scale
+public dataset [59], demonstrating that REIS (i) achieves an av-
+erage speedup of 13× and up to 112×, and (ii) improves energy
+efficiency by an average of 55× and up to 157×. Compared to
+a state-of-the-art ISP-based ANNS accelerator [106] REIS yields
+an average speedup of 21.4× (7.67×) and 24.2× (9.76×) at
+0.98 (0.90) Recall@10 across all evaluated datasets for the
+cost- and performance-oriented SSDs, respectively. Since REIS
+does not introduce any hardware modifications to the stor-
+age system, its adoption for RAG is much easier than prior
+ISP-based accelerators.
+
+2
+
+The contributions of this work are listed as follows:
+
+• This is the first work to quantitatively evaluate the large
+performance overheads of I/O data movement in the retrieval
+stage of the Retrieval-Augmented Generation pipeline.
+
+• We comprehensively analyze the limitations of existing tech-
+niques that aim to alleviate the I/O data movement bottleneck
+of the RAG pipeline. We identify two major issues that make
+integrating existing ISP-based ANNS accelerators into the
+RAG pipeline inefficient and impractical.
+
+• We propose REIS, the first ISP-based retrieval system tai-
+lored for RAG. REIS (i) supports efficient document retrieval
+by building the correlation between embeddings and doc-
+uments within the storage system, (ii) improves retrieval
+performance by introducing an ISP-friendly algorithm, and
+(iii) improves energy and area efficiency via a customized
+in-storage ANNS computation engine using computational
+resources already available in a modern storage system.
+• We implement REIS based on a cost- and a performance-
+oriented SSD design and evaluate its performance and energy
+efficiency. Against a 256-core CPU system, REIS provides
+an average speedup (energy efficiency improvement) of 13×
+(55×). Compared to a state-of-the-art ISP-based ANNS ac-
+celerator, REIS accelerates RAG retrieval from 7.67× and up
+to 24.1× depending on (i) the SSD configuration used, and
+(ii) the target Recall@10 value.
+
+2. Background
+
+2.1. Retrieval-Augmented Generation
+Retrieval-Augmented Generation (RAG) [326, 233, 124, 301,
+169, 166, 83, 111, 82, 123, 76, 145, 313, 324, 40, 45, 24, 232, 253]
+is the process of incorporating knowledge from an external
+document database into LLM inference. To identify the most
+relevant data, RAG employs dense retrieval [335, 82], a simi-
+larity search operation on dense vectors representing the se-
+mantics of the text, called embeddings [158, 292, 20, 293, 202,
+163, 160, 211]. To encode this information, embeddings fea-
+ture high dimensionality, often containing 768 to 8192 dimen-
+sions [158, 292, 20, 293, 202, 163, 160, 211, 212].
+
+As mentioned in Sec. 1, RAG is a pipeline comprised of three
+stages: (i) indexing, (ii) retrieval, and (iii) generation. Indexing
+creates data structures such as clusters or graphs, that facilitate
+faster semantic similarity search on the embeddings [343, 62,
+194, 67]. In the retrieval step, the RAG system receives a query
+and encodes it as an embedding. It then searches the database
+for the k most similar embeddings, with k being a parameter
+specified by the system. Once the most similar embeddings
+are identified, the RAG system retrieves the corresponding
+document chunks. In the generation stage, both the retrieved
+document chunks and the query are fed to the LLM in order
+to perform inference and generate a response.
+
+While the main application for RAG currently is document
+retrieval for question answering [38], researchers have also
+proposed multi-modal RAG pipelines [337, 301, 100]. For ex-
+ample, Vision Transformers [70] enable joint image and text
+retrieval [234, 121, 338]. Other works [87] combine even more
+
+modalities into the same embedding space such as audio, depth,
+thermal and movement data.
+
+2.2. Approximate Nearest Neighbor Search
+
+The retrieval stage forms a critical bottleneck in the RAG
+pipeline, as generation cannot begin before the relevant doc-
+ument chunks have been retrieved. The simplest method of
+identifying the k most relevant (top-k) embeddings is Nearest
+Neighbor Search (NNS), which entails: (i) calculating the dis-
+tances (e.g. Euclidean Distance [12, 15]) between the query
+and all database embeddings and (ii) selecting the k database
+embeddings with the lowest distance. However, a brute-
+force approach incurs significant computational overheads
+due to (i) the large size of embedding vectors [212] and (ii) the
+large number of database embeddings, reaching multiple mil-
+lions [320, 59] and even billions [8, 114], resulting in expen-
+sive distance computations. To accelerate the retrieval stage,
+RAG often performs Approximate Nearest Neighbor Search
+(ANNS) [172], trading off some retrieval accuracy for faster
+similarity search. To quantify this drop in accuracy, researchers
+often use the Recall@k metric [42, 197, 295, 183, 172], which
+is defined the fraction of how many of the k most relevant
+document chunks have actually been retrieved by ANNS.
+
+Two popular methods for performing ANNS are (i) quan-
+tization [116, 239, 80, 209, 135] and (ii) algorithm-based tech-
+niques [172, 109, 195, 295, 183, 97, 77, 153, 78, 232]. Quantiza-
+tion methods compress data, reducing their storage footprint
+and speeding up computation. For Example, Product Quantiza-
+tion (PQ) [116] partitions large embedding vectors into smaller
+sub-vectors and assigns each sub-vector to a cluster. PQ then
+concatenates the IDs of the clusters into a new vector that repre-
+sents the original vector. Binary Quantization (BQ) compresses
+each embedding component from its original floating-point
+precision (e.g., FP32) down to a single bit, achieving a 32×
+compression ratio. Recent studies [212, 239, 260, 135] show
+that BQ accelerates ANNS by up to 40×, with a small impact
+on recall when combined with a low-cost rescoring step [239].
+
+Algorithm-based methods organize data by clustering them
+or creating graph-like data structures, which can be searched
+efficiently without traversing the entire database. For exam-
+ple, the Inverted-File (IVF) algorithm [343, 62, 328] organizes
+embeddings into clusters that are each represented by a cen-
+troid. To perform a search for a given query embedding, first
+a coarse-grained search identifies the cluster centroids closest
+to the query embedding. Second, a fine-grained search on all
+embeddings within these clusters (approximately) yields the
+closest neighbors to the query embeddings. Other algorithms
+also exist, such as: (i) Hierarchically Navigable Small World
+(HNSW) [194], which constructs a hierarchy of graphs, where
+higher and lower levels of the hierarchy direct the search in a
+coarse- and fine-grained manner, respectively, and (ii) Locality-
+Sensitive Hashing (LSH) [67], which hashes similar embed-
+dings into the same bucket with high probability.
+
+3
+
+2.3. SSDs & NAND Flash Memory
+
+Figure 1 presents an overview of a modern SSD architecture
+based on NAND flash memory. An SSD comprises of an SSD
+controller, DRAM and multiple NAND flash chips. The SSD
+controller ( 1 ) [25, 29, 32, 27, 28, 3, 270] handles the I/O requests
+from the host, and performs maintenance tasks such as garbage
+collection (e.g., [316, 26, 270, 3, 259, 162, 130, 53, 307, 27, 29])
+and wear-leveling (e.g., [262, 180, 340, 3]). The SSD con-
+troller contains multiple embedded microprocessors ( 2 ) [14]
+that execute the firmware called the Flash Translation Layer
+(FTL) [95, 270, 180, 262, 340]. The SSD controller stores meta-
+data (e.g., logical-to-physical page mapping table [95]) and
+frequently-accessed pages in a DRAM ( 3 ) internal to the SSD.
+The DRAM size is typically 0.1% of the storage capacity (e.g.,
+1GB DRAM for each TB of storage capacity [251]). The SSD
+controller translates the logical page address of each I/O re-
+quest to a physical page address, and issues commands to the
+flash chips [26, 3, 214] via the flash controllers. An SSD con-
+sists of multiple flash controllers ( 4 ) [142, 143, 305, 203, 205],
+which are embedded processors that interface the SSD con-
+troller with flash chips ( 5 ). Each flash controller is responsible
+for communication with multiple flash chips sharing the same
+channel. The flash controller selects a flash chip for read/write
+operations and initiates command and data transfers.
+
+Figure 1: NAND Flash Memory Architecture
+
+Each NAND flash chip is comprised of multiple flash dies
+( 6 ), which operate independently of each other. Each die con-
+sists of 2–16 planes ( 7 ) [147, 51, 152] , that can perform read
+or write operations in parallel. Planes are further divided into
+groups of blocks, with each block consisting of hundreds of
+pages ( 8 ). A flash page, typically sized at 16KB, consists of
+thousands of NAND flash cells placed horizontally. A flash page
+typically stores user data, and consists of a dedicated out-of-
+band area ( 9 ) [321, 107, 267] (e.g., 64-256 bytes) to store meta-
+data related to error correction codes and logical-to-physical
+mapping. NAND flash memory executes read and program
+operations at the page granularity, and performs erase opera-
+tions at block granularity [184, 61, 203, 25, 30, 32, 225]. A flash
+die employs a page buffer which acts as an intermediate buffer
+during read and write operations. The page buffer consists
+of multiple buffers [165, 189, 206, 246, 284, 204, 101, 137, 261]
+(e.g., three buffers if each flash cell stores 3 bits) to store the
+bits in a flash page. The sensing buffer ( 10 ) is the main buffer
+that temporarily stores flash page data during the read oper-
+
+4
+
+ation. The cache buffer ( 11 ) improves read performance by
+enabling data transfer from the flash chip to the flash controller
+in parallel with the next read operation. Data buffers ( 12 ) are
+typically used when (1) programming multiple bits per cell,
+and (2) reading a single bit from a flash cell that stores multiple
+bits.
+
+Based on the number of bits stored in a flash cell, a flash
+cell can be classified as a single-level cell (SLC; 1 bit) [49],
+multi-level cell (MLC; 2 bits) [164], triple-level cell (TLC; 3
+bits) [190, 147, 51], or quad-level cell (QLC; 4 bits) [50]. While
+the SSD capacity increases as each flash cell stores more bits,
+the increased value density leads to higher latency and lower
+endurance [29, 26, 203, 31, 27]. To enable reliable writes to flash
+cells, SSD manufacturers use Incremental Step Pulse/Erasure
+Programming (ISPP/ISPE) techniques [266, 117]. ISPP/ISPE
+technique iterates through multiple steps of gradually insert-
+ing/ejecting electrons into/from the flash cell until the desired
+charge level is reached. The peripheral circuitry ( 13 ) in each
+flash die includes an on-chip digital bit counter, pass/fail check-
+ing logic and XOR logic between the latches. The digital bit
+counter and pass/fail checking logic [48, 203, 52] are used to
+test the state of the cells and guide the ISPP/ISPE process. To
+further increase reliability, the XOR logic between the latches
+is used for on-chip data randomization [225, 139, 106, 188, 33].
+
+2.4. In-Storage Processing
+In-storage processing (ISP) is a computation paradigm that
+enables processing of data within the storage device. ISP tech-
+niques provide significant performance and energy efficiency
+benefits over conventional systems for data-intensive applica-
+tions, such as genomics [199, 84], neural networks [144, 112,
+300, 215], databases [148, 93, 125, 34, 219, 174, 173, 88, 256, 257,
+255, 98, 1, 306, 96, 238] and graph analytics [227, 257, 127, 283,
+161, 19, 21, 171, 81, 98]. Unlike conventional systems, ISP tech-
+niques leverage the high internal bandwidth of the storage
+system and reduce data movement across the memory hierar-
+chy. ISP techniques perform computation by (1) leveraging the
+embedded general-purpose cores (e.g., [254, 198, 133, 94, 298, 2,
+136, 291, 151, 280, 281, 22, 17, 282, 131, 167, 179, 146]) already
+present in the SSDs, or (2) placing hardware accelerators (e.g.,
+[129, 193, 226, 68, 149, 243, 244, 283, 177, 46, 127, 161, 7, 176,
+118, 128]) near the flash chips.
+
+Prior works (e.g., [254, 198, 133, 94, 298, 2, 136, 291, 151, 280,
+281, 22, 17, 282, 131, 167, 179, 146]) propose techniques to uti-
+lize the embedded cores in the SSD for computations such as
+filtering, aggregation, and encryption. These general-purpose
+embedded cores are beneficial only for simple computations
+because the primary responsibility of these cores is to exe-
+cute the FTL and handle I/O requests. A large body of prior
+work (e.g., [129, 193, 226, 68, 149, 243, 244, 283, 177, 46, 127,
+161, 7, 176, 118, 128]) proposes to embed hardware accelera-
+tors near the flash packages to accelerate application-specific
+computations. These hardware accelerators provide significant
+performance benefits, but add area and power overheads to
+the SSD. Several prior works [178, 310, 299, 106, 192, 141] iden-
+tify the substantial I/O traffic (up to 70-75% of the end-to-end
+
+EmbeddedProcessorEmbeddedProcessorEmbeddedProcessorEmbeddedProcessorSSD ControllerFlash ControllerFlash Controller…Cache BufferData BufferSensing BufferOut-Of-BandUser DataDieDie…Channel…Pass-Fail CheckerFail-Bit CounterPlane #0Page BufferPeripheralLogicPageDRAMHostPCIe2134Flash Chip697131415DieDie…DieDie…DieDie……Cache BufferData BufferSensing BufferPlane #1PagePage Buffer58101112search latency [178, 299]) in billion-scale ANNS applications
+[115, 126, 11, 265, 264] and propose offloading ANNS to the
+storage system. These ISP-based ANNS accelerators can largely
+alleviate the I/O overhead, improving performance over con-
+ventional systems.
+
+3. Motivation
+A key limitation of modern LLMs is their inability to generate
+responses with information beyond their training data. To
+solve this issue, modern LLM application frameworks [182,
+37, 228] support Retrieval-Augmented Generation, combining
+the text generation capabilities of LLMs [72, 181, 272, 122, 73,
+331] with an external knowledge database, as described in
+Sec. 2.1. Beyond information retrieval, RAG also enables long-
+tail knowledge memorization [196], alleviating the need for
+large models with billions of parameters [111], and mitigating
+the risk of revealing training data [326].
+
+While current research on RAG [83, 169, 334, 324, 40] mainly
+focuses on further enhancing these capabilities, to our knowl-
+edge, no existing works attempt to characterize and address
+the inefficiencies found in RAG pipelines. In this section, we
+analyze the performance bottlenecks of RAG and discuss the
+issues existing systems face when tackling these bottlenecks.
+
+3.1. Performance Bottleneck of RAG Pipelines
+As described in Sec. 2.1, RAG pipelines consist of one offline
+stage, indexing, and two online stages, i.e., retrieval and gener-
+ation. The online stages of RAG entail (i) encoding the query
+into an embedding vector, (ii) performing dense retrieval for
+relevant documents, and (iii) using the retrieved documents
+and the query to generate a response. For these steps, respec-
+tively, the RAG system has to load (i) the embedding model,
+(ii) the RAG database and (iii) the generation model (i.e., the
+LLM) from the storage system. With the aim of identifying
+potential inefficiencies, we measure the latency contributions
+of the above stages to the RAG pipeline.
+Methodology. For encoding and generation we chose two
+popular open-source models, all-roberta-large-v1 [240, 241]
+and Llama 3.2 1B [72], respectively. We use FAISS [71] flat
+indexes to link embeddings to document chunks. We evaluate
+RAG performance on two datasets, HotpotQA [320] with 5.3
+million entries and the English subset of a Wikipedia-based
+dataset (wiki_en) [59], with 41.5 million entries. For each query,
+we retrieve the 10 most relevant document chunks (top-10
+retrieval). Our RAG system consists of a high-end NVIDIA
+A100 GPU [55] for embedding and generation and two high-
+end Intel Xeon Gold 5118 CPUs [110], with a Samsung PM9A3
+PCIe 4.0 SSD [250] for retrieval. The system is also equipped
+with 1.5TB of DDR4 memory [208].
+Results. Figure 2 shows the contribution of different opera-
+tions in the RAG pipeline to end-to-end execution time. We
+make two key observations. First, dataset loading accounts for
+a substantial portion of the pipeline’s overall latency, reaching
+84% for wiki_en. Second, the latency attributed to dataset load-
+ing increases with dataset size. For example, as the dataset size
+grows by approximately 8× from HotpotQA to wiki_en, the
+
+Figure 2: Latency breakdown for a typical RAG pipeline. Total
+time is displayed next to each bar.
+
+percentage of latency attributed to dataset loading increases by
+around 1.7×. We conclude that dataset loading during the re-
+trieval stage contributes significant latency to the RAG pipeline
+and becomes a performance bottleneck, especially for large
+datasets. We refer to this bottleneck as the I/O data movement
+bottleneck in RAG pipelines.
+
+Figure 3: Latency breakdown for a RAG pipeline using Binary
+Quantization (BQ). Total time is displayed next to each bar.
+
+As an important caveat, we acknowledge that the con-
+tribution of I/O data movement to end-to-end RAG perfor-
+mance largely depends on encoding and generation model
+sizes. Larger models (e.g., Llama 3.2 90B [72]) increase genera-
+tion latency, due to the increased computation cost, potentially
+reducing the impact of I/O data movement in the RAG retrieval
+stage. Even in this case, I/O data movement can still bottleneck
+the RAG pipeline for two key reasons. First, LLM accelera-
+tion techniques [323, 237, 104, 6, 65, 64, 258, 155, 289, 263]
+and more powerful hardware [224, 217, 278, 269] can substan-
+tially reduce generation latency, exacerbating the I/O bottle-
+neck of the RAG pipeline. For instance, tensor parallelism
+[155, 263, 289] enables efficient LLM generation on multi-node
+GPU systems [54, 279, 217, 278], significantly improving perfor-
+mance. Second, the increasingly popular Mixture-of-Experts
+(MoE) LLM architecture [181, 122, 339] can reduce computa-
+tional cost and increase generation performance of large LLMs.
+As a result, we anticipate that the retrieval, and not the gener-
+ation stage, will remain a significant bottleneck in future RAG
+pipelines.
+
+3.2. Limitations of Existing RAG Optimizations
+We discuss the limitations of existing optimizations when try-
+ing to alleviate the I/O data movement bottleneck in RAG
+pipelines.
+Batching. One possible solution is to batch multiple queries
+before performing retrieval to amortize dataset loading over-
+heads. However, the effectiveness of this technique remains
+limited in practice as queries from different domains (e.g.,
+medical, law, finance) must be served from different, domain-
+specific [309, 287, 325, 304, 105, 185, 322, 329, 336, 156, 303] or
+multi-modal datasets [201, 311, 86, 89, 210, 223, 16, 315, 344]
+to enhance generation quality.
+
+5
+
+84%49%10%46%0%20%40%60%80%100%wiki_enHotpotQAFraction of Execution TimeEmbedding Model LoadingEncodingDataset LoadingSearchGeneration Model LoadingGeneration172.82s37.31s67.3%20%28%73%0%20%40%60%80%100%wiki_enHotpotQAFraction of Execution TimeEmbedding Model LoadingEncodingDataset LoadingSearchGeneration Model LoadingGeneration61.69s23.79sQuantization. Quantization techniques, such as Product
+Quantization (PQ) or Binary Quantization (BQ), can reduce
+the memory footprint of RAG applications. Recent stud-
+ies [212, 239, 260, 135, 209] demonstrate that BQ provides a
+good trade-off between storage footprint and recall. To fur-
+ther evaluate this trade-off, we repeat the previous experiment
+using BQ for the embeddings. As shown in Fig 3, while BQ
+reduces the I/O data movement overhead by 17-29% for both
+datasets, dataset loading remains the bottleneck for the larger
+wiki_en dataset, amounting to 67% of the total latency.
+
+While quantization significantly reduces the size of embed-
+dings, this is not possible for the document chunks, which
+amount to 9GB of the total 14GB transferred for the wiki_en
+dataset (after BQ on the embeddings). Therefore, we conclude
+that quantization techniques are useful in reducing the I/O
+data movement bottleneck, but they cannot eliminate it.
+Algorithmic Optimization. ANNS algorithms often improve
+retrieval performance by using sophisticated indexes [343, 62,
+194, 67], which reduces search time. The data structures used
+to store these indexes are often larger than the flat indexes
+used for simple brute-force approaches, potentially exacerbat-
+ing the I/O data movement bottleneck. Hybrid ANNS algo-
+rithms [115, 41] attempt to overcome the I/O data movement
+bottleneck by storing the index in SSDs and loading parts of it
+in memory for distance computations on demand. SPANN [41]
+provides the state-of-the-art performance-accuracy tradeoff
+among hybrid ANNS solutions, enabling small amounts of
+DRAM (e.g. 32GB) to accelerate searches in TB-sized SSD-
+resident datasets. Specifically, SPANN groups embeddings
+into clusters and stores them in the SSD, only keeping cluster
+centroids in memory. We conduct an experimental study on
+SPANN and find two major limitations of this type of solution.
+First, we observe that achieving a reasonable recall-accuracy
+tradeoff requires selecting a large number of centroids, increas-
+ing memory footprint and lowering performance. For example,
+reaching 0.92 Recall@10 in HotpotQA requires storing 24% of
+all embeddings as centroids in memory, yielding only a 22%
+speedup over exhaustive search. This observation also matches
+with the original study of this algorithm [41]. Second, hybrid
+ANNS algorithms such as SPANN only optimize storage and
+retrieval for embeddings and not for the document chunks of
+a vector database. We conclude that hybrid ANNS algorithms
+also do not fundamentally alleviate the I/O data movement
+bottleneck.
+Memory Expansion. As our analysis in Sec. 3.1 shows, data
+movement between storage and the host contributes signifi-
+cant latency to the RAG retrieval stage. Memory expansion
+techniques such as those enabled by Compute Express Link
+(CXL) [113, 168, 66, 4, 90] enable very large memory capac-
+ities that could theoretically keep RAG datasets resident in
+memory. However, such approaches suffer from two key
+drawbacks. First, main memory is significantly (i.e., more
+than an order of magnitude) more expensive per GB than
+flash storage, at approximately 3.10 [248] vs 0.1 [250] USD
+per GB, respectively. Second, such approaches are unsus-
+
+tainable as (i) continuously increasing dataset sizes, and (ii)
+the growing number of datasets for domain-specific applica-
+tions [309, 287, 325, 304, 105, 185, 322, 329, 336, 156, 303] even-
+tually overwhelm the capacity of such systems.
+ANNS Acceleration Inside the Storage. Prior works pro-
+pose In-Storage processing (ISP) techniques [192, 178, 299] to
+alleviate the I/O data movement bottleneck in the ANNS ker-
+nel. Although ANNS forms a key component of RAG, existing
+ISP-based ANNS accelerators cannot entirely eliminate the I/O
+data movement bottleneck for three key reasons. First, prior
+ANNS acceleration works [192, 178, 299] employ graph-based
+algorithms such as HNSW [194] and DiskANN [115], using
+graph-traversal to identify similar neighbors. During graph
+traversal, the algorithm performs an analysis on the current
+vertex to identify the next vertex. As a result, graph traversal
+induces irregular access patterns [74, 75] that underutilize the
+internal bandwidth of the SSD due to costly channel and NAND
+Flash chip conflicts [214, 143]. Second, prior ISP-based ANNS
+accelerators [106, 192, 178, 299] focus primarily on accelerat-
+ing the search operation without providing efficient support
+for retrieving the associated documents. However, as shown
+in Figs. 2 and 3, the dataset loading step contributes significant
+latency to RAG retrieval. Third, works such as [106, 192] intro-
+duce significant overheads storage and hardware overheads.
+For example, ICE [106] in order to perform computations in-
+side NAND flash dies, stores data in a format that can tolerate
+errors without error correction. This format incurs a 32× (8×)
+storage overhead for data in 8-bit (4-bit) precision, resulting in
+high storage overheads. Another example is DeepStore [192],
+which incurs significant area and power overheads by introduc-
+ing a systolic array-based architecture in the storage system to
+perform query matching by executing Deep Neural Networks.
+Overall, these limitations hinder the adoption on ISP-based
+acceleration techniques in RAG pipelines.
+
+3.3. Our Goal
+Based on our observations and analyses in Sec. 3.1 and 3.2,
+we conclude that (1) the I/O data movement of RAG signifi-
+cantly bottlenecks its performance, and (2) none of the prior
+techniques effectively eliminate this bottleneck in the RAG
+pipeline. Our goal is to fundamentally alleviate the I/O data
+movement bottleneck in RAG through an ISP design that does
+not introduce modifications to the hardware of the storage
+system.
+
+4. REIS
+REIS is an In-Storage Processing (ISP)-based retrieval system
+that alleviates the I/O data movement bottleneck in the RAG
+pipeline. REIS works by receiving query embeddings from
+the host, querying the database inside the storage, and then
+returning relevant document chunks, greatly reducing com-
+munication between host and storage system.
+
+ISP introduces two significant design challenges. First, the
+available embedded cores are limited in terms of both per-
+formance and functionality (e.g., lack of floating point sup-
+port [13]). Second, the flash channel bandwidth is limited com-
+
+6
+
+pared to the total NAND flash read bandwidth. As described
+in Sec. 4.3, REIS uses the existing hardware inside the NAND
+flash planes to alleviate the load on the embedded cores, which,
+however, introduces new limitations: (I) The logic inside flash
+dies only supports simple bitwise and bit-counting operations.
+(II) NAND flash reads are unreliable, requiring the use of error
+correction codes (ECC) [31] to achieve robust operation. Since
+ECC is typically performed by the controller [14], performing
+computation inside flash dies requires fundamentally different
+error mitigation mechanisms.
+
+In this section, we explain the design decisions behind REIS,
+which alleviate the aforementioned issues. Figure 4 presents
+an overview of the system and the key mechanisms it consists
+of. First, REIS employs a vector database layout that links
+embeddings with documents in order to enable efficient docu-
+ment retrieval (Sec. 4.1). Second, REIS introduces support for
+the Inverted File (IVF) algorithm in ISP systems, improving
+the end-to-end retrieval performance (Sec. 4.2.1). Third, an
+in-storage ANNS engine efficiently executes the ANNS kernel
+(Sec. 4.3).
+
+Figure 4: Overview of REIS.
+
+4.1. Database Layout
+REIS introduces a vector database layout that distributes and
+links embeddings and documents in order to maximize the data
+access parallelism for in-storage computation. The database
+layout (i) distributes the vector database into an index region
+and a document region, (ii) creates low-overhead links between
+each embedding and its associated document chunk, and (iii)
+provides coarse-grained access to each dataset to avoid fre-
+quent FTL invocations.
+4.1.1. Database Distribution. During the retrieval stage
+of RAG, the ANNS kernel performs distance calculations on
+the database embeddings to select the top-k most similar doc-
+uments. As a result, accesses to embeddings are far more
+frequent than accesses to documents. Based on this obser-
+vation, we distribute the database in three ways to improve
+the efficiency of accessing embeddings. First, we map embed-
+dings and documents to two separate regions of the NAND
+flash array, the embedding ( 1 in Fig. 4) and the document
+( 2 ) regions, respectively. Second, we employ Parallelism-
+First Page Allocation [332] to evenly distribute embeddings
+across all planes of the storage system. Third, we assign
+each document chunk to an individual 4KB sub-page or a
+
+7
+
+16KB page, adapting to different document chunking gran-
+ularities [175, 5, 245, 158, 211, 293, 20].
+
+4.1.2. Hybrid SSD design. Modern SSDs employ Triple-Level
+Cells (TLC) which rely on ECC to combine high density with
+data integrity, requiring data transfers to the embedded cores
+of the SSD controller for error correction. As will be shown in
+Sec. 4.3, REIS performs operations within the planes and dies
+of the storage system. Thus, performing ECC on the controller
+would create significant data movement overheads, negating
+potential speedups. In order to: (i) eliminate such overheads
+and (ii) allow error-free in-plane embedding distance calcula-
+tion without ECC, REIS employs HybridSSD [332, 247, 286, 308]
+techniques in the ANNS engine. Specifically, we employ soft
+partitioning to create (i) a robust, non-ECC Single Level Cell
+(SLC) partition for storing binary embeddings, and (ii) a typi-
+cal, high-density TLC partition that stores the database’s doc-
+ument chunks and embeddings that are not processed within
+the planes (e.g INT8 embeddings for reranking). To further
+improve the robustness of the SLC partition, REIS makes use
+of the Enhanced SLC-mode Programming (ESP) [225], which
+maximizes the margin between the voltage ranges of the values
+in SLC, achieving zero BER without ECC. As an added benefit,
+SLC programming slightly enhances RAG performance due to
+decreased read latency of SLC compared to TLC [247].
+
+4.1.3. Embedding-Document Linkage. While the database
+layout of Sec. 4.1.1 can increase performance by separating
+the frequently accessed embeddings from the less frequently
+accessed document chunks, performing document retrieval
+requires a connection between the two. To achieve this, REIS
+employs a low-cost linkage mechanism within the storage
+system that associates each embedding with the address of its
+corresponding document chunk.
+
+Modern NAND flash memory provisions some storage space
+for ECC bits known as the Out-Of-Band (OOB) area (e.g., 2208
+spare bytes for each 16KB page [230, 236]). During each page
+read, the page buffer loads OOB data together with the page.
+We re-purpose a small portion of the OOB area to store the
+address of the document chunk that is associated with each em-
+bedding ( 3 in Fig. 4). For example, assuming a dataset where
+(i) each embedding and document chunk occupies 4KB (i.e., a
+sub-page [159]) and (ii) each document chunk requires a 4-byte
+address, linking embeddings to documents requires 16 spare
+bytes (or 0.7% of the OOB area) for each page. This approach
+ensures that whenever an embedding is loaded to the page
+buffer, the address of its associated document chunk is also
+loaded. Therefore, when the storage system conducts distance
+computation for a page of embeddings using the mechanisms
+proposed in Sec. 4.3, the addresses of associated document
+chunks are available in the page buffer for document identifi-
+cation and retrieval. Our proposed mechanism eliminates the
+need to maintain a specialized data structure for document
+retrieval with minimal space overhead to the storage system.
+
+4.1.4. Coarse-Grained Access. With the aim of (i) distin-
+guishing between different RAG datasets in the storage system
+
+Peripheral LogicEmbeddedProcessorPlane #1EmbeddedProcessorEmbeddedProcessorEmbeddedProcessorSSD ControllerFlash ControllerFlash Controller…ChannelPage BufferPage BufferDieDie…DieDie……DRAMDieDie…Channel…Plane #0PageR-DBR-IVFTTLADieDie…BCEmbedding RegionDocument Region16 KB Page16 KB PageDoc. Chunk #0Doc. Chunk #1…Emb. #0Emb. #1…AddrAddrAddrPagePagePage123and (ii) reducing the frequent address translation overheads
+when accessing embeddings, REIS introduces a coarse-grained
+access scheme. Specifically, REIS stores an address information
+entry for each region of the database in the internal DRAM.
+Each entry includes an integer index as the distinct signature
+of a database and the addresses of the first and last entries of
+the embedding and document regions. The coarse-grained ac-
+cess scheme enables database management in two ways. First,
+during database deployment, the storage system reserves two
+non-overlapped and consecutive regions and creates the ad-
+dress entries based on the size of a database before deploying
+the database to the storage system. In this way, we ensure
+the isolation of the database from other user data or databases.
+Second, during a database search operation, the storage system
+finds the starting embedding address of a database through the
+address entry to start the retrieval process. For each upcoming
+page read, the SSD controller infers the next address to read
+by incrementing the current address, instead of frequently in-
+voking the address translation using the L2P mapping table.
+To ensure data integrity, REIS retains page-level FTL metadata,
+which contain essential information for operations such as
+refresh and wear-leveling. This metadata is used for: (i) writes
+during database initialization and (ii) periodic maintenance
+operations such as data refresh, which however are rare (e.g.,
+once a year [207]). After these operations, FTL metadata is
+flushed from the SSD’s DRAM.
+
+Coarse-grained access eliminates the need to maintain the
+page-level FTL for both regions of the database after deploy-
+ment, conserving the valuable space of the internal DRAM for
+other operations (see Sec. 4.3). For example, for a 1TB vec-
+tor database that originally demands 1GB for page-level FTL
+[341, 99, 296], the maintenance cost for addressing is reduced
+to 21 bytes. Since REIS is designed with the aim of serving
+potentially many different RAG databases, we store the nec-
+essary information (i.e., the integer index of the database, the
+entries of the first/last entries in the embedding and document
+regions) in a small array in the SSD Controller’s DRAM. This
+structure is called R-DB ( A in Fig. 4) and serves as a record of
+deployed databases. A potential downside of coarse-grained
+access is that it requires the existence of a large contiguous
+block of storage, which may necessitate defragmentation oper-
+ations during database deployment. However, this is an initial
+upfront overhead that can be amortized over time.
+
+4.2. ISP-Friendly ANNS Algorithms
+Apart from graph-based ANNS algorithms used by prior
+works [115, 299, 194], two other types of mainstream ANNS al-
+gorithms exist: cluster-based (e.g., Inverted File (IVF) [62, 343])
+and hash-based algorithms (e.g., Locality Sensitive Hashing
+(LSH) [67]). With the aim of selecting the most suitable algo-
+rithms for our system, we perform a qualitative comparison,
+measuring throughput and recall on a CPU-based system (de-
+scribed in Table 3). Specifically, we compare the performance
+of IVF, HNSW, and LSH on the wiki_en dataset [60] using the
+Cohere [239] embedding model and the FAISS [71] library. We
+measure throughput in Queries per Second (QPS) and normal-
+
+ize it to that of exhaustive search. We first evaluate the per-
+formance of different implementations without quantization.
+Figure 5 demonstrates that: (i) HNSW is the best performing
+base (i.e., without quantization) algorithm, (ii) both HNSW
+and IVF provide up to 0.99 recall, and (iii) LSH is the worst
+performing algorithm, with lower performance than exhaus-
+tive search (result) for recall values above 0.8 (1.2× slower for
+Recall@10=0.9).
+
+Figure 5: Comparison of ANNS algorithms in terms of through-
+put and recall running on CPU. For IVF, nlist denotes the num-
+ber of clusters for a dataset. For HNSW, M denotes the number
+of neighbors for each vertex.
+
+Since ISP hardware has limited capabilities (e.g., lack of
+floating-point support [13]), ISP-based ANNS requires quan-
+tization. For this reason, in Fig. 5 we also analyze the perfor-
+mance of IVF and HNSW when using Binary Quantization
+(BQ) and Product Quantization (PQ), combined with rerank-
+ing [239]. We make four key observations: (i) IVF recall re-
+mains high even with BQ (PQ) at 0.97 (0.96), (ii) PQ performs
+worse than BQ and even floating-point IVF, (iii) IVF through-
+put increases significantly with BQ, and (iv) HNSW throughput
+remains constant with BQ, while still outperforming IVF by
+approximately 3×. While these observations suggest that both
+HNSW and IVF are compelling options for ANNS-based RAG,
+graph-based algorithms (e.g. HNSW) feature irregular access
+patterns [74, 75] that underutilize the internal bandwidth of
+the SSD, making them unsuitable for ISP. In contrast, IVF per-
+forms searches in contiguous data, exhibiting streaming access
+patterns. We thus select IVF as our algorithm of choice, and
+perform modifications to our database layout that support its
+execution.
+
+4.2.1. IVF-tailored Database Layout. In order to acceler-
+ate retrieval, REIS employs ANNS via the Inverted File (IVF)
+algorithm. As will be shown in Sec. 4.3, REIS uses IVF with
+quantization and reranking, which requires storing data in
+both binary and INT8 precision. To efficiently support IVF
+with these optimizations, we modify the database layout of
+Sec. 4.1 in three ways. First, we divide the embedding region
+into three sub-regions, one for storing cluster centroids, and
+two other regions for storing embeddings in binary and INT8
+precision, respectively. Second, to facilitate IVF search opera-
+tions, we create an array which serves as a record of all clusters.
+Each element of the array corresponds to an IVF cluster and
+contains: (i) the address of the cluster centroid, (ii) the index
+of the first and the last embedding within the cluster and (iii) a
+8-bit tag associated with the cluster. We name this array R-IVF
+( B ) and store it in the SSD’s DRAM, resulting in a memory
+
+8
+
+0.800.850.900.951.00Recall100101102103Normalized QPSIVF (nlist = 16384)BQ IVF (nlist = 16384)HNSW (M=128)BQ HNSW (M=128)LSHPQ IVF (nlist = 16384)footprint of N umber_of_entries × 15B. Third, we extend
+the Embedding-Document Linkage of Sec. 4.1.3 in two distinct
+ways. (I) In order to link binary embeddings to their INT8
+counterparts for reranking, apart from the document address
+corresponding to each embedding, we also store the address
+of the INT8 embedding (RADR) in the OOB region. (II) For
+reasons that will become apparent in Sec. 4.3, we store the 8-bit
+tag of the cluster in the OOB area of the page that contains the
+cluster centroid.
+
+Supporting IVF also requires allocating data structure in the
+SSD Controller’s DRAM. Specifically, during IVF operations
+REIS maintains lists containing (i) clusters and (ii) embedding
+vectors as well as their distances from the query embedding.
+These structures are called Temporal Top Lists (TTL) ( C in
+Fig. 4) and as will be shown in Sec. 4.3 are employed in our
+In-Storage ANNS Engine.
+
+4.3. In-Storage ANNS Engine
+
+Prior ISP-based ANNS accelerators [192, 178, 299] commonly
+integrate Multiple-Accumulate (MAC) units to compute Eu-
+clidean distance [12, 15] for ANNS. Introducing such changes
+to the storage system creates (i) significant power and area
+overheads, and (ii) adoption issues due to the intrusive nature
+of such modifications. As explained in Sec. 2.2, there exist op-
+portunities to reduce computational overhead of ANNS, while
+retaining accuracy. Recent studies [212, 239, 260, 135, 209]
+have shown that Binary Quantization (BQ) can achieve a re-
+call of 96%, due to the large dimensionality of text embed-
+dings [158, 292, 20, 293, 202, 163, 160, 211, 212]. With REIS,
+our goal is to avoid the power and area overheads of prior de-
+signs. To this end, we design an In-Storage ANNS engine based
+on BQ which (i) utilizes only existing components within the
+SSD system to perform retrieval, (ii) exploits the plane-level,
+die-level, and channel-level parallelism of the storage system,
+and (iii) incorporates two major optimizations, distance filter-
+ing and pipelining.
+
+4.3.1. Search Process. The search process for the Inverted
+File algorithm (IVF) [343, 62] consists of two steps, a coarse-
+and fine-grained search. First, in the coarse-grained search,
+REIS searches through all cluster centroids to identify those
+closest to the query embedding. To achieve this, REIS starts
+by reading and calculating the distance for all embeddings
+stored in one page. For each embedding, it then creates an en-
+try consisting of the distance value (DIST), embedding (EMB),
+embedding address (EADR), and the associated tag (TAG). It
+sends these entries to a table, the Temporal Top List for Cen-
+troids (TTL-C), which resides in the SSD’s DRAM. After filling
+the TTL-C for each page read, the embedded cores of the SSD
+controller execute a quickselect kernel [191] on the distance
+numbers, identifying the entries that correspond to the N near-
+est clusters to the query. Quickselect has an average time
+complexity of O(N ) and finds the k-th smallest element in
+an unordered array, simultaneously selecting the k smallest
+elements in the process without sorting them. At the same
+time, the storage system reads the next page of centroids and
+
+conducts distance computations to hide the latency of selection.
+Each iteration consists of (i) a page read, (ii) distance computa-
+tions, and (iii) embedding selection, updating the TTL-C with
+the new closest clusters. After the last iteration, REIS selects
+the nearest clusters according to the finalized TTL-C. In the
+second step, REIS conducts a fine-grained search inside the
+clusters identified in the first step. The fine-grained search has
+two major differences compared to the coarse-grained search.
+(i) Instead of forming the TTL entry using TAG, for the fine-
+grained search, each TTL entry consists of DIST, EMB, RADR,
+and the address of the associated document (DADR). We name
+the table for the fine-grained search Temporal Top List for Em-
+beddings (TTL-E). (ii) After the last iteration of selecting the k
+nearest embeddings to the query, the storage system performs
+quicksort [103] to obtain a distance-ordered top-k list for the
+query.
+
+4.3.2. Retrieval architecture and execution. Document
+retrieval is performed by the ANNS engine, which (i) receives
+the query embedding from the host system, (ii) computes the
+distance between the query embedding and database embed-
+dings, and returns the top-k results. Fig. 6 breaks down REIS’s
+execution flow in nine steps.
+
+Figure 6: REIS’s In-Storage ANNS Engine
+
+The execution flow begins with the reception of a new query
+by the storage system, which is placed in the SSD’s DRAM and
+which triggers the execution of the ANNS kernel (steps 2 - 8 ).
+The storage system first transfers the query embedding from
+the DRAM to the data buffer in each NAND Flash plane 1
+and then writes multiple copies of the data, filling the whole
+Cache Latch (CL). These copies are aligned to the database
+embeddings in order to enable bitwise operations, as will be
+described in step 3 . We refer to this step as Input Broadcast-
+ing (IBC). After IBC each CL holds N duplicates, where N =
+Page_Size / Embedding_Size. In step 2 , the storage system
+issues a page read command to each plane, loading a page of
+database embeddings to the Sensing Latch (SL). By performing
+an XOR operation between the CL (which stores the query
+embedding) and the SL (which now stores the database embed-
+dings), and storing the result in the Data Latch (DL) 3 , each
+plane calculates the bitwise difference of the query and the
+database embeddings. Next, in step 4 , we employ the fail-bit
+counter [48, 203, 52] within the peripheral logic to measure
+the number of logical ones in the DL, which corresponds to
+the distance between the query and the database embeddings.
+The data that is transferred out from the flash dies to the SSD
+Controller’s DRAM changes depending on whether the steps
+
+9
+
+EmbeddedProcessorPlane #1PageEmbeddedProcessorEmbeddedProcessorEmbeddedProcessorSSD ControllerFlash ControllerFlash Controller…ChannelCache LatchData LatchPage BufferSensing LatchDieDie…DieDie……Cache LatchData LatchSensing LatchDRAMTemporal Top ListQUERY_IDDISTEMBDADRRADRQuickSelectRerankingQuicksortUser DataOut-Of-BandBinary EmbeddingsDocument AddressesRescoring AddressesDieDieDieDie…Channel……Pass-Fail CheckerFail-Bit CounterPlane #0Page BufferPeripheralLogic621Page34578HostPCIe91 - 4 are executed during coarse- or the fine-grained search.
+For coarse-grained search, the ANNS engine transfers the (i)
+the embedding vector (EMB), (ii) its calculated distance (DIST),
+and (iii) the tag of the cluster that this embedding belongs to,
+forming a single entry. For fine-grained search, instead of trans-
+ferring the tag of the cluster, the ANNS engine transfers (iv)
+the addresses of the INT8 version of the embeddings (RADR),
+and (v) the correlated document chunk address (DADR). Steps
+2 - 4 are repeated until the whole database is searched. The
+SSD controller retrieves distance numbers from the TTL 5
+and performs quickselect [102] using the embedded core 6 ,
+selecting the 10k embeddings closest to the query. In step 7 ,
+the embedded core of the SSD controller executes the rerank-
+ing kernel [312, 239, 135]. Reranking performs a costlier but
+more accurate search on the subset of data elements that are
+selected by ANNS. Rerankers usually (i) employ cross-encoder
+models that accurately calculate the similarity between queries
+and document chunks [216, 39], or (ii) recalculate distances
+with higher precision (e.g., INT8) [260]. REIS uses the sec-
+ond approach: ANNS is performed using Binary Quantization,
+while reranking is performed using INT8 embeddings. For
+reranking, the embedded core first fetches the top-10k em-
+beddings from the INT8 embedding region using the RADR.
+It then recalculates the distances in INT8 precision and sorts
+them using quicksort [103] 8 to finally select the top-k embed-
+dings, which ends the search process. Once the ANNS search is
+completed, the ANNS engine executes document identification
+to find relevant document chunks according to the DADR of
+the top-k results and transfers them to the host system 9 for
+generation.
+Exploiting SSD Parallelism. As described in Sec. 4.3.2, REIS
+uses the buffers and the peripheral logic within the planes and
+the dies of the storage system in order to perform distance com-
+putations. This approach allows multiple simultaneous XOR
+and bit-counting operations across planes and dies, exploit-
+ing the available parallelism within the storage system. Once
+these computations have been performed, the flash channels of
+the storage system collectively provide massive internal band-
+width (e.g., 9.6 GB/s bandwidth for an 8-channel system with
+1.2 GB/s bandwidth per channel [47]), which can efficiently
+transfer entries from the flash dies to the SSD controller’s
+DRAM by leveraging the channel-level parallelism.
+Fine-grained Embedding Access. To ensure fine-grained
+access to each embedding, REIS introduces Mini-Pages for ad-
+dressing. REIS composes a Mini-Page address by appending an
+offset to the original physical page address, filling each page
+with as many embeddings as possible (e.g., 128 binary 1024-
+dimension embeddings per 16KB page, leading to a 7-bit offset
+for the Mini-Page address). During execution of the ANNS
+engine, REIS performs retrieval using the Mini-Page address
+as the embedding address (EADR) for each entry in the TTL.
+
+4.3.3. Distance Filtering.. We experimentally find that, for
+each query, a significant fraction of document chunks within
+the database are irrelevant (i.e., the distance between their em-
+beddings and the query embedding is very large). For example,
+
+various retrieval tasks, such as fact-checking [276], retrieve
+only 1.2-3.0 relevant document chunks per query on average
+from the BEIR datasets [274]. To avoid forwarding irrelevant
+data to the SSD controller, we employ distance filtering, which
+discards database embeddings when their distance from the
+query embedding exceeds a certain threshold. By discarding
+highly irrelevant queries, distance filtering (i) conserves SSD
+channel bandwidth, and (ii) reduces the number of entries that
+the SSD controller has to select and sort.
+
+We introduce a modification to step 4 with which we apply
+distance filtering to the ANNS kernel. To determine suitable
+thresholds, we perform filtering experiments on 4 BEIR [58]
+datasets targeting different retrieval tasks: HotpotQA [320],
+NQ [154], FEVER [276], and Quora [63]. We make two obser-
+vations: First, for HotpotQA we can filter out 99% of the docu-
+ments and still retrieve the k=10 most relevant ones for each
+query. Second, the choice of filtering threshold only weakly
+depends on the dataset size. For k = 10, the threshold would
+only be 1.6% higher for the biggest dataset, FEVER compared
+to the smallest, Quora. We conclude that (i) distance filtering
+significantly reduces the number of candidate embeddings and
+thus computation, and (ii) it is possible to employ one filtering
+threshold for effectively filtering datasets with different sizes.
+We implement distance filtering using the comparator logic
+within the flash dies (i.e., the pass/fail checker) [48, 203, 52],
+which compares distance numbers with a pre-defined thresh-
+old. Each embedding whose distance (DIST) value is below
+the threshold is transferred to the SSD’s DRAM for further
+processing.
+
+4.3.4. Pipelining.. To further accelerate RAG retrieval, REIS
+exploits three pipelining opportunities within the storage sys-
+tem. First, REIS leverages the widely implemented Read Page
+Cache Sequential mode [203], inside the flash chips, to overlap
+operations between two iterations of steps 2 - 4 . Specifically,
+during step 4 , after the PL transfers its data to the DL for
+readout, it can immediately read the next page. Second, REIS
+overlaps distance calculation on the NAND Flash dies with
+kernel execution on the embedded cores. According to our
+evaluation, a single core can efficiently run Quicksort and
+reranking without stalling the pipeline. Therefore, REIS only
+uses one core for Quicksort and reranking, while the other
+cores (e.g., 3 out of 4 [251, 249]) are still available for regular
+SSD operations. Third, during IBC (see Sec. 4.3.2), REIS enables
+all planes per die to receive the input query from the die I/O
+simultaneously, an optimization that we name Multi-Plane IBC
+(MPIBC). This reduces the IBC latency by a factor equivalent
+to the number of planes per die. We assume the plane selection
+is handled by a dedicated Multiplexer logic within the die pe-
+riphery. Therefore, enabling MPIBC requires raising the select
+signal for all planes together so that they can receive the input
+query embedding concurrently.
+
+4.4. System Integration of REIS
+
+To enable communication with the host, REIS introduces an
+Application Programming Interface (API) that defines RAG-
+
+10
+
+specific extensions to the NVM command set [218]. Similarly,
+to support the operations described in Sec. 4.3, REIS extends
+the NAND flash command set with commands that enable
+communication between the controller and the flash dies.
+
+4.4.1. Application Programming Interface. REIS specifies
+a high-level API for the host system to perform the indexing
+and the retrieval stage of the RAG workflow. To achieve this,
+we extend the NVM command set [218] with custom REIS
+operations. The specification provides a range (80h-F F h) in
+the opcode values for vendor-specific commands, which are
+adequate for implementing all REIS operations. To perform
+indexing, the host system issues DB_Deploy() (or IVF_Deploy())
+to the SSD. REIS reserves the required space in the NAND Flash
+memory according to the API and performs de-fragmentation
+operations to create a physical contiguity. It then waits for
+the host to write the database content to the DRAM, which it
+subsequently writes to storage as explained in Sec. 4.1. When
+REIS receives Search() (or IVF_Search()) from the host system,
+it performs retrieval and returns a done signal once it has
+identified the document chunks to be retrieved. Once the host
+system acknowledges the signal, the storage system starts to
+transfer the identified document chunks to the host system.
+Table 1 describes each API command.
+
+Table 1: REIS Application Programming Interfaces
+
+API Commands
+
+Description
+
+DB_Deploy(DB, Did, N)
+
+IVF_Deploy(DB, Did, N, CI)
+
+Search(Q, Qid, Did, k)
+
+IVF_Search(Q, Qid, Did, k, R)
+
+Write the N -entry database DB,
+with ID Did to storage.
+Write the N -entry IVF-based
+database DB, with ID Did
+to
+storage. CI contains information
+on the IVF clusters.
+
+Perform a top-k search for a batch
+of queries Q, indexed by Qid, in the
+database with ID Did.
+Perform a top-k IVF search for a
+batch of queries Q, indexed by Qid,
+in the database with ID Did. The
+target accuracy is R.
+
+4.4.2. NAND Flash Command Set. REIS adds new com-
+mands to the NAND flash die control logic to support the
+operations of the in-storage ANNS engine for retrieval tasks.
+To enable this, the controller first receives the previously de-
+scribed API commands and translates them into the flash com-
+mand set. It then issues the flash commands to the flash dies
+to perform the necessary operations. The control logic within
+each flash die is a finite-state machine, which receives the com-
+mands and uses them to control the peripheral logic in the
+flash array. Table 2 describes the NAND flash command set
+extensions for querying the database.
+
+5. Methodology
+Evaluated System Configurations. We evaluate REIS on
+two SSD configurations, REIS-SSD1 and REIS-SSD2, based
+
+Table 2: NAND Flash Command Set Extensions
+
+ISA Format
+
+Description
+
+IBC Q_EMB
+
+XOR ADR_P
+
+GEN_DIST EADR
+
+RD_TTL EADR
+
+Send a copy of the query (Q_EMB) to each page
+buffer of the NAND Flash memory.
+(Input
+Broadcasting)
+Perform the XOR operation between PL and
+CL of a plane (addressed by ADR_P).
+
+Compute the distance for a database embed-
+ding stored at address EADR.
+
+Transfer the TTL entry for the embedding
+stored at EADR to the SSD DRAM.
+
+on two commercial SSD products, Samsung PM9A3 [250] and
+Micron 9400 [207]. These SSDs focus on low cost and high per-
+formance, respectively. As a baseline for document retrieval,
+we use a high-end server equipped with an AMD EPYC 9554
+CPU [9] and a Samsung PM9A3 SSD [250]. Table 3 provides
+the properties of our SSDs and the baseline CPU system (CPU-
+Real). To highlight the improvements stemming from our
+database layout and In-Storage Processing, we first compare
+REIS and CPU-Real using brute force search (BF). We then com-
+pare REIS and CPU-Real on Approximate Nearest Neighbor
+Search. Since (i) the loading time makes up the biggest fraction
+of the execution time (see Sec. 3.2), and (ii) HNSW indexes take
+up significantly more space than IVF ones, IVF outperforms
+HNSW when loading time is taken into account. We evaluate
+both REIS and CPU-Real with the IVF algorithm using BQ and
+reranking, provided by the FAISS library [71], sweeping the
+accuracy of IVF from 0.98 down to 0.9 Recall@10. In order
+to perform a sensitivity study, we introduce No-OPT as a
+baseline, a REIS configuration that uses the In-Storage ANNS
+Engine without DF, PL, and MPIBC. To quantify the perfor-
+mance overheads stemming from ANNS only, we introduce an
+additional comparison point based on the CPU baseline, which
+incurs zero overheads from data movement due to storage I/O,
+called No-I/O. We additionally compare REIS to two state-
+of-the-art designs, NDSearch [299] and ICE [106], which use
+graph-based and cluster-based ANNS, respectively. To ensure
+a fair comparison we make the appropriate modifications to
+our experimental methodology whenever required.
+Performance & Energy Evaluation. Our SSD operation
+model and parameters are based on Flash-Cosmos [225] while
+the internal SSD DRAM is modeled using CACTI7 [18]. We
+use Zsim [252] and Ramulator [150, 92] to simulate the embed-
+ded SSD controller cores. We model SSD power consumption
+based on a commodity product [249] and real chip character-
+ization results from Flash-Cosmos [225]. The power of the
+SSD’s internal DRAM and that of the embedded cores are also
+derived from CACTI7 [18] and the characteristics of a com-
+modity embedded SSD controller processor [13], respectively.
+We measure the power of CPU-Real using AMD µProf [10] for
+the CPU and a DDR4 model [208, 85] for DRAM.
+Evaluated Datasets. We evaluate two datasets from an infor-
+mation retrieval benchmark [274], NQ and HotpotQA, a public
+
+11
+
+Figure 7: Performance (QPS) normalized to CPU-Real
+
+dataset based on wikipedia [60] (wiki_full) and its English sub-
+set (wiki_en). For the comparison to NDSearch [299] we use
+two billion-scale datasets that were used to evaluate NDSearch,
+SIFT1B and DEEP1B [265].
+
+Table 3: Evaluated System Configurations
+
+System
+
+Configuration
+
+CPU-Real
+
+CPU: 2 sockets, 128 cores, 3.1GHz [9];
+DRAM: 1.5TB DDR4 [208]; SSD: PM9A3 [250]
+
+REIS-SSD1
+
+REIS-SSD2
+
+8 channels; 16 512Gb dies/channel; 2 planes;
+1.2 GB/s channel bandwidth;
+22.5µs tR (ESP-SLC) [225];
+Embedded Cores: Cortex R8 [13]; 4 cores;
+
+16 channels; 8 512Gb dies/channel; 4 planes;
+2.0 GB/s channel bandwidth;
+22.5µs tR (ESP-SLC) [225];
+Embedded Cores: Cortex R8 [13]; 4 cores;
+
+6. Evaluation
+We evaluate the effectiveness of REIS compared to different
+baselines. First, we evaluate the effectiveness of REIS at improv-
+ing the performance and energy efficiency of the retrieval stage
+of the RAG pipeline. Second, we evaluate the effect of REIS on
+the performance of the end-to-end RAG pipeline. Third, we
+conduct a sensitivity study to analyze the effect of different
+optimization techniques in REIS. Fourth, we compare REIS to
+two prior works [106, 299] that use cluster- and graph-based
+ANNS algorithms, respectively.
+
+6.1. Retrieval Performance & Energy Efficiency
+Performance. Figure 7 shows the performance of REIS, mea-
+sured in Queries-per-Second (QPS) and normalized to CPU-
+Real. We make three observations. First, REIS-SSD1 and REIS-
+SSD2 improve performance over CPU-Real by an average of
+13× with a maximum of 112×, demonstrating the benefit of
+alleviating the I/O bottleneck of the RAG retrieval process.
+Second, REIS-SSD1 and REIS-SSD2 outperform No-I/O by an
+average of 1.8× with a maximum of 5.3× due to the massive in-
+ternal parallelism of storage systems that REIS exploits. Third,
+REIS-SSD2 provides a 2.6× average speedup over REIS-SSD1,
+with a maximum of 3.2×, reflecting the benefits of higher
+channel counts (2×) and channel bandwidth (1.7×).
+Energy Efficiency. Figure 8 presents the energy efficiency
+(QPS/W) of REIS normalized to CPU-Real. We make two ob-
+servations. First, REIS-SSD1 and REIS-SSD2 improve energy
+efficiency over CPU-Real by 55× on average and up to 157×.
+
+This improvement in energy efficiency fundamentally stems
+from the 29.7× lower power consumption of SSDs compared
+to the CPU baseline on average. Second, REIS-SSD2 provides
+2.2× higher energy efficiency over REIS-SSD1 on average, with
+a maximum of 2.6×. This improvement in energy efficiency is
+similar to REIS-SSD2’s performance improvement over REIS-
+SSD1, suggesting that most of the energy efficiency gains stem
+from the higher throughput of SSD2’s design.
+
+6.2. End-to-End Performance Analysis
+Table 4 breaks down the latency of different stages of the
+RAG pipeline on REIS-SSD1 and on a CPU-based system us-
+ing binary quantization (i.e., the same system as in Fig. 3).
+Similarly to our analysis in Fig. 3, we use the HotpotQA and
+wiki_en datasets. Since REIS performs retrieval within the
+storage system, it does not perform the Dataset Loading step
+that transfers data to the host’s DRAM. We observe that REIS
+reduces the combined latency of Dataset Loading and Search
+from 20.3%-69.3% down to 0.02%-0.15%, which demonstrates
+that REIS efficiently eliminates the data movement bottleneck
+of RAG retrieval. When using REIS, Generation accounts for
+92% of the total time, which demonstrates that LLM inference
+is now the new bottleneck. Overall, REIS reduces the average
+end-to-end latency by 1.25× and 3.24× on HotpotQA and NQ,
+respectively.
+
+6.3. Sensitivity Study
+Fig. 9 presents a sensitivity study of all proposed optimizations
+introduced by REIS, i.e., Distance Filtering (DF), Pipelining
+(PL) and Multi-Plane Input Broadcasting (MPIBC) on top of
+No-OPT. We choose wiki_full [60] as the dataset to analyze and
+normalize results (i.e., QPS) to the performance of the CPU-
+Real. We make three observations. First, among all proposed
+optimizations, DF contributes the most to the speedup over
+No-OPT by an average of 4.7× and 5.7× and a maximum of
+5.1× and 6.5× for REIS-SSD1 and REIS-SSD2, respectively. The
+main source of this speedup is that filtering out embeddings
+Table 4: RAG Latency Breakdown for REIS and the CPU-based
+system with Binary Quantization of Fig. 3.
+
+HotpotQA
+
+NQ
+
+Latency contribution (%)
+Embedding Model Loading
+Encoding
+Dataset Loading
+Search (and retrieval for REIS)
+Generation Model Loading
+Generation
+
+End-to-End Latency (s)
+
+REIS
+3.26
+0.58
+N/A
+0.02
+4.16
+92.0
+
+18.97
+
+CPU+BQ
+2.61
+0.46
+20.0
+0.29
+3.32
+73.0
+
+23.79
+
+REIS
+3.26
+0.58
+N/A
+0.15
+4.16
+92.0
+
+19.0
+
+CPU+BQ
+1.01
+0.18
+67.3
+2.00
+1.28
+28.0
+
+61.69
+
+12
+
+1101000.980.940.900.980.940.900.980.940.900.980.940.90BFIVF (Recall@10)BFIVF (Recall@10)BFIVF (Recall@10)BFIVF (Recall@10)NQHotpotQAwiki_enwiki_fullNorm. QPSNo-I/OREIS-SSD1REIS-SSD2Figure 8: Energy efficiency (QPS/W) normalized to CPU-Real
+
+with large distances inside each NAND flash die significantly
+reduces (i) unnecessary data movement to the SSD controller’s
+DRAM, and (ii) the amount of data input to the Quickselect
+kernel. Second, the benefit from PL increases for SSDs with
+higher internal bandwidth due to more channels and higher
+I/O rate. Specifically, in SSDs with high internal bandwidth
+(e.g., the 32GB/s of bandwidth for REIS-SSD2), pipelining can
+completely overlap (i) reading a new page, and (ii) transferring
+out the filtered TTL entries from the NAND flash dies to the
+SSD’s internal DRAM. Third, the benefit from MPIBC increases
+for SSDs with more planes per die. Specifically, the average
+speedup of DF+PL+MPIBC over DF+PL is 6% and 26% for REIS-
+SSD1 and REIS-SSD2.
+
+Figure 9: Effects of different REIS optimizations on throughput
+(normalized to CPU-Real), evaluated on dataset [60].
+
+6.3.1. Comparison with REIS-ASIC. To quantify the perfor-
+mance loss due to not using ESP (thus requiring ECC which
+incurs data transfers to the SSD controller), we compare REIS
+against a new scheme, REIS-ASIC, which: (i) instead of ESP,
+uses ECC performed by the SSD controller, (ii) performs all
+other operations using an ideal ASIC with no computational
+overhead but (iii) requires that all data be transferred to the
+controller. REIS-ASIC experiences a slowdown between 4.1×-
+5.0× (3.9×-6.5×) for SSD-1 (SSD-2), across all recall values
+and datasets, due to the data movement overheads introduced
+by the data transfers due to not using ESP.
+
+6.4. Comparison to Prior Works
+
+We compare the performance of REIS to two state-of-the-art
+ISP-based ANNS accelerators, ICE [106] and NDSearch [299],
+which use cluster- and graph-based algorithms, respectively.
+Comparison to ICE. Fig. 10 shows the speedup of REIS com-
+pared to ICE [106], a state-of-the-art ISP scheme for vector
+similarity search. When using brute force (BF), REIS achieves
+a speedup greater than 10× across all configurations. For IVF,
+the speedup increases with higher recall values, demonstrat-
+ing superior performance to that of ICE. Specifically, across
+all datasets with SSD-2, REIS outperforms ICE by an average
+of 7.1× (22.9×) at 0.90 (0.98) recall@10. We also perform a
+
+13
+
+comparison to ICE-ESP, an idealistic implementation of ICE
+that does not require ECC, but still uses 4-bit quantization (not
+shown in Fig. 10). Even compared to ICE-ESP, REIS achieves
+a geomean speedup of 3.85× (3.92×) in BF for SSD-1 (SSD-
+2). When configured to target 0.9 recall@10 using IVF, REIS
+achieves 2.08× (2.29×) higher performance over ICE-ESP, a
+number that rises to 2.84× (3.18×) for 0.98 recall@10 for SSD-
+1 (SSD-2).
+Comparison to NDSearch. Fig. 11 compares the performance
+of REIS using IVF [71], against NDSearch using HNSW [194]
+and DiskANN [115]. We perform this comparison using two
+billion-scale datasets, SIFT-1B and DEEP-1B [265], with 0.94 and
+0.93 Recall@10, respectively. We normalize the throughput
+of REIS to that of NDSearch with HNSW and DiskANN and
+observe that it outperforms NDSearch by an average of 1.7×
+with a maximum of 2.6×.
+
+7. Discussion
+
+In this section, we discuss potential extensions and optimiza-
+tions to REIS. First, we discuss augmenting REIS with filtered
+search on user-defined metadata. Second, we address the im-
+pact of REIS on typical SSD management operations and life-
+time. Third, we provide alternative implementations for REIS’s
+embedding-document linkage which alleviate the logical to
+physical contiguity requirements.
+
+7.1. Metadata Filtering
+
+To improve generation quality modern LLM serving frame-
+works [182, 37] incorporate metadata filtering [229, 302, 290]
+to RAG retrieval. Metadata filtering augments database entries
+with information such as timestamps, author information, or
+other relevant metadata that can be used during the search
+process to improve document retrieval. REIS could potentially
+be enhanced with this feature by storing the metadata of each
+embedding in reserved NAND flash memory (i.e., in the OOB
+region [319]).
+
+To perform metadata filtering in a read-only database [229,
+124], this enhanced version of REIS: (i) assigns a correspond-
+ing metadata tag (an integer number) to each embedding and
+(ii) places the tag in the OOB area during database deploy-
+ment. During RAG retrieval, REIS receives the query embed-
+ding alongside a metadata tag and compares it to the tags
+of each database embedding, using the existing approach for
+calculating the embedding distance. Before performing the
+subsequent retrieval steps, REIS checks the result of the meta-
+data computation, filtering out results that do not match. For
+
+1101000.980.940.900.980.940.900.980.940.900.980.940.90BFIVF (Recall@10)BFIVF (Recall@10)BFIVF (Recall@10)BFIVF (Recall@10)NQHotpotQAwiki_enwiki_fullNorm. QPS/WREIS-SSD1REIS-SSD201101000.980.960.940.920.9Norm. QPSRecall@10REIS-SSD1NO-OPT+DF+PL+MPIBC01101000.980.960.940.920.9Norm. QPSRecall@10REIS-SSD2NO-OPT+DF+PL+MPIBCFigure 10: Speedup of REIS over ICE [106].
+
+lightweight L2P mapping scheme of Sec. 4.1.4) requires the
+existence of contiguous unallocated physical space. In order
+to further reduce (i) the memory footprint, and (ii) translation
+overheads stemming from L2P metadata, REIS also uses the
+same contiguity-based approach in the document region of the
+database. An alternative approach, which does not require con-
+tiguity in the document region, would be to link embeddings
+to the physical addresses of their corresponding document
+chunks via the OOB area, enabling document chunks to be
+placed anywhere in storage. However, this approach intro-
+duces additional complexity as it entails updating the physi-
+cal address in the OOB region whenever the documents are
+remapped to another region of the SSD (e.g., during updates).
+
+8. Related Work
+To our knowledge, REIS is the first system based on In-Storage
+Processing (ISP) that accelerates the retrieval stage of Retrieval-
+Augmented Generation (RAG). We have already qualitatively
+and quantitatively compared REIS to two existing state-of-the-
+art ISP-based ANNS accelerators [106, 299] in Section 6.4. In
+this section, we discuss works that improve RAG from other
+perspectives and relevant works for Nearest Neighbor Search
+Acceleration.
+
+8.1. RAG Enhancements
+Prior work has proposed various optimizations to the RAG
+pipeline. RQ-RAG [35], a representative prompt engineer-
+ing [82, 294, 140, 35] method, decomposes complex queries
+and disambiguates queries with more than one possible inter-
+pretation. Small-to-Big Retrieval [318], an improved document
+chunking strategy [235, 275, 157], uses small document chunks
+for the retrieval search and returns bigger chunks covering the
+same context. Hybrid approaches incorporate dense retrieval
+with sparse retrieval to capture both semantic and lexical sim-
+ilarity between query and documents [297, 187], or combine
+database search with web search when the knowledge base
+cannot provide relevant information [313].
+
+8.2. Nearest Neighbor Search Acceleration
+Due to the widespread adoption of ANNS to billion-scale rec-
+ommendation systems [333, 108, 330, 170, 80, 78], recent works
+have proposed dedicated libraries [71, 69, 268] and optimized
+algorithms [195, 194, 213, 288, 23] to improve its performance.
+These works improve the performance of ANNS through vari-
+ous optimizations for processor-centric systems. Since these
+optimizations target processor-centric systems, they cannot
+overcome the I/O data movement bottleneck that REIS aims to
+alleviate.
+
+Figure 11: Performance comparison of REIS and NDSearch.
+
+continuously updated databases providing real-time knowl-
+edge retrieval [79, 44, 43, 134], REIS (i) periodically creates new
+databases to store new information at a predefined frequency
+(e.g., every hour), (ii) treats each sub-database as a normal
+database tagged with an individual timestamp, (iii) maintains
+an entry for each database in the internal DRAM, including the
+database address and the timestamp. When the host sends a
+query with a requested time, REIS identifies the corresponding
+databases to be searched by first comparing the requested time
+with the timestamps stored in the internal DRAM and then
+performs search and retrieval operations within the identified
+databases.
+
+7.2. Implications on the Storage System
+
+Typical SSD operations. While REIS is primarily designed
+to accelerate RAG, it also serves as a conventional storage
+system. As such, the SSD controller must handle routine
+maintenance tasks, such as data refresh and garbage collec-
+tion [317, 314, 132]. To ensure uninterrupted execution of
+maintenance operations, we (i) confine REIS to only one of the
+embedded cores of the SSD and (ii) prioritize maintenance tasks
+over RAG operations when all cores are needed for mainte-
+nance. Since REIS primarily targets read-intensive RAG work-
+loads, write operations are expected to be infrequent, making
+full core utilization a rare occurrence. To simplify the design,
+REIS operates exclusively in either RAG-mode or normal SSD
+mode at any given time. To switch between the two modes, it
+is necessary to load the necessary FTL data (coarse-grained for
+RAG (see Sec. 4.1.4), fine-grained for normal operations). Since
+REIS exclusively operates in one of the two modes, perfor-
+mance of normal read/write operations from the host remains
+unaffected.
+Impact on SSD Lifetime. Although REIS disables ECC in the
+SLC partition to support in-die logic operations, this does not
+reduce SSD lifetime for two reasons. First, using SLC-mode in-
+stead of MLC inherently increases the distance between thresh-
+old voltages, enhancing flash memory cell reliability. Second,
+REIS employs ESP for the SLC partition, which achieves a 0
+BER [225], in a worst-case scenario, (i.e., 1-year retention time,
+10k Program/Erase cycles) [225].
+Contiguity Requirements. Coarse grained access (i.e., the
+
+14
+
+1101000.980.940.900.980.940.900.980.940.900.980.940.90BFIVF (Recall@10)BFIVF (Recall@10)BFIVF (Recall@10)BFIVF (Recall@10)NQHotpotQAwiki_enwiki_fullNorm. QPSREIS-SSD1REIS-SSD2024SIFT-1B (Recall@10=0.94)DEEP-1B (Recall@10=0.93)Norm. QPSSpeedup over ND-HNSWSpeedup over ND-DiskANNVarious ANNS hardware accelerators [327, 178, 299, 310,
+138, 113, 91, 220, 277, 342, 242] leverage approaches such as
+memory expansion [113, 242] and multi-node parallelism. [327,
+91, 277]. Processing-in-Memory techniques (PIM) have also
+been explored for accelerating Nearest Neighbor Search. For
+example, [232] proposes a CXL-based device that places vector
+product accelerators near LPDDR memory, aiming to improve
+the performance of Exact Nearest Neighbor Search (ENNS).
+In [231], Qin et al.
+leverage the properties of Non-Volatile
+Memory technologies to perform matrix-vector multiplication
+in the analog domain and accelerate RAG pipelines in edge
+devices. Despite performance improvements, DRAM-based
+approaches either fail to fundamentally address the I/O data
+movement bottleneck from storage or incur significant costs
+to serve large datasets.
+
+9. Conclusion
+We introduce REIS, a new retrieval system tailored to Retrieval-
+Augmented Generation based on In-Storage Processing. REIS
+improves performance and energy efficiency, by leveraging the
+existing computational resources within the storage system.
+REIS comprises three key mechanisms dedicated to RAG: (i) a
+vector database layout builds the correlation between embed-
+dings and documents to enable efficient document retrieval
+for ISP systems, (ii) algorithmic support customized for the
+ISP-friendly Inverted File algorithm to improve retrieval per-
+formance, (iii) an in-storage Approximate Nearest Neighbor
+Search (ANNS) engine to efficiently execute the ANNS kernel.
+Our evaluation shows that REIS significantly outperforms both
+(i) a modern CPU-based system for document retrieval and (ii)
+two state-of-the-art ISP-based ANNS accelerators. We believe
+and hope that REIS will inspire further research in In-Storage
+Processing, both in RAG and beyond.
+
+Acknowledgments
+We sincerely thank Andreas Kosmas Kakolyris for his very
+significant contributions to the work during and after the re-
+buttal process. Andreas is a first year PhD student in the
+SAFARI Research Group who should be a major co-author of
+the published ISCA 2025 version of this paper. However, due
+to the policy dictated by the ISCA leadership, which we, as all
+co-authors, wholeheartedly disagree with and find very prob-
+lematic, unscientific, and unethical, he was not allowed to be a
+co-author. We thank the anonymous reviewers of ISCA 2025
+for feedback. We thank the SAFARI Research Group members
+for feedback and the stimulating intellectual environment they
+provide. We acknowledge the generous gifts from our indus-
+trial partners, including Google, Huawei, Intel, and Microsoft.
+This work is supported in part by the ETH Future Computing
+Laboratory (EFCL), Huawei ZRC Storage Team, Semiconduc-
+tor Research Corporation (SRC), AI Chip Center for Emerg-
+ing Smart Systems (ACCESS), sponsored by InnoHK funding,
+Hong Kong SAR, and European Union’s Horizon programme
+for research and innovation [101047160 - BioPIM]. Jisung Park
+was supported by the National Research Foundation of Korea
+(RS-2024-00347394, RS-2024-00415602, RS-2024-00459026).
+
+15
+
+References
+
+[1] “FastBit: An Efficient Compressed Bitmap Index Technology,” https://sdm.lbl.gov/
+
+fastbit/, 2004.
+
+[2] A. Acharya, M. Uysal, and J. Saltz, “Active Disks: Programming Model, Algorithms
+
+and Evaluation,” ASPLOS, 1998.
+
+[3] N. Agrawal, V. Prabhakaran, T. Wobber, J. D. Davis, M. Manasse, and R. Panigrahy,
+
+“Design Tradeoffs for SSD Performance,” in USENIX ATC, 2008.
+
+[4] M. Ahn, A. Chang, D. Lee, J. Gim, J. Kim, J. Jung, O. Rebholz, V. Pham, K. Malladi,
+and Y. S. Ki, “Enabling cxl memory expansion for in-memory database management
+systems,” in Proceedings of the 18th International Workshop on Data Management on
+New Hardware, 2022, pp. 1–5.
+
+[5] V.
+
+AI,
+
+“voyage-multilingual-2:
+
+2024.
+Available:
+voyage-multilingual-2-multilingual-embedding-model/
+
+[Online].
+
+Multilingual
+embedding model,”
+https://blog.voyageai.com/2024/06/10/
+
+[6] J. Ainslie, J. Lee-Thorp, M. de Jong, Y. Zemlyanskiy, F. Lebrón, and S. Sanghai, “Gqa:
+Training generalized multi-query transformer models from multi-head checkpoints,”
+arXiv preprint arXiv:2305.13245, 2023.
+
+[7] M. Ajdari, P. Park, J. Kim, D. Kwon, and J. Kim, “CIDR: A Cost-effective In-line
+Data Reduction System for Terabit-per-second Scale SSD Arrays,” in HPCA, 2019.
+for
+“Build a RAG data
+https://aws.amazon.com/blogs/big-data/
+
+large-scale
+build-a-rag-data-ingestion-pipeline-for-large-scale-ml-workloads/, 2024.
+
+[8] Amazon Web Services,
+
+ingestion pipeline
+
+workloads,”
+
+ML
+
+[9] AMD, “Epyc™ 9554,” 2023. [Online]. Available: https://www.amd.com/en/products/
+processors/server/epyc/4th-generation-9004-and-8004-series/amd-epyc-9554.
+html
+
+[10] AMD, “AMD® µProf,” 2024. [Online]. Available: https://www.amd.com/en/
+
+developer/uprof.html
+
+[11] L. Amsaleg and H. Jégou. (2010) Datasets for approximate nearest neighbor search.
+
+[Online]. Available: http://corpus-texmex.irisa.fr/
+
+[12] D. C. Anastasiu and G. Karypis, “L2knng: Fast exact k-nearest neighbor graph
+construction with l2-norm pruning,” in Proceedings of the 24th ACM International
+on Conference on Information and Knowledge Management, 2015, pp. 791–800.
+[13] Arm, “Cortex-r8,” 2016. [Online]. Available: https://www.arm.com/products/
+
+silicon-ip-cpu/cortex-r/cortex-r8
+
+[14] Arm,
+
+“Arm storage solution for ssd controllers,” 2020. [Online]. Avail-
+able: https://armkeil.blob.core.windows.net/developer/Files/pdf/solution-brief/
+arm-storage-solution-for-ssd-solutions-brief.pdf
+
+[15] S. Arya, D. M. Mount, N. S. Netanyahu, R. Silverman, and A. Y. Wu, “An optimal
+algorithm for approximate nearest neighbor searching fixed dimensions,” Journal
+of the ACM (JACM), vol. 45, no. 6, pp. 891–923, 1998.
+
+[16] K. Ashutosh, R. Girdhar, L. Torresani, and K. Grauman, “Hiervl: Learning hierar-
+chical video-language embeddings,” in Proceedings of the IEEE/CVF Conference on
+Computer Vision and Pattern Recognition, 2023, pp. 23 066–23 078.
+
+[17] D.-H. Bae, J.-H. Kim, S.-W. Kim, H. Oh, and C. Park, “Intelligent SSD: A Turbo for
+
+Big Data Mining,” in CIKM, 2013.
+
+[18] R. Balasubramonian, A. B. Kahng, N. Muralimanohar, A. Shafiee, and V. Srinivas,
+“Cacti 7: New tools for interconnect exploration in innovative off-chip memories,”
+ACM Transactions on Architecture and Code Optimization (TACO), vol. 14, no. 2, pp.
+1–25, 2017.
+
+[19] S. Beamer, K. Asanovic, and D. Patterson, “Direction-Optimizing Breadth-First
+
+Search,” in SC, 2012.
+
+[20] P. BehnamGhader, V. Adlakha, M. Mosbach, D. Bahdanau, N. Chapados, and
+S. Reddy, “Llm2vec: Large language models are secretly powerful text encoders,”
+arXiv preprint arXiv:2404.05961, 2024.
+
+[21] M. Besta, R. Kanakagiri, G. Kwasniewski, R. Ausavarungnirun, J. Beránek, K. Kanel-
+lopoulos, K. Janda, Z. Vonarburg-Shmaria, L. Gianinazzi, I. Stefan et al., “SISA: Set-
+Centric Instruction Set Architecture for Graph Mining on Processing-in-Memory
+Systems,” in MICRO, 2021.
+
+[22] S. Boboila, Y. Kim, S. S. Vazhkudai, P. Desnoyers, and G. M. Shipman, “Active Flash:
+
+Out-of-core Data Analytics on Flash Storage ,” in MSST, 2012.
+
+[23] S. Bruch, A. Krishnan, and F. M. Nardini, “Optimistic query routing in clustering-
+based approximate maximum inner product search,” arXiv preprint arXiv:2405.12207,
+2024.
+
+[24] D. Caffagni, F. Cocchi, N. Moratelli, S. Sarto, M. Cornia, L. Baraldi, and R. Cucchiara,
+“Wiki-llava: Hierarchical retrieval-augmented generation for multimodal llms,” in
+Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+2024, pp. 1818–1826.
+
+[25] Y. Cai, S. Ghose, E. F. Haratsch, Y. Luo, and O. Mutlu, “Error Characterization,
+Mitigation, and Recovery in Flash-Memory-Based Solid-State Drives,” Proc. IEEE,
+2017.
+
+[26] Y. Cai, S. Ghose, E. F. Haratsch, Y. Luo, and O. Mutlu, “Error Characterization,
+Mitigation, and Recovery in Flash-Memory-Based Solid-State Drives,” Proc. IEEE,
+2017.
+
+[27] Y. Cai, S. Ghose, E. F. Haratsch, Y. Luo, and O. Mutlu, “Errors in Flash-Memory-
+Based Solid-State Drives: Analysis, Mitigation, and Recovery,” in Inside Solid State
+Drives, 2018.
+
+[28] Y. Cai, S. Ghose, E. F. Haratsch, Y. Luo, and O. Mutlu, “Reliability Issues in Flash-
+memory-based Solid-state Drives: Experimental Analysis, Mitigation, Recovery,”
+in Inside Solid State Drives, 2018.
+
+[29] Y. Cai, S. Ghose, Y. Luo, K. Mai, O. Mutlu, and E. F. Haratsch, “Vulnerabilities in
+MLC NAND Flash Memory Programming: Experimental Analysis, Exploits, and
+Mitigation Techniques ,” in HPCA, 2017.
+
+[30] Y. Cai, E. F. Haratsch, O. Mutlu, and K. Mai, “Error Patterns in MLC NAND Flash
+
+[58] Cohere, “beir-embed-english-v3,” 2024. [Online]. Available: https://huggingface.co/
+
+Memory: Measurement, Characterization, and Analysis,” in DATE, 2012.
+
+[31] Y. Cai, E. F. Haratsch, O. Mutlu, and K. Mai, “Error patterns in mlc nand flash
+memory: Measurement, characterization, and analysis,” in 2012 Design, Automation
+& Test in Europe Conference & Exhibition (DATE).
+
+IEEE, 2012, pp. 521–526.
+
+[32] Y. Cai, G. Yalcin, O. Mutlu, E. F. Haratsch, A. Cristal, O. S. Unsal et al., “Flash Correct-
+and-Refresh: Retention-Aware Error Management for Increased Flash Memory
+Lifetime,” in ICCD, 2012.
+
+[33] H. Cao, F. Liu, Q. Wang, Z. Du, L. Jin, and Z. Huo, “An efficient built-in error
+detection methodology with fast page-oriented data comparison in 3d nand flash
+memories,” Electronics Letters, vol. 58, no. 12, pp. 483–485, 2022.
+
+[34] C.-Y. Chan and Y. E. Ioannidis, “Bitmap Index Design and Evaluation,” in SIGMOD,
+
+1998.
+
+[35] C.-M. Chan, C. Xu, R. Yuan, H. Luo, W. Xue, Y. Guo, and J. Fu, “Rq-rag: Learning to
+refine queries for retrieval augmented generation,” arXiv preprint arXiv:2404.00610,
+2024.
+
+[36] L.-P. Chang, “A hybrid approach to nand-flash-based solid-state disks,” IEEE Trans-
+
+actions on Computers, vol. 59, no. 10, pp. 1337–1349, 2010.
+
+[37] H. Chase, “Langchain,” 2022. [Online]. Available: https://github.com/langchain-ai/
+
+langchain
+
+[38] D. Chen and W.-t. Yih, “Open-domain question answering,” in Proceedings of the
+58th annual meeting of the association for computational linguistics: tutorial abstracts,
+2020, pp. 34–37.
+
+[39] J. Chen, S. Xiao, P. Zhang, K. Luo, D. Lian, and Z. Liu, “Bge m3-embedding:
+Multi-lingual, multi-functionality, multi-granularity text embeddings through self-
+knowledge distillation,” 2024.
+
+[40] J. Chen, H. Lin, X. Han, and L. Sun, “Benchmarking large language models in
+retrieval-augmented generation,” in Proceedings of the AAAI Conference on Artificial
+Intelligence, vol. 38, no. 16, 2024, pp. 17 754–17 762.
+
+[41] Q. Chen, B. Zhao, H. Wang, M. Li, C. Liu, Z. Li, M. Yang, and J. Wang, “Spann:
+Highly-efficient billion-scale approximate nearest neighborhood search,” Advances
+in Neural Information Processing Systems, vol. 34, pp. 5199–5212, 2021.
+
+[42] R. Chen, B. Liu, H. Zhu, Y. Wang, Q. Li, B. Ma, Q. Hua, J. Jiang, Y. Xu, H. Deng et al.,
+“Approximate nearest neighbor search under neural similarity metric for large-
+scale recommendation,” in Proceedings of the 31st ACM International Conference on
+Information & Knowledge Management, 2022, pp. 3013–3022.
+
+[43] W. Chen, X. Wang, and W. Y. Wang, “A dataset for answering time-sensitive
+
+questions,” arXiv preprint arXiv:2108.06314, 2021.
+
+[44] Q. Cheng, X. Li, S. Li, Q. Zhu, Z. Yin, Y. Shao, L. Li, T. Sun, H. Yan, and X. Qiu, “Unified
+active retrieval for retrieval augmented generation,” arXiv preprint arXiv:2406.12534,
+2024.
+
+[45] X. Cheng, D. Luo, X. Chen, L. Liu, D. Zhao, and R. Yan, “Lift yourself up: Retrieval-
+augmented text generation with self-memory,” Advances in Neural Information
+Processing Systems, vol. 36, 2024.
+
+[46] B. Y. Cho, W. S. Jeong, D. Oh, and W. W. Ro, “XSD: Accelerating MapReduce by
+
+Harnessing the GPU inside an SSD ,” in WoNDP, 2013.
+
+[47] J. Cho, D. C. Kang, J. Park, S.-W. Nam, J.-H. Song, B.-K. Jung, J. Lyu, H. Lee, W.-T.
+Kim, H. Jeon et al., “30.3 a 512gb 3b/cell 7 th-generation 3d-nand flash memory
+with 184mb/s write throughput and 2.0 gb/s interface,” in 2021 IEEE International
+Solid-State Circuits Conference (ISSCC), vol. 64.
+
+IEEE, 2021, pp. 426–428.
+
+[48] S. Cho, B. Kim, H. Cho, G. Seo, O. Mutlu, M. Kim, and J. Park, “Aero: Adaptive erase
+operation for improving lifetime and performance of modern nand flash-based ssds,”
+in Proceedings of the 29th ACM International Conference on Architectural Support for
+Programming Languages and Operating Systems, Volume 3, 2024, pp. 101–118.
+[49] T. Cho, Y.-T. Lee, E.-C. Kim, J.-W. Lee, S. Choi, S. Lee, D.-H. Kim, W.-G. Han, Y.-H.
+Lim, J.-D. Lee et al., “A Dual-Mode NAND Flash Memory: 1-Gb Multilevel and
+High-Performance 512-Mb Single-Level Modes,” JSSC, 2001.
+
+[50] W. Cho, J. Jung, J. Kim, J. Ham, S. Lee, Y. Noh, D. Kim, W. Lee, K. Cho, K. Kim et al.,
+“A 1-Tb, 4b/Cell, 176-Stacked-WL 3D-NAND Flash Memory with Improved Read
+Latency and a 14.8 Gb/mm2 Density,” in ISSCC, 2022.
+
+[51] W. Cho, J. Jung, J. Kim, J. Ham, S. Lee, Y. Noh, D. Kim, W. Lee, K. Cho, K. Kim,
+H. Lee, S. Chai, E. Jo, H. Cho, J.-S. Kim, C. Kwon, C. Park, H. Nam, H. Won, T. Kim,
+K. Park, S. Oh, J. Ban, J. Park, J. Shin, T. Shin, J. Jang, J. Mun, J. Choi, H. Choi, S.-W.
+Choi, W. Park, D. Yoon, M. Kim, J. Lim, C. An, H. Shirr, H. Oh, H. Park, S. Shim,
+H. Huh, H. Choi, S. Lee, J. Sim, K. Gwon, J. Kim, W. Jeong, J. Choi, and K.-W. Jin, “A
+1-tb, 4b/cell, 176-stacked-wl 3d-nand flash memory with improved read latency and
+a 14.8gb/mm2 density,” in 2022 IEEE International Solid-State Circuits Conference
+(ISSCC), vol. 65, 2022, pp. 134–135.
+
+[52] N. Choi and J. Kim, “Modeling and simulation of nand flash memory sensing
+systems with cell-to-cell vth variations,” in Proceedings of the 39th International
+Conference on Computer-Aided Design, 2020, pp. 1–8.
+
+[53] W. Choi, M. Jung, M. Kandemir, and C. Das, “Parallelizing Garbage Collection with
+
+I/O to Improve Flash Resource Utilization,” in HPDC, 2018.
+
+[54] J. Choquette and W. Gandhi, “Nvidia a100 gpu: Performance & innovation for gpu
+IEEE Computer Society,
+
+computing,” in 2020 IEEE Hot Chips 32 Symposium (HCS).
+2020, pp. 1–43.
+
+[55] J. Choquette, W. Gandhi, O. Giroux, N. Stam, and R. Krashinsky, “Nvidia a100 tensor
+core gpu: Performance and innovation,” IEEE Micro, vol. 41, no. 2, pp. 29–35, 2021.
+[56] A. Chouhan and M. Gertz, “Lexdrafter: Terminology drafting for legislative doc-
+uments using retrieval augmented generation,” arXiv preprint arXiv:2403.16295,
+2024.
+
+[57] Cohere, “Introducing embed v3,” 2023. [Online]. Available: https://cohere.com/
+
+datasets/Cohere/beir-embed-english-v3
+
+[59] Cohere,
+line].
+wikipedia-2023-11-embed-multilingual-v3
+
+“wikipedia-2023-11-embed-multilingual-v3,”
+Available:
+
+[On-
+https://huggingface.co/datasets/Cohere/
+
+2024.
+
+[60] Cohere,
+
+“wikipedia-2023-11-embed-multilingual-v3-int8-binary,”
+
+2024.
+https://huggingface.co/datasets/Cohere/
+
+[Online].
+wikipedia-2023-11-embed-multilingual-v3-int8-binary
+
+Available:
+
+[61] C. M. Compagnoni, A. Goda, A. S. Spinelli, P. Feeley, A. L. Lacaita, and A. Visconti,
+“Reviewing the evolution of the nand flash technology,” Proceedings of the IEEE, vol.
+105, no. 9, pp. 1609–1633, 2017.
+
+[62] R. Cöster and M. Svensson, “Inverted file search algorithms for collaborative fil-
+tering,” in Proceedings of the 25th annual international ACM SIGIR conference on
+Research and development in information retrieval, 2002, pp. 246–252.
+
+[63] K. Csernai, “First quora dataset release: Question pairs,” 2017. [Online]. Available:
+https://quoradata.quora.com/First-Quora-Dataset-Release-Question-Pairs
+
+[64] T. Dao, “Flashattention-2: Faster attention with better parallelism and work parti-
+
+tioning,” arXiv preprint arXiv:2307.08691, 2023.
+
+[65] T. Dao, D. Fu, S. Ermon, A. Rudra, and C. Ré, “Flashattention: Fast and memory-
+efficient exact attention with io-awareness,” Advances in Neural Information Pro-
+cessing Systems, vol. 35, pp. 16 344–16 359, 2022.
+
+[66] D. Das Sharma, R. Blankenship, and D. Berger, “An introduction to the compute
+express link (cxl) interconnect,” ACM Computing Surveys, vol. 56, no. 11, pp. 1–37,
+2024.
+
+[67] A. Dasgupta, R. Kumar, and T. Sarlos, “Fast locality-sensitive hashing,” in Proceedings
+of the 17th ACM SIGKDD International Conference on Knowledge Discovery and Data
+Mining, ser. KDD ’11. New York, NY, USA: Association for Computing Machinery,
+2011, p. 1073–1081. [Online]. Available: https://doi.org/10.1145/2020408.2020578
+
+[68] J. Do, Y.-S. Kee, J. M. Patel, C. Park, K. Park, and D. J. DeWitt, “Query Processing
+
+on Smart SSDs: Opportunities and Challenges,” in ACM SIGMOD, 2013.
+
+[69] M. Dobson, Z. Shen, G. E. Blelloch, L. Dhulipala, Y. Gu, H. V. Simhadri,
+and Y. Sun, “Scaling graph-based ANNS algorithms to billion-size datasets:
+A comparative analysis,” CoRR, vol. abs/2305.04359, 2023. [Online]. Available:
+https://doi.org/10.48550/arXiv.2305.04359
+
+[70] A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai, T. Unterthiner,
+M. Dehghani, M. Minderer, G. Heigold, S. Gelly et al., “An image is worth 16x16
+words: Transformers for image recognition at scale,” arXiv preprint arXiv:2010.11929,
+2020.
+
+[71] M. Douze, A. Guzhva, C. Deng, J. Johnson, G. Szilvasy, P.-E. Mazaré, M. Lomeli,
+
+L. Hosseini, and H. Jégou, “The faiss library,” 2024.
+
+[72] A. Dubey, A. Jauhri, A. Pandey, A. Kadian, A. Al-Dahle, A. Letman, A. Mathur,
+A. Schelten, A. Yang, A. Fan et al., “The llama 3 herd of models,” arXiv preprint
+arXiv:2407.21783, 2024.
+
+[73] EleutherAI, “Gpt-j 6b,” 2021. [Online]. Available: https://huggingface.co/EleutherAI/
+
+gpt-j-6b
+
+[74] P. Faldu, J. Diamond, and B. Grot, “A closer look at lightweight graph reordering,”
+in 2019 IEEE International Symposium on Workload Characterization (IISWC).
+IEEE,
+2019, pp. 1–13.
+
+[75] P. Faldu, J. Diamond, and B. Grot, “Domain-specialized cache management for graph
+analytics,” in 2020 IEEE International Symposium on High Performance Computer
+Architecture (HPCA).
+
+IEEE, 2020, pp. 234–248.
+
+[76] M. Fang, S. Ji, J. Zuo, H. Huang, Y. Xia, J. Zhu, X. Cheng, X. Yang, W. Liu, G. Wang
+et al., “Ace: A generative cross-modal retrieval framework with coarse-to-fine
+semantic modeling,” arXiv preprint arXiv:2406.17507, 2024.
+
+[77] H. Ferhatosmanoglu, E. Tuncel, D. Agrawal, and A. El Abbadi, “Approximate nearest
+neighbor searching in multimedia databases,” in Proceedings 17th International
+Conference on Data Engineering.
+
+IEEE, 2001, pp. 503–511.
+
+[78] C. Fu, C. Xiang, C. Wang, and D. Cai, “Fast approximate nearest neighbor search
+
+with the navigating spreading-out graph,” arXiv preprint arXiv:1707.00143, 2017.
+
+[79] A. Gade and J. Jetcheva, “It’s about time: Incorporating temporality in retrieval
+
+augmented language models,” arXiv preprint arXiv:2401.13222, 2024.
+
+[80] Y. Gan, Y. Ge, C. Zhou, S. Su, Z. Xu, X. Xu, Q. Hui, X. Chen, Y. Wang, and Y. Shan,
+“Binary embedding-based retrieval at tencent,” in Proceedings of the 29th ACM
+SIGKDD Conference on Knowledge Discovery and Data Mining, 2023, pp. 4056–4067.
+[81] C. Gao, X. Xin, Y. Lu, Y. Zhang, J. Yang, and J. Shu, “ParaBit: Processing Parallel
+Bitwise Operations in NAND Flash Memory Based SSDs,” in MICRO, 2021.
+[82] L. Gao, X. Ma, J. Lin, and J. Callan, “Precise zero-shot dense retrieval without
+
+relevance labels,” arXiv preprint arXiv:2212.10496, 2022.
+
+[83] Y. Gao, Y. Xiong, X. Gao, K. Jia, J. Pan, Y. Bi, Y. Dai, J. Sun, and H. Wang,
+“Retrieval-augmented generation for large language models: A survey,” arXiv
+preprint arXiv:2312.10997, 2023.
+
+[84] N. M. Ghiasi, M. Sadrosadati, H. Mustafa, A. Gollwitzer, C. Firtina, J. Eudine,
+H. Mao, J. Lindegger, M. B. Cavlak, M. Alser et al., “Megis: High-performance,
+energy-efficient, and low-cost metagenomic analysis with in-storage processing,”
+arXiv preprint arXiv:2406.19113, 2024.
+
+[85] S. Ghose, T. Li, N. Hajinazar, D. S. Cali, and O. Mutlu, “Demystifying complex
+workload-dram interactions: An experimental study,” Proceedings of the ACM on
+Measurement and Analysis of Computing Systems, vol. 3, no. 3, pp. 1–50, 2019.
+[86] S. Ghosh, S. Kumar, C. K. R. Evuru, R. Duraiswami, and D. Manocha, “Recap:
+retrieval-augmented audio captioning,” in ICASSP 2024-2024 IEEE International
+Conference on Acoustics, Speech and Signal Processing (ICASSP).
+IEEE, 2024, pp.
+1161–1165.
+
+blog/introducing-embed-v3
+
+[87] R. Girdhar, A. El-Nouby, Z. Liu, M. Singh, K. V. Alwala, A. Joulin, and I. Misra,
+
+16
+
+“Imagebind: One embedding space to bind them all,” in Proceedings of the IEEE/CVF
+Conference on Computer Vision and Pattern Recognition, 2023, pp. 15 180–15 190.
+[88] B. Goodwin, M. Hopcroft, D. Luu, A. Clemmer, M. Curmei, S. Elnikety, and Y. He,
+
+“BitFunnel: Revisiting Signatures for Search,” in SIGIR, 2017.
+2024.
+
+“Get multimodal
+Avail-
+https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/
+
+embeddings,”
+
+[Online].
+
+[89] Google,
+able:
+get-multimodal-embeddings
+
+[90] D. Gouk, M. Kwon, H. Bae, S. Lee, and M. Jung, “Memory pooling with cxl,” IEEE
+
+Micro, vol. 43, no. 2, pp. 48–57, 2023.
+
+[91] F. Groh, L. Ruppert, P. Wieschollek, and H. P. Lensch, “Ggnn: Graph-based gpu
+nearest neighbor search,” IEEE Transactions on Big Data, vol. 9, no. 1, pp. 267–279,
+2022.
+
+[92] S. R. Group, “Ramulator github repository,” https://github.com/CMU-SAFARI/
+
+ramulator/.
+
+[93] B. Gu, A. S. Yoon, D.-H. Bae, I. Jo, J. Lee, J. Yoon, J.-U. Kang, M. Kwon, C. Yoon,
+S. Cho et al., “Biscuit: A framework for near-data processing of big data workloads,”
+ACM SIGARCH Computer Architecture News, vol. 44, no. 3, pp. 153–165, 2016.
+[94] B. Gu, A. S. Yoon, D.-H. Bae, I. Jo, J. Lee, J. Yoon, J.-U. Kang, M. Kwon, C. Yoon, S. Cho
+et al., “Biscuit: A Framework for Near-Data Processing of Big Data Workloads,” in
+ISCA, 2016.
+
+[95] A. Gupta, Y. Kim, and B. Urgaonkar, “DFTL: A Flash Translation Layer Employing
+Demand-based Selective Caching of Page-level Address Mappings,” in ASPLOS,
+2009.
+
+[96] Z. Guz, M. Awasthi, V. Balakrishnan, M. Ghosh, A. Shayesteh, T. Suri, and
+S. Semiconductor, “Real-Time Analytics as the Killer Application for Processing-In-
+Memory,” WoNDP, 2014.
+
+[97] K. Hajebi, Y. Abbasi-Yadkori, H. Shahbazi, and H. Zhang, “Fast approximate nearest-
+neighbor search with k-nearest neighbor graph,” in Twenty-Second International
+Joint Conference on Artificial Intelligence, 2011.
+
+[98] N. Hajinazar, G. F. Oliveira, S. Gregorio, J. D. Ferreira, N. M. Ghiasi, M. Patel,
+M. Alser, S. Ghose, J. Gómez-Luna, and O. Mutlu, “SIMDRAM: A Framework for
+Bit-Serial SIMD Processing Using DRAM,” in ASPLOS, 2021.
+
+[99] K. Han, H. Kim, and D. Shin, “Wal-ssd: Address remapping-based write-ahead-
+logging solid-state disks,” IEEE Transactions on Computers, vol. 69, no. 2, pp. 260–273,
+2019.
+
+[100] W. He, Z. Li, H. Wang, T. Xu, Z. Wang, B. Huai, N. J. Yuan, and E. Chen, “Multi-
+modal dialogue systems via capturing context-aware dependencies and ordinal
+information of semantic elements,” ACM Transactions on Intelligent Systems and
+Technology, vol. 15, no. 3, pp. 1–25, 2024.
+
+[101] T. Higuchi, T. Kodama, K. Kato, R. Fukuda, N. Tokiwa, M. Abe, T. Takagiwa,
+Y. Shimizu, J. Musha, K. Sakurai et al., “A 1Tb 3b/Cell 3D-Flash Memory in a
+170+ Word-Line-Layer Technology,” in ISSCC, 2021.
+
+[102] C. A. R. Hoare, “Algorithm 65: find,” Commun. ACM, vol. 4, no. 7, p. 321–322, jul
+
+1961. [Online]. Available: https://doi.org/10.1145/366622.366647
+
+[103] C. A. Hoare, “Quicksort,” The computer journal, vol. 5, no. 1, pp. 10–16, 1962.
+[104] C. Holmes, M. Tanaka, M. Wyatt, A. A. Awan, J. Rasley, S. Rajbhandari, R. Y.
+Aminabadi, H. Qin, A. Bakhtiari, L. Kurilenko et al., “Deepspeed-fastgen: High-
+throughput text generation for llms via mii and deepspeed-inference,” arXiv preprint
+arXiv:2401.08671, 2024.
+
+[105] A. B. Hou, O. Weller, G. Qin, E. Yang, D. Lawrie, N. Holzenberger, A. Blair-Stanek,
+and B. Van Durme, “Clerc: A dataset for legal case retrieval and retrieval-augmented
+analysis generation,” arXiv preprint arXiv:2406.17186, 2024.
+
+[106] H.-W. Hu, W.-C. Wang, Y.-H. Chang, Y.-C. Lee, B.-R. Lin, H.-M. Wang, Y.-P. Lin,
+Y.-M. Huang, C.-Y. Lee, T.-H. Su et al., “Ice: An intelligent cognition engine with
+3d nand-based in-memory computing for vector similarity search acceleration,” in
+2022 55th IEEE/ACM International Symposium on Microarchitecture (MICRO).
+IEEE,
+2022, pp. 763–783.
+
+[107] J. Huang, A. Badam, M. K. Qureshi, and K. Schwan, “Unified Address Translation
+
+for Memory-Mapped SSDs with Flashmap,” in ISCA, 2015.
+
+[108] J.-T. Huang, A. Sharma, S. Sun, L. Xia, D. Zhang, P. Pronin, J. Padmanabhan, G. Otta-
+viano, and L. Yang, “Embedding-based retrieval in facebook search,” in Proceedings
+of the 26th ACM SIGKDD International Conference on Knowledge Discovery & Data
+Mining, 2020, pp. 2553–2561.
+
+[109] P. Indyk and R. Motwani, “Approximate nearest neighbors: towards removing the
+curse of dimensionality,” in Proceedings of the thirtieth annual ACM symposium on
+Theory of computing, 1998, pp. 604–613.
+
+xeon®
+
+“Intel®
+
+[110] Intel,
+
+[Online].
+https://www.intel.de/content/www/de/de/products/sku/120473/
+
+Available:
+intel-xeon-gold-5118-processor-16-5m-cache-2-30-ghz/specifications.html
+[111] G. Izacard, P. Lewis, M. Lomeli, L. Hosseini, F. Petroni, T. Schick, J. Dwivedi-Yu,
+A. Joulin, S. Riedel, and E. Grave, “Atlas: few-shot learning with retrieval augmented
+language models,” J. Mach. Learn. Res., vol. 24, no. 1, Jan. 2023.
+
+processor
+
+[112] H. Jang, J. Song, J. Jung, J. Park, Y. Kim, and J. Lee, “Smart-infinity: Fast large
+language model training using near-storage processing on a real system,” in 2024
+IEEE International Symposium on High-Performance Computer Architecture (HPCA).
+IEEE, 2024, pp. 345–360.
+
+5118,”
+
+2017.
+
+gold
+
+[113] J. Jang, H. Choi, H. Bae, S. Lee, M. Kwon, and M. Jung, “{CXL-ANNS}:{Software-
+Hardware} collaborative memory disaggregation and computation for {Billion-
+Scale} approximate nearest neighbor search,” in 2023 USENIX Annual Technical
+Conference (USENIX ATC 23), 2023, pp. 585–600.
+
+[114] T. Jansen, Y. Tong, V. Zevallos, and P. O. Suarez, “Perplexed by quality: A perplexity-
+based method for adult and harmful content detection in multilingual heteroge-
+neous web data,” arXiv preprint arXiv:2212.10440, 2022.
+
+17
+
+[115] S. Jayaram Subramanya, F. Devvrit, H. V. Simhadri, R. Krishnawamy, and
+R. Kadekodi, “Diskann: Fast accurate billion-point nearest neighbor search on
+a single node,” Advances in Neural Information Processing Systems, vol. 32, 2019.
+
+[116] H. Jegou, M. Douze, and C. Schmid, “Product quantization for nearest neighbor
+search,” IEEE transactions on pattern analysis and machine intelligence, vol. 33, no. 1,
+pp. 117–128, 2010.
+
+[117] J. Jeong, S. S. Hahn, S. Lee, and J. Kim, “Lifetime Improvement of NAND Flash-based
+Storage Systems Using Dynamic Program and Erase Scaling,” in FAST, 2014.
+[118] W. S. Jeong, C. Lee, K. Kim, M. K. Yoon, W. Jeon, M. Jung, and W. W. Ro, “REACT:
+Scalable and High-performance Regular Expression Pattern Matching Accelerator
+for In-storage Processing,” IEEE TPDS, 2019.
+
+[119] Z. Ji, N. Lee, R. Frieske, T. Yu, D. Su, Y. Xu, E. Ishii, Y. J. Bang, A. Madotto, and
+P. Fung, “Survey of hallucination in natural language generation,” ACM Computing
+Surveys, vol. 55, no. 12, pp. 1–38, 2023.
+
+[120] Z. Ji, T. Yu, Y. Xu, N. Lee, E. Ishii, and P. Fung, “Towards mitigating llm hallucination
+via self reflection,” in Findings of the Association for Computational Linguistics:
+EMNLP 2023, 2023, pp. 1827–1843.
+
+[121] C. Jia, Y. Yang, Y. Xia, Y.-T. Chen, Z. Parekh, H. Pham, Q. Le, Y.-H. Sung, Z. Li, and
+T. Duerig, “Scaling up visual and vision-language representation learning with
+noisy text supervision,” in International conference on machine learning. PMLR,
+2021, pp. 4904–4916.
+
+[122] A. Q. Jiang, A. Sablayrolles, A. Roux, A. Mensch, B. Savary, C. Bamford, D. S.
+Chaplot, D. d. l. Casas, E. B. Hanna, F. Bressand et al., “Mixtral of experts,” arXiv
+preprint arXiv:2401.04088, 2024.
+
+[123] Z. Jiang, F. F. Xu, L. Gao, Z. Sun, Q. Liu, J. Dwivedi-Yu, Y. Yang, J. Callan, and
+G. Neubig, “Active retrieval augmented generation,” arXiv preprint arXiv:2305.06983,
+2023.
+
+[124] J. Jin, Y. Zhu, X. Yang, C. Zhang, and Z. Dou, “Flashrag: A modular toolkit for
+efficient retrieval-augmented generation research,” arXiv preprint arXiv:2405.13576,
+2024.
+
+[125] I. Jo, D.-H. Bae, A. S. Yoon, J.-U. Kang, S. Cho, D. D. Lee, and J. Jeong, “Yoursql: a
+high-performance database system leveraging in-storage computing,” Proceedings
+of the VLDB Endowment, vol. 9, no. 12, pp. 924–935, 2016.
+
+[126] J. Johnson, M. Douze, and H. Jégou, “Billion-scale similarity search with gpus,” IEEE
+
+Transactions on Big Data, vol. 7, no. 3, pp. 535–547, 2019.
+
+[127] S.-W. Jun, M. Liu, S. Lee, J. Hicks, J. Ankcorn, M. King, S. Xu et al., “BlueDBM: An
+
+Appliance for Big Data Analytics,” in ISCA, 2015.
+
+[128] S.-W. Jun, H. T. Nguyen, V. Gadepally et al., “In-Storage Embedded Accelerator for
+
+Sparse Pattern Processing,” in HPEC, 2016.
+
+[129] S.-W. Jun, A. Wright, S. Zhang, S. Xu, and Arvind, “GraFBoost: Using Accelerated
+
+Flash Storage for External Graph Analytics,” in ISCA, 2018.
+
+[130] M. Jung, R. Prabhakar, and M. T. Kandemir, “Taking Garbage Collection Overheads
+
+Off the Critical Path in SSDs,” in Middleware, 2012.
+
+[131] L. Kang, Y. Xue, W. Jia, X. Wang, J. Kim, C. Youn, M. J. Kang, H. J. Lim, B. Jacob, and
+J. Huang, “IceClave: A Trusted Execution Environment for In-Storage Computing,”
+in MICRO, 2021.
+
+[132] W. Kang, D. Shin, and S. Yoo, “Reinforcement learning-assisted garbage collection
+to mitigate long-tail latency in ssd,” ACM Transactions on Embedded Computing
+Systems (TECS), vol. 16, no. 5s, pp. 1–20, 2017.
+
+[133] Y. Kang, Y. suk Kee, E. L. Miller, and C. Park, “Enabling Cost-effective Data Pro-
+
+cessing with Smart SSD,” in MSST, 2013.
+
+[134] J. Kasai, K. Sakaguchi, R. Le Bras, A. Asai, X. Yu, D. Radev, N. A. Smith, Y. Choi,
+K. Inui et al., “Realtime qa: what’s the answer right now?” Advances in Neural
+Information Processing Systems, vol. 36, 2024.
+
+[135] N. Kasliwal, “Binary quantization - vector search, 40x faster,” 2023. [Online].
+
+Available: https://qdrant.tech/articles/binary-quantization/
+
+[136] K. Keeton, D. A. Patterson, and J. M. Hellerstein, “A Case for Intelligent Disks
+
+(IDISKs),” SIGMOD Rec., 1998.
+
+[137] A. Khakifirooz, S. Balasubrahmanyam, R. Fastow, K. H. Gaewsky, C. W. Ha, R. Haque,
+O. W. Jungroth, S. Law, A. S. Madraswala, B. Ngo et al., “A 1Tb 4b/Cell 144-Tier
+Floating-Gate 3D-NAND Flash Memory with 40MB/s Program Throughput and
+13.8Gb/mm2 Bit Density,” in ISSCC, 2021.
+
+[138] S. Khan, S. Singh, H. V. Simhadri, J. Vedurada et al., “Bang: Billion-scale approximate
+nearest neighbor search using a single gpu,” arXiv preprint arXiv:2401.11324, 2024.
+[139] C. Kim, J. Ryu, T. Lee, H. Kim, J. Lim, J. Jeong, S. Seo, H. Jeon, B. Kim, I. Lee et al., “A
+21 nm high performance 64 gb mlc nand flash memory with 400 mb/s asynchronous
+toggle ddr interface,” IEEE Journal of Solid-State Circuits, vol. 47, no. 4, pp. 981–989,
+2012.
+
+[140] G. Kim, S. Kim, B. Jeon, J. Park, and J. Kang, “Tree of clarifications: Answering
+ambiguous questions with retrieval-augmented large language models,” arXiv
+preprint arXiv:2310.14696, 2023.
+
+[141] J.-H. Kim, Y.-R. Park, J. Do, S.-Y. Ji, and J.-Y. Kim, “Accelerating large-scale graph-
+based nearest neighbor search on a computational storage platform,” IEEE Transac-
+tions on Computers, vol. 72, no. 1, pp. 278–290, 2022.
+
+[142] J. Kim, M. Jung, and J. Kim, “Decoupled SSD: Reducing Data Movement on NAND-
+
+Based Flash SSD,” IEEE CAL, 2021.
+
+[143] J. Kim, S. Kang, Y. Park, and J. Kim, “Networked SSD: Flash Memory Interconnection
+
+Network for High-Bandwidth SSD,” in MICRO, 2022.
+
+[144] J. Kim, M. Kang, Y. Han, Y.-G. Kim, and L.-S. Kim, “Optimstore: In-storage opti-
+mization of large scale dnns with on-die processing,” in 2023 IEEE International
+Symposium on High-Performance Computer Architecture (HPCA).
+IEEE, 2023, pp.
+611–623.
+
+[145] M. Kim, H. B. Kim, J. Moon, J. Choi, and S. T. Kim, “Do you remember? dense video
+
+captioning with cross-modal memory retrieval,” in Proceedings of the IEEE/CVF
+Conference on Computer Vision and Pattern Recognition, 2024, pp. 13 894–13 904.
+
+[146] M. Kim and S. Lee, “Reducing Tail Latency of DNN-based Recommender Systems
+
+using In-Storage Processing,” in APSys, 2020.
+
+[147] M. Kim, S. W. Yun, J. Park, H. K. Park, J. Lee, Y. S. Kim, D. Na, S. Choi, Y. Song,
+J. Lee, H. Yoon, K. Lee, B. Jeong, S. Kim, J. Park, C. A. Lee, J. Lee, J. Lee, J. Y. Chun,
+J. Jang, Y. Yang, S. H. Moon, M. Choi, W. Kim, J. Kim, S. Yoon, P. Kwak, M. Lee,
+R. Song, S. Kim, C. Yoon, D. Kang, J.-Y. Lee, and J. Song, “A 1tb 3b/cell 8th-generation
+3d-nand flash memory with 164mb/s write throughput and a 2.4gb/s interface,” in
+2022 IEEE International Solid-State Circuits Conference (ISSCC), vol. 65, 2022, pp.
+136–137.
+
+[148] S. Kim, H. Oh, C. Park, S. Cho, S.-W. Lee, and B. Moon, “In-storage processing of
+database scans and joins,” Information Sciences, vol. 327, pp. 183–200, 2016.
+[149] S. Kim, H. Oh, C. Park, S. Cho, S.-W. Lee, and B. Moon, “In-Storage Processing of
+
+Database Scans and Joins,” Information Sciences, 2016.
+
+[150] Y. Kim, W. Yang, and O. Mutlu, “Ramulator: A fast and extensible dram simulator,”
+
+IEEE Computer architecture letters, vol. 15, no. 1, pp. 45–49, 2015.
+
+[151] G. Koo, K. K. Matam, T. I, H. K. G. Narra, J. Li, H.-W. Tseng, S. Swanson, and
+M. Annavaram, “Summarizer: Trading Communication with Computing Near
+Storage,” in MICRO, 2017.
+
+[152] T. Kouchi, M. Kakoi, N. Kumazaki, A. Sugahara, A. Imamoto, Y. Kajiyama, Y. Terada,
+B. Sanad, N. Kanagawa, T. Kodama et al., “A 128gb 1-bit/cell 96-word-line-layer 3d
+flash memory to improve the random read latency with tprog= 75 µs and tr= 4 µs,”
+IEEE Journal of Solid-State Circuits, vol. 56, no. 1, pp. 225–234, 2020.
+
+[153] E. Kushilevitz, R. Ostrovsky, and Y. Rabani, “Efficient search for approximate nearest
+neighbor in high dimensional spaces,” in Proceedings of the thirtieth annual ACM
+symposium on Theory of computing, 1998, pp. 614–623.
+
+[154] T. Kwiatkowski, J. Palomaki, O. Redfield, M. Collins, A. Parikh, C. Alberti, D. Epstein,
+I. Polosukhin, J. Devlin, K. Lee et al., “Natural questions: a benchmark for question
+answering research,” Transactions of the Association for Computational Linguistics,
+vol. 7, pp. 453–466, 2019.
+
+[155] W. Kwon, Z. Li, S. Zhuang, Y. Sheng, L. Zheng, C. Yu, J. Gonzalez, H. Zhang,
+and I. Stoica, “vllm: Easy, fast, and cheap llm serving with pagedattention,” See
+https://vllm. ai/(accessed 9 August 2023), 2023.
+
+[156] J. Lála, O. O’Donoghue, A. Shtedritski, S. Cox, S. G. Rodriques, and A. D. White,
+“Paperqa: Retrieval-augmented generative agent for scientific research,” arXiv
+preprint arXiv:2312.07559, 2023.
+
+[157] LangChain, “Text splitters,” 2023. [Online]. Available: https://python.langchain.
+
+com/v0.1/docs/modules/data_connection/document_transformers/
+
+[158] C. Lee, R. Roy, M. Xu, J. Raiman, M. Shoeybi, B. Catanzaro, and W. Ping, “Nv-embed:
+Improved techniques for training llms as generalist embedding models,” arXiv
+preprint arXiv:2405.17428, 2024.
+
+[159] D. Lee, D. Hong, W. Choi, and J. Kim, “Mqsim-e: An enterprise ssd simulator,” IEEE
+
+Computer Architecture Letters, vol. 21, no. 1, pp. 13–16, 2022.
+
+[160] J. Lee, Z. Dai, X. Ren, B. Chen, D. Cer, J. R. Cole, K. Hui, M. Boratko, R. Kapadia,
+W. Ding et al., “Gecko: Versatile text embeddings distilled from large language
+models,” arXiv preprint arXiv:2403.20327, 2024.
+
+[161] J. H. Lee, H. Zhang, V. Lagrange, P. Krishnamoorthy, X. Zhao, and Y. S. Ki,
+“SmartSSD: FPGA Accelerated Near-Storage Data Analytics on SSD,” IEEE CAL,
+2020.
+
+[162] J. Lee, Y. Kim, G. M. Shipman, S. Oral, and J. Kim, “Preemptible I/O Scheduling of
+
+Garbage Collection for Solid State Drives,” IEEE TCAD, 2013.
+
+[163] S. Lee, A. Shakir, D. Koenig, and J. Lipp. (2024) Open source strikes bread - new
+fluffy embeddings model. [Online]. Available: https://www.mixedbread.ai/blog/
+mxbai-embed-large-v1
+
+[164] S. Lee, Y.-T. Lee, W.-K. Han, D.-H. Kim, M.-S. Kim, S.-H. Moon, H. C. Cho, J.-W. Lee,
+D.-S. Byeon, Y.-H. Lim et al., “A 3.3V 4Gb Four-Level NAND Flash Memory with
+90nm CMOS Technology,” in ISSCC, 2004.
+
+[165] N. Leong, S. Chandra, and H. Chen, “Random Cache Read Using a Double Memory,”
+
+2008, US Patent 7,423,915.
+
+[166] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Küttler, M. Lewis,
+W.-t. Yih, T. Rocktäschel et al., “Retrieval-augmented generation for knowledge-
+intensive nlp tasks,” Advances in Neural Information Processing Systems, vol. 33, pp.
+9459–9474, 2020.
+
+[167] C. Li, Y. Wang, C. Liu, S. Liang, H. Li, and X. Li, “GLIST: Towards In-Storage Graph
+
+Learning,” in USENIX ATC, 2021.
+
+[168] H. Li, D. S. Berger, L. Hsu, D. Ernst, P. Zardoshti, S. Novakovic, M. Shah, S. Rajadnya,
+S. Lee, I. Agarwal et al., “Pond: Cxl-based memory pooling systems for cloud
+platforms,” in Proceedings of the 28th ACM International Conference on Architectural
+Support for Programming Languages and Operating Systems, Volume 2, 2023, pp.
+574–587.
+
+[169] H. Li, Y. Su, D. Cai, Y. Wang, and L. Liu, “A survey on retrieval-augmented text
+
+generation,” arXiv preprint arXiv:2202.01110, 2022.
+
+[170] S. Li, F. Lv, T. Jin, G. Lin, K. Yang, X. Zeng, X.-M. Wu, and Q. Ma, “Embedding-
+based product retrieval in taobao search,” in Proceedings of the 27th ACM SIGKDD
+Conference on Knowledge Discovery & Data Mining, 2021, pp. 3181–3189.
+
+[171] S. Li, C. Xu, Q. Zou, J. Zhao, Y. Lu, and Y. Xie, “Pinatubo: A Processing-in-Memory
+Architecture for Bulk Bitwise Operations in Emerging Non-Volatile Memories,” in
+DAC, 2016.
+
+[172] W. Li, Y. Zhang, Y. Sun, W. Wang, M. Li, W. Zhang, and X. Lin, “Approximate
+nearest neighbor search on high dimensional data—experiments, analyses, and
+improvement,” IEEE Transactions on Knowledge and Data Engineering, vol. 32, no. 8,
+pp. 1475–1488, 2019.
+
+[173] Y. Li and J. M. Patel, “BitWeaving: Fast Scans for Main Memory Data Processing,”
+
+in SIGMOD, 2013.
+
+[174] Y. Li and J. M. Patel, “WideTable: An Accelerator for Analytical Data Processing,”
+
+in VLDB, 2014.
+
+[175] Z. Li, X. Zhang, Y. Zhang, D. Long, P. Xie, and M. Zhang, “Towards general text
+embeddings with multi-stage contrastive learning,” arXiv preprint arXiv:2308.03281,
+2023.
+
+[176] S. Liang, Y. Wang, C. Liu, H. Li, and X. Li, “InS-DLA: An In-SSD Deep Learning
+
+Accelerator for Near-Data Processing,” in FPL, 2019.
+
+[177] S. Liang, Y. Wang, Y. Lu, Z. Yang, H. Li, and X. Li, “Cognitive SSD: A Deep Learning
+
+Engine for In-Storage Data Retrieval,” in USENIX ATC, 2019.
+
+[178] S. Liang, Y. Wang, Z. Yuan, C. Liu, H. Li, and X. Li, “Vstore: in-storage graph based
+vector search accelerator,” in Proceedings of the 59th ACM/IEEE Design Automation
+Conference, 2022, pp. 997–1002.
+
+[179] M. Lim, J. Jung, and D. Shin, “LSM-Tree Compaction Acceleration Using In-Storage
+
+Processing,” in ICCE-Asia, 2021.
+
+[180] S.-P. Lim, S.-W. Lee, and B. Moon, “FASTer FTL for Enterprise-Class Flash Memory
+
+SSDs,” in SNAPI, 2010.
+
+[181] A. Liu, B. Feng, B. Xue, B. Wang, B. Wu, C. Lu, C. Zhao, C. Deng, C. Zhang, C. Ruan
+et al., “Deepseek-v3 technical report,” arXiv preprint arXiv:2412.19437, 2024.
+[182] J. Liu, “LlamaIndex,” 2022. [Online]. Available: https://github.com/jerryjliu/llama_
+
+index
+
+[183] T. Liu, A. Moore, K. Yang, and A. Gray, “An investigation of practical approximate
+nearest neighbor algorithms,” Advances in neural information processing systems,
+vol. 17, 2004.
+
+[184] Z. T. Liu, “Flash memory and nand,” in Advanced Driver Assistance Systems and
+
+Autonomous Vehicles: From Fundamentals to Applications.
+
+Springer, 2022.
+
+[185] A. Louis, G. van Dijck, and G. Spanakis, “Interpretable long-form legal question
+answering with retrieval-augmented large language models,” in Proceedings of the
+AAAI Conference on Artificial Intelligence, vol. 38, no. 20, 2024, pp. 22 266–22 275.
+[186] A. Lozano, S. L. Fleming, C.-C. Chiang, and N. Shah, “Clinfo. ai: An open-source
+retrieval-augmented large language model system for answering medical questions
+using scientific literature,” in PACIFIC SYMPOSIUM ON BIOCOMPUTING 2024.
+World Scientific, 2023, pp. 8–23.
+
+[187] S. Lu, N. Duan, H. Han, D. Guo, S.-w. Hwang, and A. Svyatkovskiy, “Reacc: A
+retrieval-augmented code completion framework,” arXiv preprint arXiv:2203.07722,
+2022.
+
+[188] S.-K. Lu, S.-X. Zhong, and M. Hashizume, “Fault leveling techniques for yield
+and reliability enhancement of nand flash memories,” Journal of Electronic Testing,
+vol. 34, pp. 559–570, 2018.
+
+[189] Macronix, “Technical Note: Improving NAND Throughput with Two-Plane and
+Cache Operations,” 2013, https://www.macronix.com/Lists/ApplicationNote/
+Attachments/1907/AN0268V1_Improving\%20NAND\%20Throughput\%20with\
+%20Two-Plane\%20and\%20Cache\%20Operations.pdf.
+
+[190] H. Maejima, K. Kanda, S. Fujimura, T. Takagiwa, S. Ozawa, J. Sato, Y. Shindo,
+M. Sato, N. Kanagawa, J. Musha et al., “A 512Gb 3b/Cell 3D Flash Memory on a
+96-Word-Line-Layer Technology,” in ISSCC, 2018.
+
+[191] H. M. Mahmoud, R. Modarres, and R. T. Smythe, “Analysis of quickselect: An algo-
+rithm for order statistics,” RAIRO-Theoretical Informatics and Applications, vol. 29,
+no. 4, pp. 255–276, 1995.
+
+[192] V. S. Mailthody, Z. Qureshi, W. Liang, Z. Feng, S. G. De Gonzalo, Y. Li, H. Franke,
+J. Xiong, J. Huang, and W.-m. Hwu, “Deepstore: In-storage acceleration for intelli-
+gent queries,” in Proceedings of the 52nd Annual IEEE/ACM International Symposium
+on Microarchitecture, 2019, pp. 224–238.
+
+[193] V. S. Mailthody, Z. Qureshi, W. Liang, Z. Feng, S. G. De Gonzalo, Y. Li, H. Franke,
+J. Xiong, J. Huang, and W.-m. Hwu, “Deepstore: In-Storage Acceleration for Intelli-
+gent Queries,” in MICRO, 2019.
+
+[194] Y. A. Malkov and D. A. Yashunin, “Efficient and robust approximate nearest neighbor
+search using hierarchical navigable small world graphs,” IEEE transactions on pattern
+analysis and machine intelligence, vol. 42, no. 4, pp. 824–836, 2018.
+
+[195] Y. Malkov, A. Ponomarenko, A. Logvinov, and V. Krylov, “Approximate nearest
+neighbor algorithm based on navigable small world graphs,” Information Systems,
+vol. 45, pp. 61–68, 2014.
+
+[196] A. Mallen, A. Asai, V. Zhong, R. Das, D. Khashabi, and H. Hajishirzi,
+“When not to trust language models: Investigating effectiveness of parametric
+and non-parametric memories,” in Proceedings of the 61st Annual Meeting
+of the Association for Computational Linguistics (Volume 1: Long Papers),
+A. Rogers, J. Boyd-Graber, and N. Okazaki, Eds. Toronto, Canada: Association
+for Computational Linguistics, Jul. 2023, pp. 9802–9822. [Online]. Available:
+https://aclanthology.org/2023.acl-long.546/
+
+[197] M. D. Manohar, Z. Shen, G. Blelloch, L. Dhulipala, Y. Gu, H. V. Simhadri, and Y. Sun,
+“Parlayann: Scalable and deterministic parallel graph-based approximate nearest
+neighbor search algorithms,” in Proceedings of the 29th ACM SIGPLAN Annual
+Symposium on Principles and Practice of Parallel Programming, 2024, pp. 270–285.
+[198] N. Mansouri Ghiasi, J. Park, H. Mustafa, J. Kim, A. Olgun, A. Gollwitzer,
+D. Senol Cali, C. Firtina, H. Mao, N. Almadhoun Alserr, R. Ausavarungnirun,
+N. Vijaykumar, M. Alser, and O. Mutlu, “GenStore: A High-Performance In-Storage
+Processing System for Genome Sequence Analysis,” in ASPLOS, 2022.
+
+[199] N. Mansouri Ghiasi, J. Park, H. Mustafa, J. Kim, A. Olgun, A. Gollwitzer,
+D. Senol Cali, C. Firtina, H. Mao, N. Almadhoun Alserr et al., “Genstore: A high-
+performance in-storage processing system for genome sequence analysis,” in Pro-
+ceedings of the 27th ACM International Conference on Architectural Support for
+Programming Languages and Operating Systems, 2022, pp. 635–654.
+
+18
+
+[200] A. Martino, M. Iannelli, and C. Truong, “Knowledge injection to counter large lan-
+Springer,
+
+guage model (llm) hallucination,” in European Semantic Web Conference.
+2023, pp. 182–185.
+
+[201] P. Mazumder, P. Singh, K. K. Parida, and V. P. Namboodiri, “Avgzslnet: Audio-visual
+generalized zero-shot learning by reconstructing label features from multi-modal
+embeddings,” in Proceedings of the IEEE/CVF winter conference on applications of
+computer vision, 2021, pp. 3090–3099.
+
+[202] R. Meng, Y. Liu, S. R. Joty, C. Xiong, Y. Zhou, and S. Yavuz, “Sfrembedding-mistral:
+enhance text retrieval with transfer learning,” Salesforce AI Research Blog, vol. 3,
+2024.
+
+[203] R. Micheloni, L. Crippa, and A. Marelli, Inside NAND Flash Memories.
+
+2010.
+
+Springer,
+
+[204] R. Micheloni, L. Crippa, and A. Marelli, Inside NAND Flash Memories, 2010.
+[205] Microchip, “Microchip 16-Channel PCIe Gen 5 Enterprise NVMe SSD Con-
+troller,
+https://www.microchip.com/en-us/about/news-releases/products/
+highest-performance-16-channel-pcie-gen-5-enterprise-nvme-ssd-controller,”
+2022.
+
+[206] Micron, “NAND Flash Memory Data Sheet: MT29F16G08ABABA, MT29F32G-
+08AFABA, MT29F64G08A[J/K/M]ABA, MT29F128G08AUABA, MT29F16G-
+08ABCBB, MT29F32G08AECBB, MT29F64G08A[K/M]CBB, MT29F128G-08AUCBB,”
+2009.
+
+[207] Micron, “9400 nvme™ ssd,” 2023. [Online]. Available: https://www.micron.com/
+
+products/storage/ssd/data-center-ssd/9400-ssd
+
+[208] Micron, “Ddr4 sdram,” 2025. [Online]. Available: https://www.micron.com/
+
+products/memory/dram-components/ddr4-sdram
+
+[209] Microsoft,
+
+storage
+
+“Binary
+
+op-
+Avail-
+timized
+able:
+https://techcommunity.microsoft.com/blog/azure-ai-services-blog/
+binary-quantization-in-azure-ai-search-optimized-storage-and-faster-search/
+4221918
+
+quantization
+faster
+
+search:
+[Online].
+
+in
+search,”
+
+azure
+
+2024.
+
+and
+
+ai
+
+[210] Microsoft,
+
+“Multimodal
+
+[Online].
+Available: https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/
+concept-image-retrieval
+
+embeddings
+
+(version
+
+2024.
+
+4.0),”
+
+ing database filtering with llm-extracted metadata,” arXiv preprint arXiv:2406.13213,
+2024.
+
+[230] H. Qin, D. Feng, W. Tong, Y. Zhao, S. Qiu, F. Liu, and S. Li, “Better atomic writes by
+exposing the flash out-of-band area to file systems,” in Proceedings of the 22nd ACM
+SIGPLAN/SIGBED International Conference on Languages, Compilers, and Tools for
+Embedded Systems, 2021, pp. 12–23.
+
+[231] R. Qin, Z. Yan, D. Zeng, Z. Jia, D. Liu, J. Liu, A. Abbasi, Z. Zheng, N. Cao, K. Ni
+et al., “Robust implementation of retrieval-augmented generation on edge-based
+computing-in-memory architectures,” in Proceedings of the 43rd IEEE/ACM Interna-
+tional Conference on Computer-Aided Design, 2024, pp. 1–9.
+
+[232] D. Quinn, M. Nouri, N. Patel, J. Salihu, A. Salemi, S. Lee, H. Zamani, and M. Alian,
+“Accelerating retrieval-augmented generation,” in Proceedings of the 30th ACM
+International Conference on Architectural Support for Programming Languages and
+Operating Systems, Volume 1, 2025, pp. 15–32.
+
+[233] Z. Rackauckas, “Rag-fusion: a new take on retrieval-augmented generation,” arXiv
+
+preprint arXiv:2402.03367, 2024.
+
+[234] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal, G. Sastry,
+A. Askell, P. Mishkin, J. Clark et al., “Learning transferable visual models from
+natural language supervision,” in International conference on machine learning.
+PMLR, 2021, pp. 8748–8763.
+
+[235] V. Raina and M. Gales, “Question-based retrieval using atomic units for enterprise
+
+rag,” arXiv preprint arXiv:2405.12363, 2024.
+
+[236] M. Raquibuzzaman, A. Milenkovic, and B. Ray, “Intrablock wear leveling to counter
+layer-to-layer endurance variation of 3-d nand flash memory,” IEEE Transactions on
+Electron Devices, vol. 70, no. 1, pp. 70–75, 2022.
+
+[237] J. Rasley, S. Rajbhandari, O. Ruwase, and Y. He, “Deepspeed: System optimizations
+enable training deep learning models with over 100 billion parameters,” in Proceed-
+ings of the 26th ACM SIGKDD International Conference on Knowledge Discovery &
+Data Mining, 2020, pp. 3505–3506.
+
+[238] Redis, “Redis bitmaps,” https://redis.io/docs/data-types/bitmaps/, 2025.
+[239] N. Reimers,
+database
+
+“Cohere int8 & binary embeddings
+to
+
+-
+[Online]. Available:
+
+2022.
+
+scale your vec-
+https:
+
+large
+
+tor
+//cohere.com/blog/int8-binary-embeddings
+
+datasets,”
+
+[211] N. Muennighoff, H. Su, L. Wang, N. Yang, F. Wei, T. Yu, A. Singh, and D. Kiela,
+“Generative representational instruction tuning,” arXiv preprint arXiv:2402.09906,
+2024.
+
+[212] N. Muennighoff, N. Tazi, L. Magne, and N. Reimers, “Mteb: Massive text embedding
+
+benchmark,” arXiv preprint arXiv:2210.07316, 2022.
+
+[213] J. V. Munoz, M. A. Gonçalves, Z. Dias, and R. d. S. Torres, “Hierarchical clustering-
+based graphs for large scale approximate nearest neighbor search,” Pattern Recogni-
+tion, vol. 96, p. 106970, 2019.
+
+[214] R. Nadig, M. Sadrosadati, H. Mao, N. M. Ghiasi, A. Tavakkol, J. Park, H. Sarbazi-
+Azad, J. G. Luna, and O. Mutlu, “Venice: Improving solid-state drive parallelism at
+low cost via conflict-free accesses,” in ISCA, 2023.
+
+[215] F. Niu, J. Yue, J. Shen, X. Liao, and H. Jin, “Flashgnn: An in-ssd accelerator for gnn
+training,” in 2024 IEEE International Symposium on High-Performance Computer
+Architecture (HPCA).
+
+IEEE, 2024, pp. 361–378.
+
+[216] R. Nogueira, W. Yang, K. Cho, and J. Lin, “Multi-stage document ranking with bert,”
+
+arXiv preprint arXiv:1910.14424, 2019.
+
+[217] NVIDIA Corp., “NVIDIA H100,” https://www.nvidia.com/en-us/data-center/h100/,
+
+2023.
+
+[218] “Nvm command set specification revision 1.1,” 2024.
+[219] E. O’Neil, P. O’Neil, and K. Wu, “Bitmap Index Design Choices and their Perfor-
+
+mance Implications,” in IDEAS, 2007.
+
+[220] H. Ootomo, A. Naruse, C. Nolet, R. Wang, T. Feher, and Y. Wang, “Cagra: Highly
+parallel graph construction and approximate nearest neighbor search for gpus,”
+arXiv preprint arXiv:2308.15136, 2023.
+
+[221] OpenAI. (2024) New embedding models and api updates. [Online]. Available:
+
+[240] N. Reimers and I. Gurevych, “Sentence-bert: Sentence embeddings using siamese
+bert-networks,” in Proceedings of the 2019 Conference on Empirical Methods in
+Natural Language Processing. Association for Computational Linguistics, 11 2019.
+[Online]. Available: https://arxiv.org/abs/1908.10084
+
+[241] N. Reimers and I. Gurevych, “Making monolingual sentence embeddings
+multilingual using knowledge distillation,” in Proceedings of the 2020 Conference on
+Empirical Methods in Natural Language Processing. Association for Computational
+Linguistics, 11 2020. [Online]. Available: https://arxiv.org/abs/2004.09813
+[242] J. Ren, M. Zhang, and D. Li, “Hm-ann: Efficient billion-point nearest neighbor search
+on heterogeneous memory,” Advances in Neural Information Processing Systems,
+vol. 33, pp. 10 672–10 684, 2020.
+
+[243] E. Riedel, C. Faloutsos, G. A. Gibson, and D. Nagle, “Active Disks for Large-Scale
+
+Data Processing,” Computer, 2001.
+
+[244] E. Riedel, G. Gibson, and C. Faloutsos, “Active Storage for Large-Scale Data Mining
+
+and Multimedia Applications,” VLDB, 1998.
+
+[245] M. Rui, L. Ye, R. J. Shafiq, X. Caiming, Z. Yingbo, and Y. Semih, “Sfr-embedding-2:
+Advanced text embedding with multi-stage training,” 2024. [Online]. Available:
+https://huggingface.co/Salesforce/SFR-Embedding-2_R
+
+[246] Samsung, “32Gb A-die NAND Flash Datasheet,” 2009.
+[247] Samsung, “Samsung solid state drive turbowrite technology white paper,” 2013.
+[248] Samsung, “Samsung 128 GB DDR4 3200 LRDIMM ECC Registred,” https://
+
+semiconductor.samsung.com/dram/module/lrdimm/m386aag40am3-cwe/, 2020.
+
+[249] Samsung, “980 pro,” 2021. [Online]. Available: https://semiconductor.samsung.com/
+
+consumer-storage/internal-ssd/980pro/
+
+[250] Samsung, “Pm9a3 nvme pcie ssd,” 2021. [Online]. Available: https://semiconductor.
+
+https://openai.com/index/new-embedding-models-and-api-updates/
+
+samsung.com/ssd/datacenter-ssd/pm9a3/
+
+[222] OpenAI, “Chatgpt,” https://chatgpt.com/, 2025.
+[223] A. Pal, C. Eksombatchai, Y. Zhou, B. Zhao, C. Rosenberg, and J. Leskovec, “Pinner-
+sage: Multi-modal user embedding framework for recommendations at pinterest,”
+in Proceedings of the 26th ACM SIGKDD International Conference on Knowledge
+Discovery & Data Mining, 2020, pp. 2311–2320.
+
+[224] J. Park, J. Choi, K. Kyung, M. J. Kim, Y. Kwon, N. S. Kim, and J. H. Ahn, “Attacc!
+unleashing the power of pim for batched transformer-based generative model
+inference,” in Proceedings of the 29th ACM International Conference on Architectural
+Support for Programming Languages and Operating Systems, Volume 2, 2024, pp.
+103–119.
+
+[225] J. Park, R. Azizi, G. F. Oliveira, M. Sadrosadati, R. Nadig, D. Novo, J. Gómez-Luna,
+M. Kim, and O. Mutlu, “Flash-cosmos: In-flash bulk bitwise operations using
+inherent computation capability of nand flash memory,” in 2022 55th IEEE/ACM
+IEEE, 2022, pp. 937–955.
+International Symposium on Microarchitecture (MICRO).
+[226] S. Pei, J. Yang, and Q. Yang, “REGISTOR: A Platform for Unstructured Data Pro-
+
+cessing inside SSD Storage,” ACM TOS, 2019.
+
+[227] B. Perach, R. Ronen, B. Kimelfeld, and S. Kvatinsky, “PIMDB: Understanding Bulk-
+Bitwise Processing In-Memory Through Database Analytics,” arXiv:2203.10486,
+2022.
+
+[228] M. Pietsch, T. Möller, B. Kostic, J. Risch, M. Pippi, M. Jobanputra, S. Zanzottera,
+S. Cerza, V. Blagojevic, T. Stadelmann, T. Soni, and S. Lee, “Haystack:
+the
+end-to-end NLP framework for pragmatic builders,” 2019. [Online]. Available:
+https://github.com/deepset-ai/haystack
+
+[229] M. Poliakov and N. Shvai, “Multi-meta-rag: Improving rag for multi-hop queries us-
+
+19
+
+[251] Samsung, “990 pro,” 2022. [Online]. Available: https://semiconductor.samsung.com/
+
+consumer-storage/internal-ssd/990-pro/
+
+[252] D. Sanchez and C. Kozyrakis, “Zsim: Fast and accurate microarchitectural simula-
+tion of thousand-core systems,” ACM SIGARCH Computer architecture news, vol. 41,
+no. 3, pp. 475–486, 2013.
+
+[253] K. Sawarkar, A. Mangal, and S. R. Solanki, “Blended rag: Improving rag (retriever-
+augmented generation) accuracy with semantic search and hybrid query-based
+retrievers,” in 2024 IEEE 7th International Conference on Multimedia Information
+Processing and Retrieval (MIPR).
+
+IEEE, 2024, pp. 155–161.
+
+[254] S. Seshadri, M. Gahagan, S. Bhaskaran, T. Bunker, A. De, Y. Jin, Y. Liu, and S. Swan-
+
+son, “Willow: A User-Programmable SSD,” in USENIX OSDI, 2014.
+
+[255] V. Seshadri, K. Hsieh, A. Boroumand, D. Lee, M. A. Kozuch, O. Mutlu, P. B. Gibbons,
+and T. C. Mowry, “Fast Bulk Bitwise AND and OR in DRAM,” IEEE CAL, 2015.
+[256] V. Seshadri, Y. Kim, C. Fallin, D. Lee, R. Ausavarungnirun, G. Pekhimenko, Y. Luo,
+O. Mutlu, P. B. Gibbons, M. A. Kozuch et al., “RowClone: Fast and Energy-Efficient
+In-DRAM Bulk Data Copy and Initialization,” in MICRO, 2013.
+
+[257] V. Seshadri, D. Lee, T. Mullins, H. Hassan, A. Boroumand, J. Kim, M. A. Kozuch,
+O. Mutlu, P. B. Gibbons, and T. C. Mowry, “Ambit: In-Memory Accelerator for Bulk
+Bitwise Operations Using Commodity DRAM Technology,” in MICRO, 2017.
+[258] J. Shah, G. Bikshandi, Y. Zhang, V. Thakkar, P. Ramani, and T. Dao, “Flashattention-
+3: Fast and accurate attention with asynchrony and low-precision,” arXiv preprint
+arXiv:2407.08608, 2024.
+
+[259] N. Shahidi, M. T. Kandemir, M. Arjomand, C. R. Das, M. Jung, and A. Sivasub-
+ramaniam, “Exploring the Potentials of Parallel Garbage Collection in SSDs for
+
+Enterprise Storage Systems,” in SC, 2016.
+
+[260] A. Shakir, T. Aarsen, and S. Lee, “Binary and scalar embedding quantiza-
+tion for significantly faster & cheaper retrieval,” Hugging Face Blog, 2024,
+https://huggingface.co/blog/embedding-quantization.
+
+[261] N. Shibata, K. Kanda, T. Shimizu, J. Nakai, O. Nagao, N. Kobayashi, M. Miakashi,
+Y. Nagadomi, T. Nakano, T. Kawabe et al., “A 1.33-Tb 4-Bit/Cell 3-D Flash Memory
+on a 96-Word-Line-Layer Technology,” JSSC, 2019.
+
+[262] J.-Y. Shin, Z.-L. Xia, N.-Y. Xu, R. Gao, X.-F. Cai, S. Maeng, and F.-H. Hsu, “FTL Design
+Exploration in Reconfigurable High-Performance SSD for Server Applications,” in
+ICS, 2009.
+
+[263] M. Shoeybi, M. Patwary, R. Puri, P. LeGresley, J. Casper, and B. Catanzaro,
+“Megatron-lm: Training multi-billion parameter language models using model
+parallelism,” arXiv preprint arXiv:1909.08053, 2019.
+
+[264] H. Simhadri et al., “Big ann benchmarks,” 2023. [Online]. Available: https:
+
+//github.com/harsha-simhadri/big-ann-benchmarks/tree/main
+
+[265] H. V. Simhadri, G. Williams, M. Aumüller, M. Douze, A. Babenko, D. Baranchuk,
+Q. Chen, L. Hosseini, R. Krishnaswamny, G. Srinivasa et al., “Results of the
+neurips’21 challenge on billion-scale approximate nearest neighbor search,” in
+NeurIPS 2021 Competitions and Demonstrations Track. PMLR, 2022, pp. 177–189.
+[266] K.-D. Suh, B.-H. Suh, Y.-H. Lim, J.-K. Kim, Y.-J. Choi, Y.-N. Koh, S.-S. Lee, S.-C.
+Kwon, B.-S. Choi, J.-S. Yum, J.-H. Choi, J.-R. Kim, and H.-K. Lim, “A 3.3 V 32 Mb
+NAND Flash Memory with Incremental Step Pulse Programming Scheme,” JSSC,
+1995.
+
+[267] J. Sun, S. Li, Y. Sun, C. Sun, D. Vucinic, and J. Huang, “LeaFTL: A Learning-Based
+
+Flash Translation Layer for Solid-State Drives,” in ASPLOS, 2023.
+
+[268] P.
+
+Sun,
+
+“Announcing
+
+scann:
+Available:
+
+Efficient
+
+similarity
+https://research.google/blog/
+
+vector
+
+search,”
+[Online].
+announcing-scann-efficient-vector-similarity-search/
+
+2020.
+
+[269] W. Sun, M. Gao, Z. Li, A. Zhang, I. Y. Chou, J. Zhu, S. Wei, and L. Liu, “Lincoln: Real-
+time 50˜ 100b llm inference on consumer devices with lpddr-interfaced, compute-
+enabled flash memory,” in 2025 IEEE International Symposium on High Performance
+Computer Architecture (HPCA).
+
+IEEE, 2025, pp. 1734–1750.
+
+[270] A. Tavakkol, J. Gómez-Luna, M. Sadrosadati, S. Ghose, and O. Mutlu, “MQSim: A
+Framework for Enabling Realistic Studies of Modern Multi-Queue SSD Devices,” in
+FAST, 2018.
+
+[271] G. Team, R. Anil, S. Borgeaud, J.-B. Alayrac, J. Yu, R. Soricut, J. Schalkwyk, A. M.
+Dai, A. Hauth, K. Millican et al., “Gemini: a family of highly capable multimodal
+models,” arXiv preprint arXiv:2312.11805, 2023.
+
+[272] G. Team, P. Georgiev, V. I. Lei, R. Burnell, L. Bai, A. Gulati, G. Tanzer, D. Vincent,
+Z. Pan, S. Wang et al., “Gemini 1.5: Unlocking multimodal understanding across
+millions of tokens of context,” arXiv preprint arXiv:2403.05530, 2024.
+
+[273] N. Thakur, N. Reimers, and J. Lin, “Injecting domain adaptation with learning-
+to-hash for effective and efficient zero-shot dense retrieval,” arXiv preprint
+arXiv:2205.11498, 2023.
+
+ideal
+
+[275] R. Theja,
+
+[274] N. Thakur, N. Reimers, A. Rücklé, A. Srivastava, and I. Gurevych, “Beir: A heteroge-
+nous benchmark for zero-shot evaluation of information retrieval models,” arXiv
+preprint arXiv:2104.08663, 2021.
+“Evaluating the
+
+for a rag system us-
+ing llamaindex,” 2023. [Online]. Available: https://www.llamaindex.ai/blog/
+evaluating-the-ideal-chunk-size-for-a-rag-system-using-llamaindex-6207e5d3fec5
+[276] J. Thorne, A. Vlachos, C. Christodoulopoulos, and A. Mittal, “Fever: a large-scale
+dataset for fact extraction and verification,” arXiv preprint arXiv:1803.05355, 2018.
+[277] B. Tian, H. Liu, Z. Duan, X. Liao, H. Jin, and Y. Zhang, “Scalable billion-point
+approximate nearest neighbor search using {SmartSSDs},” in 2024 USENIX Annual
+Technical Conference (USENIX ATC 24), 2024, pp. 1135–1150.
+
+chunk size
+
+[278] A. Tirumala and R. Wong, “Nvidia blackwell platform: Advancing generative ai
+and accelerated computing,” in 2024 IEEE Hot Chips 36 Symposium (HCS).
+IEEE
+Computer Society, 2024, pp. 1–33.
+
+[279] A. Tirumala and R. Wong, “Nvidia blackwell platform: Advancing generative ai
+IEEE
+and accelerated computing,” in 2024 IEEE Hot Chips 36 Symposium (HCS).
+Computer Society, 2024, pp. 1–33.
+
+[280] D. Tiwari, S. Boboila, S. Vazhkudai, Y. Kim, X. Ma, P. Desnoyers, and Y. Solihin,
+“Active Flash: Towards Energy-Efficient, In-Situ Data Analytics on Extreme-Scale
+Machines,” in FAST, 2013.
+
+[281] D. Tiwari, S. S. Vazhkudai, Y. Kim, X. Ma, S. Boboila, and P. J. Desnoyers, “Reducing
+Data Movement Costs Using Energy-Efficient, Active Computation on SSD,” in
+HotPower, 2012.
+
+[282] M. Torabzadehkashi, S. Rezaei, V. Alves, and N. Bagherzadeh, “CompStor: An
+In-Storage Computation Platform for Scalable Distributed Processing,” in IPDPSW,
+2018.
+
+[283] M. Torabzadehkashi, S. Rezaei, A. Heydarigorji, H. Bobarshad, V. Alves, and
+N. Bagherzadeh, “Catalina: In-Storage Processing Acceleration for Scalable Big
+Data Analytics,” in PDP, 2019.
+
+[284] Toshiba, “NAND Memory Toggle DDR1.0 Technical Data Sheet,” 2012.
+[285] H. Touvron, L. Martin, K. Stone, P. Albert, A. Almahairi, Y. Babaei, N. Bashlykov,
+S. Batra, P. Bhargava, S. Bhosale et al., “Llama 2: Open foundation and fine-tuned
+chat models,” arXiv preprint arXiv:2307.09288, 2023.
+
+[286] S. Tripathy and M. Satpathy, “Ssd internal cache management policies: A survey,”
+
+Journal of Systems Architecture, vol. 122, p. 102334, 2022.
+
+[287] O. Unlu, J. Shin, C. J. Mailly, M. F. Oates, M. R. Tucci, M. Varugheese, K. Wagholikar,
+F. Wang, B. M. Scirica, A. J. Blood et al., “Retrieval-augmented generation–enabled
+gpt-4 for clinical trial screening,” NEJM AI, p. AIoa2400181, 2024.
+
+[288] T. Vecchiato, C. Lucchese, F. M. Nardini, and S. Bruch, “A learning-to-rank formu-
+
+20
+
+lation of clustering-based approximate nearest neighbor search,” in Proceedings
+of the 47th International ACM SIGIR Conference on Research and Development in
+Information Retrieval, 2024, pp. 2261–2265.
+
+[289] B. Wang, Q. Xu, Z. Bian, and Y. You, “Tesseract: Parallelize the tensor parallelism
+efficiently,” in Proceedings of the 51st International Conference on Parallel Processing,
+2022, pp. 1–11.
+
+[290] H. Wang, R. Li, H. Jiang, J. Tian, Z. Wang, C. Luo, X. Tang, M. Cheng, T. Zhao,
+and J. Gao, “Blendfilter: Advancing retrieval-augmented large language models via
+query generation blending and knowledge filtering,” arXiv preprint arXiv:2402.11129,
+2024.
+
+[291] J. Wang, D. Park, Y.-S. Kee, Y. Papakonstantinou, and S. Swanson, “SSD In-Storage
+
+Computing for List Intersection,” in DaMoN, 2016.
+
+[292] L. Wang, N. Yang, X. Huang, B. Jiao, L. Yang, D. Jiang, R. Majumder, and F. Wei,
+“Text embeddings by weakly-supervised contrastive pre-training,” arXiv preprint
+arXiv:2212.03533, 2022.
+
+[293] L. Wang, N. Yang, X. Huang, L. Yang, R. Majumder, and F. Wei, “Improving text
+
+embeddings with large language models,” arXiv preprint arXiv:2401.00368, 2023.
+
+[294] L. Wang, N. Yang, and F. Wei, “Query2doc: Query expansion with large language
+
+models,” arXiv preprint arXiv:2303.07678, 2023.
+
+[295] M. Wang, X. Xu, Q. Yue, and Y. Wang, “A comprehensive survey and experimental
+comparison of graph-based approximate nearest neighbor search,” arXiv preprint
+arXiv:2101.12631, 2021.
+
+[296] S. Wang, Z. Lin, S. Wu, H. Jiang, J. Zhang, and B. Mao, “Learnedftl: A learning-
+based page-level ftl for reducing double reads in flash-based ssds,” in 2024 IEEE
+International Symposium on High-Performance Computer Architecture (HPCA).
+IEEE,
+2024, pp. 616–629.
+
+[297] W. Wang, Y. Wang, S. Joty, and S. C. Hoi, “Rap-gen: Retrieval-augmented patch
+generation with codet5 for automatic program repair,” in Proceedings of the 31st ACM
+Joint European Software Engineering Conference and Symposium on the Foundations
+of Software Engineering, 2023, pp. 146–158.
+
+[298] X. Wang, Y. Yuan, Y. Zhou, C. C. Coats, and J. Huang, “Project Almanac: A Time-
+
+Traveling Solid-State Drive,” in EuroSys, 2019.
+
+[299] Y. Wang, S. Li, Q. Zheng, L. Song, Z. Li, A. Chang, H. H. Li, and Y. Chen, “Ndsearch:
+Accelerating graph-traversal-based approximate nearest neighbor search through
+near data processing,” in Proceedings of the 51st Annual International Symposium on
+Computer Architecture, 2024.
+
+[300] Y. Wang, X. Pan, Y. An, J. Zhang, and G. Reinman, “Beacongnn: Large-scale gnn
+acceleration with out-of-order streaming in-storage computing,” in 2024 IEEE Inter-
+national Symposium on High-Performance Computer Architecture (HPCA).
+IEEE,
+2024, pp. 330–344.
+
+[301] Z. Wang, S. X. Teo, J. Ouyang, Y. Xu, and W. Shi, “M-rag: Reinforcing large lan-
+guage model performance through retrieval-augmented generation with multiple
+partitions,” arXiv preprint arXiv:2405.16420, 2024.
+
+[302] Z. Wang, J. Araki, Z. Jiang, M. R. Parvez, and G. Neubig, “Learning to filter context
+for retrieval-augmented generation,” arXiv preprint arXiv:2311.08377, 2023.
+[303] Z. Wang, W. Nie, Z. Qiao, C. Xiao, R. Baraniuk, and A. Anandkumar, “Retrieval-
+based controllable molecule generation,” arXiv preprint arXiv:2208.11126, 2022.
+[304] N. Wiratunga, R. Abeyratne, L. Jayawardena, K. Martin, S. Massie, I. Nkisi-Orji,
+R. Weerasinghe, A. Liret, and B. Fleisch, “Cbr-rag: case-based reasoning for re-
+trieval augmented generation in llms for legal question answering,” in International
+Conference on Case-Based Reasoning.
+
+Springer, 2024, pp. 445–460.
+
+[305] G. Wu and X. He, “Reducing SSD Read Latency via NAND Flash Program and Erase
+
+Suspension,” in FAST, 2012.
+
+[306] M.-C. Wu and A. P. Buchmann, “Encoded Bitmap Indexing for Data Warehouses,”
+
+in ICDE, 1998.
+
+[307] S. Wu, Y. Lin, B. Mao, and H. Jiang, “GCaR: Garbage Collection aware Cache
+Management with Improved Performance for Flash-based SSDs,” in ICS, 2016.
+[308] C. Xiao, S. Qiu, and D. Xu, “Pasm: Parallelism aware space management strategy
+for hybrid ssd towards in-storage dnn training acceleration,” Journal of Systems
+Architecture, vol. 128, p. 102565, 2022.
+
+[309] G. Xiong, Q. Jin, Z. Lu, and A. Zhang, “Benchmarking retrieval-augmented genera-
+
+tion for medicine,” arXiv preprint arXiv:2402.13178, 2024.
+
+[310] W. Xu, J. Chen, P.-K. Hsu, J. Kang, M. Zhou, S. Pinge, S. Yu, and T. Rosing, “Proxima:
+Near-storage acceleration for graph-based approximate nearest neighbor search in
+3d nand,” arXiv preprint arXiv:2312.04257, 2023.
+
+[311] J. Xue, Y. Deng, Y. Gao, and Y. Li, “Retrieval augmented generation in prompt-
+based text-to-speech synthesis with context-aware contrastive language-audio
+pretraining,” arXiv preprint arXiv:2406.03714, 2024.
+
+[312] I. Yamada, A. Asai, and H. Hajishirzi, “Efficient passage retrieval with hashing for
+open-domain question answering,” arXiv preprint arXiv:2106.00882, 2021.
+
+[313] S.-Q. Yan, J.-C. Gu, Y. Zhu, and Z.-H. Ling, “Corrective retrieval augmented genera-
+
+tion,” arXiv preprint arXiv:2401.15884, 2024.
+
+[314] S. Yan, H. Li, M. Hao, M. H. Tong, S. Sundararaman, A. A. Chien, and H. S. Gunawi,
+“Tiny-tail flash: Near-perfect elimination of garbage collection tail latencies in nand
+ssds,” ACM Transactions on Storage (TOS), vol. 13, no. 3, pp. 1–26, 2017.
+
+[315] A. Yang, A. Nagrani, P. H. Seo, A. Miech, J. Pont-Tuset, I. Laptev, J. Sivic, and
+C. Schmid, “Vid2seq: Large-scale pretraining of a visual language model for dense
+video captioning,” in Proceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition, 2023, pp. 10 714–10 726.
+
+[316] M.-C. Yang, Y.-M. Chang, C.-W. Tsao, P.-C. Huang, Y.-H. Chang, and T.-W. Kuo,
+“Garbage Collection and Wear Leveling for Flash Memory: Past and Future,” in
+SMARTCOMP, 2014.
+
+[317] P. Yang, N. Xue, Y. Zhang, Y. Zhou, L. Sun, W. Chen, Z. Chen, W. Xia, J. Li, and
+
+K. Kwon, “Reducing garbage collection overhead in {SSD} based on workload
+prediction,” in 11th USENIX Workshop on Hot Topics in Storage and File Systems
+(HotStorage 19), 2019.
+
+[318] S. Yang, “Advanced rag 01: Small-to-big retrieval,” 2023. [Online]. Available: https://
+
+towardsdatascience.com/advanced-rag-01-small-to-big-retrieval-172181b396d4
+
+learning for multi-modal video representations,” in Proceedings of the IEEE/CVF
+International Conference on Computer Vision, 2021, pp. 1450–1459.
+
+[319] Y. Yang, D. Jiang, B. Jiang, H.-C. Hsu, L. Peng, and Z. Yang, “Lbz: A lightweight block
+device for supporting f2fs on zns ssd,” in 2024 IEEE 42nd International Conference
+on Computer Design (ICCD).
+
+IEEE, 2024, pp. 340–347.
+
+[320] Z. Yang, P. Qi, S. Zhang, Y. Bengio, W. W. Cohen, R. Salakhutdinov, and C. D. Man-
+ning, “Hotpotqa: A dataset for diverse, explainable multi-hop question answering,”
+arXiv preprint arXiv:1809.09600, 2018.
+
+[321] Y. Yao, J. Fan, J. Zhou, X. Kong, and N. Gu, “Hdftl: An on-demand flash transla-
+tion layer algorithm for hybrid solid state drives,” IEEE Transactions on Consumer
+Electronics, vol. 67, no. 1, pp. 50–57, 2021.
+
+[322] A. J. Yepes, Y. You, J. Milczek, S. Laverde, and L. Li, “Financial report chunking for
+
+effective retrieval augmented generation,” arXiv preprint arXiv:2402.05131, 2024.
+
+[323] G.-I. Yu, J. S. Jeong, G.-W. Kim, S. Kim, and B.-G. Chun, “Orca: A distributed serving
+system for {Transformer-Based} generative models,” in 16th USENIX Symposium
+on Operating Systems Design and Implementation (OSDI 22), 2022, pp. 521–538.
+[324] H. Yu, A. Gan, K. Zhang, S. Tong, Q. Liu, and Z. Liu, “Evaluation of retrieval-
+
+augmented generation: A survey,” arXiv preprint arXiv:2405.07437, 2024.
+
+[325] C. Zakka, R. Shad, A. Chaurasia, A. R. Dalal, J. L. Kim, M. Moor, R. Fong, C. Phillips,
+K. Alexander, E. Ashley et al., “Almanac—retrieval-augmented language models for
+clinical medicine,” NEJM AI, vol. 1, no. 2, p. AIoa2300068, 2024.
+
+[326] S. Zeng, J. Zhang, P. He, Y. Xing, Y. Liu, H. Xu, J. Ren, S. Wang, D. Yin, Y. Chang
+et al., “The good and the bad: Exploring privacy issues in retrieval-augmented
+generation (rag),” arXiv preprint arXiv:2402.16893, 2024.
+
+[327] S. Zeng, Z. Zhu, J. Liu, H. Zhang, G. Dai, Z. Zhou, S. Li, X. Ning, Y. Xie, H. Yang et al.,
+“Df-gas: a distributed fpga-as-a-service architecture towards billion-scale graph-
+based approximate nearest neighbor search,” in Proceedings of the 56th Annual
+IEEE/ACM International Symposium on Microarchitecture, 2023, pp. 283–296.
+[328] J. Zhan, J. Mao, Y. Liu, J. Guo, M. Zhang, and S. Ma, “Learning discrete represen-
+tations via constrained clustering for effective and efficient dense retrieval,” in
+Proceedings of the Fifteenth ACM International Conference on Web Search and Data
+Mining, 2022, pp. 1328–1336.
+
+[329] B. Zhang, H. Yang, T. Zhou, M. Ali Babar, and X.-Y. Liu, “Enhancing financial
+sentiment analysis via retrieval augmented large language models,” in Proceedings
+of the fourth ACM international conference on AI in finance, 2023, pp. 349–356.
+[330] J. Zhang, Z. Liu, W. Han, S. Xiao, R. Zheng, Y. Shao, H. Sun, H. Zhu, P. Srini-
+vasan, W. Deng et al., “Uni-retriever: Towards learning the unified embedding
+based retriever in bing sponsored search,” in Proceedings of the 28th ACM SIGKDD
+Conference on Knowledge Discovery and Data Mining, 2022, pp. 4493–4501.
+[331] S. Zhang, S. Roller, N. Goyal, M. Artetxe, M. Chen, S. Chen, C. Dewan, M. Diab,
+X. Li, X. V. Lin et al., “Opt: Open pre-trained transformer language models,” arXiv
+preprint arXiv:2205.01068, 2022.
+
+[332] W. Zhang, Q. Cao, H. Jiang, J. Yao, Y. Dong, and P. Yang, “Spa-ssd: Exploit hetero-
+geneity and parallelism of 3d slc-tlc hybrid ssd to improve write performance,” in
+IEEE, 2019,
+2019 IEEE 37th International Conference on Computer Design (ICCD).
+pp. 613–621.
+
+[333] Y. Zhang, P. Pan, Y. Zheng, K. Zhao, Y. Zhang, X. Ren, and R. Jin, “Visual search
+at alibaba,” in Proceedings of the 24th ACM SIGKDD international conference on
+knowledge discovery & data mining, 2018, pp. 993–1001.
+
+[334] P. Zhao, H. Zhang, Q. Yu, Z. Wang, Y. Geng, F. Fu, L. Yang, W. Zhang, and B. Cui,
+“Retrieval-augmented generation for ai-generated content: A survey,” arXiv preprint
+arXiv:2402.19473, 2024.
+
+[335] W. X. Zhao, J. Liu, R. Ren, and J.-R. Wen, “Dense text retrieval based on pretrained
+language models: A survey,” ACM Transactions on Information Systems, vol. 42,
+no. 4, pp. 1–60, 2024.
+
+[336] Y. Zhao, P. Singh, H. Bhathena, B. Ramos, A. Joshi, S. Gadiyaram, and S. Sharma,
+“Optimizing llm based retrieval augmented generation pipelines in the financial
+domain,” in Proceedings of the 2024 Conference of the North American Chapter of the
+Association for Computational Linguistics: Human Language Technologies (Volume 6:
+Industry Track), 2024, pp. 279–294.
+
+[337] Z. Zhong, T. Lei, and D. Chen, “Training language models with memory augmenta-
+
+tion,” arXiv preprint arXiv:2205.12674, 2022.
+
+[338] J. Zhou, Z. Liu, S. Xiao, B. Zhao, and Y. Xiong, “Vista: Visualized text embedding
+for universal multi-modal retrieval,” arXiv preprint arXiv:2406.04292, 2024.
+[339] Y. Zhou, T. Lei, H. Liu, N. Du, Y. Huang, V. Zhao, A. M. Dai, Q. V. Le, J. Laudon et al.,
+“Mixture-of-experts with expert choice routing,” Advances in Neural Information
+Processing Systems, vol. 35, pp. 7103–7114, 2022.
+
+[340] Y. Zhou, F. Wu, P. Huang, X. He, C. Xie, and J. Zhou, “An Efficient Page-level FTL
+
+to Optimize Address Translation in Flash Memory,” in EuroSys, 2015.
+
+[341] Y. Zhou, Q. Wu, F. Wu, H. Jiang, J. Zhou, and C. Xie, “{Remap-SSD}: Safely
+and efficiently exploiting {SSD} address remapping to eliminate duplicate writes,”
+in 19th USENIX Conference on File and Storage Technologies (FAST 21), 2021, pp.
+187–202.
+
+[342] Z. Zhu, J. Liu, G. Dai, S. Zeng, B. Li, H. Yang, and Y. Wang, “Processing-in-
+hierarchical-memory architecture for billion-scale approximate nearest neighbor
+IEEE, 2023,
+search,” in 2023 60th ACM/IEEE Design Automation Conference (DAC).
+pp. 1–6.
+
+[343] J. Zobel and A. Moffat, “Inverted files for text search engines,” ACM computing
+
+surveys (CSUR), vol. 38, no. 2, pp. 6–es, 2006.
+
+[344] M. Zolfaghari, Y. Zhu, P. Gehler, and T. Brox, “Crossclr: Cross-modal contrastive
+
+21

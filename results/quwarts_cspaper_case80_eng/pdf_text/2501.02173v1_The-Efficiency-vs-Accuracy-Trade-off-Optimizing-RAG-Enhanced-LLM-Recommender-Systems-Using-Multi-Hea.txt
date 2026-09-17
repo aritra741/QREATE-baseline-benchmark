@@ -1,0 +1,1330 @@
+The Efficiency vs. Accuracy Trade-off: Optimizing RAG-Enhanced LLM
+Recommender Systems Using Multi-Head Early Exit
+
+Huixue Zhou 1,2, Hengrui Gu 3, Xi Liu 1, Kaixiong Zhou 3, Mingfu Liang 1, Yongkang Xiao 2,
+Srinivas Govindan 1, Piyush Chawla 1, Jiyan Yang 1, Xiangfei Meng 1, Huayu Li 1, Buyun Zhang 1,
+Liang Luo 1, Wen-Yen Chen 1, Yiping Han 1, Bo Long 1, Rui Zhang 2, Tianlong Chen 4
+Meta Platforms1, University of Minnesota2, NCSU3, UNC at Chapel Hill4
+zhou1742@umn.edu, xliu1@meta.com, tianlong@cs.unc.edu
+
+5
+2
+0
+2
+
+n
+a
+J
+
+4
+
+]
+
+R
+
+I
+.
+s
+c
+[
+
+1
+v
+3
+7
+1
+2
+0
+.
+1
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+accurate preference modeling.
+
+The deployment of Large Language Models
+(LLMs) in recommender systems for predict-
+ing Click-Through Rates (CTR) necessitates
+a delicate balance between computational ef-
+ficiency and predictive accuracy. This paper
+presents an optimization framework that com-
+bines Retrieval-Augmented Generation (RAG)
+with an innovative multi-head early exit archi-
+tecture to concurrently enhance both aspects.
+By integrating Graph Convolutional Networks
+(GCNs) as efficient retrieval mechanisms, we
+are able to significantly reduce data retrieval
+times while maintaining high model perfor-
+mance. The early exit strategy employed al-
+lows for dynamic termination of model infer-
+ence, utilizing real-time predictive confidence
+assessments across multiple heads. This not
+only quickens the responsiveness of LLMs but
+also upholds or improves their accuracy, mak-
+ing it ideal for real-time application scenarios.
+Our experiments demonstrate how this archi-
+tecture effectively decreases computation time
+without sacrificing the accuracy needed for re-
+liable recommendation delivery, establishing
+a new standard for efficient, real-time LLM
+deployment in commercial systems.
+
+1
+
+Introduction
+
+Due to their remarkable capabilities in semantic
+understanding and knowledge retention, Large Lan-
+guage Models (LLMs) have demonstrated impres-
+sive performance across various domains, becom-
+ing essential components of various text-based rec-
+ommendation systems, such as sequential recom-
+mendation (Wang et al., 2023; Harte et al., 2023; Li
+et al., 2023; Zheng et al., 2024) and raking (Zhao
+et al., 2024; Acharya et al., 2023).
+In light of
+this, numerous researchers have sought to adapt
+LLMs for Click-Through Rate (CTR) prediction
+problem (Wang and Lim, 2023; Bao et al., 2023a;
+Lin et al., 2024a), leveraging their text-mining ca-
+pabilities to analyze textual user behaviors for more
+
+The performance of LLM-based CTR predictors
+is enhanced by Retrieval-Augmented Generation
+(RAG) modules (Lin et al., 2024b; Hajiaghayi et al.,
+2024), which integrate diverse and user-relevant
+texts into the input contexts. This enrichment al-
+lows LLMs to extract more accurate user features
+for preference prediction. However, the integra-
+tion of RAG introduces significant efficiency chal-
+lenges: By reasoning conditioned on the contextual
+input information, LLMs can extract more precise
+user features for preference prediction. However,
+while we benefit from the improved accuracy pro-
+vided by RAG, it also introduces two critical effi-
+ciency bottlenecks: ❶ Inference Delay: The se-
+quential execution of retrieval and inference leads
+to significant delays in starting the inference pro-
+cess due to the additional time required for retrieval.
+❷ Inference Slowdown: The extended inputs in-
+troduce extra computational overhead, drastically
+slowing down model inference as LLMs suffer
+from quadratic time complexity w.r.t. input length.
+These bottlenecks significantly undermine the real-
+time responsiveness of these predictors, hindering
+their broader application in real-world recommen-
+dation scenarios.
+
+To address these challenges, we propose two in-
+novative acceleration techniques tailored to these
+bottlenecks, aiming to enhance the efficiency of
+LLM-based CTR predictors without overly com-
+promising recommendation quality. Regarding
+the retrieval strategies (Bottleneck ❶), we intro-
+duce a lightweight yet effective retrieval scheme
+called GCN-Retriever. Leveraging the impres-
+sive capability of Graph Convolutional Networks
+(GCNs) (Kipf and Welling, 2016; Chen et al., 2020)
+to model structural data, we employ them as feature
+embedders to comprehensively capture multi-order
+interaction information within user-item graphs,
+generating precise and informative representations
+for subsequent reasoning. By replacing the time-
+
+ 
+ 
+ 
+ 
+ 
+ 
+consuming LLM embedders with GCN-Retriever,
+we significantly reduce retrieval times, enabling our
+system to minimize intractable inference delays
+while maintaining high recommendation perfor-
+mance. As for inference accelerating (Bottleneck
+❷), we introduce a multi-head early exit strategy in-
+tegrated with an exit scoring mechanism tailored to
+the LLM-based CTR prediction task. By applying
+this early exit strategy, the system can terminate
+the inference process at intermediate layers based
+on the confidence level of the predictions, thereby
+reducing unnecessary computational overhead and
+accelerating response without sacrificing the accu-
+racy of the recommendations. The contributions
+are summarized below:
+
+• Enhanced LLM for CTR Prediction via RAG:
+Demonstrates significant improvements in ac-
+curacy by incorporating interaction data into
+RAG-based LLM models.
+
+• Efficient GCN-Retriever: Introduces a simpli-
+fied GCN-based retriever for recommendation,
+reducing data retrieval time without impacting
+model performance.
+
+• Inference Time Optimization through Early
+Exit: Employs an early exit strategy in model
+training and inference to effectively enhance
+online efficiency.
+
+• Novel Multi-Head Early Exit Adjustment: In-
+troduces an innovative adjustment in the early
+exit strategy implemented within a multi-head
+architecture, maintaining accuracy while im-
+proving efficiency.
+
+2 Related Work
+
+2.1 Language Models for Recommendation
+
+Building on prior research(Wu et al., 2023), the
+integration of language models into recommender
+systems often focuses on their distinct functions
+within the recommendation process. These roles
+include serving as feature extractors(Bian et al.,
+2022; Zheng et al., 2023; Zhang et al., 2024), where
+language models analyze item and user data to
+produce embeddings or tokens. These embeddings
+can be utilized by traditional recommender system
+models to enhance task-specific recommendations
+through knowledge-aware embeddings.
+
+Furthermore,
+
+language models can function
+within scoring or ranking mechanisms(Wang et al.,
+2023; Zhu et al., 2024; Kim et al., 2024). This
+
+approach leverages pre-trained language models to
+transform recommendation systems significantly.
+Typically, the input sequence includes task instruc-
+tions, behavioral prompts, with the output generat-
+ing pertinent recommendation results.
+
+Our methodology diverges from previous prac-
+tices by employing the language model primarily
+within the scoring functions, while using a sim-
+ple traditional model, specifically a GNN, as a re-
+triever. This model extracts similar user profiles to
+construct the prompts for the language model, capi-
+talizing on its ability to comprehend and synthesize
+user data and interactions, thereby generating per-
+sonalized recommendations.
+
+2.2 Efficient Inference
+
+The inference performance of LLMs is often con-
+strained by the sequential nature of auto-regressive
+decoding, where the generation of each token ne-
+cessitates a full network forward pass. To address
+the high inference latency inherent in LLMs, sev-
+eral strategies have been proposed: Techniques
+such as quantization (Fan et al., 2020; Bai et al.,
+2022; Tao et al., 2022), pruning (Ma et al., 2023;
+Sun et al., 2023; Xia et al., 2023; Frantar and Al-
+istarh, 2023), and knowledge distillation (Liang
+et al., 2023; Sahu et al., 2023; Gu et al., 2024),
+aim to reduce the memory footprint of LLMs, thus
+lowering the computational demands. Early Exit
+Strategies allow a model to terminate the compu-
+tation at intermediate layers if certain conditions
+are met, thereby accelerating inference and reduc-
+ing computational overhead. Early exit has been
+explored across various machine learning domains,
+focusing on designing efficient early exit networks
+(Bae et al., 2023a; Chen et al., 2023), and refining
+exit rules to balance accuracy and computational
+efficiency(Zhou et al., 2020; Li et al., 2021; Xin
+et al., 2021; Bae et al., 2023b).
+
+3 Problem Formulation
+
+CTR prediction. We utilize LLMs for CTR pre-
+diction, treating it as a binary classification task. In
+particular, each data sample xi is transformed into
+textual sentences xtext
+. Correspondingly, the binary
+label yi ∈ {0, 1} is converted into a pair of binary
+key answer words ytext
+LLMs for Recommender System. The LLM then
+processes the input xtext
+and aims to generate the
+next token ˆytext
+, which can be mathematically ex-
+
+in {"Yes", "No"}.
+
+i
+
+i
+
+i
+
+i
+
+pressed as follows:
+
+i
+
+si = LLM(xtext
+),
+ˆpi = Softmax(si),
+ˆytext
+i ∼ ˆpi,
+
+where si ∈ RV is the estimated scores, V is the
+vocabulary size, and ˆytext
+is the next predicted token
+i
+sampled from the probability distribution ˆpi.
+
+Following previous works (Wang and Lim, 2023;
+Bao et al., 2023a; Lin et al., 2024a), we apply a bidi-
+mensional softmax to the scores associated with
+the binary key answer words. Assuming the vo-
+cabulary indices for "Yes" and "No" are a and b
+The pointwise scoring formula for LLMs in CTR
+prediction is articulated as:
+
+ˆyi =
+
+exp(sa
+i )
+i ) + exp(sb
+i )
+
+exp(sa
+
+∈ (0, 1).
+
+4 GCN-Retriever for Retrieval
+
+Acceleration
+
+To prepare our model for accurate learning and
+prediction, we construct textual sentences, denoted
+as Xtext, by integrating instructions, representative
+examples, and actual user input data. This process
+is crucial for aligning the model’s understanding
+with the specific requirements and contexts of the
+tasks it needs to perform.
+
+Consider a recommendation system designed to
+suggest products based on user reviews and meta-
+data. The construction of Xtext proceed as follows:
+1) Instruction: Embed clear directives that guide
+the model on the task, such as "Predict whether the
+user will click on the given item." 2) Examples:
+We incorporate examples of similar users’ interac-
+tions to inform the model’s context, e.g., "User A
+rated Book X with 5 stars." 3) Input: Add actual
+real-time user interaction and query.
+
+To tackle the challenge of time efficiency in
+recommendation systems, we have developed a
+streamlined approach using GCNs. Specifically,
+we implemented a simplified graph model to rep-
+resent both users and items. This model leverages
+the structural advantages of GCNs to facilitate the
+rapid retrieval of similar users, thus enhancing the
+system’s overall efficiency. The GCN-Retriever
+model constructs a bipartite graph where nodes
+correspond to users and items, and edges repre-
+sent interactions between them. The model utilizes
+GCNs to process these structural features through
+multiple layers of message passing. Specifically,
+
+the embedding for a user u at the next layer k +1
+is updated by aggregating features from its neigh-
+bors in the graph, as described by the following
+equation:
+
+e(k+1)
+u
+
+= AGG
+
+(cid:16)
+
+u , {e(k)
+e(k)
+
+i
+
+(cid:17)
+
+: i ∈ Nu}
+
+where eu is the embedding of user u, Nu denotes
+the neighbors of u, and AGG represents the ag-
+gregation function which combines features of a
+node with those of its neighbors to generate new
+representations.
+
+To effectively capture the multidimensional sig-
+nal of users, our GCN-Retriever model employs
+a strategy of averaging the embeddings obtained
+from different layers of GCNs. This approach
+provides a comprehensive representation that in-
+tegrates diverse aspects of user behavior and at-
+tributes captured at the various levels of graph
+structure. The average of user embeddings across
+multiple convolutional layers is described by the
+following equation:
+
+eu =
+
+1
+K
+
+K
+(cid:88)
+
+k=1
+
+e(k)
+u .
+
+eu represents the final averaged embedding for user
+u, K is the number of layers from which embed-
+dings are extracted and averaged, and e(k)
+is the
+u
+embedding of user u at layer k.
+
+Cosine similarity is used to measure the similar-
+ity between users based on their averaged embed-
+dings:
+
+similarity(u, v) =
+
+eu · ev
+∥eu∥∥ev∥
+
+To identify the user v most similar to user u, we
+calculate:
+
+v∗ = arg max
+
+v
+
+similarity(u, v).
+
+5 Dynamic Predictive Exiting for
+
+Inference Acceleration
+
+In this section, we introduce Dynamic Predic-
+tive Exiting as a solution to Inference Slowdown.
+Motivated by (Xin et al., 2021), this mechanism
+leverages additional language heads to enable flex-
+ible inference termination while maintaining pre-
+diction quality. Specifically, during the forward
+pass through model layers, these language heads,
+attached to designated exit layers, decode the inter-
+mediate hidden states into next-token distributions.
+
+We design straightforward yet effective strategies
+to dynamically monitor the prediction confidence
+at different layers, using it as a real-time criterion to
+determine when to terminate inference and accept
+these intermediate distributions as final outputs.
+
+5.1 Preliminaries
+
+Notations. The typical architectures of LLMs com-
+prise N transformer layers and a language head
+Head(·) for predicting the next-word distribution.
+Given a sequence of tokens {x1, . . . , xt−1} as in-
+put, the standard decoding process for LLMs is
+described as below:
+
+randomly initialized parameters at each exit layer
+ℓ ∈ L. Besides decoding, another crucial function
+of these language heads is to approximate the infer-
+ence process of subsequent layers, allowing for the
+acquisition of high-quality predictive distributions
+solely from the exited intermediate hidden states.
+In our customized fine-tuning scheme, we first
+perform comprehensive instruction-tuning on the
+entire vanilla model. This step ensures the model
+is optimally tailored to the specific requirements of
+the target application. Given a textual input x and
+its ground truth token y, we use the cross-entropy
+loss as the training objective:
+
+p(xt|x<t) = softmax(Head(h(N )
+
+t−1))xt
+
+(1)
+
+LCE = − log p(y|x),
+
+where h(N )
+t−1 represents the mature hidden states
+that have already processed by the N -th layer (i.e.,
+the final layer) and p(xt|x<t) denotes the standard
+prediction distribution from which the next token
+xt is expected to be sampled.
+Early Exit. Early exit has proven to be an effective
+technique to interpret the evolution of predicting
+preferences across model layers in LLMs, even
+without special training process (Chuang et al.,
+2024; Kao et al., 2020; Schuster et al., 2022). By
+applying the language head to the immature hidden
+states of the intermediate layers, we can calculate
+the probability of the next token solely conditioned
+on h(j)
+t−1, j ∈ {0, . . . , N − 1}, without finishing the
+entire inference process:
+
+p(j)(xt|x<t) = softmax(Head(h(j)
+
+t−1))xt
+
+(2)
+
+While effectively analyzing the layer-wise predic-
+tive trends in LLMs, it’s widely acknowledged
+that the intermediate hidden states in LLMs ex-
+hibit an unavoidable information gap (i.e., distri-
+bution shift) compared to the final hidden states,
+leading to an unacceptable trade-off between effi-
+cency and response quality (Elhoushi et al., 2024;
+Liu et al., 2024). In the following section, we in-
+troduce additional language heads and propose a
+customized fine-tuning scheme for them. These
+fine-tuned language head can better “understand”
+the hidden states of earlier layers, thereby mitigat-
+ing the information gap.
+
+5.2 Optimization of Multi Heads
+
+In prior to fine-tuning language models, we pre-
+define a set of exit layers L ⊂ {1, . . . , N − 1} and
+mount an additional language head Headℓ, with
+
+After fine-tuning the model, we freeze its existing
+parameters and integrate the multi-early-exit heads
+(i.e., additional language heads) at different exit
+layers. Our empirical results show that fine-tuning
+only these heads improves training stability and
+leads to a better convergence rate. Specifically, for
+a given textual input x and its ground truth token y,
+the layer-specific training loss for layer ℓ is defined
+as:
+
+L(ℓ)
+exit = − log p(ℓ)(y|x),
+where p(ℓ)(y|x) is the probability that Headℓ as-
+signs to the correct ground truth token y.
+
+In the training of multi-head architectures, it
+is beneficial to adopt a learning rate strategy that
+varies across the depth of the network. Specifi-
+cally, shallower layers’ heads are assigned higher
+learning rates compared to deeper layers. This
+strategy recognizes that shallower layers capture
+more generic features which are crucial early in the
+training process and may require more aggressive
+updates. Conversely, deeper layers, which adapt
+to more specific features, benefit from finer, more
+gradual updates. The learning rate for each head n,
+located at depth dn in the architecture, is defined
+as follows:
+
+λn = λ0 · e−β·dℓ,
+
+where:
+
+• λ0 is the base learning rate.
+
+• β is a decay constant that determines the rate
+of reduction in learning rate with increasing
+depth.
+
+• dℓ is the depth of the head, with shallower
+
+heads having a smaller dℓ.
+
+5.3 Workflow of Dynamic Predictive Exiting
+
+a defined window of m layers as:
+
+After obtaining the set of fine-tuned language heads
+{Headℓ|ℓ ∈ L} mounted at these specified exit lay-
+ers ℓ, LLMs can decode intermediate hidden states
+in real-time to generate predictive distributions in
+advance. At this point, our proposed Dynamic
+Predictive Exiting mechanism can be applied to
+the target model for inference acceleration. The
+detailed workflow of this mechanism involves two
+steps as follows:
+1. Dynamic real-time decoding. When the for-
+ward computation of LLMs reaches the ℓ-th decod-
+ing layer, we perform real-time decoding on the
+hidden states hℓ output from that layer to obtain
+the immature predictive distribution Pℓ, which re-
+flects the prediction tendencies of the LLMs at the
+current layer.
+2. Predictive exiting strategies. Each time we
+obtain the immature predictive distribution Pℓ at
+an exiting layer ℓ, we need a criterion to deter-
+mine whether to accept this distribution as the final
+prediction distribution and terminate the inference
+early. To this end, we propose the strategy for LLM
+earlyexit for CTR. This strategy are inspired by an
+interesting finding (Chuang et al., 2024) that LLMs
+progressively refine their hidden states across de-
+coding layers. For some simple prediction steps,
+the hidden states at intermediate layers have al-
+ready encoded sufficient information to predict the
+next token and remain relatively stable throughout
+the rest of the inference process. The goal of these
+strategies is to avoid unnecessary computations
+on such steps, thereby reducing the time spent on
+“over-thinking”. We provide a detailed description
+of the strategy below, namely the Probability-Based
+Method for CTR.
+
+Probability-Based Method for CTR: Define
+ka,b as the label receiving of position a and b prob-
+ability at layer ℓ, and P a,b
+denotes the probability
+ℓ
+distribution at the exit of layer ℓ. The measure of
+disagreement between the predictions at layers ℓ
+and ℓ − 1 is quantified by the function:
+
+D(P a,b
+ℓ
+
+, P a,b
+
+ℓ′ ) = |Pm(ka,b) − Pℓ′(ka,b)| ,
+
+where this discrepancy is represented by Dℓℓ′ ∈
+R and the distance between consecutive layers ℓ
+and ℓ − 1 is represented as Dℓ. A lower value
+of Dℓ signifies a greater consistency between the
+distributions Pℓ and Pℓ−1.
+
+To systematically assess consistency across mul-
+tiple layers, we calculate the mean discrepancy over
+
+Dm
+
+ℓ =
+
+1
+m
+
+ℓ+m
+(cid:88)
+
+i=ℓ
+
+Di,
+
+If the difference between the discrepancy at layer ℓ
+and the average discrepancy over the last ℓ layers
+from ℓ − 1 back to ℓ − l, (cid:12)
+(cid:12)
+(cid:12) , falls be-
+low a predefined threshold τ , it indicates that the
+current layer’s output does not significantly deviate
+from the trend established by previous layers, thus
+allowing the process to terminate early.
+
+(cid:12)Dℓ − Dm
+ℓ−1
+
+6 Experiments
+
+Dataset. We conduct experiments on three real-
+world datasets: BookCrossing(Ziegler et al., 2005),
+Amazon Beauty, and Amazon video games(Ni
+et al., 2019). We present the processed dataset
+BookCrossing: The
+statistics in Table 1.
+BookCrossing dataset comprises user ratings and
+detailed textual descriptions of books. In our anal-
+ysis, we randomly choose one item that each user
+has interacted with as the target for our predictions.
+Additionally, we select up to 15 items that the user
+has previously interacted with to represent their his-
+torical interactions. User ratings are converted to a
+binary format using a threshold of 5, where ratings
+of 5 or higher are categorized as positive. Amazon
+dataset: The Amazon dataset comprises user pur-
+chase actions and rating information sourced from
+the Amazon platform. For our experiments, we
+selected two domains with a substantial number of
+overlapping users: Beauty 2018 and Video Games
+2018. To prepare the dataset for the recommender
+system experiments, we initially processed the orig-
+inal data by organizing past interactions chronolog-
+ically for each user. We then filtered out samples
+that had fewer than three past interactions to ensure
+sufficient data quality and reliability in the train-
+ing set. For the construction of recommendation
+tuning samples, we retained up to 15 interactions
+that occurred prior to the target item. We further
+binarize the ratings according to a threshold of 3.
+The refined dataset was subsequently divided into
+training, validation, and testing sets, maintaining a
+ratio of 8:1:1.
+
+Baseline Methods. Traditional CTR models are
+typically divided into two main categories: feature
+interaction models and user behavior models. For
+our study, we selected DeepFM(Guo et al., 2017)
+as representative feature interaction models. Addi-
+tionally, we chose GRU4Rec(Hidasi et al., 2016),
+
+Figure 1: The process of GCN-earlyexit: Section 1 GCN-Retriever: Constructs a GCN to generate user embeddings
+for identifying similar users; Section 2 Construct the Prompt with the Retrieved information: Forms LLM input by
+combining interaction data of the query user with similar users’ data; Section 3 Multi-head Early Exit: Implements
+an early exit strategy in the LLM by designating potential exit layers and setting probability-based termination
+criteria.
+
+Table 1: Summary of Datasets.
+
+Dataset
+
+Users
+
+Items
+
+Samples
+
+BookCrossing
+Beauty
+Video Games
+
+278,858
+324,037
+41,996
+
+271,375
+32,892
+17,303
+
+17,714
+6,525
+294,135
+
+DIN(Zhou et al., 2017), and SIM(Zhao et al., 2023)
+as representative user behavior models. We also
+evaluate the TALLRec(Bao et al., 2023b) as a LLM-
+based CTR model.
+
+Implementation Details. For our experiments,
+we used Vicuna-7B, a model released by FastChat,
+as the base language model. We employed few-
+shot training methods (using less than 10% of the
+training data) to fine-tune the model for our specific
+CTR task, while using the entire training dataset
+for the traditional models. The example number
+were setting as four in GCN-earlyexit. To reduce
+the time cost by calculating the exit scores, we des-
+ignated the layer (5,10,15, 20, 25, 30) for Beauty
+and Vedio Games dataset, the layer (5,10,15, 20)
+for BookCrossing. Notably, the final early exit
+layer was set at the highest designated layer for
+BookCrossing to ensure maximal processing.
+
+Measurement. Each configuration’s perfor-
+mance was assessed using the Area Under the
+Curve (AUC) metric for accuracy. The retrieval
+times, indicating computational demand, were nor-
+
+malized to the baseline (1x) set by the LLM re-
+trievor. Inference speed was measured by the re-
+quests per second (RPS) per NVIDIA A100 GPU.
+Q1: Does Our Method Outperform tradi-
+tional recommendation Models? The analysis
+of the results in Table 2 allows us to make several
+critical observations. Our method, as evidenced
+by the data, outperforms both traditional recom-
+mendation models and the LLM based based meth-
+ods, with an average improvements of 4.72 for
+BookCrossing, 27.16 for Beauty, and 16.71 for
+Video Games in AUC. This performance enhance-
+ment substantiates the efficacy of our specialized
+framework for tuning LLMs in recommendation
+settings. Compared to traditional methods, the
+LLM-based models demonstrate enhanced capabil-
+ity in CTR predictions based on past interactions,
+particularly for text-rich recommendation datasets
+such as BookCrossing and Amazon reviews. These
+datasets predominantly contain item information
+such as titles, publication years, and prices. In com-
+parison to existing LLM-based methods, such as
+TallRec, our approach incorporates similar users’
+interactions, which significantly enhances perfor-
+mance by providing a more comprehensive view
+of user preferences, thereby outperforming current
+user-only LLM frameworks for CTR.
+
+Q2: Is a GCN-Retriever More Effective and
+Accurate Than LLM Retriever Methods? As
+shown in our comparative analysis (Figure 2),
+
+Table 2: Performance Comparison of Sequential Recommendation Models: Conventional Baselines, LLM Baseline,
+and Our Enhancements with GCN-Retriever and GCN-Early Exit.
+
+Category Model
+
+BookCrossing Beauty Video Games
+
+Metric
+
+Full-shot DeepFM
+Full-shot DIN
+SIM
+Full-shot
+Full-shot GRU4Rec
+Few-shot Tallrec
+Few-shot LLM-retriever
+Few-shot GCN-retriever
+Few-shot GCN-earlyexit
+
+AUC
+
+71.15
+71.17
+68.10
+60.75
+70.74
+69.05
+72.51
+73.28
+
+AUC
+
+70.05
+69.02
+61.11
+70.04
+90.37
+89.65
+94.72
+96.37
+
+AUC
+
+77.25
+77.03
+74.75
+63.20
+81.41
+83.15
+93.46
+97.19
+
+GCN-retriever demonstrate significantly faster re-
+trieval speeds compared to LLM-based retriever
+across all evaluated datasets, including BookCross-
+ing, ml-1m, and Amazon-Review-Beauty. Our re-
+sults further indicate that GCN-retriever consis-
+tently outperform LLM-based retrievers in terms
+of accuracy across all tested datasets. For example,
+on the BookCrossing dataset, the GCN retriever
+achieves an AUC of 72.51 without early exit. In
+contrast, the LLM retriever achieves a lower AUC
+of 69.05 without early exit, underscoring the supe-
+rior capability of the GCN-Retriever in extracting
+relevant features for recommendation tasks.
+
+LLM-based methods typically require the con-
+struction of detailed prompts from each user’s past
+interactions to generate user embeddings. This pro-
+cess, while detailed, introduces significant com-
+putational overhead, particularly for large-scale
+datasets. The need to generate extensive prompts
+for each user interaction can severely limit the
+scalability of LLM retrievers. In contrast, GCN-
+retrievers adopt a more direct and efficient ap-
+proach to explore user-item interactions. By inher-
+ently encoding relationships within the interaction
+graph, GCNs eliminate the necessity for extensive
+textual prompts, thereby significantly reducing re-
+trieval times. The streamlined process not only
+enhances computational efficiency but also ensures
+that no valuable interaction data is truncated, as
+is often the case with LLMs due to input length
+constraints.
+
+Q3: Is Averaging GCN Layer Embeddings
+More Effective Than Using the Final Layer
+Alone? Our analysis indicates that the efficacy
+of GCN-retrievers is influenced by the choice of
+embedding layer (Table 3). Across various It is evi-
+
+Figure 2: Speedup Comparison between LLM and GCN
+by Dataset.
+
+dent that using averaged embeddings from multiple
+layers results in a more robust representation. This
+suggests that embeddings averaged across multiple
+layers provide a richer, more generalized represen-
+tation that captures a broader spectrum of user-item
+interaction patterns.
+
+Table 3: AUC Scores by Dataset and Retrieval Layer.
+
+Dataset
+
+Retrieval Layer AUC
+
+BookCrossing
+
+Beauty
+
+Video Games
+
+Average
+Last Layer
+
+Average
+Last Layer
+
+Average
+Last Layer
+
+72.51
+69.45
+
+94.72
+93.55
+
+89.77
+85.63
+
+Q4: Is Retrieval Mechanisms More Efficient
+When Combined with Early Exit? Table 4 indi-
+cated that combining retrieval mechanisms with
+
+early exit strategies substantially increases effi-
+ciency, as evidenced by improved RPS across dif-
+ferent datasets. For example, in the Video Games
+dataset, the RPS increased from 3.828 to 4.570
+with the integration of early exit, confirming that
+this strategy enhances system responsiveness and
+computational speed effectively.
+
+Q5: Is the Accuracy Maintained When In-
+corporating Early Exit? The examination of the
+experimental data across different datasets reveals
+that the incorporation of early exit strategies along-
+side retrieval mechanisms either maintains or en-
+hances the accuracy of the systems. Notably, in the
+Beauty dataset, the AUC improves from 94.72 to
+96.37 with the introduction of early exit.
+
+7 Conclusion
+
+With the increasing sophistication of LLMs, the re-
+search community is recognizing their potential to
+revolutionize recommendation systems (Bao et al.,
+2023b). In this work, we explored the integration
+of advanced retrieval mechanisms and early exit
+strategies with LLMs to enhance both the efficiency
+and accuracy of recommendations. Our findings
+indicate that by incorporating GCNs as retrieval
+mechanisms and leveraging multi-head early exit
+architectures, we can significantly reduce compu-
+tation time while maintaining or improving the ac-
+curacy of the system. This optimized approach not
+only accelerates the responsiveness of LLMs but
+also upholds their decision-making quality, mak-
+ing them highly suitable for real-time application
+scenarios in commercial systems.
+
+8 Limitation
+
+The effectiveness of our approach is constrained by
+the necessity for textual descriptions in the recom-
+mendation data, as it relies heavily on processing
+item titles. This limitation restricts its applicability
+to datasets with substantial textual metadata, poten-
+tially excluding a broad array of recommendation
+environments where such data is sparse.
+
+References
+
+Arkadeep Acharya, Brijraj Singh, and Naoyuki Onoe.
+2023. Llm based generation of item-description for
+recommendation system. In Proceedings of the 17th
+ACM Conference on Recommender Systems, pages
+1204–1207.
+
+Sangmin Bae, Jongwoo Ko, Hwanjun Song, and
+Fast and robust early-
+
+Se-Young Yun. 2023a.
+
+Table 4: Ablation Study.
+
+Dataset
+
+Retrie Early-
+Exit
+-ver
+
+AUC-
+(RPS)
+
+BookCrossing
+
+Beauty
+
+Video Games
+
+w/o
+w/
+w/o
+w/
+
+w/o
+w/
+w/o
+w/
+
+w/o
+w/
+w/o
+w/
+
+w/o
+w/o
+w/
+w/
+
+w/o
+w/o
+w/
+w/
+
+w/o
+w/o
+w/
+w/
+
+70.74 (15.77)
+72.51 ( 4.66)
+53.17 (17.85)
+73.28 (5.59)
+
+90.37 (15.09)
+94.72 (4.78)
+92.56 (20.32)
+96.37 (4.96)
+
+81.41 (8.91)
+89.77 (3.83)
+82.32 (7.89)
+97.19 (4.57)
+
+Note: Four samples were retrieved for each dataset in GCN-
+
+retriever and GCN-earlyexit.
+
+exiting framework for autoregressive language mod-
+els with synchronized parallel decoding. Preprint,
+arXiv:2310.05424.
+
+Sangmin Bae, Jongwoo Ko, Hwanjun Song, and Se-
+Young Yun. 2023b. Fast and robust early-exiting
+framework for autoregressive language models with
+synchronized parallel decoding. In Proceedings of
+the 2023 Conference on Empirical Methods in Natu-
+ral Language Processing, pages 5910–5924, Singa-
+pore. Association for Computational Linguistics.
+
+H. Bai, L. Hou, L. Shang, X. Jiang, I. King, and M. R.
+Lyu. 2022. Towards efficient post-training quantiza-
+tion of pre-trained language models. In Advances in
+Neural Information Processing Systems, volume 35,
+pages 1405–1418.
+
+Keqin Bao, Jizhi Zhang, Yang Zhang, Wenjie Wang,
+Fuli Feng, and Xiangnan He. 2023a. Tallrec: An
+effective and efficient tuning framework to align
+large language model with recommendation. arXiv
+preprint arXiv:2305.00447.
+
+Keqin Bao, Jizhi Zhang, Yang Zhang, Wenjie Wang,
+Fuli Feng, and Xiangnan He. 2023b. Tallrec: An ef-
+fective and efficient tuning framework to align large
+language model with recommendation. In Proceed-
+ings of the 17th ACM Conference on Recommender
+Systems, volume 33 of RecSys ’23, page 1007–1014.
+ACM.
+
+Shuqing Bian, Wayne Xin Zhao, Jinpeng Wang, and
+Ji-Rong Wen. 2022. A relevant and diverse retrieval-
+enhanced data augmentation framework for se-
+In Proceedings of the
+quential recommendation.
+31st ACM International Conference on Informa-
+tion & Knowledge Management, CIKM ’22, page
+2923–2932, New York, NY, USA. Association for
+Computing Machinery.
+
+Ming Chen, Zhewei Wei, Zengfeng Huang, Bolin Ding,
+and Yaliang Li. 2020. Simple and deep graph con-
+volutional networks. In International conference on
+machine learning, pages 1725–1735. PMLR.
+
+Yanxi Chen, Xuchen Pan, Yaliang Li, Bolin Ding, and
+Jingren Zhou. 2023. Ee-llm: Large-scale training and
+inference of early-exit large language models with
+3d parallelism. Preprint, arXiv:2312.04916.
+
+Yung-Sung Chuang, Yujia Xie, Hongyin Luo, Yoon
+Kim, James Glass, and Pengcheng He. 2024. Dola:
+Decoding by contrasting layers improves factuality in
+large language models. Preprint, arXiv:2309.03883.
+
+Mostafa Elhoushi, Akshat Shrivastava, Diana Liskovich,
+Basil Hosmer, Bram Wasti, Liangzhen Lai, Anas
+Mahmoud, Bilge Acun, Saurabh Agarwal, Ahmed
+Roman, et al. 2024. Layer skip: Enabling early
+exit inference and self-speculative decoding. arXiv
+preprint arXiv:2404.16710.
+
+A. Fan, P. Stock, B. Graham, E. Grave, R. Gribonval,
+H. Jegou, and A. Joulin. 2020. Training with quanti-
+zation noise for extreme model compression. arXiv
+preprint arXiv:2004.07320.
+
+Elias Frantar and Dan Alistarh. 2023. Sparsegpt: Mas-
+sive language models can be accurately pruned in
+one-shot. Preprint, arXiv:2301.00774.
+
+Yuxian Gu, Li Dong, Furu Wei, and Minlie Huang. 2024.
+Minillm: Knowledge distillation of large language
+models. In The Twelfth International Conference on
+Learning Representations.
+
+Huifeng Guo, Ruiming Tang, Yunming Ye, Zhenguo Li,
+and Xiuqiang He. 2017. Deepfm: A factorization-
+machine based neural network for ctr prediction.
+Preprint, arXiv:1703.04247.
+
+MohammadTaghi Hajiaghayi, Sébastien Lahaie, Keivan
+Rezaei, and Suho Shin. 2024. Ad auctions for
+llms via retrieval augmented generation. Preprint,
+arXiv:2406.09459.
+
+Jesse Harte, Wouter Zorgdrager, Panos Louridas, As-
+terios Katsifodimos, Dietmar Jannach, and Marios
+Fragkoulis. 2023. Leveraging large language models
+for sequential recommendation. In Proceedings of
+the 17th ACM Conference on Recommender Systems,
+pages 1096–1102.
+
+Balázs Hidasi, Alexandros Karatzoglou, Linas Bal-
+trunas, and Domonkos Tikk. 2016. Session-based
+recommendations with recurrent neural networks.
+Preprint, arXiv:1511.06939.
+
+Wei-Tsung Kao, Tsung-Han Wu, Po-Han Chi, Chun-
+Cheng Hsieh, and Hung-Yi Lee. 2020. Bert’s output
+layer recognizes all hidden layers? some intriguing
+phenomena and a simple way to boost bert. arXiv
+preprint arXiv:2001.09309.
+
+Sein Kim, Hongseok Kang, Seungyoon Choi,
+Donghyun Kim, Minchul Yang, and Chanyoung Park.
+2024. Large language models meet collaborative
+filtering: An efficient all-round llm-based recom-
+In Proceedings of the 30th ACM
+mender system.
+SIGKDD Conference on Knowledge Discovery and
+Data Mining, KDD ’24, page 1395–1406, New York,
+NY, USA. Association for Computing Machinery.
+
+Thomas N Kipf and Max Welling. 2016.
+
+Semi-
+supervised classification with graph convolutional
+networks. arXiv preprint arXiv:1609.02907.
+
+Lei Li, Yongfeng Zhang, and Li Chen. 2023. Prompt
+distillation for efficient llm-based recommendation.
+In Proceedings of the 32nd ACM International Con-
+ference on Information and Knowledge Management,
+pages 1348–1357.
+
+X. Li, Y. Shao, T. Sun, H. Yan, X. Qiu, and X. Huang.
+2021. Accelerating bert inference for sequence label-
+ing via early-exit. arXiv preprint arXiv:2105.13878.
+
+Chen Liang, Simiao Zuo, Qingru Zhang, Pengcheng
+He, Weizhu Chen, and Tuo Zhao. 2023. Less is
+more: Task-aware layer-wise distillation for language
+model compression. In International Conference on
+Machine Learning, pages 20852–20867. PMLR.
+
+J. Lin, R. Shan, C. Zhu, K. Du, B. Chen, S. Quan,
+R. Tang, Y. Yu, and W. Zhang. 2024a. Rella:
+Retrieval-enhanced large language models for life-
+long sequential behavior comprehension in recom-
+mendation. In Proceedings of the ACM on Web Con-
+ference 2024, pages 3497–3508.
+
+Jianghao Lin, Rong Shan, Chenxu Zhu, Kounianhua
+Du, Bo Chen, Shigang Quan, Ruiming Tang, Yong
+Yu, and Weinan Zhang. 2024b. Rella: Retrieval-
+enhanced large language models for lifelong sequen-
+tial behavior comprehension in recommendation. In
+Proceedings of the ACM Web Conference 2024, vol-
+ume 11 of WWW ’24, page 3497–3508. ACM.
+
+Fangcheng Liu, Yehui Tang, Zhenhua Liu, Yunsheng
+Ni, Kai Han, and Yunhe Wang. 2024. Kangaroo:
+Lossless self-speculative decoding via double early
+exiting. arXiv preprint arXiv:2404.18911.
+
+Xinyin Ma, Gongfan Fang, and Xinchao Wang. 2023.
+Llm-pruner: On the structural pruning of large lan-
+guage models. Advances in neural information pro-
+cessing systems, 36:21702–21720.
+
+Jianmo Ni, Jiacheng Li, and Julian McAuley. 2019.
+Justifying recommendations using distantly-labeled
+In Proceedings
+reviews and fine-grained aspects.
+of the 2019 Conference on Empirical Methods in
+Natural Language Processing and the 9th Interna-
+tional Joint Conference on Natural Language Pro-
+cessing (EMNLP-IJCNLP), pages 188–197, Hong
+Kong, China. Association for Computational Lin-
+guistics.
+
+Gaurav Sahu, Olga Vechtomova, Dzmitry Bahdanau,
+and Issam H. Laradji. 2023. Promptmix: A class
+
+boundary augmentation method for large language
+model distillation. Preprint, arXiv:2310.14192.
+
+Tal Schuster, Adam Fisch, Jai Gupta, Mostafa Dehghani,
+Dara Bahri, Vinh Tran, Yi Tay, and Donald Metzler.
+2022. Confident adaptive language modeling. Ad-
+vances in Neural Information Processing Systems,
+35:17456–17472.
+
+Mingjie Sun, Zhuang Liu, Anna Bair, and J Zico
+Kolter. 2023. A simple and effective pruning ap-
+proach for large language models. arXiv preprint
+arXiv:2306.11695.
+
+C. Tao, L. Hou, W. Zhang, L. Shang, X. Jiang, Q. Liu,
+and N. Wong. 2022. Compression of generative
+pre-trained language models via quantization. arXiv
+preprint arXiv:2203.10705.
+
+Dong Wang, Kavé Salamatian, Yunqing Xia, Weiwei
+Deng, and Qi Zhang. 2023. Bert4ctr: An efficient
+framework to combine pre-trained language model
+with non-textual features for ctr prediction. In Pro-
+ceedings of the 29th ACM SIGKDD Conference on
+Knowledge Discovery and Data Mining, KDD ’23,
+page 5039–5050, New York, NY, USA. Association
+for Computing Machinery.
+
+Lei Wang and Ee-Peng Lim. 2023. Zero-shot next-item
+recommendation using large pretrained language
+models. arXiv preprint arXiv:2304.03153.
+
+Likang Wu, Zhi Zheng, Zhaopeng Qiu, Hao Wang,
+Hongchao Gu, Tingjia Shen, Chuan Qin, Chen Zhu,
+Hengshu Zhu, Qi Liu, Hui Xiong, and Enhong Chen.
+2023. A survey on large language models for recom-
+mendation. Preprint, arXiv:2305.19860.
+
+Mengzhou Xia, Tianyu Gao, Zhiyuan Zeng, and Danqi
+Chen. 2023. Sheared llama: Accelerating language
+model pre-training via structured pruning. arXiv
+preprint arXiv:2310.06694.
+
+J. Xin, R. Tang, Y. Yu, and J. Lin. 2021. Berxit: Early
+exiting for bert with better fine-tuning and extension
+to regression. In Proceedings of the 16th conference
+of the European chapter of the association for com-
+putational linguistics: Main Volume, pages 91–104.
+
+An Zhang, Yuxin Chen, Leheng Sheng, Xiang Wang,
+and Tat-Seng Chua. 2024. On generative agents in
+recommendation. Preprint, arXiv:2310.10108.
+
+Kesen Zhao, Shuchang Liu, Qingpeng Cai, Xiangyu
+Zhao, Ziru Liu, Dong Zheng, Peng Jiang, and Kun
+Gai. 2023. Kuaisim: A comprehensive simulator for
+recommender systems. Preprint, arXiv:2309.12645.
+
+Yuyue Zhao, Jiancan Wu, Xiang Wang, Wei Tang,
+Dingxian Wang, and Maarten de Rijke. 2024. Let
+me do it for you: Towards llm empowered recom-
+mendation via tool learning. In Proceedings of the
+47th International ACM SIGIR Conference on Re-
+search and Development in Information Retrieval,
+pages 1796–1806.
+
+Zhi Zheng, Wenshuo Chao, Zhaopeng Qiu, Hengshu
+Zhu, and Hui Xiong. 2024. Harnessing large lan-
+guage models for text-rich sequential recommenda-
+tion. In Proceedings of the ACM on Web Conference
+2024, pages 3207–3216.
+
+Zhi Zheng, Zhaopeng Qiu, Xiao Hu, Likang Wu, Heng-
+shu Zhu, and Hui Xiong. 2023. Generative job rec-
+ommendations with large language model. arXiv
+preprint arXiv:2307.02157.
+
+Guorui Zhou, Chengru Song, Xiaoqiang Zhu, Ying Fan,
+Han Zhu, Xiao Ma, Yanghui Yan, Junqi Jin, Han Li,
+and Kun Gai. 2017. Deep interest network for click-
+through rate prediction. Preprint, arXiv:1706.06978.
+
+Wangchunshu Zhou, Canwen Xu, Tao Ge, Julian
+McAuley, Ke Xu, and Furu Wei. 2020. Bert loses
+patience: Fast and robust inference with early exit. In
+Advances in Neural Information Processing Systems,
+volume 33, pages 18330–18341.
+
+Yaochen Zhu, Liang Wu, Qi Guo, Liangjie Hong, and
+Jundong Li. 2024. Collaborative large language
+In Proceedings
+model for recommender systems.
+of the ACM Web Conference 2024, volume 20 of
+WWW ’24, page 3162–3172. ACM.
+
+Cai-Nicolas Ziegler, Sean M. McNee, Joseph A. Kon-
+stan, and Georg Lausen. 2005. Improving recommen-
+dation lists through topic diversification. In Proceed-
+ings of the 14th International Conference on World
+Wide Web, WWW ’05, page 22–32, New York, NY,
+USA. Association for Computing Machinery.
+
+A Appendix
+
+Figure 3: AUC and RPS by Threshold.
+
+Figure 4: AUC and RPS by Windows.
+
+Figure 5: AUC and RPS by retrieval examples.

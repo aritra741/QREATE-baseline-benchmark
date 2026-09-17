@@ -1,0 +1,2815 @@
+A Tale of Trust and Accuracy: Base vs. Instruct LLMs in RAG Systems
+
+Florin Cuconasu1*, Giovanni Trappolini1, Nicola Tonellotto2, Fabrizio Silvestri1
+1Sapienza University of Rome, 2University of Pisa
+
+4
+2
+0
+2
+
+n
+u
+J
+
+1
+2
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+2
+7
+9
+4
+1
+.
+6
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Retrieval Augmented Generation (RAG) rep-
+resents a significant advancement in artificial
+intelligence combining a retrieval phase with
+a generative phase, with the latter typically be-
+ing powered by large language models (LLMs).
+The current common practices in RAG involve
+using “instructed” LLMs, which are fine-tuned
+with supervised training to enhance their abil-
+ity to follow instructions and are aligned with
+human preferences using state-of-the-art tech-
+niques. Contrary to popular belief, our study
+demonstrates that base models outperform their
+instructed counterparts in RAG tasks by 20%
+on average under our experimental settings.
+This finding challenges the prevailing assump-
+tions about the superiority of instructed LLMs
+in RAG applications. Further investigations re-
+veal a more nuanced situation, questioning fun-
+damental aspects of RAG and suggesting the
+need for broader discussions on the topic; or, as
+Fromm would have it, “Seldom is a glance at
+the statistics enough to understand the meaning
+of the figures”. 1 2
+
+1
+
+Introduction
+
+Retrieval Augmented Generation (RAG) (Lewis
+et al., 2020) is an innovative approach that enhances
+the capabilities of Large Language Models (LLMs)
+by integrating retrieval mechanisms into the gen-
+erative process. At its core, RAG operates by re-
+trieving relevant information from a vast corpus of
+data and then generating coherent and contextually
+enriched responses based on this retrieved infor-
+mation. This dual process not only improves the
+accuracy and relevance of the generated content
+but also addresses some of the inherent limitations
+of standalone generative models, such as hallucina-
+tions (Huang et al., 2023) and context drift (Wang
+
+*Correspondence to cuconasu@diag.uniroma1.it
+1Translated from I cosiddetti Sani.
+2The code and data will be made available at
+
+github.com/florin-git/Base-vs-Instruct-LLMs-in-RAG-
+Systems
+
+1
+
+et al., 2022). The significance of RAG in natural
+language processing and artificial intelligence can-
+not be overstated. As the demand for more sophis-
+ticated and context-aware AI systems grows, the
+ability to generate information that is both accurate
+and contextually relevant becomes crucial (Gao
+et al., 2024). RAG achieves this by leveraging the
+vast amount of information available, ensuring that
+the outputs of the models are informed by up-to-
+date and contextually appropriate data. This has
+profound implications for various applications, in-
+cluding conversational AI, information retrieval,
+and automated content generation (Shuster et al.,
+2021; Wang et al., 2024). Furthermore, RAG rep-
+resents a paradigm shift in how we think about and
+utilize LLMs. Instead of relying solely on the gen-
+erative power of these models, RAG harnesses the
+complementary strengths of retrieval systems. This
+synergy enables the creation of AI systems that are
+not only more knowledgeable but also more reli-
+able and versatile in their applications (Izacard and
+Grave, 2021; Zhu et al., 2024).
+
+LLMs are the key component in RAG systems.
+They are initially pre-trained on the task of next
+token prediction (Radford et al., 2018), where the
+LLM learns to predict the next word in a sequence
+based on the context provided by the preceding
+words. This extensive pre-training phase involves
+processing vast amounts of text data, enabling the
+model to acquire a broad understanding of lan-
+guage, syntax, semantics, and general knowledge.
+We call this the “base” version. Following this
+pre-training phase, LLMs typically undergo two
+stages of refinement to enhance their performance
+and usability, whose output we call the “instruct”.
+The first stage is that of supervised instruction fine-
+tuning (SFT), where the goal is to teach the model
+to follow instructions passed through the prompt.
+This is carried out by supervised fine-tuning, where
+the model is trained on a curated dataset incorporat-
+ing instructions, with the specific goal of improving
+
+ 
+ 
+ 
+ 
+ 
+ 
+Llama 2 7B
+
+Llama 2 7B-Chat + Template
+
+You are given a question and you MUST respond
+by EXTRACTING the answer from one of the
+provided documents. If none of the documents
+contain the answer, respond with NO-RES.
+
+[INST] «SYS»
+You are given a question and you MUST respond
+by EXTRACTING the answer from one of the
+provided documents. If none of the documents
+contain the answer, respond with NO-RES.
+«/SYS»
+
+Documents:
+Document [1](Title: Batman Returns) the Penguin. We didn’t really officially cast it, but for a
+short nasty little guy, it’s a short list. I ended up writing the character for Danny DeVito. Burgess
+Meredith (who portrayed the Penguin in the 1960s TV series "Batman") was cast for a little cameo
+as Tucker Cobblepot...
+Document [2](Title: Batman: Mystery of the Batwoman) This is the only time in the DC animated
+universe that Paul Williams did not voice the Penguin...
+Document [3](Title: The Penguin’s a Jinx) The Penguin goes to Wayne Manor and returns the
+actress. He then uses his gas-umbrella to knock out anyone inside the statues...
+
+Question: Who played the part of ‘The Penguin’ in the TV series ‘Batman’?
+Answer: Burgess Meredith
+
+Answer: [/INST] Based on the provided docu-
+ments, the answer is Danny DeVito
+
+Figure 1: Base vs. Instruct + Template under Task Instruction I on TriviaQA. The figure presents a comparison
+between the responses generated by two versions of the Llama 2 7B model: the base version and the instruct +
+template version. Each version is tasked with answering the same question based on the provided documents.
+The base model correctly identifies the answer as “Burgess Meredith”, whereas the instruct + template version
+incorrectly attributes the answer to “Danny DeVito”. Italic text denotes the template.
+
+its ability to follow the specified instructions (Taori
+et al., 2023). The second stage is alignment with hu-
+man preferences, often referred to as reinforcement
+learning from human feedback (RLHF) (Ouyang
+et al., 2022) or similar methods (Rafailov et al.,
+2023; Hong et al., 2024; Rahman and Xue, 2022).
+During this phase, the model’s outputs are adjusted
+to better align with human preferences and values.
+This usually involves iterative processes where hu-
+man evaluators provide feedback on the model’s
+responses, and the model is further fine-tuned to
+produce outputs that are not only accurate but also
+contextually appropriate and aligned with human
+expectations. In practice, the “instruct” versions of
+LLMs are the go-to models widely used for RAG
+tasks (Liu et al., 2023; LangChain, 2023; DSPy,
+2023). Moreover, these instruct models often come
+with a “template”, specific usage guidelines that
+provide a structured approach to utilizing the sys-
+tem effectively.
+
+In this paper, we conduct a principled evaluation
+of instruct models and their accompanying tem-
+plates against their base versions in a RAG setting.
+Surprisingly, our results reveal that base models,
+without the additional instruct-specific fine-tuning,
+
+outperform the instruct models on the task of RAG
+in our experimental setting. This finding challenges
+the prevailing assumption that instruct models are
+inherently superior for such tasks. Upon further
+investigation, we uncover that the situation is more
+nuanced, with various factors contributing to the
+observed performance differences. Our study stim-
+ulates a broader discussion on RAG, its method-
+ologies, and evaluation procedures employed to
+advance the state of the art in this field.
+
+In summary, our contributions are:
+
+• Performance Evaluation: We conduct a prin-
+cipled evaluation comparing instruct models
+and their templates against base models in the
+context of RAG, revealing that base models
+outperform instruct models.
+
+• Nuanced Insights: Through detailed analysis,
+we uncover the complexities and nuances that
+influence the performance of RAG systems.
+• Pathway for Future Research: Our findings
+challenge existing assumptions and stimulate
+further discussion on RAG’s state of the art,
+helping the development of more effective and
+reliable systems.
+
+2
+
+2 Background
+
+In this section, we will explore the steps involved
+in training a large language model, including pre-
+training, instruction fine-tuning, and alignment. We
+will then discuss the fundamentals of RAG.
+
+2.1 LLM Training
+
+Here, we illustrate the training processes of LLMs,
+which consist of at least three main steps: pre-
+training, which is done on the task of next token
+prediction, instruction fine-tuning, and preference
+alignment.
+
+Pre-training. Pre-training for large language
+models (Radford et al., 2018) involves an exten-
+sive unsupervised learning phase, where the model
+is exposed to a large corpus of text data to learn the
+underlying statistical properties of natural language.
+This process employs the next token prediction
+task, where the model is conditioned on a sequence
+of tokens w1:i−1 and trained to predict the sub-
+sequent token wi, i.e., p(y) = (cid:81)n
+i pθ(wi|w1:i−1).
+By iteratively processing vast and diverse textual
+datasets, the model learns linguistic patterns, in-
+cluding syntactic structures, semantic relationships,
+and contextual dependencies. This process delivers
+what is commonly called a “base” model. This first
+model is usually improved with further specialized
+training, as we will see now.
+
+Instruction Fine-Tuning.
+Instruction fine-tuning
+is the part of the training process of large lan-
+guage models aimed at enhancing their ability to
+follow specific directives and perform specialized
+tasks (Taori et al., 2023). This phase involves fur-
+ther training of the base model on curated datasets
+that include explicit instructions paired with corre-
+sponding responses. The objective is to teach the
+model how to interpret and execute various types of
+commands or queries effectively. During instruc-
+tion fine-tuning, the model is exposed to a wide
+range of examples that illustrate how to respond to
+different types of prompts, from answering ques-
+tions to generating summaries and more complex
+task-oriented interactions. The primary purpose of
+instruction fine-tuning is to improve the model’s us-
+ability and performance in real-world applications.
+By aligning the model’s behavior with the specific
+needs and expectations of users, instruction fine-
+tuning ensures that the model can handle diverse
+and nuanced tasks more effectively, enhancing its
+overall functionality and practical utility. This pro-
+
+cess might involve using an instruction template,
+where specific patterns and structures for providing
+instructions and expected responses are standard-
+ized to facilitate consistent and effective learning. It
+is worth noticing that this is still achieved with tra-
+ditional supervised learning, unlike the next phase
+we are considering.
+
+Aligning to Human Preferences. The final step,
+which might include multiple sub-steps, is aligning
+LLMs to human preferences. Aligning AI systems
+ensures that these systems can effectively and ethi-
+cally interact with humans, providing outputs that
+are useful, respectful, and culturally sensitive. Hu-
+man preferences are not easily integrated into a
+differentiable loss function, necessitating special-
+ized techniques. The most popular are Direct Pref-
+erence Optimization (DPO) (Xu et al., 2024) and
+Reinforcement Learning from Human Feedback
+(RLHF) (Ouyang et al., 2022). These techniques
+solve the following optimization problem:
+
+Jr(πθ) = Ex,y
+
+(cid:20)
+
+r(x, y) − β log
+
+(cid:21)
+
+pθ(y | x)
+pref (y | x)
+
+The LLM pθ(y | x) is here considered as a pol-
+icy that following an instruction x generates a text
+response y. The reward function r(x, y) reflects
+human preferences. It takes a prompt x and the cor-
+responding response y as input and outputs a scalar
+value. The reference model pref is used to regu-
+larize the LLM model pθ with Kullback–Leibler
+divergence. The hyper-parameter β is a constant to
+control the degree of regularization. RLHF solves
+this problem in a two-step procedure; first, it learns
+a reward model, and then it uses this learned re-
+ward model to optimize the equation above. DPO
+instead skips the first step and directly solves a less
+general problem by optimizing the policy pθ over
+preference data. Despite the importance of align-
+ing large language models with human preferences,
+the inner workings of these alignment techniques
+remain largely unclear. Recently, (Hong et al.,
+2024) showed that applying RLHF can decrease
+the expected reward of a model but still improve its
+performance. Currently, it remains unclear which
+technique is superior, with experimental evidence
+showing that it depends on the particular appli-
+cation (like DPO being bad at coding (Xu et al.,
+2024)). There is a significant effort in the scien-
+tific community to understand and improve these
+methods, aiming to develop more transparent and
+reliable alignment processes. In the remainder of
+
+3
+
+this paper, we will try to measure its impact on
+RAG.
+
+2.2 RAG
+
+RAG (Lewis et al., 2020) is a hybrid approach that
+integrates information retrieval mechanisms with
+generative language models to enhance the quality
+In RAG, a
+and relevance of generated content.
+retrieval component first identifies and retrieves
+relevant documents or data from a large corpus
+based on a given query or context. This retrieved
+information is then used as supplementary input for
+the generative model, which synthesizes a response
+or generates new text informed by the retrieved
+data. Specifically, given a corpus of documents D
+and a query q, a retriever is employed to retrieve the
+set of documents Dk that are more relevant to the
+query. In the dense setting, like the one we employ,
+this is achieved through a neural bi-encoder that
+independently encodes queries and documents in a
+learned latent vector space where a similarity score,
+like the cosine similarity, is used to extract the most
+−→
+similar documents, formally: sim(q, di) ∝ −→q ·
+di ,
+−→
+where di is the i-th document, while −→q and
+di
+are the embedding of the query and i-th document,
+respectively. The top-k documents are then passed
+to a generative model, like an LLM. The LLM
+takes an input, once again, the query q and the
+set of most relevant documents Dk. The problem
+is then formulated as generating the answer to the
+query, conditioning on the query, and marginalizing
+over the retrieved documents:
+
+PRAG(y|q) ≈
+
+N
+(cid:89)
+
+(cid:88)
+
+i
+
+d∈Dk
+
+pη(d|q)pθ(yi|q, d, y1:i−1),
+
+where pη(d | q) is the retrieval component that pro-
+vides a (truncated) probability distribution for the
+top-scoring documents, and pθ(yi | q, d, y1:i−1) is
+a probability distribution parameterized by θ that
+generates the current token based on the previously
+generated tokens, the query, and the retrieved doc-
+ument.
+
+3 Experimental Methodology
+
+In this paper, we aim to achieve multiple objectives.
+Firstly, we seek to determine whether base models
+outperform their instruction versions in the context
+of RAG. Secondly, we investigate the underlying
+factors affecting RAG models’ performance and
+the impact of the additional training techniques
+
+(i.e., SFT and Alignment) on these systems. To
+this end, we set up a series of rigorous experiments
+to methodically evaluate and compare the perfor-
+mance and behavior of base models versus their
+instruct-tuned counterparts, providing a compre-
+hensive understanding of their respective advan-
+tages and limitations in RAG tasks.
+
+3.1 Task Instructions
+
+We perform our experimenting with two task in-
+structions. Task instruction I (Figure 1) requires
+the LLM to “extract” the answer from one of the
+provided documents, reflecting the extractive na-
+ture of the QA datasets. Additionally, the models
+are tasked to respond with NO-RES if the answer is
+not present in the retrieved documents, testing their
+negative rejection capabilities (Chen et al., 2024).
+To check if the model is really using the provided
+context and it is aware of it, we also employ an-
+other task instruction. Task instruction II builds on
+the first instruction by asking the model to provide
+evidence from the given context to support its re-
+sponse with a Proof. This instruction includes a
+one-shot example to demonstrate the expected for-
+mat of the model’s answer, as visualized in Figure
+5.
+
+The full prompt is composed of the task instruc-
+tion, to which the retrieved documents and the
+query are added. Documents are ordered by ascend-
+ing similarity score to position the high-similarity
+documents nearest to the query, according to the
+insights of Liu et al. (2023).
+
+3.2
+
+Instruct Templates
+
+When fine-tuning LLMs to create their instruct ver-
+sions, specific prompt templates are used during
+training. These templates are designed to clearly
+distinguish between model responses or task in-
+structions and user inputs. This distinction is
+marked through the use of special tokens. For in-
+stance, Llama 3 utilizes <|begin_of_text|>, and
+Mistral uses [INST] to specify the beginning of
+instructions. Despite the use of these templates for
+instruct LLMs, their effects on model performance,
+when removed from the typical conversational set-
+ting and applied to a rag setting, remain understud-
+ied. Our study explores this gap by evaluating the
+performance of instruct models with and without
+their standard chat templates.
+
+4
+
+3.3 Datasets and Models
+
+In our experiments, we use two open-domain
+question-answering datasets: the open version of
+Natural Questions (NQ-open) (Kwiatkowski et al.,
+2019; Lee et al., 2019) and TriviaQA-unfiltered
+(Joshi et al., 2017). For each query, the Contriever
+(Izacard et al., 2021) is used to retrieve the most
+similar documents from the English Wikipedia cor-
+pus. The retriever’s performance is discussed in
+Section A.2. For generation, we employ several
+LLMs in both their base and instruct/chat versions:
+(a) Llama 2 7B and Llama 2 7B-Chat; (b) Llama 3
+8B and Llama 3 8B-Instruct; (c) Falcon 7B and
+Falcon 7B-Instruct; (d) Mistral 7B and Mistral
+7B-Instruct; Models are quantized at 4-bit. For
+clarity, we will refer to the Llama 2 chat version
+collectively as “instruct”. All models utilize greedy
+decoding, and the maximum response length is tai-
+lored to the requirements of each dataset. Under
+Task Instruction I, the response limit is set to 15
+tokens for the NQ dataset, which demands short
+responses of no more than 5 tokens, and up to 50
+tokens for the TriviaQA dataset to accommodate
+potentially longer answers. For Task Instruction II,
+which requires the proof, the maximum response
+length is increased to 200 tokens.
+
+3.4 Evaluation
+
+Accuracy. Accuracy is the main metric adopted
+to evaluate the models’ responses. In particular, it
+is checked whether one of the ground truth answers
+of the dataset is contained in the generated response
+after applying a normalization process. This nor-
+malization involves the removal of punctuation and
+articles to ensure that the answer is not unfairly pe-
+nalized by minor discrepancies in formatting. This
+type of evaluation may have flaws since it can in-
+correctly mark a correct response as incorrect if the
+ground truth answer is not fully contained in the
+generated response, even after normalization. Nev-
+ertheless, given that the employed datasets usually
+require short answers (e.g., answers in NQ-open
+are at most 5 tokens long) that can be extracted
+from the provided documents, adopting accuracy
+may be generally considered a suitable metric.
+
+Negative Rejection. As shown in Figure 1,
+LLMs are tasked with responding with NO-RES
+when the provided documents do not contain the
+necessary knowledge to answer the query. This ap-
+proach helps assess the models’ abilities to under-
+stand the task instructions and correctly refuse to
+
+answer when the information is not present, thereby
+reducing the occurrence of hallucination (Zhang
+et al., 2023). The negative rejection ability can
+be measured with the rejection rate, which was
+introduced by Chen et al. (2024). It is computed
+as the number of times the model answers with
+NO-RES when the documents indeed lack the re-
+quired information, divided by the total number of
+such instances. High rejection rates indicate that
+the model effectively avoids generating potentially
+incorrect or misleading answers.
+
+4 Results
+
+In this section, we present the results for three
+types of models—base, instruct, and instruct + tem-
+plate—evaluated under various task instructions
+across different datasets, as detailed in the previous
+section.
+
+4.1 Evaluation on Task Instruction I
+
+In this initial set of experiments, we evaluate
+the models using Task Instruction I, pictured in
+Figure 1. Reported are the accuracies for each
+model/version combination at different levels of
+retrieved documents, that is, the number of docu-
+ments added to the prompt of the LLM given the
+query. Unexpectedly, we find that the base models
+always outperform their instruct counterparts (with
+one exception), as evidenced by results in Table 1.
+Llama 2’s base model outperforms its instruct coun-
+terpart (w/o template), averaged across retrieved
+documents, by 9.23 (48%) and 17.88 (+42%) points
+on NQ and Trivia QA, respectively. Similarly, Fal-
+con’s base model is 1.94 (+10%) and 7.48 (+20%)
+points better. Even more strongly, Llama 3’s base
+model improves accuracy by 10.92 (+59%) and
+37.5 (+186%); this is somewhat caused by Llama 3
+reliance on its template; we’ll examine this in Sec-
+tion 4.3. The only “half” exception is constituted
+by Mistral. In fact, Mistral’s base model is -2.49
+(-8%) less accurate than the instruct version on NQ.
+However, it is still 5.83 (+10%) more accurate on
+TriviaQA.
+
+4.2 Evaluation on Task Instruction II
+
+Intrigued by the first set of results, we proceed to
+examine a new task instruction developed to test
+the model’s abilities to ground their answers. In
+this setting, models are required to provide a Proof,
+a piece of evidence to substantiate their answers
+based on the information present in the context
+documents. Examples of this setup are illustrated
+
+5
+
+Table 1: Task Instruction I Accuracy on NQ and TriviaQA. The abbreviations C and I denote the Chat and Instruct
+versions of the instruct models, respectively. The suffix T indicates instruct models using a Template to structure
+their responses. Accuracies are reporting at different levels of retrieved documents. With the, partial, exception
+Mistral, all base models outperform their instruct counterparts by a considerable margin.
+
+NQ
+# Retrieved Documents
+
+TriviaQA
+# Retrieved Documents
+
+Model
+
+1
+
+2
+
+3
+
+4
+
+5
+
+8
+
+10
+
+1
+
+2
+
+3
+
+4
+
+5
+
+8
+
+10
+
+Llama 2 7B
+Llama 2 7B-C
+Llama 2 7B-C + T
+
+Llama 3 8B
+Llama 3 8B-I
+Llama 3 8B-I + T
+
+Mistral 7B
+Mistral 7B-I
+Mistral 7B-I + T
+
+Falcon 7B
+Falcon 7B-I
+
+23.88
+16.06
+3.36
+
+27.03
+8.52
+14.40
+
+24.26
+20.04
+18.17
+
+17.13
+15.68
+
+24.71
+18.48
+1.21
+
+30.22
+10.25
+17.34
+
+25.30
+24.99
+23.54
+
+18.97
+17.72
+
+27.83
+18.62
+0.69
+
+30.53
+15.40
+19.04
+
+25.72
+26.69
+19.14
+
+21.15
+17.96
+
+29.53
+18.59
+0.48
+
+31.08
+15.85
+15.30
+
+26.17
+30.56
+27.90
+
+21.08
+19.21
+
+30.22
+19.21
+0.45
+
+29.08
+22.57
+18.10
+
+27.66
+31.67
+27.45
+
+21.95
+20.08
+
+31.01
+21.98
+0.73
+
+29.49
+28.80
+20.35
+
+26.65
+33.33
+27.07
+
+22.64
+20.04
+
+31.46
+21.08
+1.52
+
+28.70
+28.25
+19.35
+
+28.87
+34.82
+26.79
+
+22.33
+20.98
+
+55.85
+32.59
+23.35
+
+44.64
+4.13
+16.45
+
+58.67
+48.85
+45.88
+
+41.64
+33.19
+
+57.15
+34.63
+21.63
+
+53.48
+2.62
+27.94
+
+59.15
+52.31
+50.22
+
+43.11
+36.52
+
+59.28
+41.09
+21.13
+
+56.78
+3.47
+31.32
+
+58.87
+54.72
+52.42
+
+43.69
+36.46
+
+60.40
+42.95
+17.70
+
+59.59
+4.44
+30.80
+
+60.49
+55.90
+53.73
+
+44.22
+37.71
+
+61.24
+46.14
+18.05
+
+58.97
+15.73
+34.18
+
+62.02
+56.97
+54.37
+
+45.60
+38.42
+
+62.93
+49.19
+22.30
+
+64.93
+51.90
+44.04
+
+64.16
+59.06
+57.56
+
+46.35
+38.83
+
+63.89
+48.96
+25.68
+
+65.05
+58.61
+50.12
+
+65.92
+60.60
+58.31
+
+48.24
+39.33
+
+Table 2: Task Instruction II Accuracy on NQ and TriviaQA, where a Proof is required. The abbreviations C and I
+denote the Chat and Instruct versions of the instruct models, respectively. The suffix T indicates instruct models
+using a Template to structure their responses. Accuracies are reporting at different levels of retrieved documents. In
+all cases considered, base models outperform their instruct counterparts by a considerable margin.
+
+NQ
+# Retrieved Documents
+
+TriviaQA
+# Retrieved Documents
+
+Model
+
+1
+
+2
+
+3
+
+4
+
+5
+
+8
+
+10
+
+1
+
+2
+
+3
+
+4
+
+5
+
+8
+
+10
+
+Llama 2 7B
+Llama 2 7B-C
+Llama 2 7B-C + T
+
+Llama 3 8B
+Llama 3 8B-I
+Llama 3 8B-I + T
+
+Mistral 7B
+Mistral 7B-I
+Mistral 7B-I + T
+
+Falcon 7B
+Falcon 7B-I
+
+24.82
+18.41
+1.59
+
+29.39
+18.83
+11.70
+
+24.82
+21.53
+16.86
+
+17.58
+16.10
+
+28.70
+24.96
+2.42
+
+31.53
+23.57
+16.44
+
+30.74
+27.66
+18.10
+
+20.04
+18.31
+
+31.71
+28.76
+3.88
+
+34.72
+25.65
+6.40
+
+33.75
+29.91
+20.87
+
+22.43
+18.93
+
+32.85
+30.22
+5.75
+
+37.07
+27.97
+6.61
+
+35.17
+32.85
+22.43
+
+23.75
+19.87
+
+34.09
+32.16
+8.45
+
+36.59
+30.84
+11.60
+
+36.83
+33.58
+24.09
+
+23.85
+20.91
+
+35.62
+33.16
+12.81
+
+39.15
+34.13
+5.64
+
+40.15
+36.45
+24.44
+
+26.12
+21.61
+
+35.79
+32.05
+12.91
+
+40.22
+37.97
+0.69
+
+40.15
+35.76
+26.96
+
+26.72
+21.30
+
+54.94
+41.86
+4.22
+
+61.57
+42.67
+30.52
+
+57.98
+48.51
+33.73
+
+40.32
+33.54
+
+56.94
+47.18
+6.55
+
+63.32
+44.44
+36.89
+
+60.49
+52.60
+33.21
+
+42.76
+35.69
+
+58.88
+49.53
+8.75
+
+64.56
+47.11
+31.11
+
+62.18
+54.79
+35.47
+
+44.92
+37.50
+
+60.07
+51.19
+10.15
+
+65.93
+48.10
+33.17
+
+63.70
+56.05
+36.57
+
+45.45
+38.09
+
+60.87
+52.59
+14.90
+
+66.52
+48.71
+38.08
+
+65.23
+56.91
+34.98
+
+46.47
+39.02
+
+62.75
+55.73
+20.69
+
+67.67
+52.59
+33.69
+
+67.04
+58.80
+42.39
+
+47.23
+41.08
+
+63.73
+56.00
+27.48
+
+68.04
+56.48
+23.42
+
+67.44
+59.54
+48.45
+
+48.57
+42.95
+
+in Figure 4 and 5 for NQ and TriviaQA, respec-
+tively. Results can be seen in Table 2. We can
+immediately notice that there is a general upward
+shift in terms of accuracy for all models and set-
+tings; for instance, for Llama 2 base, it increases
+by 3.56 (+12%) on average. This probably indi-
+cates that asking for the proof is in itself a form of
+prompt engineering. Furthermore, we can observe
+that base models still outperform their counterparts.
+Actually, these results are even stronger, as in this
+setting Mistral base achieves higher accuracy than
+the instruct versions by 3.41 (+10%), too.
+
+4.3
+
+Instruct Models with Template
+
+Our results highlight the difficulty that instruct
+models face in answering the question when the
+
+recommended template is used. Investigating this
+issue, we find that even though the instructions de-
+mand short answers, models in this setting override
+this specification and produce overly verbose re-
+sponses, damaging their accuracy. This tendency
+may be linked to their fine-tuning and alignment
+for conversational purposes, where verbosity can
+be advantageous to assist users. This results in
+template-less instruct models exhibiting higher ac-
+curacy than their templated counterparts. For in-
+stance, in the NQ dataset using Task Instruction I,
+Llama 2’s templated version barely achieves a 3%
+accuracy rate, while it only surpasses 10% when
+the context contains more than 8 documents under
+Task Instruction II. An additional notable aspect is
+
+6
+
+Figure 2: Recalling from Parametric Memory - Llama 2 7B - TriviaQA. Reported is the recall from parametric
+memory rate, defined as the number of instances where the model correctly answers despite the retrieved documents
+not containing the correct answer, divided by the number of times the answer is not present in the context. (left) Task
+Instruction I as shown in Figure 1; (right) No Rejection setting, where we do not specify to answer with NO-RES
+when the answer is not contained in the retrieved documents (example in Figure 6). In this case, the parametric
+memory rate increases for both model versions.
+
+5
+
+Is Accuracy Sufficient?
+
+Section 4 clearly indicates that base models outper-
+form instruct models on RAG. But is that really the
+case? Are base models truly better than the instruct
+counterpart on RAG-like prompts? To answer this
+question, in this section, we go more in-depth in an-
+alyzing and comparing their behavior. First, we test
+the ability of these models to adhere to the task in-
+structions. In particular, whether they appropriately
+respond with NO-RES when no relevant answer is
+present in the retrieved documents, which we call
+negative rejection rate.
+
+5.1 Negative Rejection Rate
+
+In Figure 3, we plot the negative rejection rates for
+various configurations (base, instruct, and instruct
++ template) of Llama 2 7B. It is evident that in
+most cases, the models fail to comply with the in-
+struction to answer with NO-RES when the answer
+is absent. As an example, the instruct version of
+Llama 2 responds with NO-RES only 30.23% of the
+time when the answer is not in the one document
+context. The non-compliance to the task instruction
+is especially pronounced in the base model, which
+seldomly opts for rejection. It is worth noticing
+that as the number of documents in the context in-
+creases, all models tend to respond less frequently
+with NO-RES, suggesting both that a higher vol-
+ume of documents might introduce more distract-
+
+Figure 3: Negative Rejection Rate - Llama 2 7B -
+TriviaQA. Reported is the negative rejection rate, that
+is, the number of times the model answers NO-RES
+when the correct answer is not in the context, divided
+by the number of times the answer is indeed missing.
+Instruct models are much more effective at detecting
+such cases and following the instructions provided.
+
+observed with Llama 3 instruct on Task Instruction
+I. When fewer than 4 documents are retrieved, the
+instruct model without a template fails to under-
+stand the prompt and generates random text. As
+the number of documents increases, however, its
+performance substantially improves, eventually sur-
+passing the templated model. This suggests that a
+larger input length might have a role in overruling
+learned behavior.
+
+7
+
+ing documents (Shi et al., 2023), leading the LLM
+to respond but erroneously, and that a larger input
+length might overrule task instructions.
+
+formance.
+
+6 Related Works
+
+5.2 Recall From Parametric Memory
+
+Next, we consider cases where the correct answer
+is not present in the provided documents, yet the
+model still responds accurately. As illustrated in
+the left part of Figure 2, base models frequently
+manage to provide the correct answer even when
+there is none in the retrieved documents, suggest-
+ing that they “know” the answer from prior training.
+We call this “recall from parametric memory” (by
+parametric memory, we mean knowledge learned
+during training and stored in the parameters of the
+model, as opposed to non-parametric memory pro-
+vided in the context through retrieved documents).
+Recall from parametric memory is not inherently
+problematic. A user might choose to both fine-
+tune on proprietary data and use RAG to get the
+highest possible accuracy. However, the specific
+instructions for this study emphasize that models
+should opt not to answer when the correct response
+is not evident in the documents. Not following this
+guideline raises important questions about their
+reliance on internal knowledge versus contextual
+information, particularly in settings where accurate
+rejection of unanswerable questions is crucial.
+
+5.3 Evaluation with No Rejection
+
+Here we aim to determine whether base models per-
+form better simply because they do not adhere to
+these instructions, prompting us to continue our in-
+vestigation by removing the requirement to respond
+with NO-RES in the prompt. As shown in the right
+part of Figure 2, instruct models also demonstrate
+a capacity to recall from parametric memory, al-
+though less frequently than their base counterparts.
+Moreover, evidence from Table 5 (appendix) sug-
+gests a slight improvement in accuracy for instruct
+models under these modified conditions. However,
+base models still outperform instruct ones. The
+results indicate that the processes of supervised
+fine-tuning and alignment detrimentally impact the
+model’s capabilities in RAG. Moreover, a trade-
+off is observed between the trustworthiness of the
+model and its ability to perform RAG effectively.
+As alignment and fine-tuning efforts enhance the
+reliability and adherence to desired behaviors, they
+simultaneously constrain the model’s flexibility and
+efficiency in RAG tasks, highlighting a critical bal-
+ance between trustworthiness and functional per-
+
+Recent studies have highlighted challenges and
+potential improvements in language models’ use
+of non-parametric versus parametric memory in
+question-answering tasks. Several papers (Krishna
+et al., 2021; Shi et al., 2024; Carlini et al., 2019;
+Kandpal et al., 2023; Mallen et al., 2023) demon-
+strate that LMs often rely on memorized answers,
+capable of responding correctly even when pre-
+sented with irrelevant documents. Similarly, other
+studies (Longpre et al., 2021; Xie et al., 2024) ob-
+serve that LMs continue to leverage their paramet-
+ric knowledge despite prompt modifications with
+contrasting entities. Wu et al. (2024) describes
+this phenomenon as a balance between the model’s
+inherent knowledge and its adherence to newly
+retrieved information, underscoring the ongoing
+challenge of enhancing model responsiveness to
+dynamic inputs. On enhancing reliance on pro-
+vided content, Zhang et al. (2024) introduced a
+training strategy that emphasizes evidence-based
+responses, similar to the Proof mechanism in our
+QA tasks. This method has shown potential in
+improving model effectiveness by grounding re-
+sponses in factual evidence, even though hallucina-
+tion issues still remain an open problem (Zuccon
+et al., 2023; Gao et al., 2023). Cuconasu et al.
+(2024) found instruct models to be slightly more ef-
+fective, but theirs was a controlled setting in which
+the ground truth was always provided. These in-
+sights collectively underline the intricate balance
+between leveraging learned knowledge and exter-
+nal data in improving QA systems, suggesting di-
+rections for future research in training strategies
+and model design.
+
+7 Conclusions
+
+In this paper, we aimed to systematically investi-
+gate the differences between LLM’s base and in-
+struct versions when used in RAG systems. Our
+findings reveal an unexpected outcome: base mod-
+els exhibit superior performance on RAG tasks
+compared to their instructed and aligned counter-
+parts. Further analysis indicates a tradeoff be-
+tween accuracy and trustworthiness. This tradeoff
+calls for novel evaluation methodologies for RAG
+pipelines and suggests the necessity for mecha-
+nisms that afford users greater control in managing
+this tradeoff in a more direct and explicit manner.
+
+8
+
+8 Limitations
+
+Our study is subject to several limitations. Primar-
+ily, due to computational resource constraints, we
+did not evaluate LLMs with more than 8B parame-
+ters, which might offer additional insights into the
+effectiveness of base versus instruct versions for
+RAG applications. Similarly, we quantize models
+to 4-bit. Additionally, our analysis could benefit
+from incorporating a broader range of datasets, par-
+ticularly those that do not rely on Wikipedia as
+the primary knowledge source, or long-form QA
+datasets.
+
+A critical
+
+limitation lies in the evaluation
+methodology. As noted in several studies (Katrani-
+dis and Barany, 2024; Yu et al., 2024), verifying
+the presence of the ground truth answer within the
+generated response can sometimes inaccurately pe-
+nalize correct answers. This typically occurs if the
+ground truth is not fully captured in the response,
+even after normalization.
+
+9
+
+References
+
+Joshua Ainslie, James Lee-Thorp, Michiel de Jong, Yury
+Zemlyanskiy, Federico Lebron, and Sumit Sanghai.
+2023. GQA: Training generalized multi-query trans-
+former models from multi-head checkpoints. In Pro-
+ceedings of the 2023 Conference on Empirical Meth-
+ods in Natural Language Processing, pages 4895–
+4901, Singapore. Association for Computational Lin-
+guistics.
+
+Ebtesam Almazrouei, Hamza Alobeidli, Abdulaziz Al-
+shamsi, Alessandro Cappelli, Ruxandra Cojocaru,
+Mérouane Debbah, Étienne Goffinet, Daniel Hesslow,
+Julien Launay, Quentin Malartic, Daniele Mazzotta,
+Badreddine Noune, Baptiste Pannier, and Guilherme
+Penedo. 2023. The falcon series of open language
+models. Preprint, arXiv:2311.16867.
+
+Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and
+Hannaneh Hajishirzi. 2023. Self-rag: Learning to
+retrieve, generate, and critique through self-reflection.
+Preprint, arXiv:2310.11511.
+
+Nicholas Carlini, Chang Liu, Úlfar Erlingsson, Jernej
+Kos, and Dawn Song. 2019. The secret sharer: eval-
+uating and testing unintended memorization in neu-
+ral networks. In Proceedings of the 28th USENIX
+Conference on Security Symposium, SEC’19, page
+267–284, USA. USENIX Association.
+
+Jiawei Chen, Hongyu Lin, Xianpei Han, and Le Sun.
+2024. Benchmarking large language models in
+retrieval-augmented generation. Proceedings of
+the AAAI Conference on Artificial Intelligence,
+38(16):17754–17762.
+
+Florin Cuconasu, Giovanni Trappolini, Federico Sicil-
+iano, Simone Filice, Cesare Campagnano, Yoelle
+Maarek, Nicola Tonellotto, and Fabrizio Silvestri.
+2024. The power of noise: Redefining retrieval for
+rag systems. Preprint, arXiv:2401.14887.
+
+Matthijs Douze, Alexandr Guzhva, Chengqi Deng, Jeff
+Johnson, Gergely Szilvasy, Pierre-Emmanuel Mazaré,
+Maria Lomeli, Lucas Hosseini, and Hervé Jégou.
+2024. The faiss library. Preprint, arXiv:2401.08281.
+
+DSPy. 2023. Dspy: Dynamic structured programming
+
+for python.
+
+Tianyu Gao, Howard Yen, Jiatong Yu, and Danqi Chen.
+2023. Enabling large language models to generate
+text with citations. In Proceedings of the 2023 Con-
+ference on Empirical Methods in Natural Language
+Processing, pages 6465–6488, Singapore. Associa-
+tion for Computational Linguistics.
+
+Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia,
+Jinliu Pan, Yuxi Bi, Yi Dai, Jiawei Sun, Meng Wang,
+and Haofen Wang. 2024. Retrieval-augmented gener-
+ation for large language models: A survey. Preprint,
+arXiv:2312.10997.
+
+Jiwoo Hong, Noah Lee, and James Thorne. 2024. Orpo:
+Monolithic preference optimization without refer-
+ence model. Preprint, arXiv:2403.07691.
+
+Lei Huang, Weijiang Yu, Weitao Ma, Weihong Zhong,
+Zhangyin Feng, Haotian Wang, Qianglong Chen,
+Weihua Peng, Xiaocheng Feng, Bing Qin, and Ting
+Liu. 2023. A survey on hallucination in large lan-
+guage models: Principles, taxonomy, challenges, and
+open questions. Preprint, arXiv:2311.05232.
+
+Gautier Izacard, Mathilde Caron, Lucas Hosseini, Se-
+bastian Riedel, Piotr Bojanowski, Armand Joulin,
+and Edouard Grave. 2021. Unsupervised dense infor-
+mation retrieval with contrastive learning.
+
+Gautier Izacard and Edouard Grave. 2021. Lever-
+aging passage retrieval with generative models
+for open domain question answering. Preprint,
+arXiv:2007.01282.
+
+Albert Q. Jiang, Alexandre Sablayrolles, Arthur Men-
+sch, Chris Bamford, Devendra Singh Chaplot, Diego
+de las Casas, Florian Bressand, Gianna Lengyel, Guil-
+laume Lample, Lucile Saulnier, Lélio Renard Lavaud,
+Marie-Anne Lachaux, Pierre Stock, Teven Le Scao,
+Thibaut Lavril, Thomas Wang, Timothée Lacroix,
+and William El Sayed. 2023. Mistral 7b. Preprint,
+arXiv:2310.06825.
+
+Jeff Johnson, Matthijs Douze, and Hervé Jégou. 2019.
+IEEE
+
+Billion-scale similarity search with GPUs.
+Transactions on Big Data, 7(3):535–547.
+
+Mandar Joshi, Eunsol Choi, Daniel Weld, and Luke
+Zettlemoyer. 2017. TriviaQA: A large scale distantly
+supervised challenge dataset for reading comprehen-
+sion. In Proceedings of the 55th Annual Meeting of
+the Association for Computational Linguistics (Vol-
+ume 1: Long Papers), pages 1601–1611, Vancouver,
+Canada. Association for Computational Linguistics.
+
+Nikhil Kandpal, Haikang Deng, Adam Roberts, Eric
+Wallace, and Colin Raffel. 2023. Large language
+models struggle to learn long-tail knowledge.
+In
+Proceedings of the 40th International Conference on
+Machine Learning, ICML’23. JMLR.org.
+
+Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick
+Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, and
+Wen-tau Yih. 2020. Dense passage retrieval for open-
+domain question answering. In Proceedings of the
+2020 Conference on Empirical Methods in Natural
+Language Processing (EMNLP), pages 6769–6781,
+Online. Association for Computational Linguistics.
+
+Vasileios Katranidis and Gabor Barany. 2024. Faaf:
+Facts as a function for the evaluation of generated
+text. Preprint, arXiv:2403.03888.
+
+Kalpesh Krishna, Aurko Roy, and Mohit Iyyer. 2021.
+Hurdles to progress in long-form question answering.
+In Proceedings of the 2021 Conference of the North
+American Chapter of the Association for Computa-
+tional Linguistics: Human Language Technologies,
+pages 4940–4957, Online. Association for Computa-
+tional Linguistics.
+
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Red-
+field, Michael Collins, Ankur Parikh, Chris Alberti,
+
+10
+
+Danielle Epstein, Illia Polosukhin, Jacob Devlin, Ken-
+ton Lee, Kristina Toutanova, Llion Jones, Matthew
+Kelcey, Ming-Wei Chang, Andrew M. Dai, Jakob
+Uszkoreit, Quoc Le, and Slav Petrov. 2019. Natu-
+ral questions: A benchmark for question answering
+research. Transactions of the Association for Compu-
+tational Linguistics, 7:452–466.
+
+LangChain. 2023. Langchain: Building applications
+
+with llms through composability.
+
+Kenton Lee, Ming-Wei Chang, and Kristina Toutanova.
+2019. Latent retrieval for weakly supervised open do-
+main question answering. In Proceedings of the 57th
+Conference of the Association for Computational Lin-
+guistics, ACL 2019, Florence, Italy, July 28- August
+2, 2019, Volume 1: Long Papers, pages 6086–6096,
+Florence. Association for Computational Linguistics.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio
+Petroni, Vladimir Karpukhin, Naman Goyal, Hein-
+rich Küttler, Mike Lewis, Wen-tau Yih, Tim Rock-
+täschel, et al. 2020. Retrieval-augmented generation
+for knowledge-intensive nlp tasks. Advances in Neu-
+ral Information Processing Systems, 33:9459–9474.
+
+Nelson F. Liu, Kevin Lin, John Hewitt, Ashwin Paran-
+jape, Michele Bevilacqua, Fabio Petroni, and Percy
+Liang. 2023. Lost in the middle: How language mod-
+els use long contexts. Preprint, arXiv:2307.03172.
+
+Shayne Longpre, Kartik Perisetla, Anthony Chen,
+Nikhil Ramesh, Chris DuBois, and Sameer Singh.
+2021. Entity-based knowledge conflicts in question
+answering. In Proceedings of the 2021 Conference
+on Empirical Methods in Natural Language Process-
+ing, pages 7052–7063, Online and Punta Cana, Do-
+minican Republic. Association for Computational
+Linguistics.
+
+Alex Mallen, Akari Asai, Victor Zhong, Rajarshi Das,
+Daniel Khashabi, and Hannaneh Hajishirzi. 2023.
+When not to trust language models: Investigating
+effectiveness of parametric and non-parametric mem-
+ories. In Proceedings of the 61st Annual Meeting of
+the Association for Computational Linguistics (Vol-
+ume 1: Long Papers), pages 9802–9822, Toronto,
+Canada. Association for Computational Linguistics.
+
+Sewon Min, Danqi Chen, Hannaneh Hajishirzi, and
+Luke Zettlemoyer. 2019. A discrete hard EM ap-
+proach for weakly supervised question answering. In
+Proceedings of the 2019 Conference on Empirical
+Methods in Natural Language Processing and the
+9th International Joint Conference on Natural Lan-
+guage Processing (EMNLP-IJCNLP), pages 2851–
+2864, Hong Kong, China. Association for Computa-
+tional Linguistics.
+
+Long Ouyang, Jeff Wu, Xu Jiang, Diogo Almeida, Car-
+roll L. Wainwright, Pamela Mishkin, Chong Zhang,
+Sandhini Agarwal, Katarina Slama, Alex Ray, John
+Schulman, Jacob Hilton, Fraser Kelton, Luke Miller,
+Maddie Simens, Amanda Askell, Peter Welinder,
+Paul Christiano, Jan Leike, and Ryan Lowe. 2022.
+
+Training language models to follow instructions with
+human feedback. Preprint, arXiv:2203.02155.
+
+Guilherme Penedo, Quentin Malartic, Daniel Hesslow,
+Ruxandra Cojocaru, Hamza Alobeidli, Alessandro
+Cappelli, Baptiste Pannier, Ebtesam Almazrouei, and
+Julien Launay. 2023. The refinedweb dataset for fal-
+con llm: Outperforming curated corpora with web
+data only. In Advances in Neural Information Pro-
+cessing Systems, volume 36, pages 79155–79172.
+Curran Associates, Inc.
+
+Alec Radford, Karthik Narasimhan, Tim Salimans, Ilya
+Sutskever, et al. 2018. Improving language under-
+standing by generative pre-training.
+
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano
+Ermon, Christopher D. Manning, and Chelsea Finn.
+2023. Direct preference optimization: Your lan-
+guage model is secretly a reward model. Preprint,
+arXiv:2305.18290.
+
+Md Masudur Rahman and Yexiang Xue. 2022. Robust
+policy optimization in deep reinforcement learning.
+Preprint, arXiv:2212.07536.
+
+Noam Shazeer. 2019.
+
+transformer decod-
+ing: One write-head is all you need. Preprint,
+arXiv:1911.02150.
+
+Fast
+
+Freda Shi, Xinyun Chen, Kanishka Misra, Nathan
+Scales, David Dohan, Ed Chi, Nathanael Schärli,
+and Denny Zhou. 2023. Large language models can
+be easily distracted by irrelevant context. Preprint,
+arXiv:2302.00093.
+
+Weijia Shi, Anirudh Ajith, Mengzhou Xia, Yangsibo
+Huang, Daogao Liu, Terra Blevins, Danqi Chen,
+and Luke Zettlemoyer. 2024. Detecting pretrain-
+ing data from large language models. Preprint,
+arXiv:2310.16789.
+
+Kurt Shuster, Spencer Poff, Moya Chen, Douwe Kiela,
+and Jason Weston. 2021. Retrieval augmentation
+reduces hallucination in conversation. arXiv preprint
+arXiv:2104.07567.
+
+Rohan Taori, Ishaan Gulrajani, Tianyi Zhang, Yann
+Dubois, Xuechen Li, Carlos Guestrin, Percy Liang,
+and Tatsunori B Hashimoto. 2023. Alpaca: A
+strong, replicable instruction-following model. Stan-
+ford Center for Research on Foundation Models.
+https://crfm. stanford. edu/2023/03/13/alpaca. html,
+3(6):7.
+
+Hugo Touvron, Louis Martin, Kevin Stone, Peter Al-
+bert, Amjad Almahairi, Yasmine Babaei, Nikolay
+Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti
+Bhosale, Dan Bikel, Lukas Blecher, Cristian Canton
+Ferrer, Moya Chen, Guillem Cucurull, David Esiobu,
+Jude Fernandes, Jeremy Fu, Wenyin Fu, Brian Fuller,
+Cynthia Gao, Vedanuj Goswami, Naman Goyal, An-
+thony Hartshorn, Saghar Hosseini, Rui Hou, Hakan
+Inan, Marcin Kardas, Viktor Kerkez, Madian Khabsa,
+Isabel Kloumann, Artem Korenev, Punit Singh Koura,
+
+11
+
+Conference on Research and Development in Infor-
+mation Retrieval in the Asia Pacific Region, SIGIR-
+AP ’23, page 46–51, New York, NY, USA. Associa-
+tion for Computing Machinery.
+
+Marie-Anne Lachaux, Thibaut Lavril, Jenya Lee, Di-
+ana Liskovich, Yinghai Lu, Yuning Mao, Xavier Mar-
+tinet, Todor Mihaylov, Pushkar Mishra, Igor Moly-
+bog, Yixin Nie, Andrew Poulton, Jeremy Reizen-
+stein, Rashi Rungta, Kalyan Saladi, Alan Schelten,
+Ruan Silva, Eric Michael Smith, Ranjan Subrama-
+nian, Xiaoqing Ellen Tan, Binh Tang, Ross Tay-
+lor, Adina Williams, Jian Xiang Kuan, Puxin Xu,
+Zheng Yan, Iliyan Zarov, Yuchen Zhang, Angela Fan,
+Melanie Kambadur, Sharan Narang, Aurelien Ro-
+driguez, Robert Stojnic, Sergey Edunov, and Thomas
+Scialom. 2023. Llama 2: Open foundation and fine-
+tuned chat models. Preprint, arXiv:2307.09288.
+
+Hongru Wang, Wenyu Huang, Yang Deng, Rui Wang,
+Zezhong Wang, Yufei Wang, Fei Mi, Jeff Z Pan,
+and Kam-Fai Wong. 2024. Unims-rag: A uni-
+fied multi-source retrieval-augmented generation
+for personalized dialogue systems. arXiv preprint
+arXiv:2401.13256.
+
+Xuezhi Wang, Haohan Wang, and Diyi Yang. 2022.
+Measure and improve robustness in nlp models: A
+survey. Preprint, arXiv:2112.08313.
+
+Kevin Wu, Eric Wu, and James Zou. 2024. Clashe-
+val: Quantifying the tug-of-war between an llm’s
+Preprint,
+internal prior and external evidence.
+arXiv:2404.10198.
+
+Jian Xie, Kai Zhang, Jiangjie Chen, Renze Lou, and
+Yu Su. 2024. Adaptive chameleon or stubborn sloth:
+Revealing the behavior of large language models in
+knowledge conflicts. In The Twelfth International
+Conference on Learning Representations.
+
+Shusheng Xu, Wei Fu, Jiaxuan Gao, Wenjie Ye, Weilin
+Liu, Zhiyu Mei, Guangju Wang, Chao Yu, and Yi Wu.
+2024. Is dpo superior to ppo for llm alignment? a
+comprehensive study. Preprint, arXiv:2404.10719.
+
+Hao Yu, Aoran Gan, Kai Zhang, Shiwei Tong,
+Qi Liu, and Zhaofeng Liu. 2024. Evaluation of
+retrieval-augmented generation: A survey. Preprint,
+arXiv:2405.07437.
+
+Tianjun Zhang, Shishir G. Patil, Naman Jain, Sheng
+Shen, Matei Zaharia, Ion Stoica, and Joseph E. Gon-
+zalez. 2024. Raft: Adapting language model to do-
+main specific rag. Preprint, arXiv:2403.10131.
+
+Yue Zhang, Yafu Li, Leyang Cui, Deng Cai, Lemao Liu,
+Tingchen Fu, Xinting Huang, Enbo Zhao, Yu Zhang,
+Yulong Chen, Longyue Wang, Anh Tuan Luu, Wei
+Bi, Freda Shi, and Shuming Shi. 2023. Siren’s song
+in the ai ocean: A survey on hallucination in large
+language models. Preprint, arXiv:2309.01219.
+
+Yichen Zhu, Zhicai Ou, Xiaofeng Mou, and Jian
+Tang. 2024. Retrieval-augmented embodied agents.
+Preprint, arXiv:2404.11699.
+
+Guido Zuccon, Bevan Koopman, and Razia Shaik. 2023.
+Chatgpt hallucinates when attributing answers. In
+Proceedings of the Annual International ACM SIGIR
+
+12
+
+A More Details on Datasets and Models
+
+A.1 Dataset
+
+We employ the NQ-open and TriviaQA-unfiltered
+datasets for our evaluations. For NQ-open we adopt
+the processing procedure of Cuconasu et al. (2024),
+resulting in 2,889 test examples. For TriviaQA-
+unfiltered, we adhere to the validation and test split
+adopted in previous studies (Min et al., 2019; Asai
+et al., 2023), using 11,313 test queries for evalua-
+tion. The two datasets use the English Wikipedia
+dated 20 December 2018 as a knowledge source.
+Following the Dense Passage Retrieval (DPR) ap-
+proach (Karpukhin et al., 2020), we split each
+Wikipedia article into non-overlapping passages
+of 100 words.
+
+Both datasets feature questions that allow for
+multiple valid answers. These can range from syn-
+onymous terms, such as “New York” and “NY”, to
+questions accepting multiple distinct correct an-
+swers. TriviaQA is notable for its diversity in
+acceptable responses, with some queries accom-
+modating up to 400 valid answers. This variance
+significantly lowers the likelihood of a correct re-
+sponse being marked as incorrect purely based on
+phrasing variances, contributing to notably higher
+accuracy scores on TriviaQA than on NQ-open, as
+discussed in Section 4.
+
+A.2 Retriever
+
+The retriever used to select the top-k documents is
+Contriever (Izacard et al., 2021), which is a BERT-
+based dense model trained using unsupervised con-
+trastive loss. The embedding of each document and
+query is obtained by averaging the hidden state of
+the last layer of the model. For document retrieval
+from the corpus, we employ a FAISS index (Douze
+et al., 2024; Johnson et al., 2019) by using an in-
+ner product similarity metric (IndexFlatIP) with an
+exhaustive search.
+
+To assess the availability of an answer within
+the provided documents, we compute the top-k
+accuracy of the retriever. This metric evaluates
+how often the ground truth answer appears within
+the top-k documents retrieved for a query. Scores
+can be seen in Table 3.
+
+Table 3: Retriever top-k accuracy.
+
+Contriever
+
+# Retrieved Documents
+
+Dataset
+
+1
+
+2
+
+3
+
+4
+
+5
+
+8
+
+10
+
+NQ
+TriviaQA
+
+25.02
+39.15
+
+35.69
+50.70
+
+42.89
+56.45
+
+47.84
+60.32
+
+51.33
+63.03
+
+57.84
+68.35
+
+60.85
+70.49
+
+Table 4: Closed-book Accuracy of the models. The
+task instruction used in this case for both datasets can
+be seen in Figure 7.
+
+Model
+
+NQ
+Closed-Book
+
+TriviaQA
+Closed-Book
+
+Llama 2 7B
+Llama 2 7B-C
+Llama 2 7B-C + T
+
+Llama 3 8B
+Llama 3 8B-I
+Llama 3 8B-I + T
+
+Mistral 7B
+Mistral 7B-I
+Mistral 7B-I + T
+
+Falcon 7B
+Falcon 7B-I
+
+25.20
+16.51
+13.12
+
+22.01
+27.17
+27.80
+
+28.11
+18.76
+15.96
+
+15.26
+12.74
+
+55.57
+37.33
+41.73
+
+57.37
+25.46
+54.87
+
+60.68
+47.18
+49.30
+
+41.12
+27.83
+
+A.3 Generative Models
+
+We utilize publicly available, open-weight LLMs
+accessible via Hugging Face. All models are quan-
+tized to 4-bit using the bitsandbytes library3 to op-
+timize computational efficiency. We perform all
+experiments with a single Nvidia RTX4090 GPU.
+Here is a brief description of the main character-
+
+istics of each model:
+
+Llama 2 7B. The 7B parameters versions4 of
+the Llama 2 family (Touvron et al., 2023) are pre-
+trained on publicly available data and optimized
+for a range of natural language generation tasks.
+This series features a context length of 4096 tokens,
+and the 7B version employs multi-query attention
+(MQA) (Shazeer, 2019) to enhance processing effi-
+ciency and response quality.
+
+Llama 3 8B. The Llama 3 series5 builds on the
+architecture and improvements of its predecessors,
+offering models with 8B parameters6. It employs
+group-query attention (GQA) (Ainslie et al., 2023)
+and extends the context length to 8192 tokens, thus
+facilitating enhanced language generation across a
+broad range of tasks.
+
+3https://huggingface.co/docs/bitsandbytes/main/en/index
+4https://huggingface.co/meta-llama/Llama-2-7b-hf
+https://huggingface.co/meta-llama/Llama-2-7b-chat-hf
+
+5Llama 3 Blog Page
+6https://huggingface.co/meta-llama/Meta-Llama-3-8B
+
+https://huggingface.co/meta-llama/Meta-Llama-3-8B-
+Instruct
+
+13
+
+Table 5: Task Instruction I with No Rejection Percentage Accuracy on NQ and TriviQA. In the No Rejection
+setting, we do not specify to answer with NO-RES when the answer is not contained in the retrieved documents. An
+example of the task instruction adopted in these experiments can be seen in Figure 6.
+
+NQ
+# Retrieved Documents
+
+TriviaQA
+# Retrieved Documents
+
+Model
+
+1
+
+2
+
+3
+
+4
+
+5
+
+8
+
+10
+
+1
+
+2
+
+3
+
+4
+
+5
+
+8
+
+10
+
+Llama 2 7B
+Llama 2 7B-C
+Llama 2 7B-C + T
+
+Llama 3 8B
+Llama 3 8B-I
+Llama 3 8B-I + T
+
+Mistral 7B
+Mistral 7B-I
+Mistral 7B-I+ T
+
+Falcon 7B
+Falcon 7B-I
+
+26.41
+19.76
+4.05
+
+28.14
+13.36
+14.88
+
+25.48
+21.53
+19.56
+
+16.58
+16.03
+
+28.11
+25.20
+2.53
+
+30.32
+19.21
+13.33
+
+26.48
+26.31
+24.96
+
+19.45
+18.28
+
+30.49
+26.00
+1.56
+
+30.46
+23.19
+12.81
+
+26.13
+29.42
+26.76
+
+19.80
+18.90
+
+31.15
+27.62
+1.25
+
+30.81
+25.75
+15.40
+
+26.83
+31.36
+28.73
+
+21.46
+19.38
+
+31.57
+27.35
+1.11
+
+28.66
+29.53
+20.32
+
+29.39
+32.09
+27.83
+
+21.08
+19.42
+
+32.02
+27.76
+1.90
+
+29.21
+31.39
+21.98
+
+29.15
+34.06
+28.04
+
+21.08
+19.38
+
+31.81
+28.31
+3.63
+
+28.94
+31.15
+21.98
+
+29.49
+34.89
+36.55
+
+21.26
+19.97
+
+58.09
+47.29
+33.46
+
+49.65
+4.05
+26.85
+
+59.52
+51.87
+48.15
+
+41.66
+33.99
+
+59.98
+50.61
+39.70
+
+57.45
+3.94
+37.59
+
+60.06
+54.42
+51.99
+
+43.55
+36.08
+
+61.07
+52.93
+41.32
+
+61.07
+5.23
+42.25
+
+60.90
+56.19
+54.48
+
+43.40
+36.78
+
+61.85
+54.27
+41.34
+
+63.17
+7.01
+44.53
+
+62.17
+57.07
+55.36
+
+43.92
+36.98
+
+62.22
+55.06
+41.09
+
+64.72
+18.41
+46.36
+
+64.65
+58.07
+56.34
+
+45.04
+37.89
+
+63.44
+57.11
+39.01
+
+66.53
+53.94
+53.15
+
+66.45
+59.93
+58.86
+
+45.62
+38.18
+
+64.26
+57.71
+43.11
+
+66.80
+61.46
+56.00
+
+67.88
+61.25
+59.85
+
+45.54
+38.43
+
+Table 6: Task Instruction II Answer Coherence Percentage Accuracy on NQ and TriviaQA. It indicates the
+number of times the generated answer is contained in the generated Proof, over the total number of instances.
+
+NQ
+# Retrieved Documents
+
+TriviaQA
+# Retrieved Documents
+
+Model
+
+1
+
+2
+
+3
+
+4
+
+5
+
+8
+
+10
+
+1
+
+2
+
+3
+
+4
+
+5
+
+8
+
+10
+
+Llama 2 7B
+Llama 2 7B-C
+Llama 2 7B-C + T
+
+Llama 3 8B
+Llama 3 8B-I
+Llama 3 8B-I + T
+
+Mistral 7B
+Mistral 7B-I
+Mistral 7B-I+ T
+
+Falcon 7B
+Falcon 7B-I
+
+36.93
+45.07
+0
+
+36.90
+42.02
+0.52
+
+36.73
+50.12
+15.99
+
+1.87
+3.39
+
+41.16
+47.35
+0.59
+
+41.36
+51.92
+0.03
+
+44.03
+53.24
+10.90
+
+2.08
+3.12
+
+41.64
+46.97
+1.14
+
+43.54
+50.71
+0.10
+
+46.56
+54.38
+7.65
+
+3.32
+3.77
+
+41.43
+46.45
+0.07
+
+46.49
+43.86
+0.14
+
+45.66
+55.49
+5.75
+
+3.01
+4.85
+
+42.16
+45.17
+0.07
+
+46.80
+48.36
+1.38
+
+51.47
+57.39
+3.53
+
+3.81
+4.26
+
+42.99
+40.53
+0
+
+51.78
+48.29
+0.28
+
+54.62
+57.74
+4.12
+
+4.50
+1.73
+
+41.26
+32.78
+0
+
+51.37
+53.10
+0.07
+
+53.31
+56.07
+2.70
+
+1.15
+1.04
+
+37.22
+43.15
+0.05
+
+51.66
+35.45
+1.10
+
+43.23
+51.08
+16.82
+
+3.02
+4.45
+
+44.27
+49.61
+0.46
+
+57.44
+50.55
+0.13
+
+52.16
+53.52
+14.87
+
+3.70
+5.94
+
+44.68
+53.09
+0.75
+
+59.46
+50.89
+0.12
+
+56.07
+55.43
+11.42
+
+3.47
+6.53
+
+47.19
+53.46
+0.11
+
+61.30
+48.91
+0.49
+
+58.48
+57.53
+7.90
+
+4.52
+6.08
+
+48.00
+48.92
+0.04
+
+62.02
+55.02
+1.59
+
+60.82
+58.55
+5.70
+
+4.86
+6.28
+
+50.35
+40.14
+0
+
+64.12
+55.28
+1.42
+
+66.66
+59.68
+2.45
+
+3.17
+3.34
+
+47.14
+28.93
+0
+
+63.58
+56.78
+0.5
+
+68.04
+58.58
+2.16
+
+1.61
+1.67
+
+Mistral 7B. Developed as a highly efficient
+model with 7B parameters7, Mistral (Jiang et al.,
+2023) focuses on delivering high performance and
+accuracy in text generation. It uses GQA and slid-
+ing window attention with an 8192-token context
+length.
+
+Falcon 7B. The Falcon 7B8 is the smallest model
+of the Falcon series (Almazrouei et al., 2023) and
+was trained on the RefinedWeb dataset (Penedo
+et al., 2023)—a large, filtered, and deduplicated
+corpus. Similarly to Llama2 7B, it uses MQA,
+but with a smaller context length of 2048 tokens.
+Unlike the other models, the instruct version of
+Falcon 7B was not specifically trained using a
+
+7hhttps://huggingface.co/mistralai/Mistral-7B-v0.1
+https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1
+
+8https://huggingface.co/tiiuae/falcon-7b
+https://huggingface.co/tiiuae/falcon-7b-instruct
+
+fixed template, which is why no separate “instruct
++ template” variant is listed in any figure or table.
+
+The closed-book accuracy of
+the models is
+detailed in Table 4. In this scenario, models are
+evaluated without any documents in their prompt,
+necessitating a modification to Task Instruction I.
+An example of this modified task instruction can
+be viewed in Figure 7.
+
+B Further Analysis with Task Instruction
+
+II
+
+In this section, we examine more in detail whether
+models can justify their answers with Proof. We
+specifically investigate whether even the base mod-
+els can adhere to instructions and provide accurate
+Proof for their responses.
+
+Table 6 shows the percentage of instances where
+
+14
+
+document on NQ.
+
+Llama 3 exhibits a distinct trend, maintaining a
+mean negative rejection rate of 34% with the tem-
+plate, and 35.57% without. However, when the
+model is not using the template, similar to Llama
+2 and Mistral, the rejection rates for Llama 3 de-
+cline with an increase in document count. Indeed,
+it shows a significant reduction of 31.7 (-70%) pass-
+ing from 45.16% to 13.46% when the number of
+retrieved documents increases from 5 to 8 on NQ;
+while for TriviaQA the rate drops by 14.86 (-50%)
+in the same situation.
+
+Falcon models show the least tendency to re-
+spond with NO-RES, particularly in the instruct and
+instruct-template settings, where rejection rates are
+consistently low or even non-existent in some con-
+figurations. This behavior indicates a propensity to
+generate answers even when the information is not
+present, potentially leading to higher rates of hal-
+lucination. The primary reason for this is Falcon’s
+difficulty in following instructions effectively.
+
+the generated answer, whether correct or incorrect,
+is included in the generated Proof, which we will re-
+fer to as “coherence”. The inclusion of the answer
+in the Proof indicates that the model’s responses
+align with the information provided in the docu-
+ments. This measure, however, does not necessar-
+ily reflect answer correctness, as it only assesses
+coherence with the documented evidence.
+
+As observed in Table 6, base models are “coher-
+ent” with their answers, often outperforming their
+instruct counterparts. Mistral notably achieves the
+highest coherence score, reaching 68% with 10
+retrieved documents, while Falcon exhibits the low-
+est, often failing to provide any Proof at all. Even
+the instruct version of Falcon typically offers only
+the direct answer without supporting evidence.
+
+However, as discussed in the limitations section
+(Section 8), the presence of an answer in the Proof
+does not guarantee its “coherence” accuracy. An
+answer may be included, but the Proof might not
+actually derive from the provided documents. Ad-
+ditionally, even if the answer is present in the Proof,
+it may not be recognized as valid due to the inclu-
+sion of additional text in the response. For example,
+if a model begins its response with “The answer
+to the question is...” and then reports an answer
+that is technically part of the Proof, this response
+might still be deemed invalid because the intro-
+ductory phrase does not originate from the context
+documents.
+
+C Further Analysis on the Negative
+
+Rejection Rates
+
+In Section 5.1, we discussed the negative rejection
+ability of Llama 2 on TriviaQA. This section ex-
+tends the discussion to the behavior of other models
+on both datasets, NQ and TriviaQA. From Tables
+8 and 9, it is evident that the instruct models gen-
+erally exhibit higher negative rejection rates com-
+pared to their base counterparts. However, each
+model follows its own trend.
+
+Llama 2 and Mistral demonstrate similar behav-
+iors in that, as the number of documents in the
+context increases, their tendency to answer with
+NO-RES decreases. Notably, the instruct version
+with a template for Llama 2 rarely rejects to re-
+spond when the answer is not present in the context
+documents. In contrast, the Mistral instruct ver-
+sion with a template shows a significantly stronger
+negative rejection ability than without the template,
+reaching up to 42.98% score with one retrieved
+
+15
+
+Mistral 7B-Instruct + Template
+[INST] You are given a question and you MUST
+respond by EXTRACTING the answer (max 5
+tokens) from one of the provided documents. If
+none of the documents contain the answer, re-
+spond with NO-RES.
+START example
+Document [209707](Title: Ancient Egyptian
+technology) Evidence indicates that Egyptians
+made use of potter’s wheels in the manufactur-
+ing of pottery from as early as the 4th Dynasty.
+Chariots, however, are only believed to have been
+introduced by the invasion of the Hyksos in the
+Second Intermediate period; during the New King-
+dom era, chariotry became central to Egypt’s mil-
+itary.
+Question: when was the potter’s wheel first used
+in egypt
+Answer: 4th Dynasty
+Proof: Evidence indicates that Egyptians made
+use of potter’s wheels in the manufacturing of pot-
+tery from as early as the 4th Dynasty.
+END example
+
+Mistral 7B
+You are given a question and you MUST respond
+by EXTRACTING the answer (max 5 tokens)
+from one of the provided documents. If none of
+the documents contain the answer, respond with
+NO-RES.
+START example
+Document [209707](Title: Ancient Egyptian
+technology) Evidence indicates that Egyptians
+made use of potter’s wheels in the manufactur-
+ing of pottery from as early as the 4th Dynasty.
+Chariots, however, are only believed to have been
+introduced by the invasion of the Hyksos in the
+Second Intermediate period; during the New King-
+dom era, chariotry became central to Egypt’s mil-
+itary.
+Question: when was the potter’s wheel first used
+in egypt
+Answer: 4th Dynasty
+Proof: Evidence indicates that Egyptians made
+use of potter’s wheels in the manufacturing of pot-
+tery from as early as the 4th Dynasty.
+END example
+Documents:
+Document [12919694](Title: User State Migration Tool) User State Migration Tool The User State
+Migration Tool (USMT) is a Microsoft command line utility program intended to allow advanced
+users, comfortable with Scripting languages, to transfer files and settings between PCs. This task is
+also performed by Windows Easy Transfer, recommended for general users...
+Document [12919696](Title: User State Migration Tool) Settings Transfer Wizard and Windows
+Easy Transfer. USMT is designed to perform mass migrations and allows customizations designed
+for corporate environments...
+Document [12919695](Title: User State Migration Tool) there have been several attempts to
+provide access to its useful functionality by creating GUI wrappers for it...
+
+Answer: [/INST] NO-RES.
+
+Question: what tool is available from microsoft as an alternative to the usmt for smaller migrations
+Answer: Windows Easy Transfer
+Proof: User State Migration Tool The User State
+Migration Tool (USMT) is a Microsoft command
+line utility program intended to allow advanced
+users, comfortable with Scripting languages, to
+transfer files and settings between PCs. This task
+is also performed by Windows Easy Transfer, rec-
+ommended for general users...
+
+Figure 4: Base vs. Instruct + Template under Task Instruction II on NQ. This comparison of responses between
+the base and instruct + template versions of Mistral 7B illustrates an example where the base model correctly
+identifies the answer, while the instruct + template version erroneously opts for a NO-RES response, despite the
+correct answer being present in the documents. Italic text denotes the template.
+
+16
+
+Llama 2 7B
+
+Llama 2 7B-Chat + Template
+
+You are given a question and you MUST respond
+by EXTRACTING the answer from one of the
+provided documents. If none of the documents
+contain the answer, respond with NO-RES.
+START example
+Document [209707](Title: Ancient Egyptian
+technology) Evidence indicates that Egyptians
+made use of potter’s wheels in the manufactur-
+ing of pottery from as early as the 4th Dynasty.
+Chariots, however, are only believed to have been
+introduced by the invasion of the Hyksos in the
+Second Intermediate period; during the New King-
+dom era, chariotry became central to Egypt’s mil-
+itary.
+Question: when was the potter’s wheel first used
+in egypt
+Answer: 4th Dynasty
+Proof: Evidence indicates that Egyptians made
+use of potter’s wheels in the manufacturing of pot-
+tery from as early as the 4th Dynasty.
+END example
+
+[INST] «SYS»
+You are given a question and you MUST respond
+by EXTRACTING the answer from one of the
+provided documents. If none of the documents
+contain the answer, respond with NO-RES.
+START example
+Document [209707](Title: Ancient Egyptian
+technology) Evidence indicates that Egyptians
+made use of potter’s wheels in the manufactur-
+ing of pottery from as early as the 4th Dynasty.
+Chariots, however, are only believed to have been
+introduced by the invasion of the Hyksos in the
+Second Intermediate period; during the New King-
+dom era, chariotry became central to Egypt’s mil-
+itary.
+Question: when was the potter’s wheel first used
+in egypt
+Answer: 4th Dynasty
+Proof: Evidence indicates that Egyptians made
+use of potter’s wheels in the manufacturing of pot-
+tery from as early as the 4th Dynasty.
+END example
+«/SYS»
+
+Documents:
+Document [1](Title: Batman Returns) the Penguin. We didn’t really officially cast it, but for a
+short nasty little guy, it’s a short list. I ended up writing the character for Danny DeVito. Burgess
+Meredith (who portrayed the Penguin in the 1960s TV series "Batman") was cast for a little cameo
+as Tucker Cobblepot...
+Document [2](Title: Batman: Mystery of the Batwoman) This is the only time in the DC animated
+universe that Paul Williams did not voice the Penguin...
+Document [3](Title: The Penguin’s a Jinx) The Penguin goes to Wayne Manor and returns the
+actress. He then uses his gas-umbrella to knock out anyone inside the statues...
+
+Question: Who played the part of ‘The Penguin’ in the TV series ‘Batman’?
+Answer: Burgess Meredith
+Proof: Document [1](Title: Batman Returns) the
+Penguin. We didn’t really officially cast it, but for
+a short nasty little guy, it’s a short list. I ended up
+writing the character for Danny DeVito. Burgess
+Meredith (who portrayed the Penguin in the 1960s
+TV series "Batman") was cast for a little cameo
+as Tucker Cobblepot...
+
+Answer: [/INST] Danny DeVito
+Proof: Document [1](Title: Batman Returns) the
+Penguin. We didn’t really officially cast it, but for
+a short nasty little guy, it’s a short list. I ended up
+writing the character for Danny DeVito.
+
+Figure 5: Base vs. Instruct + Template under Task Instruction II on TriviaQA. This comparison of responses
+between the base and instruct + template versions of Llama 2 7B illustrates an example where the base model
+correctly identifies the answer, while the instruct + template version inaccurately attributes the answer to a different
+actor. Nevertheless, in both cases, the answers are “coherent” with the Proof since each evidence contains the
+generated answer. Italic text denotes the template.
+
+17
+
+Falcon 7B-Instruct
+You are given a question and you MUST respond
+by EXTRACTING the answer (max 5 tokens)
+from one of the provided documents.
+
+Falcon 7B
+You are given a question and you MUST respond
+by EXTRACTING the answer (max 5 tokens)
+from one of the provided documents.
+Documents:
+Document [1590238](Title: 1970s in film) Thanks to a stellar cast, experienced director, and a
+poignant story, "Network" became one of the largest critical successes of 1976. Another film, Rocky,
+about a clubhouse boxer (played by Sylvester Stallone) who is granted a world championship title
+fight won the Best Picture Academy Award that year. The film also became a major commercial
+success and spawned four sequels through the rest of the 1970s and 1980s...
+Document [2832642](Title: Ned Beatty) 1975. Beatty received his first Academy Award
+nomination for Best Supporting Actor category for the acclaimed film "Network" (1976), portraying
+a television network’s bombastic but shrewd chairman of the board who convinces the mad Howard
+Beale character (portrayed by Peter Finch) that corporation-led global dehumanization is not only
+inevitable, but is also a good thing...
+
+Question: who won the oscar for best picture in 1976
+Answer: Rocky
+
+Answer: "Network"
+
+Figure 6: Base vs. Instruct under Task Instruction I with No Rejection on NQ. This figure presents responses
+under a No Rejection setting, where models are not tasked with responding with NO-RES if the answer is not
+contained in the retrieved documents. It compares the base and instruct versions of Falcon 7B. In this instance, the
+base model accurately identifies “Rocky” as the Oscar winner for Best Picture in 1976, while the instruct version
+incorrectly cites "Network".
+
+Llama 3 8B
+
+Llama 3 8B-Instruct + Template
+<|start_header_id|>system<|end_header_id|>
+
+You are given a question and you MUST
+respond with a short answer based on your
+internal knowledge.
+If you do not know the
+answer, please respond with NO-RES.
+
+You are given a question and you MUST
+respond with a short answer based on your
+internal knowledge.
+If you do not know the
+answer, please respond with NO-RES.<|eot_id|>
+<|start_header_id|>user<|end_header_id|>
+
+Question: In which US city did the 2004 remake of the film Alfie take place?
+Answer: New York City
+
+Answer: <|eot_id|><|start_header_id|>assistant
+<|end_header_id|> London!
+
+Figure 7: Base vs. Instruct + Template under Closed-Book QA on TriviaQA. This figure compares responses
+from the base and instruct + template versions of Llama 3 8B for a question in a closed-book setting, where no
+additional documents are provided. The example demonstrates how the base model accurately identifies “New York
+City” as the setting of the 2004 remake of the film Alfie, whereas the instruct + template version erroneously claims
+the location as “London”. Italic text denotes the template.
+
+18
+
+Figure 8: Negative Rejection Comparison for NQ. Reported is the negative rejection rate, that is, the number of
+times the model answers NO-RES when the correct answer is not in the context, divided by the number of times
+the answer is indeed missing. Instruct models are much more effective at detecting such cases and following the
+instructions provided.
+
+19
+
+Figure 9: Negative Rejection Comparison for TriviaQA. Reported is the negative rejection rate, that is, the
+number of times the model answers NO-RES when the correct answer is not in the context, divided by the number of
+times the answer is indeed missing. Instruct models are much more effective at detecting such cases and following
+the instructions provided.
+
+20

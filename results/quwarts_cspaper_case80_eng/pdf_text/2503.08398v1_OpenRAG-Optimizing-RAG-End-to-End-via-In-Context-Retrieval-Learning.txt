@@ -1,0 +1,2479 @@
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+Jiawei Zhou 1 Lei Chen 1
+1Hong Kong University of Science and Technology
+
+5
+2
+0
+2
+
+r
+a
+
+M
+1
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+8
+9
+3
+8
+0
+.
+3
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+In this paper, we analyze and empirically show
+that the learned relevance for conventional in-
+formation retrieval (IR) scenarios may be incon-
+sistent in retrieval-augmented generation (RAG)
+scenarios. To bridge this gap, we introduce
+Open-Rag, a RAG framework that is OPtimized
+ENd-to-end by tuning the retriever to capture in-
+context relevance, enabling adaptation to the di-
+verse and evolving needs. Extensive experiments
+across a wide range of tasks demonstrate that
+Open-Rag, by tuning a retriever end-to-end, leads
+to a consistent improvement of 4.0% over the orig-
+inal retriever, consistently outperforming exist-
+ing state-of-the-art retrievers by 2.1%. Addition-
+ally, our results indicate that for some tasks, an
+end-to-end tuned 0.2B retriever can achieve im-
+provements that surpass those of RAG-oriented
+or instruction-tuned 8B large language models
+(LLMs), highlighting the cost-effectiveness of
+our approach in enhancing RAG systems.
+
+1. Introduction
+
+As large language models (LLMs) (Zhao et al., 2023; Mi-
+naee et al., 2024) scale, they face a data bottleneck where the
+high-quality internet data unable to meet growing training
+demands. Meanwhile, the volume of downstream data is ex-
+panding rapidly but often remains unusable for pre-training
+due to their real-time availability (Wang et al., 2024b; Liu
+et al., 2023), privacy concerns (Arora et al., 2023), licensing
+restrictions (Min et al., 2024), and ethical concern (Serouis
+& Sèdes, 2024; Ayyamperumal & Ge, 2024).
+
+Retrieval-augmented generation (RAG) (Lewis et al., 2020;
+Guu et al., 2020; Gao et al., 2023) emerges as a promis-
+ing solution to this challenge. Rather than relying solely
+on well-curated internet data, RAG leverages information
+retrieval (IR) to fetch relevant data from external sources
+and incorporates it as context to enhance generation qual-
+ity. This is valuable as RAG enables the use of rapidly
+expanding yet often inaccessible downstream data, which
+are more scalable and up-to-date than the heavily processed
+and regulated internet data used in pre-training.
+
+1
+
+Figure 1. Comparison of query-document relevance in IR scenario
+and RAG scenario.
+
+Despite their success, existing RAG frameworks typically
+rely on off-the-shelf retrievers trained on QA datasets, which
+can lead to inconsistencies between the learned retrieval
+relevance and the needs of downstream tasks. This dis-
+crepancy highlights key relevance gaps between IR and
+RAG scenarios. We explore these gaps in detail below,
+drawing on insights from prior research. First, there is the
+broadening of tasks: traditional IR datasets (Kwiatkowski
+et al., 2019; Bajaj et al., 2016) are designed mainly for
+open-domain question-answering (OpenQA), while RAG
+framework are applied to a wider range of tasks, such as
+recommendation (Manzoor & Jannach, 2022), dialog sys-
+tems (Liu et al., 2024), and role-playing (Wang et al., 2023),
+where task requirements can be flexibly written as instruc-
+tions. We refer to relevance in these two cases as QA
+relevance and in-context relevance, respectively, as shown
+in Figure 1. Second, the role of retrieved documents has
+shifted: in IR, retrieved documents are the final output pro-
+vided to users, whereas in RAG, they are fed into the LLM
+to generate a response. Recent studies (Cuconasu et al.,
+2024a;b; Wu et al., 2024) have shown that including more
+answer-containing documents, which align with QA rele-
+vance in IR scenarios, can harm RAG performance, while
+documents without direct answers may actually help. These
+findings challenge traditional IR assumptions in the RAG
+setting. Finally, the complexity of queries has increased:
+unlike traditional IR, where queries are typically simple
+questions, RAG queries tend to be more diverse and noisy,
+reflecting varying levels of task complexity. Several stud-
+
+ 
+ 
+ 
+ 
+ 
+ 
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+ies highlight the challenges of complex queries and suggest
+that refining queries (Chan et al., 2024) or generating task-
+specific queries (Wu & Cao, 2024; Koo et al., 2024) based
+on documents can significantly enhance RAG performance.
+
+To address this gap, we introduce Open-Rag, a RAG frame-
+work that is OPtimized ENd-to-end by tuning the retriever
+to capture in-context relevance. Unlike existing retrievers,
+which are constrained to training on specific corpora and
+tasks with human annotations provided, our framework is
+OPEN to training on any task, with any corpus and any
+LLM. During training, Open-Rag retrieves documents on-
+the-fly and identifies them as positives or negatives for con-
+trastive learning.To reduce training costs, we use approxi-
+mation techniques to bypass the autoregressive generation
+process and employ semi-parametric retrieval to avoid the
+need for re-indexing. Our training requires only four GPUs
+and can be completed within a day. Extensive experiments
+demonstrate that our method leads to significant improve-
+ments, consistently outperforming state-of-the-art (SOTA)
+retrievers. For certain tasks, our improvements surpass
+those achieved by tuning an 8B LLM, showcasing that end-
+to-end retrieval learning is a cost-effective approach for
+enhancing RAG systems.
+
+Our contribution can be summarized as follows:
+
+• We investigate the relevance gap between IR and RAG
+scenarios, providing empirical evidence of when and how
+this gap negatively impacts RAG performance.
+
+• Through our experiments, we identify potential biases in
+prior research that may impede progress in this field. These
+findings provide critical insights to guide future research
+directions.
+
+• We introduce Open-Rag, an end-to-end optimized RAG
+framework that learns in-context retrieval for various down-
+stream tasks without requiring query-document human an-
+notations, facilitating broader real-world deployment and
+applications.
+
+• Extensive experiments show that Open-Rag achieves su-
+perior performance across diverse tasks compared to RAG
+systems using SOTA retrievers or fine-tuned LLMs, under-
+scoring its effectiveness as a reliable and versatile solution
+for improving RAG systems.
+
+2. Preliminary
+
+2.1. Transferring from IR to RAG Scenarios
+
+In Table 1, we examine the performance of off-the-shelf
+retrievers across different datasets in IR and RAG scenarios.
+Details about the datasets and retrievers can be found in
+Appendix A and B, while the evaluation metric is described
+in Section 4.1. Key findings are summarized below.
+
+Table 1. Accuracy in IR and RAG scenarios using Llama3-8b with
+top-1 retrieved document in-context; Bold: best performance; ∆:
+improvement or decline compared to SiDRMS; §: has accessed the
+training split of the dataset.
+
+Dataset (→)
+Retriever (↓)
+
+NQ
+
+TriviaQA
+
+PubHealth ARC-C
+
+IR ∆ RAG ∆ IR ∆ RAG ∆ RAG ∆ RAG ∆
+
+Unsupervised Pre-training
+
+Contriever
+E5-unsup
+
+23.6 -15.5 30.9 -3.5 37.2 -18.9 56.6 -5.4 61.8 -1.7 58.6 +1.7
+30.8 -8.3 33.4 -1.0 39.5 -16.6 54.3 -7.7 62.9 -0.6 58.3 +1.4
+
+Supervised on MSMARCO
+
+38.9 -0.2 34.9 +0.5 43.7 -12.4 55.2 -6.8 64.5 +1.0 56.3 -0.6
+39.1
+
+34.4
+
+56.9
+
+56.1
+
+63.5
+
+62.0
+
+–
+
+–
+
+–
+
+–
+
+–
+
+–
+
+DPRMS
+SiDRMS
+Supervised on NQ
+DPRNQ
+SiDRNQ
+Supervised on TQA
+DPRTQA
+SiDRTQA
+
+‡43.5 +4.4 ‡38.5 +4.1 39.4 -16.7 55.9 -6.1 62.9 -0.6 56.6 -0.3
+57.1 +0.2
+‡49.5 +10.4 ‡42.7 +8.3 47.4 -8.7 59.8 -2.2 63.5
+
+–
+
+32.1 -7.0 32.9 -1.5 ‡55.4 -0.7 ‡61.1 -0.9 63.1 -0.4 56.7 -0.2
+30.6 -8.5 32.9 -1.5 ‡56.9 +0.8 ‡63.6 +1.6 61.1 -2.4 58.6 +1.7
+
+Pre-training + Supervised on Multiple Datasets
+
+ContrieverMS
+E5
+
+41.5 +2.4 36.5 +2.1 53.5 -2.6 60.7 -1.3 63.1 -0.4 58.1 +1.2
+‡58.0 +18.9 ‡43.2 +8.8 58.7 +2.6 63.2 +1.2 64.7 +1.2 58.0 +1.1
+
+Potential Improvement of IR vs. Improvement of LLMs
+–
+–
+–
+
+Best-of-8
+E5 + 8B-Instruct
+E5 + 70B
+
+77.6
+54.4
+51.4
+
+–
+–
+–
+
+–
+–
+–
+
+–
+–
+–
+
+–
+–
+–
+
+80.3
+66.7
+68.0
+
+–
+–
+–
+
+92.1
+72.4
+63.2
+
+–
+–
+–
+
+71.5
+74.1
+81.9
+
+–
+–
+–
+
+Finding 1: Training retrievers in-domain is effective for
+both IR and RAG. As shown, with comparable training
+complexity, SiDRNQ excels on the NQ dataset relative to
+other SiDR and DPR models. Additionally, SiDRTQA out-
+performs the state-of-the-art retriever E5 in RAG scenarios
+on the TriviaQA dataset.
+
+Finding 2: Superiority of retrievers in IR scenarios can
+transfer to RAG scenarios cross-domain but not cross-
+task. For QA tasks, retrievers with higher accuracy in IR
+scenarios tends to perform better in RAG scenarios, as evi-
+denced by NQ and TQA datasets. However, this trend does
+not extend to non-QA tasks. For instance, on the PubHealth
+dataset, the relatively weaker retriever DPRMS outperforms
+others, while on the ARC dataset, the unsupervised retriever
+Contriever surpasses all advanced retrievers.
+
+Finding 3: Retrieval has great potential to improve RAG
+as much as using instruction-tuned or larger LLMs. We
+use the Best-of-8 metric to measure the proportion of queries
+that can be addressed in RAG scenarios by any of the above
+eight retrievers. Best-of-8 substantially outperforms SOTA
+retriever E5 across these datasets. Notably, for most tasks, it
+even surpasses the combination of E5 with instruction-tuned
+LLMs (Llama3-8B-Instruct) or larger LLMs (Llama3-70B).
+For example, on NQ dataset, 77% of test queries have
+a searchable document in the datastore that can serve as
+context to generate a correct answer. However, combin-
+ing E5 with instruction-tuned LLMs addresses 54% while
+larger LLMs address 51%. These results highlight the
+largely untapped potential of million-scale datastores and
+in-context examples for enhancing LLM inference, where a
+well-optimized retrieval model could unlock this potential.
+
+Motivated by these observations, our work aims to learns
+task-specific in-context relevance for RAG in an end-to-end
+manner, moving beyond the traditional QA relevance.
+
+2
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+2.2. Problem Setup
+
+A RAG framework typically consists of:
+
+• A retriever Rθ parameterized by θ
+• A large language model Gϕ parameterized by ϕ
+• A task T presented as an instruction prompt
+• A datastore D with a vast number of documents d
+• A user query q
+• The answers a to the query
+• An evaluation metric Eval determining whether the
+
+output generation addresses the query
+
+The downstream RAG pipeline generally follows:
+
+1. Retrieve the top-k relevant documents from the D
+
+based on q, with a relevance function fθ:
+
+{ ˆd}k = Rθ(q, D, k) ≜ argmaxk
+
+d∈D
+
+fθ(q, d)
+
+2. Formulate the task-specific prompt x using the query
+
+q and the retrieved documents { ˆd}k:
+
+x = PromptT (q, { ˆd}k)
+
+3. Generate response ˆy from input x via LLM:
+
+Prior Practices. Prior research (Guu et al., 2020; Xu
+et al., 2023; Shi et al., 2023) has explored the joint training
+of retrievers with LLMs for RAG. Despite extensive efforts,
+they often default to learning a universal relevance, where
+the retrieved document aids in generating the continuation
+of a natural language input, while neglecting the specific
+downstream components T , D, Gϕ(x) and Eval. These
+general approaches lead to a significant discrepancy as the
+components used during training do not align with those
+employed during inference. As a result, these methods of-
+ten fall short in meeting the specific, nuanced relevance
+needs of various downstream tasks.
+
+3. Methodology
+
+In this section, we introduce Open-Rag, an OPtimized
+ENd-to-end RAG framework designed to fine-tune a re-
+triever to capture in-context, open-ended relevance, opti-
+mizing it for the downstream RAG pipeline.
+
+To summarize, Open-Rag training comprises two stages:
+offline RAG and online RAG. The primary goal is to on-
+the-fly identify positive and negative documents for the
+contrastive learning of the retriever. An illustration of our
+framework is depicted in Figure 2.
+
+ˆy = Gϕ(x)
+
+3.1. Preliminary Concepts
+
+4. Evaluate if the generation ˆy reflects the answer a:
+
+Eval(ˆy) =
+
+(cid:40)
+1
+0
+
+if ˆy reflects a,
+otherwise.
+
+The Goal of Open-Rag: In a RAG system, given an LLM,
+a datastore, and a task, Open-Rag aims to train the retriever
+component to maximize the likelihood of generating a re-
+sponse ˆy that optimally satisfies the downstream evaluation
+metric. This can be formulated as:
+
+ˆθ = argmax
+
+θ
+
+(cid:88)
+
+∀q
+
+Eval(ˆy | Rθ, Gϕ, T , D, q)
+
+2.3. Challenges and Prior Work
+
+Major Challenges. There are two major challenges in
+training a RAG framework end-to-end via tuning retriever.
+(i) The primary challenge involves the extreme computa-
+tional costs associated with deploying such a pipeline in
+training. These costs mainly arise from two sources: first,
+the LLMs generate sequences autoregressively, which is
+inherently resource-intensive; secondly, as θ updates, the
+retrieval index need to be rebuilt accordingly, adding fur-
+ther computational demands. (ii) The second challenge is
+ensuring stable and effective back-propagation of supervi-
+sion signals from the final outcome of the RAG pipeline to
+the retriever.
+
+Continuation y and Generation ˆy.
+For knowledge-
+intensive generative tasks, information is aggregated and
+prompted as input x to a LLM for generation. The expected
+output could be an answer string a in question-answering
+tasks or might be a choice label c in reasoning and fact-
+checking tasks. Here, we refer to the expected output as
+the ground truth continuation, denoted as y, and the actual
+output generated by the LLM as ˆy. In a well-performing
+RAG framework, it is generally expected that ˆy = y or that
+ˆy contain or reflect y.
+RAG Label. Given a query q, the RAG label Lq
+for a
+d
+document d is a binary value that indicates whether the
+RAG outcome, when d is used in the context, meets the
+evaluation metric. The computation involves the following
+steps:
+
+x = PromptT (q, d);
+Lq
+d
+
+≜ Eval(ˆy)
+
+ˆy = Gϕ(x)
+
+This assessment is typically based on whether the generated
+response contains the answers. The computation of RAG
+labels aligns with downstream inference, which involves
+autoregressive generation. For a clearer understanding, we
+provide examples in Appendix G.
+
+RAG Score. Given a query q, the RAG score S q
+of a d
+d
+is the joint probability that LLM generates continuation y
+
+3
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+Figure 2. Illustration of the Open-Rag training process.
+
+with d in context:
+
+x = PromptT (q, d)
+
+S q
+d
+
+≜ Pϕ(y | x) =
+
+(cid:89)
+
+∀ti∈y
+
+Pϕ(ti | t<i, x)
+
+Here, y = (t1, . . . , tn) is a sequence of n tokens and Pϕ is
+the function measures the probability of generating the next
+token or spans. Unlike the RAG label, the computation of
+the RAG score requires only a single forward pass of the
+LLM.
+
+3.2. Offline RAG
+
+For offline RAG, we follow the traditional RAG pipeline as
+mentioned in Section 2.2. Given a query q, we retrieve top-
+k documents and denote this retrieved subset as Dq ⊂ D
+where |Dq| = k. We then compute the RAG label and
+score for each retrieved document di, resulting in the set
+{(q, di, Lq
+. Based on their RAG labels, Dq is
+i=1
+di
+and a negative pool
+further divided into a positive pool D+
+q
+. In our experiments, we set k to 100 and discard any
+D−
+q
+sample where either pool is empty.
+
+, S q
+di
+
+)}k
+
+These RAG offline preparation serve two purposes. First,
+they establish initial positive and negative query-document
+pairs to warm up the retriever for tasks. Second, they pro-
+vide insights into the relationship between the RAG score
+and the RAG label. Specifically, we want to determine when
+the RAG score is above a certain threshold, the RAG label is
+1, and when the RAG score is below a threshold, the label is
+0. This relationship will be used to approximate labels via
+scores during online RAG training, enabling more efficient
+online construction of positive and negative pairs.
+
+3.3. Online RAG
+
+In-training Retrieval. During retriever training, as its pa-
+rameters update, the index needs to be rebuilt accordingly,
+which incurs significant costs. To address this challenge,
+
+4
+
+we employ the semi-parametric retriever SiDR (Zhou et al.,
+2024a). Specifically, SiDR incorporates both a paramet-
+ric and a non-parametric encoder. The parametric encoder
+embeds text input x into a sparse representation with |V | di-
+mensions, where each dimension signifies the importance of
+a token within the language model’s vocabulary V , denoted
+as Vθ(x). Conversely, the non-parametric encoder converts
+x into bag-of-tokens representation, referred to as VBoT(x),
+which is constructed via a tokenizer and is independent of θ.
+SiDR is strategically trained to allow the embedded query
+Vθ(q) to search on both an embedding-based index Vθ(D)
+and a bag-of-tokens index VBoT(D).
+
+We adopt the late parametric mechanism of SiDR, which
+firstly retrieve the top-m documents using the bag-of-tokens
+index VBoT(D), denoted as:
+
+{ ˆd}m = Rθ(Vθ(q), VBoT(D), m)
+
+These retrieved documents are then embedded and re-
+ranked on-the-fly to yield the top-k well-ranked documents,
+where k < m:
+
+{ ˆd}k = Rθ(Vθ(q), Vθ({ ˆd}m), k)
+
+In this case, our in-training retrieval does not require index
+updates, and the relevance is based on the up-to-date param-
+eters. For late parametric mechanism, we set m = k = 20
+to reduce training cost. More details of SiDR can be found
+in Appendix D.
+
+Identifying Positives and Negatives On-the-fly. During
+training, we denote the pool of top-k retrieved documents
+as ˆDq. Our goal is to divide ˆDq into a positive pool ˆD+
+q
+and a negative pool ˆD−
+without the need for autoregressive
+q
+generation. We present how to achieve this identification in
+two generation scenarios.
+
+For free-form generation, such as in question answering
+tasks, the continuation y typically consists of a multi-token
+
+IR Contrastive LearningApproximate RAG LabelCompute RAG Score0.42Autoregressively generate for evaluationRAG LabelRAG ScoreOne forward pass to compute probability0.650.71To approximate Label via Score Go through RAG pipeline to obtain Score and LabelThresholdOﬄine RAG RetrievalPrompt Formulation XForward PassQueryDocsDatastoreInstructionORUse oﬄine threshold to identify online pos and negQRAG ScoreRAG Label No need to rebuild index.Semi-parametric retrieval allow using ﬁxed tokenization as index and reranking on-the-ﬂy.Prompt Consistent prompt as downstream.Semi-parametricRetrieval·········Q1D1Q2D1Q2·D2Q2·D1+D2+-D2-Q1·D1+Q1·D2+++Dn+···Q1·Dn+Dn-Qn···Q2·Dn+Q1·D1-Q1·D2-Qn·D1+Qn·D2+Qn·Dn+···············Q2·D1-Q2·D2-···Q1·Dn-Q2·Dn-Qn·Dn-············Qn·D1-Qn·D2-·········NegativesPositivesPositivePoolContrastive Learning of Retriever .SamplingNegativePoolOpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+answer string. We identify a retrieved document ˆd as pos-
+itive if its RAG score surpasses the highest RAG score in
+and as negative if it is be-
+the offline negative pool D−
+q
+low the lowest RAG score in the offline positive pool D+
+;
+q
+otherwise, it is excluded:
+
+ˆLq
+ˆd
+
+=
+
+
+
+
+
+
+if S q
+ˆd
+if S q
+ˆd
+
+1,
+0,
+None, otherwise
+
+> max{S q
+< min{S q
+
+d | ∀d ∈ D−
+q }
+d | ∀d ∈ D+
+q }
+
+Here, we use ˆL to denote the online RAG label, as it in-
+volves certain approximation. The approximation is based
+on the assumption that a higher RAG score correlates with
+an increased probability that the generated output ˆy will
+match or reflect the target y. This strategy aims to reduce
+computational costs, enabling low-resource institutions and
+individuals to conduct retriever training. If computational
+resources are not a limitation, ideally, one could perform
+autoregressive generation and evaluation on-the-fly or em-
+ploy a larger LLM for identification purposes. We provide
+further discussion and verification of this assumption in
+Appendix C.
+
+For closed-set generation, such as in multiple-choice rea-
+soning or fact-checking tasks, the continuation y is typically
+a single-token choice label or can be prompted as such. In
+this case, we can relax the assumptions:
+
+(cid:40)
+
+ˆLq
+ˆd
+
+=
+
+1,
+0, otherwise.
+
+if Pϕ(ci | x) > max{Pϕ(cj | x) | ∀j ̸= i}
+
+Here, x is the input prompt and ci is the correct single-token
+choice while cj are the incorrect choices. This setup checks
+whether LLM is more likely to generate ci as the next token
+following x instead of cj, when ˆd is used in context.
+For both scenarios, if a query has multiple correct continua-
+tion y (answers or choices), each y is treated as an individual
+entry. If ˆd succeeds on at least one of these entries, we label
+it as positive; if it fails all of them, we label it as negative.
+
+Sampling and Cache. During the online phase, we re-
+trieve the top-k documents and compute their RAG scores
+to approximate RAG labels, processing them in descending
+order of retrieval relevance. We stop this process at the first
+document classified as negative. We then use this highest
+relevant negative, denoted as ˆd−, and randomly select one
+positive ˆd+ from the pool ˆD+
+. If either is unavailable, we
+q
+fallback to random sampling from offline positive pool D+
+q
+. To avoid redundant calculations, we cache
+or negative D−
+q
+all the online scores and labels {(q, ˆdi, ˆLq
+)} for reuse.
+ˆdi
+
+, ˆS q
+ˆdi
+
+3.4. Contrastive Learning
+
+Throughout our offline and online efforts, our objective is to
+acquire high-quality positive and negative query-document
+
+5
+
+pairs for the contrastive learning (Jaiswal et al., 2020) of
+the retriever Rθ. Positives and negatives are determined by
+their impact on the RAG output; specifically, their ability
+to enable the RAG framework to generate the correct con-
+tinuation that meets the criteria of the evaluation metric.
+This ensures that supervision signals are propagated from
+the end of the RAG pipeline back to the retriever.
+
+Our training objective remains the same as SiDR to maintain
+its ability for late parametric. Given a batch B that consist
+of N samples, each sample consists of a query qi, a positive
+document d+
+. Our training
+, and a negative document d−
+i
+i
+objective aims to maximize the similarity of positive query-
+document pairs f (qi, d+
+i ) for all instances i, while minimize
+the similarity of all negative pairs, denoted as f (qi, d) for
+. The contrastive loss can be defined as follows:
+all d ̸= d+
+i
+
+L(q, d) = −
+
+N
+(cid:88)
+
+(log
+
+i=1
+
+ef (qi,d+
+i )
+∀d∈B ef (qi,d)
+(cid:125)
+(cid:123)(cid:122)
+q-to-d
+
+(cid:80)
+
+(cid:124)
+
++ log
+
+ef (d+
+i ,qi)
+∀q∈B ef (d+
+(cid:123)(cid:122)
+d-to-q
+
+i ,qi)
+(cid:125)
+
+(cid:80)
+
+(cid:124)
+
+)
+
+The final loss integrates contrastive loss of both parametric
+and semi-parametric components:
+
+Lpara(q, d) = L(Vθ(q), Vθ(d))
+
+Lsemi-para(q, d) = L(Vθ(q), VBoT(d))/2 + L(VBoT(q), Vθ(d))/2
+
+Lfinal(q, d) = Lpara(q, d) + Lsemi-para(q, d)
+
+4. Experiments
+
+4.1. Experimental Setup
+
+Tasks and Datasets. We evaluate Open-Rag on four pub-
+lic RAG benchmarks. For free-form generation, we uti-
+lize Natural Questions (NQ; Kwiatkowski et al., 2019) and
+TriviaQA (TQA; Joshi et al., 2017), two well-established
+open-domain QA datasets. For closed-set generation, we
+employ the PubHealth (Kotonya & Toni, 2020) dataset for
+fact-checking tasks, and the ARC-Challenge (Clark et al.,
+2018) dataset for multiple-choice reasoning. More infor-
+mation about the datasets can be found in Appendix A.
+
+We exclude long-form generation datasets as we use the
+probability of continuation to approximate RAG perfor-
+mance, which may not align well with such tasks. Ad-
+ditionally, certain datasets, such as PopQA (Mallen et al.,
+2023), which only offer a test split, are also excluded.
+
+Evaluation Metrics. Following previous works (Asai et al.,
+2023; Mallen et al., 2023), we use accuracy as the evaluation
+metric and report results on the test set. In IR scenarios,
+accuracy is measured by whether the retrieved documents
+contain the expected answers, while in RAG scenarios, it is
+assessed based on the generated output. Since our training
+uses 1 document in context while existing research generally
+uses 10 for RAG, we report accuracy with both 1 and 10
+documents in context for comparison.
+
+75.5 +18.0
+67.3
++9.8
+74.9 +17.4
++0.5
+58.0
++1.6
+59.1
+
+75.5
+75.0
+84.3
+84.6
+71.5
+70.6
+
+▲
+-0.5
+▲
++0.3
+▲
+-0.9
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+Table 2. Main results of Open-Rag and other RAG baselines on 4 datasets, using top-1 and top-10 retrieved documents in context. Bold:
+best RAG method that does not involve LLM tuning. ∆:
+improvement or decline; ▲: baseline that below methods compare with;
+†: reproduction from other works; ‡: our reproduction; §: has accessed the training split of the dataset.
+
+Task Type (→)
+Dataset (→)
+
+Free-form
+
+Closed-set
+
+NQ
+
+TriviaQA
+
+PubHealth
+
+ARC-C
+
+Method (↓) Metrics (→)
+
+1-doc ∆ 10-doc ∆ 1-doc ∆ 10-doc ∆ 1-doc ∆ 10-doc ∆ 1-doc ∆ 10-doc ∆
+
+Baseline IR
+
+Llama38B + SiDRMS
+Llama38B + SiDRNQ
+
+Advanced IR
+
+Llama38B + ContrieverMS
+Llama38B + E5
+
+†RePlugLlama2-7B (3-doc, Yue et al. (2024))
+
+Ours
+
+Open-Rag (SiDRMS)
+Open-Rag (SiDRNQ)
+
+Standard RAG
+
+34.4 ▲
+▲
+§42.7 +8.3 §41.6 +4.0
+
+37.6
+
+62.0
+–
+
+▲
+–
+
+36.5 +2.1
++0.7
+§43.2 +8.8 §41.8 +4.2
+
+38.3
+
+60.7
+-1.3
+63.2 +1.2
+
+RAG with IR tuning
+
+62.5
+–
+
+60.6
+61.4
+
+▲
+–
+
+63.5 ▲
+–
+
+–
+
+-1.9
+-1.1
+
+63.1 -0.4
+64.7 +1.2
+
+64.9
+–
+
+62.9
+63.7
+
+▲ 56.9
+–
+
+–
+
+▲
+–
+
+-2.0 58.1 +1.2
+-1.2 58.0 +1.1
+
+57.5
+–
+
+58.9
+58.1
+
+▲
+–
+
++1.4
++0.6
+
+–
+
+–
+
+–
+
+–
+
+–
+
+–
+
+–
+
+–
+
+–
+
+–
+
+41.7
+
+–
+
+–
+
+–
+
+47.2
+
+–
+
++3.3
+39.8 +5.4
+§44.1 +9.7 §44.7 +7.1
+
+40.9
+
+65.8 +3.8
+
+–
+
+–
+
+66.2
+–
+
+RAG with LLM tuning
+
++3.7 69.5 +6.0
+–
+
+–
+
+–
+
+69.3 +4.4 58.1 +1.2
+
+–
+
+–
+
+–
+
+–
+
+58.3
+–
+
++0.8
+–
+
+Llama3-Instruct8B + SiDRMS
+Self-RAGLlama2-7B (Asai et al., 2023)
+†Self-RAGMistral-7B (Wang et al., 2024d)
+†Self-RAGLlama3-8B (Zhang et al., 2024)
+‡Self-RAGLlama3-8B + SiDRMS
+
+41.2 +6.8
+
+52.1 +14.5 65.2 +3.2
+
+–
+–
+–
+
+–
+–
+–
+
+30.8 -3.6
+
+–
+–
+–
+37.0
+
+–
+–
+–
+-0.6
+
+–
+–
+–
+
+–
+–
+–
+
+51.0 -11.0
+
+73.3 +10.8 67.2 +3.7
+66.4
+64.8
+56.4
+57.7
+
++3.9
++2.3
+-6.1
+-4.8
+
+64.2 +0.7
+
+–
+–
+–
+
+–
+–
+–
+
+71.8 +6.9 72.1 +15.2
+72.4 +7.5
+72.4 +7.5
+67.8 +2.9
+64.0
+
+–
+–
+–
+-0.9 58.9 +2.0
+
+–
+–
+–
+
+Transferring Open-Rag to other LLM
+
+Llama3-Instruct8B + SiDRMS
+41.2 ▲
+Llama3-Instruct8B + Open-Rag (SiDRMS)
+43.6 +2.4
+Phi-3-mini-4k-instruct3.8B + SiDRMS
+40.6 ▲
+Phi-3-mini-4k-instruct3.8B + Open-Rag (SiDRMS) 43.4 +2.8
+37.5 ▲
+Mistral-Instruct7B + SiDRMS
+40.5 +3.0
+Mistral-Instruct7B + Open-Rag (SiDRMS)
+
+52.1
+54.7
+49.2
+50.3
+48.0
+49.4
+
+▲
++2.6
+▲
++1.1
+▲
++1.4
+
+Implementation Details. Our RAG system employs the
+LLM Llama3-8b (Dubey et al., 2024) with the retriever
+SiDRMS (Zhou et al., 2024a) that trained on MS MARCO
+dataset (Bajaj et al., 2016). We use the same English
+Wikipedia datastore and prompt as those open-sourced by
+Self-RAG, detailed in Appendix H. During training, we
+train the retriever for each dataset for 80 epochs, aligning
+with the training duration used for SiDRMS. We use a batch
+size of 128 and an AdamW optimizer (Loshchilov & Hutter,
+2018) with a learning rate of 2×10−5. The training process
+is divided into two phases: the first half involves a warm-up
+phase using offline positives and negatives, while the sec-
+ond half transitions to in-training retrieval, primarily using
+the positives and negatives identified on-the-fly. During
+inference, we set the maximum number of generated token
+to be 100 for free-form generation while 20 for closed-set
+generation.
+
+Training Costs. Our experiments are conducted with 4
+NVIDIA A100 GPUs. Both offline RAG preparation and
+online RAG training take less than one day, depending
+on the number of queries in the datasets. We leverage
+vLLM (Kwon et al., 2023) to accelerate offline generation.
+
+Baselines. We consider the baselines detailed below, with
+additional model information provided in Appendix B.
+(1) Standard RAG with advanced IR: RAG frameworks us-
+ing Llama3-8b and state-of-the-art retrievers E5 (Wang
+et al., 2022) and ContrieverMS (Izacard et al., 2021). We
+
+▲
+
+▲
+
+65.2
+65.6 +0.4
+64.6
+65.6 +1.0
+58.2
+59.8 +1.6
+
+▲
+
+73.3
+73.8
+69.2
+70.4
+57.1
+57.6
+
+▲
++0.5
+▲
++1.2
+▲
++0.5
+
+67.2 ▲
+65.2 -2.0
+48.2 ▲
+45.3 -2.9
+50.1 ▲
+46.7 -3.4
+
+71.8
+66.1
+57.6
+54.4
+57.4
+54.6
+
+▲
+-0.2
+▲
+
+▲ 72.1
+-5.7 71.9
+▲ 84.9
+-3.2 85.1 +0.2
+▲ 69.7
+-2.8 69.2
+
+▲
+-0.5
+
+refer to Open-Rag (SiDRNQ) and Open-Rag (SiDRMS) as
+our framework utilizing SiDRNQ and SiDRMS as the ini-
+tial retriever, respectively. Unless explicitly stated other-
+wise, Open-Rag refers to Open-Rag (SiDRMS). For a fair
+comparison, we compare E5 with Open-Rag (SiDRNQ),
+both of which have access to the query-document pairs
+from the NQ training split.
+(2) RAG with IR tuning:
+RAG frameworks that incorporate a tunable IR compo-
+nent. We compare against RePlug (Shi et al., 2023),
+which uses part of a sequence as query to retrieve doc-
+uments which maximize the generation likelihood of the
+remaining part. Since the model weights are not pub-
+licly available, we reference a reproduction by (Yue et al.,
+2024) that uses the top-3 retrieved documents in context.
+(3) RAG with LLM tuning: RAG frameworks that incorpo-
+rate RAG-oriented or instruction-tuned LLMs, which typ-
+ically require more resources for tuning an 8B LLM. We
+compare with Self-RAG (Asai et al., 2023) using Llama2-
+7B, along with some reproductions (Zhang et al., 2024;
+Wang et al., 2024d) employing more recent LLMs. Our
+primary comparison with Self-RAG and its variants is
+designed to ensure a controlled and fair evaluation, as
+we adhere to the same prompts and downstream evalua-
+(4) Transferring to other LLMs: We com-
+tion pipeline.
+pare the RAG framework using different LLMs, such as
+Llama3-Instruct8B (Dubey et al., 2024), Phi-3-mini-4k-
+instruct3.8B (Abdin et al., 2024), Mistral-Instruct7B (Jiang
+et al., 2023), along with SiDRMS before and after tuning.
+
+6
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+This setup is designed to evaluate whether the learned in-
+context relevance transfers across different LLMs.
+
+4.2. Main Experiments
+
+lored to the particular LLM prediction of the next token,
+complicating its transferability. Therefore, we recommend
+end-to-end tuning on a LLM-by-LLM basis to potentially
+improve outcomes for these tasks.
+
+Table 2 presents results of Open-Rag and other baselines.
+The key findings are summarized as follows:
+
+4.3. Ablation Study
+
+End-to-end tuning effectively improves the retriever in
+RAG scenarios, surpassing existing SOTA retrievers.
+Unlike E5 and ContrieverMS, which require both exten-
+sive pre-training and human-labeled query-document pairs,
+Open-Rag improves the initial retriever using only down-
+stream queries, achieving better automation and training
+efficiency. Our approach leads to a notable 4.0% enhance-
+ment in performance beyond the original SiDRMS and con-
+sistently achieves a 2.1% better outcome than the SOTA
+retrievers. For PubHealth, the improvement reaches up to
+6%, a significant value that even using instruction-tuned
+LLMs cannot achieve. For ARC, the modest improvement
+can be attributed to its limited number of training samples,
+only a few hundred, compared to other datasets containing
+tens of thousands. These results demonstrate that, despite
+approximation, the learned in-context relevance is more ef-
+fective than the inconsistent relevance derived from existing
+datasets. In Appendix F, we show that improve the retriever
+for RAG scenarios may degrade its performance in tradi-
+tional IR scenarios, further reinforcing this inconsistency.
+
+Relevance learning constitutes a valuable yet overlooked
+dimension for improving the RAG system. Reproduc-
+tions of Self-RAG using Llama3-8B by other works (Zhang
+et al., 2024; Wang et al., 2024d) and ourselves have not
+yielded consistent improvements. This suggests that despite
+the substantial training expenses, enhancing RAG through
+tuning LLM requires extensive customization and does not
+reliably generalize. In contrast, tuning a smaller-sized re-
+triever can lead to comparable, or in some cases, supe-
+rior improvements over those achieved by RAG-oriented
+or instruction-tuned 8B LLMs on specific datasets. Impor-
+tantly, learning an in-context retriever does not conflict with
+LLM enhancements, offering a complementary avenue for
+improving the RAG system.
+
+The learned in-context retriever can be transferred to
+other LLMs for free-form generation tasks. Our results
+show that Open-Rag, initially co-trained with Llama3-8b,
+enhances other LLMs such as Llama3-Instruct-8B, Phi-3-
+mini-4k-instruct, and Mistral-Instruct in free-form genera-
+tion tasks. However, for closed-set generation tasks, this
+transferability does not consistently hold. Despite the lim-
+itations, Open-Rag significantly enhances performance of
+PubHealth by a large margin. We hypothesize that closed-
+set tasks, where the continuation is a single token, are easier
+to optimize due to less approximation involved. Conse-
+quently, the retriever learns a very specific relevance tai-
+
+Compared to prior works, our main differences include (i)
+employing contrastive learning instead of KL divergence to
+induce supervision signals from the LLM to the IR, and
+(ii) using late parametric to avoid periodic re-indexing. We
+systematically analyze these factors in this section.
+
+Figure 3. Ablation studies on NQ and Pubhealth datasets.
+
+As shown in Figure 3, we conducted an ablation study on
+NQ and PubHealth with several setup: our method is la-
+beled as [offline+online], where [offline-only] represents
+using only the offline positives and negatives for contrastive
+learning, and [online-only] indicates that we do not use
+any warmup. We also explore using KL divergence [of-
+fline+online(KL)] instead of contrastive learning.
+Offline versus Online. During the warmup stage, docu-
+ments are retrieved using the initial parameters θ. Dur-
+ing the in-training retrieval stage, they are retrieved using
+the up-to-date parameters θ′. We assess the improvements
+provided by the in-training retrieval stage. As shown in
+Figure 3, relying solely on either [offline-only] or [online-
+only] can lead to suboptimal improvements, proving to be
+less effective than a combination of a warmup phase fol-
+lowed by online in-training retrieval [offline+online]. This
+observation echoes the conclusions of prior research (Zhou
+et al., 2024a), which indicates that warming up the retriever
+to initially capture the in-task relevance, followed by in-
+training retrieval to continuously explore potential positives
+and challenging negatives in the datastore, can significantly
+enhance performance.
+
+Prior
+Contrastive Learning versus KL-Divergence.
+works (Shi et al., 2023; Guu et al., 2020) have employed
+KL divergence to align query-document relevance with the
+distribution of generation likelihood. Our experiments indi-
+cate that while KL divergence leads to improvements, these
+benefits quickly stabilize and the overall enhancement falls
+short of our method. Unlike our approach, which employs
+contrastive learning requiring efforts to identify positives
+
+7
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+and negatives, KL divergence alignment offers a straight-
+forward but potentially overly restrictive solution. On one
+hand, in RAG scenarios, documents are delivered to LLMs,
+differing from IR scenarios where documents must be well-
+ranked before being presented to users. For a proficient
+LLM, including even a single useful document in the con-
+text window should suffice (Cuconasu et al., 2024a). On
+the other hand, similar works in knowledge distillation (Gou
+et al., 2021), which uses cross-encoder scores to guide bi-
+encoder training, demonstrate that improvements for bi-
+encoders are limited and cannot match the performance of
+cross-encoder rerankers. Consequently, the prevalent in-
+dustry practice of retrieve-then-rerank (Gupta et al., 2018)
+underscores the current limitations of retrievers in capturing
+complex relationships. We believe that the distribution of
+generation likelihood from LLMs is too complex for these
+small-sized retriever to accurately capture, thereby resulting
+in less improvement.
+
+Late Parametric versus Periodic Re-indexing. Due to
+page limitations, we detail our comparison of different in-
+training retrieval methods in Appendix E. This comparison
+particularly focuses on the late parametric method versus
+prior solutions that utilize an embedding index and require
+periodic re-indexing. Our results indicate that the late para-
+metric method not only leads to better improvements but
+also reduces training costs and simplifies the implementa-
+tion. We believe that the high costs and complex implemen-
+tation associated with periodic re-indexing have prevented
+previous research from effectively training retrievers on a
+task-by-task basis, using consistent instructions, LLMs, and
+datastores tailored to downstream tasks, ultimately leading
+to less effective results.
+
+4.4. Cost-Effectiveness Analysis
+
+Regarding training costs, the primary expense comes from
+computing the RAG scores using the LLM. In Table 3, we
+report the number of documents required to compute RAG
+scores on-the-fly during training.
+
+nDoc
+Improv.
+
+NQ
+20
++5.4%
+
+TriviaQA PubHealth
+
+18
++3.8%
+
+128
++6.0%
+
+ARC
+15
++1.2%
+
+provement. This suggests that encountering more unscored
+documents indicates a larger gap in relevance between the
+initial and the learned retriever, highlighting the presence
+of more potentially useful documents in the datastore that
+could be leveraged by in-context retrieval learning.
+
+5. Related Works
+
+Retrieval-augmented Generation (RAG). The RAG sys-
+tem combines LLMs, retrievers, and datastores, each con-
+tributing to performance improvement. Significant research
+has focused on improving RAG by tuning LLMs to address
+challenges such as enhancing on-demand retrieval (Asai
+et al., 2023; Jeong et al., 2024), optimizing response effi-
+ciency (Wang et al., 2024d), and enabling self-reasoning
+capabilities (Li et al., 2024). Additional efforts have ex-
+plored building domain-specific (Wang et al., 2024e) or
+large datastores (Shao et al., 2024). While some stud-
+ies focus on retrieval, exploring adaptive retrieval strate-
+gies (Wang et al., 2024a;c) and leveraging LLMs to develop
+stronger retrievers (Guu et al., 2020; Shi et al., 2023), re-
+search on end-to-end relevance learning for RAG scenarios
+remains limited. Our work addresses this gap, paving the
+way for new advancements in RAG systems.
+
+Relevance Learning. Relevance learning is an important
+and long-established area of research. Traditionally, text rel-
+evance has been measured by heuristic rules based on term
+overlap, as seen in the widely-used BM25 (Robertson et al.,
+2009). With advances in deep learning, neural retrievers
+have emerged (Karpukhin et al., 2020), learning relevance
+from human-annotated datasets (Kwiatkowski et al., 2019).
+Further research has explored pre-training retrievers using
+weakly supervised text pairs, such as cropped text spans
+within documents (Izacard et al., 2021) and relational text
+pairs extracted from web data (Zhou et al., 2022; Wang et al.,
+2022), to enable retrievers to learn general relevance. This
+general relevance can then be refined to task-specific and
+domain-specific relevance through downstream fine-tuning,
+resulting in improved performance. Our method falls within
+these advancements, where the LLM acts as a container of
+general relevance, providing on-the-fly supervision of spe-
+cific in-context relevance for relevance learning.
+
+Table 3. Number of documents required on-the-fly RAG score
+computation and the improvement for each task.
+
+6. Conclusion
+
+Throughout training, each query encounters between 15 to
+128 unscored documents, depending on the task, requiring
+LLM forward passes to compute RAG scores on-the-fly.
+This process incurs a manageable cost, typically amount-
+ing to hours rather than days. We also observe a positive
+correlation between the number of documents processed
+and the performance improvements of Open-Rag. Notably,
+the PubHealth dataset requires more documents to compute
+the RAG score online, resulting in the most significant im-
+
+In this work, we show that traditional retrieval relevance
+derived from QA datasets can be inconsistent in RAG sce-
+narios. To bridge this gap, we introduce Open-Rag, a
+RAG framework that learns in-context retrieval end-to-end
+for downstream tasks. Our framework consistently outper-
+forms RAG frameworks using SOTA retrievers and several
+that tune an 8B LLM. This highlights the significant poten-
+tial of retrieval learning to improve RAG performance.
+
+8
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+References
+
+Abdin, M., Aneja, J., Awadalla, H., Awadallah, A., Awan,
+A. A., Bach, N., Bahree, A., Bakhtiari, A., Bao, J.,
+Behl, H., et al. Phi-3 technical report: A highly capable
+language model locally on your phone. arXiv preprint
+arXiv:2404.14219, 2024.
+
+Arora, S., Lewis, P., Fan, A., Kahn, J., and Ré, C. Reasoning
+over public and private data in retrieval-based systems.
+Transactions of the Association for Computational Lin-
+guistics, 11:902–921, 2023.
+
+Asai, A., Wu, Z., Wang, Y., Sil, A., and Hajishirzi, H. Self-
+rag: Learning to retrieve, generate, and critique through
+self-reflection. arXiv preprint arXiv:2310.11511, 2023.
+
+Ayyamperumal, S. G. and Ge, L. Current state of llm
+risks and ai guardrails. arXiv preprint arXiv:2406.12934,
+2024.
+
+Bajaj, P., Campos, D., Craswell, N., Deng, L., Gao,
+J., Liu, X., Majumder, R., McNamara, A., Mitra, B.,
+Nguyen, T., et al. Ms marco: A human generated ma-
+chine reading comprehension dataset. arXiv preprint
+arXiv:1611.09268, 2016.
+
+Chan, C.-M., Xu, C., Yuan, R., Luo, H., Xue, W., Guo, Y.,
+and Fu, J. Rq-rag: Learning to refine queries for retrieval
+augmented generation. arXiv preprint arXiv:2404.00610,
+2024.
+
+Clark, P., Cowhey, I., Etzioni, O., Khot, T., Sabharwal, A.,
+Schoenick, C., and Tafjord, O. Think you have solved
+question answering? try arc, the ai2 reasoning challenge.
+arXiv preprint arXiv:1803.05457, 2018.
+
+Cuconasu, F., Trappolini, G., Siciliano, F., Filice, S., Cam-
+pagnano, C., Maarek, Y., Tonellotto, N., and Silvestri, F.
+The power of noise: Redefining retrieval for rag systems.
+In Proceedings of the 47th International ACM SIGIR
+Conference on Research and Development in Informa-
+tion Retrieval, pp. 719–729, 2024a.
+
+Cuconasu, F., Trappolini, G., Siciliano, F., Filice, S., Cam-
+pagnano, C., Maarek, Y., Tonellotto, N., Silvestri, F., et al.
+Rethinking relevance: How noise and distractors impact
+retrieval-augmented generation. In CEUR WORKSHOP
+PROCEEDINGS, volume 3802, pp. 95–98. CEUR-WS,
+2024b.
+
+Devlin, J., Chang, M.-W., Lee, K., and Toutanova, K. Bert:
+Pre-training of deep bidirectional transformers for lan-
+guage understanding. In Proceedings of the 2019 Con-
+ference of the North American Chapter of the Associa-
+tion for Computational Linguistics: Human Language
+Technologies, Volume 1 (Long and Short Papers), pp.
+4171–4186, 2019.
+
+Dubey, A., Jauhri, A., Pandey, A., Kadian, A., Al-Dahle,
+A., Letman, A., Mathur, A., Schelten, A., Yang, A., Fan,
+A., et al. The llama 3 herd of models. arXiv preprint
+arXiv:2407.21783, 2024.
+
+Gao, Y., Xiong, Y., Gao, X., Jia, K., Pan, J., Bi, Y., Dai, Y.,
+Sun, J., and Wang, H. Retrieval-augmented generation
+for large language models: A survey. arXiv preprint
+arXiv:2312.10997, 2023.
+
+Gou, J., Yu, B., Maybank, S. J., and Tao, D. Knowledge
+distillation: A survey. International Journal of Computer
+Vision, 129:1789–1819, 2021.
+
+Gupta, V., Chinnakotla, M., and Shrivastava, M. Retrieve
+and re-rank: A simple and effective ir approach to sim-
+ple question answering over knowledge graphs. In Pro-
+ceedings of the First Workshop on Fact Extraction and
+VERification (FEVER), pp. 22–27, 2018.
+
+Guu, K., Lee, K., Tung, Z., Pasupat, P., and Chang, M.
+Retrieval augmented language model pre-training.
+In
+International conference on machine learning, pp. 3929–
+3938. PMLR, 2020.
+
+Izacard, G., Caron, M., Hosseini, L., Riedel, S., Bo-
+janowski, P., Joulin, A., and Grave, E. Towards un-
+supervised dense information retrieval with contrastive
+learning. arXiv preprint arXiv:2112.09118, 2021.
+
+Jaiswal, A., Babu, A. R., Zadeh, M. Z., Banerjee, D., and
+Makedon, F. A survey on contrastive self-supervised
+learning. Technologies, 9(1):2, 2020.
+
+Jeong, S., Baek, J., Cho, S., Hwang, S. J., and Park, J. C.
+Adaptive-rag: Learning to adapt retrieval-augmented
+large language models through question complexity.
+arXiv preprint arXiv:2403.14403, 2024.
+
+Jiang, A. Q., Sablayrolles, A., Mensch, A., Bamford, C.,
+Chaplot, D. S., Casas, D. d. l., Bressand, F., Lengyel, G.,
+Lample, G., Saulnier, L., et al. Mistral 7b. arXiv preprint
+arXiv:2310.06825, 2023.
+
+Joshi, M., Choi, E., Weld, D. S., and Zettlemoyer, L. Trivi-
+aqa: A large scale distantly supervised challenge dataset
+for reading comprehension. In Proceedings of the 55th
+Annual Meeting of the Association for Computational
+Linguistics (Volume 1: Long Papers), pp. 1601–1611,
+2017.
+
+Karpukhin, V., Oguz, B., Min, S., Lewis, P., Wu, L.,
+Edunov, S., Chen, D., and Yih, W.-t. Dense passage
+retrieval for open-domain question answering. In Pro-
+ceedings of the 2020 Conference on Empirical Methods
+in Natural Language Processing (EMNLP), pp. 6769–
+6781, 2020.
+
+9
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+Ke, Z., Kong, W., Li, C., Zhang, M., Mei, Q., and Bender-
+sky, M. Bridging the preference gap between retrievers
+and LLMs.
+In Ku, L.-W., Martins, A., and Srikumar,
+V. (eds.), Proceedings of the 62nd Annual Meeting of
+the Association for Computational Linguistics (Volume
+1: Long Papers), pp. 10438–10451, Bangkok, Thailand,
+August 2024. Association for Computational Linguistics.
+doi: 10.18653/v1/2024.acl-long.562. URL https://
+aclanthology.org/2024.acl-long.562/.
+
+Mallen, A. T., Asai, A., Zhong, V., Das, R., Khashabi,
+D., and Hajishirzi, H. When not to trust language mod-
+els: Investigating effectiveness of parametric and non-
+parametric memories. In The 61st Annual Meeting Of
+The Association For Computational Linguistics, 2023.
+
+Manzoor, A. and Jannach, D. Towards retrieval-based con-
+versational recommendation. Information Systems, 109:
+102083, 2022.
+
+Koo, H., Kim, M., and Hwang, S. J. Optimizing query
+generation for enhanced document retrieval in rag. arXiv
+preprint arXiv:2407.12325, 2024.
+
+Kotonya, N. and Toni, F. Explainable automated fact-
+checking for public health claims.
+In Proceedings of
+the 2020 Conference on Empirical Methods in Natural
+Language Processing (EMNLP), pp. 7740–7754, 2020.
+
+Kwiatkowski, T., Palomaki, J., Redfield, O., Collins, M.,
+Parikh, A., Alberti, C., Epstein, D., Polosukhin, I., De-
+vlin, J., Lee, K., et al. Natural questions: a benchmark for
+question answering research. Transactions of the Associ-
+ation for Computational Linguistics, 7:453–466, 2019.
+
+Kwon, W., Li, Z., Zhuang, S., Sheng, Y., Zheng, L., Yu,
+C. H., Gonzalez, J. E., Zhang, H., and Stoica, I. Efficient
+memory management for large language model serving
+with pagedattention. In Proceedings of the ACM SIGOPS
+29th Symposium on Operating Systems Principles, 2023.
+
+Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin,
+V., Goyal, N., Küttler, H., Lewis, M., Yih, W.-t., Rock-
+täschel, T., et al. Retrieval-augmented generation for
+knowledge-intensive nlp tasks. Advances in Neural In-
+formation Processing Systems, 33:9459–9474, 2020.
+
+Li, H., Verga, P., Sen, P., Yang, B., Viswanathan, V., Lewis,
+P., Watanabe, T., and Su, Y. Alr: A retrieve-then-reason
+framework for long-context question answering. arXiv
+preprint arXiv:2410.03227, 2024.
+
+Liu, X.-Y., Wang, G., and Zha, D. Fingpt: Democratizing
+internet-scale data for financial large language models.
+arXiv preprint arXiv:2307.10485, 2023.
+
+Liu, Z., Ping, W., Roy, R., Xu, P., Lee, C., Shoeybi, M.,
+and Catanzaro, B. Chatqa: Surpassing gpt-4 on conver-
+sational qa and rag. arXiv preprint arXiv:2401.10225,
+2024.
+
+Loshchilov, I. and Hutter, F. Decoupled weight decay reg-
+In International Conference on Learning
+
+ularization.
+Representations, 2018.
+
+Min, S., Gururangan, S., Wallace, E., Shi, W., Hajishirzi, H.,
+Smith, N. A., and Zettlemoyer, L. SILO language models:
+Isolating legal risk in a nonparametric datastore. In The
+Twelfth International Conference on Learning Represen-
+tations, 2024. URL https://openreview.net/
+forum?id=ruk0nyQPec.
+
+Minaee, S., Mikolov, T., Nikzad, N., Chenaghlu, M.,
+Socher, R., Amatriain, X., and Gao, J. Large language
+models: A survey. arXiv preprint arXiv:2402.06196,
+2024.
+
+Nian, J., Peng, Z., Wang, Q., and Fang, Y. W-rag: Weakly
+supervised dense retrieval in rag for open-domain ques-
+tion answering. arXiv preprint arXiv:2408.08444, 2024.
+
+Robertson, S., Zaragoza, H., et al. The probabilistic rele-
+vance framework: Bm25 and beyond. Foundations and
+Trends® in Information Retrieval, 3(4):333–389, 2009.
+
+Serouis, I. M. and Sèdes, F. Exploring large language mod-
+els for bias mitigation and fairness. In 1st International
+Workshop on AI Governance (AIGOV) in conjunction
+with the Thirty-Third International Joint Conference on
+Artificial Intelligence, 2024.
+
+Shao, R., He, J., Asai, A., Shi, W., Dettmers, T., Min, S.,
+Zettlemoyer, L., and Koh, P. W. Scaling retrieval-based
+language models with a trillion-token datastore. arXiv
+preprint arXiv:2407.12854, 2024.
+
+Shi, W., Min, S., Yasunaga, M., Seo, M., James, R., Lewis,
+M., Zettlemoyer, L., and Yih, W.-t. Replug: Retrieval-
+augmented black-box language models. arXiv preprint
+arXiv:2301.12652, 2023.
+
+Wang, F., Wan, X., Sun, R., Chen, J., and Arık, S. Ö. Astute
+rag: Overcoming imperfect retrieval augmentation and
+knowledge conflicts for large language models. arXiv
+preprint arXiv:2410.07176, 2024a.
+
+Wang, L., Yang, N., Huang, X., Jiao, B., Yang, L.,
+Jiang, D., Majumder, R., and Wei, F. Text embeddings
+by weakly-supervised contrastive pre-training.
+arXiv
+preprint arXiv:2212.03533, 2022.
+
+10
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+Wang, L., Ma, C., Feng, X., Zhang, Z., Yang, H., Zhang,
+J., Chen, Z., Tang, J., Chen, X., Lin, Y., et al. A sur-
+vey on large language model based autonomous agents.
+Frontiers of Computer Science, 18(6):1–26, 2024b.
+
+Yue, S., Wang, S., Chen, W., Huang, X., and Wei,
+Z. Synergistic multi-agent framework with trajectory
+learning for knowledge-intensive tasks. arXiv preprint
+arXiv:2407.09893, 2024.
+
+Zhang, X., Song, Y.-Z., Wang, Y., Tang, S., Li, X., Zeng,
+Z., Wu, Z., Ye, W., Xu, W., Zhang, Y., et al. Raglab:
+A modular and research-oriented unified framework for
+retrieval-augmented generation.
+In Proceedings of the
+2024 Conference on Empirical Methods in Natural Lan-
+guage Processing: System Demonstrations, pp. 408–418,
+2024.
+
+Zhao, W. X., Zhou, K., Li, J., Tang, T., Wang, X., Hou, Y.,
+Min, Y., Zhang, B., Zhang, J., Dong, Z., et al. A survey of
+large language models. arXiv preprint arXiv:2303.18223,
+2023.
+
+Zhou, J., Li, X., Shang, L., Luo, L., Zhan, K., Hu, E.,
+Zhang, X., Jiang, H., Cao, Z., Yu, F., et al. Hyperlink-
+induced pre-training for passage retrieval in open-domain
+question answering. In Proceedings of the 60th Annual
+Meeting of the Association for Computational Linguistics
+(Volume 1: Long Papers), pp. 7135–7146, 2022.
+
+Zhou, J., Dong, L., Wei, F., and Chen, L.
+parametric retrieval via binary token index.
+preprint arXiv:2405.01924, 2024a.
+
+Semi-
+arXiv
+
+Zhou, J., Li, X., Shang, L., Jiang, X., Liu, Q., and
+Chen, L. Retrieval-based disentangled representation
+learning with natural language supervision.
+In The
+Twelfth International Conference on Learning Represen-
+tations, 2024b. URL https://openreview.net/
+forum?id=ZlQRiFmq7Y.
+
+Wang, X., Fei, Y., Leng, Z., and Li, C. Does role-playing
+chatbots capture the character personalities? assessing
+personality traits for role-playing chatbots. arXiv preprint
+arXiv:2310.17976, 2023.
+
+Wang, X., Wang, Z., Gao, X., Zhang, F., Wu, Y., Xu, Z.,
+Shi, T., Wang, Z., Li, S., Qian, Q., et al. Searching
+for best practices in retrieval-augmented generation. In
+Proceedings of the 2024 Conference on Empirical Meth-
+ods in Natural Language Processing, pp. 17716–17736,
+2024c.
+
+Wang, Z., Wang, Z., Le, L., Zheng, H. S., Mishra, S., Perot,
+V., Zhang, Y., Mattapalli, A., Taly, A., Shang, J., et al.
+Speculative rag: Enhancing retrieval augmented genera-
+tion through drafting. arXiv preprint arXiv:2407.08223,
+2024d.
+
+Wang, Z. Z., Asai, A., Yu, X. V., Xu, F. F., Xie, Y., Neubig,
+G., and Fried, D. Coderag-bench: Can retrieval aug-
+ment code generation? arXiv preprint arXiv:2406.14497,
+2024e.
+
+Wenzek, G., Lachaux, M.-A., Conneau, A., Chaudhary, V.,
+Guzmán, F., Joulin, A., and Grave, E. Ccnet: Extracting
+high quality monolingual datasets from web crawl data.
+arXiv preprint arXiv:1911.00359, 2019.
+
+Wu, M. and Cao, S. Llm-augmented retrieval: Enhancing
+retrieval models through language models and doc-level
+embedding. arXiv preprint arXiv:2404.05825, 2024.
+
+Wu, S., Xie, J., Chen, J., Zhu, T., Zhang, K., and
+Xiao, Y. How easily do irrelevant inputs skew the re-
+sponses of large language models?
+arXiv preprint
+arXiv:2404.03302, 2024.
+
+Xiong, L., Xiong, C., Li, Y., Tang, K.-F., Liu, J., Bennett, P.,
+Ahmed, J., and Overwĳk, A. Approximate nearest neigh-
+bor negative contrastive learning for dense text retrieval.
+arXiv preprint arXiv:2007.00808, 2020.
+
+Xu, P., Ping, W., Wu, X., McAfee, L., Zhu, C., Liu, Z., Sub-
+ramanian, S., Bakhturina, E., Shoeybi, M., and Catan-
+zaro, B. Retrieval meets long context large language
+models. arXiv preprint arXiv:2310.03025, 2023.
+
+Yu, Y., Ping, W., Liu, Z., Wang, B., You, J., Zhang, C.,
+Shoeybi, M., and Catanzaro, B. Rankrag: Unifying con-
+text ranking with retrieval-augmented generation in llms.
+arXiv preprint arXiv:2407.02485, 2024.
+
+11
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+A. Details of Datasets
+
+We present details of datasets as follows.
+
+• Natural Questions (NQ; Kwiatkowski et al., 2019) is a widely used open-domain QA dataset constructed from
+Wikipedia. The questions originate from Google search queries, and the answers are text spans within Wikipedia
+passages. This dataset consists of queries with one or more answer strings, requiring RAG systems to generate
+responses based on factual knowledge.
+
+• TriviaQA (TQA; Joshi et al., 2017) is a challenging QA dataset that comprises question-answer pairs curated by trivia
+
+enthusiasts along with independently gathered evidence documents.
+
+• PubHealth (Kotonya & Toni, 2020) is a fact-checking task that focuses on verifying health claims across a variety of
+
+biomedical topics.
+
+• ARC-Challenge (Clark et al., 2018) is a multiple-choice reasoning dataset consisting of science exam questions for
+
+grades 3 to 9.
+
+B. Details of Baseline Models
+
+The information for baseline models are listed as follows.
+
+B.1. Retrieval Model (IR)
+
+• E5 (Wang et al., 2022) is a state-of-the-art dense retriever that pre-trained on millions of weakly related text pairs from
+the Web. The unsupervised version of this model is denoted as E5-unsup. This model undergoes further fine-tuning
+on natural language inference (NLI) datasets, as well as the Natural Questions and MS MARCO datasets, to enhance
+its capabilities in downstream applications. The fine-tuned version is denoted as E5.
+
+• Contriever (Izacard et al., 2021) is a widely-used dense retriever pre-trained unsupervised on Wikipedia data and
+CCNet (Wenzek et al., 2019). The unsupervised version of this model is denoted as Contriever.
+It is further
+fine-tuned on the MS MARCO dataset to enhance its retrieval performance, with the fine-tuned version denoted as
+ContrieverMS.
+
+• DPR (Karpukhin et al., 2020) is a widely used dense passage retriever initialized with a BERT-based uncased
+encoder (Devlin et al., 2019), and fine-tuned on downstream dataset. Specifically, DPRMS is fine-tuned on the MS
+MARCO dataset, DPRNQ on the NQ dataset, and DPRTQA on the TriviaQA dataset.
+
+• SiDR (Zhou et al., 2024a) is a semi-parametric sparse retriever that supports using both embeddings and tokenization
+as index. This nature allows for in-training retrieval, where the model’s parameters dynamically update while the
+retrieval index remains fixed. The model is initialized with a BERT-based uncased encoder (Devlin et al., 2019) and
+fine-tuned exclusively on single dataset depending on the variant: SiDRMS is fine-tuned on the MS MARCO dataset,
+SiDRNQ on the NQ dataset, and SiDRTQA on the TriviaQA dataset.
+
+All the above retrieval methods are initialized with a BERT-based encoder, which contains approximately 200 million
+(0.2B) parameters.
+
+B.2. Large Language Model (LLM)
+
+• Llama38B (Dubey et al., 2024) is a variant of the latest Llama3 model series with 8 billion parameters.
+
+• Llama3-Instruct8B (Dubey et al., 2024) builds upon the Llama38B by undergoing a post-training stage in which the
+model is specifically tuned to follow instructions and align with human preferences to improve specific capabilities.
+
+• Phi-3-mini-4k-instruct3.8B (Abdin et al., 2024) is a lightweight widely-used LLM with 3.8 billion parameters, trained
+
+on the Phi-3 dataset featuring synthetic and high-quality filtered web data, focused on reasoning and quality.
+
+• Mistral-Instruct7B (Jiang et al., 2023). We use Mistral-7B-Instruct-v0.3 LLM which is an instruct fine-tuned version
+
+of the Mistral-7B-v0.3.
+
+12
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+B.3. Retrieval-augmented Generation Framework (RAG)
+
+• RePlug (Shi et al., 2023) is a RAG framework using GPT-3 and Contriever. The retriever is specifically trained to
+use the first 128 tokens of a sequence as queries, with the goal of retrieving documents that maximize the probability
+of generating the subsequent 128 tokens when these retrieved documents are prepended to the query.
+
+• Self-RAG (Asai et al., 2023) is a RAG framework designed to improve response quality by enabling on-demand
+
+retrieval and incorporating self-reflection mechanisms.
+The reproductions by Wang et al. (2024d) and Zhang et al. (2024), Self-RAGMistral-7B and Self-RAGLlama3-8B respec-
+tively, involve tuning Mistral-7B and Llama3-8B as base language models using the open-source data provided by
+Self-RAG.
+Our reproduction, Self-RAGLlama3-8B+SiDRMS, utilizes the Self-RAGLlama3-8B checkpoint from Zhang et al. (2024)
+as LLM, while employing the same retriever SiDRMS and adapting it to our downstream setup.
+
+C. Effectiveness of RAG Scores on Task Accuracy
+
+Table 4. Results of RAG framework using top-1 and top-10 documents in context, sorted by retrieval relevance and RAG scores.
+
+Task Type (→)
+Dataset (→)
+
+Free-form
+
+Closed-set
+
+NQ
+
+TriviaQA
+
+PubHealth
+
+ARC-C
+
+Method (↓) Metrics (→)
+
+1-doc
+
+10-doc
+
+1-doc
+
+10-doc
+
+1-doc
+
+10-doc
+
+1-doc
+
+10-doc
+
+Llama38B + SiDRMS (doc with top relevance)
+Llama38B + SiDRMS (doc with top RAG scores)
+
+49.1
+85.1
+
+51.4
+76.2
+
+65.3
+88.7
+
+67.2
+84.2
+
+65.2
+87.4
+
+67.4
+77.4
+
+58.1
+95.6
+
+57.3
+83.6
+
+Given that our learning is based on using the RAG score as an indicator to identify positive and negative documents, we now
+investigate whether using documents with higher RAG scores leads to improved RAG response quality. For each dataset,
+we sample 1k samples from training split. For each query, we retrieve the top 100 documents, and then perform the RAG
+pipeline using only the top-1 and top-10 documents, sorted by retrieval relevance and RAG scores, respectively. The results,
+shown in Table 4, indicate that RAG scores are indicative of the final accuracy of the RAG framework. Furthermore, the
+high accuracy achieved using top RAG scores documents suggests that the datastore holds significant untapped potential,
+which current retrieval strategies have not yet fully exploited.
+
+To our knowledge, using RAG scores to identify positives and negatives is a rough yet resource-efficient solution that could
+cover most existing knowledge-intensive tasks, aligning with their evaluation metrics that often utilize string matching.
+However, it may not be suitable for long-form generation, which requires different evaluation strategies. We believe it is
+possible to customize the identification of positive and negative examples based on the specific needs of each task. Ideally,
+if computational cost is not a concern or resources are sufficient, a strong proprietary LLM like GPT-4 can be used for
+contrastive identification on-the-fly.
+
+Here are some additional observations: RAG scores are generally more indicative when using single document in context,
+likely because they are computed in this manner, ensuring more consistent evaluations. Furthermore, the improved
+performance seen in Table 4 compared to our main experiments may be attributed to the LLM having been pretrained on
+the training split of these datasets.
+
+D. Revisiting Semi-parametric Disentangled Retriever (SiDR)
+
+Our work adopts the recently proposed retriever SiDR as the backbone for two main reasons. First, it supports the
+use of a non-parametric index, which enables in-training retrieval when the retriever’s parameters change dynamically.
+Second, evaluating retriever checkpoints can be resource-intensive, as it requires embedding a large datastore with each
+new checkpoint. SiDR offers late parametric techniques that reduce this evaluation process from a full day on our resource
+to just a few minutes, significantly accelerating our research.
+
+SiDR (Zhou et al., 2024b;a) is a sparse disentangled retriever (also known as a sparse lexical retriever) that encodes text
+chunks into a |V |-dimensional sparse representation, where each dimension represents the importance of a token within
+the language model vocabulary V . SiDR is then trained to align the |V |-dimensional parametric embedding, denoted as
+Vθ(x), with the |V |-dimensional bag-of-tokens representation, denoted as VBoT(x).
+
+13
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+Figure 4. Illustration of semi-parametric disentangled retriever (SiDR) framework, adapted from Zhou et al. (2024a).
+
+At downstream, a parametric query embedding Vθ(q) can perform search on both an embedding-based index Vθ(D) and a
+bag-of-tokens index VBoT(D), which leads to three distinct search schemes:
+
+• Full parametric search utilizes a parametric index Vθ(D), which relies on embeddings derived from a neural
+encoder for the datastore. The relevance is defined as the inner product of the embeded query and embeded datastore:
+
+fθ(q, D) = ⟨Vθ(q), Vθ(D)⟩
+
+This is the common indexing process for neural retrieval systems, which are effective but involve higher costs and
+longer latency for embedding the entire D to obtain the index Vθ(D).
+
+• Semi-parametric beta search leverages a non-parametric index VBoT(D) based on BoT representations of the
+
+datastore, which are constructed solely by a tokenizer. The relevance is defined as:
+
+fβ(q, D) = ⟨Vθ(q), VBoT(D)⟩
+
+• Late parametric with top-m re-rank is a search pipeline that starts search with a non-parametric index to retrieve
+
+top-m passages, denote as Dm, and then on-the-fly embeds them for re-ranking:
+
+fβ(q, D) = ⟨Vθ(q), VBoT(D)⟩;
+
+fθ(q, Dm) = ⟨Vθ(q), Vθ(Dm)⟩
+
+In our framework, we primarily utilize the late parametric techniques provided by SiDR. For in-training retrieval, we use late
+parametric with top-20 re-ranking. For checkpoint evaluation and inspection in the ablation study, we use late parametric
+with top-100 re-ranking to accelerate results while managing limited resources.
+In our main experiments, we use full
+parametric search.
+
+E. Late Parametric vs. Periodic Re-indexing
+
+A key distinction between our work and prior practices lies in our use of the late parametric mechanism to avoid re-indexing
+during training. In this section, we systematically evaluate these in-training retrieval approaches.
+
+Baseline. We present ablation studies on different in-training retrieval approaches: (i) Open-Rag employs the late parametric
+method as proposed in SiDR, which uses a bag-of-token index for first-stage retrieval and re-ranks the top-20 documents
+on-the-fly using up-to-date parameters. (ii) Open-Rag (w/o re-rank) employs the bag-of-token index for retrieval, similar to
+the late parametric method but without the re-ranking process. This setup aims to assess the costs associated with re-ranking
+during training. (iii) Open-Rag (w/ re-index) involves periodic re-indexing using the most recently built but outdated index
+for retrieval, an in-training retrieval method that commonly used in prior studies. In this setup, we employ DPRMS as the
+initial retriever. We avoid using SiDRMS, which has high-dimensional embeddings of 30,522, in stark contrast to DPR’s
+768 dimensions. This significant discrepancy prevents our GPU cards from allocating the parametric index for SiDRMS,
+although they manage DPR effectively.
+
+14
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+Training. All models undergo the similar training pipeline: they are trained for 80 epochs with the first 40 epochs as
+a warm-up and the last 40 conducting in-training retrieval. They differ only in their in-training retrieval strategies: both
+Open-Rag and Open-Rag (w/o re-rank) do not require re-indexing; Open-Rag (w/ re-index) requires rebuilding index at
+every 15 epochs (around 5k steps), a rebuild interval commonly used in previous research (Xiong et al., 2020), resulting in
+a total of three rebuilds.
+
+Results. We present the RAG accuracy on NQ and PubHealth test splits during in-training retrieval, with results reported
+every four epochs, as depicted in Figure 5. For the re-ranking setup, significant improvements are observed in the PubHealth
+data when re-ranking is employed, whereas the NQ dataset shows only minor improvements. Given that the costs associated
+with re-ranking are manageable in our setup, we continue to implement it. Regarding re-indexing, our findings indicate that
+despite requiring significant time and resources, it fails to yield improvements comparable to those of the late parametric
+approach and significantly lags behind. We attribute this to index staleness, where query embeddings must optimize against
+outdated document embeddings, rendering the learning process less effective. On the other hand, as presented in the study
+by Zhou et al. (2024a), by re-ranking the top-20 retrieved documents, the late parametric method can recover more than
+90% of the performance of a full parametric search across different tasks, representing a minor compromise. This also
+partially explains why the late parametric approach outperforms periodic re-indexing.
+
+Figure 5. RAG accuracy of different in-training retrieval approaches.
+
+F. Inconsistencies between IR and RAG Scenarios
+
+F.1. Performance Changes in IR Scenarios after Tuning
+
+Table 5. Performance changes before and after tuning the retriever using the Open-Rag approach.
+
+Dataset (→)
+Method (↓) Metrics (→)
+Llama38B + SiDRMS
+Llama38B + Open-Rag (SiDRMS)
+
+NQ
+
+TriviaQA
+
+IR
+
+RAG
+
+IR
+
+RAG
+
+39.1
+40.8 (+1.7)
+
+34.4
+39.8 (+5.4)
+
+56.1
+53.9 (-2.2)
+
+62.0
+65.8 (+3.8)
+
+Llama38B + SiDRNQ
+Llama38B + Open-Rag (SiDRNQ)
+
+49.5
+47.1 (-2.4)
+
+42.7
+44.1 (+1.4)
+
+–
+–
+
+–
+–
+
+We evaluate the performance of our retriever in both IR and RAG scenarios before and after tuning. In IR scenarios, we
+measure top-1 retrieval accuracy by checking whether the top-1 retrieved document contains the answer. In RAG scenarios,
+we measure accuracy using a single document in the context window, evaluating whether the generated response contains
+the correct answer.
+
+Our results indicate that while Open-Rag tunes the retriever to improve RAG performance, it results in inconsistent
+performance on traditional IR performance, with some degradation observed on certain datasets. This highlights a long-
+standing issue in the IR evaluation pipeline: a document containing the answer does not necessarily imply that it effectively
+addresses the query, and conversely, a document not containing the answer does not mean it is irrelevant or unhelpful.
+
+Our conclusion also aligns with the findings and observations of other research. Cuconasu et al. (2024a) find that including
+more answer-containing documents in the context negatively impacts RAG performance. Similarly, Nian et al. (2024)
+observe that traditional relevance definitions for IR tasks do not enhance RAG response quality. Additional research
+
+15
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+emphasizes the need for further learning to bridge the preference gap (Ke et al., 2024) or re-ranking (Yu et al., 2024) for
+off-the-shelf retrievers to improve RAG performance.
+
+F.2. Case Study
+
+In this section, we present a case study using the NQ dataset where each query has a list of answer strings. This case study
+is designed to further explore the inconsistency issues inherent in RAG implementations. We specifically examine two
+scenarios: (i) cases where the retrieved document contains the correct answer but fails to produce the correct RAG output,
+and (ii) instances where the retrieved document does not directly address the query, yet the RAG model manages to generate
+the correct answer nonetheless. To enhance our analysis, we also ask GPT-4 to judge whether the documents address the
+question, helping readers quickly grasp the key issue.
+
+=================================================== Question ===================================================
+Who plays Big Momma in Big Momma’s House?
+=================================================== Answers ====================================================
+
+[’Ella Mitchell’, ’Martin Lawrence’]
+
+=================================================== Document ===================================================
+Bounce with Me
+Jermaine Dupri, Jagged Edge and Da Brat. Brief clips from "Big Momma’s House" are also included. Bounce with Me
+"Bounce with Me" is a single by American rapper Lil’ Bow Wow featuring Xscape. It is Lil’ Bow Wow’s debut single
+, taken from his debut album "Beware of Dog". The single samples "Love Serenade (Part II)" by Barry White. It
+spent nine weeks at number 1 on the U.S. Rap Chart and number 20 on "Billboard" Hot 100. The song was featured
+in the film "Big Momma’s House" and the trailer of "Hardball".
+================================================ RAG Generation ================================================
+[1] Martin Lawrence
+================================================ GPT4 Judgement ================================================
+No, the document does not address the question. The document talks about the song "Bounce with Me" and its
+connection to the movie Big Momma’s House, but it doesn’t mention who plays Big Momma in the movie. The answer
+to the question is Martin Lawrence, who plays the character of Big Momma in Big Momma’s House.
+
+=================================================== Question ===================================================
+Who sang "Buddy, Can You Spare a Dime?"
+=================================================== Answers ====================================================
+
+[’Rudy Vallee’, ’Bing Crosby’]
+
+=================================================== Document ===================================================
+Brother, Can You Spare a Dime?
+Brother, Can You Spare a Dime? "Brother, Can You Spare a Dime?", also sung as "Buddy, Can You Spare a Dime?", is
+one of the best-known American songs of the Great Depression. Written in 1930 by lyricist E. Y. "Yip" Harburg
+
+and composer Jay Gorney, "Brother, Can You Spare a Dime?" was part of the 1932 musical revue "Americana"; the
+melody is based on a Russian-Jewish lullaby Gorney’s mother had sung to him as a child. It was considered by
+Republicans to be anti-capitalist propaganda, and almost dropped from the show; attempts were made to ban it
+from the radio.
+================================================ RAG Generation ================================================
+The song "Brother, Can You Spare a Dime?" was written by E. Y. "Yip" Harburg and Jay Gorney. It was first
+performed by Bing Crosby in 1932.
+================================================ GPT4 Judgement ================================================
+The document provides information about the song "Brother, Can You Spare a Dime?" (also referred to as "Buddy,
+Can You Spare a Dime?") and its origins, but it does not directly answer the question of who sang it. The
+document focuses more on the history of the song and its cultural significance.
+
+To answer your question: The song has been performed by several artists, including Bing Crosby, Al Jolson, and
+Barbra Streisand, among others.
+
+Figure 6. Example of RAG output correct answers while the retrieved document does not contain the correct answer, nor does GPT-4
+consider the document address the question.
+
+In Figure 6, we present examples where RAG outputs the correct answer, even though the retrieved document neither
+In both cases, the document fails to provide
+contains the answer nor is considered to address the question by GPT-4.
+the correct answer or relevant clues, yet RAG is still able to generate the correct response. We believe this is a common
+phenomenon, as LLMs possess a wealth of internal knowledge, particularly for public knowledge questions. In general, an
+incorrect or imperfect retrieved document is insufficient to mislead the LLM into producing an incorrect output.
+
+In Figure 7, we present examples where RAG fails to output the correct answer, even though the retrieved document contains
+the correct answer or GPT-4 considers the document as addressing the question. In the first case, the document does not
+address the query, and the LLM tends to extract key phrases, such as the title, as the response, ignoring the query. In the
+
+16
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+=================================================== Question ===================================================
+When was The Hitchhiker’s Guide to the Galaxy made?
+=================================================== Answers ====================================================
+[’1978’, ’2005’]
+=================================================== Document ===================================================
+The Hitchhiker’s Guide to the Galaxy (radio series)
+The original series was the recipient of a number of awards including the Imperial Tobacco Award (1978), The
+Sony Award (1979), The Society of Authors/Pye Awards Best Programme for Young People (1980) and the Mark Time
+Awards ’Grand Master Award’ (Adams) and ’Hall of Fame’ (1998). It was the only radio show ever to be nominated
+for the Hugo science fiction awards, in 1979, in the ’Best Dramatic Presentation’ category. As a result of the
+series, Douglas Adams was inducted into the Radio Academy’s Hall of Fame. In November 2003, two years after
+Adams’s death and 23 years after the ...
+
+================================================ RAG Generation ================================================
+[1] The Hitchhiker’s Guide to the Galaxy (radio series)
+================================================ GPT4 Judgement ================================================
+No, the document does not directly address the query of when The Hitchhiker’s Guide to the Galaxy was made. It
+provides information about the radio series, its awards, and recognition but does not specify the year of its
+creation or first broadcast.
+
+The original radio series of The Hitchhiker’s Guide to the Galaxy first aired in 1978.
+
+=================================================== Question ===================================================
+Who ordered the Forbidden City to be built?
+=================================================== Answers ====================================================
+[’Zhu Di’]
+=================================================== Document ===================================================
+History of the Forbidden City
+The site of the Forbidden City was situated on the Imperial city during the Mongol Yuan Dynasty. After the
+collapse of the Yuan Dynasty, the Hongwu Emperor of the Ming Dynasty moved the capital from Beijing in the north
+to Nanjing in the south, and in 1369 ordered that the Yuan palaces be razed. His son Zhu Di was created Prince
+
+of Yan with his seat in Beijing. In 1402, Zhu Di usurped the throne and became the Yongle Emperor. He made
+Beijing a secondary capital of the Ming empire ...
+
+================================================ RAG Generation ================================================
+The Yongle Emperor ordered the forbidden city to be built.
+================================================ GPT4 Judgement ================================================
+Yes, the document addresses the query. It mentions that Zhu Di, who later became the Yongle Emperor, ordered the
+construction of the Forbidden City. The passage describes how he moved the capital to Beijing and commissioned
+
+the building of the Forbidden City in 1406.
+
+Figure 7. Example of RAG failing to output the correct answer while the retrieved document contains the correct answer or GPT-4
+considers the document as addressing the question.
+
+second case, the document contains information that addresses the query, and the LLM generates the correct answer, but the
+answer’s alias name is not included in the pre-defined answer candidates, leading to a failure in the RAG scenario. These
+inconsistencies can be driven by many factors, including the LLM, instruction prompt, evaluation metrics, and relevance.
+All of these factors are intertwined, and we believe that end-to-end data-driven learning is more effective than analyzing
+their interplay in isolation.
+
+17
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+G. Case Study of RAG Labels
+
+For free-form generation tasks, we assess whether the generation contains any of the given answers. For closed-set
+generation tasks, we measure whether the generation contains the label. Below are examples that illustrate how different
+generations lead to different RAG labels given the same question and answers.
+
+================================================== Question ====================================================
+Who is the sister of for king and country?
+=================================================== Answers ====================================================
+[’Rebecca St. James’]
+================================================= Generation 1 =================================================
+Rebecca St. James
+
+### Explanation:
+Rebecca St. James is the sister of for king and country. She is a Christian recording artist and speaker. The
+Smallbones are the younger brothers of Rebecca St. James, and the brothers-in-law of Jacob Fink, former bassist
+for the band Foster the People. They were raised with another sister, Libby, and three other brothers, Ben, Dan,
+
+and Josh. On
+
+=================================================== Output 1 ===================================================
+RAG Label: 1
+================================================= Generation 2 =================================================
+Courtney Helm
+
+### Explanation:
+Courtney Helm is the sister of for king and country.
+=================================================== Output 2 ===================================================
+RAG Label: 0
+
+Figure 8. Examples of RAG labels for free-form generation.
+
+================================================== Question ====================================================
+Study: Vaccine for Breast, Ovarian Cancer Has Potential.
+=================================================== Answers ====================================================
+True
+================================================= Generation 1 =================================================
+True
+
+### Explanation:
+The study is about a vaccine for breast and ovarian cancer. The vaccine is
+=================================================== Output 1 ===================================================
+RAG Label: 1
+================================================= Generation 2 =================================================
+False
+
+### Explanation:
+The statement is false because the vaccine is not for breast and ovarian cancer.
+=================================================== Output 2 ===================================================
+RAG Label: 0
+
+Figure 9. Examples of RAG labels for close-set generation.
+
+H. Prompt Formats
+
+We demonstrate our prompts for different tasks such as OpenQA, fact-checking, and multi-choice reasoning in Figures 10,
+11, and 12, respectively.
+
+18
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+=============================================== Prompt (OpenQA) ================================================
+### Paragraph:
+[1] For King & Country (band)
+Their father was a music promoter, and Joel recalls, "going to these rock concerts, sitting on my father\’s
+shoulders, plugging my ears...Honestly, in a lot of ways I feel like music chose me and as I grew older, I made
+a clear decision to fully lean into it." The Smallbones are the younger brothers of Christian recording artist
+and speaker Rebecca St. James, and the brothers-in-law of Jacob Fink, former bassist for the band Foster the
+People. They were raised with another sister, Libby, and three other brothers, Ben, Dan, and Josh. On ...
+
+### Instruction:
+Who is the sister of for king and country?
+
+### Response:
+================================================= Continuation =================================================
+Rebecca St. James
+================================================== Generation ==================================================
+Rebecca St. James
+
+### Explanation:
+Rebecca St. James is the sister of for king and country. She is a Christian recording artist and speaker. The
+Smallbones are the younger brothers of Rebecca St. James, and the brothers-in-law of Jacob Fink, former bassist
+for the band Foster the People. They were raised with another sister, Libby, and three other brothers, Ben, Dan,
+
+and Josh. On
+
+==================================================== Output ====================================================
+RAG Score: P(‘Rebecca St. James’|prompt) = 0.595
+RAG Label: 1
+
+Figure 10. Example prompt and outcomes of each step for NQ and TQA dataset.
+
+============================================ Prompt (Fact Checking) ============================================
+Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Paragraph:
+[1] Gustav Gaudernack
+potential of dendritic cells (DCs) and in 2005, Gaudernack’s group published results from a phase I/II clinical
+trial in prostate cancer patients using autologous DCs loaded with tumor mRNA as a vaccine. This study
+demonstrated that vaccination with autologous DCs transfected with mRNA derived from three prostate cancer cell
+lines was safe and an improved clinical outcome was significantly related to immune responses against the
+vaccine. Furthermore, Gaudernack and colleagues initiated a phase I/II clinical trial for treatment of malignant
+melanoma with autologous tumor-mRNA transfected DC vaccines. These data clearly demonstrated vaccine-specific
+
+immune responses with a broad specter of ...
+
+### Instruction:
+Is the following statement correct or not? Say true if it’s correct; otherwise say false.
+
+### Input:
+Study: Vaccine for Breast, Ovarian Cancer Has Potential
+
+### Response:
+================================================= Continuation =================================================
+True
+================================================== Generation ==================================================
+true
+
+### Explanation:
+The study is about a vaccine for breast and ovarian cancer. The study has ...
+==================================================== Output ====================================================
+P(‘true’ |prompt) = 0.116
+P(‘false’|prompt) = 0.109
+RAG Label: 1
+
+Figure 11. Example prompt and outcomes of each step for the Pubhealth dataset.
+
+19
+
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+
+======================================= Prompt (Multi-choice Reasoning) ========================================
+Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Paragraph:
+[1] Rheumatic fever
+Rheumatic fever may occur following an infection of the throat by the bacterium "Streptococcus pyogenes". If the
+infection is untreated rheumatic fever can occur in up to three percent of people. The underlying mechanism is
+
+believed to involve the production of antibodies against a person\’s own tissues. Due to their genetics, some
+people are more likely to get the disease when exposed to the bacteria than others. Other risk factors include
+malnutrition and poverty. Diagnosis of RF is often based on the presence of signs and symptoms in combination
+with evidence of a recent streptococcal infection. Treating people who have strep ...
+
+### Instruction:
+Given four answer candidates, A, B, C and D, choose the best answer choice.
+
+### Input:
+Which factor will most likely cause a person to develop a fever?
+A: a leg muscle relaxing after exercise
+B: a bacterial population in the bloodstream
+C: several viral particles on the skin
+D: carbohydrates being digested in the stomach
+
+### Response:
+================================================= Continuation =================================================
+B
+================================================== Generation ==================================================
+B
+
+### Explanation:
+The bacteria Streptococcus pyogenes is a common cause of throat
+==================================================== Output ====================================================
+P(‘A’|prompt) = 0.121
+P(‘B’|prompt) = 0.309
+P(‘C’|prompt) = 0.061
+P(‘D’|prompt) = 0.100
+RAG Label: 1
+
+Figure 12. Example prompt and outcomes of each step for the ARC-Challenge dataset.
+
+20

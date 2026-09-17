@@ -1,0 +1,543 @@
+Dynamic Contexts for Generating Suggestion Questions in RAG
+Based Conversational Systems
+
+Anuja Tayal∗
+University of Illinois, Chicago
+Department of Computer Science
+Chicago, IL, USA
+atayal4@uic.edu
+
+Aman Tyagi
+The Procter and Gamble Company
+Mason, Ohio, USA
+tyagi.a.3@pg.com
+
+4
+2
+0
+2
+
+r
+a
+
+M
+8
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+3
+1
+4
+1
+1
+.
+3
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+ABSTRACT
+When interacting with Retrieval-Augmented Generation (RAG)-
+based conversational agents, the users must carefully craft their
+queries to be understood correctly. Yet, understanding the system’s
+capabilities can be challenging for the users, leading to ambiguous
+questions that necessitate further clarification. This work aims
+to bridge the gap by developing a suggestion question generator.
+To generate suggestion questions, our approach involves utilizing
+dynamic context, which includes both dynamic few-shot examples
+and dynamically retrieved contexts. Through experiments, we show
+that the dynamic contexts approach can generate better suggestion
+questions as compared to other prompting approaches.
+
+CCS CONCEPTS
+• Computing methodologies → Natural language generation.
+
+KEYWORDS
+RAG, Conversational Systems, Question Generation, Prompting,
+Few-Shot
+
+ACM Reference Format:
+Anuja Tayal and Aman Tyagi. 2024. Dynamic Contexts for Generating
+Suggestion Questions in RAG Based Conversational Systems. In Companion
+Proceedings of the ACM Web Conference 2024 (WWW ’24 Companion), May
+13–17, 2024, Singapore, Singapore. ACM, New York, NY, USA, 4 pages. https:
+//doi.org/10.1145/3589335.3651905
+
+1 INTRODUCTION
+Current conversational systems encounter numerous problems.
+Firstly, they depend heavily on user inputs, with the agent merely
+responding to queries [1, 2]. This method is fundamentally flawed
+as it fails to actively prompt users to clarify ambiguous or poorly
+defined questions. As a result, the systems frequently return incor-
+rect responses or resort to apologetic statements when dealing with
+such inquiries. Secondly, even when the system does provide a cor-
+rect answer, the user must again formulate an effective follow-up
+
+∗work done as part of internship at the Procter and Gamble Company.
+
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+WWW ’24 Companion, May 13–17, 2024, Singapore, Singapore
+© 2024 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 979-8-4007-0172-6/24/05
+https://doi.org/10.1145/3589335.3651905
+
+question. This task can be challenging, as users often find it difficult
+to understand the full scope of the system’s capabilities [3]. This
+cycle of inadequate responses forces users to constantly refine their
+queries, often resulting in more apologies than useful information.
+Through this paper, we want to address this change and fill the
+gap by proposing a suggestion question generator. The generator
+is designed to generate suggestion questions that the agent can
+answer, guided by the user’s initial query. Our framework encom-
+passes several key steps. First, it involves identifying pertinent
+passages (dynamically retrieved contexts) based on the user’s ini-
+tial query, as the answer to the query hinges on these passages.
+Secondly, we take the help of relevant triple of (questions, answer,
+suggestion questions) (dynamic few-shot). Finally, we generate
+suggestion questions by constituting a dynamic context prompt
+consisting of the dynamically retrieved contexts, and dynamic few-
+shot examples. By providing suggestion questions, users are alle-
+viated from the task of question formulation, ensuring a smooth
+conversational flow [3].
+
+Conversational agents can adapt Dynamic Contexts for a variety
+of tasks, eliminating the need for extensive model training. To
+generate suggestion questions in the absence of a publicly available
+dataset, we use in-context learning. In-context learning [4] has
+been recognized for achieving promising outcomes with minimal
+training samples.
+
+Figure 1: Dynamic Context: Suggestion Questions are gen-
+erated in RAG based Chatbots using the initial user query
+along with dynamically few-shot examples and dynamic re-
+trieved contexts
+
+2 PROBLEM STATEMENT
+Our primary goal is to develop a suggestion question generator. We
+aim to tackle cases where a RAG-based system cannot interpret a
+user’s query accurately, despite the presence of relevant information
+in the dataset. Due to this, the system is unable to understand
+
+ 
+ 
+ 
+ 
+ 
+ 
+WWW ’24 Companion, May 13–17, 2024, Singapore, Singapore
+
+Anuja Tayal and Aman Tyagi
+
+the query’s intent leading to unsuccessful responses. Hence, we
+generate three suggested questions that the agent is capable of
+responding based on the user’s initial query.
+
+In Summary, in this paper, we:
+
+• Propose to develop a suggestion question generator to ad-
+dress the gap in conversational systems where users fre-
+quently lack awareness of the system’s limitations.
+
+• Formulate a suggestion question generator in low-resource
+settings which can be applied across various datasets without
+the need of fine-tuning.
+
+• Propose a dynamic context prompt that constitutes dynamic
+few-shot examples and dynamic retrieved contexts to gener-
+ate suggestion questions.
+
+3 RELATED WORK
+To the best of our knowledge, there is no existing model or literature
+specifically addressing suggestion question generation. However,
+this concept is closely related to question generation [5] and clarifi-
+cation question generation [3, 6].
+
+The concept of clarification questions was formally introduced
+in [7], and since then, research into generating these questions has
+spanned a wide range of scenarios, including open-domain systems
+(AmbigQA) [8], knowledge bases (CLAQUA) [6], closed-book sys-
+tems (CLAM) [9], information-seeking (ISEEQ) [10], task-oriented
+dialog systems (CLARIT) [3], and conversational search [11]. Rah-
+mani et al. [12] surveyed the various methodologies, datasets, and
+different evaluation strategies used for clarification questions.
+
+The distinct characteristics of RAGs [13] make them essential
+for effective information retrieval and is widely used for generating
+question-answering tasks [1] and clarification questions [10, 11].
+
+Advancements in large language models (LLMs) have led re-
+searchers to investigate the use of LLMs and prompting techniques
+for both question generation [5] and clarification questions [14].
+
+4 DYNAMIC CONTEXTS APPROACH
+Dynamic Contexts, the Suggestion Question Generator (Figure 1),
+is designed to enhance the interaction between users and conver-
+sational systems by addressing the gap in users’ understanding of
+these systems’ capabilities. By aiming to reduce the frequency of
+apologetic responses [3], it provides more informed system sugges-
+tions, thereby improving the overall user experience.
+
+Dynamic Contexts generate suggestion questions that are an-
+swerable by the agent. This is achieved through two principal com-
+ponents of Dynamic Contexts: dynamic few-shot examples and
+dynamically retrieved contexts. Dynamic few-shot examples begin
+with the selection of contextually relevant triplets from the dataset,
+each consisting of a question, its answer, and the suggestion ques-
+tion (QAS). Dynamic few-shot diverges from traditional few-shot
+prompting by dynamically choosing each example based on the
+user’s query, rather than relying on a static set of examples. This
+dynamic selection is crucial for accommodating the varied formats
+and structures that different questions may necessitate.
+
+To ensure that the questions generated by the Suggestion Ques-
+tion Generator remain pertinent and answerable, dynamic contexts
+consist of dynamically retrieved contexts. Dynamically retrieved
+contexts consist of retrieving 4 dynamic contexts based on the
+
+Zero-Shot
+Few-Shot
+Dynamic Few-Shot
+Dynamic Contexts (Our approach)
+
+ChatGPT
+35
+42
+42
+44
+Table 1: Comparative Analysis of Dynamic Contexts with
+Zero-Shot, Few-Shot and Dynamic Few-Shot
+
+Claude-2
+30
+35
+35
+44
+
+GPT-4
+43
+40
+43
+46
+
+initial user query, similar to RAG-based systems from which sug-
+gestion questions should be generated. We use OpenAI embeddings
+to embed the examples and dynamic contexts and cosine similarity
+to select dynamic examples and contexts. The complete prompt
+structure utilized for the approach is detailed in the appendix B.
+
+5 EVALUATION
+Due to the absence of a publicly accessible dataset specifically
+designed for Suggestion Question Generator tasks, we employed
+228 blog posts from Pamper’s Baby Sleep Coach as a practical
+demonstration of the approach. More details of the dataset are
+present in Appendix A. To test the Dynamic Contexts approach,
+LLMs- ChatGPT, GPT-4, and Claude2 were used. The evaluation of
+the suggestion question generator involves a variety of assessment
+techniques to ensure a thorough analysis of the performance.
+
+Manual Evaluation To assess the effectiveness of the Dynamic
+Contexts approach in the Suggestion Question Generator, we con-
+ducted a manual evaluation using a set of 48 QAS (question, answer,
+and suggestion question) pairs. During manual assessment, we pri-
+marily assessed the correctness, relevance, and soundness of the
+generated questions. Dynamic Contexts demonstrated its capabil-
+ity by successfully generating relevant suggestion questions (as
+shown in Table 1). ChatGPT, Claude-2, and GPT-4 each produced
+44, 44, and 46 correct samples, respectively. ChatGPT and GPT-4
+errors were related to the baby’s age, whereas Claude-2 did not
+make any age-related errors. However, Claude-2’s primary short-
+comings were its failure to formulate questions that aligned with
+the provided contexts.
+
+Comparative Analysis A comparative analysis was performed
+to evaluate the improvement of Dynamic Contexts over different
+prompting strategies, including Zero-Shot, Few-Shot, and Dynamic
+Few-Shot approaches. This comparison, detailed in Table 1, high-
+lights the distinctions among the methods. The Zero-Shot method
+employed no examples in its prompts, while the Few-Shot method
+used a consistent set of three examples for each query. The Dynamic
+Few-Shot approach, in contrast, dynamically selected its examples.
+Distinct from other methods, Dynamic Contexts utilizes Retrieval-
+Augmented Generation (RAG) to dynamically select contexts for
+generating suggestion questions. This approach marks a significant
+shift from the static contexts used in the Zero-Shot, Few-Shot, and
+Dynamic Few-Shot approaches.
+
+The findings indicate that Claude-2 generated only 30 correct
+questions (compared to 35 for ChatGPT and 43 for GPT-4) in the
+zero-shot approach out of the 48 samples. While we supplied the
+answers, the models struggled to generate questions that could
+be answered from the provided context. Claude-2 notably strug-
+gled, often unable to utilize the provided context effectively, and
+sometimes misconstrued its role, imagining itself as a baby.
+
+The few-shot approach, which involved providing three exam-
+ple questions to the models, showed an overall improvement in
+
+Dynamic Contexts for Generating Suggestion Questions in RAG Based Conversational Systems
+
+WWW ’24 Companion, May 13–17, 2024, Singapore, Singapore
+
+performance. However, the questions generated tended to replicate
+the structure of the examples provided too closely. The dynamic
+few-shot approach, aimed at introducing a variety of question types
+and structures, significantly improved the quality of the questions
+generated but still lagged behind the dynamic contexts approach.
+Preference Benchmarking Further analysis was conducted
+through Preference Benchmarking Evaluation, where GPT-4 and
+Claude-2 evaluated the suggestion questions generated by the
+framework. In this blind test, the models, GPT-4 and Claude-2 acted
+as judges and were prompted to assess the quality of the questions
+without knowing from which model it was generated. The results
+showed Claude2 having no preference at all between the models,
+while GPT-4 favored Claude-2’s output 57% of the time over its own.
+Human evaluation was also employed to evaluate which output
+was better which showed a preference for GPT-4’s output in 43%
+of cases, Claude-2 in 33% of cases, and showing no preference in
+24% of cases. This evaluation suggests a close alignment between
+the judgments of LLMs and human evaluators. Detailed results can
+be found in Table 3 of the appendix D.
+
+Ablation Study To determine the optimal order of the final
+prompt, we conducted an ablation study, altering the arrangement
+of example contexts and queries. Initially, we presumed that pre-
+senting the query before the dynamic contexts would enhance
+comprehension, allowing the model to suggest questions based on
+the given information. However, upon changing the order, we did
+not observe any discernible difference in the nature of the generated
+suggestion questions as seen from the Table 2 in Appendix C.
+
+6 CONCLUSION
+In this paper, we explore suggestion questions to bridge the gap in
+users’ comprehension of a conversational system’s capabilities. We
+present the development of a suggestion question generator that
+utilizes dynamic context prompting within a RAG-based conversa-
+tional system. In the future, we plan to personalize the suggestion
+questions based on the user history.
+
+ACKNOWLEDGMENTS
+The authors would like to acknowledge the support of the Procter
+and Gamble Company (P&G). Any opinions, findings, and conclu-
+sions or recommendations expressed in this material are those of
+the authors and do not necessarily reflect the views of P&G.
+
+REFERENCES
+[1]
+
+Eunsol Choi, He He, Mohit Iyyer, Mark Yatskar, Wen-tau Yih, Yejin Choi, Percy
+Liang, and Luke Zettlemoyer. 2018. QuAC: question answering in context. In
+Proceedings of the 2018 Conference on Empirical Methods in Natural Language
+Processing. Association for Computational Linguistics, Brussels, Belgium. doi:
+10.18653/v1/D18-1241.
+Siva Reddy, Danqi Chen, and Christopher D. Manning. 2019. CoQA: a con-
+versational question answering challenge. Transactions of the Association for
+Computational Linguistics, 7, 249–266. doi: 10.1162/tacl_a_00266.
+Yue Feng, Hossein A Rahmani, Aldo Lipani, and Emine Yilmaz. 2023. Towards
+asking clarification questions for information seeking on task-oriented dia-
+logues. arXiv preprint arXiv:2305.13690.
+Tom Brown et al. 2020. Language models are few-shot learners. In Advances in
+Neural Information Processing Systems. Vol. 33. Curran Associates, Inc., 1877–
+1901.
+
+[2]
+
+[3]
+
+[4]
+
+[5] Hongwei Zeng, Bifan Wei, Jun Liu, and Weiping Fu. 2023. Synthesize, prompt
+and transfer: zero-shot conversational question generation with pre-trained
+language model. In Proceedings of the 61st Annual Meeting of the Association
+
+for Computational Linguistics (Volume 1: Long Papers). Association for Compu-
+tational Linguistics, Toronto, Canada, (July 2023), 8989–9010. doi: 10.18653/v1
+/2023.acl-long.500.
+Jingjing Xu, Yuechen Wang, Duyu Tang, Nan Duan, Pengcheng Yang, Qi Zeng,
+Ming Zhou, and Xu Sun. 2019. Asking clarification questions in knowledge-
+based question answering. In Proceedings of the 2019 Conference on Empir-
+ical Methods in Natural Language Processing and the 9th International Joint
+Conference on Natural Language Processing (EMNLP-IJCNLP). Association for
+Computational Linguistics, Hong Kong, China, (Nov. 2019), 1618–1629. doi:
+10.18653/v1/D19-1172.
+Sudha Rao and Hal Daumé III. 2018. Learning to ask good questions: ranking
+clarification questions using neural expected value of perfect information. In
+Proceedings of the 56th Annual Meeting of the Association for Computational
+Linguistics (Volume 1: Long Papers). Association for Computational Linguistics,
+Melbourne, Australia, (July 2018), 2737–2746. doi: 10.18653/v1/P18-1255.
+Sewon Min, Julian Michael, Hannaneh Hajishirzi, and Luke Zettlemoyer. 2020.
+AmbigQA: answering ambiguous open-domain questions. In Proceedings of the
+2020 Conference on Empirical Methods in Natural Language Processing (EMNLP).
+Association for Computational Linguistics, Online, (Nov. 2020), 5783–5797. doi:
+10.18653/v1/2020.emnlp-main.466.
+Lorenz Kuhn, Yarin Gal, and Sebastian Farquhar. 2022. CLAM: selective clarifica-
+tion for ambiguous questions with large language models. CoRR, abs/2212.07769.
+arXiv: 2212.07769. doi: 10.48550/arXiv.2212.07769.
+
+[6]
+
+[7]
+
+[8]
+
+[9]
+
+[10] Manas Gaur, Kalpa Gunaratna, Vijay Srinivasan, and Hongxia Jin. 2022. ISEEQ:
+information seeking question generation using dynamic meta-information
+retrieval and knowledge graphs. In Thirty-Sixth AAAI Conference on Artificial
+Intelligence, AAAI 2022, Thirty-Fourth Conference on Innovative Applications
+of Artificial Intelligence, IAAI 2022, The Twelveth Symposium on Educational
+Advances in Artificial Intelligence, EAAI 2022 Virtual Event, February 22 - March
+1, 2022. AAAI Press, 10672–10680. doi: 10.1609/AAAI.V36I10.21312.
+Yosi Mass, Doron Cohen, Asaf Yehudai, and David Konopnicki. 2022. Con-
+versational search with mixed-initiative - asking good clarification questions
+backed-up by passage retrieval. In Proceedings of the Second DialDoc Workshop
+on Document-grounded Dialogue and Conversational Question Answering. Asso-
+ciation for Computational Linguistics, Dublin, Ireland, (May 2022), 65–71. doi:
+10.18653/v1/2022.dialdoc-1.7.
+
+[11]
+
+[13]
+
+[12] Hossein A. Rahmani, Xi Wang, Yue Feng, Qiang Zhang, Emine Yilmaz, and
+Aldo Lipani. 2023. A survey on asking clarification questions datasets in con-
+versational systems. In Proceedings of the 61st Annual Meeting of the Association
+for Computational Linguistics (Volume 1: Long Papers). Association for Compu-
+tational Linguistics, Toronto, Canada, (July 2023), 2698–2716. doi: 10.18653/v1
+/2023.acl-long.152.
+Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick Lewis, Ledell Wu, Sergey
+Edunov, Danqi Chen, and Wen-tau Yih. 2020. Dense passage retrieval for open-
+domain question answering. In Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing (EMNLP). Online, 6769–6781.
+Yang Deng, Wenqiang Lei, Lizi Liao, and Tat-Seng Chua. 2023. Prompting
+and evaluating large language models for proactive dialogues: clarification,
+target-guided, and non-collaboration. (2023). arXiv: 2305.13626 [cs.CL].
+[15] Mor Geva, Ankit Gupta, and Jonathan Berant. 2020. Injecting numerical rea-
+soning skills into language models. In Proceedings of the 58th Annual Meeting
+of the Association for Computational Linguistics. Online, 946–958. doi: 10.18653
+/v1/2020.acl-main.89.
+
+[14]
+
+A DATASET
+Due to the absence of a publicly accessible dataset specifically de-
+signed for Suggestion Question Generator tasks, we employed 228
+blog posts from Pamper’s Baby Sleep Coach as a practical demon-
+stration of the approach. The blog post headlines were treated as
+queries, while the content of the posts as the answers to those
+queries. For 35 of these posts, we manually annotated suggestion
+questions aiming to exemplify the types of questions users might
+ask, and which could be answered by the provided context. The
+post headlines from these 35 examples form the basis for identi-
+fying queries similar to the initial user query. To each of these
+similar queries, we then append the corresponding answer and a
+suggestion question, forming a set of dynamic few-shot examples
+consisting of pairs of a similar query, its answer, and a suggestion
+question (as shown in Figure 1). Meanwhile, the original set of 138
+answers forms the basis for our answer contexts, from which we
+
+WWW ’24 Companion, May 13–17, 2024, Singapore, Singapore
+
+Anuja Tayal and Aman Tyagi
+
+GPT-4
+Claude2
+
+Human Eval
+21 (11 both)
+16
+
+GPT-4
+21
+27
+
+Claude2
+24
+24
+
+questions. Here are some examples:
+
+{3 dynamic QAC Dynamic Examples}
+
+Table 3: Preference BenchMarking to evaluate the models
+preference
+
+{Query}
+
+select the top 4 contexts. The complete prompt structure utilized
+for the approach is detailed in the appendix B.
+
+The dataset presents significant challenges, particularly in show-
+casing the numerical reasoning capabilities of large language mod-
+els (LLMs) [15]. When handling queries related to a baby’s specific
+age (For ex- 13 weeks old, 4 months old), both ChatGPT and GPT-4
+displayed confusion over the baby’s age in generated suggestion
+questions. Despite the prompt clearly stating that a month consists
+of 4 weeks, as detailed in Appendix B, they at times illustrated the
+difficulty in grasping numerical distinction ( For example- incor-
+rectly interpreted 13 weeks as 13 months).
+
+B PROMPT FORMAT
+This section illustrates the prompt given to the LLMs.
+
+You are an intelligent conversational agent for a smart sleep coach
+of baby. You are given a prompt with a query with different contexts.
+Each query is one question. Convert the query into question format.
+You have to suggest 3 different questions that can be very easily an-
+swered by only the context provided. If the questions cannot be strictly
+answered by only the context provided then it should not suggest.
+Remember in a month there are 4 weeks. The age of the baby should
+be the same as in the query and not be changed. Only generate the
+
+{3 Contexts from which suggestion questions be generated which
+
+can be answered from these contexts.}
+
+C ABLATION STUDY
+
+Dynamic Contexts Order Changed
+
+GPT4
+Claude2
+
+46
+44
+
+46
+44
+
+Table 2: Ablation Study of Dynamic Context approach after
+changing the order of the query and the contexts
+
+To determine the optimal order of the final prompt, we conducted
+an ablation study, altering the arrangement of example contexts
+and queries to assess performance. Initially, we presumed that
+presenting the query before the dynamic contexts would enhance
+comprehension, allowing the model to suggest questions based on
+the given information. However, upon changing the order, we did
+not observe any discernible difference in the nature of the generated
+suggestion questions as can be seen from the table 2.
+
+D PREFERENCE BENCHMARKING RESULTS
+Refer Table 3

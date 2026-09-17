@@ -573,7 +573,7 @@ def analyze_workload(
                 entity, name = attribute.split(".", 1)
             else:
                 entity, name = next(iter(template.entity_types), "entity"), attribute
-            dtype = "string"
+            dtype = "unknown"
             for item in logical.attributes:
                 if qualify(item.entity_type, item.name) == attribute:
                     dtype = item.dtype

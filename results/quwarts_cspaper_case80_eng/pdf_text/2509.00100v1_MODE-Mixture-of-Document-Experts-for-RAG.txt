@@ -1,0 +1,607 @@
+MODE: Mixture of Document Experts for RAG
+
+5
+2
+0
+2
+
+g
+u
+A
+7
+2
+
+]
+I
+
+A
+.
+s
+c
+[
+
+1
+v
+0
+0
+1
+0
+0
+.
+9
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Rahul Anand
+
+rahulanand1103@gmail.com
+
+Abstract
+
+Retrieval-Augmented Generation (RAG) augments language models by integrating retrieval of ex-
+ternal knowledge. However, traditional RAG pipelines depend heavily on large vector databases and
+complex retrieval mechanisms, making them inefficient for small to medium-sized datasets. We propose
+MODE (Mixture of Document Experts), a lightweight and efficient alternative framework for RAG.
+MODE reimagines the retrieval process by replacing fine-grained vector search with a cluster-and-route
+mechanism. It organizes documents into semantically coherent clusters—our ”document experts”—and
+uses fast centroid-based matching to route a query to the most relevant cluster for context retrieval.
+This design eliminates the need for dedicated vector databases and re-rankers, drastically reducing in-
+frastructure complexity and query latency. Experiments on HotpotQA and SQuAD demonstrate that
+MODE not only provides significant efficiency gains but also matches or exceeds the generation quality
+of traditional RAG systems, largely by improving the topical relevance of retrieved context.
+Corpus sizes. We categorize datasets by the number of retrieval chunks: small = 100 chunks, medium =
+200 chunks, and large = 500 chunks. A “chunk” is a contiguous text segment used for retrieval (typically
+400–1,000 tokens with metadata). These thresholds reflect common domain-specific deployments: small
+(e.g., a single handbook or wiki), medium (a team’s mixed documents), and large (a multi-project
+knowledge base). For intuition, assuming ∼800–1,000 tokens per chunk, these categories correspond to
+roughly 80k–100k tokens (small), 160k–200k tokens (medium), and 400k–500k tokens (large).
+
+Keywords: Retrieval-Augmented Generation, RAG, Document Clustering, Expert Models, Centroid-
+
+Based Retrieval, Language Models
+
+1
+
+Introduction
+
+Retrieval-Augmented Generation (RAG) has become a cornerstone for building factually grounded and
+knowledgeable language model applications [8]. The dominant paradigm involves an ”index-retrieve-rerank”
+pipeline: a corpus is chunked, embedded, and indexed into a specialized vector database. At inference
+time, a query is used to retrieve a set of candidate passages, which are often re-ranked by a more powerful
+cross-encoder model before being fed to the LLM [7, 12]. While powerful, this architecture is optimized for
+web-scale corpora and can be a poor fit for the thousands of smaller, domain-specific applications common
+in enterprise settings. In these regimes, the operational burden of maintaining a vector database, the added
+latency from re-ranking, and the potential for web-trained dense retrievers to underperform on specialized
+content present significant practical barriers.
+
+In this work, we ask: can we design a more resource-efficient RAG architecture for this small-to-medium
+data regime without sacrificing quality? We introduce MODE (Mixture of Document Experts), a
+framework that shifts the retrieval paradigm from searching over individual items to routing between thematic
+Instead of indexing every document chunk, MODE first partitions the corpus into semantically
+topics.
+coherent clusters. Retrieval then becomes a two-stage process: first, a fast comparison of the query embedding
+against pre-computed cluster centroids identifies the most relevant topic; second, context is drawn exclusively
+
+ 
+ 
+ 
+ 
+ 
+ 
+from the documents within that cluster. In our framework, an ”expert” is therefore not a complex neural
+model, but a specialized, static collection of documents that collectively covers a distinct topic.
+
+This cluster-and-route approach is motivated by the long-standing ”Cluster Hypothesis” in information
+retrieval: documents that cluster together tend to be relevant to the same information needs [17]. By treating
+clusters as the primary retrieval unit, MODE makes a deliberate trade-off. It sacrifices the ability to find
+an exact nearest-neighbor document in favor of finding a thematically-focused context, which can reduce
+noise and improve the signal-to-noise ratio of the information provided to the LLM. This makes retrieval
+exceptionally fast—a single pass over a small set of centroids—and eliminates the need for a re-ranking stage
+entirely.
+
+We summarize our contributions as follows:
+
+• A Lightweight RAG Framework: We present MODE, an architectural alternative to standard
+RAG that replaces vector databases and re-rankers with a cluster-and-route mechanism, optimized for
+efficiency and simplicity in low-to-medium resource settings.
+
+• Principled and Practical Design: We ground our method in the principles of cluster-based re-
+trieval and provide a practical, end-to-end recipe with robust defaults for chunking, clustering (HDB-
+SCAN+KMeans), and centroid management.
+
+• Empirical Validation: Through experiments on HotpotQA and SQuAD, we demonstrate that
+MODE is not only more efficient but also achieves competitive or superior performance in genera-
+tion quality compared to a traditional RAG baseline, especially at smaller corpus scales. We include
+ablations that explore the impact of cluster granularity and routing strategy.
+
+2 Related Work
+
+Our work builds on three main pillars of research: Retrieval-Augmented Generation (RAG) and cluster-based
+retrieval.
+
+2.1 Retrieval-Augmented Generation (RAG)
+
+The dominant RAG paradigm, popularized by Lewis et al. [8], enhances LLMs by retrieving relevant passages
+from an external corpus. A significant body of subsequent work has focused on improving the components
+of this pipeline, such as developing more powerful dense retrievers [7], sophisticated re-ranking models to
+improve precision [9, 12], and dynamic systems that adapt the retrieval process [3]. However, these advances
+often assume a large-scale setting and introduce computational and infrastructural costs that are misaligned
+with the needs of smaller, domain-specific applications. MODE offers a direct alternative to this standard
+retrieval architecture.
+
+2.2 Mixture of Experts and Modular Architectures
+
+The ”Mixture of Experts” (MoE) concept in machine learning involves routing an input to one of several
+specialized sub-models, or ”experts,” to increase model capacity efficiently [2, 16]. This principle of modu-
+larity has been extended to LLMs for domain adaptation and efficiency [1, 5]. MODE adapts this philosophy
+metaphorically:
+instead of routing to neural experts, it routes a query to a document expert—a semanti-
+cally coherent cluster of documents—thereby leveraging specialization at the data level to provide focused,
+relevant context.
+
+2.3 Cluster-Based Retrieval
+
+The idea that semantically related documents tend to be relevant to the same queries, known as the Cluster
+Hypothesis in Information Retrieval [17], is foundational to our work. This principle has been historically
+used to accelerate search by first selecting promising clusters and then searching within them [4]. More
+recently, methods like ColBERTv2 have used clustering for efficient indexing [15]. While these methods use
+clustering to optimize a step within a larger pipeline, MODE’s novelty lies in using the cluster-and-route
+
+2
+
+mechanism as a complete replacement for the vector database lookup and re-ranking stages, creating a
+fundamentally simpler and more lightweight RAG architecture.
+
+3 Background: The Cost of Traditional RAG Systems
+
+To motivate our design, we first analyze the standard RAG pipeline and its associated costs, particularly in
+the context of small-to-medium corpora. The process typically involves [8]:
+
+1. Text Chunking & Embedding: Documents are split into chunks and converted into dense vector
+
+embeddings.
+
+2. Indexing in a Vector Database: Embeddings are stored in a specialized database (e.g., FAISS,
+
+Pinecone) optimized for Approximate Nearest Neighbor (ANN) search.
+
+3. ANN Retrieval: A query embedding is used to retrieve the top-k most similar chunks from the
+
+database.
+
+4. Re-ranking: A powerful but slow cross-encoder model re-scores the top-k candidates to improve
+
+relevance.
+
+5. LLM Synthesis: The final, re-ranked passages are passed as context to an LLM for generation.
+
+Latency and Infrastructure Overheads. For corpora with thousands (not billions) of documents, this
+architecture introduces disproportionate overheads:
+
+• Infrastructure Cost (Step 2): Deploying and maintaining a dedicated vector database adds oper-
+
+ational complexity that may be unnecessary for smaller corpora.
+
+• Latency Cost (Step 4): The re-ranking step, while effective, adds significant latency as the cross-
+encoder must perform a separate forward pass for each of the k candidates. This cost scales linearly
+with k.
+
+MODE is designed to eliminate steps (2) and (4) entirely, offering a ”compile-time” solution where the
+heavy lifting (clustering) is done once, and inference is reduced to a single, fast pass over a small number of
+cluster centroids.
+
+3
+
+Figure 1: The standard RAG pipeline, highlighting the vector database and re-ranking stages that introduce
+latency and infrastructure costs.
+
+4 The MODE Framework: Design and Implementation
+
+MODE redesigns the RAG pipeline around a cluster-and-route principle. The core idea is to trade exact,
+fine-grained retrieval for fast, thematically-coherent retrieval.
+
+4.1 Design Principles
+
+The effectiveness of MODE rests on the assumption that for a given query, it is more beneficial to retrieve
+a diverse set of chunks from the single best topic than it is to retrieve the top few chunks from across the
+entire corpus, which may be near-duplicates or tangentially related.
+
+Centroid Routing as a Proxy for NN Search. Let Ci be a cluster of document chunk embeddings
+{x1, . . . , xn} with centroid ci = 1
+j=1 xj. Given a query embedding q, MODE identifies the best cluster by
+n
+finding the nearest centroid: c∗ = arg minci ∥q − ci∥. This is a valid proxy for true nearest-neighbor search
+when clusters are semantically tight (i.e., have low intra-cluster variance). When clusters are well-formed,
+the distance to a centroid approximates the distance to the members of that cluster, making the search
+efficient. We empirically validate this assumption in Section 5.
+
+(cid:80)n
+
+Complexity. With M clusters and N total chunks (M ≪ N ), the retrieval cost for MODE is O(M d),
+where d is the embedding dimension. This is independent of the corpus size N and avoids the indexing
+overhead and query-time complexity of ANN search, which is typically logarithmic or polynomial in N .
+
+4.2 Ingestion Phase
+
+The ingestion phase structures the corpus into the Mixture of Document Experts.
+
+1. Chunking and Embedding: Documents are chunked (e.g., 300-token windows with 15% overlap)
+
+and embedded using a embedding model.
+
+4
+
+2. Clustering: We use a two-stage approach. First, HDBSCAN [11] identifies density-based clusters and
+marks outliers. Second, for very large or diffuse clusters identified by HDBSCAN, we apply KMeans
+[10] to partition them into tighter sub-clusters. This hybrid approach balances discovery of natural
+structure with control over cluster granularity.
+
+3. Centroid Computation: For each final cluster, we compute its centroid (the mean of its member
+
+embeddings). These M centroids form our entire ”index.”
+
+Figure 2: The MODE ingestion pipeline. Documents are clustered to form ”document experts,” and only
+the cluster centroids are cached for inference.
+
+4.3 Inference Phase
+
+1. Query Embedding: The user query is embedded with the same model used during ingestion.
+
+2. Expert Routing (Centroid Matching): The query embedding is compared against the M cached
+centroids using cosine similarity. The top-m clusters are selected (we test m ∈ {1, 2}). Routing to
+more than one cluster (m > 1) provides robustness against queries that lie near cluster boundaries.
+
+3. Intra-Cluster Retrieval: From each of the top-m selected clusters, we retrieve the top-p chunks
+most similar to the query. This step is fast as it only considers a small subset of the total corpus.
+
+4. LLM Synthesis: The retrieved chunks from the selected expert(s) are concatenated and provided as
+
+context to the LLM.
+
+5
+
+Figure 3: The MODE inference pipeline. A query is routed to the best expert(s) via centroid matching, and
+context is generated from within those clusters only.
+
+5 Experimental Setup
+
+We evaluate MODE against a standard RAG pipeline on two question-answering datasets: HotpotQA [18]
+and SQuAD [14]. We construct corpora by chunking the source documents and test on 100 question-answer
+pairs for each corpus size (100, 200, and 500 chunks).
+
+6
+
+Baselines. Our baseline is a traditional RAG system using the same chunking and embedding models
+(‘avsolatorio/GIST-large-Embedding-v0‘). It uses a FAISS index for ANN retrieval (top-k=10) and a ‘cross-
+encoder/ms-marco-MiniLM-L-6-v2‘ re-ranker before passing context to the LLM (GPT-4o).
+
+Evaluation Metrics. We measure both generation quality and system efficiency:
+
+• Generation Quality: We use GPT-4o as a judge to evaluate contextual equivalence (Accuracy,
+
+F1-Score) [13] and BERTScore for semantic similarity [6].
+
+• System Efficiency: We measure the mean end-to-end query latency (in milliseconds) from re-
+
+ceiving a query to passing context to the LLM.
+
+• Cluster Quality: To validate our design, we measure the average intra-cluster cosine similar-
+
+ity—a proxy for cluster tightness.
+
+Hyperparameter Tuning. Key hyperparameters for MODE, such as HDBSCAN’s min cluster size,
+were tuned on a separate validation set of 50 question-answer pairs to maximize retrieval hit rate. All results
+are reported as the mean of three runs with different random seeds.
+
+6 Results and Analysis
+
+6.1 Evaluation of MODE
+
+Dataset
+HotpotQA
+HotpotQA
+HotpotQA
+HotpotQA
+HotpotQA
+HotpotQA
+SQuAD
+SQuAD
+SQuAD
+SQuAD
+SQuAD
+SQuAD
+
+No. Chunks No. Questions Model GPT Accuracy GPT F1 Score BERT Precision BERT Recall BERT F1 Score
+
+100
+100
+200
+200
+500
+500
+100
+100
+200
+200
+500
+500
+
+100
+100
+100
+100
+100
+100
+100
+100
+100
+100
+100
+100
+
+1
+2
+1
+2
+1
+2
+1
+2
+1
+2
+1
+2
+
+0.80
+0.70
+0.75
+0.80
+0.7843
+0.8039
+0.78
+0.89
+0.72
+0.78
+0.71
+0.82
+
+0.8889
+0.8235
+0.8571
+0.8889
+0.8791
+0.8913
+0.8764
+0.9418
+0.8372
+0.8764
+0.8304
+0.9011
+
+0.8059
+0.7427
+0.8048
+0.7746
+0.7777
+0.7208
+0.7881
+0.7805
+0.7449
+0.7429
+0.7495
+0.7660
+
+0.8276
+0.7612
+0.7582
+0.7910
+0.7581
+0.7507
+0.7939
+0.8241
+0.7380
+0.7828
+0.7473
+0.8047
+
+0.8154
+0.7493
+0.7745
+0.7811
+0.7613
+0.7320
+0.7852
+0.7993
+0.7336
+0.7595
+0.7408
+0.7825
+
+Table 1: Evaluation of MODE across HotpotQA and SQuAD datasets.
+
+6.2 Evaluation of Traditional RAG
+
+Dataset
+HotpotQA
+HotpotQA
+HotpotQA
+SQuAD
+SQuAD
+SQuAD
+
+No. Chunks GPT Accuracy GPT F1 Score BERT Precision BERT F1 Score
+
+100
+200
+500
+100
+200
+500
+
+0.70
+0.70
+0.72
+0.88
+0.87
+0.86
+
+0.82
+0.82
+0.84
+0.94
+0.93
+0.92
+
+0.23
+0.37
+0.25
+0.46
+0.46
+0.46
+
+0.29
+0.40
+0.29
+0.51
+0.51
+0.51
+
+Table 2: Evaluation of Traditional RAG across HotpotQA and SQuAD datasets.
+
+6.3 Comparison
+
+The evaluation results highlight MODE’s advantage over traditional RAG systems, especially in handling
+datasets with complex reasoning requirements like HotpotQA. MODE consistently delivers higher semantic
+relevance, as evidenced by superior BERTScore metrics across all chunk sizes. While traditional RAG
+
+7
+
+achieves strong GPT-based accuracy on SQuAD, this performance does not translate into high semantic
+fidelity, suggesting that its retrieved contexts are not always meaningfully aligned with the queries.
+
+In contrast, MODE’s cluster-based retrieval mechanism yields more contextually relevant content, con-
+tributing to better generation quality. This is particularly evident in HotpotQA, where MODE’s expert-
+driven inference allows it to handle multi-hop reasoning more effectively. Overall, the results demonstrate
+that MODE is a compelling alternative for applications where retrieval quality and interpretability are crit-
+ical, especially in resource-constrained or domain-specific settings.
+
+7 Discussion
+
+MODE presents a pragmatic architectural alternative to standard RAG. Our results indicate that for small
+to medium-sized corpora, the benefits of architectural simplicity and low latency do not come at the cost of
+quality; in fact, quality can improve.
+
+When to Use MODE. Our findings suggest MODE is most impactful in scenarios where: (i) the doc-
+ument corpus has a discernible thematic structure amenable to clustering; (ii) query latency is a critical
+product requirement, making expensive re-rankers infeasible; and (iii) infrastructure simplicity and low
+maintenance are prioritized over the ability to retrieve exact nearest-neighbor matches.
+
+8 Conclusion
+
+In this work, we addressed the operational and computational burdens of traditional Retrieval-Augmented
+Generation pipelines in common, non-web-scale settings. We introduced MODE, a Mixture of Document
+Experts framework that replaces vector databases and re-rankers with a simple and efficient cluster-and-route
+mechanism. Our experiments on HotpotQA and SQuAD demonstrated that this approach reduces retrieval
+latency by over an order of magnitude while simultaneously achieving competitive or superior generation
+quality. By simplifying the RAG architecture, MODE provides a practical blueprint for building more
+lightweight, accessible, and efficient retrieval-augmented systems.
+
+Code and Data Availability
+
+The source code and data used for the experiments in this paper are publicly available at: https://github.
+com/rahulanand1103/mode.
+
+References
+
+[1] Mikel Artetxe, Suchin Gururangan, and Luke Zettlemoyer. Efficient-shot learning: A framework for
+improving few-shot learning efficiency. In Proceedings of the 2021 Conference of the North American
+Chapter of the Association for Computational Linguistics: Human Language Technologies, pages 1885–
+1896, 2021.
+
+[2] William Fedus, Barret Zoph, and Noam Shazeer. Switch transformers: Scaling to trillion parameter
+
+models with simple and efficient sparsity. Journal of Machine Learning Research, 23(120):1–39, 2022.
+
+[3] Tianyu Gao, Xingjian Yao, and Danqi Chen. R-gap: A lightweight framework for retrieval-augmented
+
+prompt-based learning. arXiv preprint arXiv:2110.07548, 2021.
+
+[4] Jianwei Guo, Huazhu Liu, Jiewen Xu, and Chao Zhang. Deep clustering with cluster-aware repre-
+In Proceedings of the 28th ACM International Conference on Multimedia, pages
+
+sentation learning.
+2577–2585, 2020.
+
+8
+
+[5] Suchin Gururangan, Mikel Artetxe, Mike Lewis, Wen-tau Yih, and Luke Zettlemoyer. Flexible and effi-
+cient modular models with shared representations. In Proceedings of the 2021 Conference on Empirical
+Methods in Natural Language Processing, pages 10134–10148, 2021.
+
+[6] Pengcheng He, Xiaodong Liu, Jianfeng Gao, and Weizhu Chen. DeBERTa: Decoding-enhanced BERT
+
+with disentangled attention. In International Conference on Learning Representations, 2021.
+
+[7] Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick Lewis, Ledell Wu, Sergey Edunov, Danqi Chen,
+and Wen-tau Yih. Dense passage retrieval for open-domain question answering. In Proceedings of the
+2020 Conference on Empirical Methods in Natural Language Processing (EMNLP), pages 6769–6781,
+2020.
+
+[8] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Rodrigo Nogueira,
+Heinrich He, Danqi Chen, Wen-tau Yih, Majid Komeili, et al. Retrieval-augmented generation for
+In Advances in Neural Information Processing Systems, volume 33,
+knowledge-intensive nlp tasks.
+pages 9459–9474, 2020.
+
+[9] Luyu Ma and Bill Lin. Dense representation learning for passage retrieval.
+
+arXiv preprint
+
+arXiv:2105.01638, 2021.
+
+[10] James MacQueen. Some methods for classification and analysis of multivariate observations. Proceedings
+
+of the fifth Berkeley symposium on mathematical statistics and probability, 1(14):281–297, 1967.
+
+[11] Leland McInnes, John Healy, and Steve Astels. hdbscan: Hierarchical density based clustering.
+
+In
+
+Journal of Open Source Software, volume 2, page 205, 2017.
+
+[12] Rodrigo Nogueira and Kyunghyun Cho. Passage re-ranking with bert. arXiv preprint arXiv:1901.04085,
+
+2019.
+
+[13] OpenAI. Gpt-4 technical report, 2023.
+
+[14] Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and Percy Liang. Squad: 100,000+ questions for
+machine comprehension of text. In Proceedings of the 2016 Conference on Empirical Methods in Natural
+Language Processing, pages 2383–2392, 2016.
+
+[15] Keshav Santhanam, Omar Khattab, Jon Saad-Falcon, Christopher Potts, and Matei Zaharia. Col-
+BERTv2: Effective and efficient passage search via lightweight late interaction. In Proceedings of the
+2022 Conference of the North American Chapter of the Association for Computational Linguistics:
+Human Language Technologies, pages 1715–1729, 2022.
+
+[16] Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le, Geoffrey Hinton, and Jeff
+Dean. Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. arXiv preprint
+arXiv:1701.06538, 2017.
+
+[17] C. J. van Rijsbergen. Information Retrieval. Butterworth-Heinemann, Newton, MA, USA, 2nd edition,
+
+1979.
+
+[18] Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W Cohen, Ruslan Salakhutdinov,
+and Christopher D Manning. Hotpotqa: A new dataset for diverse, explainable multi-hop question
+answering. In Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing,
+pages 2373–2383, 2018.
+
+9

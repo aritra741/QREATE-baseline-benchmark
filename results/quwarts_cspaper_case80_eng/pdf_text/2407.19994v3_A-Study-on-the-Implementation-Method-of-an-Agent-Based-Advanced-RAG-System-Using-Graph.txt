@@ -1,0 +1,1209 @@
+A Study on the Implementation Method 
+of an Agent-Based Advanced RAG 
+System Using Graph 
+
+Cheonsu Jeong1 
+
+1 Dr. Jeong is Principal Consultant & the Technical Leader for AI Automation at SAMSUNG SDS; 
+
+Abstract 
+This study aims to improve knowledge-based question-answering (QA) systems by overcoming the limitations of 
+
+existing Retrieval-Augmented Generation (RAG) models and implementing an advanced RAG system based on 
+Graph technology to develop high-quality generative AI services. While existing RAG models demonstrate high ac-
+
+curacy and fluency by utilizing retrieved information, they may suffer from accuracy degradation as they generate 
+responses using pre-loaded knowledge without reprocessing. Additionally, they cannot incorporate real-time data 
+
+after the RAG configuration stage, leading to issues with contextual understanding and biased information. 
+To address these limitations, this study implemented an enhanced RAG system utilizing Graph technology. This system 
+
+is designed to efficiently search and utilize information. Specifically, it employs LangGraph to evaluate the reliability 
+
+of retrieved information and synthesizes diverse data to generate more accurate and enhanced responses. Furthermore, 
+the study provides a detailed explanation of the system's operation, key implementation steps, and examples through 
+
+implementation code and validation results, thereby enhancing the understanding of advanced RAG technology. This 
+approach offers practical guidelines for implementing advanced RAG systems in corporate services, making it a valu-
+
+able resource for practical application. 
+
+Keywords 
+Advance RAG; Agent RAG; LLM; Generative AI; LangGraph 
+
+I. Introduction 
+
+Recent advancements in AI technology have brought sig-
+nificant attention to Generative AI. Generative AI, a form 
+of artificial intelligence that can create new content such 
+as text, images, audio, and video based on vast amounts 
+of trained data models (Jeong, 2023d), is being applied in 
+various fields, including daily conversations, finance, 
+healthcare, education, and entertainment (Ahn & Park, 
+2023). As generative AI services become more accessible 
+
+to the general public, the role of generative AI-based chat-
+bots is becoming increasingly important (Adam et al., 
+2021; Przegalinska et al., 2019; Park, 2024). A chatbot is 
+an intelligent agent that allows users to have conversa-
+tions typically through text or voice (Sánchez-Díaz et al., 
+2018; Jeong & Jeong, 2020). Recently, generative AI 
+chatbots have advanced to the level of analyzing human 
+emotions and intentions to provide responses (Jeong, 
+2023a). With the advent of large language models 
+(LLMs), these chatbots can now be utilized for automatic 
+
+* Corresponding Author: Cheonsu Jeong; paripal@korea.ac.kr 
+
+1 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+composition flow of advanced RAG, the configuration of 
+Agent RAG, and other enhanced features. The implemen-
+tation of the advanced RAG system details the overview 
+and application of LangGraph, the system implementa-
+tion process, and the results. The testing section presents 
+the improved results of the implemented code. Finally, 
+the conclusion summarizes the research findings, dis-
+cusses the limitations, and outlines directions for future 
+research. 
+
+II. Related Work 
+
+For this study, recent key research papers, journals, 
+and articles related to the RAG model were re-
+viewed. This section provides an overview of the 
+RAG model and describes the advancements leading 
+to the development of the Advanced RAG. 
+
+2.1. Overview of the RAG Model 
+The RAG (Retrieval-Augmented Generation) model 
+combines retrieval and generation to produce answers by 
+integrating document retrieval and generation models 
+(Lewis et al., 2020). To generate an answer to a question, 
+the model first retrieves relevant documents and then uses 
+them to produce the response. This process helps in gen-
+erating accurate answers to questions. The RAG model 
+can handle various types of questions effectively, even 
+when there is a lack of specific domain knowledge. Con-
+sequently, it enhances the accuracy and consistency of in-
+formation compared to traditional generative models. 
+
+The RAG model consists of two main stages: 
+
+• Retrieval Stage: Information relevant to the 
+given question is retrieved through a search en-
+gine. 
+
+• Generation Stage: Answers are generated 
+
+based on the retrieved information. 
+
+2.1.1. RAG Model Implementation Flow 
+The RAG model performs text generation tasks by re-
+trieving information from a given source data and using 
+that information to generate the desired text. The data pro-
+cessing for using RAG involves dividing the original data 
+into smaller chunks, embedding the text data by convert-
+ing it into numerical vectors, and storing these vectors in 
+a vector store (Microsoft, 2023). The implementation 
+flow of a generative AI service based on the RAG model 
+2023e). 
+is 
+
+depicted 
+
+(Jeong, 
+
+Figure 
+
+in 
+
+1 
+
+dialogue generation and translation (Jeong, 2023b). How-
+ever, they may generate responses that conflict with the 
+latest information and have a low understanding of new 
+problems or domains as they rely on previously trained 
+data (Jeong, 2023c). While 2023 was marked by the re-
+lease of foundational large language models (LLMs) like 
+ChatGPT and Llama-2, experts predict that 2024 will be 
+the year of Retrieval Augmented Generation (RAG) and 
+AI Agents (Skelter Labs, 2024). 
+However, there are several considerations for companies 
+looking to adopt generative AI services. Companies must 
+address concerns such as whether the AI can provide ac-
+curate responses based on internal data, the potential risk 
+of internal data leakage, and how to integrate generative 
+AI with corporate systems. Solutions include using do-
+main-specific fine-tuned LLMs and enhancing reliability 
+with RAG that utilizes internal information (Jung, 2024). 
+When domain-specific information is fine-tuned on GPT-
+4 LLM, accuracy improves from 75% to 81%, and adding 
+RAG can further increase accuracy to 86% (Angels et al., 
+2024). RAG models are known for effectively combining 
+internal knowledge retrieval and generation to produce 
+more accurate responses. They offer the advantages of 
+source-based fact provision and addressing data freshness 
+issues through the integration of internal and external 
+knowledge bases. However, the effectiveness of RAG 
+models heavily depends on the quality of the database, 
+directly impacting model performance (Kim, 2024). Tra-
+ditional RAG models load knowledge once and generate 
+responses without reprocessing, leading to accuracy deg-
+radation and an inability to reflect real-time data after the 
+RAG configuration. This process can result in inaccurate 
+responses, particularly when generating answers to com-
+plex questions, as the initial vectorized knowledge is used 
+without updating with new information. Furthermore, tra-
+ditional RAG models struggle to handle various types of 
+questions and may suffer from unrelated documents being 
+used in response due to poor retrieval strategies, along 
+with the hallucination issues observed in LLMs. 
+The purpose of this study is to improve the traditional 
+RAG model-based knowledge-based QA system (Jeon et 
+al., 2024) and overcome its limitations by accessing real-
+time data and verifying whether the retrieved documents 
+are genuinely relevant to the questions. By implementing 
+an enhanced RAG system capable of addressing ques-
+tions about recent events and real-time data, and being 
+less susceptible to hallucinations, this study aims to im-
+prove the quality and performance of generative AI ser-
+vices. 
+The introduction of this paper explains the research back-
+ground and objectives, the limitations of existing RAG 
+models, the importance and contributions of the study, 
+and the structure of the paper. The theoretical background 
+reviews the overview of RAG models, advanced RAG ap-
+proaches, and case studies of existing research improve-
+ments. The design of the advanced RAG model covers the 
+
+Cheonsu Jeong 
+
+2 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+processing from external repositories. Recently, various 
+Advanced RAG (Advanced Retrieval-Augmented Gener-
+ation) methods have been proposed to address the limita-
+tions of conventional RAG. Advanced RAG represents an 
+evolved form of the traditional RAG technique, incorpo-
+rating various optimization methods to overcome its lim-
+itations. Recent research by Yunfan G. et al. introduces 
+an optimization strategy that divides the retrieval process 
+into Pre-Retrieval, Retrieval, and Post-Retrieval stages, 
+significantly enhancing information accuracy and pro-
+cessing efficiency through optimization at each stage 
+(Yunfan G. et al., 2024). Additionally, various improve-
+ment methods, such as re-ranking based on relevance to 
+enhance accuracy, have been proposed as strategies for 
+improving the quality of RAG systems (Jang Dong-jin, 
+2024), as outlined in Table 1 (Matt A., 2023). Frame-
+works like LangChain or LlamaIndex provide libraries 
+for implementing these strategies, making the implemen-
+tation process more straightforward. 
+
+Table 1: Methods to Enhance RAG Performance 
+
+Method 
+
+Descriptions 
+
+Clean your 
+data 
+
+Explore dif-
+ferent index 
+types 
+
+Experiment 
+with your 
+chunking 
+approach 
+
+Play around 
+with your 
+base prompt 
+
+When dealing with conflicting or redundant in-
+formation, it becomes challenging to find the 
+correct context during retrieval. To ensure accu-
+rate responses to queries, it is essential to 
+properly structure the documents themselves. 
+One approach is to create summaries for all doc-
+uments and use these summaries as context. 
+
+While embedding-based similarity search meth-
+ods generally perform well, they are not always 
+the best solution. For example, in e-commerce, 
+keyword-based search methods may be more 
+suitable for finding specific items such as prod-
+ucts. Many systems employ hybrid approaches, 
+where keyword-based searches are used for spe-
+cific products, and embedding-based searches 
+are applied for general customer information 
+and support. 
+
+Chunk size is critically important, with smaller 
+chunks typically yielding better performance; 
+however, they may also lead to issues related to 
+insufficient surrounding context. Generally, 
+smaller chunk sizes aid search systems in iden-
+tifying relevant contextual information more ef-
+fectively. 
+
+To reduce hallucinations, prompting should be 
+designed to ensure that responses are based 
+solely on the given contextual information. For 
+example: "You are a customer support repre-
+sentative, designed to provide assistance based 
+on factual information only. Please answer que-
+ries based on the given context information, not 
+on pre-trained knowledge." 
+
+Try meta- After adding relevant metadata tags to the 
+
+Figure 1: Implementation Flow of a RAG-based Gener-
+ative AI Service 
+
+2.1.2. RAG-Based Vector Store Types 
+To establish a RAG (Retrieval-Augmented Generation) 
+system, a vector database is utilized to store knowledge. 
+A typical vector pipeline for vector databases involves 
+three stages: Indexing, Querying, and Post Processing 
+(Devtorium, 2023). Specifically, RAG-based vector store 
+configurations can be categorized into two types as illus-
+trated in Figure 2: one where all source data is pre-stored 
+in the vector store and another where data is dynamically 
+inserted at query time. 
+
+Figure 2: Configuration Types and Processing Proce-
+dures of RAG-Based Vector Stores 
+
+When a company offers internal knowledge through an 
+Open LLM (Large Language Model), ensuring security is 
+a critical issue, making the use of Local LLMs essential. 
+In this scenario, it is effective to employ multiple Local 
+LLMs, each optimized for different tasks. For instance, 
+one LLM might be specialized in generating database 
+queries to retrieve relevant data from multiple source da-
+tabases, while another LLM could be developed to pro-
+vide answers based on specific domain knowledge (Jeong, 
+2023e). 
+
+2.2. Prior Research on Advanced RAG 
+
+2.2.1. Methods to Enhance RAG Performance 
+
+The performance of RAG (Retrieval-Augmented Gener-
+ation) is influenced by the quality of the data that can be 
+composed into prompts based on the results of question 
+
+Cheonsu Jeong 
+
+3 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+data filter-
+ing 
+
+chunks (such as document title, page number, 
+email, date, etc.), these tags are used to process 
+the results. 
+
+Use query 
+routing 
+
+Having multiple indexes is often beneficial. 
+When a query is received, it can then be routed 
+to the appropriate index. For example, there 
+may be one index for handling summary ques-
+tions, another for addressing factual questions, 
+and a third index suited for date-sensitive in-
+quiries. 
+
+Look into 
+reranking 
+
+Using re-ranking allows the search system to re-
+trieve the top similar nodes based on context, 
+and then re-rank them according to relevance, 
+thereby enhancing accuracy. 
+
+Consider 
+query trans-
+formations 
+
+If the relevant context for the initial question 
+cannot be found, modifying the question and re-
+trying can improve answer accuracy. This can 
+be implemented in the RAG system by allowing 
+the query to be decomposed into multiple ques-
+tions. 
+
+Fine-tune 
+your em-
+bedding 
+model 
+
+When the context or domain does not align, 
+fine-tuning the embedding model can enhance 
+performance, particularly for domain-specific 
+terminology. For example, this can involve 
+adapting the model to better handle specialized 
+vocabulary pertinent to a specific domain. 
+
+Start using 
+LLM dev. 
+tools 
+
+When building a RAG system using LlamaIn-
+dex or LangChain, debugging tools can be uti-
+lized to identify the sources of documents and 
+context. 
+
+2.2.2. Research on Advanced RAG Types 
+
+Notable advanced RAG approaches currently being re-
+searched include the following: 
+
+• Self-RAG: This method involves re-searching 
+generated responses to find relevant information 
+and using it to refine the answers. This approach 
+can enhance the accuracy and fluency of the re-
+sponses (Asai A. et al., 2023). 
+
+• Corrective RAG: This approach employs a 
+
+Corrective Agent to rectify errors in generated 
+responses. The Corrective Agent identifies er-
+rors in the responses and retrieves information to 
+correct them, thereby improving the reliability 
+of the answers (Yan, S.Q. et al., 2024). 
+
+• Adaptive RAG: This method involves selecting 
+the appropriate RAG approach based on the type 
+of question. For instance, Self-RAG may be 
+used for factual questions, while Corrective 
+RAG could be employed for opinion-based 
+questions. By choosing the appropriate method 
+according to the question type, the accuracy of 
+the responses can be improved (Jeong, S. et al., 
+2024). 
+
+III. Design of Advanced RAG 
+
+Models 
+
+In this chapter, various Advanced RAG ap-
+proaches proposed in previous research are re-
+viewed, and an enhanced RAG system is de-
+signed based on these findings. Specifically, we 
+closely analyze methods such as Self-RAG, 
+Corrective RAG, and Adaptive RAG, and pre-
+sent an implementation model as shown in Fig-
+ure 3 based on the improvements derived from 
+these analyses. The implementation of the 
+Agent RAG system primarily builds on Correc-
+tive RAG, while referencing Self-RAG and 
+Adaptive RAG. The workflow to enhance a typ-
+ical RAG system involves retrieving document 
+chunks from a vector database and then using 
+an LLM to verify the relevance of each re-
+trieved document chunk to the input query. If 
+all retrieved document chunks are relevant, the 
+system proceeds with the standard RAG pipe-
+line to generate a response using the LLM. 
+However, if some retrieved documents are 
+deemed irrelevant to the input query, the input 
+
+Cheonsu Jeong 
+
+Figure 3: Agent-based advanced RAG workflow 
+
+4 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+query is rephrased, and the web is searched for 
+new information relevant to the query. This new 
+information is then sent to the LLM to generate 
+a response. This workflow is implemented us-
+ing a graph-based approach for the Advanced 
+RAG system. 
+
+3.1. Design of Advanced RAG Execution 
+
+Procedures 
+
+The Advanced RAG model maintains the basic flow 
+of a traditional RAG model while incorporating ad-
+ditional processes after the search stage to enhance 
+the accuracy and consistency of responses. The com-
+position and flow of the Advanced RAG model are 
+designed as follows: 
+
+① Query Processing: Input the user's query, 
+and analyze and understand the precise 
+meaning of the query through intent recog-
+nition and analysis. 
+
+② Search: Utilize search engines to explore 
+and retrieve information from various 
+sources related to the query. 
+
+③ Candidate Selection: Select information 
+from the search results that is highly rele-
+vant and reliable to the query as candidates. 
+
+④ Candidate Ranking: Rank the selected 
+candidates based on their relevance to the 
+query, the reliability of the information, and 
+diversity. 
+
+⑤ Answer Generation: Use a text generation 
+model to create an answer based on the 
+ranked candidate information. 
+
+⑥ Answer Updating: Continuously collect 
+new information and update the answer to 
+provide the most current information. 
+
+The operation of the Advanced RAG model is as fol-
+lows: 
+
+① Input the question. 
+
+② Search for information related to the ques-
+
+tion using a search engine. 
+
+③ Extract relevant information related to the 
+
+Cheonsu Jeong 
+
+question from the search results using an 
+information extractor. 
+
+④ Generate an answer based on the extracted 
+
+information. 
+
+⑤ The Agent refines the answer to enhance its 
+
+accuracy and fluency. 
+
+⑥ Output the final answer. 
+
+3.2. Application of Agent RAG 
+
+To apply the enhanced execution procedures, the 
+Agent RAG framework incorporates the concept of 
+an "Agent" into the answer generation process, 
+thereby further improving the accuracy and con-
+sistency of responses. The Agent serves as a core el-
+ement in the answer generation process, fulfilling the 
+following roles: 
+
+• Answer Evaluation: Assessing the accu-
+racy, fluency, and reliability of the gener-
+ated responses. 
+
+• Answer Improvement: Enhancing the re-
+sponses based on the evaluation results. 
+
+• 
+
+Information Retrieval: Searching for 
+necessary information to improve the re-
+sponses. 
+
+3.3. Application of the LangGraph Module 
+
+LangGraph is a module released by LangChain de-
+signed to build stateful multi-actor applications us-
+ing LLMs. It is utilized to create Agent and multi-
+Agent workflows, allowing for the definition of 
+flows that include essential cycles for most Agent ar-
+chitectures, and providing detailed control over the 
+application's flow and state, which is critical for cre-
+ating reliable Agents (LangGraph, 2024). 
+
+Built on top of LangChain, LangGraph facilitates the 
+development of AI agents driven by LLMs by creat-
+ing essential cyclic graphs. LangGraph treats Agent 
+workflows as cyclic graph structures. Specifically, 
+the LangGraph Conversational Retrieval Agent of-
+fers various functionalities essential for the develop-
+ment of language-based AI applications, including 
+language processing, AI model integration, database 
+management, and graph-based data processing. It is 
+composed of states, nodes, and edges and performs 
+the following roles: 
+
+• Complex Workflow Management: Use-
+ful for structuring and managing state-
+
+5 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+based workflows, with clear transitions and 
+branching for each stage. 
+
+• Clear Flow Control: Allows for precise 
+definition of relationships between nodes 
+and edges, facilitating the implementation 
+of complex conditional logic and state tran-
+sitions. 
+
+• Scalability: Enables easy addition of new 
+nodes and edges to expand the workflow, 
+accommodating complex systems with var-
+ious conditional logic. 
+
+This study proposes using LangGraph, which offers 
+a range of functionalities, as a suitable tool for im-
+plementing Agent-based Advanced RAG systems. 
+
+• LLM: OpenAI GPT-4-turbo Model 
+
+• Python Development Environment: Google Colab 
+
+4.2. Results of the step-by-step implementation 
+
+4.2.1. Installation of Basic Libraries and API Key Setup 
+
+Basic libraries, including LangChain for overall orches-
+tration of tasks such as data splitting, OpenAI for API ac-
+cess, ChromaDB for storing RAG knowledge, and a web 
+search library, were installed. To facilitate easy manage-
+ment of knowledge files, Google Drive was integrated 
+with Colab. To ensure security, the keys for various mod-
+ules were registered in a .env file at a specific location. 
+Figure4 shows that the .env file containing the keys was 
+successfully read. 
+
+IV. Implementation Results of the 
+
+Advanced RAG System 
+
+This chapter presents the implementation of the RAG 
+model and LangChain framework based on the Advanced 
+RAG concepts introduced in Chapter 3, utilizing data 
+suitable for internal corporate use. The implementation 
+approach and considerations for using LangGraph, which 
+is well-suited for Agent implementation, are demon-
+strated through practical examples. 
+
+4.1. Development Environment 
+The solutions and development platforms applied in this 
+case are based on the framework outlined in Figure 1, and 
+the implementation method utilizing LangGraph and 
+OpenAI LLM is described. The process involves chunk-
+ing and embedding documents, storing them in Chro-
+maDB, and then transforming them into retrievers for 
+document content search. The results are evaluated, and 
+an Agent RAG Graph is defined and implemented accord-
+ingly. The development was carried out using Python, 
+which provides a range of libraries necessary for 
+ AI development. 
+
+The development environment for each implementation 
+component is as follows: 
+• Orchestration Framework: LangChain 
+
+• Agent Graph Workflow: LangGraph 
+
+• Workflow Trace: LangSmith 
+
+• Data Extraction and Chunking: LangChain Modules 
+
+• Embedding: OpenAI 
+
+• Vector Database: Chroma 
+
+Cheonsu Jeong 
+
+Figure 4: Installation of Basic Libraries and OpenAI 
+API Key Configuration 
+
+4.2.2. Retriever Implementation 
+
+For managing internal documents, such as 'Dress Code 
+Standards.pdf’', the PyPDFLoader is used to load the doc-
+ument from the specified location. Given the document's 
+characteristics, which include tables, the TextSplitter is 
+adjusted. Instead of using the CharacterTextSplitter with 
+a single delimiter (e.g., newline), the RecursiveCharacter-
+TextSplitter is employed by adjusting the ‘chunk_size’ 
+and ‘chunk_overlap’ parameters to efficiently maintain 
+context. The split documents are stored in the Chroma 
+vector store, embedded using OpenAIEmbeddings, and 
+then converted into retrievers for search purposes. 
+
+6 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Figure 5: Data Loading and Embedding 
+
+4.2.3. Evaluation of Search Results 
+
+To assess whether the retrieved documents are relevant 
+to the given question, the implementation is as shown in 
+Figure 6. 
+
+Figure 7: Relevance Determination of Search Results 
+
+Subsequently, a question-answer RAG chain is con-
+structed, similar to traditional RAG systems, to integrate 
+with the AI agent as shown in Figure 8. 
+
+Figure 6: Implementation of Search Results Evaluation 
+
+The retrieved documents are linked to user questions. If 
+the document contains keywords related to the user’s 
+query, it is assessed for relevance with the aim of filtering 
+out irrelevant searches. As depicted in Figure 7, relevance 
+is indicated by assigning a binary score of 'yes' or 'no' 
+(e.g., “GRADE: binary_score='yes'”). 
+
+Figure 8: Question-Answer RAG Chain 
+
+Using the constructed question-answer RAG chain, the 
+relevant answer results are obtained as illustrated in Fig-
+ure 9. 
+
+Figure 9: Answer Processing for Related Questions 
+
+However, as shown in Figure 10, when an out-of-context 
+question is attempted, the response "RAG does not have 
+relevant information" is received, indicating that the 
+question cannot be answered. 
+
+Cheonsu Jeong 
+
+7 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 10: Answer Processing for Unrelated Questions 
+
+To improve this, the question can be rephrased into a 
+more optimized version for web search, as shown in Fig-
+ure 11. Rewriting the question (question rewriting) helps 
+obtain better contextual information from the web. For 
+example, an incomplete question like "Tell me what is the 
+capital of the country where BTS is located" can be im-
+proved to "What is the capital of South Korea, the country 
+where BTS is from?" 
+
+Figure 13: Evaluation of Answer Relevance 
+
+4.2.4. Definition of the Agent RAG Graph 
+
+To enhance answer retrieval, the Tavily API is used for 
+web searches, and the connection to this API is estab-
+lished. The Graph State of the Agent is defined, where the 
+state object is passed to each node in the graph. Nodes 
+such as Retrieve, generate_answer, grade_documents, 
+and web_search_add are defined as shown in Figure 14. 
+
+Figure 11: Question Rewriting and Improved Question 
+
+Additionally, the generated answers are evaluated to de-
+termine if they contain hallucinations, as depicted in Fig-
+ure 12. 
+
+Figure 14: Definition of Web Search Tool and Agent 
+Graph State
+
+Figure 12: Evaluation of Hallucinations 
+
+Subsequently, the answers are assessed for their utility in 
+solving the question, as shown in Figure 13. A binary 
+score of 'yes' or 'no' is assigned to indicate whether the 
+answer is useful for solving the question. 
+
+Figure 15: Example of Retrieve Node Graph Implemen-
+tation 
+
+Retrieve, 
+
+The Agent RAG Graph can be composed of nodes such 
+as 
+rewrite_query, 
+grade_documents, 
+web_search_add, and generate_answer, as illustrated in 
+Figure 14. The State, consisting of a set of messages, is 
+used to store and represent the state of the agent graph as 
+it passes through various nodes. Figure 15 shows the im-
+plementation example of the Retrieve Node Graph, which 
+is used to fetch relevant contextual documents from the 
+vector database. It also defines the node classes for docu-
+ment evaluation (grade_documents), question rewriting 
+(rewrite_query), web searching (web_search_add), and 
+
+Cheonsu Jeong 
+
+8 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+answer generation (generate_answer). 
+
+4.2.5. Implementation of the Agent RAG Graph 
+
+In the implementation phase of the Agent RAG Graph, 
+LangGraph is used to build the Agent into a graph by uti-
+lizing the functions developed in the previous section. 
+This involves placing the Agent into relevant nodes and 
+connecting them with defined edges according to the 
+specified workflow. The Agent performs an action that 
+calls the Retrieve function and then adds output infor-
+mation to the state before invoking the Agent. As shown 
+in Figure 16, the StateGraph class is used to define and 
+manage the state-based graph. The provided code sets up 
+the workflow to define the process for retrieving docu-
+ments or performing other tasks based on the Agent's de-
+cisions. 
+
+Figure 17: Graph of the Answer Generation Process 
+
+4.3. Test Results 
+
+The implemented Agent RAG workflow was tested with 
+various questions to improve the accuracy of the answers, 
+and the process of streaming responses to questions can 
+stream method. 
+be 
+
+confirmed 
+
+through 
+
+the 
+
+Figure 16: Node Definition and Graph Creation for An-
+swer Generation 
+
+After the retrieve node, document evaluation 
+(grade_documents) is performed to determine whether to 
+proceed with generate or web_search tasks. This in-
+cludes completing the tasks along each path or returning 
+to the Agent. This process is used to manage complex 
+decisions and task flows, ultimately compiling the work-
+flow to create an executable application. The generated 
+workflow can be visualized using IPython.display, as 
+shown in Figure 17. 
+
+4.3.1. Verification of Questions in RAG Knowledge In-
+
+formation 
+
+When the question "Tell me the things to consider when 
+choosing a work uniform" was input for the document 
+‘Dress Code Standards’ Figure 18, which is RAG infor-
+mation, the question was rewritten to "What are the main 
+factors to consider when choosing a work uniform?" to 
+improve the accuracy of the answer. This resulted in a 
+more accurate response. This process can be confirmed 
+through the streaming of responses to questions using the 
+stream method as shown in Figure 19. 
+
+Cheonsu Jeong 
+
+9 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+resulting in the correct answer "The capital of South Ko-
+rea is Seoul." This process can be confirmed through the 
+streaming process as shown in Figure 20. 
+
+Figure 20Answer Generation Process through Web 
+Search for Information Not in RAG Knowledge 
+
+As shown in Figure 21 by tracing the execution using 
+LangSmith, it can be confirmed that the process of gener-
+ating answers through web search for information not in 
+the RAG knowledge base proceeded according to the de-
+signed Agent workflow (retrieve, grade_documents, re-
+write_query, web_search, generate_answer). 
+
+Figure 18: Dress Code Standards.pdf 
+
+Figure 19: Answer Generation Process for Information 
+in RAG Knowledge 
+
+Figure 21 Workflow Trace via LangSmith 
+
+4.3.2. Verification of Questions Not in RAG 
+
+Knowledge Information 
+
+When the question "Tell me what is the capital of the 
+country where BTS is located" was input, which is not in 
+the RAG knowledge information, it was determined to 
+"perform a web search because all Vector RAG docu-
+ments are irrelevant to the question." The incomplete ini-
+tial question "Tell me what is the capital of the country 
+where BTS is located" was rewritten to a complete and 
+rewritten question " What is the capital of South Korea, 
+the country where BTS is from?" and the query was made, 
+
+Cheonsu Jeong 
+
+V. Conclusion and Discussion 
+
+This study has reviewed various methods to enhance the 
+accuracy of RAG and explored the theoretical back-
+ground of Advanced RAG models aimed at improving 
+knowledge-based QA systems. Through the implementa-
+tion of a graph-based Agent RAG system, along with spe-
+cific implementation code and validation results, this re-
+search has demonstrated the feasibility of an enhanced 
+RAG system. 
+
+10 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+The proposed graph-based Advanced RAG system offers 
+a novel approach that significantly improves RAG perfor-
+mance, addressing the limitations of existing RAG mod-
+els. The experimental results show that this system mark-
+edly enhances the accuracy and relevance of responses to 
+user queries. The utilization of LangGraph's graph tech-
+nology has effectively assessed the reliability of infor-
+mation, contributing to the improvement of information 
+quality through question rewriting and web search opti-
+mization. By enhancing real-time data accessibility and 
+strengthening the system's ability to handle various types 
+of questions, the LangGraph-based method has expanded 
+the potential applications of AI-driven customer support 
+and information retrieval. These findings provide a cru-
+cial foundation for the advancement of RAG-based gen-
+erative AI services. 
+
+However, several limitations remain. The LangGraph-
+based system is optimized for specific domains, which 
+may result in performance degradation when applied to 
+other fields. Additionally, the system's complexity may 
+require additional resources for implementation and 
+maintenance. Further validation processes are necessary 
+to ensure the accuracy and reliability of real-time data, 
+which could impact overall system performance. 
+
+Future research should focus on improving the generali-
+zability of graph-based RAG systems. Expanding the sys-
+tem's applicability through testing and optimization 
+across various domains, as well as developing and vali-
+dating algorithms to enhance real-time data reliability, 
+will be essential for further performance improvements. 
+Lastly, given the rapid advancements in RAG technology, 
+it is crucial to not only keep pace with technological pro-
+gress but also to deeply understand and continually im-
+prove how information is retrieved and how accurate and 
+reliable answers are generated. 
+
+References 
+
+1. Adam, M., Wessel, M., & Benlian, A. (2021). AI-
+based chatbots in customer service and their ef-
+fects on user compliance. Electronic Markets, 
+31(2), 427-445. 
+
+2. Ahn, J., & Park, H. (2023). Development of a 
+Case-Based Nursing Education Program Using 
+Generative Artificial Intelligence. Journal of Ko-
+rean Academic Society of Nursing Education, 
+29(3), 
+234-246. 
+https://doi.org/10.5977/jkasne.2023.29.3.234 
+3. Anderson JC. Current status of chorion villus bi-
+opsy. In: Tudenhope D, Chenoweth J, editors. 
+Proceedings of the 4th Congress of the Australian 
+
+Cheonsu Jeong 
+
+11 
+
+Perinatal Society; 1986. Brisbane, Queensland: 
+Australian Perinatal Society; 1987. p. 190-6. 
+4. Angels B., Vinamra B., Renato L., et al., (2024, 
+January 30). RAG vs Fine-tuning: Pipelines, 
+Tradeoffs, and a Case Study on Agriculture. arXiv 
+preprint arXiv:2401.08406. 
+
+5. Asai A., Wu Z., Wang Y., Sil A., Hajishirzi H., 
+(2023, October 17). Self-RAG: Learning to Re-
+trieve, Generate, and Critique through Self-Re-
+flection. arXiv preprint arXiv:2310.11511. 
+6. Devtorium. (2023, July 26). How Vector Data-
+bases Can Enhance Custom AI Solutions. 
+https://devtorium.com/blog/how-vector-data-
+bases-can-enhance-custom-ai-solutions/ 
+
+7. Jang, D. (2024, February 24). Enhancing Search-
+Augmented Generation (RAG) Performance Us-
+ing Korean Reranker. Retrieved 
+from 
+https://aws.amazon.com/ko/blogs/tech/korean-re-
+ranker-rag/ 
+
+8. Jeon, J., Kim, S., Kim, J., & Yoon, S. (2024, Jan-
+uary 31). Solving Knowledge-Based QA Prob-
+lems Using Search-Augmented Generation (RAG) 
+Technology on Web Application Servers (WAS). 
+Proceedings of the Korean Institute of Communi-
+cations and Information Sciences Conference, 
+Gangwon. 
+
+12(1), 
+
+9. Jeong, C. S., & Jeong, J. H. (2020). A Study on 
+the Method of Implementing an AI Chatbot to Re-
+spond to the POST COVID-19 Untact Era, Jour-
+nal of Information Technology Services, 19(4), 
+31–47. 
+https://doi.org/10.9716/KITS.2020.19.4.031 
+10. Jeong, C. S. (2023a). A Study on the RPA Inter-
+face Method for Hybrid AI Chatbot Implementa-
+tion, KIPS Transactions on Software and Data En-
+41-50. 
+gineering, 
+https://doi.org/10.3745/KTSDE.2023.12.1.41 
+11. Jeong, C. S. (2023b). A Case Study in Applying 
+Hyperautomation Platform for E2E Business Pro-
+cess Automation, Information Systems Review, 
+25(2), 
+31-56. 
+https://doi.org/10.14329/isr.2023.25.2.031 
+12. Jeong, C. S. (2023c). A Study on the Service In-
+tegration of Traditional Chatbot and ChatGPT, 
+Journal of Information Technology Applications 
+& 
+11-28. 
+https://doi.org/10.21219/jitam.2023.30.4.001 
+13. Jeong, C. S. (2023d). A Study on the Implemen-
+tation of Generative AI Services Using an Enter-
+prise Data-Based LLM Application Architecture. 
+Advances in Artificial Intelligence and Machine 
+Learning, 
+1588-1618. 
+3(4). 
+https://dx.doi.org/10.54364/AAIML.2023.1191 
+
+Management, 
+
+3(4), 
+
+14. Jeong, C. S. (2023e). Generative AI service im-
+plementation using LLM application architecture: 
+based on RAG model and LangChain framework. 
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+26. Yan S.Q., Gu J.C., Zhu Y., Ling Z.H., (2024, 
+March 27). Corrective Retrieval Augmented Gen-
+eration. arXiv preprint arXiv:2401.15884. 
+27. Yunfan G., Yun X., Xinyu G., Kangxiang J., Jin-
+liu P., Yuxi B., Yi D., Jiawei S., Meng W., Haofen 
+W., (2024, March 27). Retrieval-Augmented Gen-
+eration for Large Language Models: A Survey. 
+arXiv preprint arXiv:2312.10997. 
+
+Journal of Intelligence and Information Systems, 
+29(4), 
+129-164. 
+https://dx.doi.org/10.13088/jiis.2023.29.4.129 
+15. Jeong, C. S. (2024). Domain-specialized LLM: 
+Financial fine-tuning and utilization method using 
+Mistral 7B. Journal of Intelligence and Infor-
+mation 
+93-120. 
+https://dx.doi.org/10.13088/jiis.2024.30.1.093 
+16. Jeong, S., Baek, J., Cho, S., Hwang S.J., Park, J.C., 
+Jinheon Baek, Sukmin Cho, Sung Ju Hwang, Jong 
+C. Park., (2024, March 28). Adaptive-RAG: 
+Learning to Adapt Retrieval-Augmented Large 
+Language Models through Question Complexity. 
+arXiv preprint arXiv:2403.14403. 
+
+Systems, 
+
+30(1), 
+
+17. Kim, J. (2024). A Study on Data Chunking Strat-
+egies to Enhance LLM Service Quality Using 
+RAG Techniques. Master's Thesis, Korea Univer-
+sity, Seoul. 
+
+18. LangGraph. (2024, July 22). LangGraph Over-
+view. https://langchain-ai.github.io/langgraph/ 
+19. Lewis, P., Perez, E., Piktus, A., Petroni, F., 
+Karpukhin, V., Goyal, N., & Kiela, D. (2020). Re-
+trieval-augmented generation for knowledge-in-
+tensive nlp tasks. Advances in Neural Information 
+Processing Systems, 33, 9459-9474. 
+
+20. Matt, A. (2023, September 19). 0 Ways to Im-
+prove the Performance of Retrieval Augmented 
+Generation 
+https://towardsdatasci-
+ence.com/10-ways-to-improve-the-performance-
+of-retrieval-augmented-generation-systems-
+5fa2cee7cd5c 
+
+Systems. 
+
+21. Microsoft. (2023, August 01). Retrieval Aug-
+mented Generation using Azure Machine Learn-
+ing prompt flow. https://learn.microsoft.com/en-
+us/azure/machine-learning/concept-retrieval-aug-
+mented-generation?view=azureml-api-2 
+
+22. Park, E. (2024). The Impact of Customers' Regu-
+latory Focus and Familiarity with Generative AI-
+Based Chatbots on Privacy Disclosure Intent: Fo-
+cusing on Privacy Calculus Theory. Journal of 
+Knowledge Management Research, 25(2), 49-68. 
+https://doi.org/10.15813/kmr.2024.25.2.003 
+23. Przegalinska, A., Ciechanowski, L., Stroz, A., 
+Gloor, P., & Mazurek, G. (2019). In bot we trust: 
+A new methodology of chatbot performance 
+measures. Business Horizons, 62(6), 785-797. 
+24. Sánchez-Díaz, X., Ayala-Bastidas, G., Fonseca-
+Ortiz, P., Garrido, L. (2018). A Knowledge-Based 
+Methodology for Building a Conversational Chat-
+bot as an Intelligent Tutor, Advances in Compu-
+tational 
+Intelligence, Vol. 11289. 165-175. 
+https://doi.org/10.1007/978-3-030-04497-8_14 
+25. Skelter Labs. (2024, January 5). 2024 Year Of 
+The RAG: Reasons for RAG's Attention and Fu-
+ture Trends. Retrieved from https://www.skel-
+terlabs.com/blog/2024-year-of-the-rag 
+
+Cheonsu Jeong 
+
+12

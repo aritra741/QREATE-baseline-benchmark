@@ -1,0 +1,1361 @@
+4
+2
+0
+2
+
+v
+o
+N
+6
+1
+
+]
+
+R
+
+I
+.
+s
+c
+[
+
+2
+v
+1
+2
+0
+7
+0
+.
+1
+1
+4
+2
+:
+v
+i
+X
+r
+a
+
+Invar-RAG: Invariant LLM-aligned Retrieval for Better
+Generation
+ZIWEI LIU∗, City University of Hong Kong, China
+LIANG ZHANG∗, Shenzhen Research Institute of Big Data, China
+QIAN LI, Shenzhen Research Institute of Big Data, China
+JIANGHUA WU, Shenzhen Research Institute of Big Data, China
+GUANGXU ZHU, Shenzhen Research Institute of Big Data, China
+
+Retrieval-augmented generation (RAG) has stood out as a highly promising technique in numerous domains
+due to its impressive capability of giving reliable answer predictions and addressing the severe hallucination
+problem. Current RAG systems employ powerful retrieval models to extract external information and leverage
+large language models (LLMs) as the generation model. Nevertheless, the differences in the architecture between
+the retriever and generation model have often resulted in notable ineffectiveness, posing a significant obstacle
+to retrieving and predicting the answers. Recently, LLM-based retrieval has demonstrated its exceptional
+effectiveness in information retrieval (IR), delivering substantial improvements via LLMs’ powerful semantic
+understanding capability. However, directly applying LLM to RAG systems poses certain challenges. Its massive
+parametric knowledge impedes the ability to leverage the global information of all the corpus, leading to a scene
+that current LLM-based retriever usually inputs the summary of documents instead of the whole documents,
+which causes the feature locality problem. Moreover, various tasks pre-trained in LLMs induce severe variance,
+which further weakens its performance as the retriever. To address these issues, we propose a novel two-stage
+fine-tuning architecture called Invar-RAG. In the retrieval stage, by introducing representation learning
+leveraging the LoRA structure, we construct a LLM-based retriever to address the feature locality problem.
+Moreover, to consolidate our designed retrieval’s performance, we define two patterns (invariant pattern
+and variant pattern) and propose the invariance loss to eliminate the variance in LLM to some extent. Then,
+for the generation stage, we devise another fine-tuning method to allow our LLM to better leverage the
+retrieved information to generate an accurate answer. Experimental results demonstrate that Invar-RAG
+significantly outperforms existing baselines across three Open-domain Question Answering (ODQA) datasets.
+Our implementation code is available in Supplementary Material to ease reproducibility.
+
+Additional Key Words and Phrases: LLM, Information Retrieval
+
+ACM Reference Format:
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu. 2018. Invar-RAG: Invariant LLM-aligned
+Retrieval for Better Generation. In Proceedings of Make sure to enter the correct conference title from your rights
+confirmation emai (Conference acronym ’XX). ACM, New York, NY, USA, 16 pages. https://doi.org/XXXXXXX.
+XXXXXXX
+
+∗Both authors contributed equally to this research.
+
+Authors’ Contact Information: Ziwei Liu, ziwliu8-c@my.cityu.edu.hk, City University of Hong Kong, Hong Kong, China;
+Liang Zhang, zhangliang@sribd.cn, Shenzhen Research Institute of Big Data, Shenzhen, China; Qian Li, liqian1@cuhk.edu.cn,
+Shenzhen Research Institute of Big Data, Shenzhen, China; Jianghua Wu, wujianghua@sribd.cn, Shenzhen Research Institute
+of Big Data, Shenzhen, China; Guangxu Zhu, gxzhu@sribd.cn, Shenzhen Research Institute of Big Data, Shenzhen, China.
+
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee
+provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the
+full citation on the first page. Copyrights for components of this work owned by others than the author(s) must be honored.
+Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires
+prior specific permission and/or a fee. Request permissions from permissions@acm.org.
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+© 2018 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-1-4503-XXXX-X/18/06
+https://doi.org/XXXXXXX.XXXXXXX
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu
+
+1 Introduction
+Over the past decade, large language models (LLMs) have demonstrated promising capability in
+processing natural language [1]. Owing to the vast amount of knowledge encoded in their internal
+parameters, LLMs such as GPT [3] and LLaMa [9] have demonstrated remarkable performance on
+various downstream tasks, including Open-domain Question Answering (ODQA) [38], Reading
+Comprehension [7]. However, the fixed parametric knowledge of LLMs has hindered the further
+applications of LLMs and made them prone to errors (hallucination [7] and factual errors [2]). To
+overcome the limitations of parametric knowledge, one promising approach is Retrieval-Augmented
+Generation (RAG) [2, 15]. Compared to relying solely on parametric knowledge, RAG enables LLMs
+to use retrievers to access relevant information from external knowledge sources, enhancing their
+question-answering abilities. Among the two components of RAG, current methods primarily
+focus on optimizing the retriever to return more relevant documents due to the high cost of fine-
+tuning and black-box LLM APIs. Previous retrievers leveraged deep learning technology (e.g., dense
+retrieval [37]) to encode the text representations from the lexical space into the high-dimensional
+latent space, allowing them to model more complex semantic relationships between queries and
+corpora. However, the separation between the retriever and generation model has hindered their
+full integration, limiting their compatibility in downstream applications []. Some advanced RAG
+systems, such as RA-DIT [18], have adopted joint training mechanisms that fine-tune both the
+retriever and the generation model for better alignment. However, this approach is impractical due to
+the need for frequent fine-tuning and fails to utilize the LLMs’ semantic understanding capabilities
+during the retrieval stage. Consequently, generative retrieval (GR), also known as LLM-based
+retrieval, leverages the parametric memory of generative models to directly generate document
+identifiers (DocIDs) [16], which has aroused much attention. By memorizing the documents as
+the parametric knowledge of LLM, this kind of method breaks the limitations of traditional IR in
+terms of document granularity and simple relevance matching [23], offering more flexibility and
+creativity, thus better meeting practical needs. However, two severe problems hinder the current
+LLM-based retrieval. 1)Feature Locality: LLM-based retrieval normally adopt language models to
+learn the mapping from queries to the relevant document DocIDs. However, these DocIDs actually
+can not fully represent the global information of the passages. Meanwhile, directly feeding the
+whole passages into LLM is costly and infeasible, causing a trade-off between effectiveness and
+efficiency. 2)Retrieval Variance: Due to the inherent generative inconsistency property of large
+language models [2], current LLM-based retrieval may generate unforeseeable variances, especially
+when the input query or the size of context varies, directly results in undesirable and vulnerable
+performance which may not be preferred.
+
+Considering the problems mentioned above and better leveraging the capability of LLMs, we
+propose a fully LLM-based architecture with a two-stage fine-tuning method called Invar-RAG, as
+illustrated in Figure ??. In the retrieval stage, our approach initializes the pre-trained LLaMA [9]
+as the backbone and follows the bi-encoder architecture in DPR [13] to construct our retriever.
+Compared to normal GR methods which need an iterative process of encoding and decoding, we
+introduce a component called LLM-aligned Retrieval. It first represents the input query and corpora
+into high-dimension space using a small language model (MiniLM) [30], then introduces a new loss
+function constructed by KL-divergence to align the coarse query-documents pairs representation
+to the LLM’s representation space. This allows the retriever to leverage the rich prior knowledge of
+LLM, typically addressing the feature locality caused by only feeding DocIDs to LLM. Moreover,
+based on the initial objective of our LLM-aligned Retrieval, we introduce the invariance loss to
+overcome the variance in the retrieval stage. By recognizing the invariant pattern that contributes
+the most to the performance and gradually forcing the model to rely on the invariant pattern,
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+Invar-RAG: Invariant LLM-aligned Retrieval for Better Generation
+
+3
+
+Fig. 1. Overview of proposed Invar-RAG.
+
+we can avoid the unforeseeable variances in practice and enhance the robustness of our RAG
+system. Finally, in the generation stage, we freeze the weights we fine-tuned before and optimize
+the generation function to allow the LLM to give correct answers to the retrieved documents. Our
+contributions are summarized as follows:
+
+• We introduce Invar-RAG, a novel framework featuring a two-stage fine-tuning method on a
+
+single shared LLM, including the retrieval stage and generation stage.
+
+• We introduce a novel LLM-based retrieval method containing representation learning and
+invariance loss, respectively addressing the issues of feature locality and retrieval variance.
+• We validate Invar-RAG’s performance on three public ODQA datasets, no matter for retrieval
+
+performance or generation performance, demonstrating its superiority.
+
+2 Methodology
+In this section, we introduce a novel retrieval-augmented language model architecture, Invar-RAG,
+which addresses the previously mentioned issues by using LLM-aligned retrieval combined with
+a specially designed invariance loss. We first present an overview of our proposed architecture,
+followed by a detailed explanation of its key components, and finally, we introduce how we construct
+the prompts.
+
+2.1 Overall Framework of Invar-RAG
+In this section, we provide an overview of Invar-RAG, as shown in Fig. ??. We begin by using
+query rewriting and context window resizing to introduce various types of variance. Next, we
+apply a small language model to map these texts into a high-dimensional vector space, generating
+coarse representations. We then adopt LLM-aligned retrieval to align the coarse representation with
+the LLM’s representation and compute the basic relevance score via dot product. This approach
+addresses the feature locality problem by feeding the entire document representation into the LLM,
+rather than a single DocID. Additionally, to address feature variance, we define an invariance loss
+based on the initial KL-divergence loss function in representation learning, encouraging the model
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+Rewritewhat role doesthe presidentplay in foreignaffairs？Simple DecoderCorpusWhat functiondoes the Head ofState have ininternationalrelations?Raw Query VectorDifferent Context WindowResize Corpus VectorsRetrieval StageGeneration Stage... The answer isforeign policy,negotiates treaties,manages internationalrelations, and ....   Input Prompt:Refer to the corpus below and give the answerto the following question. Make sure you fullyunderstand the meaning of the question andcorpus. Then give the answer and explain whyyou choose this. You may explain the reasonstep by step.Corpus: Top-5 DocQuestion: what role does the president play in           foreign affairs？Base ModelLoRALoRA WeightsLLaMAAnswer-Generation FinetuningPrompt ConstructionRewrite Query VectorBase ModelLoRALLM-aligned RetrievalUpdating by invariant LossLoRA WeightsLLaMAPattern DefinitionInvariantPatternVariant PatternRaw QueryEffectiveCorpusRewriteQueryResizeCorpusInvarianceLossRelevanceScore6.7Top-5 Docs5.53.72.1x NRaw Corpus Vectors4
+
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu
+
+to rely on invariant patterns. Finally, by constructing appropriate prompts and fine-tuning the
+generation stage, we optimize the LLM to better utilize the retrieved information, generating more
+accurate answers to the given questions.
+
+2.2 Retrieval Stage
+Architecture. For the Retriever architecture, we follow the approach of previous work [5], using
+the bi-encoder architecture from DPR [13], but replacing the backbone model with LLaMA [9].
+Considering the efficiency, we first compute the vector embedding of a document 𝑑𝑅
+
+𝑖 ∈ D𝑅 as:
+
+𝑉𝑟 (𝑑𝑅
+
+𝑖 ) = Decoder (cid:0)‘𝑡1𝑡2 · · · 𝑡 ′
+Where k represents the maximum number of trunks, and Decoder(·) represents the embedding
+layer of a small language model (MiniLM-v2), which maps the trunks (𝑡1𝑡2 · · · 𝑡𝑘 ) from the initial
+text space to a high-dimensional dense vector space. For the vector embedding of query 𝑞, we
+leverage our LLM structure to return the last layer token representation as the representation,
+denoted as 𝑉𝑞.
+
+(cid:1) [−1]
+
+(1)
+
+𝑘
+
+To leverage the LLM’s prior knowledge while maintaining efficiency, we further align the
+query-document pairs to the LLM’s representation space and denote the processed document
+representation as 𝑉𝑝 (𝑑𝑅
+𝑖 ). Consequently, we can compute in terms of the dot product to get the two
+relevance scores:
+
+𝑠𝑟𝑎𝑤
+
+(cid:16)
+𝑉𝑞, 𝑉𝑟 (𝑑𝑅
+𝑖 )
+
+(cid:17)
+
+= 𝑉𝑞 · 𝑉𝑟 (𝑑𝑅
+𝑖 )
+
+𝑠𝑝𝑟𝑜
+
+(cid:16)
+𝑉𝑞, 𝑉𝑝 (𝑑𝑅
+𝑖 )
+
+(cid:17)
+
+= 𝑉𝑞 · 𝑉𝑝 (𝑑𝑅
+𝑖 )
+
+(2)
+
+where the basic relevance score between the query and documents processed by small LM denotes
+as 𝑃𝑟𝑎𝑤 and the target relevance score computing between query and LLM-processed documents
+denotes as 𝑃𝑝𝑟𝑜 .
+LLM-aligned Retrieval. Building on the above structure, we enhance our LLM-based retriever’s
+ability to return more relevant documents. We introduce LLM-aligned retrieval with invariance loss
+in the retrieval stage, effectively addressing the aforementioned issues. Current alignment methods,
+such as RA-DIT [18], primarily focus on aligning the scoring functions between the retriever and the
+generator. However, the initial structural differences between novel retrievers (e.g., DRAGON+ [17])
+and LLMs still impede further optimization of the overall RAG system. Therefore, we design a
+novel LLM-based retriever to resolve this issue. Unlike previous LLM-based GR methods [16], we
+no longer need to use DocIDs to retrieve relevant documents, which may cause the feature locality
+issue mentioned earlier. Instead, we adopt a fine-tuned alignment process that enables the LLM to
+perform representation learning. We leverage LoRA architecture [11] to add additional adapter
+parameter 𝜃 R to our raw representation 𝑉𝑟 , denoted as 𝑉𝑟 (𝑑𝑅
+𝑖 , 𝜃 R). The corresponding relevance
+score can then be re-normalized among top-k relevant chunks D𝑅′ ⊂ D𝑅 as:
+
+R (𝑉𝑟 (𝑑𝑅
+𝑆𝑟
+
+𝑖 , 𝜃 R)|𝑉𝑞) =
+
+exp 𝑠𝑟𝑎𝑤 (cid:0)𝑉𝑞, 𝑉𝑟 (𝑑𝑅
+′ ∈ D𝑅′ exp 𝑠𝑟𝑎𝑤
+For each document in the corpus, we need to compute 𝑆𝑟
+R for 𝑛 times (𝑛 represents the number
+of documents in D𝑅) to rank the relevance scores. Consequently, the initial loss function for
+representation learning can then be defined by minimizing the KL-divergence [14] of two relevance
+scores leveraging Eq. 3.
+(cid:16)
+
+𝑖 , 𝜃 R)(cid:1)
+(cid:16)
+𝑉𝑞, 𝑉𝑟 (𝑑𝑅
+𝑖
+
+′, 𝜃 R)
+
+𝑑𝑅
+𝑖
+
+(cid:205)
+
+(3)
+
+(cid:17)
+
+= E𝑑𝑅
+
+𝑖 ∈ D𝑅 KL(𝑆𝑟
+
+R (𝑉𝑟 (𝑑𝑅
+
+𝑖 , 𝜃 R)|𝑉𝑞)∥𝑆𝑟
+
+R (𝑉𝑝 (𝑑𝑅
+
+𝑖 )|𝑉𝑞))
+
+L𝑟𝑙
+
+D𝑅 (cid:17)
+
+(4)
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+Invar-RAG: Invariant LLM-aligned Retrieval for Better Generation
+
+5
+
+Following the previous works [18, 19], fine-tuning both encoders hurt the performance [4], we only
+update a part of our initialized retriever, which is in charge of computing the query representation.
+Invariance Loss. To further enhance retrieval accuracy while maintaining robustness, we introduce
+invariance loss, building on our initial KL-divergence loss. Current refinement methods primarily
+rely on query rewriting [5, 10] or LLM generation [9] to expand the search space and re-rank
+document chunks. However, they fail to recognize the effectiveness of different rewriting and
+generation procedures, directly resulting in the invariance problem. Specifically, we begin by
+rewriting the query and adjusting the context window to broaden the search space. Since not all
+refinement methods are effective, we identify invariant patterns to preserve retrieval performance
+while gradually incorporating weighted variant patterns to broaden the search space. To achieve
+this, we use the LSR score from LM-Supervised Retrieval [27] to determine whether a document
+effectively enhances the LLM’s answer prediction capability. For a training sample (𝑞, 𝑦), where q
+and y respectively represent the input query and output result, we first define the output probability
+of LM as:
+
+𝑝𝐿𝑀 (𝑦|𝑉 (𝑑𝑅
+
+𝑖 ◦ 𝑥)) =
+
+𝑝𝐿𝑀 (𝑦|𝑉 (𝑑𝑅
+
+𝑖 ◦ 𝑥)) · 𝑃 R (𝑑𝑅
+
+𝑖 |𝑥)
+
+(5)
+
+∑︁
+
+Then, for the LSR score for a retrieved document 𝑑𝑅
+𝑖 :
+
+𝑑𝑅
+𝑖 ∈ D𝑅
+
+𝑃𝐿𝑆𝑅 (𝑑𝑖 |𝑞, 𝑦) =
+
+exp(𝑝𝐿𝑀 (𝑦|𝑑𝑖 ◦ 𝑞)/𝜏)
+𝑖 ∈ D𝑅 ′ exp(𝑝𝐿𝑀 (𝑦|𝑑 ′
+
+≈
+
+exp(𝑝𝐿𝑀 (𝑦|𝑑𝑖 ◦ 𝑞)/𝜏)
+𝑖 ∈ D𝑅 exp(𝑝𝐿𝑀 (𝑦|𝑑 ′
+
+(cid:205)𝑑 ′
+𝑖 ◦ 𝑞)/𝜏)
+where 𝜏 is the temperature hyperparameter of LLM, D′
+𝑅 ⊂ D𝑅 denotes the top-k retrieved trunks.
+, · · · , 𝑑𝑟𝑒
+Assuming the query after rewriting as 𝑞𝑟 , documents set after resizing as D𝑟𝑒
+𝑛 ),
+we can leverage the Eq. 6 to calculate the score matching from (1) 𝑞 to 𝑑𝑖 , (2) 𝑞𝑟 to 𝑑𝑖 , (3) 𝑞 to 𝑑𝑟𝑒
+𝑖
+and (4) 𝑞𝑟 to 𝑑𝑟𝑒
+. We recognize the invariant pattern as the top-𝑙 ranked documents, denoted as
+𝑖
+D𝑖𝑛, where 0 < 𝑙 < 𝑘 is satisfied. For other documents, we assume them as variant pattern D𝑣𝑎𝑟 ,
+which contribute little to generating effective answers.
+
+𝑅 = (𝑑𝑟𝑒
+1
+
+𝑖 ◦ 𝑞)/𝜏)
+
+, 𝑑𝑟𝑒
+2
+
+(cid:205)𝑑 ′
+
+(6)
+
+The invariant loss function can be formalized as follows:
+
+L𝑖𝑛𝑣𝑎𝑟 (D𝑖𝑛) = VarD ⊆ D𝑣𝑎𝑟 (E𝑑𝑅
+
+𝑖𝑛 ∈ ( D𝑖𝑛∪D ) KL(𝑃𝑟
+
+R (𝑉𝑟 (𝑑𝑅
+
+𝑖𝑛, 𝜃 R)|𝑉𝑞)∥𝑃 𝑝
+
+R (𝑉𝑝 (𝑑𝑅
+
+𝑖𝑛)|𝑉𝑞)))
+
+(7)
+
+This invariance loss measures the variance of the model’s aligning ability under multiple interven-
+tions (i.e., query rewriting and context resizing) by only allowing the documents in the D𝑖𝑛𝑣𝑎𝑟 to
+update the loss. The whole training objective can then be presented as:
+
+L𝑟𝑙 + 𝜆L𝑖𝑛𝑣𝑎𝑟
+
+min
+𝜃𝑅
+
+(8)
+
+where the task loss L𝑟𝑙 is minimized to align the two different representations while the L𝑖𝑛𝑣𝑎𝑟
+enables the model to rely more on the invariant pattern, and 𝜆 is a hyperparameter to balance
+between two objectives.
+
+2.3 Generation Stage
+In the generation stage, We followed the same architecture as in the retrieval stage for answer
+prediction. To improve the generative capability of LLM for leveraging the retrieved information
+better, followed by prior works [18, 27], we adopt another LoRA adapter to fine-tune our model
+on different tasks. Specifically, for the same training sample (𝑥, 𝑦), we retrieve the top-𝑘 relevant
+document chunks D′
+𝐺 ⊂ D𝐺 by performing our model on retrieval task. For each retrieved chunk
+𝑑𝑖 ∈ D′
+𝐺 , we design a special fine-tuning example by prepending it to the prompt as background
+(cid:111)
+.
+
+information and create k independent instances for one original example:
+
+(𝑑𝑖 ◦ 𝑥, 𝑦)|𝑖 = 1, · · · , 𝑘
+
+(cid:110)
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+6
+
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu
+
+Table 1. The Statistics of Fine-tuning Datasets.
+
+Dataset
+
+Wiki QA [33]
+FreebaseQA [34]
+MS-MARCO [3]
+Web Question [8] web_question
+
+HF identifier D𝑅 D𝐺 Training Sample
+✓
+✗
+✗
+✓
+
+wiki_qa
+freebase_qa
+ms_marco
+
+20360
+20358
+80143
+3778
+
+✗
+✓
+✓
+✗
+
+Task
+
+Open-domain QA
+Open-domain QA
+Open-domain QA
+Open-domain QA
+
+SQuAD v2
+
+squad_v2
+
+✗
+
+✓
+
+130319
+
+Reading Comprehension
+
+Then, following the previous work [18, 24], we fine-tune the language model using the next-token
+prediction objective and minimize the loss as follows:
+
+L (D′
+
+𝐺 ) = −
+
+∑︁
+
+𝑖
+
+log 𝑝𝐿𝑀 (𝑦|𝑑𝑖 ◦ 𝑥)
+
+(9)
+
+By applying this fine-tuning method, the generation stage benefits in two ways: (i) it improves
+the model’s performance on the generation task by providing more accurate predictions based on
+the retrieved information; (ii) when the retrieved documents fail to provide an accurate answer,
+the approach enables the LLM to rely on its parametric knowledge to generate an answer while
+disregarding misleading retrieved documents.
+
+3 Experiment
+In this section, we will first introduce the experiment setting. Then we present extensive experiments
+to evaluate the effectiveness of our proposed Invar-RAG architecture in different stages (retrieval
+and generation). All the reported experimental results are the average values obtained from five
+independent runs of the algorithm.
+
+3.1 Setting
+3.1.1 Datasets. Following the prior works [2, 18], we choose two ODQA datasets (FreebaseQA [34]
+and MS-MARCO [3]) and one reading comprehension (RC) dataset to do the representation learning
+in the retrieval stage (denoted as D𝑅) while leveraging other three datasets (Web Question [8],
+Wiki Question Answering [33]) and SQuAD v21 for fine-tuning the LLM in the generation stage
+(denoted as D𝐺 ). The statistic of chosen datasets is shown in Tab.1. For detailed descriptions and
+complied templates, please refer to Appendix A.
+
+3.1.2 Evaluation. To access our performance, we conduct the evaluation on four knowledge-
+intensive datasets, such as TriviaQA (denoted as TQA)2, Natural Question (denoted as NQ)3 and
+PopQA4, that are not involved in the training progress. For the evaluation metric, we evaluate
+our model’s generation performance using the Exact Match [31], which indicates whether gold
+answers are included in the model generations followed by the setting in prior work [18, 21].
+Furthermore, to evaluate our proposed retriever’s performance, we employ the Acc@5 and Acc@20
+as evaluation metrics, which are widely used in related studies [4, 6]. These metrics assess the
+proportion of questions where the correct answers appear in the top-5 or top-20 retrieval results,
+offering a comprehensive evaluation of the retrieval performance. For more details, please refer to
+the description and methods in Appdendix B.
+
+1https://rajpurkar.github.io/SQuAD-explorer/explore/v2.0/dev/Prime_number.html
+2https://nlp.cs.washington.edu/triviaqa
+3https://ai.google.com/research/NaturalQuestions
+4https://huggingface.co/datasets/akariasai/PopQA
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+Invar-RAG: Invariant LLM-aligned Retrieval for Better Generation
+
+7
+
+Table 2. Retrieval performance comparison between our designed retriever in Invar-RAG and other baselines.
+The best results are bold, and the second-best are underlined.
+
+Models
+
+TQA
+
+NQ
+Acc@5 Acc@20 Acc@5 Acc@20 Acc@5 Acc@20
+
+PopQA
+
+BM25 [6]
+BM25+BGE(re-ranker) [6]
+Contriever [4]
+BGE-base [8]
+LLM-embedder [10]
+RepLLaMA [5]
+Invar-retrieval (ours)
+
+Improv.
+
+62.5
+72.5
+68.0
+69.5
+67.5
+66.5
+74.0
+
+2.1%
+
+73.0
+78.0
+80.5
+80.0
+77.5
+76.0
+81.5
+
+1.2%
+
+49.0
+68.0
+68.0
+77.0
+75.5
+72.0
+80.5
+
+4.6%
+
+67.0
+76.5
+84.0
+86.0
+86.5
+85.5
+88.0
+
+1.7%
+
+35.5
+54.0
+62.0
+72.0
+70.0
+68.5
+73.5
+
+2.1%
+
+51.5
+60.0
+77.5
+83.0
+79.5
+74.5
+82.5
+
+-0.6%
+
+Implementation Details. In this section, we provide a detailed description of our framework’s
+3.1.3
+implementation. The code can be found in Supplementary Material. For both the retrieval and
+generation stages, the LLaMA-2-7B checkpoint5 is leveraged to initialize the pre-trained weights of
+our architecture. For the GPU selection, We perform our further fine-tuning on 4 × 40G NVIDIA
+V100 GPUs.
+
+Retrieval Stage. Following the previous work’s setting [5], as LLaMA is a decoder-only architec-
+ture, we append an end-of-sequence token <EOS> to the input sequence and regard the last layer
+representation as the dense representation to calculate the similarity score. Considering the possible
+effect caused by the size of each dense representation, we also employ the normalization procedure
+to map the original representation into unit vectors during both the training and inference stages.
+For the fine-tuning progress in the retrieval stage, we adopt LoRA architecture [11] to reduce the
+high cost of GPU memory. The detailed hyperparameters we used can be found in Appendix C.
+Generation Stage. We hold 𝑘 in Sec.2.3 equal to 5 to generate instances for a single example
+and append multiple examples together to improve the efficiency (the length is limited to 4096
+tokens). The used hyperparameters are also shown in the Appendix C. Other implementation
+details are the same as original papers [18, 27].
+
+3.1.4 Baselines. To demonstrate the effectiveness of our proposed architecture, we compare the
+retrieval performance of our Invar-RAG with state-of-the-art retrieval methods, including sparse
+retrieval (BM25 [6]), dense retrieval (BGE [8], Contriever [4]) and LLM-based retrieval (LLM-
+embedder [10] and RepLLaMA [5]). Furthermore, for the corresponding RAG performance, we
+conduct extensive experiments compared to the novel retriever + generation model to show our
+superiority. The descriptions for each baseline are listed in the Appendix D.
+
+3.2 Overall Performance
+In this section, we present performance comparison experiments on two stages, respectively, with
+three knowledge-intensive ODQA datasets. The results show that our Invar-RAG architecture
+outperforms all competing sparse, dense, and LLM-based baselines in retrieval and their downstream
+RAG in generation. Such a comparison highlights the effectiveness of our unique design for two-
+stage fine-tuning.
+
+5https://huggingface.co/meta-llama/Llama-2-7b-hf
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+8
+
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu
+
+Table 3. Generation performance comparison between our designed Invar-RAG and other baselines. The best
+results are bold, and the second-best are underlined.
+
+Models
+
+TQA PopQA NQ
+Exact Match
+
+74.1
+BGE-base + LLaMA-2-7B
+BM25 + BGE(re-rank) + LLaMA-2-7B 72.3
+71.8
+LLM-embeder + LLaMA-2-7B
+72.6
+Contriever + LLaMA-2-7B
+75.3
+Invar-RAG
+
+Improv.
+
+1.6%
+
+49.8
+48.2
+51.1
+48.6
+53.6
+
+4.9%
+
+52.1
+51.6
+54.1
+51.8
+56.2
+
+3.9%
+
+3.2.1 Retrieval Performance. In this section, we will present and analyze the retrieval performance
+of our designed architecture. As illustrated in Tab.2, the sparse retriever BM25 fails to map the given
+text to proper representations. Although employing an additional model as the re-ranker improves
+the performance to some extent, the retrieval capability remains sub-optimal due to the inferiority
+of BM25. Besides, Novel dense retrievers, like BGE and Contriever, present comparable performance
+over the three datasets, suggesting their effectiveness in leveraging contrastive learning or task-
+specific fine-tuning. However, they still slightly lag behind our designed Invar-retrieval because of
+the neglect of rich semantic information [5]. Current researchers have proposed several LLM-based
+retrievers i.e., LLM-embedder [10] and RepLLaMA [5], which leverage the rich prior knowledge
+that LLM initially has. However, due to the high cost of processing the massive corpus, it is
+infeasible to handle all the chunks within the LLM. Moreover, the variance problem that happens
+in LLM also leads to relatively inferior performance. Correspondingly, we propose our LLM-based
+retrieval model, Invar-retrieval, as a part of our designed Invar-RAG. The results shows that our
+methods outperform all the sparse, dense and LLM-based retrievers, especially under the Acc@5
+measurement, contributing to our designed invariance loss in reducing the variant and ineffective
+patterns.
+
+3.2.2 Generation Performance. In this section, we will analyze the answer generation capability
+for our designed Invar-RAG. Based on the astonishing performance of our designed Invar-retrieval,
+we further fine-tune the language model to leverage the retrieved documents for better question-
+answering capability. From the experimental results presented in Tab.3, our Invar-RAG shows
+reasonable performance on the three ODQA datasets, echoing the performance of the retrievers
+designed in Tab.2.
+
+3.3 Ablation Study
+In this section, we analyze the efficacy of the two-stage fine-tuning in the Invar-RAG architecture,
+including the retrieval stage (LLM-aligned Retrieval with Invariance Loss) and the generation
+stage. We design three variants: (1)w/o representation learning: this variant uses the coarse text
+representation mapped by small language model (MiniLM-v2 6) to calculate the relevance score
+and adopt the same generation fine-tuning method in Sec.2.3. (2)w/o invariance loss: the second
+variant leverages the KL-divergence loss without the additional invariance loss to perform the
+representation learning. (3)w/o generative fine-tuning: this variant directly feeds retrieved documents
+and the corresponding question as a prompt to generate the answer. The fine-tuning datasets for
+
+6https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+Invar-RAG: Invariant LLM-aligned Retrieval for Better Generation
+
+Table 4. The Statistics of Datasets in Ablation study.
+
+9
+
+Model Variants
+
+Default
+w/o representation learning
+w/o invariance loss
+w/o generative fine-tuning
+
+Retrieval Fine-tuning
+
+Generation Fine-tuning
+
+Freebase QA MS-MARCO Wiki QA Web Question SQuAD v2
+✓
+✓
+✓
+✗
+
+✓
+✓
+✓
+✗
+
+✓
+✓
+✓
+✗
+
+✓
+✗
+✓
+✓
+
+✓
+✗
+✓
+✓
+
+Table 5. Ablation Study on TQA.
+
+Model Variants
+
+Retrieval
+
+Generation
+Acc@5 Acc@20 Exact Match
+
+Default
+w/o representation learning
+w/o invariance loss
+w/o generative fine-tuning
+
+74.0
+63.5
+71.5
+/
+
+81.5
+73.6
+81.0
+/
+
+75.3
+74.1
+74.6
+73.4
+
+each variant we used are presented in Tab.4. From the performance comparison in Tab.5, We can
+conclude that:
+
+• With the representation learning method, LLM-based retrieval contributes to improving the
+
+retrieval and corresponding generation performance.
+
+• Invariance loss significantly boosts our designed Invar-RAG by making the prediction rely
+
+more on invariant patterns.
+
+• Generative fine-tuning is crucial for enhancing LLM’s capability of giving predictions based
+on retrieved information. Moreover, it shows the effectiveness of the two-stage fine-tuning
+for a single LLM.
+
+For ablation results on other two datasets (NQ and PopQA), please found them in Appendix E.
+
+3.4 Invariance Analysis
+In this section, we leverage a special example in TQA to illustrate the effectiveness of our designed
+invariance loss in two parts: (i) the importance of defining different patterns, (ii) the difference in
+retrieval performance that invariance loss brings.
+
+As mentioned in Sec. 2.2, we return four different sets of retrieved documents and rerank them
+
+by LSR score to identify the invariant pattern. There are two reasons to explain this:
+
+• Rewriting the query and resizing the context window does affect the normal relevance score
+computing by the dot product, leading to the variance in practice when we feed different
+lengths or formats of questions to the RAG system to ask for the answer.
+
+• Prior works [36] have shown that adding a suitable amount of irrelevant or relatively ineffec-
+
+tive documents does help improve the retrieval performance.
+
+To verify that, we present the normal relevance score and LSR score of each retrieved document in
+four different sets in Fig. ??. The darker color represents the change that happened in the Top-5
+documents. We can see that, for the question: ‘Who was the man behind The Chipmunks’, the
+relevance score for the top-5 documents in each set shows substantial changes while the LSR
+score does not vary a lot, which means the variance caused by rewriting query or resizing context
+window change the importance of documents, directly resulting in poor retrieval performance.
+Moreover, as illustrated in Fig. ??, the variant without invariance loss gives the wrong answer to
+our selected question example while our designed Invar-RAG system accurately predicts the result.
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+10
+
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu
+
+Fig. 2. Special example for illustrating the effectiveness of invariance loss.
+
+4 Related Work
+Information Retrieval: Advancements in deep learning have revolutionized information retrieval
+systems, enhancing their personalization and accuracy in retrieving relevant documents. Early
+information retrieval frameworks employed sparse retrievers [6] or dense retrievers [4, 8] to
+represent large corpora but struggled to capture deep semantic relationships [13]. LLM-based
+retrievers (generative retrieval) have since emerged as notable methods, leveraging the rich prior
+knowledge of LLMs to significantly improve performance by converting documents into parametric
+knowledge and generating them instead of computing similarity scores [38]. However, the frequent
+encoding and decoding processes in LLMs severely hinder efficiency [38]. To address the trade-off
+between effectiveness and efficiency, we propose invar-retrieval in our architecture, enabling the
+model to efficiently retrieve the most relevant documents without introducing variance.
+
+Retrieval-augmented Language Model: Currently, retrieval-augmented language models
+have proven effective in answering questions by leveraging external information through the
+integration of novel retrievers and LLMs [38]. However, the architectural gap between retrieval
+and generation continues to hinder unified optimization across the entire retrieval-augmented
+generation system [2]. To address the isolation between retrieval and generation, a novel archi-
+tecture called RA-DIT was introduced [18]. By aligning retriever scoring with LSR scoring [27],
+it has been shown to deliver state-of-the-art performance across various tasks. However, it still
+employs dense retrievers like DRAGON+ [17] in the retrieval stage, which fails to eliminate the
+problem at its source and introduces inefficiencies throughout the process. Correspondingly, we
+introduce a representation learning method and invariance loss in our Invar-RAG architecture,
+which partially addresses these issues and explores a novel approach to using a single LLM for
+multiple roles within the RAG system.
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+Who was the man behind The Chipmunks?Relevance ScoreLSR ScoreAlice Cooper's The Man Behindthe Mask Music Video. Chipmunkstyledall the actors who have voicedthe following Alvin & TheChipmunks characters ...The Easter Chipmunk. USPremiere: Apr 14, 1995. ... OnePunch Man. 3. Steven ... Alvin Seville is one of theChipmunks and the mainprotagonist ... A struggling songwriter namedDave Seville finds success whenhe comes across a trio ofsinging chipmunks: ...raw query - raw docsrewrite query - raw docsraw query - resize docsrewrite query - resize docs6.00.85.30.64.70.54.10.40.90.2Alice Cooper's The Man Behindthe Mask Music Video. Chipmunkstyledall the actors who have voicedthe following Alvin & TheChipmunks characters ...Alvin And The Chipmunks: BehindThe Movie (Exclusive) Home.Mail; Flickr; Tumblr...Alvin Seville is one of theChipmunks and the mainprotagonist ... The man who brought theChipmunks to life, ... Five moreChipmunks singles...Alice Cooper's The Man Behindthe Mask Music Video. Chipmunkstyledall the actors who have voicedthe following Alvin & TheChipmunks characters ...The Easter Chipmunk. USPremiere: Apr 14, 1995. ... OnePunch Man. 3. Steven ... Alvin Seville is one of theChipmunks and the mainprotagonist ... Alvin and the Chipmunks (2007)cast and crew credits, includingactors, actresses..all the actors who have voicedthe following Alvin & TheChipmunks characters ...Alice Cooper's The Man Behindthe Mask Music Video. ChipmunkstyledAlvin And The Chipmunks: BehindThe Movie (Exclusive) Home.Mail; Flickr; Tumblr...Alvin and the Chipmunks (2007)cast and crew credits, includingactors, actresses..The man who brought theChipmunks to life, ... Five moreChipmunks singles...5.50.74.10.63.70.62,90.42.10.36.40.84.90.54.10.53.70.23.10.25.30.53.30.63.10.52.70.42.10.2Alice Cooper's The ManBehind the Mask MusicVideo. Chipmunk styledall the actors who havevoiced the followingAlvin & The Chipmunkscharacters ...Alvin And TheChipmunks: Behind TheMovie (Exclusive) Home.Mail; Flickr; Tumblr...The Easter Chipmunk. USPremiere: Apr 14, 1995.... One Punch Man. 3.Steven ... Alvin and the Chipmunks(2007) cast and crewcredits, includingactors, actresses..InvariantPattern0.80.60.60.50.4RemoveDuplicateVariant PatternSelect from otherdocumentsLLaMALarge LanguageModelInvar-RAGW/O   Invariance lossAnswer:With invariance loss: David SevilleW/O invariance loss:Alvin SevilleInvar-RAG: Invariant LLM-aligned Retrieval for Better Generation
+
+11
+
+5 Conclusion
+In this paper, we analyze the challenges and problems of current methods to apply the large
+language model as a retriever in the RAG system and propose a novel framework, Invar-RAG, to
+address these challenges. We introduce an LLM-aligned retrieval method, incorporating a well-
+designed representation learning approach to align coarse query-document pairs with the LLM’s
+representation space, allowing our architecture to leverage the extensive parametric knowledge
+of the LLM to compute relevance scores. Additionally, to address retrieval variance, we propose
+invariance loss, building on our initial KL-divergence loss, during the retrieval stage to reduce the
+impact of irrelevant documents. Finally, we perform additional fine-tuning on the same LLM for
+the answer-generation task, enabling our architecture to better utilize the retrieved information
+and provide more accurate predictions. Extensive experiments on three open-domain question-
+answering datasets confirm Invar-RAG’s superiority and validate the effectiveness of each module.
+
+References
+[3] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida,
+Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774,
+2023.
+
+[2] Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and Hannaneh Hajishirzi. Self-rag: Learning to retrieve, generate,
+
+and critique through self-reflection. arXiv preprint arXiv:2310.11511, 2023.
+
+[3] Payal Bajaj, Daniel Campos, Nick Craswell, Li Deng, Jianfeng Gao, Xiaodong Liu, Rangan Majumder, Andrew McNamara,
+Bhaskar Mitra, Tri Nguyen, et al. Ms marco: A human generated machine reading comprehension dataset. arXiv
+preprint arXiv:1611.09268, 2016.
+
+[4] Hangbo Bao, Li Dong, Wenhui Wang, Nan Yang, Songhao Piao, and Furu Wei. Fine-tuning pretrained transformer
+encoders for sequence-to-sequence learning. International Journal of Machine Learning and Cybernetics, 15(5):1711–1728,
+2024.
+
+[5] Chi-Min Chan, Chunpu Xu, Ruibin Yuan, Hongyin Luo, Wei Xue, Yike Guo, and Jie Fu. Rq-rag: Learning to refine
+
+queries for retrieval augmented generation. arXiv preprint arXiv:2404.00610, 2024.
+
+[6] Xiaoyang Chen, Ben He, Hongyu Lin, Xianpei Han, Tianshu Wang, Boxi Cao, Le Sun, and Yingfei Sun. Spiral of
+silences: How is large language model killing information retrieval?–a case study on open domain question answering.
+arXiv preprint arXiv:2404.10496, 2024.
+
+[7] Daixuan Cheng, Shaohan Huang, and Furu Wei. Adapting large language models via reading comprehension. In The
+
+Twelfth International Conference on Learning Representations, 2023.
+
+[8] Susan Dumais, Michele Banko, Eric Brill, Jimmy Lin, and Andrew Ng. Web question answering: Is more always better?
+In Proceedings of the 25th annual international ACM SIGIR conference on Research and development in information
+retrieval, pp. 291–298, 2002.
+
+[9] Wenqi Fan, Yujuan Ding, Liangbo Ning, Shijie Wang, Hengyun Li, Dawei Yin, Tat-Seng Chua, and Qing Li. A survey
+on rag meeting llms: Towards retrieval-augmented large language models. In Proceedings of the 30th ACM SIGKDD
+Conference on Knowledge Discovery and Data Mining, pp. 6491–6501, 2024.
+
+[10] Yunlong He, Jiliang Tang, Hua Ouyang, Changsung Kang, Dawei Yin, and Yi Chang. Learning to rewrite queries. In
+Proceedings of the 25th ACM International on Conference on Information and Knowledge Management, pp. 1443–1452,
+2016.
+
+[11] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen.
+
+Lora: Low-rank adaptation of large language models. arXiv preprint arXiv:2106.09685, 2021.
+
+[4] Gautier Izacard, Mathilde Caron, Lucas Hosseini, Sebastian Riedel, Piotr Bojanowski, Armand Joulin, and Edouard
+Grave. Unsupervised dense information retrieval with contrastive learning. arXiv preprint arXiv:2112.09118, 2021.
+
+[13] Vladimir Karpukhin, Barlas Oğuz, Sewon Min, Patrick Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, and Wen-tau
+
+Yih. Dense passage retrieval for open-domain question answering. arXiv preprint arXiv:2004.04906, 2020.
+
+[14] Taehyeon Kim, Jaehoon Oh, NakYil Kim, Sangwook Cho, and Se-Young Yun. Comparing kullback-leibler divergence
+
+and mean squared error loss in knowledge distillation. arXiv preprint arXiv:2105.08919, 2021.
+
+[15] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler,
+Mike Lewis, Wen-tau Yih, Tim Rocktäschel, et al. Retrieval-augmented generation for knowledge-intensive nlp tasks.
+Advances in Neural Information Processing Systems, 33:9459–9474, 2020.
+
+[16] Xiaoxi Li, Jiajie Jin, Yujia Zhou, Yuyao Zhang, Peitian Zhang, Yutao Zhu, and Zhicheng Dou. From matching to
+
+generation: A survey on generative information retrieval. arXiv preprint arXiv:2404.14851, 2024.
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+12
+
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu
+
+[17] Sheng-Chieh Lin, Akari Asai, Minghan Li, Barlas Oguz, Jimmy Lin, Yashar Mehdad, Wen-tau Yih, and Xilun Chen. How
+to train your dragon: Diverse augmentation towards generalizable dense retrieval. arXiv preprint arXiv:2302.07452,
+2023.
+
+[18] Xi Victoria Lin, Xilun Chen, Mingda Chen, Weijia Shi, Maria Lomeli, Rich James, Pedro Rodriguez, Jacob Kahn, Gergely
+Szilvasy, Mike Lewis, et al. Ra-dit: Retrieval-augmented dual instruction tuning. arXiv preprint arXiv:2310.01352, 2023.
+[19] Shuming Ma, Dongdong Zhang, and Ming Zhou. A simple and effective unified encoder for document-level machine
+translation. In Proceedings of the 58th annual meeting of the association for computational linguistics, pp. 3505–3511,
+2020.
+
+[5] Xueguang Ma, Liang Wang, Nan Yang, Furu Wei, and Jimmy Lin. Fine-tuning llama for multi-stage text retrieval. In
+Proceedings of the 47th International ACM SIGIR Conference on Research and Development in Information Retrieval, pp.
+2421–2425, 2024.
+
+[21] Yuren Mao, Xuemei Dong, Wenyi Xu, Yunjun Gao, Bin Wei, and Ying Zhang. Fit-rag: Black-box rag with factual
+
+information and token reduction. arXiv preprint arXiv:2403.14374, 2024.
+
+[1] Shervin Minaee, Tomas Mikolov, Narjes Nikzad, Meysam Chenaghlu, Richard Socher, Xavier Amatriain, and Jianfeng
+
+Gao. Large language models: A survey. arXiv preprint arXiv:2402.06196, 2024.
+
+[23] Thong Nguyen and Andrew Yates. Generative retrieval as dense retrieval. arXiv preprint arXiv:2306.11397, 2023.
+[24] Weizhen Qi, Yu Yan, Yeyun Gong, Dayiheng Liu, Nan Duan, Jiusheng Chen, Ruofei Zhang, and Ming Zhou. Prophetnet:
+
+Predicting future n-gram for sequence-to-sequence pre-training. arXiv preprint arXiv:2001.04063, 2020.
+
+[6] Ori Ram, Yoav Levine, Itay Dalmedigos, Dor Muhlgay, Amnon Shashua, Kevin Leyton-Brown, and Yoav Shoham.
+In-context retrieval-augmented language models. Transactions of the Association for Computational Linguistics, 11:
+1316–1331, 2023.
+
+[7] Vipula Rawte, Amit Sheth, and Amitava Das. A survey of hallucination in large foundation models. arXiv preprint
+
+arXiv:2309.05922, 2023.
+
+[27] Weijia Shi, Sewon Min, Michihiro Yasunaga, Minjoon Seo, Rich James, Mike Lewis, Luke Zettlemoyer, and Wen-tau
+
+Yih. Replug: Retrieval-augmented black-box language models. arXiv preprint arXiv:2301.12652, 2023.
+
+[9] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste
+Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models. arXiv
+preprint arXiv:2302.13971, 2023.
+
+[2] Cunxiang Wang, Xiaoze Liu, Yuanhao Yue, Xiangru Tang, Tianhang Zhang, Cheng Jiayang, Yunzhi Yao, Wenyang Gao,
+Xuming Hu, Zehan Qi, et al. Survey on factuality in large language models: Knowledge, retrieval and domain-specificity.
+arXiv preprint arXiv:2310.07521, 2023.
+
+[30] Wenhui Wang, Furu Wei, Li Dong, Hangbo Bao, Nan Yang, and Ming Zhou. Minilm: Deep self-attention distillation
+for task-agnostic compression of pre-trained transformers. Advances in Neural Information Processing Systems, 33:
+5776–5788, 2020.
+
+[31] Krist Wongsuphasawat, Catherine Plaisant, Meirav Taieb-Maimon, and Ben Shneiderman. Querying event sequences
+by exact match or similarity search: Design and empirical evaluation. Interacting with computers, 24(2):55–68, 2012.
+[8] Shitao Xiao, Zheng Liu, Peitian Zhang, Niklas Muennighoff, Defu Lian, and Jian-Yun Nie. C-pack: Packed resources
+In Proceedings of the 47th International ACM SIGIR Conference on Research and
+
+for general chinese embeddings.
+Development in Information Retrieval, pp. 641–649, 2024.
+
+[33] Yi Yang, Wen-tau Yih, and Christopher Meek. Wikiqa: A challenge dataset for open-domain question answering. In
+
+Proceedings of the 2015 conference on empirical methods in natural language processing, pp. 2013–2018, 2015.
+
+[34] Xuchen Yao, Jonathan Berant, and Benjamin Van Durme. Freebase qa: Information extraction or semantic parsing? In
+
+Proceedings of the ACL 2014 Workshop on Semantic Parsing, pp. 82–86, 2014.
+
+[10] Peitian Zhang, Shitao Xiao, Zheng Liu, Zhicheng Dou, and Jian-Yun Nie. Retrieve anything to augment large language
+
+models. arXiv preprint arXiv:2310.07554, 2023.
+
+[36] Tianjun Zhang, Shishir G Patil, Naman Jain, Sheng Shen, Matei Zaharia, Ion Stoica, and Joseph E Gonzalez. Raft:
+
+Adapting language model to domain specific rag. arXiv preprint arXiv:2403.10131, 2024.
+
+[37] Wayne Xin Zhao, Jing Liu, Ruiyang Ren, and Ji-Rong Wen. Dense text retrieval based on pretrained language models:
+
+A survey. ACM Transactions on Information Systems, 42(4):1–60, 2024.
+
+[38] Fengbin Zhu, Wenqiang Lei, Chao Wang, Jianming Zheng, Soujanya Poria, and Tat-Seng Chua. Retrieving and reading:
+
+A comprehensive survey on open-domain question answering. arXiv preprint arXiv:2101.00774, 2021.
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+Invar-RAG: Invariant LLM-aligned Retrieval for Better Generation
+
+13
+
+A Appendix A: Datasets Information
+For training and evaluating our RAG system, we select eight datasets (five for training and three
+for evaluation). All the datasets we used are downloaded from the Hugging Face website7.
+
+A.1 Fine-tuning Datasets
+We choose five datasets to fine-tune our two-stage architecture. Specifically, in the retrieval stage,
+we choose two Open-domain Question Answering (ODQA) datasets, i.e., FreebaseQA [9] and
+MS-MARCO [1], to fine-tune our model for returning more relevant documents leveraging the
+powerful semantic understanding capability of LLM while avoiding the variance that happened in
+the practical situation.
+
+• FreebaseQA8: This dataset is designed for open-domain factoid question answering using
+the Freebase knowledge graph. It contains 28,348 trivia-style questions and over 54,000
+question-answer matches from TriviaQA and trivia website.
+
+• MS-MARCO9: The MS-MARCO (Microsoft MAchine Reading Comprehension) is a large-
+scale dataset for machine reading comprehension, featuring real-world queries from Bing
+users and over 1 million passages with query-answer pairs, supporting tasks like question
+answering and passage ranking.
+
+By using both FreebaseQA and MS-MARCO to fine-tune our retriever, we improve the retrieval
+part of our Invar-RAG more comprehensively. FreebaseQA provides complex, linguistically diverse
+queries matched with structured knowledge graph data, enhancing our model’s ability to retrieve
+fact-based answers. MS-MARCO, with its real-world user queries and passage ranking, improves
+performance in understanding and ranking everyday information. Together, they enhance the
+retriever’s precision, relevance, and ability to handle a variety of natural language queries. To
+fine-tune our model for the generation task, we select three other datasets (two ODQA datasets
+and one reading comprehension dataset).
+
+• Wiki QA10: This dataset, introduced by Microsoft, consists of question and sentence pairs
+collected from Bing search logs. It is designed for research in open-domain question answering.
+The dataset contains 3,047 questions linked to Wikipedia articles, with 29,258 sentences, 1,473
+of which are labeled as correct answers to the questions.
+
+• Web Question11: Released as part of research on semantic parsing, the WebQuestions dataset
+contains 5,810 question-answer pairs where the answers are entities from Freebase. The
+dataset is used to train and evaluate models for answering factual questions using structured
+data from Freebase.
+
+• SQuAD v212: The Stanford Question Answering Dataset (SQuAD) v2 builds upon the original
+SQuAD dataset by adding over 50,000 unanswerable questions that are similar to answerable
+ones, totaling 130,319 questions. This dataset challenges models to not only answer questions
+but also to determine when no answer is available in the context.
+
+7https://huggingface.co/datasets
+8https://huggingface.co/datasets/microsoft/freebase_qa
+9https://huggingface.co/datasets/microsoft/ms_marco
+10https://huggingface.co/datasets/microsoft/wiki_qa
+11https://huggingface.co/datasets/Stanford/web_questions
+12https://huggingface.co/datasets/rajpurkar/squad_v2
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+14
+
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu
+
+A.2 Evaluation Datasets
+To evaluate both the retrieval and generation performance of Invar-RAG, we import three more
+ODQA datasets, i.e., TriviaQA, Natural Question, and PopQA, which are all large-scale public
+datasets that have been widely used as benchmarks in the retrieval or generation tasks [2].
+
+• TriviaQA13: TriviaQA is a reading comprehension dataset that comprises more than 650,000
+question-answer-evidence triples. It includes 95,000 question-answer pairs generated by
+trivia experts, with independent evidence documents provided—around six per question on
+average—offering distant supervision of high quality for answering the questions.
+
+• Natural Question14: The NQ dataset consists of questions sourced from real users, requiring
+QA systems to process and understand full Wikipedia articles that may or may not contain
+the answer. The use of actual user queries and the need to examine entire pages make this
+dataset more realistic and challenging compared to earlier QA datasets.
+
+• PopQA15: PopQA is a large-scale, open-domain QA dataset with 14,000 entity-centric
+question-answer pairs. The questions are generated by applying templates to knowledge
+tuples retrieved from Wikidata.
+
+B Appendix B: Evaluation
+In this section, we will detail the information of our evaluation metrics and the implementation of
+our evaluation process. For retrieval, to provide a comprehensive view of performance, we leverage
+Accuracy both truncated at five and twenty, to assess the proportion of questions where the correct
+answers appear in the top 5 or top 20 retrieval results, respectively. For generations, we choose the
+Exact Match [7] to evaluate the difference between our prediction and the ground truth. Moreover,
+in our evaluation process, we adopt 8-shot examples which are randomly selected from the chosen
+datasets following previous work [3].
+
+C Appendix C: Hyperparameter Illustration
+In this section, we will present the prime hyperparameter we used and the values we set in our
+fine-tuning and inferencing progress. Tab.6 shows the hyperparameter for fine-tuning our retrieval
+stage and generation stage.
+
+Table 6. Hyperparameter for Fine-tuning (Retrieval and Generation)
+
+Stage
+
+lr_scheduler
+
+batch size
+
+seq len LoRA_rank LoRA_alpha LoRA_dropout
+
+Retrieval Stage
+
+Generation Stage
+
+cosine
+
+cosine
+
+64
+
+64
+
+4096
+
+4096
+
+16
+
+16
+
+32
+
+32
+
+0.05
+
+0.05
+
+D Appendix D: Baselines Description
+(a) BM25 [6]: A classical, sparse information retrieval method based on term frequency and
+inverse document frequency (TF-IDF). It ranks documents based on the occurrence of query terms,
+emphasizing exact term matches, making it effective in domains with well-structured data but
+limited in understanding semantic similarities. (b) BGE [4]: A family of pre-trained embedding
+models designed for general Chinese text embedding. It achieves superior performance across
+diverse tasks by using massive datasets and advanced training techniques like contrastive learning,
+
+13https://huggingface.co/datasets/mandarjoshi/trivia_qa
+14https://huggingface.co/datasets/google-research-datasets/natural_questions
+15https://huggingface.co/datasets/akariasai/PopQA
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+Invar-RAG: Invariant LLM-aligned Retrieval for Better Generation
+
+15
+
+Table 7. Ablation Study on Natural Question and PopQA.
+
+Model Variants
+
+Nature Question
+
+PopQA
+
+Retrieval
+Acc@5 Acc@20
+
+Generation
+Exact Match Acc@5 Acc@20
+
+Retrieval
+
+Default
+w/o representation learning
+w/o invariance loss
+w/o generative fine-tuning
+
+80.5
+69.0
+77.5
+/
+
+88.0
+80.5
+86.0
+/
+
+56.2
+54.7
+55.4
+53.9
+
+73.5
+59.5
+69.5
+/
+
+82.5
+70.0
+81.0
+/
+
+Generation
+Exact Match
+53.6
+51.7
+52.4
+50.7
+
+supporting retrieval, ranking, and classification. (c) Contriever [8]: Contriever is an unsupervised
+dense information retriever based on contrastive learning. It is designed to overcome limitations in
+traditional sparse retrieval methods like BM25, particularly in zero-shot and multilingual settings.
+Contriever demonstrates state-of-the-art performance on multiple retrieval benchmarks, such as
+BEIR, and excels in cross-lingual retrieval. Its architecture relies on a bi-encoder model, which
+encodes queries and documents independently, and uses unsupervised contrastive learning to
+optimize retrieval, even without labeled data. (d) LLM-embedder [10]: A unified embedding model
+optimized for retrieval augmentation in large language models (LLMs). It leverages multi-task
+fine-tuning and LLM feedback to retrieve relevant knowledge, tools, and memory, enhancing LLMs’
+capabilities in knowledge-intensive tasks. (e) RepLLaMA [5]: RepLLaMA is a dense retriever
+fine-tuned from the LLaMA-2 language model, part of a multi-stage retrieval pipeline that includes
+rankLLaMA as a reranker. RepLLaMA improves the effectiveness of retrieval tasks, particularly in
+passage and document retrieval. It outperforms smaller models, showcasing strong generalization
+and effectiveness in both in-domain and zero-shot settings. The model leverages both hard negatives
+and in-batch negatives during training.
+
+E Appendix E: Ablation Study
+In this section, we will present the ablation study by gradually removing the significant components
+of our architecture. Specifically, we follow the variant settings in the main body and perform our
+ablation study on the other two evaluation ODQA datasets (Natural Question 16 and PopQA 17),
+presented in Tab.7. From the experimental results, we can see that the performance of our Invar-
+RAG, no matter for the retrieval and the generation, shows a similar tendency to the one on
+TriviaQA, showing the effectiveness of our designed two-stage fine-tuning method, featuring the
+representation learning, invariance loss and the generation fine-tuning in one single LLM.
+
+References
+[1] Payal Bajaj, Daniel Campos, Nick Craswell, Li Deng, Jianfeng Gao, Xiaodong Liu, Rangan Majumder, Andrew McNamara,
+Bhaskar Mitra, Tri Nguyen, et al. Ms marco: A human generated machine reading comprehension dataset. arXiv
+preprint arXiv:1611.09268, 2016.
+
+[2] Wenqi Fan, Yujuan Ding, Liangbo Ning, Shijie Wang, Hengyun Li, Dawei Yin, Tat-Seng Chua, and Qing Li. A survey
+on rag meeting llms: Towards retrieval-augmented large language models. In Proceedings of the 30th ACM SIGKDD
+Conference on Knowledge Discovery and Data Mining, pp. 6491–6501, 2024.
+
+[3] Gautier Izacard and Edouard Grave. Leveraging passage retrieval with generative models for open domain question
+
+answering. arXiv preprint arXiv:2007.01282, 2020.
+
+[4] Gautier Izacard, Mathilde Caron, Lucas Hosseini, Sebastian Riedel, Piotr Bojanowski, Armand Joulin, and Edouard
+Grave. Unsupervised dense information retrieval with contrastive learning. arXiv preprint arXiv:2112.09118, 2021.
+
+16https://huggingface.co/datasets/google-research-datasets/natural_questions
+17https://huggingface.co/datasets/akariasai/PopQA
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.
+
+16
+
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu
+
+[5] Xueguang Ma, Liang Wang, Nan Yang, Furu Wei, and Jimmy Lin. Fine-tuning llama for multi-stage text retrieval. In
+Proceedings of the 47th International ACM SIGIR Conference on Research and Development in Information Retrieval, pp.
+2421–2425, 2024.
+
+[6] Ori Ram, Yoav Levine, Itay Dalmedigos, Dor Muhlgay, Amnon Shashua, Kevin Leyton-Brown, and Yoav Shoham.
+In-context retrieval-augmented language models. Transactions of the Association for Computational Linguistics, 11:
+1316–1331, 2023.
+
+[7] Krist Wongsuphasawat, Catherine Plaisant, Meirav Taieb-Maimon, and Ben Shneiderman. Querying event sequences
+by exact match or similarity search: Design and empirical evaluation. Interacting with computers, 24(2):55–68, 2012.
+[8] Shitao Xiao, Zheng Liu, Peitian Zhang, Niklas Muennighoff, Defu Lian, and Jian-Yun Nie. C-pack: Packed resources
+In Proceedings of the 47th International ACM SIGIR Conference on Research and
+
+for general chinese embeddings.
+Development in Information Retrieval, pp. 641–649, 2024.
+
+[9] Xuchen Yao, Jonathan Berant, and Benjamin Van Durme. Freebase qa: Information extraction or semantic parsing? In
+
+Proceedings of the ACL 2014 Workshop on Semantic Parsing, pp. 82–86, 2014.
+
+[10] Peitian Zhang, Shitao Xiao, Zheng Liu, Zhicheng Dou, and Jian-Yun Nie. Retrieve anything to augment large language
+
+models. arXiv preprint arXiv:2310.07554, 2023.
+
+Received 20 February 2007; revised 12 March 2009; accepted 5 June 2009
+
+, Vol. 1, No. 1, Article . Publication date: November 2018.

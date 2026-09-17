@@ -1,0 +1,1713 @@
+4
+2
+0
+2
+
+b
+e
+F
+0
+1
+
+]
+I
+
+A
+.
+s
+c
+[
+
+1
+v
+6
+1
+0
+7
+0
+.
+2
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+REALM: RAG-Driven Enhancement of Multimodal Electronic Health Records
+Analysis via Large Language Models
+
+Yinghao Zhu1 ∗ , Changyu Ren2 ∗ , Shiyun Xie1 , Shukai Liu2 , Hangyuan Ji2 ,
+Zixiang Wang3 , Tao Sun2 , Long He1 , Zhoujun Li2 , Xi Zhu4 , Chengwei Pan1 †
+1Institute of Artificial Intelligence, Beihang University, Beijing, China
+2School of Computer Science and Engineering, Beihang University, Beijing, China
+3School of Software, Beihang University, Beijing, China
+4China Mobile Research Institute, Beijing, China
+
+zhuyinghao@buaa.edu.cn, pancw@buaa.edu.cn
+
+Abstract
+
+The integration of multimodal Electronic Health
+Records (EHR) data has significantly improved
+clinical predictive capabilities. Leveraging clini-
+cal notes and multivariate time-series EHR, exist-
+ing models often lack the medical context relevent
+to clinical tasks, prompting the incorporation of
+external knowledge, particularly from the knowl-
+edge graph (KG). Previous approaches with KG
+knowledge have primarily focused on structured
+knowledge extraction, neglecting unstructured data
+modalities and semantic high dimensional medi-
+cal knowledge. In response, we propose REALM,
+a Retrieval-Augmented Generation (RAG) driven
+framework to enhance multimodal EHR represen-
+tations that address these limitations. Firstly, we
+apply Large Language Model (LLM) to encode
+long context clinical notes and GRU model to en-
+code time-series EHR data. Secondly, we prompt
+LLM to extract task-relevant medical entities and
+match entities in professionally labeled external
+knowledge graph (PrimeKG) with corresponding
+medical knowledge. By matching and aligning
+with clinical standards, our framework eliminates
+hallucinations and ensures consistency. Lastly, we
+propose an adaptive multimodal fusion network
+to integrate extracted knowledge with multimodal
+EHR data. Our extensive experiments on MIMIC-
+III mortality and readmission tasks showcase the
+superior performance of our REALM framework
+over baselines, emphasizing the effectiveness of
+each module. REALM framework contributes to
+refining the use of multimodal EHR data in health-
+care and bridging the gap with nuanced medical
+context essential for informed clinical predictions.
+
+∗ Equal contribution, † Corresponding author.
+
+Introduction
+
+1
+The advent of Electronic Health Records (EHR) marks a piv-
+otal advancement in the way patient data is gathered and an-
+alyzed, contributing to a more effective and informed health-
+care delivery system for clinical prediction Ma et al. [2023];
+Gao et al. [2024]; Zhu et al. [2024c]; Zhang et al. [2024];
+Liao et al. [2024]. This advancement is largely attributed
+to the utilization of multimodal EHR data, which primar-
+ily includes clinical notes and multivariate time-series data
+from patient records Zhang et al. [2022]; Wang et al. [2024];
+Zhang et al. [2023a]. Such data types are integral to health-
+care prediction tasks, mirroring the holistic approach practi-
+tioners adopt by leveraging various patient data points to in-
+form their clinical decisions and treatment strategies, rather
+than depending on a single data source Xu et al. [2023].
+Deep learning-based methods have become the mainstream
+approach, processing multimodal data to learn a mapping
+from heterogeneous inputs to output labels Choi et al. [2017];
+Ma et al. [2018]; Zhang et al. [2022]. However, in contrast
+to healthcare professionals, who have a deep understanding
+of medical contexts through extensive experience and knowl-
+edge, neural networks trained from scratch lack these insights
+into medical concepts Miotto et al. [2018]. Without deliber-
+ate integration of external knowledge, these networks often
+lack the ability or sensitivity to recognize crucial disease enti-
+ties or laboratory test results within the EHR, essential for ac-
+curate prediction tasks Zhu et al. [2024b]. In response, some
+recent studies have begun incorporating knowledge graphs to
+infuse additional medical insights into their analyses Ye et al.
+[2021]; Gao et al. [2022]. These graphs offer a supplemen-
+tary layer of clinically relevant concepts, thereby enhancing
+the model’s ability to provide contextually meaningful rep-
+resentations and interpretable evidence Yang et al. [2023].
+Despite these advancements, formidable limitations remain,
+underscoring the imperative need for continuous research in
+integrating insights from knowledge graphs to refine and en-
+hance the use of multimodal EHR data in healthcare.
+
+Previous methods integrating external medical knowledge
+into EHR data analysis have focused on mining hierarchi-
+cal and structured knowledge from clinical-context knowl-
+edge graphs. However, these approaches primarily extract
+
+ 
+ 
+ 
+ 
+ 
+ 
+medical concepts—entity names and their relationships into
+a graph—with limited direct contribution to predictive tasks
+(Limitation 1). Furthermore, they tend to extract entities
+only from structured data modalities, such as ICD disease
+codes, patient conditions, procedures, and drugs, neglect-
+ing the unstructured modalities. Although extracting knowl-
+edge from unstructured data is more challenging, both clin-
+ical notes and time-series modalities are more common and
+practical Rajkomar et al. [2018] (Limitation 2). With Large
+Language Models (LLMs) like GPT-4 Achiam et al. [2023]
+demonstrating strong capabilities in diverse clinical tasks Zhu
+et al. [2024b]; Wornow et al. [2023] and serving as large med-
+ical knowledge graphs (KGs) Sun et al. [2023], it is feasi-
+ble to use LLM to bridge complex medical knowledge from
+KGs with multimodal EHR data. By prompting the LLM,
+GraphCare Jiang et al. [2023] constructs a GPT-KG on struc-
+tured condition, procedure, and drug record data, with triples
+(entity 1, relationship, entity 2) and further employs graph
+neural networks for downstream tasks. This paradigm, how-
+ever, faces the hallucination issue of LLMs, where incor-
+rect or fabricated information may arise Zhang et al. [2023b]
+(Limitation 3).
+
+To overcome these limitations, we propose utilizing LLM
+in a Retrieval-augmented Generation (RAG) approach Lewis
+et al. [2020]. The RAG process links the unstructured modali-
+ties and external KG with LLM’s semantic reasoning capabil-
+ities Wang et al. [2023]. Despite its apparent simplicity, ap-
+plying this intuition to clinical tasks presents technical chal-
+lenges:
+
+Challenge 1: How to extract entities from multimodal
+EHR data and match these entities with external KG con-
+sistently? Extracting entities from the diverse and complex
+formats of EHR data (including clinical notes and multivari-
+ate time-series data) presents a significant challenge. More-
+over, unlike structured codes where it can directly compare
+the code-related entities’ embedding with KG’s entity, the en-
+tities extracted by LLM using prompts have hallucination is-
+sues. Accurately matching extracted entities with those in an
+external knowledge graph while eliminating the potential for
+hallucinations posed by LLMs is crucial for maintaining the
+integrity and reliability of the clinical prediction tasks Imrie
+et al. [2023].
+
+Challenge 2: How to encode and incorporate retrieved
+knowledge with original data modalities? The extracted
+textual knowledge should be encoded using a sentence-level
+embedding model, thus posing a challenge in the selection of
+long-context supported models Xiao et al. [2023]. Addition-
+ally, effectively incorporating retrieved knowledge with the
+original data modalities to enhance prediction accuracy with-
+out compromising interpretability Ye et al. [2021] or intro-
+ducing additional complexity into the model is vital as well.
+To these ends, We propose REALM framework tackling
+the above limitations and challenges with the following ap-
+proaches, which are our three-fold contributions:
+
+• We design the RAG-driven multimodal enhancement
+framework for clinical notes and time-series EHR data
+(Response to Limitation 1). REALM leverages the capa-
+bilities of LLMs and professionally labeled external large
+
+medical knowledge graphs. We retrieve the medical entities
+by prompting LLM, match them in KG with detailed check-
+ing and alignment to ensure no hallucination (Response to
+Limitation 3). Apart from simple triples of entities, we
+also include much more knowledge and their relationships
+by extending the entities’ definition and description and en-
+code the long context medical knowledge into LLM embed-
+ding, which allows for capturing more complex semantic
+medical background knowledge that contains task-relevant
+insights (Response to Limitation 2).
+
+• Methodologically, our RAG-driven entity extraction and
+matching process stands with a clinical standard that all
+knowledge comes from the professional medical knowl-
+edge graph (PrimeKG) with hallucination elimination
+and consistency guarantees.
+By carefully comparing
+LLM-generated entities with original data and employing
+threshold-based retrieval and review processes, we align
+the knowledge with external KGs. By extending the def-
+inition and description of entities beyond simple triples,
+REALM captures more complex semantic medical back-
+ground knowledge. The overall process is designed to
+prevent hallucinations and preserve the high-level medi-
+cal context from knowledge bases, ensuring the reliabil-
+ity of the extracted information and allowing for the in-
+clusion of a broader range of knowledge and relationships
+(Response to Challenge 1). To infuse the extracted knowl-
+edge and with consideration of heterogeneity, we design
+an adaptive multimodal fusion network with self-attention
+and cross-attention mechanism that attentively learns each
+modality and fuses the final representation for downstream
+tasks (Response to Challenge 2).
+
+• Our extensive experiments demonstrate REALM’s supe-
+rior performance on MIMIC-III mortality and readmission
+tasks and its effectiveness of our designed each module.
+Additionally, to meet the practical requirements of clinical
+use, we conduct an evaluation on model robustness to less
+training samples showing REALM’s remarkable resilience
+against data sparsity. Moreover, the evaluation on quality of
+retrieved entities reflects the soundness of retrieved medical
+entities. Importantly, all operations in our REALM frame-
+work are conducted offline, ensuring privacy and data se-
+curity.
+
+2 Related Work
+
+2.1 Multimodal EHR Learning
+The evolution of medical technology has enabled the anal-
+ysis of various medical modalities—ranging from clinical
+notes and time-series laboratory test data to demographics,
+conditions, procedures, drugs, and medical imaging. Note-
+worthy efforts in multimodal learning for healthcare include
+M3Care Zhang et al. [2022] which compensates for the miss-
+ing modalities by imputing task-related information in the
+latent space through auxiliary information from similar pa-
+tients. M3Care leverages a task-guided modality-adaptive
+similarity metric to effectively handle missing modalities
+without relying on unstable generative models. The work of
+Zhang et al. [2023a] further explored the irregularity of time
+
+intervals in time-series EHR data and clinical notes via a time
+attention mechanism. Notably, Xu et al. [2023] introduced
+an innovative approach for joint learning from visit sequences
+and clinical notes, employing Gromov-Wasserstein Distance
+for contrastive learning and dual-channel retrieval to enhance
+patient similarity analysis. Lee et al. [2023] proposed a uni-
+fied framework for learning across all EHR modalities, es-
+chewing separate imputation modules in favor of modality-
+aware attention mechanisms.
+
+Although the methods mentioned above perform well
+across multiple joint modalities, a common drawback is their
+limited consideration of incorporating clinical background in-
+formation, wherein external medical knowledge could pro-
+vide significant insights into the EHR data. Furthermore, the
+absence of semantic medical knowledge renders the training-
+from-scratch pipeline more challenging to converge, espe-
+cially when data is scarce in practical clinical settings.
+
+Incorporating External Knowledge for EHR
+
+2.2
+Addressing the need to blend clinical background knowl-
+edge with EHR data, numerous studies have leveraged med-
+ical knowledge graphs (KGs) to enhance the EHR data rep-
+resentation learning process, thereby augmenting predictive
+performance. Techniques such as utilizing the ancestor in-
+formation of nodes within KGs have been employed to re-
+fine medical representation learning, as seen in GRAM Choi
+et al. [2017], which integrates hierarchical medical ontolo-
+gies via a graph attention network. KAME Ma et al. [2018]
+builds on this by embedding ontology information throughout
+the prediction process, enriching the contextual understand-
+ing of models. Collaborative graph learning models, such as
+CGL Lu et al. [2021], explore patient-disease interactions and
+domain knowledge, while KerPrint Yang et al. [2023] focus
+on addressing knowledge decay on multiple time visits. The
+advent of Large Language Models (LLMs) as comprehensive
+knowledge bases Sun et al. [2023] offers new possibilities,
+exemplified by GraphCare Jiang et al. [2023], which creates
+a KG from structured EHR data for GNN learning, though it
+faces challenges related to content hallucination.
+
+These efforts predominantly concentrate on extracting
+knowledge from structured medical data, overlooking the rich
+semantic information embedded in unstructured EHR data.
+This oversight limits the potential for fully leveraging the
+depth of knowledge contained within EHRs, highlighting the
+need for methodologies that encompass both structured and
+unstructured data modalities.
+
+3 Problem Formulation
+The electronic health records (EHR) dataset encompasses
+both structured and unstructured data, represented respec-
+tively by multivariate time-series data and clinical notes. For
+the purpose of analysis, these two modalities are initially
+treated independently to derive embeddings from the raw data
+matrix X. Specifically, multivariate time-series data, denoted
+as XT S ∈ RT ×F , is characterized by T visits and F numeric
+features. Concurrently, clinical notes, represented as XT ext,
+recorded at each patient visit. Accompanying these modal-
+ities, the temporal information is encapsulated in the times-
+
+tamp vector XT ime ∈ RT , with T signifying the respective
+visit times.
+
+Furthermore, external knowledge graphs (KGs) are intro-
+duced to enhance the personalized representation of each in-
+dividual patient.
+Information in the KG serve as a supple-
+mental knowledge base reference.
+
+The prediction objective is conceptualized as a binary
+classification task, encompassing the prediction of
+in-
+hospital mortality and readmission. Leveraging the com-
+prehensive patient
+information derived from EHR data
+and KG, the model endeavors to predict specific clinical
+tasks. Formally, the prediction task is articulated as ˆy =
+Framework(XT S, XT ext, XT ime, KG), where ˆy represents
+the specific prediction label. Such formulation establishes a
+comprehensive framework for predicting clinical outcomes
+by amalgamating diverse data modalities and external knowl-
+edge sources.
+
+The notations and their descriptions in the paper are shown
+
+in Table 1.
+
+Table 1: Notations symbols and their descriptions
+
+Notations
+
+Descriptions
+
+N
+KG
+XT S
+XT ext
+XT ime
+
+XRAG
+
+XT ime
+T
+D
+F
+hi ∈ RT ×d, h
+
+ET S
+
+ET ext
+
+θ
+ϵ
+
+η
+
+si
+z
+
+Number of patients
+External knowledge graphs
+Time series data of one patient
+Clinical records of one patient
+Record time for certain modality of one pa-
+tient
+Retrieved texts relative to time series or text
+data of one patient
+Visiting timestamps of one patient
+Number of visits for a certain patient
+Embedding dimension of a single modal
+Number of features in time series
+
+Representation of a single modality, fused
+to representation h, d is each modal’s em-
+bedding dimension
+Extracted entity set for one time series EHR
+data
+Extracted entity set for one clinical notes
+data
+Cosine similarity of two Embedding vectors
+Threshold for selecting anomalies in time-
+series data
+Threshold for matching extracted entities
+with nodes in knowledge graph
+z-score of i-th feature of one patient
+Final representation of a patient
+
+4 Methodology
+
+4.1 Overview
+Figure 1 shows the overall framework architecture of our pro-
+posed REALM model. It consists of three main modules:
+
+• Multimodal EHR Embedding Extraction applies GRU
+as embedding model for time series XT S and LLM for text
+records XT ext , which supports for long context inference
+
+Figure 1: Overall architecture of our proposed REALM framework.
+
+at once. Readable data are transferred into embeddings
+hT S and hT ext.
+
+• RAG-Driven Enhancement Pipeline retrieves relevant
+knowledge raw input. We design a rule-based algorithm
+to find outlier features from time series XT S, and optimize
+LLM prompts to extract disease entities from clinical notes
+XT ext. Then semantic based retrieval match extracted enti-
+ties to relative nodes from KGs over threshold ϵ or η. After
+that we get external information XRAG, and encode them
+into hRAG respectively.
+
+• Multimodal Fusion Network gets embedding hi from in-
+put modality Xi and fuses them in an adaptive way to get
+an enhances representation z.
+
+4.2 Multimodal EHR Embedding Extraction
+We delve into the techniques used for embedding extraction
+from multimodal EHR, emphasizing the transformation from
+raw, human-readable inputs X to deep semantic embeddings
+h for a thorough analysis guided by the enhanced RAG.
+
+When dealing with time-series data XT S, we employ the
+Gated Recurrent Unit (GRU) network. GRU is a highly effi-
+cient variant of recurrent neural networks, capable of captur-
+ing the time dependencies in sequence data and encoding this
+time-related information into hT S, the output from the time
+series encoder. We choose GRU due to its exceptional ability
+to model time in long sequence data and its potential to tackle
+long-term dependencies.
+
+hT S = GRU(XT S)
+
+(1)
+
+For text records XT ext, we incorporated a LLM encoder
+to obtain text embeddings hT ext. The primary reason for
+
+choosing LLM as the heart of the text encoder is its out-
+standing capability to handle long text contexts. Although
+the BERT model excels in numerous natural language pro-
+cessing tasks, its maximum input length of 512 tokens can be
+a limitation, potentially leading to information loss when pro-
+cessing long contexts. LLM encoder can handle with longer
+input sequences, which making it a better fit for our detailed
+analysis of the rich textual information in EHR.
+
+hT ext = LLM(XT ext)
+
+(2)
+
+In the realm of EHR, the temporal dimension of patient
+visits plays a pivotal role, with each visit characterized by a
+unique timestamp, denoted as XT ime. To adeptly navigate
+the challenges posed by the irregular and asynchronous na-
+ture of time-series data within EHR, it is essential to have an
+embedding strategy that can seamlessly translate these dis-
+crete temporal markers into a meaningful, continuous vector
+space. To this end, we draw inspiration from the advanced
+techniques in multi-modal EHR analysis, where time-series
+data is often given precedence due to its critical significance.
+Building upon the conventional Multilayer Perceptron
+(MLP) approach to embed time stamps hT ime, we propose
+an enhanced method that leverages the sin/cos transforma-
+tion, akin to the Transformer positional embedding mecha-
+nism. This approach not only captures the sequential order
+of visits but also preserves the cyclical continuity inherent
+in time-series data. By employing a sinusoidal function to
+encode time stamps, our model is endowed with the ability
+to discern the intricate inter-modality temporal relationships
+that are often neglected when time information is discarded.
+This sin/cos embedding harmonizes with the sophisticated at-
+tention mechanisms, enriching the model’s capacity to prior-
+
+LLM(Long Context)GRUMultimodalFusion……LLM(Long Context)RAG Pipeline for Time SeriesRAG Pipeline for Clinical Notes𝑋(cid:3021)(cid:3032)(cid:3051)(cid:3047)𝑋(cid:3021)(cid:3020)ZAge: 75Urea: 3.5Na: 136Visit 1Age: 75Urea: 5.2Na: 133Visit iAge: 75Urea: 4.3Na: 130Visit T…cardiomegaly with mild pulmonary edema super-imposed on background emphysema…Visit 1……Visit i……Visit Tℎ(cid:3021)(cid:3020)ℎ(cid:3021)(cid:3032)(cid:3051)(cid:3047)ℎ(cid:3019)(cid:3002)(cid:3008)[Entity] Emphysema[Definition] A category of chronic obstructive pulmonary disease… [Description] Enphys-sema can be classified by the location…KGEntity Set (Visit i)[Entity] …[Definition] …[Description] …[Entity] …[Definition] …[Description] …Steps1. Entities Extraction2. Match Entity in KG3. Entity Validation………………itize relevant modalities and adapt to the dynamism of time-
+sensitive clinical tasks.
+
+hT ime = MLP(XT ime)
+(3)
+By converting these three different types of data into com-
+patible embeddings, our model lays a solid groundwork for
+the multimodal analysis of EHR. This strategy of embed-
+ding extraction sets the stage for further analysis tasks under
+the RAG framework, allowing us to accurately and compre-
+hensively understand and analyze the complex information in
+EHR.
+
+Naturally, RAG incorporates two RAG feature extraction
+submodules, each dealing with a different modality. These
+will be detailed in the following subsection.
+
+4.3 RAG-Driven Enhancement Pipeline
+Extract Entities from Multimodal EHR Data
+To fully leverage the expert information in the knowledge
+graph to enhance prediction accuracy, we need to extract
+disease entities from time-series data and clinical notes and
+match them with the information in the graph. The disease
+entities set in the time-series data are denoted as ET S, and
+those in the clinical notes data can be directly denoted as
+ET ext. We design two pipelines for each modality.
+
+Considering continuous numeric data have obvious distribu-
+tion characteristics, we can find outlier values by calculating
+z-score of each feature, each seemed as an entity. There are
+mostly more than one entity (or outlier feature) in each pa-
+tient, and some are missing values, so we only focus on those
+not empty. For each feature XT Si, we can obtain mean value
+and standard deviation by their reference range, and calculate
+z-score of each feature as below, where si stands for z-score
+of i-th feature of one patient.
+
+si =
+
+XT Si − mean(XT Si)
+std(XT Si)
+
+(4)
+
+Features over specified threshold (like 3-σ) are regarded as
+outlier ones, which means unhealthy physical conditions. We
+set ϵ as a threshold to screen out abnormal values, features
+with si greater than ϵ are regarded as abnormal entities and
+worth extraction. In order to set a reasonable threshold for
+clinical predictions, we divided a subset manually, and ob-
+serve extracted entities under different ϵ, and determine one
+above which most entities are instructive.
+
+Figure 2: RAG pipeline for time series EHR modality.
+
+RAG module for time series. Time series are a structured
+data including feature names and their values after clinical
+examination. Each feature name reflects parts of physical
+condition, which reminds us distinguishing patients through
+features out of reference range. As show in Figure 2, this
+record in total series shows a low Blood Pressure and high
+Blood Urea Nitrogen far beyond normal range. This reminds
+us the patient may suffer from hypotension and uremia. In
+fact, we can found these feature names in diseases defeni-
+tions and descriptions, and both lead to severe health risks.
+
+Figure 3: RAG pipeline for clinical notes modality.
+
+RAG module for clinical text records. Due to context lim-
+itations of models like BERT, it may cause information loss
+when encoding clinical notes with BERT. LLM supports for
+longer context, but often introduce hallucination. So we uti-
+lize LLM as entities extractor with post processing:
+
+1. Entities Extraction: To reduce LLM hallucination, we
+use one-shot as demostration and clear instruction in
+prompt, guiding LLM to focus only on disease entities
+appearing in raw notes. When calling LLM model once,
+sometimes LLM may cause failure without any entities re-
+turned, so we operate in multi rounds to enlarge current ex-
+tracted entity set. In i-th round, we concat prompt Pextract
+and clinical text notes XT ext together as LLM input, and
+we can get a set of entities in output Ei
+T ext, and update
+
+total entities set with union of current one and last one.
+
+Ei
+
+T ext = LLM(concat(PExtract, XT ext))
+Si
+
+ET ext := ST ext
+
+(cid:91)
+
+T ext
+
+(5)
+
+(6)
+
+knowledge and patient’s records to judge..." in replace of
+empty string instead of padding with zeros.
+In this way
+LLM can also encode an embedding containing instructive
+information to motivating more comprehensive understand-
+ing within the notes itself.
+
+where PExtract and XT ext represent the prompt to extract
+disease entities and clinical notes data respectively.
+
+2. Entities Refinement: To mitigate hallucination issues of
+LLM, we design a post-processing procedure after extrac-
+tion. This module consists of three steps: firstly, discard
+entities not appear in the original text; secondly, filter en-
+tities not in disease type using LLM; at last, delete du-
+plicated entities in semantics. After that we get a illegal
+entities set, and delete them from last one. This procedure
+may lead to new empty set, so we should loop extraction
+above.
+
+ET ext := ET ext − Eillegal
+(7)
+We repeat step 1 and step 2 until convergence, to ensure
+the quality and quantity of extracted entities.
+
+Match extracted entities with external KG
+To accurately match the extracted entities with those in the
+knowledge graph, we employ dense vector retrieval based
+on semantics. First, we obtain embeddings of all KG nodes
+N odes with LLM. And we encode each entity in set ET S or
+ET ext with the same LLM, to ensure embeddings align in the
+same vector space.
+
+hn = LLM(n), n ∈ N odes
+he = LLM(e), e ∈ E
+
+(8)
+(9)
+
+4.4 Multimodal Fusion Network
+
+Figure 4: Fusion module. It combines multimodal embeddings with
+attention mechanism into a fused representation.
+
+Currently, there are three learned hidden representations,
+denoted respectively as hT S, hT ext, and hRAG. We first
+concatenate the hidden representations extracted from enti-
+ties with those from the text, and then utilize MLP network to
+map them to a unified dimension.
+
+Then we use current entity e as query, and compute cosine
+similarities between Ee and all embeddings of nodes in KG
+hn.
+
+θn
+e =
+
+hn · he
+∥hn∥∥he∥
+
+(10)
+
+In our method, we set a threshold η , to judge whether two
+embeddings are similar enough. If the calculated cosine sim-
+ilarity is greater than η, it indicates that the disease entity is
+closely related to this node in KGs, and we regard related
+attributes from this node can help us with understanding dis-
+eases meanings.
+
+To gain an appropriate threshold, we partition a subset
+and examined the matching status of entities under different
+thresholds, followed by manual expert verification.
+
+Encode KG Knowledge
+To fully utilize the information of matched entities in the
+graph, we encode them using LLM. Firstly, we concatenate
+each node details together in format like (entity name, entity
+definition, entity description). And we join multiple node de-
+tails into one sequence with specified delimiter. Then we get
+references knowledge as a supplement information, and get
+its representation with LLM, also considering of long con-
+text.
+
+hRAG = LLM(XRAG)
+(11)
+Additionally, when no entities found in the text, or no
+matched nodes in KG, we write an instruction text like "You
+are an experience doctor, please combine your background
+
+h′
+
+(12)
+
+T ext = MLP(Concat(hT ext, hRAG))
+To better integrate information from different modalities,
+we proposed an attention-based fusion network mainly con-
+sisting of self-attention layers and cross-attention layers.
+Specifically, we first apply self-attention to each modality.
+Then we use the output of one modality as the query, and the
+output of the other modality as the key and value to compute
+cross-attention.
+
+˜hT ext = MHSA(h′
+T ext + hT ime),
+˜hT S = MHSA(hT S + hT ime),
+hT ext = MHCA(˜hT ext, ˜hT S),
+hT S = MHCA(˜hT S, ˜hT ext)
+where MHSA represents multi-head self-attention, MHCA
+represents multi-head cross-attention, and hT ime represents
+time embedding. In addition, we apply residual connections
+and BatchNorm to every multi-head attention layer and Feed-
+Forward Network.
+
+(13)
+
+As a result, the outputs of the two cross-attention modules
+have carried information from both modalities. We further
+sum them up and use attention poooling layer to obtain the
+fused information.
+
+z = α ∗ zT S + (1 − α) ∗ zT ext
+z∗ = AttnPool(MLP(z))
+
+(14)
+
+where α is a learnable parameter and AttnPool refers to at-
+tention pooling.
+
+Finally, the fused representation z∗ is expected to predict
+downstream tasks. We pass z∗ through a single-layer MLP
+network to obtain the final prediction results ˆy:
+
+ˆy = MLP(σ(z∗))
+
+(15)
+
+The BCE Loss is selected as the loss function for the binary
+
+mortality outcome and readmission prediction task:
+
+L(ˆy, y) = −
+
+1
+N
+
+i=1
+
+N
+(cid:88)
+
+(yi log(ˆyi) + (1 − yi) log(1 − ˆyi))
+
+(16)
+where N is the number of patients within one batch, ˆy ∈ [0, 1]
+is the predicted probability and y is the ground truth.
+
+5 Experimental Setups
+5.1 Dataset, KG and Task Description
+Sourced from the EHRs of the Beth Israel Deaconess Med-
+ical Center, MIMIC-III dataset
+is extensive and widely
+used in healthcare research. We adhere to the benchmark
+pipeline Gao et al. [2024]; Zhu et al. [2024a] for preprocess-
+ing time-series data. 17 lab test features (include categorical
+features) and 2 demographic features (age and gender) are ex-
+tracted. To minimize missing data, we consolidate every con-
+secutive 12-hour segment into a single record for each patient,
+focusing on the first 48 records. And we follow Khadanga
+et al. [2019] to extract clinical notes. We excluded all clin-
+ical notes lacking associated chart time and removed all pa-
+tients without any notes. We randomly split the dataset into
+training (10776 samples), validation (1539 samples) and test
+(3080 samples) set with 7:1:2 percentage.
+
+The
+
+utilized
+
+base we
+
+knowledge
+
+is
+external
+PrimeKG Chandak et al.
+[2023], which integrates 20
+high-quality resources to describe 17,080 diseases with
+4,050,249 relationships representing ten major biological
+scales,
+including disease-associated entities. Futhermore,
+PrimeKG extracts textual features of disease nodes con-
+taining information about disease prevalence, symptoms,
+etiology, risk factors, epidemiology, clinical descriptions,
+management and treatment, complications, prevention, and
+when to seek medical attention, which are highly relevant to
+the clinical prediction tasks.
+
+We conduct in-hospital mortality prediction and 30-day
+readmission prediction task in our experiments. Both are
+binary classification tasks: predicting patient mortality out-
+comes (0: alive, 1: dead) and readmission likelihood (0: no
+readmission, 1: possible readmission).
+
+5.2 Evaluation Metrics
+We adopt the following evaluation metrics, which are widely
+used in binary classification tasks:
+
+• AUROC: This metric is our primary consideration in bi-
+nary classification tasks due to its widespread use in clin-
+ical settings and its effectiveness in handling imbalanced
+datasets McDermott et al. [2024].
+
+• AUPRC: The AUPRC is particularly useful for evaluating
+performance in datasets with a significant imbalance be-
+tween classes Kim and Hwang [2022].
+
+• min(+P, Se): This composite metric represents the min-
+imum value between precision (+P) and sensitivity (Se),
+providing a balanced measure of model performance Ma
+et al. [2022].
+
+• F1: The F1 score is particularly useful in scenarios where
+an equitable trade-off between precision and recall is de-
+sired Chinchor [1992].
+
+All these four metrics are the higher the better.
+
+5.3 Hyperparameters
+The batch size is consistently set at 256. For all experiments,
+we report performance in the form of mean±std., where we
+adopt bootstrap strategy for 10 times.
+
+We conduct a grid search for the baseline models. The hy-
+perparameters for our REALM model are: a hidden dimen-
+sion of 312 and a learning rate of 6e-4.
+
+5.4 Baseline Models
+EHR Prediction Models We include multimodal EHR
+baseline models (M3Care Zhang et al. [2022], MPIM Zhang
+et al. [2023a], UMM Lee et al. [2023], VecoCareXu et al.
+[2023]) and approaches that incorporating external knowl-
+edge from KG (GRAM Choi et al. [2017], KAME Ma et al.
+[2018], CGL Lu et al. [2021], KerPrint Yang et al. [2023]) as
+our baselines. Detailed description of each model is in Ap-
+pendix.
+
+Text Embedding Approaches we compare different text
+embedding approaches including BERT’s [CLS] token De-
+vlin et al. [2018], BGE-M3 Chen and Xiao [2024] and Qwen-
+7B’s encoder Bai et al. [2023]. Detailed set ups are described
+in Appendix.
+
+Multimodal Fusion Baselines To examine the effective-
+ness of our fusion network, we consider fusion methods:
+Add Wu and Han [2018], Concat Khadanga et al. [2019];
+Deznabi et al. [2021], Tensor Fusion (TF) Zadeh et al. [2017],
+and MAG Rahman et al. [2020]; Yang and Wu [2021]. De-
+tailed description is in Appendix.
+
+6 Experimental Results
+
+The performance of our REALM framework on in-hospital
+mortality and 30-day readmission prediction tasks on the
+MIMIC-III dataset is summarized in Table 2. Our approach
+consistently outperforms the baseline models. Specifically,
+REALM achieves a significant relative improvement in AU-
+ROC (1.09%, 2.06%), AUPRC (2.75%, 4.75%), min(+P, Se)
+(0.79%, 3.12%) and F1 scores (21.90%, 30.39%) with the
+best baseline model for both tasks, indicating its superior
+practical applicability in real-world clinical settings.
+
+6.1 Ablation Studies
+Comparing Each Modality with RAG-Enhancement
+To understand the contribution of RAG-enhancement to each
+modality, we conducted an ablation study. The results, as il-
+lustrated in Table 3, reveal that the RAG-enhanced versions of
+both time-series and text modalities significantly improve the
+
+Table 2: In-hospital mortality and readmission prediction results on MIMIC-III. Bold indicates the best performance. All metrics are multi-
+plied by 100 for readability purposes.
+
+Methods
+
+Mortality Outcome Prediction
+
+30-Day Readmission Prediction
+
+AUROC
+
+AUPRC
+
+min(+P, Se)
+
+F1
+
+AUROC
+
+AUPRC
+
+min(+P, Se)
+
+F1
+
+MPIM
+UMM
+VecoCare
+M3Care
+
+GRAM
+KAME
+CGL
+KerPrint
+
+85.24±1.12
+84.01±1.10
+83.43±1.49
+83.33±1.24
+
+84.70±1.34
+84.59±1.11
+84.20±1.16
+85.29±1.21
+
+50.52±2.56
+49.76±2.21
+47.28±2.68
+47.86±2.33
+
+49.21±4.45
+49.48±3.37
+47.64±3.47
+51.23±3.48
+
+50.59±2.33
+49.41±2.45
+47.92±2.22
+49.96±1.99
+
+49.64±2.85
+49.51±2.33
+47.67±2.61
+50.88±2.24
+
+30.53±2.33
+36.21±1.90
+42.52±2.08
+24.81±2.62
+
+38.02±3.19
+36.14±2.24
+38.36±2.04
+37.00±3.54
+
+78.62±1.58
+77.46±1.36
+76.93±1.82
+76.80±1.55
+
+77.84±1.49
+78.04±1.34
+77.47±1.33
+78.41±1.50
+
+49.30±3.01
+47.81±2.55
+46.18±2.76
+46.29±2.62
+
+47.97±3.68
+48.23±3.21
+46.68±3.33
+49.70±3.23
+
+49.65±2.54
+47.27±1.91
+47.22±2.63
+45.38±2.32
+
+46.95±2.12
+47.41±2.50
+47.73±2.25
+49.39±2.53
+
+26.61±2.20
+34.14±2.21
+38.79±2.27
+21.51±2.23
+
+35.24±2.89
+31.70±2.19
+35.34±2.35
+34.31±2.35
+
+Ours (REALM)
+
+86.22±0.81
+
+52.64±2.47
+
+50.92±2.01
+
+51.83±2.10
+
+80.24±1.53
+
+52.06±2.64
+
+51.20±2.50
+
+50.58±2.51
+
+model’s performance. This confirms the hypothesis that en-
+riching EHR data with external medical knowledge can effec-
+tively capture more complex semantic medical background
+knowledge, leading to more accurate clinical predictions.
+
+Comparing Different Fusion Network
+Our analysis extends to comparing the effectiveness of dif-
+ferent fusion strategies for integrating time-series and text
+modalities. As shown in Table 3, our designed self- and cross-
+attention based adaptive multimodal fusion network outper-
+forms all baseline methods in both tasks. This demonstrates
+the advantage of our fusion strategy in attentively learn-
+ing and integrating modality-specific features for improved
+prediction performance. Moreover, with RAG-enhanced
+knowledge combining both modalities, our REALM method
+achieve the SOTA performance against all reduced versions.
+
+Comparing Text Embedding Models
+The impact of using different text embedding models on the
+performance of our REALM framework is also explored. Ta-
+ble 4 highlights that the Qwen-7B model, with its extensive
+training data and long-context support, significantly outper-
+forms BERT and BGE-M3 in all metrics. This suggests that
+leveraging advanced large language models for embedding
+clinical notes can enhance the model’s understanding of com-
+plex medical narratives.
+
+6.2 Further Analysis
+Robustness to Data Sparsity
+To evaluate the robustness of our REALM framework against
+data sparsity, we conducted experiments by artificially reduc-
+ing the dataset’s completeness by 20%, 40%, 60% and 80%.
+As depicted in Figure 5, REALM demonstrates remarkable
+resilience, outperforming other recent SOTA models even un-
+der extreme data scarcity. This robustness is particularly cru-
+cial in clinical environments where large amount of data col-
+lection is often challenging, making REALM a valuable tool
+for real-world applications.
+
+Figure 5: AUPRC Performance across 4 Sparsity Levels on MIMIC-
+III mortality outcome task. REALM exhibits better performance on
+multiple missing rate levels than recent SOTA baselines.
+
+Figure 6: Case study of retrieved entities in original clinical notes
+with importance score computed. The deeper yellow background
+color denotes higher importance score.
+
+patient’s visit and the extracted disease type entities, among
+which "atrial fibrillation" and "sepsis" have the highest impor-
+tance scores, followed by "osteomyelitis", and finally "renal
+failure". By examining the nodes and attribute information
+corresponding to each disease entity in the knowledge graph,
+we find that they are all relatively dangerous diseases in clini-
+cal practice, and patients have a high probability of experienc-
+ing mortality. This reflects the effectiveness of our proposed
+RAG-driven process.
+
+7 Conclusions
+
+Evaluation of Quality of Retrieved Entities
+We take the entities extracted by RAG pipeline as input to
+XGBoost model to calculate the importance of the entities,
+thereby indirectly measuring the contribution of the entities
+to the prediction task. Figure 6 shows the medical record of a
+
+In this work, we propose REALM, a RAG-driven multimodal
+EHR data representation learning framework that incorpo-
+rates time-series EHR, clinical notes data and external knowl-
+edge graph for healthcare prediction. REALM framework
+comprehensively leverages LLM’s semantic reasoning abil-
+
++20%+40%+60%+80%Added Missing Rate0.300.350.400.450.50AUPRC ScoresModelREALMMPIMVecoCareM3CareKerPrintTable 3: Ablation Studies results of 1) comparing each modality with RAG-enhancement, 2) comparing different multimodal fusion network.
+Bold indicates the best performance. All metrics are multiplied by 100 for readability purposes.
+
+Methods
+
+Mortality Outcome Prediction
+
+30-Day Readmission Prediction
+
+AUROC
+
+AUPRC
+
+min(+P, Se)
+
+F1
+
+AUROC
+
+AUPRC
+
+min(+P, Se)
+
+F1
+
+TS only
+TS+RAGT S
+Text only
+Text+RAGT ext
+
+TS+Text: Add
+TS+Text: Concat
+TS+Text: TF
+TS+Text: MAG
+TS+Text: Ours
+
+83.43±1.08
+84.22±0.98
+80.11±1.69
+81.01±1.52
+
+84.72±1.03
+85.22±0.93
+84.13±1.24
+84.75±0.97
+85.18±0.95
+
+48.70±3.04
+49.80±3.15
+40.54±3.51
+42.92±3.43
+
+48.60±3.45
+49.94±3.14
+49.06±3.38
+50.31±2.71
+50.68±2.64
+
+46.72±2.10
+48.35±1.91
+41.05±3.27
+42.51±3.02
+
+50.05±2.59
+49.75±1.82
+50.21±2.88
+48.58±2.42
+47.90±2.27
+
+37.38±2.94
+41.10±2.95
+33.96±2.35
+45.13±2.44
+
+46.86±2.43
+46.51±2.18
+37.54±3.05
+45.81±2.20
+49.81±2.37
+
+77.63±1.38
+78.02±1.37
+74.57±1.86
+74.48±1.91
+
+78.23±1.74
+78.96±1.48
+77.16±1.96
+78.04±1.58
+78.79±1.47
+
+48.11±3.23
+48.36±2.98
+40.99±3.52
+43.38±3.70
+
+48.77±3.61
+50.08±3.27
+47.64±3.60
+49.26±2.86
+49.69±2.92
+
+47.41±2.08
+47.31±2.38
+42.49±3.10
+43.46±3.18
+
+48.76±2.87
+50.60±2.18
+48.17±2.29
+48.88±2.37
+48.91±2.57
+
+33.40±2.91
+34.39±2.73
+30.87±2.50
+40.01±2.91
+
+47.29±2.46
+40.61±2.02
+31.86±2.65
+45.30±2.43
+49.94±2.36
+
+Ours (REALM)
+
+86.22±0.81
+
+52.64±2.47
+
+50.92±2.01
+
+51.83±2.10
+
+80.24±1.53
+
+52.06±2.64
+
+51.20±2.50
+
+50.58±2.51
+
+Table 4: Ablation study results of suing different text embedding
+models. Bold indicates the best performance. All metrics are multi-
+plied by 100 for readability purposes.
+
+Tasks
+
+Out.
+
+Read.
+
+Metrics
+AUROC
+AUPRC
+min(+P, Se)
+F1
+
+AUROC
+AUPRC
+min(+P, Se)
+F1
+
+BERT
+83.66±1.34
+48.22±3.13
+48.39±3.26
+43.46±2.61
+
+76.55±1.89
+46.10±3.17
+46.10±3.10
+39.68±2.73
+
+BGE-M3
+84.72±0.97
+50.42±2.88
+49.29±2.55
+49.40±2.41
+
+78.03±1.63
+49.10±3.28
+47.67±2.41
+48.81±2.22
+
+Qwen-7B
+86.22±0.81
+52.64±2.47
+50.92±2.01
+51.83±2.10
+
+80.24±1.53
+52.06±2.64
+51.20±2.50
+50.58±2.51
+
+ity, long context encoding capacity, and knowledge graph’s
+medical context. REALM framework achieve SOTA per-
+formance on MIMIC-III datasets’ in-hospital mortality and
+30-day readmission tasks, showcasing its effectiveness of in-
+corporating knowledge from external knowledge bases. Our
+work marks a step towards more effective utilization of EHR
+data in healthcare, offering a potent solution to enhance clin-
+ical representations with external knowledge and LLMs.
+
+Ethical Statement
+This study,
+involving the analysis of Electronic Health
+Records (EHR) using the MIMIC dataset, is committed to
+upholding high ethical standards. The MIMIC dataset is a
+de-identified dataset, ensuring patient confidentiality and pri-
+vacy. It is available through a data use agreement, underscor-
+ing our commitment to responsible data handling and usage.
+Our approach has been designed to minimize any potential
+harm and to ensure that our findings are as unbiased and fair
+as possible, taking into account the diverse and complex na-
+ture of medical data. We have also taken rigorous steps to
+ensure our research aligns with these values.
+
+Acknowledgments
+This work is supported by the National Key R&D Program of
+China (No. 2022ZD0116401).
+
+References
+
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ah-
+mad,
+Ilge Akkaya, Florencia Leoni Aleman, Diogo
+Almeida, Janko Altenschmidt, Sam Altman, Shyamal
+Anadkat, et al. Gpt-4 technical report. arXiv preprint
+arXiv:2303.08774, 2023.
+
+Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang,
+Xiaodong Deng, Yang Fan, Wenbin Ge, Yu Han, Fei
+arXiv preprint
+Huang, et al. Qwen technical report.
+arXiv:2309.16609, 2023.
+
+Payal Chandak, Kexin Huang, and Marinka Zitnik. Building
+a knowledge graph to enable precision medicine. Scientific
+Data, 10(1):67, 2023.
+
+Jianlv Chen and Shitao Xiao. Bge m3-embedding: Multi-
+lingual, multi-functionality, multi-granularity text embed-
+dings through self-knowledge distillation. https://synthical.
+com/article/9ffce599-0640-457c-bd1c-502cab06e8af,
+1
+2024.
+
+Nancy Chinchor. Muc-4 evaluation metrics. In Proceedings
+of the 4th Conference on Message Understanding, MUC4
+’92, page 22–29, USA, 1992. Association for Computa-
+tional Linguistics.
+
+Edward Choi, Mohammad Taha Bahadori, Le Song, Walter F
+Stewart, and Jimeng Sun. Gram: graph-based attention
+model for healthcare representation learning. In Proceed-
+ings of the 23rd ACM SIGKDD international conference
+on knowledge discovery and data mining, pages 787–795,
+2017.
+
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina
+Toutanova.
+Bert: Pre-training of deep bidirectional
+transformers for language understanding. arXiv preprint
+arXiv:1810.04805, 2018.
+
+Iman Deznabi, Mohit Iyyer, and Madalina Fiterau. Predict-
+ing in-hospital mortality by combining clinical notes with
+time-series data. In Findings of the Association for Com-
+putational Linguistics: ACL-IJCNLP 2021, pages 4026–
+4031, 2021.
+
+Junyi Gao, Chaoqi Yang, Joerg Heintz, Scott Barrows, Elise
+Albers, Mary Stapel, Sara Warfield, Adam Cross, and Ji-
+meng Sun. Medml: fusing medical knowledge and ma-
+chine learning models for early pediatric covid-19 hospi-
+talization and severity prediction. Iscience, 25(9), 2022.
+
+Junyi Gao, Yinghao Zhu, Wenqing Wang, Yasha Wang, Wen
+Tang, Ewen M. Harrison, and Liantao Ma. A compre-
+hensive benchmark for covid-19 predictive modeling using
+electronic health records in intensive care, 2024.
+
+Fergus Imrie, Paulius Rauba, and Mihaela van der Schaar.
+Redefining digital health interfaces with large language
+models. arXiv preprint arXiv:2310.03560, 2023.
+
+Swaraj Khadanga, Karan Aggarwal, Shafiq Joty, and Jaideep
+Srivastava. Using clinical notes with time series data for
+icu management. arXiv preprint arXiv:1909.09702, 2019.
+
+Misuk Kim and Kyu-Baek Hwang. An empirical evaluation
+of sampling methods for the classification of imbalanced
+data. PLoS One, 17(7):e0271260, 2022.
+
+Kwanhyung Lee, Soojeong Lee, Sangchul Hahn, Heejung
+Hyun, Edward Choi, Byungeun Ahn, and Joohyung Lee.
+Learning missing modal electronic health records with uni-
+fied multi-modal data embedding and modality-aware at-
+tention. arXiv preprint arXiv:2305.02504, 2023.
+
+Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni,
+Vladimir Karpukhin, Naman Goyal, Heinrich Küttler,
+Mike Lewis, Wen-tau Yih, Tim Rocktäschel, et al.
+Retrieval-augmented generation for knowledge-intensive
+nlp tasks. Advances in Neural Information Processing Sys-
+tems, 33:9459–9474, 2020.
+
+Weibin Liao, Yinghao Zhu, Zixiang Wang, Xu Chu, Yasha
+Wang, and Liantao Ma. Learnable prompt as pseudo-
+imputation: Reassessing the necessity of traditional ehr
+data imputation in downstream clinical prediction, 2024.
+
+Chang Lu, Chandan K Reddy, Prithwish Chakraborty,
+Samantha Kleinberg, and Yue Ning. Collaborative graph
+learning with auxiliary text for temporal event predic-
+tion in healthcare. In Zhi-Hua Zhou, editor, Proceedings
+of the Thirtieth International Joint Conference on Arti-
+ficial Intelligence, IJCAI-21, pages 3529–3535. Interna-
+tional Joint Conferences on Artificial Intelligence Organi-
+zation, 8 2021. Main Track.
+
+Fenglong Ma, Quanzeng You, Houping Xiao, Radha Chitta,
+Jing Zhou, and Jing Gao. Kame: Knowledge-based at-
+In
+tention model for diagnosis prediction in healthcare.
+Proceedings of the 27th ACM International Conference on
+Information and Knowledge Management, pages 743–752,
+2018.
+
+Xinyu Ma, Yasha Wang, Xu Chu, Liantao Ma, Wen Tang,
+Junfeng Zhao, Ye Yuan, and Guoren Wang. Patient health
+representation learning via correlational sparse prior of
+IEEE Transactions on Knowledge and
+medical features.
+Data Engineering, 2022.
+
+Liantao Ma, Chaohe Zhang, Junyi Gao, Xianfeng Jiao, Zhi-
+hao Yu, Yinghao Zhu, Tianlong Wang, Xinyu Ma, Yasha
+Wang, Wen Tang, Xinju Zhao, Wenjie Ruan, and Tao
+Wang. Mortality prediction with adaptive feature impor-
+tance recalibration for peritoneal dialysis patients. Pat-
+terns, 4(12), 2023.
+
+Matthew B. A. McDermott, Lasse Hyldig Hansen, Haoran
+Zhang, Giovanni Angelotti, and Jack Gallifant. A closer
+arXiv
+look at auroc and auprc under class imbalance.
+preprint arXiv:2401.06091, 2024.
+
+Pengcheng Jiang, Cao Xiao, Adam Cross, and Jimeng Sun.
+Graphcare: Enhancing healthcare predictions with open-
+arXiv preprint
+world personalized knowledge graphs.
+arXiv:2305.12788, 2023.
+
+Riccardo Miotto, Fei Wang, Shuang Wang, Xiaoqian Jiang,
+and Joel T Dudley. Deep learning for healthcare: review,
+opportunities and challenges. Briefings in bioinformatics,
+19(6):1236–1246, 2018.
+
+Muchao Ye, Suhan Cui, Yaqing Wang, Junyu Luo, Cao Xiao,
+and Fenglong Ma. Medpath: Augmenting health risk pre-
+diction via medical knowledge paths. In Proceedings of the
+Web Conference 2021, pages 1397–1409, 2021.
+
+Amir Zadeh, Minghai Chen, Soujanya Poria, Erik Cam-
+bria, and Louis-Philippe Morency. Tensor fusion net-
+work for multimodal sentiment analysis. arXiv preprint
+arXiv:1707.07250, 2017.
+
+Chaohe Zhang, Xu Chu, Liantao Ma, Yinghao Zhu, Yasha
+Wang, Jiangtao Wang, and Junfeng Zhao. M3care: Learn-
+ing with missing modalities in multimodal healthcare data.
+In Proceedings of the 28th ACM SIGKDD Conference on
+Knowledge Discovery and Data Mining, KDD ’22, page
+2418–2428, New York, NY, USA, 2022. Association for
+Computing Machinery.
+
+Xinlu Zhang, Shiyang Li, Zhiyu Chen, Xifeng Yan, and
+Linda Ruth Petzold.
+Improving medical predictions by
+irregular multimodal electronic health records modeling.
+In International Conference on Machine Learning, pages
+41300–41313. PMLR, 2023.
+
+Yue Zhang, Yafu Li, Leyang Cui, Deng Cai, Lemao Liu,
+Tingchen Fu, Xinting Huang, Enbo Zhao, Yu Zhang, Yu-
+long Chen, et al. Siren’s song in the ai ocean: A survey
+on hallucination in large language models. arXiv preprint
+arXiv:2309.01219, 2023.
+
+Zhongji Zhang, Yuhang Wang, Yinghao Zhu, Xinyu Ma,
+Tianlong Wang, Chaohe Zhang, Yasha Wang, and Liantao
+Ma. Domain-invariant clinical representation learning by
+bridging data distribution shift across emr datasets, 2024.
+
+Yinghao Zhu, Wenqing Wang, Junyi Gao, and Liantao Ma.
+Pyehr: A predictive modeling toolkit for electronic health
+records. https://github.com/yhzhu99/pyehr, 2024.
+
+Yinghao Zhu, Zixiang Wang, Junyi Gao, Yuning Tong,
+Jingkun An, Weibin Liao, Ewen M. Harrison, Liantao Ma,
+and Chengwei Pan. Prompting large language models for
+zero-shot clinical prediction with structured longitudinal
+electronic health record data, 2024.
+
+Yinghao Zhu, Zixiang Wang, Long He, Shiyun Xie, Liantao
+Ma, and Chengwei Pan. Prism: Leveraging prototype
+patient representations with feature-missing-aware calibra-
+tion for ehr data sparsity mitigation, 2024.
+
+Wasifur Rahman, Md Kamrul Hasan, Sangwu Lee, Amir
+Zadeh, Chengfeng Mao, Louis-Philippe Morency, and
+Ehsan Hoque. Integrating multimodal information in large
+pretrained transformers. In Proceedings of the conference.
+Association for Computational Linguistics. Meeting, vol-
+ume 2020, page 2359. NIH Public Access, 2020.
+
+Alvin Rajkomar, Eyal Oren, Kai Chen, Andrew M Dai, Nis-
+san Hajaj, Michaela Hardt, Peter J Liu, Xiaobing Liu, Jake
+Marcus, Mimi Sun, et al. Scalable and accurate deep learn-
+ing with electronic health records. NPJ digital medicine,
+1(1):18, 2018.
+
+Kai Sun, Yifan Ethan Xu, Hanwen Zha, Yue Liu, and
+Xin Luna Dong. Head-to-tail: How knowledgeable are
+large language models (llm)? aka will llms replace knowl-
+edge graphs? arXiv preprint arXiv:2308.10168, 2023.
+
+Boshi Wang, Xiang Yue, and Huan Sun. Can chatgpt defend
+its belief in truth? evaluating llm reasoning via debate. In
+Findings of the Association for Computational Linguistics:
+EMNLP 2023, pages 11865–11881, 2023.
+
+Jiaqi Wang, Junyu Luo, Muchao Ye, Xiaochen Wang, Yuan
+Zhong, Aofei Chang, Guanjie Huang, Ziyi Yin, Cao Xiao,
+Jimeng Sun, and Fenglong Ma. Recent advances in predic-
+tive modeling with electronic health records, 2024.
+
+Michael Wornow, Yizhe Xu, Rahul Thapa, Birju Patel, Ethan
+Steinberg, Scott Fleming, Michael A Pfeffer, Jason Fries,
+and Nigam H Shah. The shaky foundations of large lan-
+guage models and foundation models for electronic health
+records. npj Digital Medicine, 6(1):135, 2023.
+
+Aming Wu and Yahong Han. Multi-modal circulant fusion
+In Proceedings of
+for video-to-language and backward.
+the Twenty-Seventh International Joint Conference on Ar-
+tificial Intelligence, IJCAI-18, pages 1029–1035. Interna-
+tional Joint Conferences on Artificial Intelligence Organi-
+zation, 7 2018.
+
+Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han,
+and Mike Lewis. Efficient streaming language models with
+attention sinks, 2023.
+
+Yongxin Xu, Kai Yang, Chaohe Zhang, Peinie Zou, Zhiyuan
+Wang, Hongxin Ding, Junfeng Zhao, Yasha Wang, and
+Bing Xie. Vecocare: Visit sequences-clinical notes joint
+In
+learning for diagnosis prediction in healthcare data.
+Edith Elkind, editor, Proceedings of the Thirty-Second
+International Joint Conference on Artificial Intelligence,
+IJCAI-23, pages 4921–4929. International Joint Confer-
+ences on Artificial Intelligence Organization, 8 2023. Main
+Track.
+
+Bo Yang and Lijun Wu. How to leverage multimodal ehr
+arXiv preprint
+
+data for better medical predictions?
+arXiv:2110.15763, 2021.
+
+Kai Yang, Yongxin Xu, Peinie Zou, Hongxin Ding, Jun-
+feng Zhao, Yasha Wang, and Bing Xie. Kerprint: Local-
+global knowledge graph enhanced diagnosis prediction for
+retrospective and prospective interpretations. Proceed-
+ings of the AAAI Conference on Artificial Intelligence,
+37(4):5357–5365, Jun. 2023.
+
+A Baseline Models Description Detail
+A.1 EHR Prediction Models
+We include multimodal EHR baseline models (M3Care Zhang et al. [2022], MPIM Zhang et al. [2023a], UMM Lee et al.
+[2023], VecoCareXu et al. [2023]) and approaches that incorporating external knowledge from KG (GRAM Choi et al. [2017],
+KAME Ma et al. [2018], CGL Lu et al. [2021], KerPrint Yang et al. [2023]) as our baselines.
+• M3Care Zhang et al. [2022] (KDD-2022) proposes an end-to-end model to handle missing modalities in multimodal health-
+care data by imputing task-related information in the latent space using a task-guided modality-adaptive similarity metric.
+• MPIM Zhang et al. [2023a] (ICML-2023) models the irregularity of time intervals in time-series EHR data and clinical notes
+
+via gating mechanism and apply interleaved attention mechanism for modality fusion.
+
+• UMM Lee et al. [2023] (MLHC-2023) introduces Unified Multi-modal Set Embedding (UMSE) and Modality-Aware At-
+tention (MAA) with Skip Bottleneck (SB) to handle challenges in data embedding and missing modalities in multi-modal
+EHR.
+
+• VecoCare Xu et al. [2023] (IJCAI-2023) addresses the challenges of synthesizing information from structured and unstruc-
+tured EHR data using a Gromov-Wasserstein Distance-based contrastive learning and an adaptive masked language model.
+• GRAM Choi et al. [2017] (KDD-2017) enhances EHRs with medical ontologies, using an attention mechanism to represent
+
+medical concepts by their ancestors in the ontology for improved predictive performance and interpretability.
+
+• KAME Ma et al. [2018] (CIKM-2018) employs a knowledge attention mechanism to learn embeddings for nodes in a knowl-
+edge graph, improving the accuracy and robustness of health information prediction while providing interpretable disease
+representations.
+
+• CGL Lu et al. [2021] (IJCAI-2021) proposes a collaborative graph learning model to explore patient-disease interactions
+and incorporate medical domain knowledge, integrating unstructured text data for accurate and explainable health event
+predictions.
+
+• KerPrint Yang et al. [2023] (AAAI-2023) offers retrospective and prospective interpretations of diagnosis predictions through
+a time-aware KG attention method and an element-wise attention method for selecting candidate global knowledge, enhancing
+interpretability.
+
+A.2 Text Embedding Approaches
+We compare different text embedding approaches including BERT’s [CLS] token Devlin et al. [2018], BGE-M3 Chen and Xiao
+[2024] and Qwen-7B’s encoder Bai et al. [2023].
+• BERT Devlin et al. [2018]: It excels in understanding context and nuance across a wide range of tasks. We use the [CLS]
+token from the pretrained BERT-base model for text embedding. We clip the clinical notes if they exceed the maximum token
+size limit of 512. The hidden dimension of BERT is 768.
+
+• BGE-M3 Chen and Xiao [2024]: Targets multi-language and cross-language text vectorization using a vast, diverse dataset.
+It is specifically designed for feature extraction and retrieval, accepting up to 8192 tokens with a hidden dimension of 1024.
+• Qwen-7B Bai et al. [2023]: A large language model pretrained on 3TB of data, supporting extensive task adaptability. It can
+
+handle contexts up to 8192 tokens, making it capable of processing patients’ clinical notes records.
+
+A.3 Multimodal Fusion Baselines
+To examine the effectiveness of our fusion network, we consider fusion methods: Add Wu and Han [2018], Concat Khadanga
+et al. [2019]; Deznabi et al. [2021], Tensor Fusion (TF) Zadeh et al. [2017], and MAG Rahman et al. [2020]; Yang and Wu
+[2021].
+• Add Wu and Han [2018]: Simply performs element-wise addition of features from different modalities to integrate informa-
+
+tion.
+
+• Concat Khadanga et al. [2019]; Deznabi et al. [2021]: The representations are concated to do predictions.
+• Tensor Fusion (TF) Zadeh et al. [2017]: It integrates information from multiple sources or modalities by creating a multimodal
+
+tensor representation that captures the interactions between these modalities.
+
+• MAG Rahman et al. [2020]; Yang and Wu [2021]: It dynamically fuse information from different modalities by adaptively
+
+weighting and integrating the features from each modality based on their relevance and contribution to the task at hand.
+
+B Experimental Environment
+We train all models on a server equipped with an Nvidia RTX 3090 GPU and 64GB of RAM. The software environment
+includes CUDA 12.2, Python 3.11, PyTorch 2.0.1, and PyTorch Lightning 2.0.5. We use the AdamW optimizer. All models
+are trained over 30 epochs on patient samples from the training set, with an early stopping strategy monitored by the AUROC
+score on the validation set, applying a patience of 5 epochs.
+
+C Prompt Details
+
+Here are templates when extracting entities using LLM, and combining retrieved knowledge with KG.
+
+Prompt for entity extraction
+
+[Instruction]
+
+You are tasked with performing Named Entity Recognition (NER) specifically for diseases in
+a given medical case description. Follow the instructions below:
+
+1. Input: You will receive a medical case description in the [Input].
+2. NER Task: Focus on extracting the names of diseases as the target entity.
+3. Output: Provide the extracted disease names in JSON format.
+
+Ensure that the JSON output only includes the names of diseases mentioned in the provided
+[Input], excluding any additional content. The goal is to perform NER exclusively on
+disease names within the given text.
+
+Example:
+
+[Input]
+
+1:19 pm abdomen ( supine and erect ) clip
+woman with reason for this examination : sbo final report indication : 63-year-old woman
+with small bowel obstruction . findings : supine and upright abdominal radiographs are
+markedly limited due to the patient ’s body habitus ...
+
+reason : sbo medical condition : 63 year old
+
+[Answer]
+
+{
+
+}
+
+"entities": ["small bowel obstruction", "large bowel volvulus", ...]
+
+Complete XRAG demonstration with retrieved results
+
+You are an experienced doctor, and the patient’s medical record includes the following
+disease entities during a visit. Below are descriptions related to these diseases. Please
+combine the severity of the patient’s condition in the medical record and the severity of
+the disease to assess their health status.
+
+References:
+
+[Disease] acromegaly
+
+[Definition] Acromegaly is an acquired disorder related to excessive production of growth
+hormone (GH) and characterized by progressive somatic disfigurement (mainly involving the
+face and extremities) and systemic manifestations.. A rare acquired endocrine disease
+related to excessive production of growth hormone (GH) and characterized by progressive
+somatic disfigurement (mainly involving the face and extremities) and systemic
+manifestations.
+
+[Description] Disease of the glandular, anterior portion of the pituitary resulting in
+hypersecretion of adenohypophyseal hormones such as growth hormone; prolactin;
+hyrotropin; luteinizing hormone; follicle stimulating hormone ; and adrenocorticotropic
+hormone. Hyperpituitarism usually is caused by a functional adenoma.
+
+[Disease] pulmonary edema
+
+[Definition] Accumulation of fluid in the lung tissues causing disturbance of the gas
+exchange that may lead to respiratory failure. It is caused by direct injury to the lung
+
+parenchyma or congestive heart failure. The symptoms may appear suddenly or gradually.
+Suddenly appearing symptoms include difficulty breathing, feeling of suffocation, and
+coughing associated with frothy sputum. Gradually appearing symptoms include difficulty
+breathing while lying in bed, shortness of breath during activity, and weight gain (in
+patients with congestive heart failure).
+
+[Description] Excessive accumulation of extravascular fluid in the lung, an indication of
+a serious underlying disease or disorder. Pulmonary edema prevents efficient pulmonary
+gas exchange in the pulmonary alveoli, and can be life-threatening.

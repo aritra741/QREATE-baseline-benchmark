@@ -91,7 +91,7 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 38
+BACKEND_VERSION = 39
 HYBRID_BULK_VERSION = 12
 
 logger = logging.getLogger(__name__)
@@ -4169,6 +4169,21 @@ class ContractBackend:
             for cell in self._shared.evidence
         )
 
+    def _persist_transient_failures(self, extractor: object) -> None:
+        failures = list(getattr(extractor, "transient_failures", ()) or ())
+        if not failures or self.scratch_dir is None:
+            return
+        path = Path(self.scratch_dir) / "transient_llm_failures.json"
+        path.write_text(
+            json.dumps(failures, indent=2),
+            encoding="utf-8",
+        )
+        logger.warning(
+            "Recorded %s skipped LLM units after connection/timeout errors: %s",
+            len(failures),
+            path,
+        )
+
     def _persist_contract_audit(
         self,
         extraction: object,
@@ -4837,6 +4852,7 @@ class ContractBackend:
                     self.contract,
                     supplemental_mapping_records=bulk_mapping_records,
                 )
+                self._persist_transient_failures(extractor)
                 # extract() releases and consumes the mapping escrow immediately
                 # before its single combined bulk+contract mapping pass.
                 taxonomy_escrow = None

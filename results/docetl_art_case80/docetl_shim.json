@@ -1,0 +1,72 @@
+{
+  "per_config": {
+    "player_case80": {
+      "per_query": [
+        {
+          "query_id": "art_multiagg20:q4",
+          "sql": "SELECT image_genre, COUNT(*) AS artist_count, AVG(awards) AS avg_awards, MAX(age) AS oldest FROM art WHERE image_genre != '' AND age BETWEEN 25 AND 105 GROUP BY image_genre HAVING COUNT(*) >= 10"
+        },
+        {
+          "query_id": "art_filter20:q9",
+          "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE field LIKE '%Painting%' AND age BETWEEN 50 AND 90 AND birth_continent != '' GROUP BY birth_continent"
+        },
+        {
+          "query_id": "art_filter20:q7",
+          "sql": "SELECT CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color != '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Impressionism', 'Surrealism', 'Realism') AND color != '' GROUP BY color_family"
+        },
+        {
+          "query_id": "art_multiagg20:q11",
+          "sql": "SELECT CASE WHEN art_institution != '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards FROM art WHERE age BETWEEN 25 AND 105 GROUP BY institution_status"
+        },
+        {
+          "query_id": "art_multiagg20:q18",
+          "sql": "SELECT CASE WHEN awards = 0 THEN 'no_awards' WHEN awards = 1 THEN 'one_award' ELSE 'multiple_awards' END AS award_band, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE awards IS NOT NULL AND age BETWEEN 25 AND 105 GROUP BY award_band"
+        },
+        {
+          "query_id": "art_agg20:q4",
+          "sql": "SELECT century, AVG(age) AS avg_age FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century"
+        },
+        {
+          "query_id": "art_groupby20:q14",
+          "sql": "SELECT birth_country, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND teaching IS NOT NULL GROUP BY birth_country, teaching_status"
+        },
+        {
+          "query_id": "art_agg20:q11",
+          "sql": "SELECT CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE awards IS NOT NULL GROUP BY award_status"
+        },
+        {
+          "query_id": "art_multiagg20:q9",
+          "sql": "SELECT birth_country, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(awards) AS total_awards FROM art WHERE birth_country != '' AND age BETWEEN 25 AND 105 GROUP BY birth_country HAVING COUNT(*) >= 8"
+        },
+        {
+          "query_id": "art_agg20:q13",
+          "sql": "SELECT century, SUM(awards) AS total_awards FROM art WHERE century != '' GROUP BY century"
+        },
+        {
+          "query_id": "art_agg20:q17",
+          "sql": "SELECT image_genre, AVG(age) AS avg_age FROM art WHERE image_genre != '' AND age BETWEEN 25 AND 105 GROUP BY image_genre HAVING COUNT(*) >= 10"
+        },
+        {
+          "query_id": "art_filter20:q8",
+          "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE awards >= 1 AND teaching = 1 AND century != '' GROUP BY century"
+        },
+        {
+          "query_id": "art_filter20:q11",
+          "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE birth_continent = 'Europe' AND awards >= 1 AND century != '' GROUP BY century"
+        },
+        {
+          "query_id": "art_filter20:q15",
+          "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE genre IN ('Abstract', 'Landscape', 'Portrait') AND century != '' GROUP BY century"
+        },
+        {
+          "query_id": "art_agg20:q3",
+          "sql": "SELECT teaching, COUNT(*) AS artist_count FROM art WHERE teaching IS NOT NULL GROUP BY teaching"
+        },
+        {
+          "query_id": "art_agg20:q14",
+          "sql": "SELECT teaching, AVG(awards) AS avg_awards FROM art WHERE teaching IS NOT NULL GROUP BY teaching"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,1752 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+1
+
+ORAN-GUIDE: RAG-Driven Prompt Learning for
+LLM-Augmented Reinforcement Learning in
+O-RAN Network Slicing
+
+Fatemeh Lotfi, member, IEEE, Hossein Rajoli, member, IEEE, Fatemeh Afghah Senior member, IEEE
+
+5
+2
+0
+2
+
+y
+a
+M
+1
+3
+
+]
+
+G
+L
+.
+s
+c
+[
+
+1
+v
+6
+7
+5
+0
+0
+.
+6
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract—Advanced wireless networks must support highly
+dynamic and heterogeneous service demands. Open Radio Ac-
+cess Network (O-RAN) architecture enables this flexibility by
+adopting modular, disaggregated components, such as the RAN
+Intelligent Controller (RIC), Centralized Unit (CU), and Dis-
+tributed Unit (DU), that can support intelligent control via ma-
+chine learning (ML). While deep reinforcement learning (DRL)
+is a powerful tool for managing dynamic resource allocation
+it often struggles to process raw, unstructured
+and slicing,
+input like RF features, QoS metrics, and traffic trends. These
+limitations hinder policy generalization and decision efficiency
+in partially observable and evolving environments. To address
+this, we propose ORAN-GUIDE, a dual-LLM framework that
+enhances multi-agent RL (MARL) with task-relevant, semanti-
+cally enriched state representations. The architecture employs
+a domain-specific language model, ORANSight, pretrained on
+O-RAN control and configuration data, to generate structured,
+context-aware prompts. These prompts are fused with learnable
+tokens and passed to a frozen GPT-based encoder that outputs
+high-level semantic representations for DRL agents. This design
+adopts a retrieval-augmented generation (RAG) style pipeline
+tailored for technical decision-making in wireless systems. Ex-
+perimental results show that ORAN-GUIDE improves sample
+efficiency, policy convergence, and performance generalization
+over standard MARL and single-LLM baselines.
+
+Index Terms—Open RAN, Network Slicing, Deep Reinforce-
+ment Learning, Retrieval-augmented generation (RAG), knowl-
+edge distillation.
+
+I. INTRODUCTION
+
+N ETWORK slicing is a critical technology for enabling
+
+flexible and intelligent radio access networks (RAN)
+in next-generation wireless networks, as it allows efficient
+support for highly dynamic and heterogeneous service de-
+mands such as enhanced Mobile Broadband (eMBB), Ultra-
+Reliable Low-Latency Communications (URLLC), and mas-
+sive Machine-Type Communications (mMTC) [1].
+
+Open RAN’s (O-RAN) disaggregated architecture—with
+its clear separation of control and processing elements like
+the RAN Intelligent Controller (RIC), Centralized Unit (CU),
+Distributed Unit (DU), and Radio Unit (RU), opens the door
+to designing scalable, decentralized intelligence. This modular
+structure is ideal for realizing multi-agent deep reinforcement
+learning (DRL) systems, where autonomous agents distributed
+
+This material
+
+is based upon work supported by the National Science
+Foundation under Grant Numbers CNS-2202972, CNS- 2318726, and CNS-
+2232048.
+
+F. Lotfi, H. Rajoli and F. Afghah are with the Department of Electrical
+& Computer Engineering, Clemson University e-mail: flotfi@clemson.edu,
+hrajoli@clemson.edu, fafghah@clemson.edu.
+
+across CU and DU components collaboratively manage the
+network, coordinated by RIC-based xApps [2]–[8]. At the DU
+level, decentralized agents handle localized control tasks such
+as resource block (RB) allocation and user scheduling. By co-
+ordinating across agents, the system can achieve broader, end-
+to-end optimization goals. Multi-Agent Reinforcement Learn-
+ing (MARL) aligns naturally with the modular and distributed
+nature of O-RAN, supporting adaptive and near real-time
+decision-making for tasks like dynamic slicing and resource
+provisioning [7]–[10]. However, standard DRL methods face
+notable limitations in highly dynamic network environments.
+They typically demand extensive interaction cycles to learn
+stable policies and often fail to adapt quickly when network
+states shift. Additionally, the unstructured, noisy, and delayed
+feedback inherent to wireless systems makes it challenging
+for agents to extract robust representations and act effectively.
+While recent approaches have introduced DRL-based adaptive
+slicing strategies in O-RAN [5]–[8], most still rely on offline
+training or static models, limiting their generalization to evolv-
+ing conditions.
+
+Recent
+
+studies have explored integrating Large Lan-
+guage Models (LLMs) into wireless systems to enhance
+deep learning-based decision-making [11]–[17]. While tradi-
+tional fine-tuning of LLMs enables generalization, it remains
+resource-intensive, posing challenges for dynamic, resource-
+constrained environments like O-RAN slicing. To address this,
+parameter-efficient tuning methods such as LoRA [18] and
+adapters [19] have emerged, enabling task adaptation with
+minimal computational overhead. Managing O-RAN functions
+such as slicing, scheduling, and dynamic resource allocation
+requires both domain-specific expertise and adaptive decision-
+making. Prior approaches have explored either static prompt-
+based GPT models or domain-specific LLMs like ORANSight
+in isolation. However, these methods often suffer from poor
+generalization, limited scalability, and weak knowledge reuse
+challenges further exacerbated in wireless edge environments
+with constrained resources.
+
+Recent work, including [14], has explored the potential of
+integrating large language models (LLMs) into reinforcement
+learning (RL) pipelines to enhance decision-making in wire-
+less systems. These approaches demonstrate that LLMs can
+encode semantic knowledge about network behavior, config-
+uration policies, and task priors, which can be leveraged to
+guide RL agents more effectively in complex environments
+such as O-RAN. However, we observed that the effectiveness
+of this integration depends heavily on the relevance and
+
+ 
+ 
+ 
+ 
+ 
+ 
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+2
+
+structure of the language inputs. In particular, prompts that are
+closely aligned with the RL task and environmental state offer
+significantly greater utility than generic or static textual inputs.
+Building on this insight, we propose a prompt-driven LLM-RL
+framework in which lightweight, learnable tokens are trained
+jointly with the RL agent to generate task-specific prompts
+and adapt a frozen LLM to network slicing and scheduling
+tasks. While this approach reduces training overhead and
+improves sample efficiency, deploying LLMs directly on edge
+devices introduces challenges related to memory, latency, and
+inference cost. To address these challenges, we design ORAN-
+GUIDE, a prompt-augmented multi-agent LLM framework in-
+spired by retrieval-augmented generation (RAG) architectures.
+The design decouples domain knowledge generation from task
+execution: ORANSight, a fine-tuned domain expert trained on
+O-RAN documentation and telemetry [20], dynamically gen-
+erates context-rich prompts based on the current network state.
+These prompts are consumed by GPT, a lightweight general-
+purpose LLM augmented with learnable prompt tokens, [21]
+which combines the retrieved domain context with semantic
+representations of the environment to inform RL decision-
+making. To enable practical deployment in edge-based sys-
+tems, we introduce a knowledge distillation (KD) mechanism
+that transfers domain-specific insights from ORANSight into
+the GPT module through task-adaptive prompt tuning. This
+architecture preserves the rich domain understanding of large
+models while maintaining a low-parameter, modular design.
+The result is a scalable and interpretable LLM-augmented RL
+framework that bridges semantic-level reasoning with low-
+level control, offering both theoretical flexibility and real-
+world deployability.
+
+By decoupling domain knowledge generation from task exe-
+cution, ORAN-GUIDE reduces the functional burden on each
+model and enhances system interpretability and modularity.
+This separation simplifies maintenance and enables flexible
+updates, where components can be independently retrained
+or reused. Notably, such modularity supports cross-domain
+transferability, a limitation of conventional GPT+Prompt or
+ORANSight+Prompt configurations, which tightly couple do-
+main knowledge with inference. Furthermore, incorporating
+structured, context-rich prompts into GPT’s learning pipeline
+improves sample efficiency and accelerates convergence by
+providing task-relevant guidance aligned with O-RAN seman-
+tics. Through the synergy of ORANSight’s embedded exper-
+tise and GPT’s general reasoning capabilities, the framework
+achieves stronger generalization across dynamic and hetero-
+geneous wireless environments, offering a scalable solution
+for LLM-augmented reinforcement
+learning in specialized
+domains.
+
+As depicted in Fig. 1, this design combines the strengths of
+
+both LLM models and offers the following key advantages:
+
+• Role Specialization for Modular Intelligence:
+
+By decoupling prompt generation and decision-making,
+our architecture follows a “separation of concerns” prin-
+ciple. ORANSight encapsulates domain-specific priors,
+trained on configuration logs, slicing strategies, and O-
+RAN telemetry, to infer environment-specific cues. GPT
+then receives these cues, along with trainable prompt to-
+
+TABLE I: Comparison of LLM-Based Decision-Making Frame-
+works in O-RAN Environments
+
+Feature
+
+Domain Knowledge In-
+tegration
+
+GPT + Static
+Prompt [14]
+Manual
+static
+
+and
+
+[20]
+
+ORANSight
++ Static Prompt
+Domain-specific
+but static
+
+Task Adaptability
+
+Low
+
+Medium
+
+Modularity
+
+Cross-Domain
+Transferability
+Sample Efficiency
+
+No
+
+Poor
+
+Low
+
+Limited
+
+Poor
+
+Moderate
+
+Generalization to New
+Scenarios
+
+Limited
+
+Limited
+
+Suitability
+Deployment
+
+for Edge
+
+Inefficient
+
+Inefficient
+
+Scalability to Complex
+Environments
+
+Poor
+
+Moderate
+
+context-
+via
+
+ORAN-GUIDE
+(Ours)
+Dynamic,
+aware
+ORANSight
+High (learnable to-
+kens + GPT infer-
+ence)
+Yes (separated knowl-
+edge generation and
+policy)
+Strong (modular and
+reusable components)
+High (prompt-guided
+learning)
+Improved
+expertise
+reasoning)
+Efficient
+(via
+distillation + compact
+prompt design)
+High
+
+(domain
++ GPT
+
+kens, to reason about the task and produce policy outputs.
+This modular design enables each model to specialize,
+improving efficiency, interpretability, and maintainability.
+• Adaptive Prompting via Technical Knowledge Injec-
+
+tion:
+Unlike static or manually written prompts, ORANSight
+dynamically generates prompts based on the evolving
+RL state and network context. These prompts convey
+technical insights such as:
+a) Service-level requirements (e.g., Quality of Service
+
+(QoS) and latency),
+
+b) Temporal patterns in resource demand,
+c) Inter-slice interference and congestion.
+This real-time knowledge injection enhances convergence
+and robustness, especially in partially observable settings.
+
+• Generalization Across Tasks and Domains:
+
+In practical deployments, O-RAN configurations may
+vary across domains (e.g., vehicular networks, 6G en-
+vironments). Our modular setup allows:
+a) GPT and its learnable prompt tokens to be adapted or
+
+fine-tuned for task-specific behavior,
+
+b) ORANSight to remain fixed or replaced with a domain-
+specific variant, depending on the target deployment.
+This separation supports plug-and-play adaptability, en-
+abling domain transfer without retraining the entire deci-
+sion pipeline.
+
+• Prompt Fusion for Enhanced Sample Efficiency:
+
+Our framework supports dual-prompt fusion, combining:
+a) Pdomain: Context-rich prompts generated by ORAN-
+
+Sight,
+
+b) Plearnable: Task-adaptive prompts tuned via backpropa-
+
+gation during RL training.
+
+The fusion of static domain knowledge with dynamic
+adaptation enables sample-efficient learning and improves
+policy exploration.
+
+• Multi-Agent LLM Collaboration as Cognitive Archi-
+
+tecture:
+The ORAN-GUIDE setup reflects a form of distributed
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+3
+
+Fig. 1: Overview of the ORAN-GUIDE system architecture showing distributed DRL agents coordinated by a centralized critic, with prompt-
+augmented State Representation Modules (SRMs).
+
+cognition in AI:
+a) ORANSight serves as a “planner” or domain expert,
+b) GPT acts as the “controller” or task executor.
+
+The result is a RAG-inspired decision-making framework,
+tailored for DRL in technical wireless environments. It lever-
+ages a domain-specialized LLM (ORANSight),
+trained on
+O-RAN-specific knowledge, to generate contextual prompts
+that guide policy learning. This structured pipeline, spanning
+from RAG to LLM-based reasoning and finally to RL-based
+control, targets critical tasks such as network slicing and RB
+allocation. By explicitly connecting semantic-level domain
+understanding with low-level control decisions, the framework
+offers a unified approach to intelligent decision-making in
+complex wireless systems.
+
+To the best of our knowledge, this is the first work to
+propose a modular, RAG-inspired multi-agent framework that
+adaptively integrates LLM-based context-aware state repre-
+sentations into DRL for joint O-RAN slicing and scheduling.
+The paper is structured as follows: Section II reviews related
+work. Section III presents the system model and formulates the
+joint slicing and scheduling problem in O-RAN. Our proposed
+RAG-inspired prompt-augmented multi-agent DRL approach
+is introduced in Section IV. Section V discusses evaluation
+results and conclusions are given in Section VI.
+
+II. RELATED WORKS
+Recent developments in wireless communication have
+drawn increasing attention to the potential of LLMs as a
+foundational component in intelligent network systems. Their
+ability to reason over heterogeneous data modalities, includ-
+ing textual descriptions, protocol specifications, and RF sig-
+nal measurements, has enabled new capabilities in network
+management and the automated interpretation of 3GPP stan-
+dards. [13]–[17], [20].
+
+A. Transfer Learning Foundations
+
+Transfer learning is a core technique in deep learning that
+helps models apply knowledge learned from large-scale text
+
+datasets to new tasks. It usually involves two main steps:
+first, the model is pretrained on general data; then, it’s fine-
+tuned using task-specific examples. Although this process
+improves adaptability, fine-tuning can be expensive in terms
+of computation and requires a lot of labeled data, making it
+less practical for dynamic and resource, limited environments
+like O-RAN slicing. To address these challenges, recent studies
+have proposed more efficient alternatives such as LoRA (Low-
+Rank Adaptation) [18] and adapter-based learning [19]. These
+methods add small
+trainable components to a frozen pre-
+trained model, helping it learn new tasks with much lower
+memory and compute requirements. Another promising solu-
+tion is prompt learning [31], [32], which keeps the model itself
+unchanged and instead trains short input prompts to guide
+its behavior. This approach is particularly useful in few-shot
+or zero-shot settings, where labeled data is limited, and has
+shown strong potential for lightweight, flexible adaptation.
+
+B. LLM-Augmented RL in Wireless Network Settings
+
+Several works have explored LLMs for enhancing RL
+agents through instruction tuning, reward shaping, and policy
+guidance through semantic understanding. However,
+these
+studies typically rely on static prompts or fixed knowledge
+limiting adaptability to dynamic environments like
+bases,
+wireless networks. While prompt learning has gained traction
+in NLP, recent work is beginning to explore how these ideas,
+when combined with reinforcement learning, can support dy-
+namic decision-making in wireless environments. For instance,
+[13] proposes an offline framework where LLMs assist with
+interpreting environmental signals and generating feedback
+in networked control systems. While effective in structured
+scenarios, the framework lacks real-time responsiveness and
+struggles in dynamic infrastructures like O-RAN due to its
+reliance on static training data. In a different approach, [15]
+combines hierarchical RL with LLMs to map operator intent
+into network actions through rApp/xApp selection. Although
+this method shows improvements in key performance metrics
+such as latency and throughput, it is limited by predefined
+
+RAN EnvironmentDU Actor NDU Actor 2DU Actor 1(ƴ𝒔𝒓,ƴ𝒔)Near-RT RICEdge cloudSlicing-xAppglobal Critic(ƴ𝒔𝒓,ƴ𝒔)𝒔𝒕......: Prompt learner module𝒔𝒕: State in time tƴ𝒔𝒓,ƴ𝒔: Multi modal state representationSRM𝓛𝑲𝑳+𝓛𝑹𝑳SRMSRM𝓛𝑲𝑳+𝓛𝑹𝑳𝓛𝑲𝑳+𝓛𝑹𝑳SRM𝓛𝑲𝑳+𝓛𝑹𝑳KD[𝓟𝒅𝒐𝒎𝒂𝒊𝒏, 𝓟𝒍𝒆𝒂𝒓𝒏𝒂𝒃𝒍𝒆]: ORANSight-2: GPT-2JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+4
+
+TABLE II: Comparison of RAG and LLM-based RL Integration Methods in Wireless Communication Networks
+
+Ref.
+
+RAG type
+
+LLM type
+
+RL Alg.
+
+Objective KPI
+
+[22]
+
+[23]
+
+[24]
+
+[25]
+[26]
+
+[27]
+
+[28]
+
+[29]
+
+[20],
+
+[30]
+This
+Work
+
+knowledge
+
+structured
+base (KB) retrieval
+semantic RAG frame-
+work
+prompt and structured
+RAG
+multi-modal RAG
+tokenized API response
+and RAG
+Partial
+enhanced RAG)
+Knowledge Graph
+Document Retrieval
+×
+✓
+
+(prompt-
+
++
+
+custom, structured RAG
+using ORANSight
+
+Custom LLM + Chat-
+GPT
+Transformer-based
+
+LLM-enabled IR
+
+encoder
+
+Multimodal LLM
+BERT-style
+LLM
+Prompt-LLMs (GPT &
+others)
+LLama + GPT
+
+GPT-2
+ORANSight
+
+ORANSight
+
+DDPG
+
+QoE optimization, latency reduction
+
+MARL
+
+decentralized orchestration
+
+DQN
+
+PPO
+AC
+
+RLHF
+
+RLHF
+
+SAC
+×
+
+SAC
+
+MEC offloading efficiency,
+utilization
+mobility adaptation
+Dynamic orchestration
+
+resource
+
+Prompt relevance, inference accuracy,
+adaptability
+Protocol compliance, semantic similar-
+ity
+network slicing and scheduling
+×
+
+QoS-aware network slicing and adap-
+tive RB allocation
+
+O-RAN
+domain
+×
+
+×
+
+×
+
+×
+×
+
+×
+
+×
+
+✓
+✓
+
+✓
+
+intent templates and reacts primarily to immediate network
+changes without anticipating future demands. Other works
+have examined LLMs within multi-agent RL contexts. For
+example, [16] introduces a centralized critic with token-based
+feedback for cooperative tasks like resource allocation, and
+[17] enhances learning efficiency by generating contextual
+state embeddings and intrinsic rewards using LLMs. Despite
+their contributions, both approaches rely heavily on centralized
+decision architectures and static knowledge encoding, which
+restrict their applicability in decentralized, real-time systems
+like O-RAN.
+
+C. Contextualization and RAG based RL augmented in Wire-
+less Network optimization
+
+Recent research has explored integrating RAG and LLMs
+into DRL, particularly for wireless communication and net-
+work orchestration. In [22], a structured RAG mechanism
+generates enhanced observation embeddings for a DDPG agent
+in next-generation networking. Similarly, [23] introduces a
+semantic RAG framework in 6G systems to inform MARL
+via environment-aware state representations. In mobile edge
+computing, [24] applies prompt-driven RAG outputs embed-
+ded by an LLM to guide a deep Q-learning agent for resource
+allocation. Multimodal settings have also been addressed.
+For instance, [25] fuses wireless sensor modalities into a
+perception vector for a PPO agent using a RAG pipeline,
+and [26] leverages a BERT-style LLM with tokenized RAG
+responses to support continual RL-based orchestration. Mean-
+while, [27] combines RAG-informed prompts with RLHF or
+policy-gradient methods, though typically relying on general-
+purpose LLMs like GPT or LLaMA, with RAG treated more
+as a preprocessing tool than a deeply integrated module. Even
+domain-specific studies such as [28], which retrieve telecom
+loose coupling between
+protocol documents, often exhibit
+RAG, LLM, and DRL, lacking semantic alignment with real-
+time constraints.
+
+In the O-RAN domain, [29] integrates a general-purpose
+LLM with DRL for dynamic network slicing, demonstrat-
+ing natural language reasoning’s potential in policy learning.
+
+ORANSight [20], a domain-specific LLM with RAG mecha-
+nisms, contextualizes O-RAN knowledge, while Oran-Bench-
+13k [30] offers a benchmark to evaluate RAG-based LLM
+performance on O-RAN tasks. These works highlight individ-
+ual components of the LLM-DRL-RAG paradigm but remain
+modular or exploratory, without forming a unified, closed-loop
+control system. In contrast, our work introduces a fully inte-
+grated architecture that combines structured RAG, a domain-
+trained LLM (ORANSight), and DRL to support closed-loop
+control in O-RAN. Structured telemetry data—such as QoS
+targets, SNR, and RB usage is processed through a task-
+aware RAG module and interpreted by ORANSight to generate
+context-rich prompts. These semantic cues are consumed by
+a Soft Actor-Critic (SAC) agent for adaptive slicing and
+resource allocation. To further enhance adaptability and ef-
+ficiency, we propose a prompt-augmented DRL framework
+that avoids full model fine-tuning. By embedding contextual
+prompts into the DRL loop, decentralized agents can make
+dynamic slicing decisions more efficiently. This lightweight
+and flexible design improves generalization, responsiveness,
+and scalability—making it well-suited for fast-changing RAN
+conditions.
+
+III. SYSTEM MODEL AND PROBLEM
+FORMULATION
+
+A. O-RAN Slicing Architecture
+
+We consider a virtualized O-RAN system divided into three
+functional slices, each tailored to distinct QoS requirements:
+enhanced Mobile Broadband (eMBB) for high-throughput ap-
+plications, massive Machine-Type Communications (mMTC)
+for dense device connectivity, and Ultra-Reliable Low-Latency
+Communication (URLLC) for ultra-low latency communica-
+tion. The RIC oversees dynamic resource distribution across
+through a hi-
+network components, CUs, DUs, and RUs,
+erarchical control strategy. At the upper tier, resources are
+allocated between slices based on slice-level service demands
+(inter-slice allocation), while within each slice, scheduling
+mechanisms distribute capacity among UEs according to slice-
+specific policies (intra-slice allocation). These decisions are
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+5
+
+enforced at the physical layer by the MAC protocol. A high-
+level schematic of this architecture is shown in Fig. 1.
+
+B. UE’s Achievable Data Rate
+
+O-RAN employs Orthogonal Frequency Division Multi-
+plexing (OFDM) to mitigate intra-cell interference [33], and
+QoS for each slice is characterized through key performance
+indicators (KPIs). A fundamental KPI is the achievable data
+rate for each user equipment (UE). Each UE’s data rate is
+influenced by its channel conditions, resource assignments,
+and interference from neighboring cells. Assuming an OFDM-
+based air interface, the instantaneous data rate for a UE u
+associated with slice l at RU m is expressed as:
+
+cl,u,m(t) = B
+
+Kl,m
+(cid:88)
+
+k=1
+
+(cid:18)
+
+eu,kbl,k log
+
+1 +
+
+pk,m(t)gu,k(t)
+Iu,k(t) + σ2
+
+(cid:19)
+
+,
+
+(1)
+
+where gu,k(t) captures the combined effect of path loss and
+small-scale fading, Iu,k(t) is the interference power from other
+cells, and B denotes the RB bandwidth. Moreover, eu,k ∈ 0, 1
+is a binary variable indicating whether RB k is assigned to
+UE u. bl,k represents the RB allocation indicator for slice l,
+and pk,m denotes the transmission power. Kl,m is the number
+of RBs assigned to slice l at RU m. Iu,k(t) is the inter-cell
+interference and σ2 is the variance of Additive White Gaussian
+Noise (AWGN).
+
+C. Slice-Specific QoS Objectives
+
+Each slice defines its own QoS goals via relevant KPIs.
+
+Slice 1: (eMBB-Throughput-Oriented Performance)
+
+The main objective of the eMBB slice is to deliver high
+data rates across all connected UEs. Accordingly, its QoS is
+evaluated based on the average aggregate user throughput:
+
+µr =
+
+1
+Nu
+
+Nu(cid:88)
+
+i=1
+
+Ci,
+
+For latency-critical services such as industrial control or
+autonomous driving, minimizing delay is the top priority. The
+URLLC slice is evaluated based on the worst-case latency
+experienced among all users:
+
+ld = max(τi),
+
+∀i ∈ Nu,
+
+(4)
+
+where τi denotes the end-to-end latency for user i. This
+maximum delay metric reflects the slice’s ability to maintain
+strict delay bounds under dynamic conditions.
+
+To enable joint optimization across slices, a unified QoS
+
+vector is defined as:
+
+Q = [µr, ds, ld],
+
+and Ql = Q[l],
+
+∀l ∈ {1, 2, 3},
+
+(5)
+
+where Ql extracts the slice-specific QoS metric from the
+global QoS vector Q. This formulation enables slice-aware
+optimization in both training and evaluation processes.
+
+D. Problem Formulation: Utility-Aware Resource Optimiza-
+tion
+
+To balance fairness and performance across diverse O-RAN
+slices, we define a utility-based optimization framework. Each
+slice l is associated with a utility function Ul, reflecting its QoS
+level, and weighted by a priority coefficient wl that encodes its
+service importance. This formulation ensures that slices with
+critical demands (e.g., URLLC) receive prioritized treatment,
+while preserving adaptability and resource fairness system-
+wide. The optimization objective is expressed as:
+
+max
+b,e
+
+(cid:88)
+
+l∈L
+
+wlUl(b, e)
+
+s.t. bl ∈ {0, 1}|L|×Kl,m ,
+(cid:88)
+
+(cid:88)
+
+(cid:88)
+
+eu,kbl,k ≤ Km,
+
+el ∈ {0, 1}Nu,m×Kl,m ,
+
+(6a)
+
+(6b)
+
+(6c)
+
+(6d)
+
+(6e)
+
+u
+
+k
+
+bl,k ≤ 1 + λl max(0,
+
+(cid:88)
+
+bl,k − 1),
+
+l
+(cid:88)
+
+l
+
+l
+
+∀l.
+
+(2)
+
+Qbl,el ≥ Qmin,l − δl,
+
+where Ci denotes the instantaneous data rate of user i, and Nu
+is the total number of users in the slice. This metric captures
+the system’s ability to deliver consistently high throughput in
+bandwidth-intensive applications such as video streaming and
+cloud gaming.
+Slice 2: (mMTC-Scalability and Connectivity)
+
+The mMTC slice targets massive device connectivity with
+low-to-moderate throughput requirements. Its QoS metric bal-
+ances connection density and per-device throughput by com-
+bining an availability indicator with aggregate performance:
+
+(cid:80)Nu
+i=1
+
+ds =
+
+1(Ci > λi)
+Nu
+
+Nu(cid:88)
+
+i=1
+
+Ci,
+
+(3)
+
+where 1(Ci > λi) is an indicator function that equals 1 if
+user i’s throughput exceeds a minimum threshold λi, and 0
+otherwise. This formulation ensures that the system not only
+supports a large number of devices but also guarantees basic
+service quality across active users.
+Slice 3: (URLLC-Latency-Sensitive Applications)
+
+Here, Km is the available number of resource blocks (RBs) at
+RU-DU pair m, and Nu,m represents the number of connected
+UEs. Constraint (6c) enforces resource budget limits, while
+(6d) allows conditional RB sharing using a tunable relaxation
+term λl to accommodate temporary overloads. Constraint (6e)
+ensures that each slice meets a relaxed QoS requirement to
+prevent infeasibility under dynamic demand patterns.
+
+Given the time-varying and stochastic nature of the wireless
+environment, solving this optimization in a static form is
+impractical. Instead, we formulate the problem as a Markov
+Decision Process (MDP), where the agent observes system
+state variables, such as per-slice QoS indicators and resource
+availability, and makes sequential allocation decisions. To
+learn adaptive and robust slicing strategies under this MDP
+framework, we adopt DRL techniques. However, due to the
+multi-agent interactions and non-stationary dynamics, DRL
+alone can face convergence and generalization challenges.
+To address this, we introduce a multi-agent LLM prompt-
+guided DRL scheme, where a domain-specific pretrained LLM
+collaborate with a lightweight LLM to generate structured
+prompts and provide contextual guidance for decision-making.
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+6
+
+(1) State Space (S): At each time step t, the environment is
+described by a state vector st ∈ S, which captures key network
+information required for decision-making. This includes cur-
+rent slice-specific QoS levels (Ql), the number of active UEs
+per slice (Nl,u), and the previous allocation decision at−1.
+Formally, expressed as st = {Ql, Nl,u, at−1 | ∀l ∈ L}.
+
+(2) Action Space (A): The agent’s action at time t is
+denoted by at ∈ A and reflects a complete resource allocation
+decision. This includes both inter-slice bandwidth partition-
+ing (b) and intra-slice resource scheduling (e), according to
+at = {b, e}.
+
+Fig. 2: SRM design illustrating how domain-specific and learnable
+prompts are fused and encoded by GPT to produce semantic state
+embeddings.
+
+This hybrid setup improves policy stability, responsiveness,
+and interpretability in real-time O-RAN control.
+
+IV. THE ORAN-GUIDE FRAMEWORK
+
+A. Overview of the Proposed Architecture
+
+In this framework, we leverage a domain-specific large lan-
+guage model, ORANSight, to implement a RAG-style prompt
+generation mechanism tailored for reinforcement learning in
+O-RAN systems. Rather than relying on static or manually
+defined prompts, we supply ORANSight with structured, real-
+time network information, such as slice-level QoS targets,
+SNR measurements, RB allocations, and traffic trends. ORAN-
+Sight uses this data to produce contextual prompts that encode
+domain-relevant insights for the RL agent. By embedding this
+knowledge into the DRL learning process, the agent operates
+with improved awareness of system priorities and constraints,
+leading to better decision-making and greater adaptability
+in dynamic environments. The system architecture features
+a multi-agent LLM design. ORANSight acts as the domain
+knowledge generator, translating network telemetry into high-
+level prompts. These are then consumed by a general-purpose
+LLM, like GPT, equipped with learnable prompt tokens, which
+uses them to guide policy decisions. This collaboration enables
+to combine structured knowledge with flexible
+the agent
+reasoning-bridging domain understanding and control execu-
+tion within a unified DRL framework. This modular approach
+not only enhances the agent’s performance and generalization
+but also separates domain knowledge from task execution,
+making the framework both scalable and adaptable to diverse
+O-RAN deployment scenarios.
+
+B. MDP Formulation
+
+To address the dynamic optimization problem in Eq. (6a),
+we model
+the system as a MDP, defined by the tuple
+⟨S, A, T, γ, r⟩. This formulation allows an RL agent to iter-
+atively learn an optimal policy for resource allocation under
+changing network conditions. Here, T denotes the transition
+function governing the probability distribution of reaching a
+new state st+1 given the current state st and action at. The
+discount factor γ ∈ [0, 1] is used to balance immediate and
+future rewards. The components of the MDP are detailed
+below:
+
+(3) Reward Function (r):
+To guide the agent toward fair and effective resource allo-
+cation, we define a reward function that unifies heterogeneous
+QoS objectives under a single maximization goal. Since some
+metrics, like latency, are minimization-based, we invert them
+relative to a reference value, while keeping throughput-based
+metrics unchanged. Each slice’s intermediate reward r0,l is
+computed using a piecewise function:
+
+
+
+1 + β · Ql−thr
+
+Ql ≥ thr,
+
+,
+
+r0,l =
+
+(cid:16)
+
+thr
+−γ · thr−Ql
+
+thr
+
+(cid:17)
+
+
+
+exp
+
+, otherwise.
+
+(7)
+
+These values are normalized via sigmoid smoothing:
+
+rQ =
+
+(cid:88)
+
+l
+
+1
+1 + exp(−α · r0,l)
+
+,
+
+(8)
+
+and penalized for severe underperformance as negative reward
+
+rng =
+
+(cid:88)
+
+(cid:18)
+
+exp
+
+−δ ·
+
+Ql − thr
+thr
+
+(cid:19)
+
+.
+
+(9)
+
+l:Ql<thr(1−margin)
+The final reward expressed as rt = rQ − rng.
+
+The agent learns a policy π(at | st) to maximize expected
+returns R(t) = (cid:80)∞
+i=0 γirt+i, using standard value functions
+V (st) and Q(st, at) for policy evaluation and improvement.
+
+C. Prompt-Augmented DRL Architecture
+
+Building on our prior work [14], which employed informal
+fixed prompts to convert network parameters into structured
+textual inputs for LLM-guided decision-making, we extend
+this framework by introducing domain-aware and learnable
+prompts. These prompts enhance the model’s adaptability
+and improve its ability to extract and represent semantic
+patterns relevant to dynamic O-RAN scenarios. To effectively
+address the formulated MDP and improve policy learning
+under uncertainty, we incorporate LLMs into the decision-
+making pipeline of DRL framework. Conventional DRL agents
+often struggle with sample inefficiency and poor generalization
+challenges that are amplified in high-dimensional and dynamic
+environments such as O-RAN slicing. To overcome these
+limitations, ORAN-GUIDE integrates LLM-driven prompting
+into the state representation module (SRM), depicted in Fig. 2,
+enabling the DRL agent to operate with enriched semantic
+context and domain-aligned cues. Our architecture leverages
+two complementary prompting mechanisms:
+1) Domain-Aware Prompts (Pdomain): Generated by the
+ORANSight model [20], these prompts encode O-RAN-
+traffic
+specific insights such as service-level objectives,
+
+RAN Environmentdomain-specific LLMDataset offline𝓛Cosine similarityCat.ƴ𝒔𝒓ƴ𝒔𝓕𝒄𝟏State Representation Module (SRM)(ƴ𝒔𝒓,ƴ𝒔)𝒔𝒕Multi-modal data𝓕𝒄𝟐𝓛𝑲𝑳+𝓛𝑹𝑳KD𝓟𝒅𝒐𝒎𝒂𝒊𝒏SRPrompt Template"At the current timestep, the observed Quality of Service (QoS) levels are:” f"Slice 1 (eMBB): {state_action_list[0]:.2f},..." f"Slice 2 (mMTC): {state_action_list[1]:.2f}, ..." f"Slice 3 (URLLC): {state_action_list[2]:.2f}." "The allocated resource blocks (RB) are:" f"Slice 1: {state_action_list[3]} RBs, ..." f"Slice 2: {state_action_list[4]} RBs, ..."f"Slice 3: {state_action_list[5]} RBs." "The number of connected users per slice is: ...” f"Slice 1: {state_action_list[6]} users, ..."f"Slice 2: {state_action_list[7]} users, ..." f"Slice 3: {state_action_list[8]} users. ...""This prompt captures the real-time state of the O-RAN system in terms of performance, resource distribution, and user load.": ORANSight-2: GPT-2: Prompt learner moduleJOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+7
+
+E. GPT with Learnable Prompts
+
+The general purpose GPT model [21] in our framework
+acts as a semantic encoder that transforms structured domain
+knowledge and environmental observations into high-level
+representations for DRL agent. It receives Pdomain and Plearnable
+tokens as input. These components are embedded into a single
+token sequence and passed through the frozen GPT model.
+Unlike ORANSight, which encodes external knowledge, the
+learnable prompts capture task-specific inductive biases and
+are updated during DRL training loop via gradient descent.
+Rather than directly predicting actions or value functions,
+GPT produces a semantic embedding of the current state,
+enriched with domain context. This embedding is then used
+by the downstream DRL agent (e.g., actor or critic network) to
+make resource allocation decisions. In essence, GPT serves as
+a prompt-driven state encoder, enabling the agent to reason
+over both learned task dynamics and structured, language-
+based cues. By combining domain-specific prompting with in-
+task adaptation, this design enables robust, interpretable, and
+sample-efficient policy learning in complex O-RAN environ-
+ments.
+
+F. Prompt Fusion and Policy Learning
+
+The combined token sequence [Pdomain(st), Plearnable] is pro-
+cessed by the GPT model
+to produce a context-enriched
+semantic representation of the current environment. This dual-
+prompt fusion strategy enables the model to integrate both
+static domain knowledge (via ORANSight) and dynamic task-
+specific adaptation (via learnable prompts). To align the se-
+mantic outputs of the LLM with numerical RL inputs, we
+incorporate two lightweight adapter networks, Fc1 and Fc2,
+trained offline using paired data from real environment states
+st and their corresponding LLM-generated representations
+sr,t. These adapters, adapted from our previous work [14],
+map both modalities into a unified latent space suitable for
+downstream policy learning. This design enables cohesive
+processing of hybrid state features, facilitating smoother inte-
+gration between textual and numeric state components. Policy
+learning is performed through a RL loop (e.g., SAC), where
+the reward signal guides the optimization of the learnable
+prompts while the GPT backbone remains frozen. To support
+lightweight edge deployment, we further introduce a KD
+mechanism: knowledge from the domain-specific ORANSight
+model is distilled into the general-purpose GPT agent via
+prompt tuning. This allows the learnable prompts to internalize
+domain-specific insights without requiring full LLM fine-
+tuning. As a result,
+the distilled GPT model, along with
+its adapter-enhanced SRM, can operate independently at the
+network edge, reducing reliance on centralized inference and
+enabling scalable, low-latency deployment.
+
+G. DRL Training Loop with SAC Updates
+
+To optimize the policy network in ORAN-GUIDE frame-
+work, we adopt the Soft Actor-Critic (SAC) algorithm within
+a MARL setup. SAC is well-suited for the O-RAN domain
+due to its support for continuous action spaces and entropy-
+based exploration. In our architecture, distributed SAC actor
+
+Fig. 3: Training workflow of ORAN-GUIDE, integrating dual LLM
+prompts into DRL via a soft actor-critic loop, with distillation and
+prompt fusion for adaptive policy learning.
+
+trends, and interference conditions. They provide scenario-
+aware guidance that enhances decision flexibility and con-
+textual awareness.
+2) Learnable Prompts
+
+(Plearnable): These are trainable
+prompt
+tokens that embed task-specific knowledge and
+evolve during DRL training. By interacting with GPT’s
+frozen backbone, they help shape policy representations,
+improving both stability and generalization across variable
+network states.
+
+Together, these prompts are fused into a single input stream
+that drives the SRM. This prompt-driven adaptation enhances
+the agent’s ability to learn robust and sample-efficient policies
+for real-time network slicing and resource allocation. The
+high-level interaction between the DRL agent, SRM, and RAN
+environment during training process is illustrated in Fig. 3,
+while Fig. 1 shows high-level overview of ORAN-GUIDE
+framework, and the Fig. 2 is detailed internal structure of the
+SRM, which handles prompt fusion and semantic encoding.
+
+D. ORANSight: The Domain-Aware Prompt Generator
+
+ORANSight is a lightweight LLM fine-tuned on O-RAN-
+specific data, including slicing policies, configuration logs, and
+control signals. Its role is to interpret the current network state
+and generate technical prompts that help the decision-making
+agent act more effectively. At each time step t, ORANSight
+receives a structured snapshot of the environment as st. Based
+it produces a domain prompt Pdomain that
+on this input,
+summarizes key context, highlights critical conditions (e.g.,
+congestion or QoS violations), and provides useful guidance
+to the DRL agent. Unlike fixed or manually written prompts,
+ORANSight generates dynamic, real-time prompts tailored to
+the system’s current state. This mechanism follows a Retrieval-
+Augmented Generation (RAG) paradigm, where outputs are
+enriched using information retrieved from relevant domain
+is a domain-specific
+knowledge. In our case, ORANSight
+LLM, pretrained on O-RAN corpora such as slicing policies
+and configuration logs. At runtime, it performs dynamic RAG
+by transforming real-time telemetry and network conditions
+into structured, context-aware prompts. This bridges learned
+system knowledge with live observations, guiding the RL
+agent toward more adaptive and informed decisions.
+
+SRMRAN Environment𝓛𝑲𝑳+𝓛𝑹𝑳DU Actor NDU Actor 2DU Actor 1global Critic(ƴ𝒔𝒓,ƴ𝒔)DRLGPTORANSight𝓟𝒅𝒐𝒎𝒂𝒊𝒏[𝓟𝒅𝒐𝒎𝒂𝒊𝒏, 𝓟𝒍𝒆𝒂𝒓𝒏𝒂𝒃𝒍𝒆](ƴ𝒔𝒓,ƴ𝒔)𝒂𝒕𝑸𝒕𝒂𝒕𝒔𝒕𝒔𝒕𝒓𝒕knowledge distillation: prompt learner module𝒔𝒕: state in time tƴ𝒔𝒓,ƴ𝒔: multi modal state representationJOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+8
+
+agents operate locally at DUs, while a centralized critic in the
+near-RT RIC performs coordinated value estimation and policy
+updates. Each agent receives a fused input sequence com-
+prising domain prompts, learnable prompts, and environment
+states. This sequence is processed by the GPT-based encoder
+to produce a semantic representation, which guides both action
+selection and value estimation. Training proceeds by collecting
+transitions, updating the critic using temporal-difference loss,
+and optimizing the actor using the entropy-regularized policy
+gradient:
+
+∇θp J(πθp ) = Eκ, π
+
+(cid:104)
+∇θp log πθp (at|st) · (cid:0)Qv(st, at)
+
+− β log πθp (at|st)(cid:1)(cid:105)
+,
+
+(10)
+
+where β controls the balance between reward maximization
+and entropy regularization. The Q-value function is defined
+as Qv(st, at) = Eπ[R(t) | st, at]. The critic and the value
+network parameters θv are updated by minimizing:
+(cid:104)
+
+(yt − Qv(st, at))2(cid:105)
+
+,
+
+(11)
+
+Eκ,π
+
+min
+θv
+
+the
+
+target yt = rt + γQv(st+1, at+1; θv) −
+where
+β log πθp (at+1|st+1) incorporates the next state’s Q-value and
+policy entropy. During this loop, the learnable prompts are
+optimized via gradients from the DRL loss, and KD from
+the ORANSight model further refines them by aligning the
+general-purpose GPT’s representations with domain-specific
+insights. This fusion of symbolic guidance and policy learning
+enhances both adaptability and generalization across network
+conditions.
+
+H. ORAN-GUIDE Network Slicing Algorithm
+
+The proposed approach, summarized in Algorithm 1, out-
+lines the training loop of the ORAN-GUIDE framework for
+adaptive network slicing in O-RAN environments. The algo-
+rithm combines a MARL setup with LLM integration through
+dual prompting mechanisms. At each iteration t, structured
+network state information st is used by the domain-specific
+LLM (ORANSight) Md to generate context-aware prompts
+Pdomain. These are fused with a set of learnable prompts
+Plearnable and passed to a frozen GPT model Mg, which
+produces a semantic representation of the current environment.
+This embedding guides policy θp and value θv updates using
+the SAC algorithm. To improve generalization and enable
+lightweight edge deployment, a KD step transfers insights
+from ORANSight Md(st) to the learnable prompt module
+Mg(Xt). This design allows for domain-aligned, sample-
+efficient policy learning while maintaining modularity and
+scalability across distributed O-RAN agents.
+
+V. EVALUATION RESULTS
+
+A. Simulator and Parameter Settings
+
+We evaluate our approach in a simulated O-RAN environ-
+ment consisting of three slices, eMBB, mMTC, and URLLC
+that distributed across Nm = 6 DUs. Each DU operates as
+an autonomous agent responsible for managing local traffic
+dynamics and service requirements. The user set (Nu =
+
+Algorithm 1: ORAN-GUIDE: Prompt-Fused RL with
+Dual-LLM Distillation
+1 Input: Number of iterations Nt, actors Nm,
+
+evaluations Ne, actor weights θp,i, critic weights θv,
+
+2
+
+3
+
+ORANSight model Md, general GPT model
+
+Mg, Plearnable,
+
+adapter networks Fc1, Fc2, distillation
+
+coefficient λ
+
+4 Initialize: θp,i, θv, and Plearnable
+5 for iteration t = 1 : Nt do
+6
+
+for actor i = 1 : Nm do
+
+7
+
+8
+
+9
+
+10
+
+11
+
+12
+
+13
+
+14
+
+// ORANSight
+
+Obtain state st from environment
+Pdomain(st) ← Md(st) ;
+generates domain prompt
+Token sequence Xt ← [Pdomain(st), Plearnable]
+ht ← Mg(Xt) ;
+prompt-fused embedding
+s′
+r,t ← Fc2(ht), s′
+ri = evaluate(πp,i(s′
+Store transition
+r,t, s′
+B ← ⟨(s′
+Compute Ldistill = KL(Mg(Xt)∥Md(st)) ;
+// Distill domain knowledge
+
+t ← Fc1(st)
+r,t, s′
+
+t), at, (s′
+
+r,t+1, s′
+
+t+1), rt⟩
+
+t))
+
+// GPT outputs
+
+end
+
+15
+16 end
+17 Update critic network θv using (11).
+18 Update actor networks θp,i using (10).
+19 Update prompt embeddings Plearnable via combined
+
+loss: Ltotal = LRL + λ · Ldistill
+
+Break
+
+20 if θp,∀i converges then
+21
+22 end
+23 Output: Trained actor weights θp,i, critic weights θv,
+
+optimized prompt embeddings Plearnable
+
+50, 100, 200) is initialized with uniform spatial distribution,
+and user mobility follows the direction model proposed in [14],
+where velocities range from 10 to 20 m/s and movement occurs
+along one of seven discrete angles 0, ±π/12, ±π/6, ±π/3.
+The network setup assumes Rayleigh fading, AWGN, and
+adopts a standard 3GPP-compliant PHY layer with subcarrier
+spacing of 15 kHz, total DU bandwidth of 20 MHz, RB size
+of 200 kHz, and user transmit power set to pu = 56 dBm,
+according to [33].
+
+Our algorithm is implemented in PyTorch using an actor-
+critic setup, where both actor and critic networks contain three
+fully connected layers of sizes 600, 700, 700 and use Relu
+activations. Training is conducted with the Adam optimizer
+using a learning rate of 1e − 4 and a batch size of 128.
+We compare three variants of our method: (1) the proposed
+ORAN-GUIDE, a multi agent LLM models with integerating
+a domain-trained ORANSight-2.0 [20] based on Mistral AI
+7B, and general model (GPT-2 [21]) with learnable prompt
+tokens to provide semantically enriched state inputs for both
+actor and critic networks; (2) ORANSight prompt augmented
+MARL (ORANSight PA-MARL), which integrates a domain-
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+9
+
+Fig. 4: Statistical distribution of cumulative returns for each method.
+
+Fig. 6: Comparison of maximum reward gains under varying num-
+bers of learnable context.
+
+TABLE III: Ablation Study Results
+QoS
+(URLLC)
+66.34%
+
+QoS
+(mMTC)
+62.0%
+
+QoS
+(eMBB)
+87.7%
+
+85.3%
+
+34.4%
+24.1%
+
+46.84%
+
+21.57%
+2.63%
+
+25.42%
+
+15.01%
+6.2%
+
+Model Version
+
+ORAN-GUIDE
+ORANSight
+PA-MARL
+GPT PA-MARL
+ORANSight MARL
+
+RPI
+
+14.74%
+
+9.0%
+
+0.84%
+2.16%
+
+Fig. 5: Comparison of average cumulative rewards across methods.
+
+specific LLM with prompt-aligned SRMs to provide context-
+aware insights at both the actor and critic levels; (3) GPT
+prompt augmented MARL (GPT PA-MARL), which replaces
+ORANSight with GPT-2 while retaining prompt alignment;
+and (4) ORANSight MARL, which uses the ORANSight
+LLM within the SRM but omits prompt alignment [14]. The
+standard MARL baseline is also included for comparison. All
+configurations employ SRMs at both the local agent (i.e., DU)
+and centralized critic levels, with prompt generation and fusion
+extending the methodology established in prior work [14].
+
+B. Convergence Performance
+
+Fig. 5 illustrates the convergence performance of the pro-
+posed ORAN-GUIDE framework compared to other baselines.
+The results show that ORAN-GUIDE consistently achieves
+faster convergence and higher average cumulative rewards
+across training steps, demonstrating its improved policy learn-
+ing capability. To further highlight these performance differ-
+ences, Fig. 4 presents the distribution of average cumulative
+rewards across multiple runs. The results show that ORAN-
+GUIDE not only yields the highest median performance but
+also exhibits lower variability compared to other methods. This
+underscores its robustness and sample efficiency in dynamic
+O-RAN environments and confirm that combining domain-
+aware and task-aware prompts within a dual-LLM architecture
+significantly enhances DRL performance.
+
+C. Sample Efficiency via Relative Performance Improvement
+
+To evaluate the sample efficiency of the proposed ORAN-
+GUIDE framework, we report the Relative Performance Im-
+provement (RPI) metric, defined as:
+
+RPI =
+
+Acc-Rewardm − Acc-Rewardb
+Acc-Rewardb
+
+,
+
+(12)
+
+following [17], where Acc-Rewardm and Acc-Rewardb denote
+the accumulated rewards of the evaluated method m and
+the MARL baseline b, respectively, over 1000 training steps.
+As summarized in the last column of Table III, ORAN-
+GUIDE achieves the highest RPI, indicating superior sample
+efficiency in the initial
+training phase. Methods that rely
+solely on domain knowledge (ORANSight MARL) or prompt
+tuning (GPT PA-MARL) yield modest improvements, while
+combining both, as in ORAN-GUIDE, significantly boosts
+convergence. These results highlight the advantage of dual
+prompting for rapid policy adaptation in complex wireless
+environments.
+
+D. Number of Learnable tokens
+
+Figure 6 presents the performance impact of varying the
+number of learnable tokens (i.e., additional prompt tokens).
+Using too many tokens can lead to overfitting, whereas too
+few may limit the model’s capacity to capture task relevant
+semantics results in underfitting. As such, the token count
+should be treated as a tunable hyperparameter tailored to the
+task and deployment setting. The configuration yielding the
+highest performance is marked in red, indicating the optimal
+token range for this scenario.
+
+E. Ablation Study
+
+Table III presents the results of an ablation study that
+isolates the contribution of each component and compares the
+proposed ORAN-GUIDE framework (cross-model reasoning),
+with its reduced variants: ORANSight PA-MARL (domain-
+specific reasoning only), which employ only one domain-
+specific LLM model, GPT PA-MARL (general reasoning
+only), which replaces the domain-specific LLM with a general-
+purpose GPT-2 model in the SRM; and ORANSight MARL,
+which removes the prompt-aligned LLM integration entirely.
+These are evaluated against a plain MARL baseline. These
+comparisons offer insights into how domain-aware prompt
+generation improves learning outcomes.
+
+ORAN-GUIDEORANSight PA-MARL GPT PA-MARL ORANSight MARLMARL500100015000510152025300500100015002000 110 20 30 40051015202530JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+10
+
+[4] M. Polese, L. Bonati, S. D’Oro, S. Basagni, and T. Melodia, “Un-
+derstanding O-RAN: Architecture, interfaces, algorithms, security, and
+research challenges,” arXiv preprint arXiv:2202.01032, 2022.
+
+[5] F. Lotfi, O. Semiari, and F. Afghah, “Evolutionary deep reinforcement
+learning for dynamic slice management in O-RAN,” in 2022 IEEE
+Globecom Workshops (GC Wkshps).
+
+IEEE, 2022, pp. 227–232.
+
+[6] F. Lotfi and F. Afghah, “Open RAN LSTM traffic prediction and slice
+management using deep reinforcement learning,” in 2023 57th Asilomar
+Conference on Signals, Systems, and Computers, 2023, pp. 646–650.
+[7] F. Lotfi, F. Afghah, and J. Ashdown, “Attention-based open ran slice
+management using deep reinforcement learning,” in GLOBECOM 2023
+- 2023 IEEE Global Communications Conference, 2023, pp. 6328–6333.
+[8] F. Lotfi and F. Afghah, “Meta reinforcement learning approach for
+adaptive resource optimization in o-ran,” 2024. [Online]. Available:
+https://arxiv.org/abs/2410.03737
+
+[9] H. Zhang, H. Zhou, and M. Erol-Kantarci, “Federated deep reinforce-
+ment learning for resource allocation in O-RAN slicing,” in GLOBE-
+COM IEEE Global Communications Conference.
+IEEE, 2022, pp.
+958–963.
+
+[10] N. Naderializadeh et al., “Resource management in wireless networks
+via multi-agent deep reinforcement learning,” IEEE Transactions on
+Wireless Communications, vol. 20, no. 6, pp. 3507–3523, 2021.
+[11] L. Bariah, Q. Zhao, H. Zou, Y. Tian, F. Bader, and M. Debbah,
+“Large generative ai models for telecom: The next big thing?” IEEE
+Communications Magazine, 2024.
+
+[12] L. Bariah, H. Zou, Q. Zhao, B. Mouhouche, F. Bader, and M. Debbah,
+“Understanding telecom language through large language models,” in
+GLOBECOM 2023-2023 IEEE Global Communications Conference.
+IEEE, 2023, pp. 6542–6547.
+
+[13] X. Chen et al., “Communication and control co-design in 6g: Sequential
+
+decision-making with llms,” arXiv preprint arXiv:2407.06227, 2024.
+
+[14] F. Lotfi, H. Rajoli, and F. Afghah, “Llm-augmented deep reinforcement
+learning for dynamic o-ran network slicing,” ICC 2025-2025 IEEE
+International Conference on Communications (ICC), 2025.
+
+[15] M. Habib et al., “Llm-based intent processing and network optimiza-
+tion using attention-based hierarchical reinforcement learning,” arXiv
+preprint arXiv:2406.06059, 2024.
+
+[16] B. Zhang et al., “Controlling large language model-based agents for
+large-scale decision-making: An actor-critic approach,” arXiv preprint
+arXiv:2311.13884, 2023.
+
+[17] B. Wang, Y. Qu, Y. Jiang, J. Shao, C. Liu, W. Yang, and X. Ji,
+“Llm-empowered state representation for reinforcement learning,” arXiv
+preprint arXiv:2407.13237, 2024.
+
+[18] E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang,
+W. Chen et al., “Lora: Low-rank adaptation of large language models.”
+ICLR, vol. 1, no. 2, p. 3, 2022.
+
+[19] N. Houlsby, A. Giurgiu, S. Jastrzebski, B. Morrone, Q. De Laroussilhe,
+A. Gesmundo, M. Attariyan, and S. Gelly, “Parameter-efficient transfer
+learning for nlp,” in International conference on machine learning.
+PMLR, 2019, pp. 2790–2799.
+
+[20] P. Gajjar and V. K. Shah, “Oransight-2.0: Foundational llms for o-ran,”
+
+arXiv preprint arXiv:2503.05200, 2025.
+
+[21] A. Radford, J. Wu, R. Child, D. Luan, D. Amodei, I. Sutskever et al.,
+“Language models are unsupervised multitask learners,” OpenAI blog,
+vol. 1, no. 8, p. 9, 2019.
+
+[22] R. Zhang, H. Du, Y. Liu, D. Niyato, J. Kang, S. Sun, X. Shen, and
+H. V. Poor, “Interactive ai with retrieval-augmented generation for next
+generation networking,” IEEE Network, vol. 38, no. 6, pp. 414–424,
+2024.
+
+[23] X. Huang, Y. Tang, J. Li, N. Zhang, and X. S. Shen, “Toward effective
+retrieval augmented generative services in 6g networks,” IEEE Network,
+2024.
+
+[24] R. Ren, Y. Wu, X. Zhang, J. Ren, Y. Shen, S. Wang, and K.-F. Tsang,
+“Retrieval-augmented generation for mobile edge computing via large
+language model,” arXiv preprint arXiv:2412.20820, 2024.
+
+[25] A. M. Nazar, A. Celik, M. Y. Selim, A. Abdallah, D. Qiao, and
+A. M. Eltawil, “Enwar: A rag-empowered multi-modal llm framework
+for wireless environment perception,” arXiv preprint arXiv:2410.18104,
+2024.
+
+[26] M. Shokrnezhad and T. Taleb, “An autonomous network orchestration
+framework integrating large language models with continual reinforce-
+ment learning,” arXiv preprint arXiv:2502.16198, 2025.
+
+[27] J. Shao, J. Tong, Q. Wu, W. Guo, Z. Li, Z. Lin, and J. Zhang,
+“Wirelessllm: Empowering large language models towards wireless
+intelligence,” arXiv preprint arXiv:2405.17053, 2024.
+
+Fig. 7: CDF of UEs throughput across the network.
+
+F. Network users’ QoE
+
+Fig. 7 illustrates the per-user throughput distribution (CDF)
+across the three slices. In all cases, the proposed ORAN-
+GUIDE framework achieves the highest throughput, demon-
+strating improved efficiency and fairness among users. ORAN-
+Sight PA-MARL consistently performs second-best, benefiting
+from domain-specific prompting. GPT PA-MARL and ORAN-
+Sight MARL offer moderate improvements over the baseline
+MARL, but show reduced consistency in comparison. These
+results underscore the importance of integrating domain and
+task-aligned prompt-driven LLM representations in achieving
+scalable and user-level performance gains in O-RAN slicing.
+
+VI. CONCLUSIONS
+
+Optimizing resource allocation and slicing in O-RAN en-
+vironments requires robust frameworks that adapt to rapidly
+changing conditions, partial observability, and multi-slice
+service demands. To address these challenges, we intro-
+duced ORAN-GUIDE, a dual-LLM framework that enhances
+multi-agent reinforcement learning by generating semantically
+rich, task-aware state representations. By decoupling domain
+knowledge generation from policy learning, our approach
+enables distributed agents to make informed decisions with
+improved context awareness and generalization capabilities.
+Through the fusion of ORANSight-generated domain prompts
+and learnable task-adaptive tokens,
+the RL agents gain a
+deeper understanding of the network environment, allowing
+for more efficient and resilient policy optimization. Simulation
+results demonstrate that ORAN-GUIDE significantly outper-
+forms conventional MARL and single-LLM baselines in terms
+of convergence speed, sample efficiency, and per-slice QoS.
+These findings highlight the promise of integrating LLMs
+with RL to build scalable, intelligent control systems for next-
+generation wireless networks.
+
+REFERENCES
+
+[1] O-RAN WG3, “Near-real-time ran intelligent controller use cases and
+requirements,” O-RAN Alliance, Tech. Rep. O-RAN.WG3.UCR-R003-
+v6.00 TS, 2024.
+
+[2] K. Alam et al., “A comprehensive overview and survey of o-ran: Ex-
+ploring slicing-aware architecture, deployment options, and use cases,”
+arXiv preprint arXiv:2405.03555, 2024.
+
+[3] G. T. . version 18.2.0 Release 18, “Study on enhanced access to and
+
+support of network slices,” Tech. Rep, no. 5, 2021.
+
+681000.10.20.30.40.50.60.70.80.91slice 102400.10.20.30.40.50.60.70.80.91slice 246800.20.40.60.81slice 3JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+
+11
+
+[28] G. M. Yilma, J. A. Ayala-Romero, A. Garcia-Saavedra, and X. Costa-
+Perez, “Telecomrag: Taming telecom standards with retrieval augmented
+generation and llms,” ACM SIGCOMM Computer Communication Re-
+view, vol. 54, no. 3, pp. 18–23, 2025.
+
+[29] F. Lotfi, H. Rajoli, and F. Afghah, “Llm-augmented deep reinforcement
+learning for dynamic o-ran network slicing,” environments, vol. 2, p. 4.
+[30] P. Gajjar and V. K. Shah, “Oran-bench-13k: An open source benchmark
+for assessing llms in open radio access networks,” arXiv preprint
+arXiv:2407.06245, 2024.
+
+[31] B. Lester, R. Al-Rfou, and N. Constant, “The power of scale for
+parameter-efficient prompt tuning,” arXiv preprint arXiv:2104.08691,
+2021.
+
+[32] X. L. Li and P. Liang, “Prefix-tuning: Optimizing continuous prompts
+
+for generation,” arXiv preprint arXiv:2101.00190, 2021.
+
+[33] G. T.
+
+. version 15.1.0 Release 15, “5G; NR; physical channels and
+
+modulation,” Tech. Spec., Jul. 2018.

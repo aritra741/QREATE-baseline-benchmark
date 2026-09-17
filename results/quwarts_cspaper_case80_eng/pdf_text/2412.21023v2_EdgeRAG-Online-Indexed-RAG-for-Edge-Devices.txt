@@ -1,0 +1,1152 @@
+EdgeRAG: Online-Indexed RAG for Edge Devices
+
+Korakit Seemakhupt1, Sihang Liu2, and Samira Khan1,3
+
+1 University of Virginia, 2 University of Waterloo, 3 Google
+
+4
+2
+0
+2
+
+c
+e
+D
+1
+3
+
+]
+
+G
+L
+.
+s
+c
+[
+
+2
+v
+3
+2
+0
+1
+2
+.
+2
+1
+4
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Deploying Retrieval Augmented Generation
+(RAG) on resource-constrained edge devices is
+challenging due to limited memory and process-
+ing power. In this work, we propose EdgeRAG
+which addresses the memory constraint by prun-
+ing embeddings within clusters and generating
+embeddings on-demand during retrieval. To avoid
+the latency of generating embeddings for large
+tail clusters, EdgeRAG pre-computes and stores
+embeddings for these clusters, while adaptively
+caching remaining embeddings to minimize re-
+dundant computations and further optimize la-
+tency. The result from BEIR suite shows that
+EdgeRAG offers significant latency reduction
+over the baseline IVF index, but with similar gen-
+eration quality while allowing all of our evaluated
+datasets to fit into the memory.
+
+1. Introduction
+
+Large Language Models (LLMs) enable new applications
+such as smart assistants (Google, 2024; Microsoft). The
+processing of these powerful LLMs is usually offloaded to
+the datacenter due to the enormous resources required. How-
+ever, the latest mobile platforms enable smaller LLM to run
+locally. These lightweight models cannot directly compare
+with the state-of-the-art hundred-billion parameter LLMs.
+To enhance these models to process users’ custom data and
+applications, a promising solution is to build a compounding
+system. By integrating LLMs with Retrieval Augmented
+Generation (RAG), these smaller models can leverage local
+personal data to generate high-quality responses.
+
+Even though RAG removes the requirement for a heavy-
+weight LLM for generation, retrieval still has a high over-
+head. The core of a RAG system is a vector database that
+enables vector similarity search. Different from LLMs,
+the overhead of RAG mainly comes from its memory foot-
+print. For example, a Flat Index stores and sequentially
+searches every vector representation of the data chunks to
+identify the closest match to the query. For example, in
+fever(Thorne et al., 2018) dataset, a vector database that
+
+1
+
+holds 5.23 million records has an index size of 18.5 GB.
+In comparison, mobile devices tend to have 4-12 GB of
+main memory (Wiens, 2024; Sam, 2024). Thus even using
+the whole memory on a mobile platform is not sufficient
+to run a large vector database. On the other hand, storing
+the vector database on disk introduces substantial access
+latency, impacting performance.
+
+Our research focused on the challenges of implement-
+ing Retrieval Augmented Generation (RAG) on edge sys-
+tems—mainly the overhead of the vector similarity search.
+We find that naively keeping the entire index in the main
+memory would not fit into the memory of mobile platforms.
+A Flat index which performs sequential search of all embed-
+dings not only expensive in term of computation, but also
+trash memory leading to poor performance. On the other
+hand, Two-level Inverted File (IVF) index clusters embed-
+dings of data chunks into centroids. The retrieval process
+first searches for the closest centroid and then performs a
+second search within the cluster. Thus, avoid expensive
+sequential search of all embeddings. However, keeping
+all embeddings in memory still leads to excessive memory
+thrashing and increased latency. Thus, keeping the first-
+level centroid in memory and generating the second level
+online can be a promising solution. Through further profil-
+ing the RAG on mobile platforms using widely-used RAG
+benchmarks (Thakur et al., 2021), we find that both the data
+access pattern and the access latency are highly skewed.
+First, most of the embedding vectors are not searched dur-
+ing the retrieval process. Second, the cost of generating the
+embedding vector is not the same for all clusters and has an
+extreme tail distribution. These skewness leave space for
+further optimizations.
+
+In this work, we develop a mobile RAG system, EdgeRAG
+that enables RAG-based LLM on mobile platforms, by fit-
+ting the vector database in the limited mobile memory while
+ensuring that the response time meets the service level objec-
+tives (SLOs) of mobile AI assistant applications. Based on
+these observations, our key ideas are the following: First, we
+prune the vector embedding of the data embeddings within
+centroid clusters which are only used for second-level search
+to save the memory capacity. EdgeRAG then generates the
+vector embedding online during the retrieval process. How-
+
+ 
+ 
+ 
+ 
+ 
+ 
+ever, due to limited computing on edge systems, generating
+vector embedding online could suffer from long embedding
+generation latency from large tail clusters. To overcome
+this challenge, our second solution is to pre-compute and
+store the embeddings of large tail clusters to avoid long
+tail latency of generating vector embeddings of data within
+those tail clusters. Then, EdgeRAG can adaptively cache
+the remaining vector embeddings to minimize redundant
+computation and improve overall latency, based on the spare
+memory capacity and SLO requirements.
+
+We evaluate EdgeRAG on a mobile platform based on
+Nvidia Jetson Orin Nano equipped with 8 GB of shared
+main memory, similar to a mobile edge platform that has
+neural processing capabilities (Sam, 2024). We use 6 work-
+loads from the BEIR benchmark suite (Thakur et al., 2021)
+and tune the retrieval hyperparameters to normalize the re-
+call against the Flat index baseline. We also evaluate the
+generation quality using GPT-4o (OpenAI) LLM as an LLM
+evaluator (Saad-Falcon et al., 2023). We use the time-to-
+first-token (TTFT) latency as the main metric. The result
+shows that EdgeRAG offers 1.8 × faster TTFT over the base-
+line IVF index on average and 3.82 × for larger datasets.
+At the same time, EdgeRAG maintains a similar generation
+quality with recall and generation scores within 5 percent of
+the Flat Index baseline while allowing all of our evaluated
+datasets to fit into the memory and avoid memory thrashing.
+
+In summary, the contributions of this work are the following:
+
+• We identify two key challenges of implementing RAG
+on edge devices: First, limited memory capacity does
+not allow loading large embedding vector database in the
+memory leading to memory thrashing and poor perfor-
+mance. Although only a small subset of embeddings are
+searched for two-level IVF index. Second, limited com-
+puting power of edge devices which slows down online
+embedding generation especially on few large tail and
+repeatedly used clusters.
+
+• To enable scalable and memory-efficient RAG on edge
+systems, we propose EdgeRAG which improves upon
+IVF index by pruning second-level embeddings to reduce
+memory footprint and generate the embedding online dur-
+ing retrieval time. EdgeRAG mitigates long tail latency
+from generating the embeddings of heavy cluster by pre-
+computing and storing those tails. To further optimize
+latency, EdgeRAG selectively caches generated embed-
+dings to reduce redundant computation while minimizing
+memory overhead.
+
+• We implement EdgeRAG on Jetson Orin edge platform
+and evaluate our system with datasets from BEIR bench-
+mark. The results show that EdgeRAG significantly im-
+proves the retrieval latency of large datasets with embed-
+ding sizes larger than the memory capacity by 131% with
+
+slight reduction in retrieval and generation quality.
+
+2. Background
+
+2.1. Retrieval Augmented Generation
+
+Retrieval Augmented Generation (RAG) (Lewis et al., 2020)
+is a technique used to improve the accuracy of the Large
+Language Model (LLM) by integrating an external knowl-
+edge base with the LLM. Instead of retraining the entire
+LLM with new information, RAG adds new data to the
+database. The RAG consists of two parts: Indexing and
+Lookup.
+
+Indexing: Adding new data to the database involves a pro-
+cess called indexing, illustrated in Figure 1a. First, the sys-
+tem pre-processes the incoming data. This preprocessing in-
+volves splitting the data into smaller overlapping chunks rep-
+resented by nodes (step 1 ). Each chunk of data is then fed
+into an embedding model, which generates a unique high-
+dimension vector representation for that particular piece of
+data (step 2 ). Finally, these embedded vectors, which act
+as compressed representations of the data, are stored in a
+separate database for efficient retrieval later (step 3 ).
+
+Lookup: When a user submits a request, the system per-
+forms a lookup process as shown in Figure 1b. First, the
+user’s request goes through the same embedding model as
+the data in an indexing phase (step 1 ). This creates a vec-
+tor representing the user’s query. Then, this embedding
+of the query is compared to the embedded vectors stored
+in the dedicated database. This is also known as vector
+similarity search (step 2 ). The system returns the closest
+matches among these stored indexes (step 3 ). Finally, the
+data nodes associated with the closest matching indexes are
+retrieved and fed to the large language model (LLM) to gen-
+erate a response (step 4 ). Essentially, the lookup process
+helps retrieve data in the database related to the user’s query.
+The LLM then uses this retrieved information to generate a
+response.
+
+(a) Indexing
+
+(b) Lookup
+Figure 1. RAG Pipelines.
+
+2.2. Index Similarity Search
+
+As mentioned in the previous section, RAG searches for the
+embedding representation of the data chunk in the database
+with the closest distance to the query embeddings. However,
+
+2
+
+DocumentNodesIndex❶ Preprocess❷ GenerateEmbedding❸ InsertVector EmbeddingsQueryVector Embedding❷ Look UpNearest Vectors❸ RetrieveNodesResponse❶ Generate EmbeddingIndexNodes❹ Generate Response (LLM)Table 1. Edge system comparison
+
+System
+
+Memory Compute Units
+
+iPhone 16 Pro (Wiens, 2024) 8 GB
+Galaxy S24 (Sam, 2024)
+8 GB
+Jetson Orin Nano (NVIDIA) 8 GB
+
+CPU+GPU+NPU
+CPU+GPU+NPU
+CPU+GPU+TensorCore
+
+Nvidia L40 (Nvidia) (Server) 48 GB GPU
+
+Figure 2. Retrieval process of Inverted File Index
+
+embeddings often reside in high-dimensional spaces. Tech-
+niques like sorting, which are efficient in low-dimensional
+spaces, become less effective or even infeasible in high-
+dimensional spaces. Consequently, finding similar embed-
+dings in high-dimensional spaces requires computationally
+expensive operations. Distance metrics such as Euclidean
+distance or cosine similarity involve calculations across
+all dimensions of the vectors, making the process time-
+consuming.
+
+2.3. RAG Indexing Methods
+
+We previously discussed the challenges of vector similarity
+search. Now, we’ll explore indexing techniques that can
+significantly improve search.
+
+Flat Index compares a query embedding to every embed-
+ding in the index. While this method is highly accurate,
+it can be computationally expensive, especially for large
+datasets.
+
+Inverted File (IVF) Index (Sivic & Zisserman, 2003) em-
+ploys clustering algorithms to group similar documents into
+clusters. Figure 2 illustrates IVF’s retrieval procedure. Dur-
+ing query processing, the system first compares the query to
+the centroids of these clusters in the first level index (step 1 ).
+This initial comparison significantly reduces the number of
+documents to be examined, leading to faster search times.
+Then the system searches the second level index for the most
+similar embedding (step 2 ). Finally, the system retrieves
+data associated with the embedding (step 3 ). However, this
+approach can potentially miss relevant documents that don’t
+align perfectly with cluster boundaries. To mitigate this, the
+system may also need to search adjacent clusters, which can
+slightly increase search time but improve accuracy.
+
+3. Motivation
+
+3.1. Memory Limitation on Edge Platforms
+
+Figure 3 presents the latency breakdown of the RAG system
+on an edge platform. End-to-end latency is categorized into
+three phases: 1) Retrieval latency, the duration of vector
+similarity search to identify relevant text chunks; 2) First
+
+Figure 3. RAG latency breakdown and embedded database size
+
+Token Latency or Prefill, the time from model input (query
+and retrieved chunks) to the generation of the first output to-
+ken; and 3) Generation latency, the time from the first to the
+last generated token. The combined Retrieval and First To-
+ken latency, or Time-to-First-Token (TTFT), directly affects
+user-perceived latency, as it represents the delay between
+query submission and the display of the initial response.
+While IVF index exhibits slower latency growth compared
+to Flat index, both configurations are susceptible to mem-
+ory thrashing for datasets exceeding available memory (nq,
+hotpotqa, fever). This results in significant latency penalties
+as the system is forced to repeatedly load and unload the
+embedding database and the model from the storage. There-
+fore, efficient memory utilization is critical to mitigate this
+issue.
+
+3.2. Compute vs. Data Movement trade-offs
+
+One of the way to reduce the memory footprint of embed-
+dings is to generate them only when needed for incoming
+queries. Since the two-level IVF index primarily searches
+embeddings linked to a small subset of first-level centroids,
+most of these embeddings can be generated during the re-
+trieval process itself. This strategy avoids the significant
+memory overhead of storing all embeddings. As shown in
+Figure 4, generating embeddings for clusters smaller than
+24000 characters or approximately 8000 tokens is faster
+than loading them from the storage. This indicates that on-
+line embeddings generation can not only save memory but
+also potentially improve retrieval latency. However, gener-
+ating embedding for large cluster could also cause long tail
+latency.
+
+3
+
+First-level IndexSecond-level IndexStored EmbeddingData ChunksData ChunkIncoming Query Embedding➊ Lookup First-level ➋ Lookup Index➍ Retrieve DataSecond-levelEmbeddings➌ Search Second-levelIndexSteps TakenFigure 4. Embedding Generation Rate of different cluster size
+
+Figure 5. Cluster Embedding Generation Cost of nq dataset
+
+4. High-level Ideas
+
+We present EdgeRAG, a memory-efficient RAG system
+by selectively pruning second-level embeddings. Upon re-
+ceiving an incoming query, EdgeRAG generates related
+second-level embeddings during runtime. However, online
+embedding generation presents several key challenges: (1)
+High Latency Variability: Embedding generation time is in-
+fluenced by data chunk size, leading to unpredictable latency.
+(2) High Computational Cost: Generating embeddings is
+computationally expensive. Next, we describe the high-level
+ideas of EdgeRAG in this section.
+
+4.1. Selective Index Storage
+
+Pruning second-level embeddings reduces memory foot-
+print, but shifts embedding generation from indexing to
+retrieval. This can increase retrieval latency if generating
+embeddings takes longer than accessing pre-computed ones.
+Here we make several observations related to embedding
+generation.
+
+Figure 6. Timing breakdown of EdgeRAG Retrieval Process.
+
+dings of smaller, more common clusters. An analysis of
+queries across various datasets revealed a substantial degree
+of overlap in the accessed clusters. This overlap is quanti-
+fied in Table 2 through the chunk reuse ratio. The significant
+reuse observed across all datasets implies that embeddings
+for clusters associated with these frequently accessed data
+chunks must be repeatedly generated. Therefore, EdgeRAG
+also caches generated embeddings to avoid redundant com-
+putation. Figure 6 shows the process of cluster embedding
+cache hit ( 4 ).
+
+Figure 5 presents the distribution of embedding genera-
+tion times for various clusters within the nq datasets. The
+majority of clusters exhibit generation latencies under 500
+milliseconds. Nevertheless, a subset of clusters, albeit in-
+frequent, may experience generation times exceeding 2 sec-
+onds. This distribution highlights a ”tail-heavy” characteris-
+tic, where a small proportion of clusters significantly impact
+the overall retrieval time.
+
+To optimize cache utilization, EdgeRAG strategically avoids
+caching embeddings from smaller clusters with lower gen-
+eration latencies. This approach balances cache hit rates
+and overall latency. Caching all embeddings can lead to
+low hit rates and high latency, while exclusively caching
+expensive embeddings can improve hit rates but increase
+overall latency. A carefully selected threshold prevents the
+caching of low-cost embeddings, striking a balance between
+
+To mitigate long-tail latency in large clusters, EdgeRAG
+employs a hybrid approach. During the initial indexing
+phase, clusters are profiled to estimate embedding genera-
+tion latency. Clusters exceeding the latency threshold are
+identified and their embeddings are precomputed and stored.
+At query time, embeddings are retrieved from storage if
+available ( 3 in Figure 6), bypassing the long latency of on-
+line embeddings generation phase ( 2 in Figure 6). For clus-
+ters not precomputed, embeddings are generated in flight.
+Algorithm 1 illustrates our Selective Index Storage.
+
+4.2. Adaptive Cost-Aware Caching
+
+Algorithm 1 Selective Index Storage
+
+DataEmbeddings = embed(Datachunks)
+Centroids = cluster(Embeddings)
+for DataEmbedding in DataEmbeddings do
+
+Centroid = Centroids.search(DataEmbedding)
+Centroid.add(DataEmbedding)
+
+end for
+for Centroid in Centroids do
+
+// Compute Cluster’s Embedding Gen. Latency
+Centroid.GenLatency
+=SUM(len(Centroid.Datachunks))/GenRate
+if Centroid.GenLatency > SLO then
+
+Centroid.saveEmbeddings()
+
+Beyond the latency challenges presented by generating large
+cluster embeddings, we notice frequent reuse for embed-
+
+end if
+end for
+
+4
+
+Time❶ Oﬄine IVF❷ Generate EmbeddingsQuery EmbedQuery EmbedFirst-level Look upQuery EmbedPreﬁll❸ Load EmbeddingsQuery Embed❹ Embedding Cache HitTime to First Token (TTFT)Second-level Look upFirst-level Look upPreﬁllSecond-level GenerateSecond-level Look upFirst-level Look upLoad EmbeddingsSecond-level Look upFirst-level Look upCache HitSecond-level Look upPreﬁllPreﬁllTable 2. Evaluated datasets.
+
+Dataset
+
+Corpus # Records Embeddings Unique Access Total Access Reuse Ratio Fit in Dev. Mem
+
+scidocs (Cohan et al., 2020)
+fiqa (Maia et al., 2018)
+quora (Quora)
+nq (Kwiatkowski et al., 2019)
+hotpotqa (Thorne et al., 2018)
+fever (Yang et al., 2018)
+
+86 MB
+130 MB
+641 MB
+4.6 GB
+11 GB
+7.5 GB
+
+3.6 k
+25 k
+523 k
+2.68 M
+5.42 M
+5.23 M
+
+113 MB
+217 MB
+1.5 GB
+8.3 GB
+15.4 GB
+18.5 GB
+
+1157
+2974
+15672
+8186
+15519
+5783
+
+2000
+13286
+30000
+10235
+22098
+13922
+
+1.73
+4.47
+1.91
+1.25
+1.42
+2.41
+
+✓
+✓
+✓
+✗
+✗
+✗
+
+Algorithm 2 Cost-aware Least-Frequently Used Replace-
+ment Policy
+
+Incoming cache access with cluster index i
+cluster = Cache.search(i)
+if exist(cluster) then
+
+cluster.counter + +
+
+else
+
+// Get Weighted Least Frequently Used Cluster
+minCost = MAXVALUE, evictClusterIndex = −1
+for cluster in Cache do
+
+if cluster.genLatency × cluster.counter < maxCost
+then
+
+minCost = cluster.genLatency × cluster.counter
+evictClusterIndex = cluster.index
+
+end if
+end for
+cache.delete(evictClusterIndex)
+// Get data chunks and generate embeddings
+dataChunks = getDataChunks(i)
+embeddings = embed(dataChunks)
+cache.insert(index = i, embeddings)
+
+end if
+// Update Counters
+for cluster in Cache do
+
+cluster.counter = cluster.counter × decayFactor
+
+end for
+
+Algorithm 3 Minimum Latency Caching Threshold
+
+MinimumLatencyCachingThreshold = 0 // Initialize
+for each Query do
+
+if embedCacheMiss = True then
+
+if movAvgLatency < lastLatency then
+
+MinimumLatencyCachingThreshold + +
+
+end if
+
+else
+
+MinimumLatencyCachingThreshold − −
+
+end if
+movAvgLatency = (1 − α) × movAvgLatency + α ×
+lastLatency
+
+end for
+
+Figure 7. Retrieval Latency and Cache Hit rate with different Min-
+imum Caching Threshold of fever dataset.
+
+5. EdgeRAG System
+
+5.1. Overview
+
+the two.
+
+To achieve this, EdgeRAG evicts and prevents caching of
+cluster embeddings whose generation latency falls below a
+dynamically adjusted Minimum Latency Caching Thresh-
+old. Algorithm 3 details how this threshold is adjusted.
+Initially, the threshold is set to 0, effectively caching all
+cluster embeddings. Subsequently, EdgeRAG gradually in-
+creases the threshold while continuously monitoring cache
+hit rates and the moving average of retrieval latency. If a
+cache miss occurs, and the current retrieval latency is lower
+than the moving average, the threshold is further increased.
+Conversely, if a cache miss does not occur, the threshold
+is decreased. This adaptive mechanism ensures that the
+cache prioritizes embeddings from clusters with significant
+generation costs to improve the overall performance gains.
+
+EdgeRAG index is a two-level indexing system that exploits
+memory efficiency and online computation. EdgeRAG in-
+dex is based on the traditional two-level Inverted File (IVF)
+Index. The first level, always residing in memory, stores
+cluster centroids and references to the second level index.
+The second level stores the references to the text chunks, and
+the embedding generation latency of all data chunks. How-
+ever, instead of storing all text chunk embeddings, the em-
+beddings are pruned and EdgeRAG generates them online
+during the retrieval process, only indexes of costly clusters
+are stored (see Section 4.1). To optimize performance and
+reduce latency, EdgeRAG employs a selective caching strat-
+egy for embeddings generated during the retrieval process
+(see Section 4.2). The system prioritizes caching expensive
+embeddings, where cache hits yield significant performance
+gains. Embeddings that can be regenerated quickly without
+
+5
+
+Figure 8. EdgeRAG Indexing Process
+
+Figure 9. EdgeRAG Retrieval Process
+
+compromising service-level objectives (SLOs) are avoided
+to make room for those more expensive embeddings.
+
+5.2. EdgeRAG Indexing
+
+EdgeRAG employs an indexing process similar to the In-
+verted File Index (IVF). Figure 8 illustrates EdgeRAG in-
+dexing process. Initially, the text corpus is segmented into
+smaller data chunks (step 1 ), and embeddings are gener-
+ated for each chunk (step 2 ). These embeddings are then
+clustered (step 3 ), and the clusters’ centroids are stored in
+the first-level index (step 4 ). Then associated data chunks’
+embeddings are assigned to their respective clusters (step 5 )
+and references to the corresponding data chunks are stored
+(step 6 ). Unlike traditional IVF, where all data embeddings
+are retained, EdgeRAG calculates the computational cost of
+generating embeddings for each data chunk within a clus-
+ter. If this cost exceeds a predefined threshold (the Service
+Level Objective, or SLO), the embeddings of the whole data
+chunk are stored (step 7 ). Otherwise, the embeddings are
+discarded to optimize storage.
+
+5.3. EdgeRAG Retrieval
+
+As mentioned in Section 4, EdgeRAG incorporates both
+heavy cluster embedding loading and embedding caching.
+Figure 9 shows EdgeRAG retrieval process. EdgeRAG
+first identifies the most similar centroid cluster to the query
+embedding (Step 1 ). It then checks if pre-computed em-
+beddings exist for this cluster (Step 2 ). If so, EdgeRAG
+searches for stored embeddings (Step 3 ) and these embed-
+dings are loaded (Step 5 ). If pre-computed embeddings
+are unavailable, EdgeRAG looks up the embedding cache
+(Step 4 ). If the cache hits, EdgeRAG loads the embedding
+from the cache and retrieves related data chunks (Step 5 ).
+If the cache misses, EdgeRAG retrieves all associated data
+chunks in the cluster, regenerates the embeddings, and up-
+dates the cache (Step 4b) before loading the embedding
+(Step 5 ). EdgeRAG then looks up for the closest matching
+embedding and retrieves associated data chunks (Step 6 ).
+
+5.4. EdgeRAG Insertion and Removal
+
+The EdgeRAG insertion process mirrors the initial index-
+ing process. However, instead of clustering newly added
+embeddings, EdgeRAG identifies the existing cluster with
+
+Table 3. Evaluation Platform.
+Evaluation Hardware
+
+CPU
+GPU
+
+Power Limit
+DRAM
+Storage
+
+Cortex A78AE, 1.2 GHz, 6-core
+Ampere, 1024 CUDA cores,
+32 Tensor cores, 625 MHz
+15 W
+8 GiB LPDDR5-4250
+512 GB SD Card, UHS-I
+
+Software Configuration
+
+LlamaIndex v0.11.18
+
+RAG Framework
+Vector Store Engine FAISS 1.7.4
+LLM Engine
+Embedding Model
+Generation Model
+System Software
+
+NanoLLM 24.6
+gte-base-en-v1.5 (Dim=768)
+Sheared-LLaMA-2.7B
+Jetpack 6.0
+
+the nearest centroid embedding. The index associated with
+this cluster is then updated. If the computational cost of the
+updated cluster’s embeddings exceeds the SLO, EdgeRAG
+regenerates and stores its embeddings. In extreme cases
+where a cluster becomes excessively large, it is split into
+smaller clusters, and the newly created cluster is added to the
+first-level index. To remove data chunks, EdgeRAG first lo-
+cates the corresponding cluster, then removes the associated
+embeddings, and the cluster index is subsequently updated.
+If the computational latency of generating the embedding of
+the cluster falls below the Service Level Objective (SLO),
+the entire cluster’s embedding can be eliminated. In cases
+where a cluster becomes too small, it may be merged with
+a neighboring cluster. This removal process can be per-
+formed asynchronously, as leaving the cluster small has no
+immediate adverse impact on retrieval latency.
+
+6. Evaluation
+
+6.1. System Setup
+
+We evaluate EdgeRAG on an Nvidia Jetson Orin Nano eval-
+uation kit. We leverage Llamaindex (Liu, 2022) as our RAG
+framework and FAISS (Douze et al., 2024) as our vector
+store. NanoLLM (Franklin) powers our LLM engine, utiliz-
+ing Sheared LLaMA-2.7B (Xia et al., 2023) for generation.
+We employ gte-base-en-v1.5 (Li et al., 2023) as our embed-
+ding model. Table 3 provides a detailed overview of our
+evaluation setup and associated system software.
+
+6
+
+DocumentNodesFirst-level Index❶ Preprocess❷ GenerateEmbeddingVector EmbeddingsClusterCentroids❸ Clustering➍ Insert Centroids➎ Look up CentroidsSecond-level Index❻ CreateIndexSecond-level Embeddings➐ Store EmbeddingFirst-level Index➊SearchStoredSecond-level IndexQuery Embedding❺ Load EmbeddingsCentroidEmbeddings Index❷LookupNodes➍ Lookup CacheEmbedding CacheVector Embeddings4c Miss, Gen. Embedding4b➌Search Stored EmbeddingsText Corpus❺ Load Embeddings➏Retrieve6.2. Methodology
+
+We evaluate EdgeRAG against five distinct configurations:
+a linear-search-based flat index, a two-level IVF index with
+precomputed cluster embeddings, a two-level index with
+online cluster embedding generation, a two-level index with
+online cluster embedding generation and large cluster load-
+ing from storage, and a two-level index with online clus-
+ter embedding generation, large cluster loading from disk,
+and caching (EdgeRAG). Table 4 shows different evalu-
+ated Index configurations. For configurations utilizing the
+two-level IVF index, the embedding clustering process, per-
+formed using FAISS K-means with 20 iterations, is pre-
+computed and shared across all four configurations.
+
+Table 4. Evaluated Index Configurations.
+
+Index configuration
+
+Embeddings location
+
+Level 1 Level 2
+
+Flat
+IVF
+IVF+Embed. Gen.
+IVF+Embed. Gen.+Load Memory Storage (Partial)
+EdgeRAG
+
+Memory N/A
+Memory Memory
+Memory -
+
+Memory Storage + Memory
+
+To address the known precision and recall trade-offs inherent
+to IVF-based indexing methods (Sivic & Zisserman, 2003),
+we optimize the retrieval hyperparameters, specifically the
+number of cluster probes and retrieved data chunks. This op-
+timization is aimed at normalizing the recall metric to match
+that of the flat index baseline (Chen et al., 2024). We eval-
+uate EdgeRAG on six datasets from the BEIR benchmark
+suite (Thakur et al., 2021). Table 2 provides a breakdown
+of the corpus size, number of data records, and total embed-
+ding size for each dataset. Note that three of the workloads:
+nq, hotpotqa, and fever have embedding footprints larger
+than the memory capacity of our platform. Therefore, it is
+impossible for the whole embedding database to fit into the
+memory. We set the retrieval SLO similar to those in LLM
+serving systems (Kakolyris et al., 2024; Aminabadi et al.,
+2022): 1 second for smaller scidocs, fiqa and quora datasets
+and 1.5 seconds for larger nq, hotpotqa and fever datasets.
+
+6.3. Results
+
+6.3.1. RETRIEVAL QUALITY EVALUATION
+
+First, we evaluate the retrieval quality using the BEIR bench-
+mark. We concentrate on Flat and two-level IVF indexes, as
+EdgeRAG, which optimizes the IVF index, produces iden-
+tical retrieval results to the two-level IVF index. Figure 10
+presents the precision and recall of different workloads. The
+results demonstrate a trade-off between precision and recall
+in two-level indexing schemes. While increasing the num-
+ber of retrieved data chunks improves recall by including
+more relevant data, it also introduces more irrelevant data
+
+Figure 10. BEIR Evaluation Scores
+
+Figure 11. LLM Generation Evaluation Scores.
+
+chunks, leading to a decrease in precision.
+
+6.3.2. GENERATION QUALITY EVALUATION
+
+As mentioned in the previous section, IVF-based EdgeRAG
+exploits a precision-latency trade-off, prioritizing recall over
+precision. To investigate the potential benefits of prioritiz-
+ing recall, we compare IVF-based EdgeRAG to a Flat index
+baseline. We employ a GPT-4o LLM (OpenAI) as an evalu-
+ator to assess generation quality across various datasets. As
+shown in Figure 11, while two-level IVF indexing schemes
+may exhibit lower precision, they can still achieve high-
+quality generation. This suggests that the generation model
+is capable of filtering out irrelevant information and lever-
+aging only the most pertinent details for output generation.
+
+6.3.3. RETRIEVAL TAIL LATENCY ANALYSIS
+
+In this section, we evaluate the tail latency of different
+EdgeRAG’s optimizations. Figure 12 illustrates the latency
+distribution of EdgeRAG’s various optimizations for nq
+
+Figure 12. Retrieval Latency distribution with different optimiza-
+tion.
+
+7
+
+Figure 13. Retrieval and First Token Latency.
+
+dataset. The baseline IVF index, while achieving low la-
+tency for most queries, exhibits an extreme long tail latency,
+with the 95th percentile exceeding the median by over 64×.
+This behavior stems from memory thrashing when accessing
+paged-out cluster embeddings.
+
+The embedding generation configuration significantly im-
+proves latency by eliminating memory thrashing through
+embedding pruning. This results in a more than 4× reduc-
+tion in 95th percentile latency compared to the IVF baseline.
+Further optimizing with large cluster loading from storage
+yields another 2× tail latency reduction. Finally, caching
+eliminates redundant embedding computation, leading to
+significant overall latency reduction. While EdgeRAG prior-
+itizes resource efficiency to meet retrieval SLOs, allocating
+more resources such as allocating more cache capacity could
+unlock even greater latency improvement.
+
+6.3.4. END-TO-END LATENCY
+
+In this section, we evaluate the end-to-end latency of a query.
+We use Time-to-First-Token (TTFT) as an evaluation met-
+ric. The TTFT consists of retrieval latency which includes
+vector similarity search, and prefill which is the time LLM
+takes to generate the first output token after it receives the
+prompt. We exclude Total Generation Time and Time-Per-
+Output-Token metrics as they are determined by the LLM’s
+decoding rate, which is not optimized by EdgeRAG.
+
+We then compare the latency of all five configurations (Table
+4). For the two smallest datasets: scidocs and fiqa, where the
+entire embedding dataset can fit into memory, the online em-
+bedding generation scheme without caching exhibits higher
+retrieval latency compared to both Flat and baseline pre-
+generated Two-level indexes. This is because in-memory
+operations, even linear searches, can be executed very effi-
+ciently in this scenario. For the Quora dataset, where the
+total embedding size nearly exceeds memory capacity, we
+observe that increasing the number of embeddings signif-
+icantly degrades the performance of the Flat Index due to
+the overhead of linear search operations. For large datasets
+like nq, hotpotqa, and fever, where the total embedding size
+significantly exceeds memory capacity, the baseline two-
+level IVF index suffers from increased retrieval latency and
+first token generation latency. This is due to the combined
+
+effects of memory thrashing during large index access and
+the eviction of the generation model from memory, leading
+to slower search and longer generation times.
+
+In contrast, the EdgeRAG index, with and without heavy
+cluster loading and caching, remains within memory con-
+straints and maintains low first token generation latency.
+However, for datasets with imbalanced, tail-heavy, and large
+clusters like Fever, the online cluster embedding generation
+process can introduce significant latency. Persisting heavy-
+tail cluster embeddings and employing caching can mitigate
+this issue by reducing tail latency and avoiding redundant
+embedding generation. This significantly improves over-
+all retrieval latency 1.8 × on average while caching only
+utilizes an additional 7 % of system memory on top of a
+two-level online embedding generation scheme.
+
+7. Discussion
+
+Limited Memory Capacity of Edge Systems While
+some modern edge devices, such as upcoming mobile de-
+vices (One), boast substantial memory capacity, memory
+capacity still remains a major bottleneck for supporting
+large-scale datasets. EdgeRAG efficiently prunes the major-
+ity of second-level embeddings, enabling effective utiliza-
+tion of large memory capacities to support larger datasets
+with more embedding footprints or more powerful LLMs
+for enhanced response quality.
+
+Integration with other RAG systems
+In this work, we
+demonstrate EdgeRAG’s effectiveness on a basic RAG sys-
+tem using text corpus data. While more advanced RAG sys-
+tems may employ more sophisticated retrieval techniques or
+support diverse data types (multimodal), those techniques
+still rely on vector similarity search (Chen et al., 2022; Lin
+& Byrne, 2022). As such, these systems can also benefit
+from EdgeRAG’s optimizations.
+
+Exploiting Hardware Accelerator Modern edge devices
+commonly integrate multiple hardware accelerators within
+their System on Chip (Gupta, 2021; IPh). One of those is
+the Neural Processing Unit (NPU) which enables efficient
+processing of deep learning tasks. EdgeRAG can leverage
+these NPUs in several ways: 1. Enhance embedding gen-
+eration throughput by harnessing the NPU’s high through-
+put. 2. Offloading the embedding model’s processing to
+the NPU—frees up the GPU or CPU for other tasks. This
+enables pipelining or parallelization of operations such as
+embedding generation, vector similarity search, and LLM
+prefill.
+
+8
+
+8. Conclusion
+
+In this work, we propose EdgeRAG, a novel RAG system de-
+signed to address the memory limitations of edge platforms.
+EdgeRAG optimizes the two-level IVF index by pruning
+unnecessary second-level embeddings, selectively storing or
+regenerating them during execution, and caching generated
+embeddings to minimize redundant computations. This ap-
+proach enables efficient RAG applications on datasets that
+exceed available memory, while preserving low retrieval
+latency and without compromising generation quality. Our
+evaluation results show that EdgeRAG improves retrieval
+latency by 1.22× on average and by a substantial 3.69× for
+large datasets that cannot fit in the memory.
+
+References
+
+URL
+
+https://support.apple.com/en-us/
+
+121029.
+
+URL https://www.oneplus.com/us/launch/13.
+
+Jan 2024.
+
+URL https://www.samsung.com/
+
+ae/support/mobile-devices/what-are-
+the-s24-external-memory-limits-
+and-memory-sizes-of-different-s24-
+variants/.
+
+Aminabadi, R. Y., Rajbhandari, S., Awan, A. A., Li, C.,
+Li, D., Zheng, E., Ruwase, O., Smith, S., Zhang, M.,
+Rasley, J., et al. Deepspeed-inference: enabling efficient
+inference of transformer models at unprecedented scale.
+In SC22: International Conference for High Performance
+Computing, Networking, Storage and Analysis, pp. 1–15.
+IEEE, 2022.
+
+Chen, Q., Geng, X., Rosset, C., Buractaon, C., Lu, J., Shen,
+T., Zhou, K., Xiong, C., Gong, Y., Bennett, P., et al. Ms
+marco web search: a large-scale information-rich web
+dataset with millions of real click labels. In Companion
+Proceedings of the ACM on Web Conference 2024, pp.
+292–301, 2024.
+
+Chen, W., Hu, H., Chen, X., Verga, P., and Cohen, W. W.
+Murag: Multimodal retrieval-augmented generator for
+open question answering over images and text. arXiv
+preprint arXiv:2210.02928, 2022.
+
+Cohan, A., Feldman, S., Beltagy, I., Downey, D., and Weld,
+D. S. Specter: Document-level representation learning
+using citation-informed transformers. In ACL, 2020.
+
+Douze, M., Guzhva, A., Deng, C., Johnson, J., Szilvasy, G.,
+Mazar´e, P.-E., Lomeli, M., Hosseini, L., and J´egou, H.
+The faiss library. 2024.
+
+Franklin, D. Nanollm: Optimized local inference for
+llms. URL https://github.com/dusty-nv/
+NanoLLM.
+
+Google. Google assistant, 2024. URL https://
+
+assistant.google.com/.
+
+Gupta, M.
+
+Google tensor is a milestone for ma-
+Google, October 2021.
+URL
+
+chine learning.
+https://blog.google/products/pixel/
+introducing-google-tensor/.
+
+Kakolyris, A. K., Masouros, D., Xydis, S., and Soudris,
+D. Slo-aware gpu dvfs for energy-efficient llm inference
+serving. IEEE Computer Architecture Letters, 2024.
+
+Kwiatkowski, T., Palomaki, J., Redfield, O., Collins, M.,
+Parikh, A., Alberti, C., Epstein, D., Polosukhin, I., Devlin,
+J., Lee, K., Toutanova, K., Jones, L., Kelcey, M., Chang,
+M.-W., Dai, A. M., Uszkoreit, J., Le, Q., and Petrov, S.
+Natural questions: A benchmark for question answering
+research. Transactions of the Association for Compu-
+tational Linguistics, 7:452–466, 2019. doi: 10.1162/
+tacl a 00276. URL https://aclanthology.org/
+Q19-1026.
+
+Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V.,
+Goyal, N., K¨uttler, H., Lewis, M., Yih, W.-t., Rockt¨aschel,
+T., et al. Retrieval-augmented generation for knowledge-
+intensive nlp tasks. Advances in Neural Information Pro-
+cessing Systems, 33:9459–9474, 2020.
+
+Li, Z., Zhang, X., Zhang, Y., Long, D., Xie, P., and
+Zhang, M. Towards general text embeddings with
+multi-stage contrastive learning, 2023. URL https:
+//arxiv.org/abs/2308.03281.
+
+Lin, W. and Byrne, B. Retrieval augmented visual ques-
+tion answering with outside knowledge. arXiv preprint
+arXiv:2210.03809, 2022.
+
+Liu, J.
+
+LlamaIndex, 11 2022.
+
+URL https://
+
+github.com/jerryjliu/llama index.
+
+Maia, M., Handschuh, S., Freitas, A., Davis, B., McDermott,
+R., Zarrouk, M., and Balahur, A. Www’18 open chal-
+lenge: Financial opinion mining and question answering.
+In Companion Proceedings of the The Web Conference
+2018, WWW ’18, pp. 1941–1942, Republic and Canton
+of Geneva, CHE, 2018. International World Wide Web
+Conferences Steering Committee. ISBN 9781450356404.
+doi: 10.1145/3184558.3192301. URL https://
+doi.org/10.1145/3184558.3192301.
+
+Microsoft. Microsoft Copilot: Your AI companion. URL
+
+https://copilot.microsoft.com/.
+
+9
+
+Nvidia.
+
+URL https://images.nvidia.com/
+
+content/Solutions/data-center/vgpu-
+L40-datasheet.pdf.
+
+NVIDIA.
+
+NVIDIA Jetson Orin.
+//www.nvidia.com/en-us/autonomous-
+machines/embedded-systems/jetson-
+orin/.
+
+URL https:
+
+dataset for diverse, explainable multi-hop question an-
+In Riloff, E., Chiang, D., Hockenmaier, J.,
+swering.
+and Tsujii, J. (eds.), Proceedings of the 2018 Confer-
+ence on Empirical Methods in Natural Language Pro-
+cessing, pp. 2369–2380, Brussels, Belgium, October-
+November 2018. Association for Computational Lin-
+guistics. doi: 10.18653/v1/D18-1259. URL https:
+//aclanthology.org/D18-1259.
+
+OpenAI.
+
+URL https://openai.com/index/
+
+hello-gpt-4o/.
+
+Quora.
+
+URL https://quoradata.quora.com/
+First-Quora-Dataset-Release-Question-
+Pairs.
+
+Saad-Falcon, J., Khattab, O., Potts, C., and Zaharia,
+M. Ares: An automated evaluation framework for
+retrieval-augmented generation systems. arXiv preprint
+arXiv:2311.09476, 2023.
+
+Sivic and Zisserman. Video google: a text retrieval approach
+to object matching in videos. In Proceedings Ninth IEEE
+International Conference on Computer Vision, pp. 1470–
+1477 vol.2, 2003. doi: 10.1109/ICCV.2003.1238663.
+
+Thakur, N., Reimers, N., R¨uckl´e, A., Srivastava, A.,
+and Gurevych, I. BEIR: A heterogeneous benchmark
+for zero-shot evaluation of information retrieval mod-
+In Thirty-fifth Conference on Neural Information
+els.
+Processing Systems Datasets and Benchmarks Track
+(Round 2), 2021. URL https://openreview.net/
+forum?id=wCu6T5xFjeJ.
+
+Thorne, J., Vlachos, A., Christodoulopoulos, C., and Mit-
+tal, A. FEVER: a large-scale dataset for fact extrac-
+In Walker, M., Ji, H., and
+tion and VERification.
+Stent, A. (eds.), Proceedings of the 2018 Conference
+of the North American Chapter of the Association for
+Computational Linguistics: Human Language Technolo-
+gies, Volume 1 (Long Papers), pp. 809–819, New Or-
+leans, Louisiana, June 2018. Association for Computa-
+tional Linguistics. doi: 10.18653/v1/N18-1074. URL
+https://aclanthology.org/N18-1074.
+
+Wiens, K. More modular than ever before:
+16 pro and pro max teardown, Sep 2024.
+https://www.ifixit.com/News/100693/
+more-modular-than-ever-before-iphone-
+16-pro-and-pro-max-teardown.
+
+Iphone
+URL
+
+Xia, M., Gao, T., Zeng, Z., and Chen, D. Sheared llama:
+Accelerating language model pre-training via structured
+pruning. arXiv preprint arXiv:2310.06694, 2023.
+
+Yang, Z., Qi, P., Zhang, S., Bengio, Y., Cohen, W.,
+Salakhutdinov, R., and Manning, C. D. HotpotQA: A
+
+10

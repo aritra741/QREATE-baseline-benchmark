@@ -1,0 +1,908 @@
+KG2QA: KNOWLEDGE GRAPH-ENHANCED RETRIEVAL-AUGMENTED GENERATION
+FOR COMMUNICATION STANDARDS QUESTION ANSWERING
+
+Zhongze Luo1, Weixuan Wan2, Tianya Zhang1, Dan Wang2, Xiaoying Tang1∗
+
+1School of Science and Engineering, The Chinese University of Hong Kong, Shenzhen, China
+2School of Microelectronics, Xi’an Jiaotong University, China
+
+5
+2
+0
+2
+
+t
+c
+O
+5
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+7
+3
+0
+7
+0
+.
+6
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+ABSTRACT
+
+The rapid evolution of communication technologies has led
+to an explosion of standards, rendering traditional expert-
+dependent consultation methods inefficient and slow. To
+address this challenge, we propose KG2QA, a question an-
+swering (QA) framework for communication standards that
+integrates fine-tuned large language models (LLMs) with
+a domain-specific knowledge graph (KG) via a retrieval-
+augmented generation (RAG) pipeline. We construct a high-
+quality dataset of 6,587 QA pairs from ITU-T recommen-
+dations and fine-tune Qwen2.5-7B-Instruct, achieving sig-
+nificant performance gains: BLEU-4 increases from 18.86
+to 66.90, outperforming both the base model and Llama-3-
+8B-Instruct. A structured KG containing 13,906 entities and
+13,524 relations is built using LLM-assisted triple extraction
+based on a custom ontology. In our KG-RAG pipeline, the
+fine-tuned LLMs first retrieves relevant knowledge from KG,
+enabling more accurate and factually grounded responses.
+Evaluated by DeepSeek-V3 as a judge, the KG-enhanced
+system improves performance across five dimensions, with
+an average score increase of 2.26%, demonstrating superior
+factual accuracy and relevance. Integrated with Web platform
+and API, KG2QA delivers an efficient and interactive user
+experience. Our code and data have been open-sourced 1.
+
+Index Terms— Large Language Models, Domain-Specific
+Knowledge Graph, Retrieval-Augmented Generation, Com-
+munication Standards Question Answering
+
+1. INTRODUCTION
+
+The rapid advancement of technology in the communication
+sector has led to an exponential increase in communication
+standards [1]. Traditionally, consulting these standards re-
+quires significant expertise and manual intervention, often in-
+volving extensive periods for information retrieval and inter-
+pretation. Such conventional methods are inefficient and un-
+able to keep pace with rapid technological developments, ne-
+cessitating smarter, more automated approaches for consult-
+ing and knowledge management [2].
+
+∗Corresponding author: Xiaoying Tang.
+1https://github.com/luozhongze/KG2QA
+
+Recent developments in artificial intelligence, particularly
+large language models (LLMs), have demonstrated remark-
+able capabilities in understanding and generating human-like
+text across general domains [3]. However, their performance
+in specialized fields, like communication standards, remains
+limited due to the sparse representation of specialized ter-
+minologies and domain-specific knowledge in pretraining
+datasets [4,5]. To address this limitation, fine-tuning method-
+ologies such as Low-Rank Adaptation (LoRA) have been
+employed, significantly enhancing the semantic comprehen-
+sion and contextual accuracy of LLMs in niche areas [6–8].
+
+Complementing LLMs, knowledge graph (KG) offers
+a structured approach to represent complex, interconnected
+domain-specific knowledge [9–11]. Particularly in narrowly
+defined domains, such as communication standards, domain-
+specific KG facilitates efficient and precise information re-
+trieval [12–14]. By constructing a carefully designed ontol-
+ogy structure and leveraging LLMs for entity and relationship
+extraction, high-accuracy KG can be established, markedly
+improving retrieval performance [15–21].
+
+We propose an integration KG2QA framework, which
+combines domain-specific KG and fine-tuned LLMs using
+retrieval-augmented generation (RAG) methodologies, and
+we apply it to the field of communication standards question
+answering (QA). Our approach enhances intelligent consult-
+ing services by achieving precise and swift query responses,
+enriched by structured domain-specific knowledge. Experi-
+mental results demonstrate substantial improvements in query
+accuracy, response speed, and overall user interaction experi-
+ence compared to traditional and general-purpose AI consult-
+ing methods. The overall architecture of KG2QA is shown in
+Fig. 1. In summary, the main contributions are as follows:
+
+• We perform efficient domain adaptation of LLMs using
+LoRA fine-tuning for communication standards QA tasks.
+• We construct a structured KG for communication standards
+
+based on LLM-assisted triple extraction.
+
+• We develop a RAG-based QA system integrating the fine-
+
+tuned LLMs with the domain-specific KG.
+
+• We provide fully open-sourced,
+
+reproducible KG2QA
+framework and dataset for domain-specific QA in com-
+munication standards, and evaluate the improvements.
+
+ 
+ 
+ 
+ 
+ 
+ 
+Table 2. Entity type definitions.
+
+Entity type
+
+Identifier
+
+Identifier
+
+IDEN
+
+Structure/Composition
+
+STR COM
+
+Suitability/Context
+
+APP CON
+
+Action
+
+Value
+
+ACT
+
+VALUE
+
+Function
+
+FUN
+
+Description
+
+Establish a unique identifier for an entity,
+including its common name, type, and
+criteria for defining its source
+Describe how the internal units,
+components or the whole of an entity are
+constituted
+Define the context, scope, constraints or
+specific context of the application entity
+The operational steps or behaviors carried
+out or involved
+Specific values, encodings or Settings
+associated with an entity
+The specific action or function performed
+
+Fig. 1. The overall architecture of KG2QA.
+
+Table 3. Relationship type definitions.
+
+2. METHODS
+
+Relationship
+type
+
+Identifier
+
+Domain of
+definition
+
+Range of
+value
+
+2.1. Fine-tuning
+
+The dataset used for fine-tuning LLMs is in the field of com-
+munication standards, and the language is English. The data
+is derived from ITU-T Recommendations and is taken from
+three series of recommendations. A total of 288 PDF source
+files are selected from the three series for QA construction.
+The dataset is divided into the training set and the test set.
+The training set consists of data of three categories (G, V, X),
+and the test set consists of data of one category (Test), both
+of which are saved in JSON format. The DeepSeek-V3 API
+is used to perform QA extraction on the source PDF files to
+obtain the dataset. The format is all in the standard Alpaca
+format, which is an instruction-supervised fine-tuning dataset.
+The data volume is shown in Table 1.
+
+Table 1. Data volume description.
+
+Category
+
+G
+
+V
+
+X
+
+Test
+
+All
+
+QA Quantity
+
+898
+
+1,101
+
+3,779
+
+809
+
+6,587
+
+2.2. KG Construction
+
+In the process of ontology design, the domain characteristics
+of communication standards are fully considered. We adopt
+the KG construction process based on LLMs, which is di-
+vided into three steps in total: head entity recognition, latent
+relationship recognition, and tail entity recognition. Finally,
+a complete triple is extracted and the KG is uploaded to the
+Neo4j platform for visualization and evaluation. We design 6
+types of entities: Identifier, Structure/Composition, Suitabil-
+ity/Context, Action, Value and Function, as shown in Table 2.
+After defining the entity types, we define 10 types of potential
+relationships, as shown in Table 3.
+
+Contain
+
+contain
+
+Rely on
+Accomplish
+Limit
+
+isReliedOn
+accomplish
+limit
+
+Relevant
+
+relevant
+
+Execute
+Influence
+
+execute
+influence
+
+STR COM/
+IDEN
+FUN
+ACT
+STR COM/
+APP CON
+FUN/
+VALUE/
+ACT/IDEN
+VALUE
+
+Inverse
+relationship
+
+Be contained
+(isContained)
+/
+/
+/
+
+IDEN/
+VALUE
+VALUE
+FUN
+FUN/ACT
+
+IDEN/
+APP CON
+
+This relationship
+is self-inverse
+
+ACT
+
+APP CON STR COM
+
+Undo (undo)
+Be influenced
+(isInfluenced)
+
+Algorithm 1 End-to-End KG Construction
+Input: PDF DIR: Directory containing the original PDF files,
+θ: Confidence threshold
+Output: KG[f ]: Complete KG triples
+1: for each file f ∈ PDF DIR do
+2:
+3:
+4:
+5:
+6:
+
+textf ← extract text from pdf(f )
+H[f ] ← LLM(head entity prompt(textf ))
+for each h ∈ H[f ] do
+ctx ← h.context
+Append
+
+(h, LLM(relation prompt(h, ctx)))
+
+R T [f ]
+
+7:
+8:
+9:
+10:
+11:
+
+end for
+for each (h, rels) ∈ R T [f ] do
+for each (r, t′) ∈ rels do
+
+if r.conf idence ≥ θ then
+
+t type
+
+determine tail entity type(t′.name, ctx)
+
+to
+
+←
+
+Append (h, r, t′, t type) to KG[f ]
+
+end if
+
+end for
+save to json(KG[f ], "final triples f.json")
+
+12:
+13:
+14:
+15:
+16:
+17: end for
+
+end for
+
+modularly realizes the extraction, as shown in Algorithm 1.
+
+We design a pipeline for extracting KG triples from PDF
+files based on LLMs, which has a clear division of labor and
+
+The process begins with a single PDF file, denoted as
+f . From this file, we extract its entire textual content, rep-
+
+resented as textf . Based on this text, the algorithm identifies
+a list of head entities, which is stored in H[f ]. For each head
+entity h ∈ H[f ], we define its surrounding text as its context,
+ctx. Next, the algorithm leverages the head entity h and its
+context ctx to extract potential relationships r, and candidate
+tail entities t′. For a given file f , the collection of all extracted
+candidate relations and tail entities is stored in R T [f ]. To
+ensure the quality of the extracted facts, we employ a confi-
+dence threshold, θ (e.g., 0.8), to filter out relations with low
+confidence scores. For each tail entity t′ that passes this filter,
+we further determine its attribute type, denoted as t type. Fi-
+nally, all validated KG triples, consisting of a head entity h,
+a relation r, and a tail entity t′, are aggregated into KG[f ].
+This structure, KG[f ], represents the final KG constructed
+from the single source file f .
+
+3. RESULTS AND ANALYSIS
+
+3.1. Fine-tuning Experiments
+
+This paper’s server Linux version: Ubuntu 22.04, using
+NVIDIA® GeForce RTX™ 4090D 24G, Fine-tuning was car-
+ried out using the LLaMA-Factory framework, and a control
+experiment was conducted with the same parameter settings
+for the two base models. The models are Llama-3-8B-Instruct
+and Qwen2.5-7B-Instruct respectively. Llama-Factory ver-
+sion: 0.93.dev0, Python version: 3.10.0, PyTorch version:
+2.6.0+cu124, CUDA version: 12.8. The LoRA fine-tuning
+parameters are set to lora rank: 16, lora alpha: 32, learn-
+ing rate: 5.0e-5. The evaluation results of the base model and
+the merged model on the test set are shown in Table 4.
+
+2.3. QA System
+
+Ollama model remote access to KG. The fine-tuned Qwen
+Merged model
+is converted to GGUF format, quantized
+(q4 0), and deployed locally using Ollama (v0.7.0). We
+enable remote access to the local Neo4j instance from the
+server running the Ollama model via the Bolt protocol (port
+7687). The QA system first retrieves relevant context from
+the KG based on user keywords, then feeds this context to the
+fine-tuned Qwen Merged model to generate answers.
+
+Fig. 2. Prompt of LLM-based judge.
+
+Quantitative evaluation of answer quality using a
+LLM-based judge. To quantitatively assess the perfor-
+mance improvement from the KG, we adopted the “LLM
+as a Judge”. This approach overcomes the limitations of
+lexical-overlap metrics like BLEU/ROUGE, which may un-
+fairly penalizes a RAG-generated answer for containing more
+correct facts than the static reference. We use the DeepSeek-
+V3 API as an impartial judge to score answers from a baseline
+LLM-Only system and our LLM+KG system on five dimen-
+sions. Prompt is shown in Fig. 2.
+
+Table 4. Evaluation results in fine-tuning.
+
+Metrics
+
+Llama Base Llama Merged Qwen Base Qwen Merged
+
+BLEU-4
+ROUGE-1
+ROUGE-2
+ROUGE-L
+predict runtime
+samples per second
+steps per second
+runtime
+
+37.3405
+48.2548
+25.2638
+31.6350
+0.0037
+0.2790
+0.1400
+2900.5805
+
+66.4780
+70.2607
+51.7437
+70.7144
+0.0038
+0.7720
+0.3870
+1047.5824
+
+18.8564
+35.8729
+16.0076
+18.7772
+0.0036
+0.1530
+0.0760
+5301.4163
+
+66.8993
+70.9748
+52.9495
+61.4781
+0.0037
+0.8700
+0.4360
+929.6552
+
+The model after fine-tuning and merging is superior to the
+base model in most indicators. Taking the Qwen series as an
+example, the BLEU-4 score of the combined model increased
+from 18.8564 to 66.8993, and ROUGE scores also improved
+significantly. In terms of efficiency indicators, the reasoning
+time of the combined model has been significantly shortened.
+The time required for one inference of the Qwen base model
+has decreased from 5301.4163 seconds to 929.6552 seconds,
+samples per second and steps per second have increased to
+0.8700 seconds and 0.4360 seconds respectively, the Llama
+series also shows a similar trend. Therefore, the fine-tuned
+merged model is superior to the base model in both genera-
+tion quality and reasoning efficiency. The Llama base model
+outperforms the Qwen base model, but after fine-tuning, the
+Qwen Merged model is overall superior to the Llama Merged
+model, which indicates that although the Llama base model
+has better native performance, the Qwen model is more adapt-
+able to the data of this fine-tuning task.
+
+We also select the mainstream models such as DeepSeek,
+Kimi, Doubao, ChatGPT, and Gemini on the market for the
+metric evaluation on the test set, comparing them with the
+fine-tuned Llama Merged and Qwen Merged model. The
+evaluation results are shown in Table 5.
+
+The versions of the API models are: DeepSeek-V3-0324,
+moonshot-v1-8k, doubao-1-5-pro-32k-250115, gpt-4o-2024-
+08-06, gemini-2.5-flash. It is clear that the API tests of these
+general knowledge LLMs are all inferior to fine-tuned Qwen
+Merged model in the four evaluation indicators, which further
+demonstrate the effectiveness of the fine-tuning experiments.
+
+You are an impartial and highly skilled text evaluator.Your task is to assess a 'Candidate Answer' against a 'Reference Answer'. If a 'Question' is provided, consider it for relevance.Evaluate the 'Candidate Answer' based ONLY on the following metrics:- similarity to reference (scale 0.0 to 1.0)- fluency (scale 0.0 to 1.0)- coherence (scale 0.0 to 1.0)- relevance to question (scale 0.0 to 1.0)- factual accuracy (scale 0.0 to 1.0)Important Consideration: The 'Candidate Answer' might sometimes contain more specific factual details if it was generated using supplementary knowledge (e.g., a knowledge graph). Such details should be considered valid and contribute positively to 'factual_accuracy' if they are indeed accurate and relevant to the question, even if those specific details are not present in the 'Reference Answer'. However, the overall quality, fluency, coherence, and relevance should still be judged primarily in relation to the reference and the question.Provide your evaluation strictly as a JSON object. The keys in the JSON object must be exactly: similarity_to_reference, fluency, coherence, relevance_to_question, factual_accuracy.The values should be floating-point numbers between 0.0 and 1.0.Do not add any explanations, apologies, or any text outside of the JSON object.Example JSON output format:{ "similarity_to_reference": 0.85, "fluency": 0.92, "coherence": 0.88, "relevance_to_question": 0.90, "factual_accuracy": 0.80}Table 5. Evaluation results with other models.
+
+Table 6. Comparative evaluation results.
+
+Models
+
+BLEU-4 ROUGE-1 ROUGE-2 ROUGE-L
+
+Methods
+
+Similarity Fluency Coherence Relevance Factual Acc. Overall Avg.
+
+DeepSeek
+Kimi
+Doubao
+ChatGPT
+Gemini
+Llama Merged
+Qwen Merged
+
+37.4556
+59.9932
+28.9278
+35.1357
+31.2513
+66.4780
+66.8993
+
+47.0695
+39.4126
+55.0455
+42.3492
+40.2169
+70.2607
+70.9748
+
+27.2858
+25.0124
+37.9567
+24.3542
+26.3028
+51.7437
+52.9495
+
+36.3754
+31.9145
+46.3878
+35.2076
+36.4054
+70.7144
+61.4781
+
+3.2. KG Construction Experiments
+
+In the Neo4j platform, entities and relations were imported to
+display the KG constructed. There are 6 entity types and 10
+relation types, with a total of 13,906 entity names and 13,524
+relations. The results are shown in Fig. 3.
+
+Llama
+
+Base w/o KG-RAG
+Base w/ Text-RAG
+Base w/ KG-RAG
+Base Improvement
+
+0.7513
+0.8049
+0.3321
+0.7631
+0.8152
+0.3684
+0.3854
+0.7706
+0.8233
++5.33% +1.84% +1.93%
+
+Merged w/o KG-RAG
+Merged w/ Text-RAG
+Merged w/ KG-RAG
+Merged Improvement
+
+0.8620
+0.9190
+0.5190
+0.8631
+0.9201
+0.5565
+0.5681
+0.8642
+0.9205
++4.91% +0.15% +0.22%
+
+Qwen
+
+Base w/o KG-RAG
+Base w/ Text-RAG
+Base w/ KG-RAG
+Base Improvement
+
+0.7639
+0.8152
+0.3416
+0.7750
+0.8250
+0.3805
+0.3927
+0.7811
+0.8318
++5.11% +1.66% +1.72%
+
+Merged w/o KG-RAG
+Merged w/ Text-RAG
+Merged w/ KG-RAG
+Merged Improvement
+
+0.8673
+0.9217
+0.5278
+0.8680
+0.9225
+0.5712
+0.5836
+0.8695
+0.9229
++5.58% +0.12% +0.22%
+
+0.7248
+0.7498
+0.7581
++3.33%
+
+0.8583
+0.8715
+0.8780
++1.97%
+
+0.7305
+0.7580
+0.7672
++3.67%
+
+0.8641
+0.8794
+0.8864
++2.23%
+
+0.6177
+0.6459
+0.6593
++4.16%
+
+0.7684
+0.7879
+0.7953
++2.69%
+
+0.6284
+0.6550
+0.6658
++3.74%
+
+0.7728
+0.7951
+0.8045
++3.17%
+
+0.6462
+0.6685
+0.6793
++3.31%
+
+0.7853
+0.7998
+0.8052
++1.99%
+
+0.6559
+0.6787
+0.6877
++3.18%
+
+0.7908
+0.8072
+0.8134
++2.26%
+
+We present an example of multi-round QA of “IPv6”-related
+questions on the Web platform, as shown in Fig. 4. The sys-
+tem first retrieves and displays KG context for the keyword
+“IPv6”, then uses this context to answer subsequent user ques-
+tions about “IPv6” and its differences from “IPv4”.
+
+Fig. 3. The KG constructed.
+
+3.3. QA System Experiments
+
+The aggregated results are shown in Table 6, the “w/ KG-
+RAG” results outperform the corresponding “w/ Text-RAG”
+and “w/o KG-RAG” results on all groups, which demon-
+strates the advantages of our KG-RAG pipeline. Especially in
+the experiment of the Qwen Merged group, the average score
+increases by 2.26%, which confirmed that our KG2QA frame-
+work combines fine-tuning and KG-RAG pipeline, making
+stepwise improvements to the base model, and the answers
+given are more superior and reliable. It is clear that the im-
+provement effect of our KG-RAG pipeline in the Base group
+is better than that in the Merged group of the same model.
+This may indicate that for models that have not been fine-
+tuned with domain-specific knowledge, the impact brought
+by using domain-specific KG is more obvious.
+
+We use Flask to build the Web platform of the QA system
+and design two UI display parts on the left and right. Effec-
+tively display the two parts of the question and the answer in
+the left and right text boxes. We also utilize FastAPI to encap-
+sulate the QA system as an API interface, providing Swagger
+interactive documentation and excellent performance support.
+
+Fig. 4. The multi-round QA example of the Web platform.
+
+4. CONCLUSION
+
+We propose the KG2QA framework and dataset for intelli-
+gent consulting services in the field of communication stan-
+dards based on LLMs and KG, which improves the process-
+ing efficiency of consultation in the field of communication
+standards, reduces the burden of information search for com-
+munication engineers in their daily work, and has certain uni-
+versality. This method can be extended and applied to the
+standardization consultation services of other specialties.
+
+5. REFERENCES
+
+[1] Aryan Kaushik, Rohit Singh, Shalanika Dayarathna,
+Rajitha Senanayake, Marco Di Renzo, Miguel Dajer,
+Hyoungju Ji, Younsun Kim, Vincenzo Sciancalepore,
+Alessio Zappone, et al.,
+“Toward integrated sensing
+and communications for 6g: Key enabling technolo-
+gies, standardization, and challenges,” IEEE Commu-
+nications Standards Magazine, vol. 8, no. 2, pp. 52–59,
+2024.
+
+[2] Dian Huang, Jianqi Gao, Xiangfeng Luo, and Hao
+Wu, “Improving knowledge base question answering
+via retrieval enhancement and stepwise reasoning,” in
+ICASSP 2025 - 2025 IEEE International Conference
+on Acoustics, Speech and Signal Processing (ICASSP),
+2025, pp. 1–5.
+
+[3] Yingqiang Ge, Wenyue Hua, Kai Mei, Juntao Tan,
+Shuyuan Xu, Zelong Li, Yongfeng Zhang, et al., “Ope-
+nagi: When llm meets domain experts,” Advances in
+Neural Information Processing Systems, vol. 36, pp.
+5539–5568, 2023.
+
+[4] Dorottya Demszky, Diyi Yang, David S Yeager, Christo-
+pher J Bryan, Margarett Clapper, Susannah Chand-
+hok, Johannes C Eichstaedt, Cameron Hecht, Jeremy
+Jamieson, Meghann Johnson, et al., “Using large lan-
+guage models in psychology,” Nature Reviews Psychol-
+ogy, vol. 2, no. 11, pp. 688–701, 2023.
+
+[5] Zeyu Han and Weiwei Jiang, “Synthetic data enhances
+mathematical reasoning of language models based on
+Information Technology and
+artificial intelligence,”
+Control, vol. 54, no. 1, pp. 345–358, 2025.
+
+[6] Xinyu Lin, Wenjie Wang, Yongqi Li, Shuo Yang, Fuli
+Feng, Yinwei Wei, and Tat-Seng Chua, “Data-efficient
+fine-tuning for llm-based recommendation,” in Proceed-
+ings of the 47th international ACM SIGIR conference
+on research and development in information retrieval,
+2024, pp. 365–374.
+
+[7] Jingyun Sun, Chengxiao Dai, Zhongze Luo, Yangbo
+Chang, and Yang Li, “Lawluo: A chinese law firm co-
+run by llm agents,” arXiv preprint arXiv:2407.16252,
+2024.
+
+[8] Xiao-Kun Wu, Min Chen, Wanyi Li, Rui Wang, Limeng
+Lu, Jia Liu, Kai Hwang, Yixue Hao, Yanru Pan, Qing-
+guo Meng, et al., “Llm fine-tuning: Concepts, opportu-
+nities, and challenges,” Big Data and Cognitive Com-
+puting, vol. 9, no. 4, pp. 87, 2025.
+
+[9] Xiaojun Chen, Shengbin Jia, and Yang Xiang, “A re-
+view: Knowledge reasoning over knowledge graph,”
+Expert systems with applications, vol. 141, pp. 112948,
+2020.
+
+[10] Jingyun Sun and Zhongze Luo,
+
+“Forpkg-1.0: A
+framework for constructing forestry policy knowl-
+edge graph and application analysis,” arXiv preprint
+arXiv:2411.11090, 2024.
+
+[11] Liang Yao, Jiazhen Peng, Chengsheng Mao, and Yuan
+Luo, “Exploring large language models for knowledge
+graph completion,” in ICASSP 2025 - 2025 IEEE In-
+ternational Conference on Acoustics, Speech and Signal
+Processing (ICASSP), 2025, pp. 1–5.
+
+[12] Donghan Yu, Chenguang Zhu, Yuwei Fang, Wenhao
+Yu, Shuohang Wang, Yichong Xu, Xiang Ren, Yiming
+Yang, and Michael Zeng, “Kg-fid: Infusing knowledge
+graph in fusion-in-decoder for open-domain question
+answering,” arXiv preprint arXiv:2110.04330, 2021.
+[13] Haoze Yu, Haisheng Li, et al., “A knowledge graph con-
+struction approach for legal domain,” Tehniˇcki vjesnik,
+vol. 28, no. 2, pp. 357–362, 2021.
+
+[14] Chen Zirui, Wang Xin, Wang Lin, XU Dawei, and Jia
+Yongzhe,
+“Survey of open-domain knowledge graph
+question answering.,” Journal of Frontiers of Computer
+Science & Technology, vol. 15, no. 10, 2021.
+
+[15] Sergei Bogdanov, Alexandre Constantin, Timoth´ee
+Bernard, Benoit Crabb´e, and Etienne Bernard, “Nuner:
+entity recognition encoder pre-training via
+llm-
+arXiv preprint arXiv:2402.15343,
+annotated data,”
+2024.
+
+[16] Vamsi Krishna Kommineni, Birgitta K¨onig-Ries, and
+Sheeba Samuel,
+“From human experts to machines:
+An llm supported approach to ontology and knowledge
+graph construction,” arXiv preprint arXiv:2403.08345,
+2024.
+
+[17] Jingyun Sun, Zhongze Luo, and Yang Li, “A compliance
+checking framework based on retrieval augmented gen-
+eration,” in Proceedings of the 31st International Con-
+ference on Computational Linguistics, 2025, pp. 2603–
+2615.
+
+[18] Wenqi Fan, Yujuan Ding, Liangbo Ning, Shijie Wang,
+Hengyun Li, Dawei Yin, Tat-Seng Chua, and Qing
+Li, “A survey on rag meeting llms: Towards retrieval-
+augmented large language models,” in Proceedings of
+the 30th ACM SIGKDD Conference on Knowledge Dis-
+covery and Data Mining, 2024, pp. 6491–6501.
+
+[19] Tianjun Zhang, Shishir G Patil, Naman Jain, Sheng
+Shen, Matei Zaharia, Ion Stoica, and Joseph E Gonza-
+lez, “Raft: Adapting language model to domain specific
+rag,” in First Conference on Language Modeling, 2024.
+[20] Linyan Yang, Jingwei Cheng, Chuanhao Xu, Xihao
+Wang, Jiayi Li, and Fu Zhang, “Attr-int: A simple and
+effective entity alignment framework for heterogeneous
+knowledge graphs,” in ICASSP 2024 - 2024 IEEE In-
+ternational Conference on Acoustics, Speech and Signal
+Processing (ICASSP), 2024, pp. 6315–6319.
+
+[21] Hong Yin, Jiang Zhong, Rongzhen Li, Jiaqi Wang, Chen
+Wang, Dai Qizhu, and Xue Li, “Facilitating message
+passing with potential links for knowledge graph com-
+pletion,” in ICASSP 2024 - 2024 IEEE International
+Conference on Acoustics, Speech and Signal Processing
+(ICASSP), 2024, pp. 7525–7529.
+
+© 20XX IEEE. Personal use of this material is permitted.
+Permission from IEEE must be obtained for all other uses, in
+any current or future media, including reprinting/republishing
+this material for advertising or promotional purposes, creating
+new collective works, for resale or redistribution to servers or
+lists, or reuse of any copyrighted component of this work in
+other works.

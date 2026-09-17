@@ -1,0 +1,692 @@
+5
+2
+0
+2
+
+b
+e
+F
+0
+2
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+5
+0
+0
+5
+1
+.
+2
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+A Socratic RAG Approach to Connect Natural Language Queries on Research
+Topics with Knowledge Organization Systems
+
+Lew Lefton1, Kexin Rong1, Chinar Dankhara1, Lila Ghemri2, Firdous Kausar3, A. Hannibal
+Hamdallahi3
+1Georgia Institute of Technology
+2Texas Southern University
+3Fisk University
+lew.lefton@gatech.edu, krong@gatech.edu, chinardankhara@gatech.edu, lila.ghemri@tsu.edu, fkausar@fisk.edu,
+aleach@fisk.edu
+
+Abstract
+
+In this paper, we propose a Retrieval Augmented Generation
+(RAG) agent that maps natural language queries about re-
+search topics to precise, machine-interpretable semantic en-
+tities. Our approach combines RAG with Socratic dialogue
+to align users’ intuitive understanding of research topics
+with established Knowledge Organization Systems (KOSs).
+The proposed approach will effectively bridge ”little seman-
+tics” (domain-specific KOS structures) with ”big semantics”
+(broad bibliometric repositories), making complex academic
+taxonomies more accessible. Such agents have the potential
+for broad use. We illustrate with a sample application called
+CollabNext, which is a person-centric knowledge graph con-
+necting people, organizations, and research topics. We fur-
+ther describe how the application design has an intentional
+focus on HBCUs and emerging researchers to raise visibility
+of people historically rendered invisible in the current science
+system.
+
+Introduction
+What is a research topic? Research is carried out on almost
+everything, so the concept space is wide and deep. It is un-
+surprising that there is no universal resource that covers all
+research concepts. Instead, many domain-specific Knowl-
+edge Organization Systems (KOS) have emerged provid-
+ing ontologies, taxonomies, lists, and thesauri of their ar-
+eas (Salatino et al. 2024). These KOSs are good sources of
+expert-curated ground truth. Unfortunately, in a KOS, topic
+data typically consists only of strings and not semantic enti-
+ties, which makes research topics a weak link in knowledge
+axiomatization and research classification.
+
+A knee-jerk reaction to this challenge is to leverage a
+Large Language Model (LLM) to generate research topics,
+based on a corpus of research papers, datasets, etc. In fact,
+there are many tools in the area of topic classification that
+do precisely that. Unfortunately, LLM generated topics do
+not align well with how human beings talk and think about
+research.
+
+Alignment of natural language research topics with struc-
+tured KOSs is needed for CollabNext (CollabNext 2024),
+an application currently under development as part of the
+
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+
+National Science Foundation’s Prototype Open Knowledge
+Network (NSF 2023). CollabNext allows users to explore
+who is working in what research area and where they are.
+While this seems simple and straightforward to answer, it
+turns out to be quite nuanced and challenging. Name colli-
+sions make it difficult to identify the ”who”, especially for
+common names or Asian names (Kim, Kim, and Kim 2023).
+Organizations, the ”where”, can also have multiple names,
+campuses, etc. Fortunately, for both individuals and organi-
+zations, there are established and open semantic structures,
+for example in schema.org (W3C 2014) or Wikidata.org
+(Wikidata contributors 2024), and available persistent iden-
+tifiers, e.g. ORCID (ORCID Inc. 2024) and ROR (Research
+Organization Registry 2024). Research topics, the ”what”,
+turn out to be more complicated. There is no universal list of
+research concepts, and certainly nothing that compares to a
+persistent identifier.
+
+This paper begins with a brief overview of related work on
+the challenge of organizing research topics. We then provide
+a short description of CollabNext, including its intentional
+design to increase the visibility of emerging researchers. We
+share an example that highlights the challenge and impor-
+tance of aligning natural language research topic queries
+with robust, open, and structured data in KOSs. Next we pro-
+ceed to lay out a plan for a RAG agent designed to meet this
+challenge using a novel Socratic approach. The final section
+has a conclusion and considers the next steps.
+
+Related Work
+In this section, we review approaches for automatically gen-
+erating topics in scientific publications. We focus on three
+main paradigms: supervised topic classification, unsuper-
+vised topic modeling, and knowledge organization systems.
+
+Topic Classification
+Topic classification takes a supervised approach, using often
+manually curated document topics to train models for cate-
+gorizing new publications. However, obtaining high-quality
+ground truth labels at scale remains challenging, forcing
+many methods to build topic taxonomies from scratch (Liu,
+Zhang, and Chen 2014).
+
+The Microsoft Academic Graph (MAG) (Sinha et al.
+2015) represents a significant effort in this direction. Their
+
+ 
+ 
+ 
+ 
+ 
+ 
+methodology began with manual definition of a small num-
+ber of top-level concepts, followed by extraction of 28,000
+academic concepts from Wikipedia articles (Shen, Ma, and
+Wang 2018). MAG implemented topic assignment as a mul-
+tilabel classification problem, enabling papers to be tagged
+with multiple concepts. After the discontinuation of MAG
+in 2021, OpenAlex attempted to reproduce the topic clas-
+sification model using historical MAG data as training la-
+bels (Priem, Piwowar, and Orr 2022). During this pro-
+cess, OpenAlex identified several limitations of MAG con-
+cepts, including term polysemy, ambiguity, and the static na-
+ture of concepts that failed to evolve with research trends.
+OpenAlex subsequently adopted a labeled dataset from
+CWTS (Van Eck and Waltman 2024) and integrated it with
+concepts from the All Science Journal Classification (ASJC)
+codes. However, obtaining high-quality training labels at
+scale remains a challenge, often forcing methods to con-
+struct topic taxonomies from scratch (Liu, Zhang, and Chen
+2014).
+
+Topic Modeling
+Unsupervised topic modeling techniques discover common
+themes within document collections by clustering similar
+documents and deriving topic labels from shared character-
+istics within clusters. For scientific papers, these methods
+typically leverage multiple signals including semantic sim-
+ilarity from titles and abstracts, citation network structures,
+and shared references. Domain-specific pretrained models
+like SciBERT (Hosokawa et al. 2024) have been shown to
+enhance clustering quality of abstract embeddings by us-
+ing purpose-built tokenizers and specialized pretraining that
+capture field-specific terminology.
+
+Similarly, BERTopic (Grootendorst 2022) uses a pre-
+trained language model to generate document embedding,
+performs dimensionality reduction, and creates semantically
+similar clusters (using HDBSCAN) that each represent a dis-
+tinct topic. BERTopic uses a variant of TF-IDF to extract
+topic representations from each topic. CWTS (Van Eck and
+Waltman 2024) leverages large language models (LLMs) to
+generate research topic labels. The LLM receives titles of the
+250 most cited publications in each cluster and generates a
+label and a brief summary of the research area.
+
+However, clustering-based approaches face limitations:
+extracted topics often fail to align with established ontolo-
+gies, and poor clustering quality can result in topics lacking
+clear interpretability.
+
+Knowledge Organization Systems
+A Knowledge Organization System (KOS) (Salatino et al.
+2024) is a structured framework that enables the arrange-
+ment, management, retrieval, and dissemination of infor-
+mation. These systems are crucial to library science, in-
+formation retrieval, and knowledge management, offering
+standardized vocabularies and defined relationships between
+concepts to improve information accessibility and interoper-
+ability (Hodge 2000).
+
+KOS encompasses several key methodologies:
+
+• Classification schemes: Systems such as the Dewey Deci-
+mal Classification (DDC) (Dewey et al. 2011) and Library
+
+of Congress Classification (LCC) systematically group re-
+lated concepts based on shared characteristics, providing
+logical organization for library resources.
+
+• Thesauri: Controlled vocabularies that map relationships
+between terms, including synonyms, antonyms, and hier-
+archical relationships. A prominent example is the Medi-
+cal Subject Headings (MeSH), which is the controlled vo-
+cabulary used to index the huge amount of biomedical lit-
+erature (NLM 2022).
+
+• Taxonomies: Hierarchical systems organizing concepts
+into parent-child relationships, commonly used in web
+navigation and content management systems.
+
+• Ontologies: Formal and machine-interpretable specifica-
+tions that define domain concepts and their relation-
+ships (Guarino, Oberle, and Staab 2009). These are cru-
+cial for semantic web technologies and AI applications,
+enabling data interoperability and automated reasoning.
+
+• Controlled Vocabularies: Curated term lists ensure consis-
+tent language across collections, enhancing retrieval pre-
+cision and accuracy.
+
+KOSs help to uncover knowledge from various sources,
+especially in the context of big data and the semantic web.
+Integrating and discovering knowledge from heterogeneous
+sources becomes a lot easier with KOS, which is also very
+usefu; for advanced research and development tasks. The
+Simple Knowledge Organization System (SKOS) presents a
+model for sharing and linking knowledge organization sys-
+tems on the web (Miles and Bechhofer 2009). This W3C-
+endorsed model based on Resource Description Framework
+(RDF) promotes interoperability, as well as the seamless ex-
+change of information between heterogeneous systems.
+
+Despite their utility, KOSs encounter some issues, such as
+how to remain pertinent in rapidly changing areas of knowl-
+edge and how to ensure that they work well with other sys-
+tems. (Lauruhn and Groth 2016) comment on the need for
+KOSs to have adaptive management strategies that allow
+them to change along with our knowledge structures.
+
+Recent research shows promises of integrating KOS with
+large language models (LLMs) to enhance AI explainability.
+(Ahmed et al. 2023) demonstrated that the combination of
+knowledge graphs with LLM produces more interpretable
+outputs than LLMs alone, while (Krause and Stolzenburg
+2024) showed that LLMs coupled with external knowledge
+sources improve commonsense reasoning capabilities in AI
+systems.
+
+CollabNext
+
+There are many potentially impactful applications which
+would benefit from having a RAG agent that provides an ex-
+plainable topic identifier based on established ground truth
+of human-generated KOSs. To serve as an illustrative ex-
+ample, we describe CollabNext (CollabNext 2024) which is
+currently under development as part of the NSF’s Prototype
+Open Knowledge Network (NSF 2023). This application de-
+pends on open, robust, and structured data on research top-
+ics.
+
+geographical distance is a major barrier for scientific col-
+laboration (Hoekman and Rake 2024). The work of (Katz
+1994) shows that the probability of collaboration decreases
+as distance grows, based on co-authorship relations.
+
+Challenge: Topic Search Needs an NLP interface
+During the development of CollabNext, it became apparent
+that there was a disconnect between how people see research
+topics and how research topics are classified by AIs. We will
+illustrate with an example.
+
+Suppose a user wants to find researchers who are work-
+ing on the topic of plastic recycling at a nearby Univer-
+sity. There is no OpenAlex topic that directly matches this.
+Matching just for plastic yields 14 topic ids in the subfield
+Polymers and Plastics. This topic could also be considered
+Waste Management and Disposal which is in the subfield
+Environmental Science. Or it may be the topic Biodegrad-
+able Polymers as Biomaterials and Packaging which is in
+the subfield Biomaterials. It may even be the case that the
+user is not interested in the Chemistry of plastic recycling at
+all, but rather the economics or logistics of it. Similar col-
+lisions and ambiguities arise when the keyword recycling is
+used. More clarification is needed from the user. This sub-
+tle but important challenge can be improved with the RAG
+agent described below.
+
+Proposed Approach
+We propose an LLM agent leveraging multi-round Retrieval-
+Augmented Generation (RAG) to bridge the semantic gap
+between users’ natural language queries on research top-
+ics and structured KOSs. While LLMs have demonstrated
+remarkable capabilities, they often struggle with domain-
+specific knowledge and are prone to hallucinations (Zhao
+et al. 2023), particularly in specialized academic contexts.
+Retrieval-augmented approaches have emerged as a promis-
+ing solution by grounding LLM outputs in external knowl-
+edge bases (Lewis et al. 2020).
+
+Traditional RAG systems typically employ single-round
+retrieval, where knowledge is retrieved solely based on the
+initial query (Izacard et al. 2022). However, this approach
+proves insufficient for complex questions that require itera-
+tive refinement and disambiguation, such as mapping collo-
+quial research descriptions to formal taxonomic structures.
+Recent work has demonstrated the effectiveness of multi-
+round retrieval and reasoning (Borgeaud et al. 2022; Shao
+et al. 2023; Zhuang et al. 2024), where each round of inter-
+action refines the query and retrieval process.
+
+Building on these advances, we propose a Socratic dia-
+logue approach where the agent guides users through struc-
+tured exploration of research topics, by asking questions of
+users, rather than simply offering answers. We anticipate
+that this dialog will be more than simple clarification ques-
+tions. The agent should engage in meaningful conversation
+to examine and understand the user’s research topic of in-
+terest at multiple levels of granularity. The agent will be
+guided by reasoning across the multiple KOS’s on which
+it was trained. By grounding these conversations in human-
+curated KOSs as the knowledge foundation, the system pro-
+
+Figure 1: Conceptual schema of CollabNext knowledge
+graph
+
+Application Overview
+
+CollabNext implements a knowledge graph with entities
+consisting of people, organizations, and research topics. The
+primary data source is currently the bibliometric dataset
+from OpenAlex (Priem, Piwowar, and Orr 2022), but the in-
+tention is to include other relevant data sources as develop-
+ment continues. Relationships between people and organi-
+zations are available directly in OpenAlex via author and in-
+stitution tables. Relationships between people and topics are
+inferred, since people are connected to OpenAlex works as
+authors, and works are connected to topics. See Figure 1 for
+a conceptual schema of the CollabNext knowledge graph.
+Note, that the schema in Figure 1 includes additional data
+like Grants and Patents which are not yet in OpenAlex, but
+these objects could still be assigned topics via methods dis-
+cussed above.
+
+The CollabNext application is being developed using an
+intentional design approach, initially prioritizing Histori-
+cally Black Colleges and Universities (HBCUs) and emerg-
+ing researchers. This is a deliberate effort to counterbalance
+the accumulated advantage of well-resourced research orga-
+nizations, which is an example of the Matthew Effect (Mer-
+ton 1968). This effect is a common phenomenon in social
+systems, and can be summarized as ”the rich get richer and
+the poor get poorer.” CollabNext is being designed to coun-
+terbalance this bias, specifically in the social system of sci-
+ence research (Bol, de Vaan, and van de Rijt 2018; Rossiter
+1993; Petersen et al. 2011).
+
+One of the ways to do this is to, by default, focus on HB-
+CUs and other organization where there are a high percent-
+age of underrepresented researchers. Another design deci-
+sion which can help raise visibility of invisible researchers is
+to not order researchers by citation count, which exacerbates
+the Matthew effect, but rather default to use geospatial data
+like location and distance as a primary filter. This is effec-
+tively adding an implicit ”near me” search filter and showing
+people who work on a specific research topic who are also
+geographically close, e.g. at your same institution, in your
+same state, or your same timezone. The rationale for this ap-
+proach is based on work in Team Science, which shows that
+
+vides transparent data provenance and explainable recom-
+mendations.
+
+If successful, the proposed agent would be able to effec-
+tively bridge ”little semantics” (domain-specific KOS struc-
+tures) with ”big semantics” (broad bibliometric reposito-
+ries), making complex academic taxonomies more accessi-
+ble to users who naturally express research interests in collo-
+quial language. This approach enables precise mapping be-
+tween informal research descriptions and formal knowledge
+structures while maintaining transparency and interpretabil-
+ity. Figure 2 illustrates the high-level workflow of our pro-
+posed system, and we overview the detailed design below.
+
+Topic Retrieval To effectively identify relevant research
+topics from KOS taxonomies, we propose a novel hierarchi-
+cal retrieval mechanism. We will use domain-specific, pre-
+trained models such as SciBERT (Beltagy, Lo, and Cohan
+2019) to generate embeddings for each topic node. The re-
+trieval process occurs in two stages:
+
+1. Initial Semantic Search: Topic embeddings are repre-
+sented as dense embeddings of topic title and description
+strings. These are retrieved based on embedding similar-
+ity with the user query, using cosine similarity normal-
+ized by a temperature parameter τ to control retrieval di-
+versity - higher values generate more diverse candidates
+while lower values prioritize closer semantic matches.
+2. Hierarchy-Aware Reranking: Given the initial topic list,
+we rerank them by considering the ontological structure
+of topics. The reranking score combines three compo-
+nents: (1) direct semantic similarity between query and
+topic; (2) weighted ancestor path similarity computed as
+
+score(t) = sim(q, t) + α
+
+(cid:88)
+
+βd × sim(q, a)
+
+a∈ancestors(t)
+
+where α controls the overall influence of ancestral rela-
+tionships and β determines the decay rate with ances-
+tral distance d; and (3) sibling coherence that boosts top-
+ics whose siblings also show high query similarity. This
+scoring function ensures that retrieved topics are both se-
+mantically relevant and structurally coherent within their
+respective taxonomies.
+
+Multi-round RAG The academic knowledge landscape is
+characterized by fragmented KOS resources: broad multi-
+field systems that cover multiple disciplines but lack depth,
+and specialized single-field KOS that provide granular topic
+categorization within specific domains. Our proposed multi-
+round RAG process is specifically designed to navigate this
+fragmented structure through a two-phase approach.
+
+In the first phase, the system queries broad multi-field
+KOS systems such as All Science Journal Classification
+Codes, OpenAIRE’s Field of Science Taxonomy, or Dewey
+Decimal Classification to identify relevant high-level re-
+search areas. For each retrieved topic, the LLM generates
+contextual explanations by synthesizing definitions and de-
+scriptions from linked knowledge bases. The agent engages
+in iterative dialogue with users, presenting candidate top-
+ics along with their explanations and soliciting feedback to
+
+Figure 2: Proposed multi-round RAG design that bridges
+natural language queries on research topics with structured
+KOS data.
+
+refine the search. This phase continues until users confirm
+their broad research direction.
+
+The second phase starts when users confirm topics that
+have corresponding single-field KOS coverage. For instance,
+in Computer Science, the system can leverage multiple spe-
+cialized taxonomies including the Computer Science Ontol-
+ogy (CSO), ACM Computing Classification System (CCS),
+and Wikipedia’s Computer Science Subject Headings. The
+agent uses context accumulated from the first phase to guide
+exploration within these detailed taxonomies. For fields
+lacking comprehensive KOS coverage (Salatino et al. 2024),
+the system employs more stringent filtering within multi-
+field KOS to identify the most precise available classifica-
+tions.
+
+Conclusion and Next Steps
+We have outlined a RAG agent that takes natural language
+queries about research topics and provides focused machine-
+representable semantic entity identifiers based on the ground
+truth of human generated KOSs. We have also described the
+CollabNext application. One of the goals of CollabNext is to
+construct a knowledge graph that makes visible the relation-
+ships between people, research organizations, and research
+topics. CollabNext is being intentionally designed to make
+emerging researchers more visible and thereby help reduce
+the Matthew Effect in scientific research. We further illus-
+trate how the RAG agent could be used, and provided an
+approach to building the agent.
+
+The agent described here has potential beyond the use
+case of CollabNext. Indeed, any application that links its
+data to research topics via an existing KOS could also lever-
+age the agent as a research topic ”Rosetta Stone.” Moreover,
+disparate research artifacts could be semantically linked us-
+ing research topics as an index, including articles, datasets,
+websites, AI models, GitHub repositories, theses, posters,
+etc. An existing example of this is the OpenAlex ”about-
+ness” endpoint. This could lead to broader integration of re-
+search knowledge and data across diverse domains using a
+well-defined topic architecture. New research topics at dis-
+ciplinary boundaries could also emerge and be naturally in-
+cluded as domain specific KOSs incorporate new structure
+
+Default filters: HBCUs, location priorityCollabNextHierarchy aware RetrieverMulti-round RAGClarificationEntity IDsTopic ListEconomics or Chemistry of Plastic Recycling? Q: Who is working on Plastic Recycling?ExplanationNot RelevantRelevantResearchers in Plastic RecyclingKOS (Knowledge Organization System)GenerationRetreivalResultsand data.
+
+We note that there are multiple other data-driven prod-
+ucts which are relevant for this discussion. Examples in-
+clude Google Scholar, LinkedIn (owned by Microsoft), Clar-
+ivate, Elsevier, Semantic Scholar, Metaphacts, System.com,
+etc. Some of them are commercial and are only available to
+well resourced institutions. Others leverage proprietary data
+and are not well suited to open systems. Also, these tools
+are more focused on research artifacts, and less on the re-
+searchers themselves.
+
+In some sense, the RAG agent serves the role of a topic
+disambiguation tool. This is clearly needed for tools that
+work at the interface of humans and AIs. Nuance and sub-
+tlety of how different researchers think about the “same”
+thing may provide insight and new results, and allow re-
+searchers to see integrative work and connect with adjacent
+researchers whom they did now know about.
+
+This paper is admittedly only a high level description of
+the agent. We are taking to heart the workshop submission
+guidelines (AAAI 2025) which welcome short papers fo-
+cused on case studies, work-in-progress, or visionary ideas.
+There are many unanswered questions including
+1. What happens if there is a topic that cannot be resolved
+by the KOSs that the agent knows about. This knowledge
+gap could be a signal of an emerging research area or
+perhaps a need for KOS improvement. Some KOSs are
+updated more frequently than others, so this may be an
+opportunity to provide a feedback loop.
+
+2. Would it be possible for users to explore topics both up
+and down a refinement, i.e. broadening and narrowing
+vertically, as well as exploring adjacent siblings (hori-
+zontally).
+
+3. How would user interactions be incorporated into the
+agent’s knowledge over time? Could histories and usage
+patterns help with noisy/overlapping topics, or identify
+frequently asked questions that could indicate gaps be-
+tween user needs and KOS data structures.
+The CollabNext team has plans to build a simple proof-of-
+concept prototype of the proposed RAG agent. Such a proto-
+type would likely be focused on only a handful of available
+KOSs, but would likely include both OpenAlex and Wiki-
+data as a starting point.
+
+Acknowledgments
+This work was supported by the National Science Foun-
+dation TIP Directorate under Award Number 2333737. We
+would also like to acknowledge helpful guidance from the
+reviewers of this submission, along with the following mem-
+bers of the CollabNext Team who have helped develop the
+ideas here and the alpha version of the CollabNext applica-
+tion: Didier Contis, Kinnis Gosha, John Porter, Christopher
+Thomas, Craig Abbey, Leslie Collins, Sufyan Baksh, Sajid
+Hussain, Robert Briggs, Samarth Chandna, Sambridhi Deo,
+Lazarus Egwurube, Diamond GC, Ilia Khalighi, Vidushi
+Maheshwari, Ikechukwu Mgbemele, Christian Moore, Re-
+jin Nepal, Mingxuan Nie, Netra Nyaupane, Nirmal Patel,
+Maruti Ram Ponnaganti, Ram Sharma, Keller Smith, Sid-
+dharth Singh Solanki, and Jaelyn Sykes.
+
+References
+AAAI. 2025. Workshop on A Translational Institute for
+Knowledge Axiomatization. Website.
+Ahmed, A. F.; Firmansyah, A. F.; Sherif, M. A.; Mous-
+sallem, D.; and Ngonga Ngomo, A.-C. 2023. Explainable
+Integration of Knowledge Graphs Using Large Language
+Models. In Natural Language Processing and Information
+Systems, 124–139. Springer.
+Beltagy, I.; Lo, K.; and Cohan, A. 2019. SciBERT: A Pre-
+trained Language Model for Scientific Text. In Proceedings
+of the 2019 Conference on Empirical Methods in Natural
+Language Processing, 3615–3620.
+Bol, T.; de Vaan, M.; and van de Rijt, A. 2018. The Matthew
+effect in science funding. Proceedings of the National
+Academy of Sciences, 115(19): 4887–4890.
+Borgeaud, S.; Mensch, A.; Hoffmann, J.; Cai, T.; Ruther-
+ford, E.; Millican, K.; Van Den Driessche, G. B.; Lespiau,
+J.-B.; Damoc, B.; Clark, A.; et al. 2022. Improving language
+In Interna-
+models by retrieving from trillions of tokens.
+tional conference on machine learning, 2206–2240. PMLR.
+CollabNext. 2024. CollabNext.io. Website.
+Dewey, M.; Mitchell, J. S.; Beall, J.; Martin, G.; Matthews,
+W. E.; and New, G. R. 2011. Dewey Decimal Classification
+and Relative Index. Dublin, Ohio: OCLC Online Computer
+Library Center, 23rd edition. ISBN 978-0910608879.
+Grootendorst, M. 2022. BERTopic: Neural topic model-
+ing with a class-based TF-IDF procedure. arXiv preprint
+arXiv:2203.05794.
+Guarino, N.; Oberle, D.; and Staab, S. 2009. What Is an
+Ontology? In Staab, S.; and Studer, R., eds., Handbook on
+Ontologies, 1–17. Berlin, Germany: Springer, 2nd edition.
+Hodge, G. 2000. Systems of Knowledge Organization for
+Digital Libraries: Beyond Traditional Authority Files. Tech-
+nical Report Report 91, Council on Library and Information
+Resources, Washington, D.C., USA.
+Hoekman, J.; and Rake, B. 2024. Geography of authorship:
+How geography shapes authorship attribution in big team
+science. Research Policy, 53(2): 104927.
+Hosokawa, R.; Yamato, J.; Higashinaka, R.; Kikui, G.; and
+Sugiyama, H. 2024. Reference Classification Using BERT
+In New
+Models to Support Scientific-Document Writing.
+Frontiers in Artificial Intelligence: JSAI-IsAI 2023 Interna-
+tional Workshops, 167–183. Springer.
+Izacard, G.; Lewis, P.; Lomeli, M.; Hosseini, L.; Petroni, F.;
+Schick, T.; Dwivedi-Yu, J.; Joulin, A.; Riedel, S.; and Grave,
+E. 2022. Few-shot learning with retrieval augmented lan-
+guage models. arXiv preprint arXiv:2208.03299, 2(3).
+Katz, J. S. 1994. Geographical proximity and scientific col-
+laboration. Scientometrics, 31(1): 31–43.
+Kim, J.; Kim, J.; and Kim, J. 2023. Effect of Chinese char-
+acters on machine learning for Chinese author name disam-
+biguation: A counterfactual evaluation. Journal of Informa-
+tion Science, 49(3): 711–725.
+Krause, S.; and Stolzenburg, F. 2024. From Data to Com-
+monsense Reasoning: The Use of Large Language Models
+for Explainable AI. arXiv preprint arXiv:2407.03778.
+
+Zhao, W. X.; Zhou, K.; Li, J.; Tang, T.; Wang, X.;
+Hou, Y.; Min, Y.; Zhang, B.; Zhang, J.; Dong, Z.; et al.
+2023. A survey of large language models. arXiv preprint
+arXiv:2303.18223.
+Zhuang, Z.; Zhang, Z.; Cheng, S.; Yang, F.; Liu, J.; Huang,
+S.; Lin, Q.; Rajmohan, S.; Zhang, D.; and Zhang, Q. 2024.
+EfficientRAG: Efficient Retriever for Multi-Hop Question
+Answering. arXiv preprint arXiv:2408.04259.
+
+Lauruhn, M.; and Groth, P. 2016. Sources of Change for
+Modern Knowledge Organization Systems. Knowledge Or-
+ganization, 43(8): 622–629.
+Lewis, P.; Perez, E.; Piktus, A.; Petroni, F.; Karpukhin, V.;
+Goyal, N.; K¨uttler, H.; Lewis, M.; Yih, W.-t.; Rockt¨aschel,
+T.; et al. 2020.
+Retrieval-augmented generation for
+knowledge-intensive nlp tasks. Advances in Neural Infor-
+mation Processing Systems, 33: 9459–9474.
+Liu, T.; Zhang, N. L.; and Chen, P. 2014. Hierarchical latent
+tree analysis for topic detection. In Machine Learning and
+Knowledge Discovery in Databases: European Conference,
+ECML PKDD 2014, Nancy, France, September 15-19, 2014.
+Proceedings, Part II 14, 256–272. Springer.
+Merton, R. K. 1968. The Matthew effect in science. Science,
+159(3810): 56–63.
+Miles, A.; and Bechhofer, S. 2009. SKOS Simple Knowl-
+edge Organization System Reference. W3c recommenda-
+tion, World Wide Web Consortium.
+NLM. 2022. National Library of Medicine Medical Subject
+Headings (MeSH). Bethesda, MD, USA.
+NSF. 2023. Prototype Open Knowledge Network. Website.
+ORCID Inc. 2024. ORCID: Connecting Research and Re-
+searchers. https://orcid.org. Accessed: 2024-11-24.
+Petersen, A. M.; Jung, W.-S.; Yang, J.-S.; and Stanley, H. E.
+2011. Quantitative and empirical demonstration of the
+Matthew effect in a study of career longevity. Proceedings
+of the National Academy of Sciences, 108(1): 18–23.
+Priem, J.; Piwowar, H.; and Orr, R. 2022. OpenAlex: A
+fully-open index of scholarly works, authors, venues, insti-
+tutions, and concepts. arXiv preprint arXiv:2205.01833.
+Research Organization Registry. 2024. Research Organiza-
+tion Registry (ROR). https://ror.org. Accessed: 2024-11-24.
+Rossiter, M. W. 1993. The Matthew Matilda effect in sci-
+ence. Social Studies of Science, 23(2): 325–341.
+Salatino, A.; Aggarwal, T.; Mannocci, A.; Osborne, F.; and
+Motta, E. 2024. A Survey on Knowledge Organization
+Systems of Research Fields: Resources and Challenges.
+arXiv:2409.04432.
+Shao, Z.; Gong, Y.; Shen, Y.; Huang, M.; Duan, N.; and
+Chen, W. 2023. Enhancing retrieval-augmented large lan-
+guage models with iterative retrieval-generation synergy.
+arXiv preprint arXiv:2305.15294.
+Shen, Z.; Ma, H.; and Wang, K. 2018. A web-scale sys-
+tem for scientific knowledge exploration. arXiv preprint
+arXiv:1805.12216.
+Sinha, A.; Shen, Z.; Song, Y.; Ma, H.; Eide, D.; Hsu, B.-J.;
+and Wang, K. 2015. An overview of microsoft academic
+service (mas) and applications. In Proceedings of the 24th
+international conference on world wide web, 243–246.
+Van Eck, N. J.; and Waltman, L. 2024. An open approach
+for classifying research publications. Leiden Madtrics.
+W3C. 2014. Schema.org. Website. Accessed: 2023-11-24.
+Wikidata contributors. 2024. Wikidata: A free and open
+knowledge base.
+https://www.wikidata.org. Accessed:
+2024-11-24.

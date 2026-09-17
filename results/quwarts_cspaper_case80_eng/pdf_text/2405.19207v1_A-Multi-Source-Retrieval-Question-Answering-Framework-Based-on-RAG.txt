@@ -1,0 +1,746 @@
+A Multi-Source Retrieval Question Answering
+Framework Based on RAG
+
+First Author: Ridong Wu
+Affiliation: School of Computer Science and Network
+Engineering, Guangzhou University, Guangzhou, China
+Email:32106200097@e.gzhu.edu.cn
+
+Third Author: Xiangbiao Su
+Affiliation: School of Computer Science and Network
+Engineering, Guangzhou University, Guangzhou, China
+Email:32106500006@e.gzhu.edu.cn
+
+Fifth Author: Yifei Liao
+Affiliation: School of Computer Science and Network
+Engineering, Guangzhou University, Guangzhou, China
+Email:32106200102@e.gzhu.edu.cn
+
+Second Author:Shuhong Chen*
+Affiliation: School of Computer Science and Network
+
+Engineering, Guangzhou University, Guangzhou, China
+* Corresponding author:shuhongchen@gzhu.edu.cn
+
+Fourth Author: Yuankai Zhu
+Affiliation: School of Computer Science and Network
+
+Engineering, Guangzhou University, Guangzhou, China
+Email:32106200107@e.gzhu.edu.cn
+
+Sixth Author:Jianming Wu
+Affiliation: School of Computer Science and Network
+
+Engineering, Guangzhou University, Guangzhou, China
+
+Email:jianmingwu@e.gzhu.edu.cn
+
+Abstract—With the rapid development of large-scale language
+models, Retrieval-Augmented Generation (RAG) has been widely
+adopted. However, existing RAG paradigms are inevitably influenced
+by erroneous retrieval information, thereby reducing the reliability
+to improve the
+and correctness of generated results. Therefore,
+relevance of retrieval information, this study proposes a method that
+replaces traditional retrievers with GPT-3.5,
+leveraging its vast
+corpus knowledge to generate retrieval information. We also propose
+a web retrieval based method to implement fine-grained knowledge
+retrieval, Utilizing the powerful reasoning capability of GPT-3.5 to
+realize semantic partitioning of problem.In order to mitigate the
+illusion of GPT retrieval and reduce noise in Web retrieval,we
+proposes a multi-source retrieval framework, named MSRAG, which
+combines GPT retrieval with web retrieval. Experiments on multiple
+the proposed
+knowledge-intensive QA datasets demonstrate that
+framework in this
+than existing RAG
+study performs better
+framework in enhancing the overall efficiency and accuracy of QA
+systems.
+
+Keywords-Large Language Models; Retrieval-Augmented
+Generation; Web Retrieval; GPT Retrieval; Question-Answering
+(QA)
+
+I. INTRODUCTION
+
+Due to their extensive knowledge base, Large Language
+Models (LLMs) have become indispensable tools for everyday
+information retrieval[1] . However, LLMs are limited to the
+knowledge acquired during the pre-training phase and lack
+the RAG
+real-time updates. To address this challenge,
+(Retrieval-Augmented Generation) technique has emerged.
+
+LLMs by integrating information from external knowledge
+repositories with the generative model's capabilities
+to
+improve the accuracy and relevance of question answering.In
+2020, Kelvin et al. introduced REALM[2] , which leverages an
+conditional
+indexed corpus of paragraphs
+
+to support
+
+generation. Subsequently, Michael et al. proposed Re2G[3],
+which integrates neural initial retrieval and re-ranking into
+RAG, thereby enhancing information relevance. Reiichiro et al.
+presented WebGPT [4], which fine-tunes GPT-3 and utilizes
+Web search functionality to acquire knowledge information.
+
+However, traditional Retrieval-Augmented Generation (RAG)
+has certain limitations. Firstly,
+the retrieved document
+passages may not be fully relevant to the query, leading to
+misinformation or incoherence. Secondly, if relevant passages
+are not retrieved, the model may fabricate answers due to
+insufficient context or generate responses
+to
+accurately address the query. Overall, relying solely on the
+initial input from a Large Language Model (LLM) to retrieve
+relevant information from external corpora is often inadequate
+for complex multi-step and long-form generation tasks.
+
+that
+
+fail
+
+introduced a novel
+
+To address that problem, Linhao Ye et al.[5] proposed a
+dialogue-level RAG method, which integrates fine-grained
+retrieval augmentation and conversational question-answering
+[6] proposed the
+(CQA) self-checking.Wenhao Yu et al.
+substitution of document retrieval systems with large-scale
+language models for generating retrieval information Weihang
+Su et al.[7]
+framework designed to
+determine when and what to retrieve based on the real-time
+informational needs of the Language Model (LM) during text
+generation.In response
+in information
+retrieval techniques, we've optimized the RAG framework by
+integrating ideas from Wenhao Yu et al. [6]
+.This includes
+incorporating a Web retrieval model alongside GPT-based
+retrieval and non-retrieval strategies. Our approach also
+integrates a large language model within the Web retrieval
+module, aiming to enhance information retrieval relevance and
+reduce noise.
+
+to advancements
+
+Based on the above analysis, the main contributions of this
+
+paper are as follows:
+
+This approach ensures mutual balance and compensation for
+each component's respective shortcomings.
+
+study proposes a method that
+
+(1) In order to enhance the relevance of retrieved information,
+traditional
+this
+retrievers with GPT-3.5. Additionally,
+the
+granularity of retrieved information, this research proposes a
+method based on a Web retrieval framework, utilizing the
+powerful
+inferential capabilities of GPT-3.5 for semantic
+segmentation of queries.
+
+to improve
+
+replaces
+
+(2) In order
+
+to mitigate the illusionary impact of GPT
+retrieval and reduce the noise in Web retrieval, this study
+proposes a multi-source retrieval approach that combines GPT
+retrieval with Web retrieval.
+
+(3) In order to evaluate the performance of the multi-source
+retrieval framework proposed in this study, based on RAG ，
+this study conducted validation experiments on multiple
+knowledge-intensive QA datasets and found that the proposed
+multi-source retrieval framework based on RAG outperforms
+other RAG frameworks in enhancing the overall efficiency
+and accuracy of QA systems.
+
+II. SYSTEM MODEL
+
+This paper attenuates information noise in retrieval and
+enhances the relevance of retrieved information by proposing
+a multi-source retrieval framework based on RAG.
+
+As illustrated in Figure. 1, in MSRAG,there are GPT-3.5, a
+Web search engine (Google), and LLM. Initially, within the
+Web retrieval module, we utilize the Web search engine to
+perform searches for questions in order to obtain real-time
+information. Moreover, through experiments, we discovered
+that simply inputting the original question into the Web search
+does not yield significantly relevant
+results(Figure. 2).
+Therefore, harnessing the robust semantic capabilities of GPT-
+3.5, we semantically segment the original question into three
+most relevant and non-repetitive sub-questions, conducting
+Web searches on a per-sub-question basis. To further mitigate
+the noise in the retrieved information, we employ GPT-3.5 to
+summarize the information retrieved from the sub-questions,
+ultimately deriving the Information-Web.
+
+Secondly, when dealing with complex multi-step questions,
+Web retrieval often fails to provide satisfactory search results.
+To address this issue, we replace conventional search engines
+with GPT-3.5, leveraging its robust semantic understanding
+linguistic
+capabilities and vast knowledge repository of
+contexts to generate search information pertinent to the given
+queries. Throughout this process, we primarily employ the
+CoT thinking chain[8]
+to prompt GPT-3.5 in generating
+contextual documents based on the provided queries(Figure. 3),
+thereby acquiring Information-GPT.
+
+Subsequently, due to the potential risk of hallucination
+associated with GPT-3.5 in generating retrieval information,
+the framework also directly inputs the original question into
+LLM. By utilizing the answers generated by all
+three
+components, a loss function calculation is performed to select
+the answer with the lowest loss value as the optimal answer.
+
+,
+
+The specific details of MSRAG are outlined as follows: (1)
+Initially, the original question is input into GPT-3.5. Utilizing
+CoT thought chains[8]
+the original question undergoes
+semantic segmentation to generate three most relevant and non
+-repetitive sub-questions. Contextual document generation is
+conducted, resulting in Information-GPT. (2) Subsequently,
+Web retrieval is performed on the sub-questions generated in
+the previous step to acquire three sets of retrieval information.
+(3) Utilizing GPT-3.5 once again, the retrieval information
+obtained in the previous step is merged and summarized to
+derive Information-Web.
+Information-Web & original
+question,
+Information-GPT & original question, and the
+original question are then separately input into LLM, yielding
+answer-Web, answer-GPT, and answer-not. (5) A loss value
+calculation is conducted on the three answers to determine the
+final answer.Let's denote "answer-Web," "answer-GPT," and
+"answer-not" as A , B , and C respectively, with the correct
+answer represented as D . We will then calculate the cosine
+similarity for each pair:
+
+(4)
+
+Cosine
+
+similarity
+
+D-A
+
+
+
+Cosine
+
+similarity
+
+D-B
+
+
+
+Cosine
+
+similarity
+
+D-C
+
+
+
+
+DA
+DA 
+
+
+DB
+DB 
+
+
+DC
+DC 
+
+(1)
+
+(2)
+
+(3)
+
+To select the highest cosine similarity value as the final score,
+we compare the calculated cosine similarity values for each
+pair and choose the maximum. Let's denote the maximum
+cosine similarity value as Cosine similaritymax. The expression
+for this is as follows:
+
+Cosine
+
+similarity
+
+
+
+max(
+
+max
+
+
+DA
+
+DA
+
+,
+
+
+DB
+
+DB
+
+,
+
+
+DC
+
+DC
+
+)
+
+(4)
+
+Figure 1. The Framework of MSRAG
+
+Unlike traditional RAG, our proposed MSRAG framework
+including Web
+integrates two external knowledge sources,
+retrieval, GPT retrieval, and non-retrieval. The loss calculation
+process in the framework involves utilizing a pre-trained
+BERT model to convert answers into vectors, followed by
+computing the cosine similarity of each answer. The answer
+with the highest similarity score is then selected for output.By
+computing the loss function to obtain the optimal answer, this
+feature achieves a balanced performance between Web
+
+ 
+ 
+ 
+ 
+retrieval and GPT retrieval. Additionally, in the Web retrieval
+module, we introduce the CoT thought chain, fully leveraging
+the robust semantic capabilities of GPT-3.5 for semantic
+decomposition, thereby enhancing the granularity of retrieval
+information. Furthermore, we propose the utilization of GPT-
+3.5 to replace conventional retrievers, generating the required
+information from its extensive corpus knowledge
+retrieval
+base,
+thus further improving the effectiveness of retrieval
+information.
+
+The language model employed in this research was LLaMa2-
+[9]. Furthermore, we opted for two MultiHopQA
+7B-Chat
+datasets, 2WikiMultiHopQA[10] , and HotpotQA[11]
+to assess
+the MSRAG framework's capability in addressing complex
+questions requiring multi-hop reasoning. Additionally, we
+employed
+the
+commonsense reasoning abilities of MSRAG and other
+baselines. Considering the randomness of experimental
+outcomes, we conducted three independent experiments and
+averaged the results for
+final analysis.And .In terms of
+evaluation metrics, we utilize F1 score, exact match (EM), and
+accuracy (ACC) as assessment standards.
+
+the StrategyQA[12]
+
+evaluate
+
+dataset
+
+to
+
+B.
+
+Performance analysis and comparison
+
+To assess the performance of MSRAG, we not only
+compared it with wo-RAG (which provides answers directly
+from the LLM) and SR-RAG (which retrieves relevant
+paragraphs based on the query), but also with several
+including FL-RAG[13]
+advanced RAG,
+, which employs
+intervals as query triggers for
+previously set markers at
+retrieval; FS-RAG [14]
+, which utilizes the last generated
+sentence as a query trigger for retrieval of each sentence; and
+FLARE [15]
+, which activates retrieval upon encountering
+uncertain markers,
+sentences without
+uncertainties as queries.
+
+preceding
+
+using
+
+Figure 2 .Examples of Before and After Semantic Segmentation
+
+Comparison
+
+Table 1 presents the performance of each RAG model on the
+2WikiMultiHopQA, HotpotQA, and StrategyQA datasets.As
+shown in the table, MSRAG outperforms other RAGs across
+superior performance in
+all datasets, demonstrating its
+question-answering tasks.
+
+Table 1.0 Performance Comparison of Different Methods on Various Datasets
+(Bolded results denote the highest performance in each category.)
+
+Method
+
+No-RAG
+SR-RAG
+FL-RAG
+FLARE
+FS-RAG
+MSRAG
+
+2Wiki
+
+EM
+
+F1
+
+HotpotQA
+F1
+
+EM
+
+StrategyQA
+Accuracy
+
+0.135
+0.169
+0.112
+0.143
+0.189
+0.508
+
+0.1282
+0.2549
+0.1922
+0.2134
+0.2652
+0.5646
+
+0.108
+0.164
+0.146
+0.149
+0.214
+0.303
+
+0.1123
+0.2499
+0.2107
+0.2208
+0.3035
+0.3066
+
+0.557
+0.654
+0.635
+0.627
+0.629
+0.863
+
+the
+
+To demonstrate
+a
+replacement for conventional retrieval systems, we compared
+GPT retrieval with No-RAG across the 2WikiMultiHopQA,
+HotpotQA, and StrategyQA datasets.
+
+effectiveness of GPT-3.5 as
+
+Figure 3. GPT-Generated Retrieval Prompts
+
+III.
+
+EXPERIMENT
+
+A.
+
+Experiment Setup
+
+In this study, we utilized Python version 3.11.5 as the
+programming language, GPT-3.5, and Google search engine.
+
+Table 2.0 : Performance comparison of GPT retrieval versus No RAG
+(Bolded results denote the highest performance in each category.)
+
+Method
+
+2Wiki
+
+Hotpot
+
+EM
+
+F1
+
+EM
+
+F1
+
+StrategyQA
+Accuracy
+
+No-RAG
+GPT-Retrieval
+
+0.135
+0.172
+
+0.1282
+0.1685
+
+0.108
+0.241
+
+0.1123
+0.2427
+
+0.557
+0.677
+
+Table 2 demonstrates the performance of GPT retrieval
+versus No RAG on the 2WikiMultiHopQA, HotpotQA, and
+StrategyQA datasets. As shown in the table, GPT Retrieval
+
+outperforms No RAG across all datasets, substantiating the
+efficacy of the GPT retrieval method.
+
+To
+
+the
+
+demonstrate
+
+integrated
+framework, we conducted ablation studies and performed
+comparative
+2WikiMultiHopQA,
+on
+HotpotQA, and StrategyQA datasets.
+
+effectiveness
+
+evaluations
+
+our
+
+the
+
+of
+
+Table3.0 Ablation Experiment
+(Bolded results denote the highest performance in each category.)
+
+Method
+
+w/o GPT
+w/o Web
+MSRAG
+
+2Wiki
+
+HotpotQA
+
+EM
+
+F1
+
+EM
+
+F1
+
+StrategyQA
+Accuracy
+
+0.201
+0.254
+0.508
+
+0.2013
+0.2518
+0.5646
+
+0.186
+0.278
+0.303
+
+0.1891
+0.2826
+0.3066
+
+0.764
+0.806
+0.863
+
+Table 3 presents the performance of MSRAG compared to
+w/o GPT and w/o Web on the 2WikiMultiHopQA, HotpotQA,
+and StrategyQA datasets. As shown in the table, MSRAG
+outperforms both w/o GPT and w/o Web on all datasets,
+demonstrating the effectiveness of the integrated approach.
+
+compared to
+
+In summary,
+
+other methods, MSRAG
+demonstrates superior performance when addressing complex
+multi-step
+have
+confirmed the feasibility of using GPT as a substitute for
+general retrievers, while ablation studies have validated the
+effectiveness of RAG integration.
+
+problems. Additionally,
+
+experiments
+
+IV.
+
+CONCLUSION
+
+This paper proposes a multi-source retrieval framework
+based on RAG that effectively mitigates the issue of excessive
+noise in retrieval information by integrating Web retrieval and
+GPT-Retrieval. It also enhances the granularity and relevance
+information through semantic segmentation of
+of retrieval
+questions. MSRAG significantly outperforms existing RAG
+methods across various knowledge-intensive benchmark tests.
+One of the key future research objectives could focus on
+enhancing the performance of GPT-Retrieval and investigating
+effective methods to reduce operational costs and accelerate
+runtime within integrated approaches.
+
+ACKNOWLEDGMENT
+
+This work was supported by the Guangzhou University
+national College Student Innovation Training Program of
+the Guangdong
+China under Grant No.202311078034,
+
+Provincial Natural Science Foundation under Grant No.
+2022A1515011386, and the National Scholarship Fund of
+China under Grant No. 202308440307 .
+
+REFERENCES
+
+[1] Tom Brown, Benjamin Mann, Nick Ryder,et al.
+
+(2020).Language
+models are few-shot learners. In H. Larochelle, M. Ranzato, Hadsell,
+M.F.Balcan, and H. Lin,editors,Advances
+Information
+Processing Systems, volume 33, pages 1877–1901.
+
+in Neural
+
+[2] Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pa supat, and Ming-Wei
+Chang. (2020) Realm: Retrieval augmented language model pre-training.
+arXiv preprint arXiv:2002.08909.
+
+[3] Michael Glass,Gaetano Rossiello,Md Faisal Mahbub Chowdhury,
+Ankita Naik, Pengshan Cai, and Alfio Gliozzo. (2022). Re2g: Retrieve,
+Rerank, Generate. In Proceedings of the 2022 Conference of the
+the Association for Computa tional
+NorthAmerican Chapter of
+Linguistics: Human Language Technologies,pages 2701–2715.
+
+[4] Nakano, R., Hilton, J., Balaji, S., et al. (2022). WebGPT: Browser-
+assisted question-answering with human feedback. arXiv preprint
+arXiv:2112.09332v3.
+
+[5] Linhao Ye et al (2024).Boosting Conversational Question Answering
+with Fine-Grained Retrieval-Augmentation and Self-Check. arXiv ：
+2403.18243
+
+[6] Wenhao Yu et al .(2023)GENERATE RATHER THAN RETRIEVE:
+LARGE LANGUAGE MODELS ARE STRONG CONTEXT
+GENERATORS ICLR 2023 https://github.com/wyu97/GenRead.
+[7] Weihang Su et al (2024).DRAGIN: Dynamic Retrieval Augmented
+Generation based on the Real-time Information Needs of Large
+Language Models arXiv:2403.10081
+[8] Wei,J.,Wang, X., Schuurmans, D.et al.
+
+(2022). Chain-of-Thought
+Prompting Elicits Reasoning in Large Language Models. arXiv preprint
+arXiv:2201.11903.
+
+[9] Hugo Touvron, Louis et al.(2023)b. Llama 2: Open foundation and fine-
+
+tuned chat models. arXiv preprint arXiv:2307.09288.
+
+[10] Xanh Ho, Anh-Khoa Duong Nguyen, Saku Sugawara, and Akiko
+Aizawa.(2020). Constructing a multi-hop qa dataset for comprehensive
+evaluation of reasoning steps. arXiv preprint arXiv:2011.01060
+
+[11] Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W
+Cohen, Ruslan Salakhutdinov, and Christopher D Manning. (2018).
+Hotpotqa: A dataset
+for diverse, explainable multi-hop question
+answering. arXiv preprint arXiv:1809.09600.
+
+[12] Mor Geva, Daniel Khashabi, Elad Segal, Tushar Khot, Dan Roth, and
+Jonathan Berant. (2021).Did aristotle use a laptop? a question answering
+benchmark with implicit
+the
+Association for Computational Linguistics
+
+reasoning strategies. Transactions of
+
+[13] Ori Ram, Yoav Levine,
+
+Itay Dalmedigos, Dor Muhlgay, Amnon
+Shashua, Kevin Leyton-Brown, and Yoav Shoham. (2023). In-context
+retrieval-augmented language models. arXiv preprint arXiv:2302.00083.
+[14] Harsh Trivedi, Niranjan Balasubramanian, Tushar Khot, and Ashish
+Sabharwal. (2022).Interleaving retrieval with chain-of-thought reasoning
+for
+preprint
+arXiv:2212.10509.
+
+knowledge-intensive multi-step
+
+questions.
+
+arXiv
+
+[15] Zhengbao Jiang, Frank F Xu, Luyu Gao, Zhiqing Sun, Qian Liu, Jane
+Dwivedi-Yu, Yiming Yang, Jamie Callan, and Graham Neubig. (2023).
+Active retrieval augmented generation. arXiv preprint arXiv:2305.06983.

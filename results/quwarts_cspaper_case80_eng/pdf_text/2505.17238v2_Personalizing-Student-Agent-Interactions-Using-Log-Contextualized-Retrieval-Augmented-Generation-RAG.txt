@@ -1,0 +1,819 @@
+5
+2
+0
+2
+
+n
+u
+J
+
+7
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+2
+v
+8
+3
+2
+7
+1
+.
+5
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Personalizing Student-Agent Interactions Using
+Log-Contextualized Retrieval-Augmented
+Generation (RAG)
+
+Clayton Cohn1[0000−0003−0856−9587], Surya Rayala1[0009−0005−8192−8138], Caitlin
+Snyder2[0000−0002−3341−0490], Joyce Horn Fonteles1[0000−0001−9862−8960], Shruti
+Jain1[0009−0000−7853−0560], Naveeduddin Mohammed1[0000−0002−3706−2884],
+Umesh Timalsina1[0000−0002−5430−3993], Sarah K. Burriss1[0000−0002−5598−0363],
+Ashwin T S1[0000−0002−1690−1626], Namrata Srivastava1[0000−0003−4194−318X],
+Menton Deweese3[0000−0001−7361−3826], Angela Eeds3, and Gautam
+Biswas1[0000−0002−2752−3878]
+
+1Department of Computer Science, Vanderbilt University, Nashville, USA
+2College of Engineering & Science, University of Detroit Mercy, Detroit, USA
+3The School for Science and Math, Vanderbilt University, Nashville, USA
+clayton.a.cohn@vanderbilt.edu
+
+Abstract. Collaborative dialogue offers rich insights into students’ lear-
+ning and critical thinking, which is essential for personalizing pedagogi-
+cal agent interactions in STEM+C settings. While large language models
+(LLMs) facilitate dynamic pedagogical interactions, hallucinations un-
+dermine confidence, trust, and instructional value. Retrieval-augmented
+generation (RAG) grounds LLM outputs in curated knowledge but re-
+quires a clear semantic link between user input and a knowledge base,
+which is often weak in student dialogue. We propose log-contextualized
+RAG (LC-RAG), which enhances RAG retrieval by using environment
+logs to contextualize collaborative discourse. Our findings show that LC-
+RAG improves retrieval over a discourse-only baseline and allows our
+collaborative peer agent, Copa, to deliver relevant, personalized guidance
+that supports students’ critical thinking and epistemic decision-making
+in a collaborative computational modeling environment, C2STEM.
+
+Keywords: NLP · LLMs · RAG · Agents
+
+1
+
+Introduction
+
+The integration of generative AI (GenAI) into collaborative learning environ-
+ments raises important questions about how this technology can best help stu-
+dents construct knowledge, make decisions, and engage in shared problem-solving
+activities. Collaborative computational modeling — where students use code to
+construct models that simulate and analyze scientific processes [22] — enhances
+science, technology, engineering, mathematics, and computing (STEM+C) learn-
+ing [12]. However, these complex environments can also create problem-solving
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+C. Cohn et al.
+
+challenges [9], highlighting the need for adaptive supports that align with stu-
+dents’ evolving understanding and promote epistemic agency.
+
+Vygotsky’s zone of proximal development (ZPD) [27] emphasizes guided sup-
+port as paramount in helping learners accomplish tasks they cannot yet complete
+independently [5]. Pedagogical agents help bridge this gap by guiding individual
+learners and facilitating collaboration [5,25]. However, developing agents to sup-
+port collaborative STEM+C problem-solving is non-trivial, as agents must adapt
+to both individual learners and groups while guiding learning and collaboration
+across multiple domains simultaneously (e.g., physics and computing).
+
+Collaborative dialogue provides insights into students’ learning and critical
+thinking, helping identify knowledge gaps and problem-solving approaches [22].
+This information can improve pedagogical agents, which struggle to (1) ground
+their interactions in ongoing problem-solving discussions; and (2) offer dynamic
+and personalized adaptive scaffolding beyond rigid, rule-based approaches. How-
+ever, dialogue alone is insufficient for effectively guiding students through chal-
+lenges, as many students struggle with help-seeking and often fail to recognize
+when they need assistance [21].
+
+Jurenka et al. (2024) [13] emphasize that pedagogical agents should “see what
+the student sees,” highlighting the need for agents that are aware of students’
+actions inside the learning environment. Previous research has shown that in-
+tegrating collaborative discourse with learning environment activity logs can
+provide a more comprehensive understanding of student learning [9,24,23]. In
+this context, large language models (LLMs) offer a promising solution [25].
+
+While LLMs have been applied across various artificial intelligence in educa-
+tion (AIED) tasks like intelligent tutoring [25] and formative assessment scoring
+[4,3,7], they are prone to hallucinations that lead to errors and undermine trust
+in educational systems [6]. Fine-tuning can help reduce hallucinations, but it
+typically requires substantial amounts of data and computing power and may
+limit LLMs’ ability to generalize beyond their training [10].
+
+Recently, retrieval-augmented generation (RAG [15]) has emerged as an ef-
+fective alternative to fine-tuning, allowing LLM agents to dynamically access
+information from a knowledge base during inference without additional training
+[29]. Domain knowledge — curated by humans — is chunked, transformed into
+vector embeddings that capture semantic meaning [29], and stored in a vector
+database (i.e., knowledge base). When a user inputs a query, it is embedded
+and matched to relevant knowledge base embeddings via semantic search then
+retrieved to facilitate personalized, context-aware LLM responses.
+
+However, effective RAG retrieval relies on semantic alignment between user
+input and the knowledge base, often measured by cosine similarity [29,15]. With-
+out this, agents risk retrieving irrelevant information, leading to unhelpful re-
+sponses. While RAG is well-suited for question-answering tasks [20], where queri-
+es align closely with the knowledge base, it faces challenges in collaborative dis-
+cussions where students may struggle to express the information they need.
+To improve RAG-based interventions in collaborative settings, mechanisms are
+needed to link student conversations to pertinent knowledge base information.
+
+Personalizing Student-Agent Interactions Using Log-Contextualized RAG
+
+3
+
+In this paper, we address the semantic gap between collaborative dialogue
+and knowledge base content by leveraging environment log data to enhance RAG
+retrieval, improving agent interactions as high school students problem-solve in
+the collaborative computational modeling environment, C2STEM. Our method,
+log-contextualized retrieval-augmented generation (LC-RAG), integrates collab-
+orative discourse with environment logs by using an LLM to create summaries
+of student learning across problem-solving segments, aligning with a knowledge
+base of physics and computing textbooks to improve RAG retrieval.
+
+We evaluate LC-RAG’s performance across multiple embedding models and
+sizes, as well as four task context categories [23] (described in Section 3.3) de-
+rived from C2STEM environment logs based on the specific computational model
+components students engage with. Additionally, we introduce an agent powered
+by LC-RAG and GPT-4o, Copa (Collaborative Peer Agent), and conduct a
+classroom study and focus groups with students to assess the agent’s epistemic
+value, aiming to answer the following Research Questions:
+
+1. RQ1: How does LC-RAG compare to a discourse-only baseline in terms of
+the relevance, accuracy, and helpfulness of retrieved knowledge, and how
+does its performance vary across task context categories?
+
+2. RQ2: How do students perceive the epistemic value of Copa’s guidance, and
+
+to what extent does Copa support their critical thinking?
+
+Our findings show that (1) LC-RAG improves RAG retrieval, enabling Copa
+to provide personalized support that fosters critical thinking; and (2) students
+perceive their interactions with Copa as epistemically valuable. This research ad-
+vances AIED methodology by improving pedagogical agents’ ability to interpret
+collaborative discourse and deliver context-aware interventions in computational
+modeling environments.
+
+2 Background
+
+RAG is valuable for aligning LLM outputs with educator preferences, giving
+teachers greater control over responses. However, it requires a semantic link be-
+tween input text and the knowledge base, which is often missing in collaborative
+discourse. While several researchers have identified this disconnect, few have
+explored solutions.
+
+The MemoRAG framework [20] utilizes a lightweight LLM as a memory
+mechanism to create a compressed representation of the knowledge base, gen-
+erating ‘clues’ from user input to improve knowledge base alignment. However,
+training such a memory module can be impractical in educational settings due
+to high computational demands and limited data [2].
+
+Yan et al. (2024) [29] incorporate RAG into a learning analytics dashboard for
+nursing students to facilitate reflection during post-simulation debriefings. Their
+system encourages students to clarify ambiguous queries to improve semantic
+matches within the knowledge base. While this approach is suited for adults in
+post hoc settings, it may not be effective for children who find it challenging
+
+4
+
+C. Cohn et al.
+
+to articulate their needs in real-time. Furthermore, interrupting collaborative
+discussions for clarification can disrupt learning and diminish user experience.
+
+LlamaIndex’s Query Transformations module [16] enables users to refine
+queries by generating a hypothetical document or answer for RAG retrieval.
+However, this assumes the initial query is semantically relevant to the task and
+knowledge base, which is often not the case in collaborative discourse due to
+knowledge gaps and off-topic conversation. A notable research gap exists in de-
+veloping RAG methods that effectively retrieve relevant knowledge during col-
+laborative dialogue, which we address through log-contextualized summarization
+using LC-RAG.
+
+3 Methods
+
+3.1 LC-RAG
+
+LC-RAG augments RAG retrieval by integrating student interactions and en-
+vironment log data for use in pedagogical agents. Instead of using raw text for
+semantic search, LC-RAG utilizes an LLM to generate summaries that combine
+discourse and log data, contextualizing student interactions. These summary
+embeddings are mapped to the knowledge base, enabling contextualized domain
+knowledge retrieval during LLM inference. Figure 1 illustrates this process. LC-
+RAG supports students’ epistemic agency by grounding agent responses in con-
+textually relevant information, helping them construct, validate, and apply dis-
+ciplinary knowledge during collaborative problem-solving. Section 3.3 discusses
+the design and implementation of LC-RAG in this paper.
+
+Fig. 1: Traditional RAG (top) vs. LC-RAG (bottom).
+
+3.2 C2STEM Learning Environment
+
+C2STEM [12] is a collaborative computational modeling environment targeting
+physics and computing where students create and debug computational models
+
+Personalizing Student-Agent Interactions Using Log-Contextualized RAG
+
+5
+
+simulating scientific phenomena (shown in Figure 2). In this study, students en-
+gaged with a one-dimensional Truck Task activity where they modeled a truck’s
+motion accelerating from rest, cruising, and decelerating to stop at a stop sign.
+
+Fig. 2: C2STEM Truck Task example solution with task context categories.
+
+3.3 Experimental Design
+
+All studies described below were conducted in Nashville, TN, USA with approval
+from Vanderbilt University’s Institutional Review Board (IRB), and all partici-
+pating students and their parents provided assent and consent, respectively.
+
+RQ1 (LC-RAG) To answer RQ1, we conducted an eight-week study with
+24 high school sophomores, ages 15-16, participating in a kinematics curriculum
+with one two-hour session each week. Students worked in pairs, sharing a laptop.
+We collected (and transcribed) audio and environment log data on 18 consented
+students during the Truck Task, resulting in 2,786 spoken utterances and 2,275
+logged actions over nine hours of collaborative discourse.
+
+We used environment logs to segment the multimodal data based on the
+model components students worked on. Using an abstract syntax tree (AST),
+we classified logged student actions into four task context categories [23]: (1)
+Initializing Variables, (2) Updating Variables, Each Simulation Step, (3) Con-
+ditional Statements, and (4) Updating Variables, Under Conditions (see Figure
+2). For instance, blocks placed under “When Green Flag Clicked” were labeled
+as Initializing Variables segments. This method ensured that student discourse
+reflected their problem-solving context. We identified a total of n=216 problem-
+solving segments, with Conditional Statements being the most common (77 seg-
+ments, average discourse length of 790 characters) and Updating Variables, Each
+Simulation Step the least common (36 segments, 443 characters).
+
+We employed GPT-3.5-Turbo, selected for its balance of performance and
+cost, to summarize each segment based on its discourse and task context. For in-
+stance, when a student said, “put that position block there,” task context helped
+the LLM infer that the students were setting the truck’s initial position be-
+cause that segment’s task context was Initializing Variables. These summaries
+were used by LC-RAG for domain knowledge retrieval, replacing raw discourse
+
+6
+
+C. Cohn et al.
+
+that lacked context. Our summarization prompt, provided in the Supplementary
+Materials1, was extensively tested. While certain summary words and characters
+varied across runs, semantic meaning remained intact. Two researchers validated
+each summary against the raw data, ensuring accuracy before analysis.
+
+We evaluated LC-RAG’s ability to retrieve relevant information from a knowl-
+edge base relative to a discourse-only baseline (i.e., without using environment
+logs). Our analysis involved five embedding models of different dimensions (dis-
+cussed shortly) to assess LC-RAG’s performance in terms of relevance, accu-
+racy, and helpfulness across the 216 student problem-solving segments. For our
+knowledge base, we selected two high school textbooks — one for each domain in
+C2STEM, physics [26] and computing [1] — due to their open-source availability,
+curricular relevance, and age appropriateness.
+
+For each of the 216 segments, we generated two embeddings: one using only
+student discourse (baseline) and one using the LLM-generated segment summary
+incorporating discourse and task context (LC-RAG). To assess robustness, we
+tested five embedding models with varying dimensions: openai-text-embedding-
+3-large-3072, openai-text-embedding-3-small-1536, voyage-3-large-1024, voyage-
+3-lite-512, and microsoft-e5-large-1024. OpenAI (OAI) models were chosen for
+their high performance and ubiquity, Voyage models for their enterprise adop-
+tion, and the Microsoft model as a lightweight, open-source alternative.
+
+For each model-dimension combination, we used semantic search with cosine
+similarity [29] to retrieve the most relevant domain knowledge chunk from the
+knowledge base. This produced 2,160 retrieved chunks: 5 model-dimension com-
+binations × 216 segments × 2 segment embeddings. Due to our lack of ground
+truth labels and the scale of evaluation, we employed an LLM-as-a-Judge [30]
+protocol using GPT-4o to compare LC-RAG with the baseline in terms of rele-
+vance, accuracy, and helpfulness. This approach, which reports win rates instead
+of traditional metrics like F1, precision, or recall, is commonly used in similar
+evaluation settings [30]. GPT-4o was selected for its state-of-the-art performance.
+For each of the 1,080 comparisons (5 model-dimension combinations × 216
+segments), GPT-4o anonymously compared LC-RAG’s retrieved chunk to the
+baseline’s and determined which would lead to a more relevant, accurate, and
+helpful LLM generation, considering the C2STEM Truck Task (see Section 3.2)
+and student discourse for that segment. The model was instructed to justify its
+decision using step-by-step chain-of-thought reasoning [28] to aid analysis. Fol-
+lowing the original LLM-as-a-Judge protocol, we used win rate as our evaluation
+metric, where LC-RAG’s win rate for each embedding model-dimension combi-
+nation was calculated as lc_rag_wins/216. We additionally report loss and tie
+rates for a more comprehensive comparison.
+
+While previous AIED research has effectively used LLM-as-a-Judge for eval-
+uation [19], studies show that variations in prompt phrasing [18] and example
+ordering [17] can significantly impact outcomes. To enhance robustness, Mizrahi
+et al. (2024) [18] recommend multi-prompt evaluation, aggregating results across
+multiple templates. Accordingly, we created three separate evaluation prompts,
+
+1 https://github.com/claytoncohn/AIED25_Supplementary_Materials
+
+Personalizing Student-Agent Interactions Using Log-Contextualized RAG
+
+7
+
+aggregating the judge’s predictions based on majority vote. Chunk order was
+randomized each run pursuant to Lu et al. (2021) [17]. All three evaluation
+prompts are available in our Supplementary Materials.
+
+To validate our LLM-as-a-Judge protocol, we randomly sampled 80 segments
+across all model-dimension combinations. Two authors scored all 80 retrieval
+pairs via consensus coding and compared LC-RAG’s retrievals to the baseline’s
+using the same criteria given to the LLM. We assessed inter-rater reliability
+(IRR) using Cohen’s Quadratic Weighted Kappa (QWK) due to the data being
+ordinal, resulting in QWK= 0.49 (moderate agreement).
+
+Each of the four task context categories discussed previously requires different
+domain knowledge. For example, Initializing Variables primarily involves initial-
+izing constants and variables (computing), while Updating Variables, Each Simu-
+lation Step requires an understanding of loops (computing) and kinematic vari-
+able relationships (physics). This variation necessitated evaluating LC-RAG’s
+performance across these contexts, which we addressed by averaging LC-RAG
+and baseline win rates across the five embedding models for all four task context
+categories to identify trends. For RQ1, we sampled LLM responses from all three
+prompt templates for qualitative analysis, enhancing our quantitative findings
+with deeper insights.
+
+RQ2 (Copa) To answer RQ2, we conducted two studies with a total of n=18
+students interacting with Copa: (1) a one-day, 2.5-hour classroom study with 16
+high school freshmen (ages 14–15), where students solved a simplified version
+of the Truck Task (excluding the deceleration and stopping conditions); and (2)
+two one-hour focus groups with six students — four from the classroom study
+and two from the earlier study for RQ1 — who debugged a fictional student’s
+faulty Truck Task model using Copa.
+
+Classroom study participants took part in the research as part of their regular
+curriculum. The study began with an instructional session introducing students
+to C2STEM, followed by the Truck Task problem-solving activity using Copa.
+After the activity, one of this paper’s authors facilitated an interactive class
+discussion using a Miro storyboarding exercise to reflect on Copa’s accuracy,
+helpfulness, and trustworthiness. The session concluded with a semi-structured
+discussion, led by another author, exploring students’ broader perceptions of
+Copa. Data collected included student conversations, environment actions, agent
+interactions, screen recordings, Miro board notes, and discussion notes.
+
+Focus group participants volunteered to participate outside of regular class
+time and received a $25 Amazon gift card for their involvement. Students were
+first given task instructions explaining that they would use Copa to debug a
+fictional student’s erroneous C2STEM Truck Task code. After completing the
+debugging activity, one of this paper’s authors led a semi-structured discussion to
+gather students’ perceptions of Copa. Participants also completed a survey about
+their experience, including their likes and dislikes as well as their views on the
+accuracy, helpfulness, and trustworthiness of the agent’s feedback. Data collected
+
+8
+
+C. Cohn et al.
+
+included student conversations, webcam recordings, environment actions, agent
+interactions, screen recordings, discussion notes, and survey responses.
+
+To determine Copa’s epistemic value to students and its ability to promote
+critical thinking, we conducted a qualitative analysis by reviewing students’ in-
+teractions with Copa (including retrieved domain knowledge), Miro boards, dis-
+cussion notes, and focus group survey responses, memoing key findings across
+all sources [11] and aggregating the results. Results for both RQs are presented
+in the next section.
+
+4 Results
+
+4.1 LC-RAG (RQ1)
+
+We answer RQ1 by comparing LC-RAG’s retrieval performance to the baseline’s
+across five embedding model-dimension combinations (see Section 3.3). Results
+are presented in Table 1.
+
+Model
+
+Loss
+Rate
+
+Emb.
+Size
+
+Win
+Rate
+OAI-text-embedding-3-large 3072 0.343 0.255 0.403
+OAI-text-embedding-3-small 1536 0.690 0.093 0.218
+1024 0.329 0.227 0.444
+voyage-3-large
+512
+voyage-3-lite
+0.347 0.171 0.482
+1024 0.213 0.167 0.620
+microsoft-e5-large
+
+Tie
+Rate
+
+Table 1: LC-RAG Win, Loss, and Tie rates relative to the baseline. Model
+refers to embedding model, and Emb. Size refers to embedding dimensionality.
+
+LC-RAG outperformed the baseline in 4 out of 5 embedding model-
+dimension combinations, achieving more precise retrieval by isolating a small-
+er set of relevant chunks compared to the baseline. LC-RAG retrieved 167 unique
+chunks from a knowledge base of 7,386, while the baseline retrieved 267. This
+was advantageous, particularly when student discussions were off-topic and re-
+sulted in irrelevant retrieval for the baseline. For example, consider a segment
+where students said, “S1: We need help. S2: No we don’t. We got this. We can
+do this.” In this case, using the voyage-3-lite embedding model, the baseline re-
+trieved an irrelevant chunk about a ‘90s TV show (“...from an episode of Ren
+and Stimpy...”), while LC-RAG retrieved a chunk related to scientific modeling.
+The baseline outperformed LC-RAG with OpenAI’s “small” embedding model
+due to the general nature of the knowledge base, which comprised physics and
+computing domain knowledge outside the scope of the C2STEM Truck Task
+(e.g., thermodynamics and memory management). The baseline’s raw discourse
+often lacked references to the C2STEM environment or Truck Task, whereas LC-
+RAG’s integrated discourse and log summaries (see Section 3.1) reframed student
+
+Personalizing Student-Agent Interactions Using Log-Contextualized RAG
+
+9
+
+conversations within the context of C2STEM, the Truck Task, and their envi-
+ronment actions. While this contextualization made LC-RAG summaries more
+meaningful within C2STEM, it hindered retrieval performance, as the knowl-
+edge base lacked C2STEM or Truck Task information. Although the baseline
+outperformed LC-RAG quantitatively with this model, qualitative analysis re-
+vealed that both were prone to irrelevant retrievals, suggesting the limitation
+stems from the untargeted knowledge base rather than the retrieval mechanism
+itself. We address this while answering RQ2.
+
+four
+
+all
+task context
+Across
+(and overall), LC-RAG
+categories
+achieved a higher win rate than
+the baseline when considering re-
+sults from all five embedding models.
+LC-RAG’s outperformance was more
+pronounced in Initializing Variables
+(45% for LC-RAG, 33% for the base-
+line) and Updating Variables, Each
+Simulation Step (46% for LC-RAG,
+38% for the baseline) segments but
+less pronounced for Conditional State-
+ments and Updating Variables, Under
+Conditions, differing only by 1-2%.
+
+Performance gains were reduced
+for Updating Variables, Under Con-
+ditions and Conditional Statements
+for the same reason as previously
+discussed: when using the OpenAI
+“small” model, the LC-RAG sum-
+maries were too task-specific to align
+well with the generalized knowledge
+base. Excluding this model, all four
+task-context categories showed clear improvement over the baseline. This under-
+performance, while limited to a single embedding model, highlights a limitation
+in how our task context categories contextualize student discourse. Our RQ2
+analysis explores an alternative approach to integrating log data that generates
+segment summaries with stronger semantic links to the knowledge base.
+
+Fig. 3: LC-RAG win rates by task con-
+text category averaged over all five em-
+bedding models. Overall compares per-
+formance across all task contexts.
+
+4.2 Copa (RQ2)
+
+We answer RQ2 by qualitatively analyzing agent interactions, Miro boards, class
+discussions, and survey responses from the classroom and focus group studies
+(see Section 3.3). Building on findings from RQ1, we refined LC-RAG in two
+ways. First, we used a condensed knowledge base consisting of 15 task-specific
+chunks (e.g., kinematic equations, computing concepts like initializing and up-
+dating variables). Second, we adopted an agentic approach (i.e., allowing the
+LLM to analyze data, reason, and act) to integrating log and text data. Rather
+
+10
+
+C. Cohn et al.
+
+than relying on predefined task context categories, we provided the LLM with the
+current state of the students’ computational model. During summarization, the
+LLM identified the problem students expressed, diagnosed its cause by compar-
+ing the student model to an expert version, and recommended relevant domain
+knowledge to retrieve. This recommendation was then embedded for semantic
+search. Copa’s summarization and interface prompts were iteratively refined by
+this paper’s authors and are provided in the Supplementary Materials.
+
+Overall, students found Copa to be epistemically valuable. All focus group
+participants reported that their interactions with Copa supported their problem-
+solving and the agent’s information was accurate. This sentiment was echoed in
+classroom discussions and on the Miro boards, where many students emphasized
+how Copa helped them better understand the course material (“It felt like Copa
+was in the room with us the entire time trying to teach us”;“Has a step-by-step
+process that is easy to follow.”;“Provided a reflection after we asked the ques-
+tions”). Several students also highlighted Copa’s positive tone as a source of
+motivation and encouragement (“...polite and encouraging feedback ”,“... praising
+us when we got a correct answer ”,“My favorite part about COPA was its motiva-
+tive language”). One student, who had struggled with the C2STEM Truck Task
+two years earlier when no agent was available, shared that she felt “a lot more
+confident” in her abilities and “got a lot further on [her] own this time around.”
+
+Copa supported students’ critical thinking and epistemic decision-making
+(“...helped me critically think...”), enabling them to grasp domain concepts they
+had previously struggled to understand. In one instance, one group admitted
+to Copa that they “...have no idea...” how to calculate the lookahead distance
+— i.e., the distance required for the truck to decelerate and stop at the stop
+sign. Recognizing their need for guidance, Copa retrieved and presented a rel-
+evant kinematic equation from the knowledge base using LC-RAG. With this
+information, the students realized they needed to calculate the truck’s displace-
+ment, gaining a clearer understanding of its role in both the equation and the
+deceleration phase of the Truck Task.
+
+However, several students expressed frustration when Copa did not provide
+direct answers (“it took a while to give us what we wanted ”,“I would like it to
+give us a straight answer ”) and were unable to think critically about Copa’s
+suggestions. Copa is designed as a peer agent that collaboratively problem-solves
+alongside students, offering suggestions that may be incorrect and are intended
+to prompt analysis and evaluation. In some cases, students assumed Copa’s
+recommendations were correct and became frustrated when those suggestions
+failed to improve their models (“Copa suggested us to try something that ended
+up making the code worse.”; “...it did not give correct information”). Although
+students were encouraged by this paper’s lead author to think critically about
+Copa’s responses — acknowledging that Copa might not always be right — some
+still became upset when its guidance proved unhelpful and resorted to trial-
+and-error approaches instead of deepening their understanding of the problem.
+This highlights a fundamental trade-off between students’ epistemic agency and
+teachers’ curricular goals, which we explore further in Section 5.
+
+Personalizing Student-Agent Interactions Using Log-Contextualized RAG
+
+11
+
+Despite these frustrations, students consistently emphasized that Copa was
+epistemically valuable. All focus group participants reported that they would
+trust Copa to support them in future problem-solving activities. Several stu-
+dents specifically cited its conceptual understanding and awareness of their ac-
+tions in the C2STEM environment as reasons for this trust (“...it knew what
+we were doing/did ”). LC-RAG effectively retrieved domain knowledge that was
+both relevant and helpful, enabling personalized agent interactions that advanced
+students’ task goals. For instance, when one group asked, “how should I expand
+the “Simulation_step” block ” — a query with no direct semantic match in the
+knowledge base — LC-RAG successfully retrieved kinematic equations used to
+update velocity and position, which are the first two steps under that block.
+
+5 Discussion and Conclusions
+
+Our findings highlight important implications for AIED theory, methodology,
+and practice. Theoretically, LC-RAG aligns with Vygotsky’s ZPD [27] by en-
+abling context-aware scaffolding that adapts to students’ evolving needs. By
+integrating discourse with environment logs, LC-RAG allows pedagogical agents
+to identify where students are within their ZPD and deliver timely, personal-
+ized support. This dynamic scaffolding moves beyond static, rule-based systems,
+enabling agents to respond meaningfully to students’ immediate challenges.
+
+Methodologically, our RQ2 findings suggest that agentic reasoning enhances
+personalized student support. Through characterizing student difficulties and
+recommending domain knowledge — based on students’ verbalized needs and
+grounded in their actions within the C2STEM environment — Copa generates
+embeddings that align closely with the knowledge base, enabling effective RAG
+retrieval and more contextualized interactions. This process introduces a trans-
+parent reasoning chain: model outputs are grounded in retrieved content, which
+is tied to the LLM’s reasoning and can be traced back to student actions and
+expressed problems. This structure not only supports effective personalization
+but also enhances explainability, offering insight into both what the agent recom-
+mends and why. We hypothesize that (1) additional conversational agent compo-
+nents (e.g., dialogue managers), could similarly benefit from agentic reasoning;
+and (2) agentic reasoning will allow LLM-based agents to support students’
+learning processes by deepening their conceptual understanding and promoting
+epistemic growth over time, positioning agentic AIED as a compelling direction
+for future research.
+
+As discussed in Section 4.2, students’ desire for direct answers — rather
+than engaging with domain concepts through problem-solving — reveals a core
+tension between students’ epistemic agency and teachers’ goals for deeper con-
+ceptual understanding. Even when students struggle, prior work has emphasized
+the value of productive failure in promoting long-term understanding [8]. As
+students become more accustomed to tools like ChatGPT, their expectations
+may increasingly favor immediate answers, fostering over-reliance on GenAI and
+frustration when encouraged to think critically while working towards a solution.
+
+12
+
+C. Cohn et al.
+
+Research on the role design of pedagogical agents has found that while teachers
+and students often agree on feedback principles, students tend to prefer feed-
+back that directly addresses task completion, whereas teachers favor feedback
+that supports broader learning and collaboration goals [5].
+
+This raises an important question: how much epistemic agency should ped-
+agogical agents grant students if that agency risks fostering over-reliance and
+hindering learning? We argue that while students should exercise some degree
+of epistemic agency in their interactions with agents, it must not come at the
+expense of critical thinking opportunities. Beyond supporting learning and col-
+laboration, GenAI-powered agents should treat problem-solving as a valuable
+skill in its own right — one worth cultivating independently of any specific task.
+Research on self-regulated learning has shown a strong link between students’
+self-regulation and critical thinking abilities [14]. To support this, GenAI agents
+must be grounded in learning theories whose core pedagogical principles remain
+intact, even as they facilitate agency.
+
+More broadly, this underscores the importance of grounding LLM-powered
+agents in established learning theories. The accessibility and ease of use of LLMs
+have led to a surge in pedagogical agents often deployed without a clear theo-
+retical foundation — marking a departure from pre-LLM intelligent tutoring
+systems, which were tightly aligned with cognitive and learning science prin-
+ciples. Recent AIED research has raised concerns about the risks of designing
+LLM systems that overlook the pedagogical foundations of agent feedback [25].
+As LLMs become increasingly central to AIED, theory-driven design is essential
+to ensure these systems do more than mimic helpfulness — they must reflect
+how students actually learn. Grounding intelligent systems in learning theory is
+also critical for building trust among practitioners, who require confidence that
+AI interventions — particularly GenAI ones — are pedagogically sound, not just
+technologically advanced.
+
+Our work is not without limitations. Further research is needed to assess (1)
+how LC-RAG generalizes across different learning environments, agent architec-
+tures, and subject domains; and (2) Copa’s impact on students’ behaviors and
+learning outcomes. LC-RAG also relies on the ability to represent environment
+log data in a canonical form that is semantically meaningful to LLMs, which
+may not always be feasible. Additionally, Copa was not evaluated in a controlled
+study, so we cannot directly compare LC-RAG’s contribution to its performance
+against other RAG approaches. Rather, this paper demonstrates that integrat-
+ing student verbalizations and environment logs enables pedagogical agents to
+support rich, multi-turn interactions that foster critical thinking and are per-
+ceived by students as epistemically valuable. We aim to establish a foundation
+for future research on adaptive, context-aware GenAI agents for personalized
+learning in collaborative STEM+C environments and beyond.
+
+References
+
+1. Bourke, C.: Computer Science I. Open Textbook Library (2018), https://open.
+
+umn.edu/opentextbooks/textbooks/996
+
+Personalizing Student-Agent Interactions Using Log-Contextualized RAG
+
+13
+
+2. Cochran, K., Cohn, C., Hastings, P.M.: Improving NLP model performance on
+small educational data sets using self-augmentation. In: Proceedings of the 15th In-
+ternational Conference on Computer Supported Education, CSEDU 2023, Prague,
+Czech Republic, April 21-23, 2023, Volume 1. pp. 70–78. SCITEPRESS (2023),
+https://doi.org/10.5220/0011857200003470
+
+3. Cochran, K., Cohn, C., Hutchins, N., Biswas, G., Hastings, P.: Improving auto-
+mated evaluation of formative assessments with text data augmentation. In: Inter-
+national Conference on Artificial Intelligence in Education. pp. 390–401. Springer
+(2022)
+
+4. Cochran, K., Cohn, C., Rouet, J.F., Hastings, P.: Improving automated evaluation
+of student text responses using gpt-3.5 for text data augmentation. In: International
+Conference on Artificial Intelligence in Education. pp. 217–228. Springer (2023)
+5. Cohn, C., Fonteles, J.H., Snyder, C., Srivastava, N., T S, A., Campbell, D., Mon-
+tenegro, J., Biswas, G.: Exploring the design of pedagogical agent roles in collab-
+orative stem+c learning. In: Proceedings of the 18th International Conference on
+Computer-Supported Collaborative Learning-CSCL 2025. In press. International
+Society of the Learning Sciences (2025)
+
+6. Cohn, C., Hutchins, N., Biswas, G., et al.: Cotal: Human-in-the-loop prompt engi-
+neering, chain-of-thought reasoning, and active learning for generalizable formative
+assessment scoring. arXiv preprint arXiv:2504.02323 (2025), submitted to IEEE
+Transactions on Learning Technologies. Curently under review.
+
+7. Cohn, C., Hutchins, N., Le, T., Biswas, G.: A chain-of-thought prompting approach
+with llms for evaluating students’ formative assessment responses in science. Pro-
+ceedings of the AAAI Conference on Artificial Intelligence 38(21), 23182–23190
+(Mar 2024). https://doi.org/10.1609/aaai.v38i21.30364
+
+8. Cohn, C., Snyder, C., Fonteles, J.H., TS, A., Montenegro, J., Biswas, G.: A mul-
+timodal approach to support teacher, researcher and ai collaboration in stem+ c
+learning environments. British Journal of Educational Technology (2024)
+
+9. Cohn, C., Snyder, C., Montenegro, J., Biswas, G.: Towards a human-in-the-loop
+llm approach to collaborative discourse analysis. In: International Conference on
+Artificial Intelligence in Education. pp. 11–19. Springer (2024)
+
+10. Gekhman, Z., Yona, G., Aharoni, R., Eyal, M., Feder, A., Reichart, R., Herzig,
+J.: Does fine-tuning LLMs on new knowledge encourage hallucinations? In: Pro-
+ceedings of the 2024 Conference on Empirical Methods in Natural Language
+Processing. pp. 7765–7784. Association for Computational Linguistics (2024),
+https://aclanthology.org/2024.emnlp-main.444/
+
+11. Hatch, J.A.: Doing qualitative research in education settings. SUNY Press (2002)
+12. Hutchins, N.M., Biswas, G., Maróti, M., Lédeczi, Á., Grover, S., Wolf, R., Blair,
+K.P., Chin, D., Conlin, L., Basu, S., et al.: C2stem: A system for synergistic learning
+of physics and computational thinking. Journal of Science Education and Technol-
+ogy 29, 83–100 (2020)
+
+13. Jurenka, I., Kunesch, M., McKee, K.R., Gillick, D., Zhu, S., Wiltberger, S., Phal,
+S.M., Hermann, K., Kasenberg, D., Bhoopchand, A., et al.: Towards responsible
+development of generative ai for education: An evaluation-driven approach. arXiv
+preprint arXiv:2407.12687 (2024)
+
+14. Kusmaryono, I., et al.: How are critical thinking skills related to students’ self-
+regulation and independent learning? Pegem journal of education and instruction
+13(4), 85–92 (2023)
+
+15. Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H.,
+Lewis, M., Yih, W.t., Rocktäschel, T., et al.: Retrieval-augmented generation for
+
+14
+
+C. Cohn et al.
+
+knowledge-intensive nlp tasks. Advances in Neural Information Processing Systems
+33, 9459–9474 (2020)
+
+16. LlamaIndex Documentation: Query transformations
+
+-
+
+llamaindex (2025),
+
+https://docs.llamaindex.ai/en/stable/optimizing/advanced_retrieval/
+query_transformations/, accessed: 2025-02-06
+
+17. Lu, Y., Bartolo, M., Moore, A., Riedel, S., Stenetorp, P.: Fantastically ordered
+prompts and where to find them: Overcoming few-shot prompt order sensitivity.
+arXiv preprint arXiv:2104.08786 (2021)
+
+18. Mizrahi, M., Kaplan, G., Malkin, D., Dror, R., Shahaf, D., Stanovsky, G.: State
+of what art? a call for multi-prompt LLM evaluation. Transactions of the Asso-
+ciation for Computational Linguistics 12, 933–949 (2024). https://doi.org/10.
+1162/tacl_a_00681
+
+19. Parker, M.J., Anderson, C., Stone, C., Oh, Y.: A large language model approach to
+educational survey feedback analysis. International journal of artificial intelligence
+in education pp. 1–38 (2024)
+
+20. Qian, H., Zhang, P., Liu, Z., Mao, K., Dou, Z.: Memorag: Moving towards next-
+gen rag via memory-inspired knowledge discovery. arXiv preprint arXiv:2409.05591
+(2024)
+
+21. Roll, I., Baker, R.S.d., Aleven, V., Koedinger, K.R.: On the benefits of seeking (and
+avoiding) help in online problem-solving environments. Journal of the Learning
+Sciences 23(4), 537–560 (2014)
+
+22. Snyder, C., Biswas, G., Emara, M., Grover, S., Conlin, L.: Analyzing students’
+synergistic learning processes in physics and ct by collaborative discourse analysis.
+In: Computer-supported collaborative learning (2019)
+
+23. Snyder, C., Cohn, C., Fonteles, J.H., Biswas, G.: Using collaborative interactivity
+metrics to analyze students’ problem-solving behaviors during stem+ c computa-
+tional modeling tasks. Learning and Individual Differences 121, 102724 (2025)
+24. Snyder, C., Hutchins, N.M., Cohn, C., Fonteles, J.H., Biswas, G.: Analyzing stu-
+dents collaborative problem-solving behaviors in synergistic stem+c learning. In:
+Proceedings of the 14th Learning Analytics and Knowledge Conference. p. 540–550.
+LAK ’24, Association for Computing Machinery, New York, NY, USA (2024).
+https://doi.org/10.1145/3636555.3636912
+
+25. Stamper, J., Xiao, R., Hou, X.: Enhancing llm-based feedback: Insights from in-
+telligent tutoring systems and the learning sciences. In: International Conference
+on Artificial Intelligence in Education. pp. 32–43. Springer (2024)
+
+26. Urone, P.P., Hinrichs, R., Gozuacik, F., Pattison, D., Tabor, C.: Physics. OpenStax
+
+(2020), https://openstax.org/details/books/physics
+
+27. Vygotsky, L.S., Cole, M.: Mind in society: Development of higher psychological
+
+processes. Harvard university press (1978)
+
+28. Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., Chi, E., Le, Q.V., Zhou,
+D., et al.: Chain-of-thought prompting elicits reasoning in large language models.
+Advances in neural information processing systems 35, 24824–24837 (2022)
+29. Yan, L., Zhao, L., Echeverria, V., Jin, Y., Alfredo, R., Li, X., Gaševi’c, D.,
+Martinez-Maldonado, R.: Vizchat: enhancing learning analytics dashboards with
+contextualised explanations using multimodal generative ai chatbots. In: Interna-
+tional Conference on Artificial Intelligence in Education. pp. 180–193. Springer
+(2024)
+
+30. Zheng, L., Chiang, W.L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang, Y., Lin, Z., Li, Z.,
+Li, D., Xing, E., et al.: Judging llm-as-a-judge with mt-bench and chatbot arena.
+Advances in Neural Information Processing Systems 36, 46595–46623 (2023)

@@ -1,0 +1,1538 @@
+Enhancing RAG with Active Learning on Conversation Records:
+Reject Incapables and Answer Capables
+
+Xuzhao Geng 1 Haozhao Wang 1 Jun Wang 2 Wei Liu 1 Ruixuan Li 1
+
+Abstract
+
+Retrieval-augmented generation (RAG) is a key
+technique for leveraging external knowledge and
+reducing hallucinations in large language mod-
+els (LLMs). However, RAG still struggles to
+fully prevent hallucinated responses. To address
+this, it is essential to identify samples prone to
+hallucination or guide LLMs toward correct re-
+sponses, which experts then annotate to develop
+high-quality datasets for refining LLMs. However,
+the growing scarcity of such datasets makes their
+creation challenging. This paper proposes using
+the vast amount of conversations from widespread
+LLM usage to build these datasets, training LLMs
+to avoid hallucination-prone questions while ac-
+curately responding to manageable ones. Given
+the impracticality of expert-annotating all con-
+versation records, the paper introduces AL4RAG,
+which uses active learning to select the most suit-
+able conversation samples for annotation, opti-
+mizing performance within an annotation budget.
+Additionally, recognizing that traditional active
+learning methods are not fully compatible with
+RAG due to unsuitable distance metrics, we de-
+velop a novel sample distance measurement for
+RAG active learning. Extensive experiments show
+that our method consistently outperforms base-
+lines across multiple metrics.
+
+5
+2
+0
+2
+
+b
+e
+F
+3
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+3
+7
+0
+9
+0
+.
+2
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+1. Introduction
+
+In recent years, large language models (LLMs) have demon-
+strated remarkable performance in diverse natural language
+processing (NLP) tasks, such as text classification (Ab-
+buri et al., 2023), summarization (Jin et al., 2024), and
+
+1School of Computer Science and Technology, Huazhong
+University of Science and Technology, Wuhan, China
+2iWudao Tech, Hangzhou, China.
+Correspondence to:
+Xuzhao Geng <geng xz@hust.edu.cn>, Haozhao Wang
+<hz wang@hust.edu.cn>.
+
+1
+
+question answering (Zhuang et al., 2023). However, they
+frequently encounter the issue of hallucinations (Huang
+et al., 2023), which undermines the reliability of their re-
+sponses. Retrieval-Augmented Generation (RAG) (Lewis
+et al., 2020), integrated into leading models like GPT-4
+(Achiam et al., 2023), Gemini-1.5 (Team et al., 2024), and
+Claude-3.5 (Anthropic, 2024), aims to tackle this problem.
+RAG combines a retriever to fetch relevant documents and a
+generator to formulate answers, enhancing the model’s relia-
+bility by leveraging external knowledge. Nevertheless, RAG
+cannot completely eliminate hallucinations (Chen et al.,
+2024; Wood & Forbes, 2024), posing a persistent challenge
+in ensuring the quality of model-generated content.
+
+The challenge of addressing hallucinations highlights the
+need for systems that can effectively identify and manage
+situations prone to hallucination. Our research aims to train
+models to reject hallucination-prone queries while ensuring
+stable and accurate responses to queries within their capabil-
+ity, as illustrated in Figure 1(a). Achieving this goal requires
+high-quality model conversation datasets specifically de-
+signed to teach the model when to refuse to answer, while
+also including queries that the model can answer correctly in
+order to maintain its capabilities. However, relevant datasets
+are exceedingly scarce, and the creation of such datasets is
+highly challenging due to the need for extensive manual an-
+notation, while the majority of existing model conversation
+data remains unlabeled. To address this, we propose lever-
+aging active learning (AL) (Settles, 1995) to screen model
+conversation records. AL selects the most informative data
+from large pools of unlabeled data, enabling the creation of
+a small but high-quality human-annotated dataset through
+focused manual annotation.
+
+Unfortunately, existing AL methods perform poorly in the
+RAG scenario. These methods can be categorized into
+uncertainty-based and diversity-based approaches. Tradi-
+tional uncertainty-based methods demonstrate instability
+when applied to RAG-related tasks (Tsvigun et al., 2022;
+Snijders et al., 2023), while existing diversity-based meth-
+ods (Maekawa et al., 2022; Xie et al., 2023) fail to consider
+the unique three-segment structure of RAG conversation
+records (e.g., a query, retrieved documents, and a model-
+generated response), resulting in insufficient diversity in the
+
+ 
+ 
+ 
+ 
+ 
+ 
+Enhancing RAG with Active Learning on Conversation Records
+
+(a) An example related to our tasks
+
+(b) Overall framework
+
+Figure 1. (a) An example regarding our tasks. In the scenario on the left, the original model provides an incorrect response to the user; in
+this case, we expect the model to decline answering the question, whereas in the scenario on the right, where the original model delivers a
+correct response, we aim for it to generate accurate responses more consistently. (b) Overall framework of our approach. The example of
+preference set construction is the same as (a).
+
+collected data. With the advent of LLMs, some researchers
+have employed large models to measure sample uncertainty
+(Li et al., 2024a), but this approach requires large models
+to evaluate the uncertainty of all unlabeled samples sequen-
+tially, leading to excessive time and computational costs
+when applied in practical RAG scenarios. Other researchers
+have used LLMs to replace human annotators for labeling
+samples (Zhang et al., 2023; Xiao et al., 2023), but the la-
+beling accuracy of LLMs is far inferior to that of human
+annotators, resulting in lower-quality datasets. Therefore,
+developing AL methods tailored specifically for RAG sys-
+tems becomes crucial.
+
+To address this gap, this paper proposes AL4RAG, a novel
+AL strategy specifically designed for RAG models, as illus-
+trated in Figure 1(b). We improve upon existing diversity-
+based methods (Tsvigun et al., 2022; Margatina et al., 2023)
+by independently considering the various fields of RAG data,
+which effectively accommodates the unique nature of RAG
+data. This approach selectively identifies the most diverse
+samples from unlabeled model conversation records. By
+annotating these strategically selected samples, we can con-
+struct a high-quality human-annotated preference dataset.
+However, to construct a preference dataset, it is essential
+to introduce a refusal option. Yet, in existing RAG model
+conversation datasets, such as RAGTruth (Niu et al., 2023),
+each question corresponds to only a single answer, allow-
+ing for the identification of hallucinations but lacking the
+option to refuse to answer. To address this challenge, we
+ask human annotators to assign hallucination labels to the
+selected model conversations. Each sample is then labeled
+
+based on the presence of hallucinations, indicating whether
+the model should prefer to answer or refuse to respond. This
+approach enables us to build a dedicated preference dataset.
+Using this dataset for model optimization can significantly
+improve the performance of RAG models, thereby achieving
+our intended objectives. Our main contributions are:
+
+• To the best of our knowledge, we are the first to propose
+an AL framework for RAG, presenting an effective
+selection strategy in response to the unique data pattern
+of RAG data.
+
+• We proposed retrieval-augmented similarity (ras) for
+measuring the similarity between samples within the
+unique patterns of RAG data, enabling more accurate
+measurement of sample distances.
+
+• We expanded the RAGTruth dataset and created the
+first human preference dataset tailored to the RAG
+scenario for handling both hallucination-prone queries
+and answerable ones.
+
+• Extensive AL-driven model optimization was con-
+ducted on the constructed dataset, with results demon-
+strating the effectiveness of our approach.
+
+2. Related Work
+
+2.1. Active Learning
+
+Active learning (AL) is a widely adopted technique for op-
+timizing the trade-off between annotation costs and model
+
+2
+
+Based on the provided passages, the main concern with the overuse of antibiotics is thedevelopmentofdrug-resistantbacteria…UserqueryWhatistheconcernwithoveruseofantibiotics?passage1:Butthesedrugsdon’tworkatallagainstviruses,suchas…theoveruseandmisuseofantibioticshelpstocreatedrug-resistantbacteria…passage2:Ifanantibioticistaken…passage3:Antibioticsaremedications…Retrieved referenceOriginal model answerExpected model answerBasedontheprovidedpassages,themaindifferencesbetweenTier3andTier4enginesare:…Tier4engines:…Donotuseanexhaustgasrecirculation(EGR)system…Whatisthedifferencebetweentier3andtier4engines?passage1:…showingthedifferencebe-tweentheTier3enginesandtheTier4Interimengines…plustheadditionoftheExhaustGasRecirculation(EGR)system.passage2:Tier4referstoasetof…passage3:TheTier1to3standards…Retrieved referenceSorry,thisquestionisbeyondmyability.Original model answerExpected model answerUser queryBased on the provided passages, the main concern with the overuse of antibiotics is thedevelopmentofdrug-resistantbacteria…ras𝑥𝑥,𝑦𝑦Annotatorquery withActive LearningAnnotate Hallucination LabelsLabeled SetPreference Setconstruct withDPOLLMSample xSample yr e f e r e n c eq u e r ya n s w e rcontainsmeasuresimilarityquery: What is the difference be-tween tier 3 and tier 4 engines?reference: … the difference between Tier 3 engines and the Tier 4 Interim engines …chosen: Sorry, this question is beyond my ability.rejected: Based on the given passages, the difference …query: What is the concern with overuse of antibiotics?reference: … the overuse and misuse of antibiotics helps to create drug-resistant bacteria …chosen: … the main concern with the overuse of antibiotics is …rejected: Sorry, this question is beyond my ability.RAG Model ConversationsEnhancing RAG with Active Learning on Conversation Records
+
+performance by selecting the most informative samples from
+large unlabeled datasets. Central to AL are three com-
+ponents: a labeling oracle, an unlabeled data pool, and
+a query strategy. Common strategies include uncertainty-
+based methods, which prioritize difficult samples based
+on prediction uncertainty (Beluch et al., 2018; Liu et al.,
+2021; Schr¨oder et al., 2021; Maekawa et al., 2022; Rouze-
+gar & Makrehchi, 2024), and diversity-based methods,
+which focus on selecting diverse samples to enrich datasets
+(Hasan et al., 2018; Sinha et al., 2019; Agarwal et al., 2020;
+Maekawa et al., 2022; Xie et al., 2023).
+
+Active learning (AL) has been effectively applied across
+various NLP tasks, including text classification (Yan et al.,
+2020; Schr¨oder et al., 2021), text summarization (Gidio-
+tis & Tsoumakas, 2022; Tsvigun et al., 2022), and ques-
+tion answering (Karamcheti et al., 2021; Padmakumar &
+Mooney, 2021), achieving significant cost reductions and
+performance improvements. These approaches have demon-
+strated strong potential in optimizing model training effi-
+ciency and enhancing overall system performance. Despite
+their successes, existing methods often neglect the influ-
+ence of inherent sample properties on diversity. Addressing
+this gap, our work introduces a novel approach for evalu-
+ating sample diversity in the RAG context by comparing
+similarities across different data fields.
+
+2.2. Active Learning Meets LLMs
+
+As large language models (LLMs) continue to advance, their
+integration with AL has become a focal point for addressing
+high annotation costs (Tan et al., 2024) and challenges in
+effective knowledge utilization (Xu et al., 2024b). Currently,
+the integration of AL with LLMs primarily involves three
+approaches: employing traditional active learning methods
+to select samples for the downstream processes of LLMs
+(e.g., fine-tuning, in-context learning, evaluation) (Xie et al.,
+2023; Margatina et al., 2023; Bayer & Reuter, 2024), uti-
+lizing LLMs to assess sample quality (e.g., uncertainty esti-
+mation) (Li et al., 2024a), and leveraging LLMs to replace
+human annotators (Xiao et al., 2023; Kholodna et al., 2024).
+For instance, Margatina et al. (2023) demonstrated the ef-
+fectiveness of similarity sampling for classification, framing
+in-context learning’s example selection as a single-round AL
+task. Li et al. (2024a) proposed LDCAL for text summariza-
+tion, while Rouzegar and Makrehchi (2024) balanced cost
+and accuracy in text classification. Other studies addressed
+noisy data filtering (Taneja & Goel, 2024) and explored the
+use of LLMs as annotators (Zhang et al., 2023), highlighting
+both strengths and limitations.
+
+Our research integrates AL into the RAG framework, lever-
+aging its capabilities to address the unique challenges of
+fine-tuning LLMs. Specifically, we focus on selecting high-
+impact samples that enhance model performance while con-
+
+sidering diversity within the RAG setting. To the best of
+our knowledge, this is the first study to explore AL-driven
+optimization for LLMs in the RAG context.
+
+3. Problem Definition & Preliminaries
+
+3.1. Problem Definition
+
+To enhance a model’s performance in the RAG setting, we
+utilize preference optimization using its historical conversa-
+tions. We aim to enable the model to reject queries likely
+to cause hallucinations and to improve its stability in an-
+swering queries within its capability. Each unlabeled sam-
+ple comprises a user query, a reference document, and a
+model-generated response. We identify and label informa-
+tive samples by determining whether the responses exhibit
+hallucinations and use these labeled samples for preference
+optimization to refine the model’s decision-making.
+
+Inspired by prior works (Tsvigun et al., 2022; Margatina
+et al., 2023), we adopt a diversity-based approach, evalu-
+ating diversity by computing distances among samples to
+prioritize varied and informative data.
+
+3.2. Diversity-based Active Learning
+
+Given an unlabeled dataset U = {x1, x2, . . . , xn}, feature
+extraction algorithms (e.g., TF-IDF) transform each sample
+xi into a feature vector xi. Initially, k samples are randomly
+selected to form the initial selected set S = {s1, s2, . . . , sk},
+and these samples are removed from U .
+
+In subsequent rounds, the average distance D between each
+sample xi in U and all samples in S is measured as:
+
+D(xi) =
+
+1
+|S|
+
+|S|
+(cid:88)
+
+(1 −
+
+j=1
+
+xi · sj
+∥xi∥∥sj∥
+
+)
+
+(1)
+
+The top-k samples ranked by D are added to S and sub-
+sequently removed from U . This process repeats until the
+annotation budget is reached.
+
+Unlike methods that label samples during each selection
+round, we label all samples in S collectively at the end,
+reducing annotators’ waiting time and improving efficiency.
+
+3.3. RAG Framework
+
+In the domain of NLP, RAG is a crucial methodology. Sup-
+pose a user inputs a natural language query q, there is a
+pre-established knowledge repository housing a collection
+of text chunks ri. The system computes a set of relevance
+scores f (q, ri) to screen relevant text chunks from this repos-
+itory against q. Next, based on a predefined threshold τ
+or a predefined number k, the text chunks that meet the
+condition f (q, ri) > τ or the top-k relevant chunks are re-
+trieved and ranked, generating a set R = {r1, r2, . . . , rk}.
+
+3
+
+Enhancing RAG with Active Learning on Conversation Records
+
+These retrieved chunks are combined with q into a prompt
+P = [q; R], which is the input to an LLM M to generate
+an answer a = M(P ). By leveraging the retrieved text, the
+generated answer attains enhanced contextual accuracy.
+
+Evidently, in contrast to other scenarios, within the RAG
+framework, each conversation of the model encompasses
+multiple attributes, specifically the user-posed query, the
+retrieved references, and the answer generated by the model.
+In this setting, the measurement of distances between sam-
+ples becomes more complicated. The direct application of
+AL can lead to inaccurate measurement of distances among
+samples. Hence, it is imperative to develop a method for
+measuring sample distances tailored to the RAG scenario.
+
+4. AL4RAG
+
+In order to train models to handle both hallucination-prone
+queries and valid ones with limited annotation budget, we
+need to select a subset of the most informative samples from
+the model’s historical conversation records. Next, we will
+annotate these samples and construct a preference dataset.
+Finally, we use these annotated samples for DPO training.
+The specific process is as follows:
+
+4.1. Active Learning Process
+
+We employ AL to select informative samples from the RAG
+model’s historical conversation records. Specifically, the
+process entails the following steps:
+
+(1) Random selection of initial samples for labeling. Ini-
+tially, a small subset of samples is selected randomly from
+the entire dataset as the selected set.
+
+(2) Measurement of similarity between remaining and se-
+lected samples. The second step involves measuring the
+similarity between unselected samples and the selected ones.
+In this step, we use the user input (e.g., user query, question)
+q as the unit for measuring sample similarity.
+
+sim(x, y) =
+
+xq · yq
+∥xq∥∥yq∥
+
+(2)
+
+where xq, yq refer to queries of sample x and y.
+
+(3) Measurement of similarity among remaining samples.
+The same method is used to measure the similarity among
+the remaining samples in the unselected set.
+
+(4) Scoring of remaining samples. An IDDS score (Tsvigun
+et al., 2022) is assigned to each of the remaining samples
+based on the equation as follows:
+(cid:80)|U |
+
+(cid:80)|S|
+
+j=1 sim(x, xj)
+|U |
+
+−(1−λ)
+
+i=1 sim(x, xi)
+|S|
+
+IDDS(x) = λ
+
+(3)
+where λ is a hyper-parameter, U refers to the unselected set
+and S refers to the selected set.
+
+4
+
+(5) Expansion of the selected set: Move the top %k samples,
+based on their scores, to the selected set. Then, proceed
+back to step (2).
+
+Our goal is to select samples with low similarity to already
+selected ones and high similarity to unselected ones, thereby
+excluding outliers. This process iterates until the target
+sample count is achieved.
+
+4.2. Preference Dataset Construction
+
+After obtaining an informative subset through AL, we need
+to annotate these samples to construct a preference dataset.
+In general, the construction of a preference dataset involves
+the annotator choosing the better one among two candidate
+answers (a1, a2) to an input prompt p. Then, the better one
+is set as aw, and the other one is set as al. However, in prac-
+tical applications of the RAG model, users typically request
+only a single response from the model for a given query. As
+a result, we are unable to obtain a pair of answers to a query.
+For our task, we propose a novel method for dataset con-
+struction. Specifically, we ask annotators to assess whether
+the model’s response in each RAG conversation contains
+hallucinations and then generate a label h, where h = 0
+indicates that the response is free of hallucinations, and
+h = 1 indicates that the response contains hallucinations.
+Next, we examine the h label of each sample. For samples
+where h = 0, we designate the model’s original response
+as aw and an explicit rejection response as al. Conversely,
+for samples where h = 1, we assign the explicit rejection
+response as aw and the model’s original response as al. By
+modifying the feedback strategy, we successfully construct
+a preference dataset tailored for scenarios involving only a
+single model response.
+
+4.3. Fine-tuning Process
+
+Inspired by previous work (Khaki et al., 2024), we adopt
+DPO (Rafailov et al., 2024) to achieve the aforementioned
+objectives. DPO fine-tunes LLMs to align their outputs with
+human preferences, simplifying optimization by eliminating
+the need for complex reward function estimation (Ouyang
+et al., 2022; Bai et al., 2022).
+
+With the constructed preference dataset, we define two poli-
+cies: πθ, the model being optimized, and πo, the original
+model used as a baseline. The optimization phase involves
+minimizing a loss function based on human preferences:
+
+LDPO(θ) = −log σβ
+
+log
+
+(cid:18)
+
+πθ(aw|p)
+πo(aw|p)
+
+− log
+
+(cid:19)
+
+πθ(al|p)
+πo(al|p)
+
+(4)
+
+where σ is the sigmoid function, and β adjusts alignment
+speed with human preferences.
+
+By fine-tuning the model with DPO, we can achieve the pre-
+viously outlined optimization objectives, thereby mitigating
+
+Enhancing RAG with Active Learning on Conversation Records
+
+model trust issues caused by hallucinations.
+
+5. AL4RAGras
+
+5.1. Observation
+
+Conventional sample similarity measurement based on user
+input can lead to inaccurate judgment of sample distances.
+
+Classical Active Learning (AL) has achieved significant suc-
+cess in both Computer Vision (CV) (Budd et al., 2021; Tuia
+et al., 2021; Wang et al., 2023) and Natural Language Pro-
+cessing (NLP) (Zhang et al., 2022), with numerous methods
+leveraging sample diversity to enhance learning efficiency
+(Shi et al., 2021; Kim et al., 2021; Li et al., 2022; Jin et al.,
+2022). In CV tasks, diversity-based queries often involve di-
+rectly computing distances between input images, enabling
+efficient selection of informative samples. Similarly, in
+NLP tasks such as text classification (Tan et al., 2021), text
+summarization (Tsvigun et al., 2022), semantic parsing (Li
+et al., 2023), and information extraction (Duan, 2024), dis-
+tance measurements can also be applied directly, as samples
+typically consist of only a single attribute—the input text
+itself. This simplicity allows for straightforward similarity
+measurements, making traditional AL strategies effective in
+these domains.
+
+In contrast, the RAG scenario introduces conversation
+records characterized by three distinct attributes: the user
+query, the reference documents retrieved by the retriever,
+and the LLM-generated response. Measuring sample sim-
+ilarity solely based on user input text can lead to inaccu-
+racies, as RAG hallucination is usually caused by the mis-
+understanding of retrieved references (Chen et al., 2024).
+However, if we consider combining multiple attributes (e.g.,
+queries and referneces) or relying on prompt-based sim-
+ilarity (i.e., combining queries, references, and template
+text), it can also result in inaccuracies due to variations in
+the lengths of these attributes. For instance, the retriever
+may retrieve similar reference documents for two different
+user queries. When such measurement method is applied,
+the similarity between these two samples is likely to be
+disproportionately high, as the lengths of the reference doc-
+uments and the template text dominate, overshadowing the
+much shorter query. This makes the distance between the
+two samples artificially small, rendering them nearly indis-
+tinguishable, even though the query itself plays a critical
+role in determining the model’s performance. To address
+this, our approach evaluates each attribute—query, refer-
+ence, and response—independently, enabling more accurate
+similarity measurements and clearer differentiation between
+samples. This ensures that the unique influence of the query
+is appropriately captured. Figure 2 demonstrates that our
+method consistently outperforms input-based similarity and
+prompt-based similarity across varying data ratios and tasks.
+
+5
+
+Figure 2. Part of the experimental results of query similarity,
+prompt similarity and ras, which shows the impact of different
+similarity measurement on model performance. The left graph
+shows the performance of handling hallucination-prone queries,
+and the graph on the right shows the performance of handling
+model-answerable queries.
+
+Further detailed results are provided in Section 6.2. This
+highlights the robustness and adaptability of our approach
+to real-world RAG applications.
+
+5.2. AL4RAG with Retrieval-Augmented Similarity
+
+Similar to the method mentioned previously, we carry out
+the same series of steps to screen samples. However, in
+step (2) and (3), to address the observed issues, we propose
+retrieval-augmented similarity (ras), a novel similarity
+measurement method specifically designed for the RAG
+scenario. Here, each sample consists of three attributes: a
+user-input query q, a reference r combining multiple re-
+trieved documents, and a model-generated answer a. The
+query and reference are then combined into a prompt p,
+serving as the model’s input, while the answer represents
+the output.
+
+Unlike typical AL algorithms, which often treat the input
+as a single entity (Margatina et al., 2023; Taneja & Goel,
+2024), ras considers each attribute independently. We mea-
+sure the similarity for q and r separately, and obtain the
+average of these values. After that, we choose the minimum
+between the obtained value and the similarity of p as the
+final similarity. This nuanced method ensures a more ac-
+curate and context-aware assessment of sample similarity.
+Let x and y be two different samples, ras(x, y) refers to the
+retrieval-augmented similarity between them. It is measured
+as follows:
+
+ras(x, y) = min(
+
+xp · yp
+∥xp∥∥yp∥
+
+,
+
+1
+2
+
+(
+
+xq · yq
+∥xq∥∥yq∥
+
++
+
+xr · yr
+∥xr∥∥yr∥
+
+))
+
+(5)
+where xp, yp, xq, yq and xr, yr refer to p, q and r of x
+and y. In the main experiments of this paper, we utilized
+TF-IDF vectorization. In the subsequent experiments, we
+compared the impacts of different vectorization methods on
+the final performance of the model.
+
+12.5%25%50%Data Proportion14182224Rejection RateRejection12.5%25%50%Data Proportion162024Rouge-LStabilityquerypromptras (ours)Enhancing RAG with Active Learning on Conversation Records
+
+After the AL process, we construct the preference dataset
+and fine-tune the model in the same way as described in
+Section 4.2 and 4.3.
+
+Table 1. Overall rejection performance of different algorithms un-
+der different data proportions. The best results are bolded, and the
+second-best results are underlined.
+
+6. Experiments
+
+6.1. Experimental Settings
+
+Tasks & Dataset We evaluated our method on Question
+Answering, Summary, and Data-to-text writing tasks us-
+ing the RAGTruth dataset (Niu et al., 2023), a high-quality,
+manually annotated dataset for RAG hallucination. The
+dataset includes queries, references, model responses, and
+hallucination labels. To prepare the preference data, we
+identified the hallucination labels of responses generated
+by the Llama-2-7B-chat model (Touvron et al., 2023) and
+assigned preferred and non-preferred answers accordingly.
+The resulting dataset, containing approximately 3,000 en-
+tries, was split into training and test sets, with each sample
+comprising a query, a reference, a chosen answer, and a
+rejected answer. AL strategies are applied on the training
+set only.
+
+Model The standard DPO process relies on an SFT model,
+but none exists for our task. Thus, we fine-tuned the llama-
+2-7B-chat model on the training set. This enabled the model
+to better assess query complexity and appropriately handle
+scenarios requiring rejection responses.
+
+Baselines To verify the effectiveness of our method, we
+selected several baselines for comparison, including:
+
+• Random: The samples for annotation are randomly
+
+selected all at once.
+
+• Entropy (Wang & Shang, 2014): An AL strategy that
+selects samples with the highest prediction uncertainty,
+measured by maximum entropy, to improve model
+performance.
+
+• Coreset (Sener & Savarese, 2017): Select a small, rep-
+resentative subset of data that approximates the entire
+dataset’s distribution for efficient learning.
+
+• BLEUVar (Xiao et al., 2020): Use BLEU variance
+to prioritize samples with high uncertainty by treating
+documents as points in a high-dimensional space.
+
+• Naive IDDS (Tsvigun et al., 2022): Select samples
+dissimilar to labeled ones but similar to unlabeled ones,
+based on document embeddings.
+
+Algorithms
+
+12.5% 25% 50%
+
+Random
+Entropy
+Coreset
+BLEUVar
+IDDS
+IDDSprompt
+IDDSq,r combined
+
+AL4RAG
+AL4RAGras
+
+17.39
+18.48
+18.30
+18.11
+18.66
+18.30
+18.84
+
+18.11
+22.65
+
+16.85
+19.74
+17.03
+18.84
+19.02
+18.48
+19.57
+
+18.11
+21.74
+
+19.02
+19.93
+19.93
+19.93
+19.57
+18.84
+17.03
+
+19.93
+20.65
+
+• IDDSq,r combined: Similar to the above method, but only
+concatenate the query and the reference, and use the
+similarity of this part as the sample similarity.
+
+Evaluation Metrics For the performance of refusing to
+answer queries, we use Rejection Rate (RR) for evalua-
+tion. For the performance of correctly answering queries,
+we measure it by the text similarity between the model’s
+responses and the correct reference answers, including:
+
+• ROUGE Family: Widely used metrics for measuring
+text similarity. ROUGE-L gauges generation quality
+by measuring similarity between generated and refer-
+ence summaries. ROUGE-1 counts overlapping words
+or n-grams for assessment. ROUGE-2 determines sim-
+ilarity via co-occurring word bigrams, offering another
+way to quantify summary matching.
+
+• BERTScore: A fine-grained, context-aware NLP eval-
+uation metric that uses BERT to measure the cosine
+similarity between token embeddings of candidate and
+reference texts.
+
+Implementation Details For the AL process, we set the
+number of iteration rounds for both AL4RAG and IDDS to
+five. In the fine-tuning process, we employ LoRA (Hu et al.,
+2021) with a learning rate of 1 × 10−5 and train for one
+epoch. During the generation phase, we set the temperature
+of the LLM to 0.7 and report the mean performance across
+five independent generation runs.
+
+6.2. Main Results
+
+6.2.1. REJECTION RESULTS
+
+• IDDSprompt: Use prompt similarity,
+
+incorporating
+queries, references, and template text, as the sample
+similarity measure, with IDDS as the query strategy.
+
+Table 1 shows the refusal performance of different algo-
+rithms on hallucination-prone queries under data propor-
+tions of 12.5%, 25%, and 50%. Our method consistently
+
+6
+
+Enhancing RAG with Active Learning on Conversation Records
+
+Table 2. Overall stability performance of different algorithms under different data proportions. The best results are bolded, and the
+second-best results are underlined.
+
+Algorithms
+
+Random
+Entropy
+Coreset
+BLEUVar
+Naive IDDS
+IDDSprompt
+IDDSq,r combined
+
+AL4RAG
+AL4RAGras
+
+12.5%
+
+25%
+
+50%
+
+Rouge-L
+
+Rouge-1
+
+Rouge-2
+
+BERTScore
+
+Rouge-L
+
+Rouge-1
+
+Rouge-2
+
+BERTScore
+
+Rouge-L
+
+Rouge-1
+
+Rouge-2
+
+BERTScore
+
+20.68
+20.60
+20.30
+19.75
+20.49
+20.96
+20.70
+
+20.93
+22.23
+
+29.02
+29.28
+28.92
+28.48
+29.07
+29.69
+29.18
+
+29.74
+31.17
+
+14.41
+14.40
+14.18
+13.65
+14.47
+14.88
+14.38
+
+14.57
+15.63
+
+28.34
+29.09
+28.49
+27.38
+28.75
+28.90
+28.47
+
+29.60
+30.90
+
+20.07
+21.59
+20.78
+21.62
+20.65
+20.67
+19.92
+
+21.02
+22.12
+
+28.38
+30.15
+29.01
+30.46
+29.06
+29.15
+28.10
+
+29.57
+31.08
+
+13.86
+15.25
+14.50
+15.33
+14.24
+14.44
+13.66
+
+14.61
+15.81
+
+27.66
+30.00
+28.67
+29.89
+29.05
+28.64
+27.52
+
+29.37
+31.01
+
+20.52
+20.37
+20.69
+20.46
+19.80
+20.00
+20.69
+
+21.44
+21.96
+
+29.14
+29.08
+29.27
+28.99
+27.83
+28.79
+28.95
+
+30.64
+31.45
+
+14.50
+14.08
+14.63
+14.13
+13.85
+13.95
+14.35
+
+14.81
+15.28
+
+28.36
+28.10
+28.69
+28.21
+27.67
+28.02
+28.18
+
+29.64
+30.82
+
+(a) Rejection Performance
+
+(b) Stability Performance
+
+(c) Stability Performance
+
+Figure 3. The performance of the original model, the full-data SFT model, and the full-data DPO-trained model, with the performance of
+the model trained via DPO with 25% data selected by our method as comparison. (a) Rejection rate of rejection performance; (b) Rouge-L
+of stability performance; (c) BERTScore of stability performance.
+
+Table 3. Ablation study under a quarter of the data volume. The
+best results are bolded, and the second-best results are underlined.
+
+Table 4. The impact of different vectorization methods on model
+performance under a quarter of the data volume. The best results
+are bolded, and the second-best results are underlined.
+
+Algorithms
+
+AL4RAGras
+-q
++a
+
+Rejection
+
+Stability
+
+Rejection Rate Rouge-L BERTScore
+
+21.74
+16.85
+17.93
+
+22.12
+21.20
+20.87
+
+31.01
+29.23
+28.42
+
+Methods
+
+Rejection
+
+Stability
+
+Rejection Rate Rouge-L BERTScore
+
+TF-IDF
+Sentence-BERT
+stella
+
+21.74
+18.84
+18.48
+
+22.12
+21.83
+21.57
+
+31.01
+29.97
+30.23
+
+outperforms all baselines across all data ratios. Among
+IDDS-based variants, only ours maintains superior perfor-
+mance across all proportions. While Naive IDDS performs
+well at 12.5%, its performance declines as data increases,
+being surpassed by more baselines. In contrast, our improve-
+ments enable robust performance by accurately measuring
+sample distances and identifying diverse samples.
+
+Interestingly, as data proportion increases, our method’s per-
+formance slightly declines, while baselines improve. This
+suggests our method effectively selects the most impact-
+ful samples under smaller data proportions, reducing noise
+
+and redundancy. Figure 3(a) compares rejection perfor-
+mance across models:
+the original model, a fine-tuned
+model (100% data), a DPO-trained model (100% data), and
+a DPO-trained model (25% data, selected by our method).
+The model trained via DPO with data selected by our method
+achieves the best refusal performance, and the SFT model
+performs second-best, while the model trained via DPO with
+100% data performs worst after the original model. This
+highlights that fine-tuning equips models with the ability
+to reject answering hallucination-prone queries. Moreover,
+DPO training with a small amount of high-quality data fur-
+
+7
+
+original modelfull-data SFTfull-data DPOquarter-AL4RAGras DPO101214161820222426Rejection Rate15.7620.6518.1121.74101214161820222426Rouge-L20.4917.2720.8722.1215.017.520.022.525.027.530.032.535.0BERTScore28.2924.3529.4731.01Enhancing RAG with Active Learning on Conversation Records
+
+ther improves this capability, while training with a noisy
+dataset greatly weakens it. Compared to baselines, our
+method is the only one that consistently outperforms SFT
+in all data proportions, highlighting the superiority.
+
+6.2.2. STABILITY RESULTS
+
+Table 2 presents the performance of various methods in
+improving the stability of correct answers, highlighting
+the effectiveness of different data selection strategies. Our
+method consistently outperforms all baselines across various
+data proportions. Notably, similar to the rejection task, it
+achieves peak performance at a data ratio of 12.5%, a trend
+also observed in both IDDS-variant methods. This suggests
+that these methods can effectively identify informative sam-
+ples even with a limited amount of data, ensuring efficient
+model optimization. Among them, our approach exhibits
+the most significant advantage, further demonstrating its
+effectiveness in balancing stability and refusal performance.
+
+Figures 3(b) and 3(c) compare the stability performance of
+different training approaches, including the original model,
+the SFT model trained on 100% of the data, a DPO-trained
+model using 100% of the data, and a DPO-trained model
+using only 25% of the data selected by our method. While
+fine-tuning achieves strong rejection capabilities, it signif-
+icantly reduces stability compared to the original model,
+indicating a trade-off between the two objectives. In con-
+trast, DPO training with 100% of the data reduces rejection
+performance compared to the SFT model but significantly
+improves stability, suggesting that optimizing for preference
+learning helps maintain correct answers. Furthermore, DPO
+training with 25% data selected by our method improves sta-
+bility without compromising rejection performance, demon-
+strating that our approach effectively balances both goals
+and enhances the model’s overall robustness.
+
+6.3. Ablation Study
+
+For the ablation experiment, we used a quarter of the dataset
+to compare performance under different conditions, with the
+results presented in Table 3. Using only reference similarity
+(ras − q) as the overall sample similarity achieves stability
+performance comparable to our method but significantly
+underperforms in refusal accuracy. This is because the
+reference, as the most informative attribute, helps select
+diverse samples, enhancing stability. However, ignoring
+the influence of queries fails to distinguish samples with
+similar references but different questions. In such cases,
+the model may correctly answer some queries while failing
+others, making it difficult to determine when to refuse an
+answer, ultimately leading to weaker refusal performance.
+
+Incorporating the answer (ras + a) slightly improves refusal
+performance compared to using only the reference but still
+falls short of our method, while its stability performance
+
+is the worst among the three approaches. Since responses
+are generated based on queries and references, most of their
+content already exists within these inputs, even if the re-
+sponse itself is incorrect. This redundancy hinders effective
+sample differentiation, leading to diverse but lower-quality
+selections, degrading the model’s performance in both tasks.
+
+6.4. Impact of different vectorization methods
+
+To explore the influence of different vectorization methods
+on the model performance, we selected two pre-trained
+text embedding models for comparison. One is Sentence-
+BERT (Reimers, 2019), which is widely used in AL research.
+The other one is stella1, a 1.5B model ranked highly on
+the MTEB (Muennighoff et al., 2022) leaderboard2. Table
+4 shows the performance of TF-IDF and these two text
+embedding models with a quarter of the data.
+
+The two pre-trained models demonstrate comparable perfor-
+mance across tasks but slightly underperform compared to
+TF-IDF in both stability and rejection tasks. This discrep-
+ancy likely stems from fundamental differences in their ap-
+proach: pre-trained models focus on capturing deep seman-
+tic relationships, while TF-IDF emphasizes surface-level
+text form and structure. This distinction allows TF-IDF to
+better differentiate samples with similar meanings but vary-
+ing expressions and labels, making it particularly effective
+at identifying fine-grained variations. These nuanced sam-
+ples are highly valuable for training, as they enhance the
+model’s ability to recognize subtle distinctions in responses.
+Consequently, TF-IDF’s strength in capturing these textual
+differences contributes to its superior performance in both
+stability and rejection tasks, highlighting the importance of
+structural awareness in sample selection.
+
+7. Conclusion
+
+In this work, we introduce AL4RAG, the first AL framework
+for RAG, proposing an effective selection strategy tailored
+to the unique data patterns of RAG. To improve sample dif-
+ferentiation, we develop retrieval-augmented similarity (ras),
+enabling more accurate measurement of sample distances.
+Additionally, we expand the RAGTruth dataset and con-
+struct the first human preference dataset for RAG, allowing
+models to handle both hallucination-prone and answerable
+queries effectively. Extensive AL-driven optimization on
+the constructed dataset demonstrates that our approach con-
+sistently outperforms baselines, enhancing both response
+stability and the model’s ability to reject unreliable queries.
+These contributions provide a strong foundation for advanc-
+ing RAG-based learning and optimizing LLMs with external
+knowledge.
+
+1https://huggingface.co/dunzhang/stella en 1.5B v5
+2https://huggingface.co/spaces/mteb/leaderboard
+
+8
+
+Enhancing RAG with Active Learning on Conversation Records
+
+Impact Statement
+
+There may be potential social consequences of our work. In
+the context of data privacy, the use of historical conversation
+records is a critical concern. As we rely on these records
+to train and optimize the model, there is a potential risk of
+exposing sensitive user information. If proper security mea-
+sures are not in place, this could lead to privacy breaches,
+where personal details, opinions, or interactions captured in
+the conversations might be accessed without authorization.
+
+References
+
+Duan, L. Research on relation extraction method based on
+active learning. International Journal of Computer and
+Information System (IJCIS), 5(2):92–101, 2024.
+
+Gidiotis, A. and Tsoumakas, G. Should we trust this sum-
+mary? bayesian abstractive summarization to the rescue.
+In Findings of the Association for Computational Linguis-
+tics: ACL 2022, pp. 4119–4131, 2022.
+
+Hasan, M., Paul, S., Mourikis, A. I., and Roy-Chowdhury,
+A. K. Context-aware query selection for active learning in
+event recognition. IEEE transactions on pattern analysis
+and machine intelligence, 42(3):554–567, 2018.
+
+Abburi, H., Suesserman, M., Pudota, N., Veeramani, B.,
+Bowen, E., and Bhattacharya, S. Generative ai text clas-
+sification using ensemble llm approaches. arXiv preprint
+arXiv:2309.07755, 2023.
+
+Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang,
+S., Wang, L., and Chen, W. Lora: Low-rank adaptation of
+large language models. arXiv preprint arXiv:2106.09685,
+2021.
+
+Achiam, J., Adler, S., Agarwal, S., Ahmad, L., Akkaya, I.,
+Aleman, F. L., Almeida, D., Altenschmidt, J., Altman, S.,
+Anadkat, S., et al. Gpt-4 technical report. arXiv preprint
+arXiv:2303.08774, 2023.
+
+Agarwal, S., Arora, H., Anand, S., and Arora, C. Contextual
+diversity for active learning. In Computer Vision–ECCV
+2020: 16th European Conference, Glasgow, UK, August
+23–28, 2020, Proceedings, Part XVI 16, pp. 137–153.
+Springer, 2020.
+
+Anthropic, A. Claude 3.5 sonnet model card addendum.
+
+Claude-3.5 Model Card, 2, 2024.
+
+Bai, Y., Jones, A., Ndousse, K., Askell, A., Chen, A., Das-
+Sarma, N., Drain, D., Fort, S., Ganguli, D., Henighan, T.,
+et al. Training a helpful and harmless assistant with rein-
+forcement learning from human feedback. arXiv preprint
+arXiv:2204.05862, 2022.
+
+Bayer, M. and Reuter, C. Activellm: Large language model-
+based active learning for textual few-shot scenarios. arXiv
+preprint arXiv:2405.10808, 2024.
+
+Beluch, W. H., Genewein, T., N¨urnberger, A., and K¨ohler,
+J. M. The power of ensembles for active learning in image
+classification. In Proceedings of the IEEE conference on
+computer vision and pattern recognition, pp. 9368–9377,
+2018.
+
+Budd, S., Robinson, E. C., and Kainz, B. A survey on
+active learning and human-in-the-loop deep learning for
+medical image analysis. Medical image analysis, 71:
+102062, 2021.
+
+Huang, L., Yu, W., Ma, W., Zhong, W., Feng, Z., Wang, H.,
+Chen, Q., Peng, W., Feng, X., Qin, B., et al. A survey on
+hallucination in large language models: Principles, taxon-
+omy, challenges, and open questions. ACM Transactions
+on Information Systems, 2023.
+
+Jin, H., Zhang, Y., Meng, D., Wang, J., and Tan, J. A
+comprehensive survey on process-oriented automatic text
+summarization with exploration of llm-based methods.
+arXiv preprint arXiv:2403.02901, 2024.
+
+Jin, Q., Yuan, M., Qiao, Q., and Song, Z. One-shot active
+learning for image segmentation via contrastive learning
+and diversity-based sampling. Knowledge-Based Systems,
+241:108278, 2022.
+
+Karamcheti, S., Krishna, R., Fei-Fei, L., and Manning, C. D.
+Mind your outliers! investigating the negative impact
+of outliers on active learning for visual question answer-
+ing. In Proceedings of the 59th Annual Meeting of the
+Association for Computational Linguistics and the 11th
+International Joint Conference on Natural Language Pro-
+cessing (Volume 1: Long Papers), pp. 7265–7281, 2021.
+
+Khaki, S., Li, J., Ma, L., Yang, L., and Ramachandra, P.
+Rs-dpo: A hybrid rejection sampling and direct prefer-
+ence optimization method for alignment of large language
+models. arXiv preprint arXiv:2402.10038, 2024.
+
+Kholodna, N., Julka, S., Khodadadi, M., Gumus, M. N.,
+and Granitzer, M. Llms in the loop: Leveraging large
+language model annotations for active learning in low-
+resource languages. In Joint European Conference on Ma-
+chine Learning and Knowledge Discovery in Databases,
+pp. 397–412. Springer, 2024.
+
+Chen, J., Lin, H., Han, X., and Sun, L. Benchmarking large
+language models in retrieval-augmented generation. In
+Proceedings of the AAAI Conference on Artificial Intelli-
+gence, volume 38, pp. 17754–17762, 2024.
+
+Kim, K., Park, D., Kim, K. I., and Chun, S. Y. Task-aware
+variational adversarial active learning. In Proceedings of
+the IEEE/CVF conference on computer vision and pattern
+recognition, pp. 8166–8175, 2021.
+
+9
+
+Enhancing RAG with Active Learning on Conversation Records
+
+Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V.,
+Goyal, N., K¨uttler, H., Lewis, M., Yih, W.-t., Rockt¨aschel,
+T., et al. Retrieval-augmented generation for knowledge-
+intensive nlp tasks. Advances in Neural Information Pro-
+cessing Systems, 33:9459–9474, 2020.
+
+Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C.,
+Mishkin, P., Zhang, C., Agarwal, S., Slama, K., Ray, A.,
+et al. Training language models to follow instructions
+with human feedback. Advances in neural information
+processing systems, 35:27730–27744, 2022.
+
+Li, D., Zhang, Y., Wang, Z., Tan, S., Kosugi, S., and Oku-
+mura, M. Active learning for abstractive text summa-
+rization via llm-determined curriculum and certainty gain
+maximization. In Findings of the Association for Com-
+putational Linguistics: EMNLP 2024, pp. 8959–8971,
+2024a.
+
+Li, S., Phillips, J. M., Yu, X., Kirby, R., and Zhe, S. Batch
+multi-fidelity active learning with budget constraints. Ad-
+vances in Neural Information Processing Systems, 35:
+995–1007, 2022.
+
+Li, Y., Wang, H., Xu, W., Xiao, T., Liu, H., Tu, M., Wang, Y.,
+Yang, X., Zhang, R., Yu, S., Guo, S., and Li, R. Unleash-
+ing the power of continual learning on non-centralized
+devices: A survey. CoRR, abs/2412.13840, 2024b.
+
+Li, Z., Qu, L., Cohen, P. R., Tumuluri, R., and Haffari, G.
+The best of both worlds: Combining human and machine
+translations for multilingual semantic parsing with active
+learning. In Proceedings of the 61st Annual Meeting of
+the Association for Computational Linguistics (Volume 1:
+Long Papers), pp. 9511–9528, 2023.
+
+Liu, Z., Ding, H., Zhong, H., Li, W., Dai, J., and He, C.
+Influence selection for active learning. In Proceedings
+of the IEEE/CVF international conference on computer
+vision, pp. 9274–9283, 2021.
+
+Maekawa, S., Zhang, D., Kim, H., Rahman, S., and Hr-
+uschka, E. Low-resource interactive active labeling for
+fine-tuning language models. In Findings of the Associ-
+ation for Computational Linguistics: EMNLP 2022, pp.
+3230–3242, 2022.
+
+Margatina, K., Schick, T., Aletras, N., and Dwivedi-Yu, J.
+Active learning principles for in-context learning with
+large language models. In Findings of the Association
+for Computational Linguistics: EMNLP 2023, pp. 5011–
+5034, 2023.
+
+Muennighoff, N., Tazi, N., Magne, L., and Reimers, N.
+arXiv
+
+Mteb: Massive text embedding benchmark.
+preprint arXiv:2210.07316, 2022.
+
+Padmakumar, A. and Mooney, R. J. Dialog policy learn-
+ing for joint clarification and active learning queries. In
+Proceedings of the AAAI Conference on Artificial Intelli-
+gence, volume 35, pp. 13604–13612, 2021.
+
+Rafailov, R., Sharma, A., Mitchell, E., Manning, C. D., Er-
+mon, S., and Finn, C. Direct preference optimization:
+Your language model is secretly a reward model. Ad-
+vances in Neural Information Processing Systems, 36,
+2024.
+
+Reimers, N. Sentence-bert: Sentence embeddings using
+siamese bert-networks. arXiv preprint arXiv:1908.10084,
+2019.
+
+Rouzegar, H. and Makrehchi, M. Enhancing text classi-
+fication through llm-driven active learning and human
+annotation. In Proceedings of The 18th Linguistic Anno-
+tation Workshop (LAW-XVIII), pp. 98–111, 2024.
+
+Schr¨oder, C., Niekler, A., and Potthast, M. Revisiting
+uncertainty-based query strategies for active learning with
+transformers. arXiv preprint arXiv:2107.05687, 2021.
+
+Sener, O. and Savarese, S. Active learning for convolutional
+neural networks: A core-set approach. arXiv preprint
+arXiv:1708.00489, 2017.
+
+Settles, B. Active learning literature survey. Science, 10(3):
+
+237–304, 1995.
+
+Shi, T., Benton, A., Malioutov, I., and ˙Irsoy, O. Diversity-
+aware batch active learning for dependency parsing. In
+Proceedings of the 2021 Conference of the North Amer-
+ican Chapter of the Association for Computational Lin-
+guistics: Human Language Technologies, pp. 2616–2626,
+2021.
+
+Sinha, S., Ebrahimi, S., and Darrell, T. Variational adver-
+sarial active learning. In Proceedings of the IEEE/CVF
+international conference on computer vision, pp. 5972–
+5981, 2019.
+
+Snijders, A., Kiela, D., and Margatina, K. Investigating
+multi-source active learning for natural language infer-
+ence. In Proceedings of the 17th Conference of the Eu-
+ropean Chapter of the Association for Computational
+Linguistics, pp. 2187–2209, 2023.
+
+Niu, C., Wu, Y., Zhu, J., Xu, S., Shum, K., Zhong, R.,
+Song, J., and Zhang, T. Ragtruth: A hallucination corpus
+for developing trustworthy retrieval-augmented language
+models. arXiv preprint arXiv:2401.00396, 2023.
+
+Tan, W., Du, L., and Buntine, W. Diversity enhanced active
+learning with strictly proper scoring rules. Advances
+in Neural Information Processing Systems, 34:10906–
+10918, 2021.
+
+10
+
+Enhancing RAG with Active Learning on Conversation Records
+
+Tan, Z., Li, D., Wang, S., Beigi, A., Jiang, B., Bhattacharjee,
+A., Karami, M., Li, J., Cheng, L., and Liu, H. Large
+language models for data annotation: A survey. arXiv
+preprint arXiv:2402.13446, 2024.
+
+Taneja, K. and Goel, A. Can active label correction im-
+prove llm-based modular ai systems? In Proceedings of
+the 2024 Conference on Empirical Methods in Natural
+Language Processing, pp. 9019–9031, 2024.
+
+Team, G., Georgiev, P., Lei, V. I., Burnell, R., Bai, L.,
+Gulati, A., Tanzer, G., Vincent, D., Pan, Z., Wang, S.,
+et al. Gemini 1.5: Unlocking multimodal understand-
+ing across millions of tokens of context. arXiv preprint
+arXiv:2403.05530, 2024.
+
+Touvron, H., Martin, L., Stone, K., Albert, P., Almahairi,
+A., Babaei, Y., Bashlykov, N., Batra, S., Bhargava, P.,
+Bhosale, S., et al. Llama 2: Open foundation and fine-
+tuned chat models. arXiv preprint arXiv:2307.09288,
+2023.
+
+Tsvigun, A., Lysenko, I., Sedashov, D., Lazichny, I.,
+Damirov, E., Karlov, V., Belousov, A., Sanochkin, L.,
+Panov, M., Panchenko, A., et al. Active learning for
+abstractive text summarization. In Findings of the Associ-
+ation for Computational Linguistics: EMNLP 2022, pp.
+5128–5152, 2022.
+
+Tuia, D., Volpi, M., Copa, L., Kanevski, M., and Munoz-
+Mari, J. A survey of active learning algorithms for super-
+vised remote sensing image classification. arXiv preprint
+arXiv:2104.07784, 2021.
+
+Wang, D. and Shang, Y. A new active labeling method for
+deep learning. In 2014 International joint conference on
+neural networks (IJCNN), pp. 112–119. IEEE, 2014.
+
+Wang, H., Xu, H., Li, Y., Xu, Y., Li, R., and Zhang, T. Fed-
+cda: Federated learning with cross-rounds divergence-
+aware aggregation. In The Twelfth International Confer-
+ence on Learning Representations, ICLR 2024, Vienna,
+Austria, May 7-11, 2024.
+
+Wang, H., Jin, Q., Li, S., Liu, S., Wang, M., and Song, Z.
+A comprehensive survey on deep active learning and its
+applications in medical image analysis. arXiv preprint
+arXiv:2310.14230, 2023.
+
+Wang, H., Jia, Y., Zhang, M., Hu, Q., Ren, H., Sun, P.,
+Wen, Y., and Zhang, T. Feddse: Distribution-aware sub-
+model extraction for federated learning over resource-
+constrained devices. In Proceedings of the ACM on Web
+Conference 2024, WWW 2024, Singapore, May 13-17,
+2024, pp. 2902–2913. ACM, 2024a.
+
+Wang, H., Zheng, P., Han, X., Xu, W., Li, R., and Zhang,
+T. Fednlr: Federated learning with neuron-wise learn-
+In Proceedings of the 30th ACM SIGKDD
+ing rates.
+Conference on Knowledge Discovery and Data Mining,
+KDD 2024, Barcelona, Spain, August 25-29, 2024, pp.
+3069–3080. ACM, 2024b.
+
+Wood, M. C. and Forbes, A. A. 100% hallucination elim-
+ination using acurai. arXiv preprint arXiv:2412.05223,
+2024.
+
+Xiao, R., Dong, Y., Zhao, J., Wu, R., Lin, M., Chen, G., and
+Wang, H. Freeal: Towards human-free active learning
+in the era of large language models. In Proceedings of
+the 2023 Conference on Empirical Methods in Natural
+Language Processing, pp. 14520–14535, 2023.
+
+Xiao, T. Z., Gomez, A. N., and Gal, Y. Wat zei je? de-
+tecting out-of-distribution translations with variational
+transformers. arXiv preprint arXiv:2006.08344, 2020.
+
+Xie, Y., Lu, H., Yan, J., Yang, X., Tomizuka, M., and Zhan,
+W. Active finetuning: Exploiting annotation budget in the
+pretraining-finetuning paradigm. In Proceedings of the
+IEEE/CVF Conference on Computer Vision and Pattern
+Recognition, pp. 23715–23724, 2023.
+
+Xu, W., Chen, J., Zheng, P., Yi, X., Tian, T., Zhu, W., Wan,
+Q., Wang, H., Fan, Y., Su, Q., and Shen, X. Deploy-
+ing foundation model powered agent services: A survey.
+CoRR, abs/2412.13437, 2024a.
+
+Xu, Z., Liu, Z., Liu, Y., Xiong, C., Yan, Y., Wang, S.,
+Yu, S., Liu, Z., and Yu, G. Activerag: Revealing the
+treasures of knowledge via active learning. arXiv preprint
+arXiv:2402.13547, 2024b.
+
+Yan, Y.-F., Huang, S.-J., Chen, S., Liao, M., and Xu, J.
+Active learning with query generation for cost-effective
+text classification. In Proceedings of the AAAI Conference
+on Artificial Intelligence, volume 34, pp. 6583–6590,
+2020.
+
+Zhang, R., Li, Y., Ma, Y., Zhou, M., and Zou, L. Llmaaa:
+Making large language models as active annotators. In
+Findings of the Association for Computational Linguis-
+tics: EMNLP 2023, pp. 13088–13103, 2023.
+
+Zhang, Z., Strubell, E., and Hovy, E. A survey of active
+learning for natural language processing. In Proceedings
+of the 2022 Conference on Empirical Methods in Natural
+Language Processing, pp. 6166–6190, 2022.
+
+Zhuang, Y., Yu, Y., Wang, K., Sun, H., and Zhang, C.
+Toolqa: A dataset for llm question answering with exter-
+nal tools. Advances in Neural Information Processing
+Systems, 36:50117–50143, 2023.
+
+11

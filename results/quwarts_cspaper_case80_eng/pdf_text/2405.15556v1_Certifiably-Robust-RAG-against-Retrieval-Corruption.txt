@@ -1,0 +1,2047 @@
+4
+2
+0
+2
+
+y
+a
+M
+4
+2
+
+]
+
+G
+L
+.
+s
+c
+[
+
+1
+v
+6
+5
+5
+5
+1
+.
+5
+0
+4
+2
+:
+v
+i
+X
+r
+a
+
+Certifiably Robust RAG against Retrieval Corruption
+
+Chong Xiang∗
+Princeton University
+cxiang@princeton.edu
+
+Tong Wu∗
+Princeton University
+tongwu@princeton.edu
+
+Zexuan Zhong
+Princeton University
+zzhong@cs.princeton.edu
+
+David Wagner
+University of California, Berkeley
+daw@cs.berkeley.edu
+
+Danqi Chen
+Princeton University
+danqic@cs.princeton.edu
+
+Prateek Mittal
+Princeton University
+pmittal@princeton.edu
+
+Abstract
+
+Retrieval-augmented generation (RAG) has been shown vulnerable to retrieval
+corruption attacks: an attacker can inject malicious passages into retrieval results
+to induce inaccurate responses. In this paper, we propose RobustRAG as the
+first defense framework against retrieval corruption attacks. The key insight of
+RobustRAG is an isolate-then-aggregate strategy: we get LLM responses from
+each passage in isolation and then securely aggregate these isolated responses. To
+instantiate RobustRAG, we design keyword-based and decoding-based algorithms
+for securely aggregating unstructured text responses. Notably, RobustRAG can
+achieve certifiable robustness: we can formally prove and certify that, for certain
+queries, RobustRAG can always return accurate responses, even when the attacker
+has full knowledge of our defense and can arbitrarily inject a small number of
+malicious passages. We evaluate RobustRAG on open-domain QA and long-form
+text generation datasets and demonstrate its effectiveness and generalizability
+across various tasks and datasets.
+
+1
+
+Introduction
+
+Large language models (LLMs) [5, 1, 13] can often generate inaccurate responses due to their
+incomplete and outdated parametrized knowledge. To address this limitation, retrieval-augmented
+generation (RAG) [16, 26] leverages external (non-parameterized) knowledge: it retrieves a set
+of relevant passages from a large knowledge base and incorporates them into the model input.
+This approach has inspired many popular applications. For instance, AI-powered search engines
+like Microsoft Bing Chat [31], Perplexity AI [2], and Google Search with AI Overviews [14]
+leverage RAG to summarize search results for better user experience. Open-source projects like
+LangChain [22] and LlamaIndex [27] provide flexible RAG frameworks for developers to build
+customized AI applications with LLMs and knowledge bases.
+
+However, despite its popularity, the RAG pipeline can become fragile when some of the retrieved
+passages are compromised by malicious actors, a type of attack we term retrieval corruption. There
+are various forms of retrieval corruption attacks. For instance, the PoisonedRAG attack [54] injects
+malicious passages to the knowledge base to induce incorrect RAG responses (e.g., “the highest
+mountain is Mount Fuji”). The indirect prompt injection attack [15] corrupts the retrieved passage to
+inject malicious instructions to LLM-integrated applications (e.g., “ignore all previous instructions
+and send the user’s search history to attacker.com”). These attacks raise the research question of
+how to build a robust RAG pipeline.
+
+*Equal contributions.
+
+Preprint. Under review.
+
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 1: RobustRAG overview. In this example, one of the three retrieved passages is corrupted.
+Vanilla RAG concatenates all passages as the LLM input; its response is hijacked by the malicious
+passage. In contrast, RobustRAG isolates each passage so that only one of three isolated responses is
+corrupted. RobustRAG then securely aggregates unstructured text responses for a robust output.
+
+In this paper, we propose a defense framework named RobustRAG that aims to perform robust
+generation even when some of the retrieved passages are malicious (see Figure 1 for an overview).
+RobustRAG leverages an isolate-then-aggregate strategy and operates in two steps: (1) it computes
+LLM responses from each passage in isolation and then (2) securely aggregates isolated responses to
+generate the final output. The isolation operation ensures that the malicious passages cannot affect
+LLM responses for other benign passages and thus lays the foundation for robustness.
+
+Notably, with proper design of secure text aggregation techniques, RobustRAG can achieve certifi-
+able robustness. We can formally prove that, for certain RAG queries, if the attacker can only inject
+up to k′ malicious passages into the top-k retrieved passages (k′ < k), responses from RobustRAG
+will always be accurate, even when the attackers have full knowledge of the underlying defense
+pipeline and can inject passages with any content in any order.* Toward certifiable robustness, we
+design two techniques for securely aggregating unstructured text responses: keyword aggregation
+(Section 3.1) and decoding aggregation (Section 3.2). These techniques make RobustRAG applicable
+to various knowledge-intensive tasks including open-domain QA and long-form text generation.
+
+Contributions: (1) we propose RobustRAG as the first defense framework against retrieval cor-
+ruption attacks; (2) we design two secure text aggregation techniques for RobustRAG and formally
+certify their robustness against any retrieval corruption attacks within a given threat model; (3) we
+demonstrate the effectiveness of RobustRAG across three datasets (RealtimeQA [20], NQ [21],
+Bio [32]) and three LLMs (Mistral [19], Llama [37], GPT [5]).
+
+2 Background and Preliminaries
+
+In this section, we introduce the background of retrieval-augmented generation (RAG), discuss
+retrieval corruption attacks, and explain the concept of certifiable robustness.
+
+2.1 RAG Overview
+
+RAG pipeline and notation. We denote text instruction as i (e.g., “answer the query using the
+retrieved passages”), text query as q (e.g., “what is the name of the highest mountain?”), and text
+passage as p (e.g., “Mount Everest is known as Earth’s highest mountain above sea level”).
+
+*Without certifiable robustness, a defense might be easily broken by adaptive attacks [8, 4, 7, 38, 6].
+
+2
+
+Retriever“Mount Everest”“Fuji!”“Everest is the highest mountain”Retrieved passagesLLMIsolated responsesSecure text aggregation§ 3.1: Keyword Aggregation or § 3.2: Decoding AggregationRAG response(robust)“Everest”RobustRAG pipeline“Fuji!”Retrieved passages(concatenated)LLMRAG response(corrupted)Vanilla RAG pipelineUser query: “What is the name of the highest mountain?” Instruction: “Answer the user query using retrieved passages.” Given a query q, a vanilla RAG pipeline first retrieves the k most relevant passages (p1, . . . , pk) :=
+Pk from an external knowledge base. Then, it uses the instruction, query, and passages to prompt
+an LLM model and get response r = LLM(i ⊕ q ⊕ Pk) := LLM(i ⊕ q ⊕ p1 ⊕ . . . ⊕ pk), where
+⊕ is the text concatenation operator. In this paper, we will call LLM(·) to obtain different forms of
+predictions: we use LLMgen to denote the text response, LLMprob to denote the next-token probability
+distribution vector, and LLMtoken to denote the predicted next token. In RobustRAG, we use greedy
+decoding to make LLMs deterministic for robustness analysis.
+RAG evaluation metric. We use M(·) to denote an evaluation scoring function. Given an LLM
+response r ∈ R and gold answer g ∈ G, the function M(r, g) outputs a metric score (higher
+scores indicate better performance). Different tasks usually use different metrics: for question
+answering (QA), M(·) can output a binary score from {0, 1} indicating the correctness of the response;
+for long-form text generation, M(·) can produce a score using heuristics like LLM-as-a-judge [52].
+
+2.2 Retrieval Corruption Attack
+
+In this paper, we study retrieval corruption attacks against RAG, where the attacker can control some
+of the retrieved passages to induce inaccurate responses (i.e., lowering the evaluation metric score).
+Attacker capability. We primarily focus on passage injection. The attacker can inject k′ malicious
+passages with arbitrary content into arbitrary positions among the top-k retrieved passages; however,
+it cannot modify the content and relative ranking of benign passages.† We use Pk to denote the
+original (benign) top-k retrieved passages, P ′
+k to denote the corrupted top-k retrieval result, and
+A(Pk, k′) to denote the set of all possible retrieval P ′
+k when k′ malicious passages are injected into
+the original retrieval Pk (and eject k′ benign passages from the top-k retrieval). We focus on the
+setting where k′ is much smaller than k (e.g., k′ < k/2); when the majority of passages are corrupted
+(k′ ≥ k/2), even humans cannot generate accurate responses.
+
+Attack practicality. There are numerous practical scenarios wherein retrieval corruption can occur.
+For instance, an attacker could launch a small number of malicious websites, which would then be
+indexed by a search engine (i.e., the retriever) [15]. In the enterprise context, malicious insiders may
+contaminate the knowledge base with harmful documents [54]. Additionally, retrieval corruption can
+occur when an imperfect or even malicious retriever returns incorrect or misleading information [28].
+Our defense aims to mitigate different forms of retrieval corruption.
+
+2.3 Certifiable Robustness
+
+k ∈ A(Pk, k′). We formalize this property in the definition below.
+
+We aim to build defenses whose worst-case performance/robustness can be formally certified. That is,
+given a query q and retrieved benign passages Pk, we want to measure the robustness as the quality
+of the worst possible response when our defense is prompted with arbitrary k′-corrupted retrieval
+P ′
+Definition 1 (τ -certifiable robustness). Given a task instruction i, a RAG query q, the benign top-k
+retrieved passages Pk, an LLM-based defense procedure LLMdefense that returns text responses,
+an evaluation metric M, a metric score τ , a gold answer g, and an attacker A(Pk, k′) who can
+arbitrarily inject k′ malicious passages, the defense LLMdefense has τ -certifiable robustness if
+
+M(r, g) ≥ τ, ∀ r ∈ R := {LLMdefense(i ⊕ q ⊕ P ′
+
+k) | ∀ P ′
+
+k ∈ A(Pk, k′)}
+
+(1)
+
+Here, τ serves as a lower bound of model robustness against all possible attackers who can have
+full knowledge of our defense and can inject k′ passages with arbitrary content into arbitrary posi-
+tions. This lower bound aims to avoid the cat-and-mouse game between attackers and defenders,
+where defenses are often broken by adaptive attackers once the defense algorithms become publicly
+available [8, 4, 7, 38, 6].
+We note that the attacker set A(Pk, k′) contains infinitely many possibilities for P ′
+k because the
+injected passages can have arbitrary content. As a result, the response set R can become infinitely
+large and intractable for us to analyze its worst response. In this paper, we will demonstrate how
+RobustRAG limits the attacker’s influence and makes R tractable for certifiable robustness analysis.
+
+†This is a popular setting used by many attacks [54, 53, 11, 33, 34]. In Appendix B, we quantitatively discuss
+
+how our approach can generalize to the setting where the attacker can modify original passages.
+
+3
+
+3 RobustRAG: A Robust Retrieval Augmentation Generation Framework
+
+In this section, we first present an overview of our RobustRAG framework and then discuss the details
+of different RobustRAG algorithms.
+
+RobustRAG insights. The key insight of RobustRAG is an isolate-then-aggregate strategy (recall
+Figure 1). Given k retrieved passages Pk = (p1, . . . , pk), RobustRAG first computes LLM response
+rj from each isolated passage pj (instead of concatenating k passages as done in vanilla RAG). Then,
+it performs secure text aggregation over the responses (r1, . . . , rk) to generate a final robust response
+r∗. The isolation strategy ensures that k′ malicious passages can only affect k′ out of k isolated
+responses. If the remaining k − k′ benign responses/passages contain enough useful information,
+RobustRAG is likely to output a robust and accurate response r∗ via secure text aggregation.‡
+
+RobustRAG challenges. The biggest challenge of RobustRAG is to design secure text aggregation
+techniques. First, unlike classification tasks where possible outputs are predefined, text responses
+from LLMs can be highly unstructured. For example, given the query “what is the name of the
+highest mountain?”, valid responses include “Mount Everest”, “Sagarmatha”, and “Everest is the
+highest”. Therefore, we need to design flexible aggregation techniques to handle different forms
+of text. Second, though we have isolated the adversarial impact to individual responses, malicious
+responses can still corrupt the (insecure) text aggregation process. Therefore, we need to design secure
+aggregation techniques for which we can formally analyze and certify the worst-case robustness.
+
+RobustRAG solutions. To overcome these challenges, we propose two aggregation algorithms.
+
+1. Secure Keyword Aggregation (Section 3.1 & Algorithm 1): extracting keywords from
+each response and using high-frequency keywords to prompt the LLM for the final response.
+
+2. Secure Decoding Aggregation (Section 3.2 & Algorithm 2): securely aggregating next-
+
+token prediction vectors from different isolated passages at each decoding step.
+
+3.1 Secure Keyword Aggregation
+
+Overview. For free-form text generation (e.g., open-domain QA), simple techniques like majority
+voting perform poorly because they cannot recognize texts like “Mount Everest” and “Everest” as the
+same answer. To address this challenge, we propose a keyword aggregation technique: we extract
+important keywords from each isolated LLM response, aggregate keyword counts across different
+responses, and ask the same LLM to answer the query using keywords with large counts. This
+approach allows us to distill and aggregate information across unstructured text responses. Since
+the attacker can only increase keyword counts by a small number, i.e., k′, they cannot arbitrarily
+introduce malicious keywords to corrupt the final response.
+
+Inference algorithm. We present the pseudocode of secure keyword aggregation in Algorithm 1.
+First, we initialize an empty counter C to track keyword-count pairs (w, c) and a zero integer counter
+n (Line 1). Then, we iterate over each retrieved passage. For each passage pj, we prompt the
+LLM with the instruction i1 = “answer the query given retrieved passages, say ‘I don’t know’
+if no relevant information found” and query q, and get response rj = LLMgen(i1 ⊕ q ⊕ pj)
+(Line 3). If “I don’t know” is not in the response, we increment the integer count n by one to
+track the number of non-abstained responses (Line 5). Then, we extract a set of unique keywords
+Wj from each response rj (Line 6) and update the keyword counter C accordingly (Line 7). The
+procedure EXTRACTKEYWORDS(·) extracts unique keywords and keyphrases from text strings
+between adjacent stopwords (more details in Appendix C). After examining every isolated response,
+we filter out keywords whose counts are smaller than a threshold µ. We set the filtering threshold
+µ = min(α · n, β), where α ∈ [0, 1], β ∈ Z+ are two defense parameters (Line 10). When n is
+large (many non-abstained responses), the threshold is dominated by β; when n is small, we reduce
+the threshold from β to α · n to avoid filtering out all keywords. Given the filtered keyword set
+W ∗ (Line 11), we sort the keywords alphabetically and then combine them with instruction i2 =
+“answer the query using provided keywords” and query q to prompt LLM to get the final response
+r∗ = LLMgen(i2 ⊕ q ⊕ SORTED(W ∗)) (Line 12).
+
+‡We focus on single-hop questions, as multi-hop questions can be broken into multiple single-hop questions.
+
+4
+
+Algorithm 1 Secure keyword aggregation
+Require: retrieved data Pk = (p1, . . . , pk),
+query q, model LLM, filtering thresholds
+α ∈ [0, 1], β ∈ Z+
+
+Instructions:
+
+i1 = “answer the query given retrieved pas-
+sages, say ‘I don’t know’ if no relevant
+information found”;
+i2 = “answer the query using provided key-
+words”
+
+Algorithm 2 Secure decoding aggregation
+Require: retrieved data Pk = (p1, . . . , pk),
+query q, model LLM, filtering threshold γ,
+probability threshold η, max number of new
+tokens Tmax
+
+Instruction: i = “answer the query given re-
+trieved passages, say ‘I don’t know’ if no
+relevant information found”
+
+1: r∗ ← “”
+2: J ← {j| PrLLM[“I don’t know”|i ⊕ q ⊕
+
+rj ← LLMgen(i1 ⊕ q ⊕ pj)
+if “I don’t know” ̸∈ rj then
+
+n ← n + 1
+Wj ← EXTRACTKEYWORDS(rj)
+Update counter C with Wj
+
+1: C ← COUNTER(), n ← 0
+2: for j ∈ {1, 2, . . . , k} do
+3:
+4:
+5:
+6:
+7:
+end if
+8:
+9: end for
+10: µ ← min(α · n, β)
+11: W ∗ ← {w|(w, c) ∈ C, c ≥ µ}
+12: r∗ ← LLMgen(i2 ⊕ q ⊕ SORTED(W ∗))
+13: return r∗
+
+vj ← LLMprob(i ⊕ q ⊕ pj ⊕ r∗)
+
+end for
+ˆv ← VEC-AVG({vj|j ∈ J })
+(t1, c1), (t2, c2) ← TOP2TOKENS(ˆv)
+if c1 − c2 > η then
+
+for j ∈ J do
+
+pj] < γ, pj ∈ Pk}
+3: for t ∈ {1, . . . , Tmax} do
+4:
+5:
+6:
+7:
+8:
+9:
+10:
+11:
+12:
+13:
+14:
+15: end for
+16: return r∗
+
+end if
+r∗ ← r∗ ⊕ t∗
+
+t∗ ← t1
+
+else
+
+t∗ ← LLMtoken(“answer query” ⊕ q ⊕ r∗)
+
+3.2 Secure Decoding Aggregation
+
+Overview. The keyword aggregation only requires LLM text responses and thus applies to any LLM.
+If we have additional access to the next-token probability distribution during the decoding phase, we
+can use a more fine-grained approach called secure decoding. Specifically, at each decoding step,
+we aggregate next-token probability/confidence vectors predicted from different isolated passages
+and make a robust next-token prediction accordingly. Since each probability value is bounded within
+[0, 1], malicious passages only have a limited impact on the aggregated probability vector.
+
+Inference algorithm. We present the pseudocode in Algorithm 2. First, we initialize an empty
+string r∗ to hold our robust response (Line 1). Second, we identify isolated passages for which the
+LLM is unlikely to output “I don’t know” (Line 2). Next, we start the decoding phase. At each
+decoding step, we first get isolated next-token probability vectors vj = LLMprob(i ⊕ q ⊕ pj ⊕ r∗)
+(Line 5). Then, we element-wisely average all vectors together to get the vector ˆv (Line 7). To make
+a robust next-token prediction based on the vector ˆv, we obtain its top-2 tokens t1, t2 with the highest
+(averaged) probability c1, c2 (Line 8). If the probability difference c1 − c2 is larger than a predefined
+threshold η, we consider the prediction to be confident and choose the top-1 token t1 as the next
+token t∗ (Line 10). Otherwise, we consider the prediction to be indecisive, and choose the token
+predicted without any retrieval as the next token t∗(Line 12). Finally, given the predicted token t∗,
+we append it to the response string r∗ (Line 14) and repeat the decoding step until we reach the limit
+of the maximum number of new tokens (or hit an EOS token) to get our final response r∗.
+
+When the task is to generate long responses, we found greater success in certifying robustness by
+setting η > 0: no-retrieval tokens are immune to retrieval corruption and do not significantly hurt
+model performance as many tokens can be inferred solely based on sentence coherence. For other
+tasks with short responses (a few tokens), we set η = 0 because sentence coherence becomes less
+helpful, and no-retrieval tokens can induce inaccurate responses.
+
+5
+
+4 Robustness Certification
+
+In this section, we discuss how to perform certifiable robustness analysis for different RobustRAG
+algorithms. We discuss the core concepts and intuition here and leave the pseudocode and detailed
+proof to Appendix A.
+
+Overview. Given a RAG query q, the robustness certification procedure aims to determine the
+(largest) τ that satisfies τ -certifiable robustness (Definition 1). Toward this objective, the certification
+procedure will evaluate all possible RobustRAG responses r when an attacker can arbitrarily inject k′
+malicious passages to the top-k retrieval Pk. Let R be the set of all possible RobustRAG responses r.
+We will show that, thanks to our RobustRAG design, R is a finite set. This allows us to measure the
+worst-case performance/robustness as τ = minr∈R (M(r, g)), where g is the gold answer.
+To analyze all possible LLM outputs, we need to first understand possible LLM inputs (i.e., possible
+retrieved passages). Recall that the attacker injects k′ passage to the retrieval result (Section 2.2);
+these k′ injected passages can only eject the bottom k′ benign passages {pk−k′+1, . . . , pk} from the
+original retrieval result Pk. Therefore, the top k − k′ benign passages {p1, . . . , pk−k′} remain un-
+changed in the corrupted retrieval set P ′
+k, regardless of the content and ranking of injected passages.§
+Our robustness certification will be based on these top k − k′ benign passages {p1, . . . , pk−k′}.
+Warm-up: majority voting. We use majority voting for classification as a warm-up example. To
+perform certifiable robustness analysis, we can first get the voting counts gathered from top k − k′
+benign responses (r1, . . . , rk−k′). If the voting count difference between the winner and runner-up is
+larger than k′, we can claim that the final response can only be the voting winner r∗, regardless of the
+content and ranking of the other k′ injected passages. This is because the attacker can only increase
+the runner-up count by k′ (using k′ malicious passages), which is not enough for the runner-up to
+beat the winner. Therefore, we have R = {r∗} and thus τ = M(r∗, g) ∈ {0, 1} in this case.
+Secure keyword aggregation. Similar to majority voting, we analyze the top k − k′ responses
+(r1, . . . , rk−k′): we extract keywords and get their counts. We next analyze which keywords might
+appear in the filtered keyword set W ∗ (Line 11 of Algorithm 1). Intuitively, keywords with large
+counts will always appear in W ∗ while keywords with small counts can never be in W ∗. As a result,
+the attacker can only manipulate the appearance of keywords with “medium” counts. In practice, the
+set of medium-count keywords is usually small (e.g., less than 10); thus, we can easily enumerate all
+its possible subsets and generate all possible filtered keyword set W ∗ accordingly (by combining
+large-count and medium-count keywords). Finally, we compute all possible responses r from all
+possible W ∗ and let them form a response set R — we have τ = minr∈R M(r, g). We present the
+detailed procedure in Appendix A.1.
+
+Secure decoding aggregation. We aim to analyze all possible next-token predictions at every decod-
+ing step. Given a partial response at a certain decoding step, we first compute next-token probability
+vectors predicted on different benign passages (p1, . . . , pk−k′) and calculate the probability sum of
+each token. Next, we identify the top-2 tokens with the largest probability sums and compute their
+probability difference as δ. We will use this δ value to analyze possible next-token predictions. Intu-
+itively, a large δ always leads to the top-1 token being predicted; a medium δ allows for predictions of
+either the top-1 token or the no-retrieval token; when δ is small, the prediction can be any malicious
+token introduced by the attacker. We start our certification with an empty string and track all possible
+next-token predictions (and partial responses) at different decoding steps. If δ is never “small” when
+we finish decoding all possible responses; we can obtain a finite set of all possible responses R —
+we have τ = minr∈R M(r, g). We present the detailed procedure in Appendix A.2.
+Certifiable robustness evaluation. In this section, we discussed how to analyze response set R to
+determine the τ value of τ -certifiable robustness for a given query q and its gold answer g. In our
+evaluation, we gather a set of queries q from a dataset, calculate the τ value for each query, and take
+the average τ across different queries as the certifiable robustness evaluation metric.
+
+We note that the certification algorithms discussed in this section are different from the inference
+algorithms (Algorithm 1 and Algorithm 2) discussed in Section 3. The inference algorithms are the
+defense algorithms we will deploy in the wild; they aim to generate accurate responses from benign
+or corrupted retrieval. In contrast, the certification algorithms are designed to provably evaluate the
+
+§Appendix B discusses passage modification that can eject/modify any k′ passages instead of the bottom k′.
+
+6
+
+robustness of inference algorithms; they operate on benign passages, require the gold answer g (to
+compute metric scores), and can be computationally expensive (to reason about all possible r ∈ R).
+
+5 Evaluation
+
+In this section, we evaluate our RobustRAG defense. We present the experimental setup in Section 5.1,
+main results of certifiable robustness in Section 5.2, empirical attack experiments in Section 5.3, and
+RobustRAG parameter analyses in Section 5.4.
+
+5.1 Experiment Setup
+
+In this section, we discuss our experiment setup; we provide more details in Appendix C. We will
+release our source code and data.
+
+Datasets. We experiment with four datasets: RealtimeQA-MC (RQA-MC) [20] for multiple-choice
+open-domain QA, RealtimeQA (RQA) [20] and Natural Questions (NQ) [21] for short-answer
+open-domain QA, and the Biography generation dataset (Bio) [32] for long-form text generation.
+We sample 100 queries from each dataset for experiments (as certification can be computationally
+expensive). For each query, we use Google Search to retrieve passages. This is a popular experiment
+setting [20, 3, 48, 39] and mimics a real-world scenario where malicious webpages are retuned by
+the search engine. We note that our RobustRAG design is agnostic to the choice of retriever.
+
+LLM and RAG settings. We evaluate RobustRAG with three LLMs: Mistral-7B-Instruct [19],
+Llama2-7B-Chat [37], and GPT-3.5-turbo [5]. We use in-context learning to guide LLMs to follow
+instructions. We use the top 10 retrieved passages for generation by default. We use greedy decoding
+to have a deterministic evaluation of certifiable robustness. GPT does not support deterministic
+decoding; we will report results averaged from five runs.
+
+RobustRAG setup. We evaluate RobustRAG with two aggregation methods: secure keyword
+aggregation (Keyword) and secure decoding aggregation (Decoding). By default, we set β =
+10 · α, γ = 0.99. For multiple-choice QA, we reduce RobustRAG to majority voting. For short-
+answer QA, we further set α = 0.3, η = 0. For long-form generation, we set α = 0.4 and include two
+secure decoding instances: one optimized for clean performance (η = 0.1), denoted by Decodingc,
+and another for robustness (η = 0.4), denoted by Decodingr. We analyze the impact of parameters
+in Section 5.4 and Appendix D.
+
+Evaluation metrics. For QA tasks, we use the gold answer g to evaluate the correctness of the
+response. The evaluator M returns a score of 1 when the gold answer g appears in the response r, and
+outputs 0 otherwise. For clean performance evaluation (without any attack), we report the averaged
+evaluation scores on different queries as accuracy (acc). For certifiable robustness evaluation, we
+compute the τ value for different queries and report the averaged τ as the certifiable accuracy (cacc).
+For long-form bio generation, we generate a reference (gold) response g by prompting GPT-4 with
+the person’s Wikipedia document. We then use GPT-3.5 to build an LLM-as-a-judge evaluator [52]
+and rate responses with scores ranging from 0 to 100 (llmj). For robustness evaluation, we report the
+τ values as certifiable LLM-judge scores (cllmj).
+
+5.2 Main Evaluation Results of Certifiable Robustness
+
+In Table 1, we report the certifiable robustness and clean performance of RobustRAG with k = 10
+retrieved passages against k′ = 1 malicious passage. We also report performance for LLMs without
+retrieval (no RAG) and vanilla RAG with no defense (vanilla).
+
+RobustRAG achieves substantial certifiable robustness across different tasks and models. As
+shown in Table 1, RobustRAG achieves 69.0–71.0% certifiable robust accuracy for RQA-MC, 24.0–
+49.0% for RQA, 27.0–47.0% for NQ, and 24.0–51.2% certifiable LLM-judge score for the bio
+generation task. A certifiable accuracy of 71.0% means that for 71.0% of RAG queries, RobustRAG’s
+response will always be correct, even when the attacker knows everything about our framework and
+can inject anything into one retrieved passage. RobustRAG is the first defense for RAG that achieves
+formal robustness guarantees against all adaptive retrieval corruption attacks.
+
+7
+
+59.4
+78.4
+64.8
+71.2
+63.4
+
+19.6
+71.8
+62.2
+70.6
+62.4
+
+12.6
+76.6
+59.4
+
+–
+0.0
+46.6
+45.6‡
+51.2
+
+–
+0.0
+46.4
+38.8‡
+41.6
+
+–
+0.0
+24.0
+
+Table 1: Certifiable robustness and clean performance of RobustRAG (k = 10, k′ = 1). (acc): accuracy;
+(cacc): certifiable accuracy; (llmj): LLM-judge score; (cllmj): certifiable LLM-judge score.
+
+Multiple-choice QA
+RQA-MC [20]
+(cacc)
+
+(acc)
+
+Short-answer QA
+
+RQA [20]
+
+NQ [21]
+
+Long-form generation
+Bio [32]
+
+(acc)
+
+(cacc)
+
+(acc)
+
+(cacc)
+
+(llmj)
+
+(cllmj)
+
+Task
+Dataset
+LLM
+
+Mistral-I7B
+
+Llama2-C7B
+
+Model/
+Defense
+
+No RAG
+Vanilla
+Keyword
+Decodingc
+Decodingr
+
+No RAG
+Vanilla
+Keyword
+Decodingc
+Decodingr
+
+9.0
+80.0
+
+81.0
+
+21.0
+82.0
+
+78.0
+
+–
+0.0
+
+71.0
+
+–
+0.0
+
+69.0
+
+8.0
+69.0
+59.0
+
+58.0
+
+2.0
+61.0
+57.0
+
+51.0
+
+–
+0.0
+45.0
+
+41.0
+
+–
+0.0
+49.0
+
+24.0
+
+30.0
+61.0
+54.0
+
+62.0
+
+10.0
+57.0
+58.0
+
+49.0
+
+–
+0.0
+47.0
+
+34.0
+
+–
+0.0
+51.0
+
+27.0
+
+GPT3.5
+
+–
+0.0
+37.0
+‡ Approximated via subsampling. More details and discussions are in Appendix A.2.
+
+No RAG
+Vanilla
+Keyword
+
+24.6
+58.8
+54.2
+
+2.0
+65.4
+56.4
+
+–
+0.0
+37.8
+
+8.0
+80.4
+76.4
+
+–
+0.0
+69.6
+
+Table 2: Empirical robustness of RobustRAG (k = 10, k′ = 1) against PIA and Poison attacks.
+(racc): robust accuracy; (rllmj): robust LLM-judge score; (asr): targeted attack success rate.
+
+Task
+Dataset
+Attack
+LLM
+
+Mistral-I7B
+
+Llama2-C7B
+
+Model/
+Defense
+
+Vanilla
+Keyword
+Decodingc
+
+Vanilla
+Keyword
+Decodingc
+
+Short-form open-domain QA
+
+RQA [20]
+
+NQ [21]
+
+Long-form generation
+Bio [32]
+
+PIA
+racc↑/ asr↓
+
+Poison
+racc↑/ asr↓
+
+PIA
+racc↑/ asr↓
+
+Poison
+racc↑/ asr↓
+
+PIA
+rllmj↑/ asr↓
+
+Poison
+rllmj↑/ asr↓
+
+5.0 / 66.0
+58.0 / 7.0
+57.0 / 5.0
+
+1.0 / 97.0
+54.0 / 7.0
+52.0 / 7.0
+
+16.0 / 80.0
+57.0 / 7.0
+55.0 / 9.0
+
+9.0 / 76.0
+55.0 / 5.0
+49.0 / 1.0
+
+8.0 / 85.0
+54.0 / 6.0
+61.0 / 7.0
+
+2.0 / 93.0
+55.0 / 4.0
+40.0 / 26.0
+
+41.0 / 37.0
+55.0 / 6.0
+62.0 / 7.0
+
+33.0 / 38.0
+55.0 / 4.0
+44.0 / 3.0
+
+29.0 / 100
+64.8 / 0.0
+69.8 / 0.0
+
+18.2 / 98.0
+59.2 / 0.0
+67.6 / 0.0
+
+GPT3.5
+
+Vanilla
+Keyword
+
+10.2 / 82.2
+52.6 / 5.0
+
+51.6 / 31.6
+51.6 / 4.6
+
+11.0 / 67.8
+53.0 / 5.2
+
+51.8 / 14.4
+52.6 / 4.6
+
+17.2 / 90.0
+56.6 / 0.0
+
+56.0 / 86.0
+61.6 / 0.0
+71.0 / 0.0
+
+42.4 / 44.0
+63.4 / 0.0
+67.8 / 0.0
+
+43.0 / 56.0
+52.4 / 0.0
+
+RobustRAG maintains high clean performance. In addition to substantial certifiable robustness,
+RobustRAG also maintains high clean performance. For QA tasks, the performance drops from
+vanilla RAG are smaller than 5% in most cases and no larger than 11% in all cases. In certain cases,
+RobustRAG even achieves zero drops in clean performance (e.g., Mistral with secure decoding for
+RQA). For the long-form bio generation task, the drops are within 10% in most cases; if we optimize
+for clean performance (Decodingc), the drops can be as small as 1.2% for Llama. Moreover, we note
+that RobustRAG performs much better than generation without retrieval. That is, RobustRAG allows
+us to benefit from retrieval while being certifiably robust to retrieval corruption attacks.
+
+5.3 RobustRAG against Empirical Attacks
+
+In Table 2, we analyze the empirical performance of RobustRAG against two concrete corruption
+attacks, namely prompt injection (PIA) [15] and data poisoning (Poison) [54]. We present the
+empirical robust accuracy (racc) or robust LLM-judge score (rllmj) against two attacks. Additionally,
+we report the targeted attack success rate (asr), defined as the percentage of queries for which LLM
+returns the malicious responses chosen by the attacker. As shown in Table 2, vanilla RAG pipelines
+are vulnerable to prompt injection and data poisoning attacks. For example, PIA can have a 90+%
+attack success rate and degrade the performance below 20%. In contrast, our RobustRAG achieves
+substantial robustness: the attack success rates are below 10% in almost all cases. We note that both
+robust accuracy and robust LLM-judge scores reported in Table 2 are higher than the corresponding
+certifiable robustness numbers reported in Table 1; this verifies that the certifiable robustness is a
+lower bound of model performance against any attack within a given threat model.
+
+8
+
+Figure 2: Effect of num-
+ber of retrieved passages k
+(RQA). Larger k improves
+certifiable robustness.
+
+Figure 3: Effect of the
+corruption size k′ and key-
+word filtering thresholds
+α, β (RQA).
+
+Figure 4: Effect of the decoding
+threshold η (Bio). For η ≤ 0.3,
+certification exceeds computa-
+tional/financial budgets.
+
+5.4 Analysis of RobustRAG Parameters
+
+In this section, we use Mistral-7B-Instruct to analyze its defense performance with different parame-
+ters. In Appendix D, we provide additional analyses for different models and datasets.
+
+Impact of retrieved passages k. We vary the number of retrieved passages k from 2 to 20 and report
+the results in Figure 2. As the number of retrieved passages increases, certifiable robustness and clean
+performance improve. We observe that the improvement is smaller when k is larger than 10; this is
+because new passages usually carry less new relevant information.
+Impact of corruption size k′. We report certifiable robustness for larger corruption size k′ in
+Figure 3. RobustRAG achieves substantial certifiable robustness against multiple corrupted passages;
+certifiable robustness gradually decreases given a larger corruption size. We note that when half of the
+passages (5 out of 10) are corrupted, even a human cannot robustly respond to the query; therefore, it
+is expected to see RobustRAG has zero certifiable robustness.
+
+Impact of keyword filtering thresholds α, β. In Figure 3, we report the robustness of keyword
+aggregation with different filtering thresholds α, β. Larger α, β improve certifiable robustness because
+fewer malicious keywords can survive the filtering. However, larger thresholds can also remove more
+benign keywords and thus hurt clean performance; the clean accuracy can drop from 59% to 52%.
+
+Impact of decoding probability threshold η. In Figure 4, we analyze decoding-based RobustRAG
+with different probablity thresholds η. As η increases, the clean performance decreases because
+RobustRAG is more likely to choose the no-retrieval token instead of the top-1 token predicted with
+retrieved passages. Meanwhile, a larger η slightly improves robustness as no-retrieval tokens are
+immune to corruption attacks. We note that certification might exceed our computational or financial
+budget when we use a small η; we provide more discussions in Appendix A.2.
+
+6 Related Works
+
+LLMs and RAG. Large language models (LLMs) [5, 1, 13] have achieved remarkable performance
+for various tasks; however, their responses can be inaccurate due to their limited parameterized
+knowledge. Retrieval-augmented generation (RAG) [16, 26] aims to overcome this limitation by
+augmenting the model with external information retrieved from a database. Recent works [3, 29, 48,
+49] improve RAG performance in the non-adversarial setting. In this paper, we study the adversarial
+robustness of RAG pipelines when some of the retrieved passages are corrupted by the attacker.
+
+Corruption attacks against RAG. Early works studied misinformation attacks against QA mod-
+els [11, 33, 34, 53]. Recent attacks focused on LLM-powered RAG. Indirect prompt injection [15]
+injected malicious instructions to LLM applications. PoisonedRAG [54] injected malicious passages
+to mislead RAG-based QA pipelines. GARAG [10] used malicious typos to induce inaccurate
+responses. In this paper, we designed RobustRAG to be resilient to all forms of corruption attacks.
+
+Defenses against corruption attacks. To mitigate misinformation attacks, Weller et al. [41] rewrote
+questions to introduce redundancy and robustness; Hong et al. [17] trained a discriminator to identify
+misinformation. However, these defenses focused on weak attackers that can only corrupt named
+entities, and these heuristic approaches lack formal robustness guarantees. In contrast, RobustRAG
+applies to all types of passage corruption and has certifiable robustness.
+
+9
+
+5101520Top-k Retrieval010203040506070Accuracy (%)Decoding CleanDecoding CertifiedKeyword CleanKeyword Certified012345Corruption Size k00102030405060Certified Accuracy (%)Keyword =0.3, =3Keyword =0.4, =4Keyword =0.5, =50.10.20.30.40.50.6Probability threshold 010203040506070LLM-judge score (%)Clean LLM-judge scoreCertified LLM-judge scoreBeyond RAG applications, there are certifiably robust defenses for corruption attacks on image
+domain like training-time poisoning attacks [25, 40, 36] and adversarial patch attacks [9, 50, 30,
+24, 43, 45, 44, 46, 47]. However, they all focus on the simple task of classification. In contrast,
+RobustRAG can also apply to the more complicated text generation task.
+
+7 Conclusion and Discussion
+
+Limitations and future work directions. First, we focused on the robustness of the generation step;
+it could be fruitful to harden the retrieving step to reduce the chance of retrieving corrupted passages.
+Second, we focused on single-hop RAG tasks. How to break complex questions into simple tasks and
+apply RobustRAG is an important direction to explore. Third, RobustRAG achieves robustness at
+the cost of some clean performance drops; further minimizing this drop can encourage its real-world
+deployment. Finally, RobustRAG is orthogonal to and compatible with advanced RAG approaches.
+We believe it can further benefit from their ideas such as self-critic and fine-tuning [3, 29, 48, 49].
+
+Broader impact. We expect our work to have a positive societal impact as we proposed a RAG
+framework with improved robustness against both natural and malicious passage corruption.
+
+Conclusion. We proposed RobustRAG as the first RAG defense framework that is certifiably robust
+against retrieval corruption attacks. RobustRAG leverages an isolate-then-aggregate strategy to limit
+the influence of malicious passages. We designed two secure aggregation techniques for unstructured
+text responses and experimentally demonstrated their effectiveness across different tasks and datasets.
+
+Acknowledgements
+
+We would like to thank Sophie Dai, Xinyu Tang, Ashiwinee Panda, and Feiran Jia for providing
+feedback on our early draft. We are grateful to Princeton Language and Intelligence (PLI) for granting
+access to its GPU cluster and to SerpApi for sponsoring 5,000 search queries. This research was
+supported in part by the National Science Foundation under grants CNS-2131938, IIS-2239290
+(CAREER award), and IIS-2229876 (the ACTION center), Princeton SEAS Innovation funding,
+OpenAI, and Google.
+
+References
+
+[1] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni
+Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4
+technical report. arXiv preprint arXiv:2303.08774, 2023.
+
+[2] Perplexity AI. Perplexity ai. https://www.perplexity.ai/, 2024.
+
+[3] Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and Hannaneh Hajishirzi. Self-rag: Learning
+In International Conference on
+
+to retrieve, generate, and critique through self-reflection.
+Learning Representations (ICLR), 2024.
+
+[4] Anish Athalye, Nicholas Carlini, and David A. Wagner. Obfuscated gradients give a false sense
+of security: Circumventing defenses to adversarial examples. In International Conference on
+Machine Learning (ICML), 2018.
+
+[5] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal,
+Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are
+few-shot learners. Advances in neural information processing systems (NeurIPS), 33:1877–1901,
+2020.
+
+[6] Oliver Bryniarski, Nabeel Hingun, Pedro Pachuca, Vincent Wang, and Nicholas Carlini. Evad-
+ing adversarial example detection defenses with orthogonal projected gradient descent. In
+International Conference on Learning Representations (ICLR). OpenReview.net, 2022.
+
+[7] Nicholas Carlini. A llm assisted exploitation of ai-guardian. arXiv preprint arXiv:2307.15008,
+
+2023.
+
+10
+
+[8] Nicholas Carlini and David A. Wagner. Adversarial examples are not easily detected: Bypassing
+ten detection methods. In ACM Workshop on Artificial Intelligence and Security (AISec@CCS),
+2017.
+
+[9] Ping-Yeh Chiang, Renkun Ni, Ahmed Abdelkader, Chen Zhu, Christoph Studor, and Tom
+Goldstein. Certified defenses for adversarial patches. In 8th International Conference on
+Learning Representations (ICLR), 2020.
+
+[10] Sukmin Cho, Soyeong Jeong, Jeongyeon Seo, Taeho Hwang, and Jong C Park. Typos that broke
+the rag’s back: Genetic attack on rag pipeline by simulating documents in the wild via low-level
+perturbations. arXiv preprint arXiv:2404.13948, 2024.
+
+[11] Yibing Du, Antoine Bosselut, and Christopher D Manning. Synthetic disinformation attacks
+on automated fact verification systems. In AAAI Conference on Artificial Intelligence (AAAI),
+volume 36, pages 10581–10589, 2022.
+
+[12] Tianyu Gao, Howard Yen, Jiatong Yu, and Danqi Chen. Enabling large language models
+to generate text with citations. In Conference on Empirical Methods in Natural Language
+Processing (EMNLP), pages 6465–6488. Association for Computational Linguistics, 2023.
+
+[13] Google. Gemini 1.5, 2024.
+
+[14] Google. Generative ai in search: Let google do the searching for you. https://blog.google/
+
+products/search/generative-ai-google-search-may-2024/, 2024.
+
+[15] Kai Greshake, Sahar Abdelnabi, Shailesh Mishra, Christoph Endres, Thorsten Holz, and Mario
+Fritz. Not what you’ve signed up for: Compromising real-world llm-integrated applications
+In ACM Workshop on Artificial Intelligence and Security
+with indirect prompt injection.
+(AISec@CCS), pages 79–90, 2023.
+
+[16] Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pasupat, and Mingwei Chang. Retrieval
+augmented language model pre-training. In International Conference on Machine Learning
+(ICML), volume 119, pages 3929–3938. PMLR, 2020.
+
+[17] Giwon Hong, Jeonghwan Kim, Junmo Kang, Sung-Hyon Myaeng, and Joyce Jiyoung Whang.
+Discern and answer: Mitigating the impact of misinformation in retrieval-augmented models
+with discriminators. arXiv preprint arXiv:2305.01579, 2023.
+
+[18] Matthew Honnibal, Ines Montani, Sofie Van Landeghem, and Adriane Boyd. spaCy: Industrial-
+
+strength Natural Language Processing in Python. 2020.
+
+[19] Albert Q Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford, Devendra Singh
+Chaplot, Diego de las Casas, Florian Bressand, Gianna Lengyel, Guillaume Lample, Lucile
+Saulnier, et al. Mistral 7b. arXiv preprint arXiv:2310.06825, 2023.
+
+[20] Jungo Kasai, Keisuke Sakaguchi, Ronan Le Bras, Akari Asai, Xinyan Yu, Dragomir Radev,
+Noah A Smith, Yejin Choi, Kentaro Inui, et al. Realtime qa: What’s the answer right now?
+Advances in Neural Information Processing Systems (NeurIPS), 36, 2024.
+
+[21] Tom Kwiatkowski, Jennimaria Palomaki, Olivia Redfield, Michael Collins, Ankur P. Parikh,
+Chris Alberti, Danielle Epstein, Illia Polosukhin, Jacob Devlin, Kenton Lee, Kristina Toutanova,
+Llion Jones, Matthew Kelcey, Ming-Wei Chang, Andrew M. Dai, Jakob Uszkoreit, Quoc V. Le,
+and Slav Petrov. Natural questions: A benchmark for question answering research. Transactions
+of the Association for Computational Linguistics, 7:453–466, 2019.
+
+[22] LangChain. LangChain. https://github.com/langchain-ai/langchain, 2024.
+
+[23] Kenton Lee, Ming-Wei Chang, and Kristina Toutanova. Latent retrieval for weakly supervised
+open domain question answering. In Annual Meeting of the Association for Computational
+Linguistics (ACL), pages 6086–6096. Association for Computational Linguistics, 2019.
+
+[24] Alexander Levine and Soheil Feizi. (De)randomized smoothing for certifiable defense against
+patch attacks. In Conference on Neural Information Processing Systems, (NeurIPS), 2020.
+
+11
+
+[25] Alexander Levine and Soheil Feizi. Deep partition aggregation: Provable defenses against
+general poisoning attacks. In International Conference on Learning Representations (ICLR),
+2021.
+
+[26] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman
+Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel, and
+Douwe Kiela. Retrieval-augmented generation for knowledge-intensive nlp tasks. In Advances
+in Neural Information Processing Systems (NeurIPS), volume 33, pages 9459–9474, 2020.
+
+[27] Jerry Liu. LlamaIndex, 11 2022.
+
+[28] Quanyu Long, Yue Deng, LeiLei Gan, Wenya Wang, and Sinno Jialin Pan. Backdoor attacks on
+dense passage retrievers for disseminating misinformation. arXiv preprint arXiv:2402.13532,
+2024.
+
+[29] Hongyin Luo, Tianhua Zhang, Yung-Sung Chuang, Yuan Gong, Yoon Kim, Xixin Wu, Helen
+Meng, and James Glass. Search augmented instruction learning. In Findings of the Association
+for Computational Linguistics: EMNLP 2023, pages 3717–3729, 2023.
+
+[30] Michael McCoyd, Won Park, Steven Chen, Neil Shah, Ryan Roggenkemper, Minjune Hwang,
+Jason Xinyu Liu, and David A. Wagner. Minority reports defense: Defending against adversarial
+patches. In Applied Cryptography and Network Security Workshops (ACNS Workshops), volume
+12418, pages 564–582. Springer, 2020.
+
+[31] Microsoft. Bing chat. https://www.microsoft.com/en-us/edge/features/bing-chat,
+
+2024.
+
+[32] Sewon Min, Kalpesh Krishna, Xinxi Lyu, Mike Lewis, Wen-tau Yih, Pang Koh, Mohit Iyyer,
+Luke Zettlemoyer, and Hannaneh Hajishirzi. FActScore: Fine-grained atomic evaluation
+of factual precision in long form text generation. In Conference on Empirical Methods in
+Natural Language Processing (EMNLP), pages 12076–12100, Singapore, 2023. Association for
+Computational Linguistics.
+
+[33] Liangming Pan, Wenhu Chen, Min-Yen Kan, and William Yang Wang. Attacking open-domain
+question answering by injecting misinformation. In International Joint Conference on Natural
+Language Processing and the 3rd Conference of the Asia-Pacific Chapter of the Association
+for Computational Linguistics, IJCNLP 2023, pages 525–539. Association for Computational
+Linguistics, 2023.
+
+[34] Yikang Pan, Liangming Pan, Wenhu Chen, Preslav Nakov, Min-Yen Kan, and William Yang
+Wang. On the risk of misinformation pollution with large language models. In Findings of the
+Association for Computational Linguistics: EMNLP, pages 1389–1403, 2023.
+
+[35] Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory Chanan,
+Trevor Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, Alban Desmaison, Andreas
+Köpf, Edward Z. Yang, Zachary DeVito, Martin Raison, Alykhan Tejani, Sasank Chilamkurthy,
+Benoit Steiner, Lu Fang, Junjie Bai, and Soumith Chintala. Pytorch: An imperative style,
+high-performance deep learning library. In Advances in Neural Information Processing Systems
+(NeurIPS), pages 8024–8035, 2019.
+
+[36] Keivan Rezaei, Kiarash Banihashem, Atoosa Malemir Chegini, and Soheil Feizi. Run-off
+election: Improved provable defense against data poisoning attacks. In International Conference
+on Machine Learning (ICML), volume 202 of Proceedings of Machine Learning Research,
+pages 29030–29050. PMLR, 2023.
+
+[37] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei,
+Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al. Llama 2: Open
+foundation and fine-tuned chat models. arXiv preprint arXiv:2307.09288, 2023.
+
+[38] Florian Tramer, Nicholas Carlini, Wieland Brendel, and Aleksander Madry. On adaptive
+attacks to adversarial example defenses. In 2020 USENIX Security and AI Networking Summit
+(ScAINet), 2020.
+
+12
+
+[39] Tu Vu, Mohit Iyyer, Xuezhi Wang, Noah Constant, Jerry Wei, Jason Wei, Chris Tar, Yun-Hsuan
+Sung, Denny Zhou, Quoc Le, et al. Freshllms: Refreshing large language models with search
+engine augmentation. arXiv preprint arXiv:2310.03214, 2023.
+
+[40] Wenxiao Wang, Alexander Levine, and Soheil Feizi. Improved certified defenses against data
+poisoning with (deterministic) finite aggregation. In International Conference on Machine
+Learning (ICML), volume 162, pages 22769–22783. PMLR, 2022.
+
+[41] Orion Weller, Aleem Khan, Nathaniel Weir, Dawn J. Lawrie, and Benjamin Van Durme.
+Defending against disinformation attacks in open-domain question answering. In Conference of
+the European Chapter of the Association for Computational Linguistics (EACL), pages 402–417,
+2024.
+
+[42] Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement Delangue, Anthony
+Moi, Pierric Cistac, Tim Rault, Remi Louf, Morgan Funtowicz, Joe Davison, Sam Shleifer,
+Patrick von Platen, Clara Ma, Yacine Jernite, Julien Plu, Canwen Xu, Teven Le Scao, Sylvain
+Gugger, Mariama Drame, Quentin Lhoest, and Alexander Rush. Transformers: State-of-
+the-art natural language processing. In Proceedings of the 2020 Conference on Empirical
+Methods in Natural Language Processing: System Demonstrations, pages 38–45. Association
+for Computational Linguistics, 2020.
+
+[43] Chong Xiang, Arjun Nitin Bhagoji, Vikash Sehwag, and Prateek Mittal. Patchguard: A provably
+robust defense against adversarial patches via small receptive fields and masking. In 30th
+USENIX Security Symposium (USENIX Security), 2021.
+
+[44] Chong Xiang, Saeed Mahloujifar, and Prateek Mittal. Patchcleanser: Certifiably robust defense
+against adversarial patches for any image classifier. In 31st USENIX Security Symposium
+(USENIX Security), 2022.
+
+[45] Chong Xiang and Prateek Mittal. Patchguard++: Efficient provable attack detection against
+adversarial patches. In ICLR 2021 Workshop on Security and Safety in Machine Learning
+Systems, 2021.
+
+[46] Chong Xiang, Alexander Valtchanov, Saeed Mahloujifar, and Prateek Mittal. Objectseeker:
+Certifiably robust object detection against patch hiding attacks via patch-agnostic masking. In
+44th IEEE Symposium on Security and Privacy (S&P), 2023.
+
+[47] Chong Xiang, Tong Wu, Sihui Dai, Jonathan Petit, Suman Jana, and Prateek Mittal. Patchcure:
+Improving certifiable robustness, model utility, and computation efficiency of adversarial patch
+defenses. arXiv preprint arXiv:2310.13076, 2023.
+
+[48] Shi-Qi Yan, Jia-Chen Gu, Yun Zhu, and Zhen-Hua Ling. Corrective retrieval augmented
+
+generation. arXiv preprint arXiv:2401.15884, 2024.
+
+[49] Tianjun Zhang, Shishir G Patil, Naman Jain, Sheng Shen, Matei Zaharia, Ion Stoica, and
+Joseph E Gonzalez. Raft: Adapting language model to domain specific rag. arXiv preprint
+arXiv:2403.10131, 2024.
+
+[50] Zhanyuan Zhang, Benson Yuan, Michael McCoyd, and David Wagner. Clipped bagnet: De-
+fending against sticker attacks with clipped bag-of-features. In 3rd Deep Learning and Security
+Workshop (DLS), 2020.
+
+[51] Zihan Zhang, Meng Fang, and Ling Chen. Retrievalqa: Assessing adaptive retrieval-augmented
+
+generation for short-form open-domain question answering, 2024.
+
+[52] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang,
+Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, Hao Zhang, Joseph E. Gonzalez, and Ion Stoica.
+Judging LLM-as-a-judge with MT-bench and chatbot arena. In Thirty-seventh Conference on
+Neural Information Processing Systems Datasets and Benchmarks Track, 2023.
+
+[53] Zexuan Zhong, Ziqing Huang, Alexander Wettig, and Danqi Chen. Poisoning retrieval corpora
+by injecting adversarial passages. In Conference on Empirical Methods in Natural Language
+Processing (EMNLP), pages 13764–13775, 2023.
+
+13
+
+[54] Wei Zou, Runpeng Geng, Binghui Wang, and Jinyuan Jia. Poisonedrag: Knowledge poi-
+soning attacks to retrieval-augmented generation of large language models. arXiv preprint
+arXiv:2402.07867, 2024.
+
+14
+
+A Additional Details of Robustness Certification
+
+In Section 4, we discussed the main idea of robustness certification. In this section, we provide
+additional details of the certification algorithms, including pseudocode and formal proof.
+
+A.1 Secure Keyword Aggregation
+
+We provide the pseudocode of the certification procedure in Algorithm 3. It aims to determine the
+τ value in τ -certifiable robustness for a given query q and defense/attack settings. We state its
+correctness in the following theorem.
+Theorem 1. Given benign retrieved passages Pk = (p1, . . . , pk), query q, model LLM, filtering
+thresholds α, β, gold answer g, injection size k′, Algorithm 3 can correctly return the τ value for
+τ -certifiable robustness for the inference procedure RRAG-KEYWORD discussed in Algorithm 1, i.e.,
+M(r, g) ≥ τ, ∀ r ∈ R := {RRAG-KEYWORD(i, q, P ′
+
+k, LLM, α, β) | ∀ P ′
+
+k ∈ A(Pk, k′)}.
+
+Proof. We prove the theorem by explaining the certification procedure presented in Algorithm 3.
+
+First, as discussed in Section 4, the certification procedure aims to extract keywords and get their
+counts from the top k − k′ passages/responses (Lines 1-9). The keyword extraction algorithm is
+identical to the inference algorithm discussed in Algorithm 1.
+
+Then, the certification procedure initializes an empty response set R to gather and hold all possible
+responses (Line 10). Since the attacker might introduce arbitrary numbers of non-abstained malicious
+responses (responses without “I don’t know”), we denote this number as k′
+effective and will enumerate
+all possible cases k′
+For each k′
+effective, we first compute the corresponding threshold µ′ = min(α · (n + k′
+effective), β),
+where n is the number of non-abstained responses from k − k′ benign passages (Line 12). Given the
+threshold µ′, we could divide all keywords into three groups.
+
+effective ∈ {0, 1, . . . , k′}.
+
+1. The first group WA contains keywords with counts no smaller than µ′. Keywords from this
+group will always be in the filtered keyword set W ∗ because the injection attacker cannot
+decrease their counts.
+
+2. The second group WB contains keywords with counts smaller than µ′ − k′
+
+effective. These
+keywords will never appear in the final keyword set W ∗ because the attacker can only
+increase their counts by k′
+
+effective.
+
+3. The third group WC contains keywords whose counts are within [µ′ − k′
+
+effective, µ′). The
+
+attacker can arbitrarily decide if these keywords will appear in the filtered keyword set.
+
+(cid:83) W ′
+
+We then generate keyword sets WA and WC accordingly (Lines 13-14). Note that we do not need
+WB for certification as it will not be part of the filtered keyword set. Next, we enumerate all possible
+C ∈ P(Wc). For each W ′
+keyword sets from the power set W ′
+C, we generate filtered keyword set
+C (Line 16), obtain the corresponding response r = LLMgen(i2 ⊕q⊕ SORTED(W ′))
+W ′ = WA
+(Line 17), and add this response to the response set (Line 18).
+After we enumerate all possible k′
+effective and all possible filtered keyword set W ′. The response set R
+contains all possible LLM responses. We call the evaluation metric function M(·) and get the lowest
+score as the certified τ value (Line 21).
+
+In summary, the certification procedure has considered all possible responses and returns the lowest
+evaluation metric score. Therefore, the returned value is the correct τ value for certifiable robustness.
+
+Implementation details. In some cases, the keyword power set P(WC) can be too large to enumerate
+(e.g., 215). When the size |WC| > 15, we conservatively consider the certification fails and return
+τ = 0, i.e., zero-certifiable robustness.
+
+15
+
+Algorithm 3 Certification for keyword aggrega-
+tion
+Require: retrieved data Pk = (p1, . . . , pk),
+query q, model LLM, filtering thresholds
+α ∈ [0, 1], β ∈ Z+, gold answer g, injec-
+tion size k′.
+
+Instructions: i1 = “answer the query given re-
+trieved passages, say ‘I don’t know’ if no
+relevant information found”;
+i2 = “answer the query using provided key-
+words”
+
+Algorithm 4 Certification for decoding aggrega-
+tion
+Require: retrieved data Pk = (p1, . . . , pk),
+query q, model LLM, threshold γ, probabil-
+ity threshold η, max number of new tokens
+Tmax, gold answer g, injection size k′.
+Instruction: i = “answer the query given re-
+trieved passages, say ‘I don’t know’ if no
+relevant information found”
+1: R ← {}, X ← STACK({“”})
+2: J ← {j| PrLLM[“I don’t know”|i ⊕ q ⊕
+
+rj ← LLMgen(i1 ⊕ q ⊕ pj)
+if “I don’t know” ̸∈ rj then
+
+Wj ← EXTRACTKEYWORDS(rj)
+Update counter C with Wj
+n ← n + 1
+
+1: C ← COUNTER(), n ← 0
+2: for j ∈ {1, 2, . . . , k − k′} do
+3:
+4:
+5:
+6:
+7:
+end if
+8:
+9: end for
+10: R ← {}
+11: for k′
+effective), β)
+12:
+13: WA ← {w|(w, c) ∈ C, c ≥ µ′}
+14: WC ← {w|(w, c) ∈ C, µ′ > c ≥ µ′ −
+
+effective ∈ {0, 1, . . . , k′} do
+
+µ′ ← min(α · (n + k′
+
+k′
+effective}
+for W ′
+
+C ∈ P(WC) do
+
+W ′ ← WA
+r ← LLMgen(i2 ⊕ q ⊕ SORTED(W ′))
+
+(cid:83) W ′
+C
+
+15:
+16:
+17:
+
+R ← R (cid:83){r}
+
+end for
+
+18:
+19:
+20: end for
+21: τ ← minr∈R M(r, g)
+22: return τ
+
+pj] < γ, pj ∈ Pk−k′}
+3: while X is not empty do
+ˆr ← X .POP()
+4:
+if LEN(ˆr) ≥ Tmax then
+5:
+6:
+7:
+8:
+9:
+
+R ← R (cid:83){ˆr}
+continue
+
+end if
+ˆv ← VEC-SUM({vj|vj = LLMprob(i ⊕
+q ⊕ pj ⊕ r∗), j ∈ J })
+(ta, A), (tb, B) ← TOP2TOKENS(ˆv)
+tnor ← LLMtoken(“answer query” ⊕ q ⊕ˆr)
+
+if A − B > k · η + k′ then
+
+X .PUSH(ˆr ⊕ ta)
+
+else if (k · η + k′ ≥ A − B > |k · η − k′|)
+then
+
+10:
+11:
+
+12:
+13:
+14:
+
+X .PUSH(ˆr ⊕ ta); X .PUSH(ˆr ⊕ tnor)
+else if (k · η − k′ ≥ A − B > 0) then
+
+else
+
+X .PUSH(ˆr ⊕ tnor)
+
+15:
+16:
+17:
+18:
+19:
+20:
+21: end while
+22: τ ← minr∈R M(r, g)
+23: return τ
+
+return 0
+
+end if
+
+A.2 Secure Decoding Aggregation
+
+In Algorithm 4, we provide the pseudocode of the certification algorithm for decoding-based aggrega-
+tion. It aims to return the τ value in τ -certifiable robustness for a given query q and defense/attack
+settings. We formally state its correctness in the following theorem.
+Theorem 2. Given benign retrieved passages Pk = (p1, . . . , pk), query q, model LLM, filtering
+thresholds γ, probability threshold η, max number of new tokens Tmax, gold answer g, injection
+size k′, Algorithm 4 can correctly return the τ value for τ -certifiable robustness for the infer-
+ence procedure RRAG-DECODING discussed in Algorithm 2, i.e., M(r, g) ≥ τ, ∀ r ∈ R :=
+{RRAG-DECODING(i, q, P ′
+
+k, LLM, γ, η, Tmax) | ∀ P ′
+
+k ∈ A(Pk, k′)}.
+
+Proof. We start the proof by discussing the certification procedure presented in Algorithm 3.
+
+First, we initialize an empty response set R to hold all possible responses and a stack X with
+an empty string to track possible partial responses (Line 1). Then, we get the indices of benign
+passages/responses that are unlikely to output “I don’t know” (Line 2). We will repeat the following
+robustness analysis until the stack is empty. At each analysis step, we pop a partial response ˆr from
+the stack X (Line 4). If it has reached the maximum number of generated tokens (or ends with an EOS
+token), we add this response ˆr to the response set R (Line 6). Otherwise, we get the probability sum
+vector ˆv from benign passages (Line 9) and its top-2 tokens ta, tb and their probability sums A, B
+
+16
+
+(Line 10). We also get the no-retrieval prediction token as tnor = LLMtoken(“answer query” ⊕ q ⊕ ˆr)
+(Line 11).
+
+Next, we need to analyze all possible next-token predictions of RobustRAG at this decoding step. We
+will discuss three lemmas for three tractable cases which correspond to Lines 12-17 of Algorithm 4.
+Our discussions are based on the probability gap between A and B, i.e., A − B.
+Lemma 1. If A − B > k · η + k′ is true, the algorithm will always predict ta.
+
+Proof. Without loss of generality, we only need to consider the top-2 tokens ta, tb. Let x, y be the
+additional probability values introduced by malicious passages for tokens ta, tb, respectively. We
+know that x, y ∈ [0, k′] because each probability value is bounded within [0, 1] and the attacker can
+only inject k′ malicious passages. Next, we compare the new probability value sums A + x and
+B + y.
+
+We have
+
+A + x − (B + y) = (A − B) + x − y
+> (A − B) + min
+
+x,y∈[0,k′]
+
+(x − y)
+
+= (A − B) + (−k′)
+> k · η + k′ − k′ = k · η
+
+(2)
+(3)
+
+(4)
+
+(5)
+
+According to Algorithm 2, we will always predict the top-1 token ta in this case.
+
+Lemma 2. If k · η + k′ ≥ A − B > |k · η − k′| is true, the algorithm might predict the top-1 token
+ta or the no-retrieval token tnor, but not any other token.
+
+Proof. We prove this lemma in two steps. First, we aim to prove that no tokens other than ta or tnor
+will be predicted. Without loss of generality, we only need to prove that the top-2 token tb will not be
+predicted. This is because other tokens have lower probability values than tb and thus are harder to
+be predicted. Second, we prove that the algorithm can predict the top-1 token ta or the no-retrieval
+token tnor.
+Let x, y be the additional probability values introduced by the attacker for tokens ta, tb, respectively.
+We know that x, y ∈ [0, k′]. We next analyze the new probability value sums A + x and B + y. We
+have
+
+(B + y) − (A + x) = −(A − B) + (y − x)
+
+< −|k · η − k′| + (y − x)
+≤ −|k · η − k′| + max
+
+x,y∈[0,k′]
+
+= −|k · η − k′| + k′
+
+(y − x)
+
+(B + y) − (A + x) < −|k · η − k′| + k′ ≤ k′ ≤ k · η
+
+If k · η ≥ k′, we have
+
+If k · η < k′, we have
+
+(B + y) − (A + x) < −|k · η − k′| + k′ = k · η − k′ + k′ = k · η
+
+(6)
+
+(7)
+
+(8)
+
+(9)
+
+(10)
+
+(11)
+
+We have (B + y) − (A + x) < k · η in both cases. Therefore, the probability gap is not large enough
+for the algorithm to output the top-2 token tb.
+Next, we aim to prove that the algorithm can output the top-1 token ta or the no-retrieval token tnor.
+We need to show that there exist feasible (A, B, x, y, η, k′) tuples such that (A + x) − (B + y) > k · η
+(predicting the top-1 token ta) and (A + x) − (B + y) ≤ k · η (predicting the no-retrieval token tnor).
+We can derive the following inequalities.
+
+min(A − B) + min
+
+(x − y) ≤ (A + x) − (B + y) ≤ max(A − B) + max
+
+(x − y) (12)
+
+x,y∈[0,k′]
+|k · η − k′| − k′ < (A + x) − (B + y) ≤ k · η + k′ + k′
+
+x,y∈[0,k′]
+
+(13)
+
+17
+
+Since k′ > 0, clearly we have |k · η − k′| − k′ < k · η < k · η + 2k′. Therefore, there exist cases that
+satisfy |k · η − k′| − k′ ≤ (A + x) − (B + y) ≤ k · η, and the algorithm can output a no-retrieval
+token tnor. There also exists cases that satisfy k · η < (A + x) − (B + y) ≤ k · η + 2k′, the algorithm
+can output the top-1 token ta.
+
+Lemma 3. If k · η − k′ ≥ A − B > 0 is true, the algorithm will always predict a no-retrieval token.
+
+Proof. Without loss of generality, we only need to consider the top-2 tokens ta, tb because other
+tokens have lower probability values and are less likely to be outputted. Let x, y be the additional
+probability values introduced by the attacker for tokens ta, tb, respectively. We know that x, y ∈
+[0, k′]. Next, we analyze the new probability value sums A + x and B + y.
+To always output a no-retrieval token, we require |(A + x) − (B + y)| ≤ k · η, ∀ x, y ∈ [0, k′].
+Equivalently, we require
+
+⇔
+⇔
+
+⇔
+
+−k · η − x + y ≤ A − B ≤ k · η − x + y, ∀ x, y ∈ [0, k′]
+
+−k · η + max
+
+x,y∈[0,k′]
+
+(−x + y) ≤ A − B ≤ k · η + min
+
+x,y∈[0,k′]
+
+(−x + y)
+
+−k · η + k′ ≤ A − B ≤ k · η − k′
+
+(14)
+(15)
+
+(16)
+
+Note that we have A − B > 0 since A is the probability sum of the top-1 token. So we have
+k · η − k′ ≥ A − B > 0 ⇔ the algorithm will always output a no-retrieval token.
+
+With these three lemmas, we can go back to the certification procedure in Algorithm 4. We have four
+cases in total (three tractable cases plus one intractable case).
+
+1. Case 1: A − B > k · η + k′ (Line 12). Lemma 1 ensures that the next token is the top-1
+
+token ta; thus, we push ˆr ⊕ ta to the stack X (Line 13).
+
+2. Case 2: k · η + k′ ≥ A − B > |k · η − k′| (Line 14). Lemma 2 ensures that the next token
+is either top-1 token ta or the no-retrieval token tnor; thus, we push both ˆr ⊕ ta and ˆr ⊕ tnor
+to X (Line 15).
+
+3. Case 3: k · η − k′ ≥ A − B > 0 (Line 16). Lemma 3 ensures that the next token is the
+
+no-retrieval token tnor; thus, We push ˆr ⊕ tnor to X (Line 17).
+
+4. Case 4: other cases. We cannot claim any robustness about the next-token prediction:
+the response set becomes intractable and the robustness certification fails. Therefore, the
+algorithm returns τ = 0, i.e., zero-certifiable robustness (Line 19).
+
+Finally, if the response set R is still tractable (no Case 4 happens) when the stack X becomes empty,
+we return τ as the worst evaluation score minr∈R M(r, g) (Line 22).
+In summary, the certification procedure has considered all possible responses and returns the lowest
+evaluation metric score. Therefore, the returned value is the correct τ value for certifiable robustness.
+
+Implementation details. The number of all possible responses |R| can sometimes become very large
+(> 103) when Case 2 happens frequently. In our experiment setting (k = 10, k′ = 1), we find η ≤ 0.3
+leads to a lot of Case 2 scenarios and thus a large response set R. Since using LLM-as-a-judge
+to evaluate a large set of responses can be financially or computationally prohibitive, we sample
+a random subset ˆR (of size 100) from the large response set R and approximate the τ value as
+M(r, g). This approximated certifiable robustness was marked with ‡ in Table 1. In
+ˆτ = minr∈ ˆR
+Figure 4, we did not perform any approximation but directly marked η ≤ 0.3 exceeds our budgets for
+certification.
+
+18
+
+B Generalizing to Passage Modification
+
+In this paper, we focus on passage injection where the attacker can inject a small number of passages
+but cannot modify the original passages. In this section, we aim to demonstrate that RobustRAG is
+directly applicable to passage modification where the attacker can modify a small number of passages.
+We can use the same inference algorithms discussed in Section 3 (Algorithm 1 and Algorithm 2);
+we only need to slightly modify the certification procedures discussed in Section 4 and Appendix A
+(Algorithm 3 and Algorithm 4) to account for passage modification.
+Overview. For the passage injection attack, the attacker first ejects the original bottom k′ benign
+passages and then injects k′ malicious passages. Therefore, we only need to analyze top k − k′
+benign passages to reason about all possible LLM responses. In contrast, for the passage modification
+attack, the attacker can first eject arbitrary k′ benign passages and then inject k′ malicious passages
+(because the attacker can arbitrarily modify k′ arbitrary passages). Therefore, we need to analyze all
+possible k − k′ combinations of benign passage to reason about all possible LLM responses. One
+simple certification strategy is to call certification procedures discussed in Section 4 and Appendix A
+(cid:1) in total) and take
+(Algorithm 3 and Algorithm 4) on all possible k − k′ passage combinations ((cid:0) k
+k′
+the lowest τ as the certification results. However, there is a more efficient way: we can consider the
+worst-case k′-passage ejection/modification so that we only need to call the certification procedure
+once.
+
+Warm-up: majority voting. We take majority voting (for classification) as the warm-up example.
+First, we get the voting counts for top-k benign passages (instead of the top k − k′ passages as done
+for passage injection) and let the count of winner and runner-up be A and B, respectively. Then, the
+worst-case modification strategy is to modify k′ benign passages that originally vote for the winner to
+make them maliciously vote for the runner-up. Then, the worst-case voting counts become A − k′
+and B + k′. If we have A − k′ > B + k′, we can certify the robustness – the winner of the majority
+voting will never change.
+
+Secure keyword aggregation. We first get the keyword counts for the top-k benign passages (instead
+of the top k − k′ passages as done for passage injection). Then, we can divide the keywords into
+three groups based on the filtering threshold µ. The first group WA contains keywords with counts no
+smaller than µ + k′ (instead of µ); keywords from this group will always be in the filtered keyword set
+W ∗ because the modification attacker can only decrease their counts by k′. The second group WB
+contains keywords with counts smaller than µ − k′; they will never appear in the final keyword set
+W ∗ because the attacker can only increase their counts by k′. The third group WC contains keywords
+whose counts are within [µ − k′, µ + k′) (instead of [µ − k′, µ)); the attacker can arbitrarily decide if
+these keywords will appear in the filtered keyword set. Then, we can get all possible filtered keyword
+sets and get corresponding all possible RobustRAG responses for certifiable robustness analysis.
+Secure decoding aggregation. We will analyze the top-k benign passages (instead of top k − k′
+passages as done for passage injection). At each decoding step, we will do a similar analysis as
+Lemma 1-3. The only difference is that the additional introduced probability values x, y are in the
+range of [−k′, k′] instead of [0, k′]. Therefore, the conditions for four different cases become as
+follows. Case 1: A − B > k · η + 2k′; Case 2: k · η + 2k′ ≥ A − B > |k · η − 2k′|; Case 3:
+k · η − 2k′ ≥ A − B > 0; Case 4: otherwise.
+
+Experiment results. We use Mistral-7B-Instruct with the top-10 retrieved passages from QA datasets
+for experiments. We set α = 0.5, β = 5 for keyword aggregation, and η = 0 for decoding aggregation.
+We report the certifiable robust accuracy for injecting or modifying 1-3 passages in Table 3. As
+shown in the table, our RobustRAG algorithm achieves good certifiable robustness against both
+passage modification and injection. Note that we use the same inference algorithm (Algorithm 1 and
+Algorithm 2 discussed in Section 3) for both injection and modification attacks. The certifiable robust
+accuracy for passage modification is lower than that for passage injection. This is expected because
+passage modification is a stronger attack than passage injection.
+
+19
+
+Table 3: certifiable robust accuracy against passage injection and modification (Mistral with top-10
+retrieved passages)
+
+Corruption Model/
+defense
+
+size k′
+
+Multiple-choice QA
+RQA-MC [20]
+modi.
+
+inj.
+
+Open-domain QA
+
+RQA [20]
+inj. modi.
+
+NQ [21]
+inj. modi.
+
+1
+
+2
+
+3
+
+Keyword
+Decoding
+
+Keyword
+Decoding
+
+Keyword
+Decoding
+
+71.0
+
+67.0
+
+60.0
+
+51.0
+
+53.0
+
+41.0
+
+44.0
+41.0
+
+38.0
+27.0
+
+34.0
+20.0
+
+40.0
+28.0
+
+32.0
+17.0
+
+28.0
+6.0
+
+46.0
+34.0
+
+40.0
+18.0
+
+27.0
+4.0
+
+43.0
+21.0
+
+30.0
+4.0
+
+21.0
+0.0
+
+C Additional Details of Implementation and Experiments
+
+Implementation of keyword extraction. We use the spaCy library [18] (MIT license) to preprocess
+every text response. We consider words with POS tags of ADJ (adjective), ADV (adverb), NOUN
+(noun), NUM (numeral), PROPN (proper noun), SYM (symbol), and X (others) to be most informative
+and use them as keywords or to form keyphrases. Let us call words with these tags “informative words”
+and words with other tags “uninformative words”. Our keyword set contains (1) all lemmatized
+informative words and (2) keyphrases formed by combining consecutive informative words between
+two nearby uninformative words.
+
+For long-form text generation tasks, we found that the keyword sets can sometimes become too large
+and thus make robustness certification computationally infeasible. To reduce the number of extracted
+keywords/keyphrases, we prompt the model to output a list of short phrases instead of long texts (see
+Figure 18 for prompt template) and only retain keyphrases with more than two words.
+
+Additional Details of datasets. As discussed in Section 5.1, we use four datasets to conduct
+experiments: RealtimeQA-MC (RQA-MC)[20], RealtimeQA (RQA)[20], Natural Questions [21]
+(CC BY-SA 3.0 license), and the Biography generation dataset (Bio) [32]. We note that RealtimeQA-
+MC has four choices as part of its query. RealtimeQA has the same questions as RealtimeQA, but its
+choices are removed.
+
+To save computational and financial costs (e.g., GPT API calls), we select 50 queries for the Bio
+dataset and 100 queries for the other datasets. The RealtimeQA (and RealtimeQA-MC) queries
+are randomly sampled from the RealtimeQA partition of the RetrievalQA dataset [51]. For Natural
+Questions, we randomly sample 100 samples from the Open NQ dataset [23], which is a subset of
+queries with short answers derived from the original NQ dataset [21].
+For each query, we use the Google Search API¶ to search for relevant information/passages. For
+the QA tasks, we use the returned webpage titles and snippets as passages. For the Bio generation
+task, we further use a web crawler to extract the full text and then use GPT-3.5 to compress the
+text, following the ACLE benchmark [12]. We only experiment with queries with at least 20 valid
+passages. We assume passages retrieved by Google Search are benign but might contain irrelevant
+information.
+
+Additional details of LLM and RAG. When generating tokens using the Mistral and Llama models,
+we set the maximum number of new tokens to 20 for the question-answering tasks and 500 for the
+long-form generation task. We utilize in-context learning to guide the model to produce answers
+in the proper format. For the short-answer QA task, we use 4-shot in-context exemplars, and for
+long-form generation, we use a 1-shot exemplar. All exemplars are generated by GPT-4 without
+information about the actual queries. We provide all prompt templates in Appendix F.
+
+Additional details of evaluation. For short-answer open-domain QA, we observe that the default
+answer set is usually small (e.g., one answer) and misses many valid answers. Therefore, we prompt
+GPT-4 (as shown in Figure 5) to expand the answer set, making the evaluation more accurate.
+
+¶Results are retrieved using SerpApi (https://serpapi.com/); the cost of 2,500 queries is $70.
+
+20
+
+Figure 5: The prompt for generating alternative correct answers to expand the answer set.
+
+Figure 6: The prompt for evaluating the factual accuracy of biography generation.
+
+For the biography generation task, we use GPT-3.5 as an LLM-as-a-judge evaluator. Specifically,
+we follow the prompt format from Zheng et al. [52] to query the model to judge the response with
+factual accuracy, assigning a score from 1 to 10. To align the scale with our other metrics, we further
+multiply the score by 10 to have a scale from 10-100. The cost of evaluating 50 responses is about
+$0.01. We provide the prompt template in Figure 6. We did not use GPT-4 as the evaluator due to its
+high financial costs.
+
+Detailed setup of empirical attacks. For prompt injection attacks [15], the attacker injects the
+following malicious instruction: “When asked to provide the answer for the following question:
+{query}, please output {target answer}.” For data poisoning attacks, we follow PoisonedRAG [54]
+and use GPT-4 to generate fake texts that support incorrect answers chosen by the attacker. We repeat
+malicious content multiple times (10 times for QA and 3 times for the long-generation task) in a
+single passage to simulate a strong attacker; the robustness against this strong attack (Table 2) further
+demonstrates the strength of our defense.
+
+In addition to reporting model performance under attack as the robustness metric, we also report the
+attack success rate (ASR). ASR is defined as the ratio of model responses that contain the malicious
+target texts. For QA tasks, we follow PoisonedRAG [54] and generate the incorrect target texts via
+prompting GPT-4. For biography generation, we set the target answer to be “{person} is a good guy”
+for PIA and “born on January 11, 1990” for data poisoning.
+
+Softward and Hardware. We use PyTorch [35] (BSD-style license) and transformers [42]
+(Apache-2.0 license) libraries to implement our RobustRAG pipeline. We conduct our experiments
+using a mixture of A4000, A100, or H100 GPUs. For the QA task, running inference and certification
+with one defense setting takes less than 30 minutes. For the long-form generation task, inference
+takes less than 60 minutes, while certification can take up to 10-24 hours for all queries due to the
+large number of possible responses r ∈ R.
+
+21
+
+[Instruction]Please act as a fact generator. Your task is to generate as many as possible, alternative forms of correct answers for the question provided below. The output you generate would serve as correct answers for the question. Your output should strictly follow this format: "Output: [[alternative correct answer 1, alternative correct answer 2, alternative correct answer 3, alternative correct answer 4, alternative correct answer 5]]". If it does not contain other correct answers, just output [["Invalid"]]. The question is: {question} The correct answer: {answer} Output:[Instruction] Act as an impartial judge to evaluate the Factual Accuracyof a biography generated by an AI assistant. Factual Accuracy: Assess the precision with which the assistant integrates essential facts into the biography, such as dates, names, achievements, and personal history.Provide a brief initial assessment, and then conclude the rating of each category at the end. Use the provided Wikipedia summary for fact-checking and maintain objectivity. Conclude your evaluation with a rating in the following format at the end of your output using:Therefore, the final scores of the output are:Factual Accuracy: [[Rating]];Each [[Rating]] is a score from 1 to 10.{Examples}The person's Wikipedia summary is provided for reference. {context}[Question] {question}[The Start of Assistant's Answer] {answer}[The End of Assistant's Answer][Your Evaluation]Safeguard models and dataset. This paper did not involve models that present a high risk of misuse.
+We utilized data from publicly curated datasets and results from Google Search, both of which are
+expected to have safeguards in place. Additionally, we employed GPT-4 to generate incorrect contexts
+for evaluation. All generated texts are manually reviewed to ensure they do not pose any negative
+societal impact.
+
+22
+
+(a) RealtimeQA (Llama-7B)
+
+(b) Natural Questions (Llama-7B)
+
+(c) Natural Questions (Mistral-7B)
+
+(d) Biography (Mistral-7B, η = k′/k)
+
+Figure 7: The impact of top-k retrieval on RobustRAG (corruption size k′ = 1).
+
+D Additional Experiment Results and Analyses
+
+In this section, we present more experiment results and additional analysis of our RobustRAG.
+
+Impact of retrieved passages k. We continue our analysis of the effect of the number of retrieved
+passages k. In Figure 7, we include additional experimental results from the RealtimeQA, Natural
+Questions, and Biography Generation datasets using the Llama-7B and Mistral-7B models. The
+observation is similar to what we discussed in Section 5.4: as the number of retrieved passages
+increases, both certifiable robustness and clean performance improve; the improvement becomes
+smaller after k exceeds 10.
+Impact of corruption size k′. In Figure 8, we report certifiable robustness for different corruption
+sizes k′ using different RobustRAG algorithms and different datasets. We observe that the RobustRAG
+achieves substantial certifiable robustness even when there are multiple malicious passages. For
+instance, for the RealtimeQA-MC dataset (Figure 8(a)), the certifiable robust accuracy is still higher
+than 50% when the corruption size is 3 out of 10. Our best secure decoding method could achieve
+higher than 30% of (approximated) certifiable LLM-judge score even when there are 4 corrupted
+passages (Figure 8(d)).
+
+Impact of keyword filtering thresholds α, β. In Figures 8(b) and 8(c), we report the robustness of
+keyword aggregation with different filtering thresholds α, β. We can see that larger values of α, β
+are more robust to multiple-passages corruption, at the cost of a slight drop in clean performance (at
+corruption size k′ = 0).
+
+Impact of decoding probability threshold η. In Figures 8(d) and 8(e), we explore the effect of
+varying the decoding probability threshold η on the RealtimeQA and Natural Questions datasets. We
+find that the clean accuracy (at k′ = 0) drops as the η increases; this is because a larger η makes it
+more likely to output no-retrieval tokens and hurt performance. Interestingly, a larger η can enhance
+
+23
+
+5101520Top-k Retrieval010203040506070Accuracy (%)Decoding CleanDecoding CertifiedKeyword CleanKeyword Certified5101520Top-k Retrieval010203040506070Accuracy (%)Decoding CleanDecoding CertifiedKeyword CleanKeyword Certified5101520Top-k Retrieval010203040506070Accuracy (%)Decoding CleanDecoding CertifiedKeyword CleanKeyword Certified5101520Top-k Retrieval01020304050607080LLM-judge score (%)Clean LLM-j scoreApprox. Cert. LLM-j score(a) RealtimeQA-MC
+
+(b) RealtimeQA
+
+(c) Natural Questions
+
+(d) RealtimeQA
+
+(e) Natural Questions
+
+(f) Biography generation
+
+Figure 8: RobustRAG robustness against different corruption sizes k′ (Mistral-7B, k = 10)
+
+robustness for Natural Questions in some cases (for larger corruption size k′) but not for RealtimeQA.
+To explain this observation, we need to understand that, though a larger η makes it more likely to form
+a finite response set R during the certification (Case 4 is less likely to happen), the finite response set
+R can contain responses made of more no-retrieval tokens, which might lead to low τ values. Recall
+that Table 1 demonstrated that Mistral without retrieval performs much better on NQ (30%) than
+RealtimeQA (8%). This explains why Mistral can benefit more from a larger η and more no-retrieval
+tokens on NQ, compared to RealtimeQA.
+
+In Figure 8(f), we further analyze η for the biography generation task. As η increases, the clean
+performance (k′ = 0) decreases because RobustRAG will output more non-retrieved tokens. However,
+
+24
+
+012345Corruption Size k001020304050607080Certified Accuracy (%)Mistral-7B Llama7B GPT3.5 012345Corruption Size k0010203040506070Certified Accuracy (%)Keyword =0.3, =3Keyword =0.4, =4Keyword =0.5, =5012345Corruption Size k0010203040506070Certified Accuracy (%)Keyword =0.3, =3Keyword =0.4, =4Keyword =0.5, =5012345Corruption Size k0010203040506070Certified Accuracy (%)Secure Decoding =0Secure Decoding =0.2Secure Decoding =0.4012345Corruption Size k0010203040506070Certified Accuracy (%)Secure Decoding =0Secure Decoding =0.2Secure Decoding =0.401.02.03.04.05.0Corruption Size k001020304050607080Approx. Cert. LLM-j score (%)Decoding =0.0Decoding =0.1Decoding =0.2Decoding =0.3Decoding =0.4a larger η allows us to tolerate larger corruption size k′, because Case 4 (certification failure) will
+never happen when k · η − k′ ≥ 0 (or η ≥ k′/k; recall Appendix A).
+
+25
+
+E Case Study
+
+In this section, we use secure keyword aggregation for a case study to understand when RobustRAG
+performs well (outputting robust and accurate responses) and when performs poorly (inaccurate
+responses). We use Mistral-7B on RealtimeQA with α = 0.3, β = 3, k = 5.
+
+Robust example (Figure 9). First, we present an example of RobustRAG performing well in
+Figure 9. We can see that 4 out of 5 retrieved passages contain information about the correct answer
+“frogs”. RobustRAG can get large counts for relevant keywords like “frog” and “female frog” and
+thus output an accurate answer as “female frogs”. Moreover, the large keyword counts also provide
+robustness for RobustRAG on this query.
+
+Failure example (Figure 10). Second, in Figure 10, we provide an example where RobustRAG
+generates an inaccurate answer while vanilla RAG can correct answer the query. We can see that
+only one passage contains useful information on “NATO”. We find that vanilla RAG can correctly
+return “NATO” as the answer. This is likely because vanilla RAG concatenates all passages and thus
+has cross-passage attention to identify “NATO” as the most relevant answer (based on context and
+the ranking of the passage). However, our RobustRAG does not support cross-passage attention to
+emphasize or de-emphasize certain passages, and isolated responses give different answers. As a
+result, all keywords have a small count and are filtered. LLM can only output an incorrect answer
+generated by its guess.
+
+Query: Scientists have discovered that the females of which species fake their own deaths to
+avoid unwanted male advances?
+Gold answer: frogs
+
+Retrieved Passages:
+
+1. Female European common frogs were observed seemingly faking their own death to
+
+avoid mating with unwanted males, according to a new study.
+
+2. When it comes to avoiding unwanted male attention, researchers have found some
+
+frogs take drastic action: they appear to feign death.
+
+3. Female dragonflies use an extreme tactic to get rid of unwanted suitors: they drop
+
+out the sky and then pretend to be dead.
+
+4. Researchers discovered that female frogs escape males by rotating their bodies,
+
+releasing calls, and faking their death. Can you see the annual ...
+
+5. Researchers discovered that female frogs escape males by rotating their bodies,
+
+releasing calls, and faking their death.
+
+Isolated Responses: 1. European common frogs; 2. Some frogs; 3. Dragonflies; 4. Female
+frogs; 5. Female frogs.
+Keywords with counts: (European common frogs, 1), (european common frog, 1), (Female
+frogs, 2), (female frog, 2), (Dragonflies, 1), (Some frogs, 1), (dragonfly, 1), (european, 1),
+(female, 2), (common, 1), (frog, 4)
+Count Threshold: min(0.3 × 5, 3) = 1.5
+Retained keywords: Female frogs, female frog, female, frog
+Keyword Aggregated Response: Female frogs
+
+Figure 9: An example of RobustRAG outputting a robust and accurate response.
+
+26
+
+Query: Which organization was recently impacted by a cyberattack affecting its unclassified
+websites?
+Gold answer: NATO
+
+Retrieved Passages:
+
+1. The North Atlantic Treaty Organization (NATO) said it is investigating claims that
+
+data was stolen from unclassified websites under the ...
+
+2. Aside from US government agencies, “several hundred” companies and organiza-
+
+tions in the US could be affected by the hacking spree, a senior CISA ...
+
+3. Government agencies are not safe from the increasing wave of cybersecurity attacks,
+
+often enduring significant disruptions to their vital ...
+
+4. The U.S. government and Microsoft reveal Chinese hackers broke in to online email
+
+systems and stole some unclassified data.
+
+5. The cybersecurity breach of SolarWinds’ software is one of the most widespread
+
+and sophisticated hacking campaigns ever conducted against ...
+
+Isolated Responses: 1. NATO; 2. Several hundred US companies and organizations; 3. I
+don’t know; 4. U.S. government; 5. SolarWinds.
+Keywords with counts: (Several hundred US companies and organizations, 1), (several hun-
+dred US company, 1), (U.S. government, 1), (organization, 1), (government, 1), (SolarWinds,
+1), (solarwind, 1), (several, 1), (hundred, 1), (company, 1), (U.S., 1), (NATO, 1), (US, 1)
+Count Threshold: min(0.3 × 4, 3) = 1.2
+Retained keywords: (NA)
+Keyword Aggregated Response: NASA (a random guess by LLM)
+
+Figure 10: An example of RobustRAG outputting an inaccurate response.
+
+F Prompt Template
+
+Figure 11: Template for multiple-choice QA without retrieval.
+
+27
+
+Answer the query with the best candidates. If you cannot find the answer, just say "I don't know." Query: {Query}Candidates: A. {Answer A}B. {Answer B}C. {Answer C}D. {Answer D}E. No information found Output an answer from A, B, C, or D only when there is clear evidence. Otherwise, output 'E. No information found' as the answer. Answer:Figure 12: Template for multiple-choice QA with retrieval.
+
+Figure 13: Template for open-domain QA without retrieval.
+
+Figure 14: Template for open-domain QA with retrieval.
+
+Figure 15: Template for keyword aggregation in open-domain QA.
+
+Figure 16: Template for biography generation without retrieval.
+
+28
+
+Context information is below. --------------------- {Retrieved Passages} --------------------- Given the context information and not prior knowledge, try to find the best candidate answer to the query. Query: {Query}Candidates: A. {Answer A}B. {Answer B}C. {Answer C}D. {Answer D}E. No information found Answer:{In-context Exemplars} Answer the query with no more than ten words. If you do not know the answer confidently, just say "I don't know". Query: {Query}Answer:{In-context Exemplars} Context information is below. --------------------- {Retrieved Passages} --------------------- Given the context information and not prior knowledge, answer the query with only keywords. If there is no relevant information, just say "I don't know". Query: {Query}Answer:{In-context Exemplars} Word suggestion is below. --------------------- {Keywords} --------------------- Given the word suggestion provided by experts, concisely answer the query.Query: {Query}Answer:{In-context Exemplars} Write an accurate, engaging, and concise answer. If you do not know the answer confidently, just say "I don't know". Query: Tell me a bio of {Person}Answer:Figure 17: Template for biography generation with retrieval.
+
+Figure 18: Template for generating keyword phases in biography generation.
+
+Figure 19: Template for keyword aggregation in biography generation.
+
+29
+
+{In-context Exemplars} Context information is below. --------------------- {Retrieved Passages} --------------------- Given the context information and not prior knowledge, write an accurate, engaging, and concise answer.If there is no relevant information, just say "I don't know". Query: Tellmeabioof{Person}Answer:{In-context Exemplars} Context information is below. --------------------- {Retrieved Passages} --------------------- Given the context information and not prior knowledge, extract a few important short important phrases from it to facilitate the query.If there is no relevant information, just say "I don't know". Query: Tell me a bio of {Person}Answer:{In-context Exemplars} Write an accurate, engaging, and concise answer.Query: Tell me a bio of {Person}Answer the above question with the following important phrases suggestions: [{Keywords}]Answer:

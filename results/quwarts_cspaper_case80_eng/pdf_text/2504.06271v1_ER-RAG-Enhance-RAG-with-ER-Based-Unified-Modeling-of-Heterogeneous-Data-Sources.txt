@@ -1,0 +1,2178 @@
+ER-RAG: Enhance RAG with ER-Based Unified Modeling of
+Heterogeneous Data Sources
+
+Yikuan Xia∗1, Jiazun Chen∗1, Yirui Zhan1, Suifeng Zhao1, Weipeng Jiang2,
+Chaorui Zhang2, Wei Han2, Bo Bai†2, Jun Gao†1
+1Key Laboratory of High Confidence Software Technologies, CS, Peking University, Beijing, China
+2Theory Lab, Central Research Institute, 2012 Labs, Huawei Technologies Co., Ltd, Huawei Research, China
+wfl00014@pku.edu.cn,{chenjiazun,zhanyirui}@stu.pku.edu.cn,zsf030826@163.com
+{jiangweipeng,zhang.chaorui,harvey.hanwei,baibo8}@huawei.com,gaojun@pku.edu.cn
+
+5
+2
+0
+2
+
+r
+a
+
+M
+2
+
+]
+
+R
+
+I
+.
+s
+c
+[
+
+1
+v
+1
+7
+2
+6
+0
+.
+4
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+ABSTRACT
+Large language models (LLMs) have demonstrated significant po-
+tential in performing question-answering (QA) tasks. Retrieval-
+augmented generation (RAG) enhances the reliability and precision
+of LLMs through the integration of external evidence beyond their
+training data. The supporting evidence is retrieved from external
+sources, including web pages, databases, and knowledge graphs,
+among other structured and unstructured data sources. While ef-
+fective in many scenarios, current RAG methods require dedicated
+retrieval agents for individual data sources to optimize retrieval
+quality. Such an agent-specific strategy presents significant chal-
+lenges in low-resource or black-box environments and complicates
+operations when evidence is fragmented across sources.
+
+To address the above limitations, we propose ER-RAG, a frame-
+work designed to enable RAG systems to integrate information
+from multiple heterogeneous data sources. ER-RAG adopts the
+generalized Entity-Relationship (ER) model to represent evidence
+across diverse physical data forms, inspired by the observation
+of restrictive access patterns in the RAG context. The framework
+encapsulates different data sources with ER-based unified applica-
+tion programming interfaces (APIs), allowing entity retrieval and
+relationship querying through standardized 𝐺𝐸𝑇 and 𝐽𝑂𝐼 𝑁 opera-
+tions. Moreover, ER-RAG employs a two-stage generation process
+for API chain construction: in the first stage, a direct preference
+optimization-tuned module identifies optimal sources, and in the
+second stage, a dedicated module generates API chains based on the
+schema of the selected sources. This unified access pattern enables
+ER-RAG to accumulate extensive training samples for module fine-
+tuning while facilitating seamless integration across diverse data
+sources. A previous version of ER-RAG, tailored exclusively to the
+MockAPI and the provided web pages, won first place in all three
+tracks of the 2024 KDDCup CRAG Challenge. Experimental results
+demonstrate that ER-RAG, utilizing an 8B LLM backbone, achieves
+performance comparable to commercial RAG pipelines built on
+state-of-the-art LLM backbones. ER-RAG also surpasses other hy-
+brid source competitors by 3.1% in LLM score and accelerates the
+retrieval process by 5.5X.
+
+1 INTRODUCTION
+Large language models (LLMs), typically pre-trained on extensive
+data, have led to significant advancements in various natural lan-
+guage processing tasks, particularly in question-answering (QA)
+systems [5]. Retrieval-augmented generation (RAG) has emerged as
+
+∗ Equal Contribution. †Corresponding Authors.
+
+Figure 1: Existing RAGs vs. ER-RAG: Traditional RAG creates
+separate agents per source, while ER-RAG uses ER modeling
+to unify integration via ER API.
+
+an effective approach, requiring minimal to no additional training.
+RAG is particularly valuable when the desired knowledge lies out-
+side the LLMs’ training corpus [18, 45]. Specifically, RAG employs
+a retriever component to search for and extract relevant evidence
+from external data sources. The evidence is then integrated into
+the LLM’s context window to enhance its generation capabilities.
+Real-world RAG applications encounter diverse external data
+sources and their various combinations [23, 37]. Web pages, includ-
+ing news articles and blog posts [28], serve as sources of dynamic,
+real-time information. Databases provide structured data reposito-
+ries, particularly for organizational records such as inventory and
+customer information [3]. Knowledge graphs facilitate extracting
+semantically rich and interconnected knowledge, with Wikipedia
+serving as a prominent example [41]. Additionally, closed-source
+data sources, e.g., web service for querying stock information, typ-
+ically return structured JSON-formatted information in response
+to entity-specific queries [4]. While specific data sources excel at
+certain queries, multi-source QA tasks (e.g., merging corporate and
+open-web data) inherently require cross-source evidence.
+
+Existing RAG systems adopt strategies tailored to the charac-
+teristics of different data sources, as illustrated in Figure 1. For
+web pages, the content is pre-processed and chunked into smaller
+pieces, and the chunks are matched with the query using vector-
+based semantic similarity to identify relevant information [28]. In
+some cases, more advanced approaches, such as graph-based rela-
+tion modeling [41], are employed to capture complex relationships
+within the chunks. For databases, existing methods either convert
+database content into a vector database for semantic matching [24]
+or generate SQL queries to extract the required information [41].
+For knowledge graphs, existing methods often use vector-based re-
+trieval to extract relevant nodes or subgraphs [21], and some other
+systems deploy agents that traverse nodes and edges to gather in-
+formation [33, 41]. These diverse techniques enable RAG systems
+to adapt to the unique requirements of each data source.
+
+QueryWeb PageKnowledge GraphDatabaseQueryER AgentRetrieve separatelyAll Input to LLMWeb PageKnowledge GraphDatabaseRetrieve from different sources in a uniform wayExistingRAGsER-RAGEntity-Relationship (ER) modelWeb AgentKG AgentSQL AgentLLMLLM 
+ 
+ 
+ 
+ 
+ 
+While effective in certain scenarios, existing RAG systems face
+significant challenges in handling heterogeneous sources. First,
+the separate heterogeneous data retrievers increase more
+training and maintenance difficulty. As access methods vary
+among multiple sources, distinct training sets must be prepared
+for each retriever, leading to limited training data for individual
+sources under fixed computational and maintenance costs. These
+resource constraints further limit the adaptation of the RAG system
+to new data sources.
+
+Second, information interaction between different data
+sources remains challenging. For queries requiring evidence
+from multiple data sources, e.g., 𝑆1 and 𝑆2, simply combining their
+respective retrieval results may lead to irrelevant information being
+retrieved and erroneous answers being generated. An alternative
+approach involves developing a complex answering agent that
+generates multiple queries on one source (e.g., 𝑆1) based on query
+results from another source (e.g., 𝑆2), which substantially increases
+computational and operational costs.
+
+Third, choosing a proper data source combination to en-
+hance both efficiency and accuracy in source selection re-
+mains a critical challenge. Since evidence relevant to a given
+query may exist across different sources, including the LLM itself,
+which incurs no external retrieval cost, or external sources with
+varying access costs (e.g., open search engines being more costly
+than internal databases), it is crucial to carefully select the most
+appropriate sources for retrieval. While prior work [1] has explored
+the use of self-reflection to determine whether retrieval is necessary,
+the challenge of balancing efficiency and accuracy when retrieving
+from multiple sources remains under-explored.
+
+We observe that RAG excels at handling knowledge-intensive
+tasks [22], where the evidence required in RAG can be reduced to
+the location of entities and their relationships [3], e.g., fetching the
+age of a person from Wikipedia, fetching the student number of a
+particular student’s name from a database, and retrieving the entity
+(person) that has a certain relationship (author) with the second
+entity (book). With full consideration of such characteristics, we
+leverage the classical ER concept model [10], and propose a unified
+ER-based API over heterogeneous data sources, regardless of their
+physical format. In practice, both open-box sources such as DB,
+Wikipedia, and WEB, and closed-box sources can fit into the unified
+API. Such unified APIs enable training a single retrieval module
+to perform operations across the selected sources using a single
+training dataset. The key contributions to the above challenges are
+listed as follows:
+
+1. ER-RAG standardizes APIs for multiple data sources, whose
+generalization is backed up by the ER model [10]. The APIs
+consist of a 𝐺𝐸𝑇 and a 𝐽𝑂𝐼 𝑁 component. The 𝐺𝐸𝑇 component
+describes querying entities from a certain data source, filtering
+some of the entities by conditions, and getting their desired
+attributes. Provided with a consistent interface, LLMs can
+perform reasoning more effectively.
+
+2. ER-RAG introduces two-stage generation for the chain of APIs,
+in which the proper sources are first selected by a module fine-
+tuned by DPO to boost efficiency and accuracy, and the chains
+of APIs are then generated by another module with the schema
+of the selected source via the prompts. Such a separation makes
+the module fine-tuning easier, and lowers the context length of
+
+Yikuan Xia∗1, Jiazun Chen∗1, Yirui Zhan1, Suifeng Zhao1, Weipeng Jiang2,
+Chaorui Zhang2, Wei Han2, Bo Bai†2, Jun Gao†1
+
+the generation module with a more concise schema. ER-RAG
+also adopts a post-processing module to manipulate collected
+data and maintain system expressiveness.
+
+3. Our experimental results indicate that ER-RAG achieves per-
+formance comparable to source-specific RAG systems while
+significantly enhancing the accuracy and efficiency of multi-
+source QA tasks. Specifically, ER-RAG demonstrates a 3.1%
+improvement in LLM scores over other hybrid source competi-
+tors and accelerates the retrieval process by 5.5X. ER-RAG also
+show robust generalization capabilities, effectively adapting
+to datasets that differ from its original training data. These
+results highlight ER-RAG’s ability to bridge the gap between
+heterogeneous data sources and advanced reasoning capabili-
+ties in LLMs, showcasing its potential as a unified framework
+for integrating diverse data sources.
+
+The paper proceeds as follows: Section 2 reviews related work,
+Section 3 details unified APIs, Section 4 outlines ER-RAG com-
+ponents, Section 5 presents experimental results, and Section 6
+concludes with future directions.
+
+2 RELATED WORK
+This section reviews cross-source RAG, application-specific source
+selection, LLM fine-tuning strategies, and unified heterogeneous
+data modeling.
+
+2.1 RAG in Different Kinds of Sources
+RAG over Text Sources. HTML and text sources are the major
+external data sources for current RAG systems, and there is a signif-
+icant body of work in this area. Usually, the content of the HTML
+pages is decomposed into chunks [28], each of which contains a
+sequential piece of documents. Subsequently, the relevant chunks
+can be located using a combined metric with sparse and dense
+retrieval. The sparse retrieval mainly captures explicit matching
+of the keywords in the query and chunks using TF-IDF [40] or
+BM25 [36]. The dense retrieval [8] focuses on the implicit semantic
+matching between the query and chunks if both are converted into
+embeddings using a pre-trained language model like BERT [13].
+The existing retrieval strategies are viewed as the implementations
+of the following unified ER-based APIs. For example, we can con-
+struct an API with the output attribute named "chunk", and we can
+follow the metrics to locate the most relevant chunks.
+RAG on Knowledge Graph. Knowledge graphs [15], constructed
+on the open corpus or internal resources, can provide high-quality
+supplementary context to enhance the performance of LLMs. When
+adopted by RAG, the user’s query has to be converted into the
+query over the knowledge graph using the template [42] or flexible
+semantic parser [48]. Since the generated paths may not align with
+those in existing knowledge graphs, Think-on-Graph (TOG) [41]
+introduces an LLM to select among candidate paths for the RAG.
+Existing methods serve as knowledge graph access implementations
+seamlessly integrated into ER-RAG.
+RAG on Relational Database. Relational databases, such as stor-
+ing an organization’s internal data, can provide high-quality ref-
+erences for RAG systems when handling questions in natural lan-
+guage. Natural language to SQL (NL2SQL/TEXT2SQL) has recently
+
+ER-RAG: Enhance RAG with ER-Based Unified Modeling of Heterogeneous Data Sources
+
+Figure 2: ER-RAG inference pipeline: (1) A source selection module identifies optimal data sources optimizing information
+sufficiency and retrieval cost. Both DB_Finance and WEB datasets are required to retrieve the stock price and Nobel Prize
+announcement date. (2) An API chain is generated based on selected sources’ schema, first querying temporal data (Nobel Prize
+date) to enable stock price lookup. (3) The API chain executes to return JSON-formatted results from heterogeneous sources. (4)
+A post-processor converts outputs to natural language f-string templates with executable Python expressions.
+
+become a hot research topic [19, 31], involving prompt design, fine-
+tuned LLMs, or pre-trained language models combined with small
+task-specific models. Another related task, table retrieval, can be
+viewed as a sub-task of NL2SQL, which involves retrieving the rele-
+vant single table [24] or multiple tables with join conditions [9] by
+computing the similarities between queries and tables. In our con-
+text, however, we focus on how to integrate information between
+the database and other data sources, rather than extracting from
+the database alone. Among these works on relational databases, the
+task most closely related to ours is Table-Augmented Generation
+(TAG) [3], which features LLM executions in SQL to allow semantic
+understanding in using relational databases as a source of RAG.
+ER-RAG shows its difference from TAG due to more heterogeneous
+data sources, stronger semantic understanding using information
+from other sources, and fine-tuned LLMs for the source selection
+and generation of the chain of APIs.
+RAG on Hybrid Sources. Recently, RAG systems have started
+to incorporate hybrid sources for evidence collection, aiming to
+enhance the breadth and quality of the information used in response
+generation. For example, GraphRAG [23] constructs a knowledge
+graph from text sources and applies a clustering algorithm to the
+graph. The resulting clusters support answers to global queries.
+HybridRAG [37] combines GraphRAG [23] with a basic text-based
+RAG system, enhancing performance by utilizing retrieved data
+from both sources. Think-on-graph 2.0 [33] enhances the selection
+of navigation paths in the knowledge graph guided by both LLM
+and collected documents. We can see the need for hybrid sources
+in RAG, especially when knowledge graphs are constructed on the
+fly from text sources. However, unlike ER-RAG, all existing works
+
+rely on specific methods to support access to relational databases,
+knowledge graphs, and text sources separately.
+
+2.2 Source Selection and LLM Routing
+Given a query, the source selection has been investigated in dif-
+ferent application domains via a task-specific metric considering
+the cost, quality, and reliability of the data sources. For example,
+a cost-efficiency metric is proposed in data integration [17], and
+a trustworthiness score is computed [16] in the web source an-
+swering. In the context of RAG, as the user’s query is flexible, the
+selection of proper sources requires a deep understanding of the
+features of the query and the capability of the data sources, which
+can be facilitated by the fine-tuned LLM in our proposed method.
+Another related problem is to route queries to the proper LLM
+to achieve a trade-off between performance and cost, as there are a
+large number of LLMs with different capabilities and expenses [26].
+The current routers usually learn routing policies to maximize the
+pre-defined objectives based on the understanding of the user’s
+query and LLMs. Among them, RoutLLM [34] casts the problem as
+a supervised classification problem with a point-wise loss, and LLM-
+BLENDER [27] introduces a reward model to evaluate the routing
+results with a pair-wise loss. ER-RAG can recommend multiple
+sources instead of a single source using a fine-tuned LLM, as the
+evidence needed may be located in different sources.
+
+2.3 Fine-Tuning of LLM
+It is a critical step to fine-tune pre-trained LLMs in handling spe-
+cific tasks, and supervised fine-tuning (SFT) and reward modeling
+are two major fine-tuning strategies. SFT prepares an annotated
+dataset with explicit outputs to optimize the parameters in the LLM
+
+1On the day DeepMind won the Nobel Prize in Chemistry, Google's stock price rose by 0.163.Web PageKnowledge GraphDatabaseHow much Google's stock price increased on the day DeepMind won the Nobel Prize in Chemistry?1DPO based Heterogeneous Data Source SelectionHeterogeneousData sources2Heterogeneous Data Chain Generation3Heterogeneous Data Chain Evaluation+ prompt[{"announce_date":"2024-10-08"}]4External Data PostprocessingGET(DBfinance, [table="price_history", "stock_symbol"="GOOG", "date"=2024-10-08], ["open", "close"])[{"open":165.43,"close":165.70,"stock_symbol":"GOOG","date":"2024-10-08","search_key":"2024 Nobel Chemistry Prize"}]f'''Onthe day DeepMind won the Nobel Prize in Chemistry, Google's stock price rose by {(Data[0]["close"]-Data[0]["open"])/Data[0]["open"]}.'''GET(Web, ["search_key"~"2024 Nobel Chemistry Prize"], ["announce_date"])…165.70165.432024-10-8…GOOGJOIN("announce_date", "date", equal)Data: result listSource Routing ModuleGeneration ModulePost-processing ModuleTable: Price_historyGET(Web, ["search_key"~"2024 Nobel Chemistry Prize"], ["announce_date"]).JOIN("announce date", "date", equal).GET(DBfinance, [table="price_history", "stock_symbol"="GOOG"], ["open","close"])Web + DBfinanceEntity Module12456LLM3directly. Reward modeling provides fine-granularity preference con-
+trol over tuned LLM by SFT, among which RLHF [11] utilizes human
+feedback to train a reward model that guides the actions of LLM.
+Representative reinforcement learning methods include proximal
+policy optimization (PPO) [38], and direct preference optimization
+(DPO) [35]. Specifically, DPO attempts to optimize the actions in
+each step without requiring explicit reward modeling. ER-RAG
+adopts the SFT in building the module in generating the chain of
+the API, and takes an SFT-then-DPO approach in fine-tuning the
+module in source selection to achieve the preference in combined
+metrics with cost and accuracy.
+
+Specifically, fine-tuning can be implemented in Low-Rank Adap-
+tation (LoRA) [25] to further enhance parameter efficiency and
+adaptability in fine-tuning. LoRA introduces trainable low-rank de-
+composition matrices into pre-trained LLMs, significantly reducing
+trainable parameters while maintaining task performance. This pa-
+per implements all tuned sub-modules via LoRA adapters, enabling
+low-cost switching and training.
+
+2.4 Heterogeneous Data Source Modeling
+The ER model is a classical generalized conceptual framework used
+to describe the key concepts to be managed in a database, includ-
+ing entities, attributes, and their relationships [10]. The ER model
+can be viewed as the foundation of the design of physical models,
+including knowledge graphs, JSON, and relational databases. By
+fully considering the restricted access pattern in RAG, we leverage
+the idea of the ER model to define unified access APIs over all data
+sources to obtain the necessary evidence (entities and relationships).
+There are also works to represent different data sources using
+one unified model. As the relational database schema is derived
+from ER modeling, relational tables can be reconstructed into a
+graph with foreign keys as the edges between table nodes. Previous
+works learn embeddings at the schema or instance level using
+graph neural networks to support various downstream tasks, such
+as recommendation [2], entity resolution, and table understanding
+[6, 47]. As RAG access patterns are restricted, ER-RAG’s unified
+APIs serve as basic graph query operations, with their composition
+forming a chain rather than a flexible graph pattern.
+
+3 UNIFIED ER API CHAIN
+In this section, we first define our unified ER API for knowledge
+retrieval from heterogeneous data sources. We then describe the
+concrete physical implementation of the defined logical API. Finally,
+we outline the greedy execution algorithm of the API chain.
+
+3.1 Unified API’s Logical Definition
+Motivated by the ER model and entity-entry MockAPI in CRAG
+dataset [45], we design a unified ER extraction API to extract knowl-
+edge from different sources. First, we define two basic operations
+of the API, the 𝐺𝐸𝑇 operation and the 𝐽𝑂𝐼 𝑁 operation.
+GET Operation. The 𝐺𝐸𝑇 operation corresponds to the process of
+retrieving specific entities and attributes from a data source, defined
+by a set of filtering criteria. In the context of the ER model, the 𝐺𝐸𝑇
+operation can be viewed as a selection process over an entity set
+{𝐸}, where the selection condition is based on attribute values.
+
+Yikuan Xia∗1, Jiazun Chen∗1, Yirui Zhan1, Suifeng Zhao1, Weipeng Jiang2,
+Chaorui Zhang2, Wei Han2, Bo Bai†2, Jun Gao†1
+
+Formally, let 𝑆 represent a data source, and let 𝐴1, 𝐴2, . . . , 𝐴𝑛
+denote the attributes of {𝐸}. A 𝐺𝐸𝑇 operation can be expressed as:
+
+𝐺𝐸𝑇 (𝑆, Condition, {𝐴𝑖 })
+
+where 𝑆 is the target data source, Condition is a logical expression
+involving one or more attributes of {𝐸}, and {𝐴𝑖 } is the set of at-
+tributes to be retrieved. The result of a 𝐺𝐸𝑇 operation is a projection
+of specific attributes of condition meeting entities {𝐸′} ⊆ {𝐸}.
+JOIN Operation. The 𝐽𝑂𝐼 𝑁 operation is used to combine data
+from two entity sets based on two related attributes. In the ER
+model, this operation reflects the establishment of relationships
+between entities. A 𝐽𝑂𝐼 𝑁 operation integrates information by link-
+ing entities through shared attributes. 𝐽𝑂𝐼 𝑁 operation takes two
+𝐺𝐸𝑇 outputs (entity subsets with associated attributes) as input.
+Formally, let 𝑆1 and 𝑆2 represent two data sources, and let {𝐴1
+𝑖 }
+and {𝐴2
+𝑖 } be attributes in 𝑆1 and 𝑆2, respectively. The output of two
+𝐺𝐸𝑇 s is {𝐸1} and {𝐸2}. The 𝐽𝑂𝐼 𝑁 operation can be expressed as:
+
+𝐺𝐸𝑇 (𝑆1, ..., {𝐴1
+
+𝑖 }).𝐽𝑂𝐼 𝑁 (Condition).𝐺𝐸𝑇 (𝑆2, ..., {𝐴2
+
+𝑖 }).
+
+12} satisfy the specified 𝐽𝑂𝐼 𝑁 condition.
+
+where Condition = (𝑒1.𝑎1 op 𝑒2.𝑎2) defines the relationship between
+the entities, and 𝑒1 ∈ {𝐸1}, 𝑒2 ∈ {𝐸2}. The used attributes have to
+𝑖 }, 𝑎2 ∈ {𝐴2
+be concluded in the extracted attributes, 𝑎1 ∈ {𝐴1
+𝑖 }.
+The output of the 𝐽𝑂𝐼 𝑁 operation is a subset {𝐸′
+12} ⊆ {𝐸1} × {𝐸2}
+(Cartesian product of the two sets {𝐸1} and {𝐸2}), where the pairs
+in {𝐸′
+Chain of GET and JOIN. Ideally, the 𝐽𝑂𝐼 𝑁 operation can be placed
+between 𝐺𝐸𝑇 operations and form a graph of 𝐺𝐸𝑇 operations, al-
+lowing complex relationships between data sources to be expressed
+and extracted. Considering that QA queries often do not involve
+such complex logic represented in graphs, we consider a chain of al-
+ternating 𝐺𝐸𝑇 and 𝐽𝑂𝐼 𝑁 operations to simplify the generation and
+representation of these processes. This chain represents a sequence
+of data retrieval and integration steps, where each 𝐺𝐸𝑇 operation
+extracts specific entities and attributes, and each 𝐽𝑂𝐼 𝑁 operation
+combines these entities based on defined conditions. Formally, a
+chain of 𝐺𝐸𝑇 and 𝐽𝑂𝐼 𝑁 operations can be expressed as:
+𝐺𝐸𝑇 (𝑆1, Condition1, {𝐴1
+.JOIN(Condition4).𝐺𝐸𝑇 (𝑆3, Condition5, {𝐴3
+
+𝑖 }).JOIN(Condition2).𝐺𝐸𝑇 (𝑆2, Condition3, {𝐴2
+𝑖 }) . . .
+
+𝑖 })
+
+Such a chain alternates between 𝐺𝐸𝑇 and 𝐽𝑂𝐼 𝑁 operations,
+
+building unified multi-source data views.
+
+3.2 Unified API’s Physical Implementation
+This subsection details the API system’s physical implementation
+and enumerates representative instances. Notably, the API execu-
+tion has no limitations on data sources, so other sources can also
+be included as long as our defined APIs are implemented.
+Instances of GET APIs. We list the implementations of 𝐺𝐸𝑇 APIs
+for several common data sources here, including the DB, WIKI, and
+Other (WEB, Document) sources.
+
+DB GET API. In the context of relational databases, the 𝐺𝐸𝑇
+operation can be directly translated into an SQL query. The 𝐺𝐸𝑇 op-
+eration in a DB is formally expressed as: 𝐺𝐸𝑇 (𝐷𝐵𝑠, Condition, {𝐴𝑖 }),
+where 𝐷𝐵𝑠 is the data source (typically a database containing mul-
+tiple related tables), Condition represents a logical expression in-
+volving one or more attributes in the database table schema, and
+
+ER-RAG: Enhance RAG with ER-Based Unified Modeling of Heterogeneous Data Sources
+
+{𝐴𝑖 } is the set of attributes to be retrieved. Specifically, in the Con-
+dition statements, a certain table has to be specified for successful
+retrieval (table = table_name). We represent the rest of the condi-
+tions as Condition′. In SQL, this operation can be represented as:
+
+SELECT {𝐴𝑖 } FROM table_name WHERE Condition′; .
+Here, {𝐴𝑖 } are the attributes of interest, and the WHERE Condition′
+specifies the filtering criteria for selecting the rows from the table 𝑆.
+The Condition’ in the 𝐺𝐸𝑇 operation often corresponds to SQL-like
+conditions, which can involve equality comparisons (e.g., 𝐴𝑖 = 𝑣),
+range queries (e.g., 𝐴𝑖 > 𝑣), pattern matching (e.g., LIKE,~), or logical
+combinations of these (e.g., 𝐴𝑖 = 𝑣1 AND 𝐵𝑖 < 𝑣2). Specifically
+for the pattern matching case, fuzzy search is conducted by first
+attempting an exact match, followed by a case-insensitive partial
+match using ILIKE (PostgreSQL) for prefix or suffix completion.
+For queries on specific fields with a limited set of attribute values
+and the above search result is empty, embedding-based retrieval is
+utilized to identify the most relevant attribute.
+
+Knowledge Graph GET API. In the context of Knowledge
+Graphs (KG), the 𝐺𝐸𝑇 operation is used to retrieve specific at-
+tributes or facts about entities. We demonstrate the KG 𝐺𝐸𝑇 inter-
+face using Wikipedia: 𝐺𝐸𝑇 (𝑊 𝐼𝐾𝐼, Condition, {𝐴𝑖 }).
+
+In the condition part, we use the same condition statements as
+the DB 𝐺𝐸𝑇 API instance. A specific search_key in the statement
+should be provided to identify the entity we needed. For example, if
+the Condition contains search_key= DeepMind, we use Wikipedia
+search tools to get the page of DeepMind for later processing. To
+deal with the ambiguity problem [39], we prompt an 8B LLM to se-
+lect the most related entity given the query and disambiguation list.
+Furthermore, we distill a entity module (for entity disambiguation
+and later attribute extraction) using GPT-4o outputs to enhance
+its cross-modal reasoning capabilities. Other condition statements
+listed in the DB GET API can also be incorporated. We additionally
+leverage it to verify whether the retrieved Wikipedia entity satisfies
+the specified conditions.
+
+In the attribute part, if {𝐴𝑖 } (e.g., "parent company" of a com-
+pany) exists directly in the structured infobox or table of the entity’s
+page (e.g., the Wikipedia page of DeepMind), it can be extracted
+directly using the structured data parser. However, if the attribute
+is not explicitly available in the structured data, or the attribute
+name can’t be exactly matched but exists in the unstructured text of
+the page, LLM can be employed to extract the desired attribute. We
+prompt the LLM to process the text and identify the relevant infor-
+mation. Specifically, we also fine-tune the entity module with the
+output of GPT-4o to enhance its capability. By extracting structured
+data when available and unstructured data using LLM, this hybrid
+approach enables efficient and comprehensive retrieval of attributes
+in KGs, ensuring both precision and flexibility in handling diverse
+query types.
+
+Other GET API. Other GET APIs follow the same format as the
+other two instances. Other sources, mainly web pages extracted
+from search engine results or documents, follow the same text
+processing pipeline [44]. To process information from web pages,
+the HTML content is first parsed into structured documents. We
+use the BeautifulSoup library to extract the main body text while
+filtering out irrelevant elements. After extraction, or when dealing
+with plain text, we use TextSplitter from LangChain to divide the
+
+text into manageable chunks [28], adhering to the predefined parent-
+child chunking strategy. These chunks are then fed into the retriever
+and reranker pipeline. The retriever identifies the most relevant
+child chunks based on their semantic similarity to the query, while
+the pairwise reranker model further refines the selection, boosting
+the retrieval performance. We use the retrieved chunk results as a
+default "chunk" attribute, and we also support the LLM attribute
+extraction module mentioned in the KG GET API part to extract
+attributes from these retrieved chunks. Notably, we implement a
+widely-used simple RAG pipeline for the web and text scenario,
+and other advanced RAG techniques, e.g., query rewriting [20], or
+HTML parsing techniques, e.g., extracting the table contents, can
+be applied to further boost the performance, which is perpendicular
+to our research direction.
+Instances of JOIN API. A naive instance of the 𝐽𝑂𝐼 𝑁 operation
+can be described as follows: Suppose that we have two data sources
+𝑆1 and 𝑆2, with attributes {𝐴1
+𝑖 } and {𝐴2
+𝑖 }, respectively. The output
+of the first 𝐺𝐸𝑇 operation is 𝐸1, a set of entities with attributes. Let
+the 𝐽𝑂𝐼 𝑁 Condition be defined as 𝑒1.𝑎1 op 𝑒2.𝑎2, where 𝑎1 ∈ {𝐴1
+𝑖 }
+and 𝑎2 ∈ {𝐴2
+𝑖 }. For each entity 𝑒1 ∈ 𝐸1, the 𝐽𝑂𝐼 𝑁 condition gener-
+ates a filter for the second 𝐺𝐸𝑇 operation, where the condition is
+concatenated with logical OR for all 𝑒1 ∈ 𝐸1. Formally, the resulting
+𝐽𝑂𝐼 𝑁 condition can be expressed as:
+
+Condition =
+
+(cid:220)
+
+𝑒1 ∈𝐸1
+
+(𝑒2.𝑎2 op 𝑒1.𝑎1) ,
+
+where (cid:212) denotes the logical OR operator. This means that for each
+entity 𝑒1 in the output of the first 𝐺𝐸𝑇 , a corresponding condition
+𝑒2.𝑎2 op 𝑒1.𝑎1 is inserted into the second 𝐺𝐸𝑇 operation. The 𝐽𝑂𝐼 𝑁
+operation integrates the outputs 𝐸1 and 𝐸2 by filtering the Cartesian
+product 𝐸1 × 𝐸2 based on the defined condition.
+
+Notably, for simple operands, e.g., =,>,<, we can simply generate
+the conditions of the second 𝐺𝐸𝑇 . However, for semantic operands,
+like the parent company operand between DeepMind and Google,
+semantic understanding is required to parse such operands. There-
+fore, to handle the parsing of the semantic operands, we integrate
+the entity module (originally designed for the KG GET API) in our
+𝐽𝑂𝐼 𝑁 interface for KG and text. For example, for a 𝐽𝑂𝐼 𝑁 inter-
+face 𝐽𝑂𝐼 𝑁 (𝑐𝑜𝑛𝑡𝑒𝑛𝑡, 𝑝𝑎𝑟𝑒𝑛𝑡_𝑐𝑜𝑚𝑝𝑎𝑛𝑦, 𝑠𝑒𝑎𝑟𝑐ℎ_𝑘𝑒𝑦), that queries
+the parent company of DeepMind. We take the content attribute of
+the first 𝐺𝐸𝑇 of DeepMind’s wiki page, which is a default attribute
+of all WIKI-related 𝐺𝐸𝑇 s, and prompt the entity module to extract
+a parent company entity from the content. The answer is filled into
+a condition related to the second 𝐺𝐸𝑇 ’s 𝑠𝑒𝑎𝑟𝑐ℎ_𝑘𝑒𝑦, fetching the
+Google entity for further processing.
+
+3.3 Execution of Chain of APIs
+The execution order of APIs has a significant impact on execution
+time, and optimizing the sequence can greatly improve efficiency.
+To determine the execution order of each 𝐺𝐸𝑇 operation, we need
+to have access to the cardinality of each 𝐺𝐸𝑇 operation. Cardinality
+refers to the number of records or entities that satisfy the condi-
+tions of a specific 𝐺𝐸𝑇 operation. By estimating cardinality, we can
+optimize the execution order of multiple 𝐺𝐸𝑇 and 𝐽𝑂𝐼 𝑁 operations,
+like SQL execution in database [30], as operations with lower car-
+dinality can be prioritized to reduce intermediate result sizes and
+improve overall efficiency. For database (DB) APIs, cardinality can
+
+Algorithm 1: Efficient Execution of Chain of APIs.
+
+Input: API Chain 𝐶ℎ𝑎𝑖𝑛 = (𝑉 , 𝐸), where 𝑉 is the set of
+𝐺𝐸𝑇 nodes and 𝐸 is the set of 𝐽𝑂𝐼 𝑁 edges.
+
+Output: Execution Result.
+1 Initialize priority queue 𝑄;
+2 foreach 𝑣 ∈ 𝑉 do
+3
+
+𝑐 ← Estimate(𝑣);
+Insert 𝑣 into 𝑄 with cardinality 𝑐, initializing
+𝑣 [join] ← ∅;
+
+4
+
+7
+
+8
+
+9
+
+10
+
+11
+
+12
+
+13
+
+14
+
+5 while len(𝑄) > 1 do
+6
+
+Extract 𝑣min with smallest cardinality from 𝑄;
+Create merged node 𝑣new combining 𝑣min and
+𝑣min [join] (if exists);
+Remove 𝑣min and 𝑣min [join] from 𝑄 if present;
+Insert 𝑣new into 𝑄;
+foreach edge 𝑒 from 𝑣new to neighbor 𝑣n do
+
+Compute joined cardinality
+𝑐new ← EstimateJoin(𝑣new, 𝑣n, 𝑒);
+if 𝑐new < current cardinality of 𝑣n then
+Update 𝑣n’s cardinality in 𝑄;
+Record 𝑣n’s new 𝑣n [join] ← 𝑣new;
+
+15 return The remaining node in 𝑄;
+
+be estimated using metadata (e.g., min, max, and distinct_count)
+and the converted SQL query. Our system uses a simple estimation
+approach based on this metadata. For KG APIs and other APIs, if
+a search_key is provided, the cardinality is estimated as 1, assum-
+ing the key uniquely identifies a single entity. If no search_key is
+provided, the cardinality is estimated as ∞, reflecting that we can’t
+identify the entity based on the current interface.
+
+Regardless of how the individual 𝐺𝐸𝑇 and 𝐽𝑂𝐼 𝑁 are imple-
+mented, we propose a unified interface execution algorithm. The
+parsing algorithm can deal with 𝐺𝐸𝑇 s connected into chains, as
+well as the more general graph structure. Intuitively, we greedily se-
+lect the 𝐺𝐸𝑇 operator estimated to have the smallest cardinality to
+execute the whole interface more efficiently. The overall algorithm
+is presented in Algorithm 1.
+
+Initially, our algorithm initializes a priority queue and inserts all
+𝐺𝐸𝑇 nodes into the queue, prioritizing them based on their base
+cardinality. During each iteration, the 𝐺𝐸𝑇 node 𝑣𝑚𝑖𝑛 with the
+smallest cardinality is extracted, and its 𝐺𝐸𝑇 operation is executed
+on its own or with its recorded joining neighbor 𝑣 𝑗𝑜𝑖𝑛, and the
+newly executed or combined node is added to the queue. We then
+identify join edges connected to the newly executed or combined
+node and perform join operations with its neighboring 𝐺𝐸𝑇 nodes.
+After each join operation, the conditions and priorities of the neigh-
+bor nodes are updated. Specifically, we re-estimate the cardinality
+of joining the neighbor node and the combined node. If the com-
+bined cardinality is smaller than the value in the queue, we update
+the cardinality, and record which joined node 𝑣 𝑗𝑜𝑖𝑛 the smaller
+cardinality is achieved. This process continues until only one result
+remains in the queue. By prioritizing nodes with smaller cardinality,
+the algorithm uses a greedy strategy to optimize execution.
+
+Yikuan Xia∗1, Jiazun Chen∗1, Yirui Zhan1, Suifeng Zhao1, Weipeng Jiang2,
+Chaorui Zhang2, Wei Han2, Bo Bai†2, Jun Gao†1
+
+4 ER-RAG PIPELINE
+In this section, we present the ER-RAG pipeline, a two-stage API
+generation module followed by a post-processing module. In the
+API generation module, the first stage focuses on source selection,
+where an agent fine-tuned using the DPO framework [35] evaluates
+and selects the most relevant sources based on task requirements.
+This stage aims to pass the data sources with sufficient information
+to answer the query and the least retrieval time to the second
+stage. In the second stage, a generation agent constructs the API
+chains by leveraging the schema of the selected sources as prompts,
+enabling precise and context-aware API generation. Following API
+retrieval, a post-processing module is employed to apply additional
+operations to the collected data, enhancing the expressive power
+and flexibility of the RAG system.
+
+4.1 API Generation Objective.
+Given multi-source data S and an execution system P, we aim to
+construct an optimal API chain to achieve the dual objectives of
+maximizing answer accuracy and minimum retrieval latency.
+The multi-source data S can include several separate heterogeneous
+data sources, e.g., DB, WIKI, WEB, etc, each containing different
+data and having different retrieval costs.
+
+4.2 API Generation for Provided Sources.
+Since training the source selection module requires generating
+and evaluating APIs on fixed sources, we will first present API
+generation for given sources. Given a data source and a query, we
+propose combining prompt engineering and tuning to generate the
+API. The prompt is as follows:
+
+1 You are an agent for building a retrieval system.
+2 ### Instruction:
+3 You need to generate an API with {Datasource_name}.
+4 ### API Definition: {API_definition}
+5 ### Datasource Schema: {Datasource_schema}
+6 ### Query:
+7 Please refer to the instructions and generate an API for the
+
+↩→ following query directly:
+
+8 Query: {Query}
+9 Interface:
+
+The prompt is unified for all sources in the {API_definition} part,
+which describes the API format. The {Datasource_name} is the
+name of the provided source, including single sources, e.g., SELF,
+DB_Finance, WIKI, WEB, etc, and mixed sources, e.g., WIKI + DB_Fi-
+nance, etc. For different data sources, the {Datasource_schema} part
+is different. For example, for the database part, we have to fill in
+the {Datasource_schema} part with the related database schema,
+otherwise, it would be impossible for the LLM to generate the
+correct table name or row name. For data sources such as the WEB
+or Wikipedia, since the LLM already has knowledge of these sources,
+we only need to provide it with the names of the data sources. For
+mixed sources, the {Datasource_schema} part should include all
+relevant component schemas.
+
+Given fixed data sources, we prompt GPT-4o to generate the
+reference APIs from the training set and then correct them manually
+as the ground-truth data. We then fine-tune a small LLM (8B) using
+the annotated interfaces to perform the interface generation task.
+
+ER-RAG: Enhance RAG with ER-Based Unified Modeling of Heterogeneous Data Sources
+
+Figure 3: Fine-Tuning Source Selection Module Illustration.
+
+4.3 Source Selection
+Selecting different data sources is essential for ensuring accurate
+and efficient responses. Firstly, similar to the schema linking mod-
+ule in NL2SQL, we need to choose the right source in homogeneous
+sources. For example, if we have two DB sources, DB_Music and
+DB_Movie, and we are provided with a question related to music,
+we need to direct the source correctly to music, otherwise, the other
+data source contains no useful information. Moreover, heteroge-
+neous sources have their strengths and weaknesses. If a wrong
+source is selected or all sources are simply stacked together with-
+out consideration, it can lead to incorrect or suboptimal answers.
+Proper selection ensures that the most suitable source combination
+is chosen for a given task, leveraging its strengths while avoiding
+unnecessary conflicts.
+
+Secondly, different sources or models have varying execution
+times. For example, only considering the time cost, using a search
+engine to search and fetch the top 10 related web pages may cost
+2 seconds, and searching from a database may cost milliseconds
+to hundreds of seconds or more depending on the database scale
+and query difficulty, and searching from Wikipedia and parsing the
+entity and edges using LLMs may cost a few seconds to hundreds of
+seconds depending on how deeply the LLM is involved. To provide
+timely responses, it’s crucial to assign queries to the source with
+the shortest execution time that can still deliver accurate results.
+In this subsection, we present our source selection training
+pipeline, consisting of a supervised fine-tuning (SFT) training part
+that teaches the LLM which sources can accurately capture the
+related information, and a direct policy optimization (DPO) prefer-
+ence training part that guides the LLM to choose the source with
+the lowest cost. Our experiments show that directly using SFT to
+select the single correct and fastest source leads to significant issues.
+Specifically, SFT struggles to balance multiple objectives effectively,
+causing the model to confuse whether a source is valid or simply
+low-cost. This confusion results in an over-selection of the SELF
+source (the source not using RAG with 0 retrieval cost), which ulti-
+mately harms performance. To address this, we chose to use DPO
+for further fine-tuning of the LLM. DPO avoids the pitfalls of SFT
+by better accommodating multiple objectives.
+SFT Training. In order to help the LLM learn which source is
+reliable, we introduce SFT training before DPO. This stage helps
+
+the model output in categorical format and spot the reliable data
+source. The prompt we use is as follows:
+
+1 You are an agent for selecting the appropriate data source to
+
+↩→ answer user queries.
+
+2 ### Instruction:
+3 Based on the provided query and available data sources ({
+
+↩→ Datasource_list}), you must determine the best option for
+↩→ obtaining the information needed.
+
+4 ### Source Schema Overview:{Source_description}
+5 ### Query:
+6 Please refer to the instructions and output a most likely data
+
+↩→ source for the following query directly.
+
+7 Query: {Query}
+8 Source:
+
+where {Datasource_list} is a list of sources, e.g., DB_movie, DB_music,
+WIKI, WEB, SELF, MIX, etc. SELF means that no information re-
+trieval is needed. MIX means allowing the API to query multiple
+sources. Each mix source is assigned to a special token in source
+selection tuning. {Source_description} contains a brief schema and
+source description of each source. For example, for a specific DB
+source, the description contains lists of table names and usages.
+
+Here, given a query 𝑞, we denote the probability of LLM M
+choosing source 𝑆 as 𝑃M (𝑆 |𝑞). We construct the training set as
+follows: For each query 𝑞 in the training set T , we generate an
+API using source 𝑞. Then, we execute the API and infer using
+the LLM with the retrieved context. Finally, we construct a set
+D𝑠 𝑓 𝑡 = {(𝑞, 𝑆𝑖 )}, where query 𝑞 is answered correctly with the
+help of source 𝑆𝑖 . Here, each 𝑞 can form pairs with multiple correct
+sources. We optimize the following SFT loss on D𝑠 𝑓 𝑡 :
+
+LSFT = −E(𝑞,𝑆𝑖 )∼D𝑠 𝑓 𝑡
+
+(cid:2)𝑃M (𝑆𝑖 |𝑞)(cid:3) .
+
+Training on this loss helps the LLM learn which external sources
+are helpful in the RAG or whether the internal knowledge inside
+the LLM is sufficient to answer the query.
+DPO Training. We leverage DPO training to directly optimize
+the source selection agent according to the preference data. We
+adopt a strategy to rank the sources based on execution time. Such
+a strategy aims to train the model to choose the source with a
+lower running time, which can boost the efficiency of the retrieval
+process.
+
+Motivated by the online preference data construction [29], we
+generate the preference training set D𝑑𝑝𝑜 as follows: After the SFT
+training step, we obtain a base reference model M𝑏𝑎𝑠𝑒 . For each
+query 𝑞 in the training set T , we use M𝑏𝑎𝑠𝑒 to infer the source 𝑆1
+and 𝑆2 with the top-2 probabilities. For the execution time strategy,
+based on the source retrieval time, if source 𝑆1 is correct and has
+the lowest retrieval time, we add the winning source 𝑆𝑤 = 𝑆1
+and lossing source 𝑆𝑙 = 𝑆2 into the preference training set D𝑑𝑝𝑜 .
+Otherwise, we identify the correct source with the lowest retrieval
+time 𝑆𝑚𝑖𝑛, and we add 𝑆𝑤 = 𝑆𝑚𝑖𝑛 > 𝑆𝑙 = 𝑆1 into D𝑑𝑝𝑜 . This
+strategy allows us to update the current reference model marginally,
+helping the model to capture the retrieval time pattern to the largest
+extent. We use the following DPO loss [35] to get the final module
+M𝜃 :
+
+LDPO (M𝜃 ; M𝑏𝑎𝑠𝑒 ) = −E(𝑞,𝑆𝑤,𝑆𝑙 )∼Ddpo
+𝑃M𝜃 (𝑆𝑤 | 𝑞)
+(cid:20)
+𝑃M𝑏𝑎𝑠𝑒 (𝑆𝑤 | 𝑞)
+
+− 𝛽 log
+
+𝛽 log
+
+log 𝜎
+
+(cid:18)
+
+𝑃M𝜃 (𝑆𝑙 | 𝑞)
+𝑃M𝑏𝑎𝑠𝑒 (𝑆𝑙 | 𝑞)
+
+(cid:19)(cid:21)
+
+,
+
+Probability1SFT Training{"𝑸𝒖𝒆𝒓𝒚𝒊": "the price of hofv stock at the end of the last day?","𝑳𝒂𝒃𝒆𝒍𝒔𝒊": ["𝑊𝑒𝑏", "𝐷𝐵(cid:3033)(cid:3036)(cid:3041)(cid:3028)(cid:3041)(cid:3030)(cid:3032)"]}𝐷(cid:3046)(cid:3033)(cid:3047)={(𝑞,𝑆(cid:3036))}PromptQuery:{𝑸𝒖𝒆𝒓𝒚𝒊}Source:𝑊𝑒𝑏.PromptQuery:{𝑸𝒖𝒆𝒓𝒚𝒊}Source: 𝐷𝐵(cid:3033)(cid:3036)(cid:3041)(cid:3028)(cid:3041)(cid:3030)(cid:3032).2DPO TrainingSFT corpus{𝑸𝒖𝒆𝒓𝒚𝒊,𝑳𝒂𝒃𝒆𝒍𝒔𝒊}DPO corpus…PromptQuery:{𝑸𝒖𝒆𝒓𝒚𝒊}Source:𝐷𝐵(cid:3033)(cid:3036)(cid:3041)(cid:3028)(cid:3041)(cid:3030)(cid:3032)𝑊𝑒𝑏1.𝑺𝒘∈𝐿𝑎𝑏𝑒𝑙𝑠(cid:3036)and 𝑺𝒍∉𝐿𝑎𝑏𝑒𝑙𝑠(cid:3036)2.𝑺𝒘has lower latency𝐷(cid:3031)(cid:3043)(cid:3042)={(𝑞,𝑆(cid:3050),𝑆(cid:3039))}ℳ(cid:3029)(cid:3028)(cid:3046)(cid:3032)ℳ(cid:2968)ℳ(cid:3029)(cid:3028)(cid:3046)(cid:3032)ℳ(cid:3029)(cid:3028)(cid:3046)(cid:3032)where the current model M𝜃 is initialized by the base model M𝑏𝑎𝑠𝑒 ,
+𝛽 is a parameter controlling the deviation from the base reference
+model, and 𝜎 is the sigmoid function.
+
+4.4 Post-Processing
+Our unified API efficiently extracts relevant information from mul-
+tiple data sources, but certain queries—such as those involving
+superlatives, ordinal rankings, or numerical computations (e.g.,
+"What’s the latest film directed by Walt Becker?")—require post-
+processing to deliver accurate results. While basic operations like
+𝐺𝐸𝑇 and 𝐽𝑂𝐼 𝑁 handle data retrieval and integration, they lack
+the ability to perform advanced tasks like sorting, grouping, or
+numerical computations, which are essential for operations akin to
+ORDER BY or GROUP BY in databases. Post-processing addresses
+these limitations by enabling transformations, comparisons, and
+aggregations on the result set after initial API data retrieval.
+
+Additionally, post-processing can leverage LLMs to help data
+normalization, relevance verification, and string modification. For
+data normalization, post-processing standardizes formats to enable
+seamless comparison and sorting. For example, it unifies time for-
+mats (e.g., converting "2023-10-01" and "October 1, 2023" into a
+single standard) and unit measurements (e.g., converting "5 km" to
+"5000 meters"). For relevance verification, post-processing lever-
+ages LLMs to assess the alignment between retrieved content and
+the user’s query. By analyzing semantic cues, contextual informa-
+tion, and user intent, it filters out irrelevant data and ensures that
+only pertinent information is considered for further processing. For
+string manipulation, post-processing refines raw outputs by trans-
+forming attribute-value pairs into clear, natural language formats.
+These capabilities ensure that our system delivers accurate, inter-
+pretable, and user-friendly results across a wide range of queries.
+To enable flexible and efficient post-processing, we propose gen-
+erating lightweight Python f-string scripts. An f-string is a concise
+and powerful way to embed expressions directly into string lit-
+erals. The f-string takes the list of dictionary outputs of the API
+retrieval result and uses the braced expressions to process the result.
+Unlike traditional string formatting methods, f-strings allow for
+dynamic evaluation of embedded code and they can handle het-
+erogeneous formats like units or time representations well. For
+example, for a query like "What are the top 3 highest revenues
+among these companies?", the retrieved data may include values
+with mixed units (e.g., [{company:"Company A",revenue:"120M"},
+{company:"Company B",revenue:"8500K"},...]). A one-line f-string
+script normalizes these values into a consistent unit (e.g., millions)
+and computes the result:
+
+1 f'''The top 3 companies by revenue are {", ".join([x["company"]
+↩→ for x in sorted(Data, key=lambda x: float(x["revenue"].
+↩→ replace("M", "")) if "M" in x["revenue"] else float(x["
+↩→ revenue"].replace("K", ""))/1000, reverse=True)[:3]])}.'''
+
+This approach sorts the data and extracts the top three entries
+directly, ensuring precise results and avoiding LLM hallucination.
+We prompt and tune the LLM to generate the concise Python
+
+script for post-processing. The generation prompt is as follows:
+
+1 You are an agent for processing structured data.
+2 ### Instructions:
+3 Extract useful information from the retrieved data that
+
+↩→ directly addresses the user's query.
+
+Yikuan Xia∗1, Jiazun Chen∗1, Yirui Zhan1, Suifeng Zhao1, Weipeng Jiang2,
+Chaorui Zhang2, Wei Han2, Bo Bai†2, Jun Gao†1
+
+4 If the task involves computation or dynamic formatting, use
+
+↩→ Python's "f-string" to embed expressions or calculations.
+
+5 ### API Definition: {API_definition}
+6 ### Output Requirements:
+7 Complete the Return part in the following Python function
+
+↩→ template:
+8 def solve(Data):
+9
+
+from datetime import datetime
+return {{Return}}
+
+10
+11 Replace {{Return}} with your generated f-string or "no data" if
+
+↩→ no relevant data is found.
+
+12 ### Query:
+13 Question: {query}
+14 API: {api}
+15 Data (Limited by maximum length): {data}
+16 Return: f'''
+
+Here, {API_definition} is a brief description of the API rules helping
+the LLM to understand the API format. Using this prompt, we
+generate the Python scripts for the samples in the training set using
+GPT-4o, and we tune an agent for the post-processing task.
+
+5 EXPERIMENT
+In this section, we conduct extensive experiments to evaluate ER-
+RAG. Our objective is to address the following research inquiries
+through our experiments:
+
+I1: How effectively does our interface handle individual sources,
+and how does it integrate information across diverse sources?
+I2: How does our API enhance multi-source multi-hop queries
+
+and support agent construction on new data sources?
+I3: How does ER-RAG generalize out of the training set?
+I4: How does source selection affect the performance and effi-
+
+ciency of RAG on multiple sources?
+
+To address I1, we compare ER-RAG with single-source and
+hybrid-source RAG baselines on the CRAG dataset in Sec. 5.2. For
+I2, we evaluate ER-RAG’s performance on multi-source multi-hop
+queries using the synthetic MIX dataset in Sec. 5.3, and analyze the
+impact of joint API generation training to demonstrate the benefits
+of unified agent construction across sources. Regarding I3, we as-
+sess ER-RAG’s generalization capability by testing its performance
+on the Compmix dataset (trained on the CRAG training set) in Sec.
+5.4. Finally, for I4, we present the performance and time cost of
+various source selection methods in Sec. 5.5.
+
+5.1 Experimental Setup
+Datasets. To study our RAG system on heterogeneous data, we con-
+duct experiments on CRAG, CompMix, and synthetic MIX datasets.
+The CRAG dataset [46] is a comprehensive benchmark for multi-
+source RAG systems, consisting of QA pairs spanning multiple
+domains and diverse question types. CRAG simulates real-world
+retrieval scenarios by providing retrieval content from web searches
+and knowledge graphs (KG), including up to 50 HTML web pages
+and a KG equipped with Mock API with 2.6 million entities. In
+the original dataset, the Mock API allows querying entities in a
+black-box manner, which is only accessible by entity names. We
+implement three API sources for CRAG: DB, WIKI, and WEB. For
+the DB source, we re-organize and unify the Mock API data into a
+PostgreSQL database, turning it into a "white-box" source for easier
+comparison. The WIKI source relies on an online wiki parsing
+system we implement, while the WEB source uses the original 50
+
+ER-RAG: Enhance RAG with ER-Based Unified Modeling of Heterogeneous Data Sources
+
+Table 1: Statistics of the Datasets.
+
+Train
+
+#Samples
+
+Avg. Tokens
+
+CRAG-API-Train
+CRAG-Post-Train
+CRAG-Entity-Train
+Synthetic-API-Train
+
+3,901
+2,082
+4,921
+726
+
+1,116
+636
+1,851
+2,519
+
+Test
+CRAG-Test
+CompMix
+Synthetic-Test
+
+Database
+Movie Database
+Music Database
+Sports Database
+Finance Database
+Open Database
+
+Other Sources
+Cached WEB Page
+Cached WIKI Page
+
+#Questions
+1,212
+1,531
+916
+
+Avg. Tokens
+15.6
+11.4
+43.9
+
+#Tables
+7
+5
+2
+6
+1
+
+#Items
+68,079
+4,740
+
+Avg. Columns/Rows
+7/243,313
+7/1,116,301
+44/33,915
+28/1,142,958
+5/3,355
+
+Avg. Tokens
+9,021
+6,436
+
+web pages. Since the test set of CRAG is not open-sourced, we use
+split=0 from its pre-divided splits in the open-source dataset as the
+test set and split=1 as the training set.
+
+CompMix [12] evaluates QA methods over heterogeneous sources
+like WIKIDATA, Wikipedia text, tables, and infoboxes. We also im-
+plement the same three API sources for CompMix. For the DB
+source, we use the music, movie, and soccer CRAG DB. We use the
+same WIKI parsing system and implement a web-fetching system
+for WEB sources using Google Search APIs, retrieving 5 pages per
+query. Testing on CompMix demonstrates our system’s robustness
+and generalization to new questions and sources, with modules
+tuned only on CRAG.
+
+To demonstrate our method’s performance on multi-source re-
+trieval, we construct a synthetic multi-source query set. For mixed
+sources, to create a training set of source 𝑆1 and 𝑆2, we follow
+these steps: 1. Select queries from the CRAG dataset answerable
+using 𝑆1 as step-one questions, filtering for entity answers so the
+first query’s answer can serve as part of the join condition for the
+second query. 2. Prompt LLM to generate similar queries for 𝑆2
+using correctly answered examples from 𝑆2. Execute the same re-
+trieval pipeline to extract context from 𝑆2 and prompt LLM to check
+context relevance and generate a second-step query. 3. For related
+second-step queries, prompt LLM to generate a combined two-step
+query with the first-step query, excluding the join condition entity.
+We prompt LLM to generate a unified API to form the mixed-source
+training set. We construct the synthetic dataset on WIKI and DB
+mixed sources. We split the synthetic dataset into training and test
+sets based on the source of the step-one question, ensuring that
+questions from the CRAG training set are in the training set and
+those from the CRAG test set are in the test set.
+
+We present the statistics of these three datasets in Table 1. Specif-
+ically, in the training set, CRAG-API-train refers to a training set
+of samples generated by a single source API, while Synthetic-API-
+Train is a mixed multi-source training sample. CRAG-Post-Train
+refers to the training set for the post-processing Python script, and
+
+CRAG-Entity-Train refers to the training set for the module re-
+sponsible for entity disambiguation and relation extraction in our
+WIKI/WEB source code implementation.
+Metrics. To evaluate QA accuracy, two common metrics can be
+used: Stem-based Accuracy [1] (Accuracy in Table 2) and LLM-
+based Scores [7, 46]. Stem-based accuracy focuses on stemmed
+tokens. If all stemmed tokens from the ground truth are present in
+the predicted output, the answer is labeled correct. Otherwise, the
+answer is considered wrong.
+
+For LLM-based Score, an LLM is used to determine whether the
+predicted answer is semantically correct compared to the ground
+truth. The model outputs a True (if the answer is correct) or False (if
+the answer is incorrect), providing a binary evaluation for accuracy.
+We use the prompt from the CRAG contest [46] to evaluate answer
+correctness using DeepSeek V3.
+
+To evaluate the performance of the source selection system, we
+use accuracy and time cost for the information retrieval system to
+evaluate the effectiveness and efficiency of the RAG system. We use
+the LLM score as the accuracy metric, and we use the end-2-end
+information retrieval time as the time cost metric.
+Baselines. For the retrieval performance, we compare the baseline
+methods from three different aspects. First, we test the basic capa-
+bilities of LLM without RAG on these questions to illustrate the
+effect of RAG on this task.
+
+Second, we compare the performance of our whole system with
+industry systems on the same queries. We select ChatGPT Plus,
+Claude-3.5-sonnet Pro, Perplexity ai-Llama3.1 (405B), and three
+commercial RAG systems based on strong LLMs, as our baselines.
+The industry system can have access to various information sources
+and may be constructed on more powerful agents or models.
+
+Third, we compare our method with other baselines on sin-
+gle data sources. For instance, on the DB source, we select DAIL
+(VLDB’24) [19], SuperSQL (VLDB’24) [31] as the NL2SQL baseline,
+two LLM-based NL2SQL methods, which are another major ap-
+proach to generate SQL queries to extract information from data
+sources. We implement them using GPT-4o as the SQL generation
+agent.
+
+Finally, we evaluate our integration strategy on hybrid data
+sources by comparing ER-RAG (MIX) for mixed data, ER-RAG
+(Source Selection) with a source selection pipeline, and ER-RAG (All
+in Context) using all retrieved information. We also demonstrate
+the ideal performance of ER-RAG (Oracle), which assumes perfect
+source selection at minimal cost.
+Implementation Details. We use Llama3 8B as our base model in
+all tests and also implement all the modules using it. The calls to
+the remaining LLMs are implemented through the OpenAI library
+of a third-party agent, with the temperature set to 0. We use the
+TRL library and PEFT library [43] to conduct LoRA fine-tuning on
+the LLMs. Specifically, we train four independent modules (API
+Generation, WIKI/WEB Entity Processing, Post-processing, and
+Source Selection), each corresponding to a separate LoRA adapter.
+During inference, these adapters can be dynamically switched based
+on the task requirements. The LoRA configs are 𝑙𝑜𝑟𝑎_𝑎𝑙𝑝ℎ𝑎 =
+16, 𝑙𝑜𝑟𝑎_𝑑𝑟𝑜𝑝𝑜𝑢𝑡 = 0.1, and 𝑙𝑜𝑟𝑎_𝑟𝑎𝑛𝑘 = 8.
+
+For supervised fine-tuning, we train our model using the AdamW
+optimizer [32]. The number of training epochs is set to 2 (5 for API
+generation), the learning rate is set to 2𝑒 −4, and the batch size is set
+
+Yikuan Xia∗1, Jiazun Chen∗1, Yirui Zhan1, Suifeng Zhao1, Weipeng Jiang2,
+Chaorui Zhang2, Wei Han2, Bo Bai†2, Jun Gao†1
+
+Table 2: RAG Performance on the CRAG Dataset (Colored numbers indicate the best results among a certain type of methods).
+
+Types
+
+Methods
+
+LLM
+only
+
+Llama3 8B
+GPT-4o-mini
+GPT-4o
+DeepSeek v3
+
+Industry
+systems
+
+ChatGPT Plus (GPT-4o)
+Claude-3-5-sonnet Pro
+Perplexity (405B)
+
+Single
+data source
+(Llama3 8B)
+
+Hybrid
+data sources
+(Llama3 8B)
+
+ZeroShot SQL (DB,GPT-4o)
+DAIL SQL (DB,GPT-4o)
+SuperSQL (DB,GPT-4o)
+ER-RAG (DB)
+ER-RAG (WEB Chunk)
+ER-RAG (WEB ER)
+ER-RAG (WIKI ER)
+
+ER-RAG (MIX)
+ER-RAG (All in Context)
+ER-RAG (Source Selection)
+ER-RAG (Oracle)
+
+Movie
+
+Music
+
+Finance
+
+Sports
+
+Open
+
+All
+
+Movie
+
+Music
+
+Finance
+
+Sports
+
+Open
+
+All
+
+LLM scores
+
+Accuracy
+
+35.1 (↓33.0)
+45.5 (↓22.6)
+57.7 (↓10.4)
+53.4 (↓14.7)
+
+57.7 (↓10.4)
+53.0 (↓15.1)
+68.5 (↑0.4)
+
+54.8 (↓13.3)
+62.0 (↓6.1)
+63.4 (↓4.7)
+61.7 (↓6.4)
+53.0 (↓15.1)
+51.3 (↓16.8)
+49.5 (↓18.6)
+
+61.7 (↓6.4)
+65.9 (↓2.2)
+68.1
+81.7
+
+38.5 (↓20.7)
+52.3 (↓6.9)
+53.4 (↓5.8)
+55.2 (↓4.0)
+
+56.3 (↓2.9)
+59.2 (↓0.0)
+62.1 (↑2.9)
+
+36.8 (↓22.4)
+43.1 (↓16.1)
+42.5 (↓16.7)
+47.1 (↓12.1)
+50.6 (↓8.6)
+53.4 (↓5.8)
+50.6 (↓8.6)
+
+48.3 (↓10.9)
+54.6 (↓4.6)
+59.2
+76.6
+
+14.5 (↓32.2)
+14.2 (↓32.5)
+13.2 (↓33.5)
+18.6 (↓28.1)
+
+22.4 (↓24.3)
+15.5 (↓31.2)
+18.6 (↓28.1)
+
+24.9 (↓21.8)
+35.6 (↓11.1)
+37.5 (↓9.2)
+44.8 (↓1.9)
+19.2 (↓27.5)
+21.1 (↓25.6)
+11.4 (↓35.3)
+
+43.5 (↓3.2)
+41.0 (↓5.7)
+46.7
+58.4
+
+25.0 (↓28.7)
+40.7 (↓13.0)
+50.9 (↓2.8)
+59.7 (↑6.0)
+
+50.9 (↓2.8)
+52.3 (↓1.4)
+60.2 (↑6.5)
+
+12.5 (↓41.2)
+38.9 (↓14.8)
+49.1 (↓4.6)
+40.3 (↓13.4)
+42.6 (↓11.1)
+40.3 (↓13.4)
+28.7 (↓25.0)
+
+45.4 (↓8.3)
+57.4 (↑3.7)
+53.7
+72.7
+
+51.1 (↓14.4)
+60.7 (↓4.8)
+66.8 (↑1.3)
+67.7 (↑2.2)
+
+68.6 (↑3.1)
+70.3 (↑4.8)
+80.8 (↑15.3)
+
+21.4 (↓44.1)
+38.9 (↓26.6)
+40.6 (↓24.9)
+47.6 (↓17.9)
+65.9 (↑0.4)
+59.4 (↓6.1)
+62.9 (↓2.6)
+
+56.8 (↓8.7)
+60.3 (↓5.2)
+65.5
+82.5
+
+31.4 (↓26.9)
+40.3 (↓18.3)
+46.0 (↓12.3)
+48.4 (↓9.9)
+
+49.1 (↓9.2)
+47.2 (↓11.1)
+55.4 (↓2.9)
+
+30.6 (↓27.7)
+44.0 (↓14.3)
+46.8 (↓11.5)
+48.7 (↓9.6)
+44.4 (↓13.9)
+43.3 (↓15.0)
+38.5 (↓19.8)
+
+51.2 (↓7.1)
+55.2 (↓3.1)
+58.3
+73.4
+
+14.7 (↓31.9)
+26.2 (↓20.4)
+30.8 (↓15.8)
+33.3 (↓13.3)
+
+34.8 (↓11.8)
+29.7 (↓16.9)
+30.1 (↓16.5)
+
+35.8 (↓10.8)
+39.4 (↓7.2)
+43.0 (↓3.6)
+47.0 (↑0.4)
+35.1 (↓11.5)
+35.1 (↓11.5)
+33.0 (↓13.6)
+
+45.5 (↓1.1)
+46.2 (↓0.4)
+46.6
+53.8
+
+23.0 (↓6.3)
+21.8 (↓7.5)
+25.9 (↓3.4)
+27.6 (↓1.7)
+
+23.6 (↓5.7)
+27.0 (↓2.3)
+26.4 (↓2.9)
+
+16.7 (↓12.6)
+19.5 (↓9.8)
+20.7 (↓8.6)
+24.7 (↓4.6)
+27.0 (↓2.3)
+20.1 (↓9.2)
+21.8 (↓7.5)
+
+26.4 (↓2.9)
+24.7 (↓4.6)
+29.3
+35.6
+
+1.9 (↓31.5)
+6.6 (↓26.8)
+6.6 (↓26.8)
+12.0 (↓21.4)
+
+14.8 (↓18.6)
+9.5 (↓23.9)
+11.7 (↓21.7)
+
+18.3 (↓15.1)
+24.9 (↓8.5)
+26.5 (↓6.9)
+32.1 (↓1.3)
+13.2 (↓20.2)
+14.0 (↓19.4)
+7.9 (↓25.5)
+
+20.6 (↓12.8)
+27.9 (↓5.5)
+33.4
+36.2
+
+10.6 (↓27.4)
+21.3 (↓16.7)
+26.4 (↓11.6)
+31.9 (↓6.1)
+
+29.2 (↓8.8)
+27.3 (↓10.7)
+24.5 (↓13.5)
+
+8.8 (↓29.2)
+28.7 (↓9.3)
+34.7 (↓3.3)
+31.9 (↓6.1)
+24.5 (↓13.5)
+21.8 (↓16.2)
+15.7 (↓22.3)
+
+31.0 (↓7.0)
+36.1 (↓1.9)
+38.0
+43.9
+
+10.0 (↓30.7)
+33.2 (↓7.5)
+38.4 (↓2.3)
+38.4 (↓2.3)
+
+40.2 (↓0.5)
+38.9 (↓1.8)
+31.0 (↓9.7)
+
+14.0 (↓26.7)
+23.6 (↓17.1)
+23.6 (↓17.1)
+30.3 (↓10.4)
+38.9 (↓1.8)
+32.9 (↓7.8)
+35.4 (↓5.3)
+
+30.3 (↓10.4)
+35.1 (↓5.6)
+40.7
+45.5
+
+10.9 (↓27.1)
+20.9 (↓17.1)
+24.4 (↓13.6)
+27.7 (↓10.3)
+
+28.0 (↓10.0)
+25.3 (↓12.7)
+24.0 (↓14.0)
+
+19.6 (↓18.4)
+27.9 (↓10.1)
+30.4 (↓7.6)
+34.1 (↓3.9)
+27.1 (↓10.9)
+24.7 (↓13.3)
+22.2 (↓15.8)
+
+30.8 (↓7.2)
+34.5 (↓3.5)
+38.0
+43.3
+
+to 4. For direct policy optimization, we employ the paged AdamW
+optimizer with 32-bit precision, configured with a training duration
+of 1 epoch and a learning rate of 1𝑒 − 5. The 𝛽 hyperparameter is
+tuned via a grid search over the values {0.8, 1, 1.2} to identify the
+optimal setting for the task. In our ablation analysis, we replace
+fine-tuning with in-context learning [14] by preparing a prompt
+that includes the 5 problem-specific examples in the training set
+with the highest relevance scores.
+Relationship with the KDDCup Contest. In the 2024 KDDCup
+Contest, we were provided with a MockAPI as the information
+source, which, given an entity name, returned nested JSON re-
+sponses. Due to the limited number of LLM calls allowed in the
+competition and the relatively fixed output format of the MockAPI,
+we manually crafted rules to convert the MockAPI into the 𝐺𝐸𝑇
+API proposed in this paper [44]. In this work, we propose the 𝐺𝐸𝑇
+and 𝐽𝑂𝐼 𝑁 API chains, use the APIs to access all data sources (in-
+cluding newly expanded WIKI data source), refine API generation,
+and introduce source selection. The contest solution is less general
+and expressive than the ER-RAG framework proposed in our work.
+
+5.2 Overall Performance Comparison
+In this subsection, we compare ER-RAG with the baselines on the
+CRAG dataset to illustrate ER-RAG’s performance on both single
+and hybrid sources. We present the main result of the CRAG dataset
+in Table 2. The conclusions can be drawn from the results:
+
+1. RAG shows strong performance on the CRAG dataset, achiev-
+ing improvements of 17.3%, 7.1%, and 13.0% in LLM scores over
+the Llama3 8B baseline for DB, WIKI, and WEB, respectively.
+
+2. The API implemented by our RAG method performs compa-
+rably to other approaches, such as the NL2SQL or traditional web
+page retrieval method, on single data sources. Notably, the individ-
+ual GET implementation, which is not our main proposal, can take
+advantage of the advances in each subtask.
+
+3. The mixed-source agent (ER-RAG (MIX)) trained on a synthetic
+training set outperforms all the single-source agents, illustrating
+that using different sources in different hops in multi-hop questions
+is useful in the CRAG dataset.
+
+4. Aggregating all sources together (ER-RAG (Oracle)) can un-
+leash a total potential of 73.4% in LLM score, demonstrating the sig-
+nificant potential of the approach. However, fitting all the retrieval
+
+Table 3: Performance (LLM scores) varying Difference API
+Training Strategies. (Left: Performance on Synthetic-Test for
+APIs Trained on Various Source Datasets. Right: MIX-Only
+vs. MIX-Joint Training on CRAG.)
+
+Source
+
+Synthetic-Test
+
+Domain MIX Joint MIX Only
+
+MIX Joint
+MIX Only
+WIKI
+DB
+SELF
+
+0.380
+0.338
+0.194
+0.212
+0.167
+
+Movie
+Music
+Finance
+Sports
+Open
+
+All
+
+0.617
+0.483
+0.435
+0.454
+0.568
+
+0.512
+
+0.477
+0.437
+0.255
+0.218
+0.476
+
+0.359
+
+information from different sources in the LLM context (ER-RAG (All
+in Context)) results in a performance loss of 22.2% compared to the
+whole potential, demonstrating that simply putting all the sources
+in the context can result in performance degradation. The complete
+ER-RAG with the source selection module (ER-RAG (Source Selec-
+tion)) achieves 58.3% LLM score, surpassing the 55.2% LLM score
+of ER-RAG (All in Context), which illustrates the importance of
+building a source selection system.
+
+5. Our whole pipeline (ER-RAG (Source Selection)) using an 8B
+backbone model exceeds any single source and is comparable to
+(2.9% boost in LLM score) the best industrial RAG systems, which
+rely on a complex retrieval pipeline and a large backbone model.
+
+5.3 Analysis of ER-RAG on Multi-hop
+
+Multi-source Queries
+
+To demonstrate the API generation module’s capability on multi-
+hop multi-source queries, we evaluate it on our synthetic test set.
+Table 3 (left) shows the LLM scores, where the API generation
+module trained on mixed-source APIs improves LLM scores by
+18.6% and 16.8% compared to using WIKI and DB source agents
+alone, respectively, highlighting ER-RAG’s effectiveness for multi-
+source multi-hop queries.
+
+As mentioned earlier, it is challenging to build a robust agent
+with limited training data from a single source. Therefore, we con-
+duct another experiment comparing training only on the synthetic
+MIX training set (Mix Only) with joint training on the MIX training
+set and other source training sets (Mix Joint) to demonstrate that
+API training examples from other sources can significantly benefit
+API generation on MIX sources. The results of our experiments are
+presented in Table 3 (right). From the results, we observe that for
+
+ER-RAG: Enhance RAG with ER-Based Unified Modeling of Heterogeneous Data Sources
+
+(a) Overall Source Distribution
+
+(b) Cost and Accuracy Comparison on Different Methods
+
+(c) Distribution of Data Sources for Different Methods
+
+Figure 4: Detailed Source Selection Experiment on CRAG Dataset.
+
+Table 4: Generalization Test on the CompMix Dataset (Col-
+ored numbers indicate the best results among a certain type
+of methods, ER-RAG trained on CRAG Dataset).
+
+Types
+
+Methods
+
+LLM
+only
+
+Industry
+systems
+
+Single
+data source
+(Llama3 8B)
+
+Llama3 8B
+GPT-4o-mini
+GPT-4o
+DeepSeek v3
+
+ChatGPT Plus (GPT-4o)
+Claude-3-5-sonnet Pro
+Perplexity (405B)
+SuperSQL (DB, GPT-4o)
+ER-RAG (DB, GPT-4o)
+ER-RAG (WEB Chunk)
+ER-RAG (WEB ER)
+ER-RAG (WIKI ER)
+
+Hybrid
+data sources
+(Llama3 8B)
+
+ER-RAG (MIX)
+ER-RAG (All in Context)
+ER-RAG (Source Selection)
+ER-RAG (Oracle)
+
+Movie
+
+Music
+
+Sports
+
+All
+
+LLM scores
+
+60.4 (↓19.0)
+71.3 (↓8.1)
+80.8 (↑1.4)
+74.8 (↓4.6)
+
+78.8 (↓0.6)
+79.3 (↓0.1)
+80.0 (↑0.6)
+60.4 (↓19.0)
+60.7 (↓18.7)
+76.6 (↓2.8)
+75.9 (↓3.5)
+75.4 (↓4.0)
+
+76.2 (↓3.2)
+76.2 (↓3.2)
+79.4
+87.0
+
+56.0 (↓20.5)
+66.4 (↓10.1)
+75.8 (↓0.7)
+74.7 (↓1.8)
+
+78.1 (↑1.6)
+76.5 (↓0.0)
+78.3 (↑1.8)
+54.2 (↓22.3)
+49.5 (↓27.0)
+76.5 (↓0.0)
+73.6 (↓2.9)
+67.9 (↓8.6)
+
+67.9 (↓8.6)
+72.8 (↓3.7)
+76.5
+86.6
+
+55.3 (↓21.4)
+66.5 (↓10.2)
+75.9 (↓0.8)
+75.5 (↓1.2)
+
+76.2 (↓0.5)
+74.8 (↓1.9)
+77.7 (↑1.0)
+55.0 (↓21.7)
+56.6 (↓20.1)
+76.6 (↓0.1)
+72.4 (↓4.3)
+67.2 (↓9.5)
+
+66.8 (↓9.9)
+72.1 (↓4.6)
+76.7
+86.4
+
+57.2 (↓20.1)
+68.1 (↓9.2)
+77.5 (↑0.2)
+75.0 (↓2.3)
+
+77.7 (↑0.4)
+76.8 (↓0.5)
+78.7 (↑1.4)
+56.5 (↓20.8)
+55.7 (↓21.6)
+76.5 (↓0.8)
+74.0 (↓3.3)
+69.9 (↓7.4)
+
+70.2 (↓7.1)
+73.6 (↓3.7)
+77.3
+86.7
+
+API construction on the CRAG dataset, joint training performs ap-
+proximately 15.3% better than separate training in terms of overall
+results. Specifically, for domains with more complex ER extraction
+operation, such as Finance, joint training significantly outperforms
+separate training by 18%. This indicates that joint training can better
+integrate multi-source data and improve the model’s generalization
+capability in certain challenging scenarios, easing the difficulty of
+constructing agents.
+
+5.4 Generalization of ER-RAG
+To demonstrate the generalization of ER-RAG, we apply ER-RAG
+trained on the CRAG dataset directly on the CompMix dataset, and
+the results are in Table 4. Similar conclusions can be made about
+the effect of RAG and source selection. The following conclusions
+can be made: 1. The DB source from the CRAG dataset doesn’t
+perform well on the CompMix dataset, illustrating that the data
+source should be properly selected to fit in the queries. Irrelevant
+information may harm the RAG performance. 2. The agent trained
+on the CRAG training set transfers well to the CompMix dataset.
+The combined heterogeneous sources results outperform single
+sources and achieve similar results compared with the best indus-
+trial result, reaching 89.2% of all the potential of the RAG system.
+The source selection module eliminate the poor results from the
+DB source, relying more heavily on the WEB and WIKI sources.
+
+5.5 Source Selection Study
+In this subsection, we focus on source selection. Figure 5(a) shows
+the source distribution, Figure 5(b) presents efficiency and accuracy
+of sources and methods, and Figure 5(c) displays the data source
+distribution. We use SELF (no RAG), DB, WIKI, WEB, and MIX
+(Multi-source API) to represent different sources. DB includes vari-
+ous databases (e.g., Movie_DB), and MIX combines hybrid sources
+(e.g., Movie_DB + WIKI). We use DB and MIX for simplicity.
+
+We define training strategies for source selection: SFT prefer
+uses the correct source with minimal execution time for super-
+vised fine-tuning (SFT), and SFT only uses all correct sources as
+labels. DPO only fine-tunes using execution time preference pairs.
+SFT+DPO x% combines SFT to identify all correct sources and DPO
+with x% of preference pairs. Oracle represents the ideal scenario of
+selecting the correct source with minimal execution time. Metrics
+include end-to-end retrieval time (in seconds, 0 for SELF), and the
+accuracy compared to the oracle situation (1 for Oracle).
+Overall Source Distribution. As shown in Figure 5(a), each source
+has unique queries in the CRAG test dataset that only it can an-
+swer, highlighting the importance of integrating sources to enhance
+the RAG system’s potential. Additionally, many queries can be an-
+swered by multiple sources, making it crucial to select the correct
+source with minimal retrieval time.
+Cost and Accuracy Comparison on Different Methods. We can
+draw two conclusions from Figure 5(b). 1. The execution time for
+different sources varies significantly, ranging from 0s for no RAG to
+104𝑠 for multi-source APIs. For single sources, WIKI costs the most
+time for retrieval as the pipeline requires much running time for en-
+tity selection and attribute extraction. 2. The SFT prefer, SFT only,
+and DPO only method all have their own drawbacks. Although the
+SFT prefer approach is the fastest among the tuning methods, the
+accuracy deteriorates a lot. The SFT only method can choose the
+source with higher accuracy, while due to the lack of perception of
+the execution time, the overall retrieval time cost is relatively high.
+The DPO only method tends to choose the source with a lower cost,
+while the accuracy is sacrificed. Our two-stage training method
+can achieve a balance between accuracy and efficiency. As we can
+see SFT+DPO can achieve slightly higher accuracy compared with
+SFT only, while the time cost is significantly lower than the SFT
+only result. Compared with the DPO only result, the accuracy
+result is much better.
+Distribution of Different Methods Across Data Sources. We
+can draw more insights from the chosen source distribution. From
+
+Yikuan Xia∗1, Jiazun Chen∗1, Yirui Zhan1, Suifeng Zhao1, Weipeng Jiang2,
+Chaorui Zhang2, Wei Han2, Bo Bai†2, Jun Gao†1
+
+removing specific modules entirely: Without Post-processing
+(w/o P) refers to eliminating the post-processing module.
+
+From the results, we can draw the following conclusions:
+1. Across all modules, models that utilize fine-tuning outperform
+those relying solely on ICL. This demonstrates the importance of
+leveraging strong models for APIs, fine-tuning source selection
+results based on execution outcomes, and distilling knowledge for
+post-processing and entities from larger and stronger LLMs. The
+results suggest that the 8B base model is insufficient when only
+using ICL. Significant improvements can be distilled from large
+models such as DeepSeek/GPT-4 and manually annotated datasets.
+2. The post-processing module plays a crucial role, particularly
+in the DB source, where it achieves a performance gain of 5%.
+From the perspective of question types, the performance boost
+is most significant on the simple with conditions (12%) question
+type, as the conditions in these queries require more intensive
+post-processing. This highlights this module’s ability to address
+computations required in database queries. However, for other
+sources where retrieval is inherently less precise, the contribution
+of the post-processing module is relatively limited.
+
+6 CONCLUSION AND FUTURE WORK
+Motivated by the need for evidence collection from heterogeneous
+data sources in RAG, this paper introduces ER-RAG, which en-
+hances LLM capabilities using ER-based unified APIs for HTML,
+knowledge graphs, and relational databases. ER-RAG enables seam-
+less interaction between data sources, provides diverse training
+instances for API generation, and balances response time and perfor-
+mance through DPO-based source selection. Experiments demon-
+strate that ER-RAG matches source-specific or commercial RAG
+performance while excelling on multi-source tasks.
+
+ER-RAG can be extended in the following interesting directions.
+First, ER-RAG can leverage more advanced retrieval techniques
+proposed for the specific source. Such an improvement can be
+done at the implementation of the unified Access APIs and will not
+impact the entire process. Second, ER-RAG is expected to combine
+more sources, like multi-modal data sources, into the RAG pipeline.
+Third, ER-RAG will collect the user’s feedback and incorporate it
+in fine-tuning the LLM agents timely so as to improve the user’s
+experience.
+
+(a) DB
+
+(b) WIKI
+
+(c) WEB
+Figure 5: Detailed Ablation Experiment on CRAG Dataset:
+Performance Across Domains and Question Types. Question
+types include Aggregation (Agg.), Post-Processing (PP.), Set,
+Comparison (Comp.), Simple with Condition (SWC.), and
+Multi-Hop (M-Hop).
+
+the oracle perspective, choosing a large proportion of SELF source
+(No RAG) can achieve good results. However, it’s hard for the LLM
+to determine whether a question can be answered without RAG, as
+the DPO only and SFT prefer results choosing the SELF sources
+more frequently in performance loss. Compared with the SFT only
+method, our proposed method cautiously chooses more SELF source
+to ensure higher efficiency and maintain accuracy.
+
+5.6 Further Ablation Study on ER-RAG
+In this subsection, we perform an ablation study to assess the impact
+of different ER-RAG modules across domains and question types on
+CRAG (Figure 5). The vertical axis shows domain and question type
+results, while the horizontal axis represents methods: DB, WIKI,
+WEB (complete model in each source) and Llama3 (base model
+without RAG).
+
+Other methods can be grouped into two categories. The first
+category replaces fine-tuning with in-context learning (ICL) for
+different components: API_ICL (A-ICL) represents using ICL to
+generate API calls, Post-processing_ICL (P-ICL) denotes using
+ICL to produce post-processing results, and Entity_ICL (E-ICL) ap-
+plies ICL for information extraction in WIKI entity disambiguation
+and 𝐺𝐸𝑇 /𝐽𝑂𝐼 𝑁 attribute modules. The second category involves
+
+ER-RAG: Enhance RAG with ER-Based Unified Modeling of Heterogeneous Data Sources
+
+REFERENCES
+[1] Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and Hannaneh Hajishirzi. 2024.
+Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection.
+In ICLR.
+Jinze Bai, Jialin Wang, Zhao Li, Donghui Ding, Ji Zhang, and Jun Gao. 2021. ATJ-
+Net: Auto-Table-Join Network for Automatic Learning on Relational Databases.
+In WWW. 1540–1551.
+
+[2]
+
+[3] Asim Biswal, Liana Patel, Siddarth Jha, Amog Kamsetty, Shu Liu, Joseph E.
+Gonzalez, Carlos Guestrin, and Matei Zaharia. 2024. Text2SQL is Not Enough:
+Unifying AI and Databases with TAG. CoRR abs/2408.14717 (2024).
+
+[4] Pierre Bourhis, Juan L. Reutter, Fernando Suárez, and Domagoj Vrgoc. 2017.
+JSON: Data model, Query languages and Schema specification. In PODS.
+[5] Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan,
+Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan,
+Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu, Clemens Winter,
+Christopher Hesse, Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin
+Chess, Jack Clark, Christopher Berner, Sam McCandlish, Alec Radford, Ilya
+Sutskever, and Dario Amodei. 2020. Language Models are Few-Shot Learners. In
+NeurIPS 2020.
+
+[6] Riccardo Cappuzzo, Paolo Papotti, and Saravanan Thirumuruganathan. 2020.
+Creating Embeddings of Heterogeneous Relational Datasets for Data Integration
+Tasks. In SIGMOD. 1335–1349.
+
+[8]
+
+[7] Anthony Chen, Gabriel Stanovsky, Sameer Singh, and Matt Gardner. 2019. Eval-
+uating question answering evaluation. In Proceedings of the 2nd workshop on
+machine reading for question answering. 119–124.
+Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, and Zheng Liu. 2024.
+Bge m3-embedding: Multi-lingual, multi-functionality, multi-granularity text
+embeddings through self-knowledge distillation. arXiv preprint arXiv:2402.03216
+(2024).
+
+[9] Peter Baile Chen, Yi Zhang, and Dan Roth. 2024. Is Table Retrieval a Solved
+Problem? Exploring Join-Aware Multi-Table Retrieval. In ACL. 2687–2699.
+[10] Peter P. Chen. 1975. The Entity-Relationship Model: Toward a Unified View of
+
+Data. In Proceedings of VLDB, 1975. 173.
+
+[11] Paul F. Christiano, Jan Leike, Tom B. Brown, Miljan Martic, Shane Legg, and
+Dario Amodei. 2017. Deep Reinforcement Learning from Human Preferences. In
+NIPS. 4299–4307.
+
+[12] Philipp Christmann, Rishiraj Saha Roy, and Gerhard Weikum. 2024. CompMix:
+
+[13]
+
+A Benchmark for Heterogeneous Question Answering. In WWW. 1091–1094.
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2019. BERT:
+Pre-training of Deep Bidirectional Transformers for Language Understanding.
+In NAACL-HLT 2019. 4171–4186.
+
+[14] Qingxiu Dong, Lei Li, Damai Dai, Ce Zheng, Jingyuan Ma, Rui Li, Heming Xia,
+Jingjing Xu, Zhiyong Wu, Baobao Chang, et al. 2024. A Survey on In-context
+Learning. In Proceedings of the 2024 Conference on Empirical Methods in Natural
+Language Processing. 1107–1128.
+
+[15] Xin Luna Dong. 2023. Generations of Knowledge Graphs: The Crazy Ideas and
+
+the Business Impact. Proc. VLDB Endow. 16, 12 (2023), 4130–4137.
+
+[16] Xin Luna Dong, Evgeniy Gabrilovich, Kevin Murphy, Van Dang, Wilko Horn,
+Camillo Lugaresi, Shaohua Sun, and Wei Zhang. 2015. Knowledge-Based Trust:
+Estimating the Trustworthiness of Web Sources. Proc. VLDB Endow. 8, 9 (2015),
+938–949.
+
+[17] Xin Luna Dong, Barna Saha, and Divesh Srivastava. 2012. Less is More: Selecting
+
+Sources Wisely for Integration. Proc. VLDB Endow. 6, 2 (2012), 37–48.
+
+[18] Wenqi Fan, Yujuan Ding, Liangbo Ning, Shijie Wang, Hengyun Li, Dawei Yin,
+Tat-Seng Chua, and Qing Li. 2024. A Survey on RAG Meeting LLMs: Towards
+Retrieval-Augmented Large Language Models. In Proceedings of SIGKDD 2024.
+6491–6501.
+
+[19] Dawei Gao, Haibin Wang, Yaliang Li, Xiuyu Sun, Yichen Qian, Bolin Ding, and
+Jingren Zhou. 2024. Text-to-SQL Empowered by Large Language Models: A
+Benchmark Evaluation. Proceedings of the VLDB Endowment 17, 5 (2024), 1132–
+1145.
+
+[20] Luyu Gao, Xueguang Ma, Jimmy Lin, and Jamie Callan. 2023. Precise Zero-Shot
+Dense Retrieval without Relevance Labels. In Proceedings of the 61st Annual
+Meeting of the Association for Computational Linguistics (Volume 1: Long Papers).
+1762–1777.
+
+[21] Matt Gardner, Partha Pratim Talukdar, Jayant Krishnamurthy, and Tom M.
+Mitchell. 2014. Incorporating Vector Space Similarity in Random Walk Inference
+over Knowledge Bases. In EMNLP. 397–406.
+
+[22] Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pasupat, and Ming-Wei Chang.
+2020. Retrieval Augmented Language Model Pre-Training. In Proceedings of the
+37th International Conference on Machine Learning, ICML 2020, 13-18 July 2020,
+Virtual Event, Vol. 119. 3929–3938.
+
+[23] Harry Shomer Kai Guo Jiayuan Ding Yongjia Lei Mahantesh Halappanavar
+Ryan A. Rossi Subhabrata Mukherjee Xianfeng Tang Qi He Zhigang Hua Bo
+Long Tong Zhao Neil Shah Amin Javari Yinglong Xia Jiliang Tang Haoyu Han,
+Yu Wang. 2025. Retrieval-Augmented Generation with Graphs (GraphRAG).
+
+[24]
+
+CoRR abs/2501.00309 (2025).
+Jonathan Herzig, Thomas Müller, Syrine Krichene, and Julian Martin Eisenschlos.
+2021. Open Domain Question Answering over Tables via Dense Retrieval. In
+NAACL-HLT. 512–519.
+
+[25] Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+Wang, Lu Wang, and Weizhu Chen. 2022. LoRA: Low-Rank Adaptation of
+Large Language Models. In The Tenth International Conference on Learning
+Representations, ICLR 2022, Virtual Event, April 25-29, 2022. OpenReview.net.
+https://openreview.net/forum?id=nZeVKeeFYf9
+
+[26] Qitian Jason Hu, Jacob Bieker, Xiuyu Li, Nan Jiang, Benjamin Keigwin, Gaurav
+Ranganath, Kurt Keutzer, and Shriyash Kaustubh Upadhyay. 2024. RouterBench:
+A Benchmark for Multi-LLM Routing System. CoRR abs/2403.12031 (2024).
+[27] Dongfu Jiang, Xiang Ren, and Bill Yuchen Lin. 2023. LLM-Blender: Ensembling
+Large Language Models with Pairwise Ranking and Generative Fusion. In ACL.
+14165–14178.
+
+[28] Zhengbao Jiang, Frank F. Xu, Luyu Gao, Zhiqing Sun, Qian Liu, Jane Dwivedi-
+Yu, Yiming Yang, Jamie Callan, and Graham Neubig. 2023. Active Retrieval
+Augmented Generation. In EMNLP 2023. 7969–7992.
+
+[29] Dongyoung Kim, Jaehyung Kim, Kimin Lee, and Jinwoo Shin. 2025. Spread
+Preference Annotation: Direct Preference Judgment for Efficient LLM Alignment.
+In The Thirteenth International Conference on Learning Representations. https:
+//openreview.net/forum?id=BPgK5XW1Nb
+
+[30] Viktor Leis, Andrey Gubichev, Atanas Mirchev, Peter A. Boncz, Alfons Kemper,
+and Thomas Neumann. 2015. How Good Are Query Optimizers, Really? Proc.
+VLDB Endow. 9, 3 (2015), 204–215.
+
+[31] Boyan Li, Yuyu Luo, Chengliang Chai, Guoliang Li, and Nan Tang. 2024. The
+Dawn of Natural Language to SQL: Are We Fully Ready? [Experiment, Analysis
+& Benchmark ]. Proc. VLDB Endow. 17, 11 (2024), 3318–3331.
+Ilya Loshchilov and Frank Hutter. 2019. Decoupled Weight Decay Regularization.
+In 7th International Conference on Learning Representations, ICLR 2019, New
+Orleans, LA, USA, May 6-9, 2019.
+
+[32]
+
+[33] Shengjie Ma, Chengjin Xu, Xuhui Jiang, Muzhi Li, Huaren Qu, and Jian Guo. 2024.
+Think-on-Graph 2.0: Deep and Interpretable Large Language Model Reasoning
+with Knowledge Graph-guided Retrieval. CoRR abs/2407.10805 (2024).
+Isaac Ong, Amjad Almahairi, Vincent Wu, Wei-Lin Chiang, Tianhao Wu, Joseph E.
+Gonzalez, M. Waleed Kadous, and Ion Stoica. 2024. RouteLLM: Learning to Route
+LLMs with Preference Data. CoRR abs/2406.18665 (2024).
+
+[34]
+
+[35] Rafael Rafailov, Archit Sharma, Eric Mitchell, Christopher D. Manning, Stefano
+Ermon, and Chelsea Finn. 2023. Direct Preference Optimization: Your Language
+Model is Secretly a Reward Model. In NeurIPS 2023.
+
+[36] Stephen E. Robertson, Hugo Zaragoza, and Michael J. Taylor. 2004. Simple BM25
+
+extension to multiple weighted fields. In CIKM 2004. 42–49.
+
+[37] Bhaskarjit Sarmah, Benika Hall, Rohan Rao, Sunil Patel, Stefano Pasquali, and
+Dhagash Mehta. 2024. HybridRAG: Integrating Knowledge Graphs and Vector
+Retrieval Augmented Generation for Efficient Information Extraction. CoRR
+abs/2408.04948 (2024).
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
+2017. Proximal Policy Optimization Algorithms. CoRR abs/1707.06347 (2017).
+
+[38]
+
+[39] Özge Sevgili, Artem Shelmanov, Mikhail Arkhipov, Alexander Panchenko, and
+Chris Biemann. 2022. Neural entity linking: A survey of models based on deep
+learning. Semantic Web 13, 3 (2022), 527–570.
+
+[41]
+
+[40] Kazunari Sugiyama, Kenji Hatano, Masatoshi Yoshikawa, and Shunsuke Uemura.
+2003. Refinement of TF-IDF schemes for web pages using their hyperlinked
+neighboring pages. In HYPERTEXT 2003. 198–207.
+Jiashuo Sun, Chengjin Xu, Lumingyuan Tang, Saizhuo Wang, Chen Lin, Yeyun
+Gong, Lionel M. Ni, Heung-Yeung Shum, and Jian Guo. 2024. Think-on-Graph:
+Deep and Responsible Reasoning of Large Language Model on Knowledge Graph.
+In ICLR.
+
+[42] Christina Unger, Lorenz Bühmann, Jens Lehmann, Axel-Cyrille Ngonga Ngomo,
+Daniel Gerber, and Philipp Cimiano. 2012. Template-based question answering
+over RDF data. In WWW. 639–648.
+
+[43] Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement De-
+langue, Anthony Moi, Pierric Cistac, Tim Rault, Rémi Louf, Morgan Funtowicz,
+et al. 2019. Huggingface’s transformers: State-of-the-art natural language pro-
+cessing. arXiv preprint arXiv:1910.03771 (2019).
+
+[44] Yikuan Xia, Jiazun Chen, and Jun Gao. 2024. Winning Solution For Meta KDD
+
+Cup’ 24. CoRR abs/2410.00005 (2024).
+
+[45] Hao Xin Yushi Sun Nikita Bhalla Xiangsen Chen Sajal Choudhary Rongze Daniel
+Gui Ziran Will Jiang Ziyu Jiang Lingkun Kong Brian Moran Jiaqi Wang Yifan
+Ethan Xu An Yan Chenyu Yang Eting Yuan Hanwen Zha Nan Tang Lei Chen
+Nicolas Scheffer Yue Liu Nirav Shah Rakesh Wanga Anuj Kumar Wen-tau Yih Xin
+Luna Dong Xiao Yang, Kai Sun. 2024. CRAG - Comprehensive RAG Benchmark.
+CoRR abs/2406.04744 (2024).
+
+[46] Xiao Yang, Kai Sun, Hao Xin, Yushi Sun, Nikita Bhalla, Xiangsen Chen, Sajal
+Choudhary, Rongze Daniel Gui, Ziran Will Jiang, Ziyu Jiang, et al. 2024. CRAG–
+Comprehensive RAG Benchmark. arXiv preprint arXiv:2406.04744 (2024).
+[47] Dezhong Yao, Yuhong Gu, Gao Cong, Hai Jin, and Xinqiao Lv. 2022. Entity
+Resolution with Hierarchical Graph Attention Networks. In SIGMOD. 429–442.
+
+[48] Wen-tau Yih, Ming-Wei Chang, Xiaodong He, and Jianfeng Gao. 2015. Semantic
+Parsing via Staged Query Graph Generation: Question Answering with Knowl-
+edge Base. In ACL. 1321–1331.
+
+Yikuan Xia∗1, Jiazun Chen∗1, Yirui Zhan1, Suifeng Zhao1, Weipeng Jiang2,
+Chaorui Zhang2, Wei Han2, Bo Bai†2, Jun Gao†1

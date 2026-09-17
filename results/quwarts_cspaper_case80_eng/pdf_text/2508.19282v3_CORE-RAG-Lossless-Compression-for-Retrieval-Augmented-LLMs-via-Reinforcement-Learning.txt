@@ -1,0 +1,2204 @@
+Preprint
+
+CORE: LOSSLESS COMPRESSION FOR RETRIEVAL-
+AUGMENTED LLMS VIA REINFORCEMENT LEARNING
+
+Ziqiang Cui1
+Bowei He1
+
+Yunpeng Weng2
+
+Jiamin Chen1
+
+Xing Tang3
+Yansen Zhang1
+
+Peiyang Liu4
+Xiuqiang He3
+
+Shiwei Li5
+Chen Ma1
+
+1City University of Hong Kong
+4Peking University
+
+2Tencent
+
+3Shenzhen Technology University
+
+5Huazhong University of Science and Technology
+
+5
+2
+0
+2
+
+p
+e
+S
+8
+2
+
+]
+L
+C
+.
+s
+c
+[
+
+3
+v
+2
+8
+2
+9
+1
+.
+8
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+ABSTRACT
+
+Retrieval-Augmented Generation (RAG) has emerged as a promising approach
+to enhance the timeliness of knowledge updates and the factual accuracy of re-
+sponses in large language models. However, incorporating a large number of
+retrieved documents significantly increases input length, leading to higher com-
+putational costs. Existing approaches to document compression tailored for RAG
+often degrade task performance, as they typically rely on predefined heuristics in
+the absence of clear compression guidelines. These heuristics fail to ensure that
+the compressed content effectively supports downstream tasks. To address these
+limitations, we propose CORE, a novel method for lossless context compression in
+RAG. CORE is optimized end-to-end and does not depend on predefined compres-
+sion labels, which are often impractical to obtain. Instead, it leverages downstream
+task performance as a feedback signal, iteratively refining the compression policy
+to enhance task effectiveness. Extensive experiments across four datasets demon-
+strate the effectiveness of CORE. With a high compression ratio of 3%, CORE
+not only prevents performance degradation compared to including full documents
+(i.e., without compression) but also improves the average Exact Match (EM) score
+by 3.3 points. The code for CORE will be released soon.
+
+1
+
+INTRODUCTION
+
+Large language models (LLMs) have undergone rapid development in recent years, significantly
+enhancing performance across various language tasks due to their emergent capabilities in semantic
+understanding and reasoning. Nevertheless, LLMs still face challenges in updating knowledge and
+providing factual responses (Fan et al., 2024). To address these issues, Retrieval-Augmented Gener-
+ation (RAG) has emerged as a promising approach. By retrieving the most relevant documents from
+external knowledge bases and prepending them as contextual information to the original input, RAG
+substantially improves LLM performance on knowledge-intensive tasks (Ram et al., 2023).
+
+While RAG enhances performance, its effectiveness is closely tied to the number of retrieved doc-
+uments used, since a broader context increases the probability of encompassing critical evidence.
+As illustrated in Figure 1, performance was weakest without any retrieved documents (i.e., without
+RAG). Accuracy improved consistently as more documents were added to the context, ultimately
+exceeding the no-RAG baseline by over 10 Exact Match (EM) points. However, this performance
+gain came with two significant limitations: (1) a substantial increase in computational cost from
+processing a larger number of context tokens (Xu et al., 2024), and (2) the model’s difficulty in
+effectively leveraging all provided documents, often resulting in the omission of key information
+located in the middle of the context (Liu et al., 2023).
+
+These limitations have motivated recent research efforts aimed at compressing the retrieved context
+(Jin et al., 2024b; Wu et al., 2025; Jin et al., 2024a; Zhang et al., 2024a). Prominent approaches
+include document summarization (Xu et al., 2024), key information extraction (Cao et al., 2024; Xu
+et al., 2024), the construction of key supporting evidence (Jin et al., 2024b), and noise filtering based
+on information theory (Zhu et al., 2024). Despite recent progress, these methods have several notable
+shortcomings. First, compression often results in a performance trade-off. For instance, RECOMP
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+Preprint
+
+Figure 1: Performance evolution with an increasing number of retrieved documents on two datasets.
+Traditional RAG requires more documents for better performance, while our method achieves com-
+parable or superior results with significant token compression.
+
+(Xu et al., 2024) suffers a 3–5 point drop in EM score (Table 1), making it unsuitable for accuracy-
+sensitive applications. Second, most compression methods are heuristic in nature. The models are
+typically trained to generate summaries that are generally good but not necessarily useful for the
+downstream answer-generation LLM. This limitation arises from the lack of an ideal supervisory
+signal that defines what an optimal summary should be for the downstream task. This fundamental
+gap hinders the end-to-end optimization of existing methods. Finally, some compression models
+(Zhu et al., 2024) have parameter counts comparable to the LLM that performs the end task, resulting
+in substantial computational costs that undermine the efficiency gains of compression.
+
+Addressing these critical shortcomings requires a method that aligns compression with downstream
+task requirements, thereby minimizing performance trade-offs. To bridge this gap, we propose
+CORE, a novel method designed to achieve lossless context compression for RAG. Unlike previous
+compression methods, CORE is optimized in an end-to-end manner. Since obtaining predefined
+summary labels for supervision is impractical, we instead use downstream task performance as a
+feedback signal to evaluate the compression model’s output. This feedback enables iterative re-
+finement of the compression policy, guiding the compression model toward improved downstream
+performance. To this end, we employ Group Relative Policy Optimization (GRPO), a technique
+particularly well-suited for this purpose (Liu et al., 2024; Shao et al., 2024; Chen et al., 2025a). In
+our framework, the accuracy of the downstream QA task is formalized as a reward, with the com-
+pression policy optimized through group-wise relative comparisons. Furthermore, our compression
+model is substantially smaller than the downstream LLM, which significantly reduces the computa-
+tional overhead associated with encoding retrieved documents.
+
+We evaluate CORE on four benchmark datasets: two single-hop QA datasets (Natural Questions
+and TriviaQA) and two multi-hop datasets (HotpotQA and 2WikiMultihopQA). As shown in Table
+1, CORE achieves state-of-the-art performance across all baselines. With a compression ratio of
+3%, our approach not only avoids performance degradation compared to prepending full documents
+but also improves the average EM score by 3.3 points. We further demonstrate two key advantages
+of our approach. First, the effectiveness of CORE is not tied to a specific model architecture, as
+demonstrated by the fact that lossless compression can be achieved when various models are trained
+as compressors (Figure 3). Second, the compressor exhibits strong transferability: a compression
+model trained using feedback from one LLM generalizes effectively to other LLMs (Table 2). Fi-
+nally, an in-depth case study (Tables 4 and 5) provides a qualitative analysis of the benefits of CORE.
+
+2 CORE-RAG
+
+This section introduces our proposed method, COmpression via REinforcement learning (CORE),
+which is shown in Figure 2. First, we provide an overview of the entire workflow. Then, we detail
+the end-to-end training strategy for the compression model, which is designed to drastically reduce
+the number of document tokens while preserving task performance.
+
+2
+
+Preprint
+
+Figure 2: Overview of our method CORE. The upper section illustrates the inference pipeline. The
+lower section depicts the end-to-end training method for the compression model.
+
+2.1 PROBLEM FORMULATION
+
+We adopt the same problem formulation as prior work (Xu et al., 2024). Given an input question q,
+a target output y, and a set of k retrieved documents D, our objective is to compress D with respect
+to q into a summary s that preserves the most useful information while using significantly fewer
+tokens than D. This summary s is then prepended to the original input q and fed into an LLM to
+generate the final answer for the downstream task. This overall pipeline is illustrated in the upper
+half of Figure 2. The process involves two key components: a compression model πθ : (q, D) (cid:55)→ s
+and a large language model M : (s, q) (cid:55)→ ˆy, which generates the predicted answer ˆy. We treat M as
+a black-box system and focus exclusively on training the compressor πθ. The compressor itself is
+also a language model, but it is intentionally designed to be significantly smaller than M to reduce
+the computational cost of encoding the retrieved documents.
+
+2.2 TRAINING THE COMPRESSOR
+
+Our compressor is designed to generate document summaries that are highly useful to the LLM (M )
+for downstream tasks. This objective is challenging because the criteria for an effective summary are
+task-dependent, and direct supervision is unavailable. We therefore formulate this as an end-to-end
+training problem and employ reinforcement learning to optimize the compressor without relying on
+pre-defined compression labels. The overall architecture of our training framework is illustrated in
+the lower portion of Figure 2. The following sections describe the key components of our approach:
+distillation warm-up, policy optimization, and reward calculation.
+
+2.2.1 DISTILLATION FOR WARM-START
+
+Due to the limited parameter size of our compression model, its capability for question-focused
+document summarization is constrained. To provide a strong initial policy for RL and ensure train-
+ing stability, we employ knowledge distillation from a teacher model to initialize our compressor.
+Specifically, we first utilize a large-scale language model (DeepSeek-V3) as the teacher to generate
+summaries of retrieved documents related to the given question. We then evaluate the performance
+of the downstream LLM (M ) on the QA task under two conditions: (1) with the teacher-generated
+summary ˆs prepended to the input question q , and (2) with the original question alone. The corre-
+sponding performance scores are denoted as psummary and poriginal, respectively. By comparing these
+results, we retain instances where psummary > poriginal, indicating that the summary enhances RAG
+performance. We also retain cases where poriginal = 1 (i.e., the model produces a fully correct answer
+without the summary) and psummary < poriginal; for these, we set the target summary ˆs to an empty
+string. All other instances are discarded. The resulting filtered and modified dataset is denoted as
+
+3
+
+Ques%onCompressor(CORE)LLM…Summary 2Summary 1Summary Gr1r2rGReward Calcula%onGroup Computa%onAnswer 2Answer 1Answer G……A1…A2AGRewardAdvantage🔥❄RolloutKnowledge Dis4lla4on for RL Warm StartWhen did the US stop dra=ing for the vietnam war?last men conscripted, who were born in 1952 and who reported for duty in June 1973. On February 2, 1972, a drawing was held to determine draB priority numbers for men born in 1953, but in early 1973 it was announced by Secretary of Defense Melvin Laird that no further draB orders would be issued. In March 1973, 1974, and …Retrieved DocumentsRetrieveQues%onBlackbox LLMHeuris%c Compressorlate 1972Dec 1972197319721400 tokensSummary59 tokens52 tokensTradi%onal RAGNo RetrievalEnd-to-End Training of COREWarm UpInference of CORE-RAGTop-k Retrieved DocumentskGold AnswerCORE❄🔥TrainableFrozenPreprint
+
+Xf , which is used for supervised fine-tuning of the compression model. The fine-tuning objective is
+defined as:
+
+Ldistill =
+
+1
+|Xf |
+
+(cid:88)
+
+(q,D,ˆs)∈Xf
+
+LCE(πθ(q, D), ˆs),
+
+(1)
+
+where πθ(q, D) denotes the output of the compression model and LCE is the cross-entropy loss. This
+distillation process yields a robust initialization for RL and promotes stability in subsequent training.
+
+2.2.2 END-TO-END TRAINING WITH RL
+
+Following the distillation phase, the compressor possesses a preliminary compression capability.
+However, as summaries from even the largest teacher models are not guaranteed to be optimal for
+the downstream task, further end-to-end optimization is necessary. We therefore formulate this op-
+timization as a reinforcement learning problem. In this framework, the compressor functions as
+a policy that generates a summary from an input question and its corresponding documents. A re-
+ward function, which directly reflects performance on the downstream task (e.g., question-answering
+accuracy), then evaluates the summary’s quality. The objective is to optimize the compressor’s pa-
+rameters to maximize the expected cumulative reward, thereby directly aligning its outputs with the
+downstream task’s objectives.
+
+Specifically, we employ Group Relative Policy Optimization (GRPO) (Shao et al., 2024) algorithm.
+Unlike Proximal Policy Optimization (PPO), which trains a separate critic model, GRPO estimates
+the baseline directly from a group of rollouts. Given an existing policy, πθold , and a reference policy,
+πθref, the GRPO objective maximizes the compressor policy πθ using G rollouts τ = {si}G
+i=1 ∼
+πθold(·|x), for each input x ∼ D:
+
+J (θ) = E
+
+x∼D, {si}G
+i=1∼πθold (·|x)
+(cid:32)
+
+(cid:34)
+
+min
+
+πθ(si|x)
+πθold(si|x)
+
+Ai, clip
+
+1
+G
+
+G
+(cid:88)
+
+i=1
+
+(cid:32)
+
+πθ(si|x)
+πθold(si|x)
+
+(cid:33)
+
+(cid:33)
+
+, 1 − ϵ, 1 + ϵ
+
+Ai
+
+− βDKL
+
+(cid:0)πθ ∥ πθref
+
+(cid:1)
+
+(2)
+
+(cid:35)
+
+,
+
+where Ai = (ri − mean({rj}G
+j=1) represents the normalized advantage of the i-
+th rollout within the group, ϵ is the clipping ratio, and β is the coefficient for the KL divergence
+penalty. The inclusion of the KL divergence term ensures that the updated policy does not deviate
+significantly from the reference policy.
+
+j=1))/std({rj}G
+
+2.2.3 REWARD CALCULATION
+
+Generating End-Task Output. It is important to note that the reward is not computed directly from
+the compressor’s output summary. Instead, the summary s generated by the compressor is prepended
+to the original input question q, and this combined input is fed into the LLM M : (s, q) (cid:55)→ ˆy to
+produce a predicted answer ˆy. The reward is then calculated by comparing ˆy to the gold answer y.
+Throughout the training process, the parameters of M remain fixed and are not updated.
+
+Computing Rewards. We design simple rule-based rewards based on end-task performance to
+guide the compressor’s improvement, which consists of two components:
+
+• EM Reward (rEM). We employ EM as the main reward function, which is a widely adopted
+metric for evaluating the accuracy of QA tasks. The EM reward is binary: it yields a value of 1
+if the generated answer perfectly matches the ground truth, and 0 otherwise.
+
+rEM =
+
+(cid:26)1
+0
+
+if y = ˆy,
+otherwise.
+
+(3)
+
+• F1 Reward (rF1). Since exact matches occur infrequently in practice, relying solely on EM
+rewards leads to sparse reward signals. Furthermore, the EM metric fails to distinguish between
+partially correct answers, as all non-exact matches receive zero reward. Therefore, we introduce
+F1 reward, which provides a finer-grained evaluation by measuring the degree of partial match.
+
+rF1 =
+
+2 × IN
+PN + RN
+
+,
+
+(4)
+
+where PN denotes the number of tokens in the predicted answer, RN denotes the number of
+tokens in the gold answer, and IN is the number of intersecting tokens between the two answers.
+
+4
+
+Preprint
+
+The final reward function combines these reward signals through weighted summation:
+
+where α ∈ (0, 1] is a hyperparameter that controls the relative contribution of the F1 reward.
+
+r = rEM + α · rF1,
+
+(5)
+
+2.2.4 TRAINING TEMPLATE
+Figure 5 displays the prompt employed to train the compressor model for generating a summary of
+the retrieved documents, conditioned on the given question. This prompt is notably concise. For
+end-task answer generation, the prompt provided to the LLM M is illustrated in Figure 6, which
+incorporates few-shot in-context examples, the (generated summary of) retrieved documents, and
+the question.
+
+3 EXPERIMENTS
+
+3.1 EXPERIMENTAL SETTINGS
+
+Datasets and Evaluation Metrics. We evaluate our method on four benchmark datasets:
+two
+single-hop question-answering datasets, Natural Questions (NQ) (Kwiatkowski et al., 2019) and
+TriviaQA (Joshi et al., 2017), as well as two multi-hop question-answering datasets, HotpotQA
+(Yang et al., 2018) and 2WikiMultihopQA (Ho et al., 2020). Results are reported on the test sets
+of Natural Questions and TriviaQA, as well as the development sets of HotpotQA and 2WikiMulti-
+hopQA. Following RECOMP (Xu et al., 2024), the performance is measured using Exact Match and
+token-level F1 scores, while efficiency is assessed by the number of tokens provided in the context.
+Compression Model (πθ). We trained our compression model using Qwen2.5-1.5B-Instruct to
+generate summaries of the retrieved documents. To evaluate the effect of using different models
+as compressors, we also trained compressors using Llama3.2-1B-Instruct and Llama3.2-3B-Instruct
+(Section 3.3).
+Large Language Model (M ). We use Qwen2.5-14B-Instruct as the primary LLM model M to
+generate predicted answers which are used to guide the training of the compressor. To evaluate the
+generalization ability of our method, we also transfer to another LLM model, LLama3.1-8B-Instruct
+(Table 2).
+Retrieval Corpus and Retrievers. Following previous studies (Xu et al., 2024), we use the
+Wikipedia corpus from December 20, 2018, as the retrieval source for all four datasets. The ar-
+ticles are segmented into non-overlapping 100-word documents. To ensure that our method is not
+dependent on a specific retriever, we experiment with several mainstream retrievers. Specifically,
+we use DPR (Karpukhin et al., 2020) for NQ, a hybrid of DPR and BM25 (Robertson et al., 1995)
+for TriviaQA, and the Contriever model (Izacard et al., 2021) trained on the MS MARCO dataset
+(Nguyen et al., 2016) for HotpotQA and 2WikiMultihopQA.
+Baselines. To evaluate the effectiveness of our method, we compared it against various baselines.
+First, we evaluated the uncompressed approach—retaining the original in-context RALM setup—by
+prepending the top 1, 3, 5, and 10 retrieved documents to the prompt. We also tested alternative com-
+pression methods, including the traditional BM25 algorithm (which ranks sentences by their similar-
+ity to the input), off-the-shelf Qwen2.5-1.5B-Instruct model (with comparable parameter size to our
+approach), and DeepSeek-V3 model (671B parameters, far exceeding our compressor’s capacity).
+Furthermore, we included state-of-the-art context compression methods for RAG, RECOMP (Xu
+et al., 2024) and NoiseFilter-IB (Zhu et al., 2024). For RECOMP, we evaluated both its abstractive
+and extractive variants. To ensure a fair comparison, RECOMP, NoiseFilter-IB, and our approach
+were all trained using the same model.
+Implementation Details. For the distillation warm-up phase, we perform full-parameter super-
+vised fine-tuning on the off-the-shell language model for two epochs using LLaMA-Factory 1. This
+warmed-up model then serves as the initializer for the subsequent reinforcement learning phase. We
+adopt the Verl framework 2 for RL training. The initialized compression model is trained for two
+epochs on each dataset. Training is conducted on eight NVIDIA H20 GPUs using full parameter
+GRPO optimization, with a learning rate of 1e-5, a batch size of 256, five rollouts per sample, and a
+KL loss coefficient of 0.001. The downstream LLM (M ) used for reward generation is served using
+the vLLM inference engine during RL training.
+
+1https://github.com/hiyouga/LLaMA-Factory
+2https://github.com/volcengine/verl
+
+5
+
+Preprint
+
+Table 1: Open-domain QA results using Qwen2.5-14B-Instruct as the downstream LLM (M ). The
+reported token counts represent the length of in-context documents, excluding few-shot examples.
+RECOMP, NoiseFilter-IB and our method CORE are all trained using Qwen2.5-1.5B-Instruct.
+
+NQ
+
+F1
+
+EM
+
+TriviaQA
+
+HotpotQA
+
+2WikiMultihopQA
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+No Retrieval
+
+21.36
+
+30.97
+
+0
+
+53.23
+
+59.98
+
+0
+
+21.05
+
+29.48
+
+0
+
+26.11
+
+29.51
+
+0
+
+RAG without compression
+
+Top1 Document
+Top3 Documents
+Top5 Documents
+Top10 Documents
+
+34.46
+37.78
+38.03
+38.67
+
+44.41
+48.45
+49.16
+50.03
+
+142
+427
+712
+1425
+
+Compression of top 5 documents
+
+BM25
+Qwen2.5-1.5B
+DeepSeek-V3 (671B)
+RECOMP-Abs (1.5B)
+RECOMP-Ext (1.5B)
+NoiseFilter-IB (1.5B)
+CORE (1.5B)
+
+25.23
+31.94
+37.73
+34.18
+33.84
+35.15
+41.02
+
+36.47
+43.03
+50.39
+46.26
+46.05
+45.94
+50.40
+
+37
+36
+54
+58
+56
+48
+46
+
+60.82
+62.60
+64.10
+64.40
+
+55.36
+57.99
+64.13
+60.31
+60.18
+59.51
+65.63
+
+68.70
+71.02
+72.48
+72.92
+
+63.90
+66.70
+73.20
+68.50
+68.39
+68.15
+72.55
+
+143
+430
+715
+1428
+
+39
+30
+50
+53
+48
+35
+32
+
+29.20
+31.64
+32.99
+33.95
+
+24.18
+27.36
+33.59
+28.96
+29.93
+27.97
+33.67
+
+Compression of top 10 documents (with the compressor trained on top 5 docs)
+23.49
+28.17
+34.62
+31.54
+31.92
+28.21
+34.68
+
+BM25
+Qwen2.5-1.5B
+DeepSeek-V3 (671B)
+RECOMP-Abs (1.5B)
+RECOMP-Ext (1.5B)
+NoiseFilter-IB (1.5B)
+CORE (1.5B)
+
+36.88
+44.84
+51.07
+46.93
+46.34
+46.24
+51.26
+
+25.91
+32.94
+37.79
+34.40
+33.96
+35.36
+41.88
+
+63.16
+67.31
+74.45
+69.88
+69.51
+68.32
+73.64
+
+55.28
+58.45
+65.29
+61.42
+61.03
+59.92
+66.76
+
+38
+40
+56
+59
+60
+50
+52
+
+37
+33
+53
+52
+50
+38
+33
+
+38.93
+41.87
+43.69
+44.88
+
+35.73
+37.47
+44.83
+39.95
+41.09
+38.62
+45.06
+
+35.01
+38.48
+45.69
+42.92
+43.18
+38.83
+46.35
+
+147
+442
+737
+1471
+
+71
+33
+48
+56
+45
+38
+36
+
+68
+36
+50
+52
+55
+38
+37
+
+26.79
+27.89
+29.64
+31.04
+
+25.42
+25.93
+27.99
+30.25
+30.78
+27.85
+36.72
+
+25.61
+26.22
+29.00
+31.98
+32.52
+28.63
+37.99
+
+31.87
+33.58
+35.21
+36.75
+
+30.29
+31.18
+32.67
+36.73
+37.07
+34.69
+42.05
+
+30.54
+31.57
+34.64
+38.16
+38.87
+35.16
+43.28
+
+153
+460
+766
+1531
+
+68
+32
+92
+52
+51
+40
+49
+
+65
+34
+40
+49
+44
+42
+48
+
+3.2 OVERALL PERFORMANCE
+
+The detailed comparison results are presented in Table 1. We evaluate the following approaches: tra-
+ditional RAG without compression using the top 1, 3, 5, and 10 documents prepended to the original
+input; BM25-based compression; off-the-shelf LLMs (Qwen2.5-1.5B-Instruct and DeepSeek-V3);
+and state-of-the-art trainable RAG compressors (RECOMP-Abstractive, RECOMP-Extractive, and
+NoiseFilter-IB). For fair comparison, all trainable methods were trained using the same backbone
+model, Qwen2.5-1.5B-Instruct. These compressors were trained on five-document inputs, and we
+report their performance both on in-domain five-document compression and out-of-domain general-
+ization to ten-document compression.
+
+RAG versus No RAG. As shown in Table 1, prepending the original input with retrieved documents
+yields a substantial improvement over the no-retrieval baseline, indicating that these documents
+provide valuable information for generating the answer. Performance improves as the number of
+retrieved documents increases from 1 to 10, albeit with diminishing returns—a trend attributable to
+the decreasing relevance of lower-ranked documents. However, this performance gain comes at the
+cost of a significant increase in the number of additional tokens the LLM must encode, rising from
+0 to over 1,400 tokens.
+Lossless Compression of CORE. Our compressor was trained using a context of five documents.
+As presented in Table 1, compared to prepending the full content of all five documents to the original
+input (i.e., the uncompressed baseline), our method achieves a high compression rate of approxi-
+mately 6% with no loss in performance. Remarkably, on all four datasets, the approach not only
+maintains performance but also enhances EM by 1 to 7 points. For example, on NQ, the model
+achieves an EM of 41.02 with compressed input, surpassing the uncompressed score of 38.03.
+Comparison with Compression Baselines. When compressing the top five documents, all base-
+line compression methods result in performance degradation to varying degrees compared to the
+uncompressed baseline. Specifically, BM25 leads to a substantial performance drop. Using the off-
+the-shelf Qwen2.5-1.5B-Instruct model for compression yields better results than BM25 but still un-
+derperforms relative to the uncompressed baseline. Surprisingly, even the large-scale DeepSeek-V3
+model (with 671B parameters) achieves only near-lossless compression on TriviaQA and HotpotQA,
+while performance on NQ and 2Wiki remains below the uncompressed baseline. As for the trained
+compressors, both RECOMP and NoiseFilter-IB exhibit a decline of 3–5 EM points compared to no
+
+6
+
+Preprint
+
+Figure 3: The impact of different models used to train the compressor.
+
+compression. In contrast, our method, CORE, delivers the best performance—not only significantly
+outperforming compression methods of comparable model size, but also maintaining an advantage
+over the hundreds-of-times-larger DeepSeek model, demonstrating the benefit and importance of
+end-to-end optimization. More detailed results can be found in Tables 6 and 7.
+Generalization to 10-Doc Compression. When generalizing the trained compressors to handle
+the top-10 documents without retraining, the aforementioned conclusions remain valid. CORE
+continues to achieve lossless compression and performs best among all compression methods. On
+NQ, it achieves a token compression ratio of 3.6% while improving the EM by 3.2 points compared
+to using all ten documents. Similar trends are observed on TriviaQA, with a compression ratio
+of 2.3% and a gain of 2.4 EM points relative to the full-document baseline. On HotpotQA, CORE
+achieves a compression ratio of 2.5% and an improvement of 0.7 EM points. For 2WikiMultihopQA,
+it obtains a compression ratio of 3.1% along with a notable increase of 6.9 EM points.
+
+3.3 ROBUSTNESS AND GENERALIZATION ABILITY ANALYSIS
+
+Robustness of CORE Across Compressor Architectures. To evaluate whether the effectiveness of
+CORE depends on the choice of compressor model, we compared the performance of compressors
+trained using different model architectures—while keeping the downstream LLM (Qwen2.5-14B-
+Instruct) fixed. The compressors tested include LLaMA3.2-1B-Instruct, Qwen2.5-1.5B-Instruct, and
+LLaMA3.2-3B-Instruct, which vary in architecture and parameter count. As shown in Figure 3, the
+results indicate that: (1) These trained compressors consistently achieve lossless compression and
+outperform the uncompressed baseline (represented by the red reference line in the figure, which
+corresponds to prepending the full document content), confirming that our training framework is
+robust and not tied to a specific compressor architecture. (2) Compression performance improves as
+the size of the compressor model increases, consistent with scaling laws.
+
+Transferability of CORE Across Downstream LLMs. We evaluate the transferability of our
+trained compressor and other baseline compressors to a new downstream LLM, the LLaMA-3.1-
+8B model. The results are presented in Table 2. Note that all trainable compressors, including our
+own, were trained using feedback generated by Qwen2.5-14B-Instruct. The findings reveal that ex-
+isting trained compressors (e.g., RECOMP) exhibit limited generalization capability, as indicated by
+a larger performance gap relative to the baseline of prepending full documents. In contrast, CORE
+demonstrates stronger generalization, achieving lossless compression on the new downstream LLM.
+Specifically, it not only maintains performance but also surpasses the full-document baseline (i.e.,
+no compression) across all four datasets while retaining a high compression rate. These results
+suggest that the summaries produced by our method are inherently high-quality and preserve key
+information necessary for accurate answering, thereby enabling effective transfer to other LLMs.
+
+3.4 ABLATION STUDY
+
+Table 3 presents an ablation study on the two stages of our method: distillation and GRPO. Here,
+“w/o distillation” denotes training the compressor with GRPO directly, bypassing the warm-start
+phase, while “w/o GRPO” indicates using only the distillation step without subsequent reinforce-
+ment learning. The results demonstrate that removing either component leads to performance degra-
+dation, confirming the necessity of both. In addition, the decline is more substantial when GRPO
+is omitted, highlighting the crucial role of reinforcement learning in the absence of explicit supervi-
+
+7
+
+Preprint
+
+Table 2: Zero-shot transfer of the the trained compressor to Llama-3.1-8B-Instruct.
+
+NQ
+
+F1
+
+EM
+
+TriviaQA
+
+HotpotQA
+
+2WikiMultihopQA
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+No Retrieval
+
+24.04
+
+34.91
+
+0
+
+55.64
+
+62.57
+
+0
+
+19.93
+
+27.75
+
+0
+
+27.64
+
+31.18
+
+0
+
+RAG without compression
+
+Top1 Document
+Top3 Documents
+Top5 Documents
+Top10 Documents
+
+33.80
+36.87
+37.65
+38.12
+
+44.06
+47.81
+48.87
+49.93
+
+142
+427
+712
+1425
+
+Compression of top 5 documents
+
+Qwen2.5-1.5B
+DeepSeek-V3 (671B)
+RECOMP-Abs (1.5B)
+RECOMP-Ext (1.5B)
+CORE (1.5B)
+
+32.60
+37.56
+33.41
+33.12
+40.72
+
+44.21
+50.11
+45.50
+45.06
+50.00
+
+Compression of top 10 documents
+
+Qwen2.5-1.5B
+DeepSeek-V3 (671B)
+RECOMP-Abs (1.5B)
+RECOMP-Ext (1.5B)
+CORE (1.5B)
+
+32.88
+37.49
+34.18
+34.06
+41.77
+
+44.66
+51.28
+46.80
+46.55
+51.27
+
+36
+54
+58
+60
+46
+
+40
+56
+59
+60
+52
+
+59.17
+61.13
+62.26
+63.95
+
+56.76
+62.52
+58.50
+57.98
+64.08
+
+57.44
+63.79
+59.69
+59.33
+65.25
+
+67.50
+70.06
+71.04
+72.71
+
+65.77
+72.34
+67.37
+66.84
+71.13
+
+66.56
+73.80
+68.89
+68.71
+72.45
+
+143
+430
+715
+1428
+
+30
+50
+53
+55
+32
+
+33
+53
+52
+50
+33
+
+27.95
+30.17
+31.44
+32.19
+
+26.86
+33.05
+28.85
+29.03
+32.17
+
+27.31
+34.24
+30.17
+30.52
+33.25
+
+37.49
+40.71
+42.16
+42.62
+
+36.90
+44.25
+39.76
+40.04
+43.71
+
+37.31
+45.35
+41.42
+41.98
+45.09
+
+147
+442
+737
+1471
+
+33
+48
+56
+52
+36
+
+36
+50
+55
+55
+37
+
+28.41
+28.67
+29.43
+30.45
+
+25.45
+28.64
+31.63
+31.85
+35.99
+
+25.80
+31.45
+33.61
+33.52
+37.59
+
+33.43
+34.23
+35.18
+36.04
+
+30.88
+33.87
+37.81
+38.02
+41.42
+
+31.30
+37.09
+39.78
+39.42
+42.87
+
+153
+460
+766
+1531
+
+32
+92
+52
+55
+49
+
+34
+40
+44
+44
+48
+
+Table 3: Ablation study.
+
+Dataset
+
+Metric w/o distillation w/o GRPO CORE
+
+NQ
+
+TQA
+
+HotpotQA
+
+2Wiki
+
+EM
+F1
+EM
+F1
+EM
+F1
+EM
+F1
+
+36.37
+46.91
+65.23
+72.41
+32.01
+42.73
+31.40
+36.89
+
+34.18
+46.26
+60.31
+68.50
+28.96
+39.95
+30.25
+36.73
+
+41.02
+50.40
+65.63
+72.55
+33.67
+45.06
+36.72
+42.05
+
+Figure 4: The impact of α.
+
+sion. Distillation injects external knowledge into the model, providing a favorable starting point for
+RL training and thereby enabling RL to more effectively unlock the compressor’s full potential.
+
+3.5 THE IMPACT OF α.
+
+Figure 4 illustrates the performance of our method under different values of α, which controls the
+weighting coefficient of the F1 reward term. Setting α = 0 corresponds to using only the EM
+reward. Results indicate that performance improves when α > 0 across all datasets, demonstrating
+the effectiveness of the F1 reward in mitigating the sparsity issue associated with the EM reward.
+However, the optimal value of α is dataset-dependent; values between 0.2 and 0.5 generally yield
+strong performance.
+
+3.6 CASE STUDY
+
+To conduct an in-depth analysis of the advantages of our compressor, we performed case studies
+on one single-hop QA dataset (NQ) and one multi-hop QA dataset (2Wiki), with the results pre-
+sented in Table 4 and Table 5, respectively. For each case, we compared the summaries generated
+by off-the-shelf Qwen2.5-1.5B-Instruct, RECOMP, and our method CORE based on the same set
+of documents, as well as the predicted answers generated by the LLM after prepending these sum-
+maries. As shown in the tables, although the summaries produced by off-the-shelf Qwen2.5-1.5B
+are concise, they largely fail to capture key information relevant to answering the question. In con-
+trast, RECOMP demonstrates better summarization capability but is prone to being overwhelmed by
+lengthy documents, resulting in misjudgments and even generating misleading information—such
+as the statement in Table 4: “The U.S. stopped drafting for the Vietnam War after the Selective
+Service System was officially abolished in December 1972”—which leads the downstream LLM to
+
+8
+
+65.067.5000.20.50.50.51.030.032.535.037.540.042.545.0EMNQTQAHotpotQA2WikiPreprint
+
+produce the incorrect answer “1972”. Our method, CORE, accurately extracts answer-critical infor-
+mation from lengthy documents, exemplified by the summary: “The U.S. stopped drafting for the
+Vietnam War in 1973 after announcing the decision by Secretary of Defense Melvin Laird earlier
+that year”, thereby enabling the LLM to generate the correct answer “1973”. This indicates that
+our compressor, trained with an end-task target-oriented reinforcement learning optimization strat-
+egy, can produce document summaries that are most helpful for answering the given question while
+effectively filtering out irrelevant information.
+
+4 RELATED WORK
+
+Context Compression in RAG. RAG enhances the performance of LLMs on knowledge-intensive
+tasks by retrieving the most relevant documents from extensive knowledge bases and prepending
+them as contextual information to the original input (Ram et al., 2023; Fan et al., 2024; Lin et al.,
+2023; Shi et al., 2023). However, this approach requires the LLM to process significantly longer
+token sequences, resulting in increased computational costs. To mitigate this issue, researchers have
+begun to explore methods for compressing retrieved documents in RAG systems (Xu et al., 2024;
+Cao et al., 2024; Jin et al., 2024b; Zhu et al., 2024; Kim & Thorne, 2025; Rau et al., 2024; Wu et al.,
+2025; Louis et al., 2025; Jin et al., 2024a; Li et al., 2024a;b; Zhang et al., 2024a). For instance,
+Xu et al. (2024) propose compressing retrieved documents into textual summaries before in-context
+augmentation, training the compressor through data selection and distillation. Similarly, Cao et al.
+(2024) introduce a Query-Guided Compressor (QGC) that uses queries to guide the compression
+process, effectively preserving essential information. Jin et al. (2024b) refine retrieved documents
+into Key Supporting Evidence (KSE) through a combination of knowledge synthesis, supervised
+fine-tuning (SFT), and preference alignment. Meanwhile, Zhu et al. (2024) present an information-
+theoretic approach called NoiseFilter-IB, which filters noise by maximizing the mutual information
+between the compressed content and the ground-truth output. Additionally, Kim & Thorne (2025)
+train a compressor to extract critical information using reward functions based on predefined heuris-
+tic rules. However, most of these methods are heuristic in nature, and due to the lack of ideal com-
+pression labels, the compressed content they produce cannot be guaranteed to benefit downstream
+LLMs. In contrast, our method, CORE, adopts an end-to-end optimization approach to address these
+limitations.
+
+Reinforcement Learning. Reinforcement learning (RL) has recently achieved notable success, en-
+abling LLMs to develop reasoning capabilities without explicit step-by-step supervision (Liu et al.,
+2024; Shao et al., 2024; Guo et al., 2025). Building on these advances, several studies have applied
+RL to improve RAG (Ke et al., 2024). For example, Kulkarni et al. (2024) use RL to autonomously
+decide whether to retrieve documents, while Zhang et al. (2024b) employ RL to optimize the ranking
+of retrieved documents. Similarly, Mao et al. (2024) propose a framework for training query rewrit-
+ing models for RAG without relying on human annotations. MMOA-RAG (Chen et al., 2025b) en-
+hances RAG through multi-agent reinforcement learning, incorporating a query rewriter, retriever,
+and generator. Moreover, a line of research has utilized RL to integrate search with reasoning in a
+step-by-step manner (Singh et al., 2025). For instance, Chen et al. (2025a) introduce a framework
+called ReSearch, which trains LLMs to reason with search using RL, without requiring supervised
+data for reasoning steps. Related approaches include R1-Searcher (Song et al., 2025), WebThinker
+(Li et al., 2025), and DeepResearcher (Zheng et al., 2025). In contrast to these studies, our approach
+leverages RL to train a document compressor in an end-to-end manner, improving the efficiency of
+RAG while maintaining high performance.
+
+5 CONCLUSION
+
+This paper analyzes the limitations of current context compression methods for RAG. A primary
+challenge is the lack of optimal reference summaries for supervised learning, which often results in
+performance degradation in downstream tasks. To overcome this, we frame context compression as
+a reinforcement learning problem, utilizing downstream task performance as a reward signal to train
+the compression policy, thereby enabling end-to-end optimization. Extensive experiments demon-
+strate that our proposed method, CORE, achieves effectively lossless compression by maintaining
+a high compression ratio while preserving original task performance. Surprisingly, CORE not only
+preserves but actually enhances performance on all downstream tasks. Further in-depth analysis
+provides additional insights into the efficacy of our approach.
+
+9
+
+Preprint
+
+REFERENCES
+
+Zhiwei Cao, Qian Cao, Yu Lu, Ningxin Peng, Luyang Huang, Shanbo Cheng, and Jinsong Su.
+Retaining key information under high compression ratios: Query-guided compressor for llms.
+In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics
+(Volume 1: Long Papers), pp. 12685–12695, 2024.
+
+Mingyang Chen, Tianpeng Li, Haoze Sun, Yijie Zhou, Chenzheng Zhu, Haofen Wang, Jeff Z Pan,
+Wen Zhang, Huajun Chen, Fan Yang, et al. Learning to reason with search for llms via reinforce-
+ment learning. arXiv preprint arXiv:2503.19470, 2025a.
+
+Yiqun Chen, Lingyong Yan, Weiwei Sun, Xinyu Ma, Yi Zhang, Shuaiqiang Wang, Dawei Yin,
+Yiming Yang, and Jiaxin Mao. Improving retrieval-augmented generation through multi-agent
+reinforcement learning. arXiv preprint arXiv:2501.15228, 2025b.
+
+Wenqi Fan, Yujuan Ding, Liangbo Ning, Shijie Wang, Hengyun Li, Dawei Yin, Tat-Seng Chua, and
+Qing Li. A survey on rag meeting llms: Towards retrieval-augmented large language models. In
+Proceedings of the 30th ACM SIGKDD conference on knowledge discovery and data mining, pp.
+6491–6501, 2024.
+
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu,
+Shirong Ma, Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing reasoning capability in llms
+via reinforcement learning. arXiv preprint arXiv:2501.12948, 2025.
+
+Xanh Ho, Anh-Khoa Duong Nguyen, Saku Sugawara, and Akiko Aizawa. Constructing a multi-hop
+qa dataset for comprehensive evaluation of reasoning steps. arXiv preprint arXiv:2011.01060,
+2020.
+
+Gautier Izacard, Mathilde Caron, Lucas Hosseini, Sebastian Riedel, Piotr Bojanowski, Armand
+Joulin, and Edouard Grave. Unsupervised dense information retrieval with contrastive learning.
+arXiv preprint arXiv:2112.09118, 2021.
+
+Bowen Jin, Jinsung Yoon, Jiawei Han, and Sercan O Arik. Long-context llms meet rag: Overcoming
+
+challenges for long inputs in rag. arXiv preprint arXiv:2410.05983, 2024a.
+
+Jiajie Jin, Yutao Zhu, Yujia Zhou, and Zhicheng Dou. Bider: Bridging knowledge inconsistency for
+efficient retrieval-augmented llms via key supporting evidence. In Findings of the Association for
+Computational Linguistics ACL 2024, pp. 750–761, 2024b.
+
+Mandar Joshi, Eunsol Choi, Daniel S Weld, and Luke Zettlemoyer. Triviaqa: A large scale distantly
+supervised challenge dataset for reading comprehension. arXiv preprint arXiv:1705.03551, 2017.
+
+Vladimir Karpukhin, Barlas Oguz, Sewon Min, Patrick SH Lewis, Ledell Wu, Sergey Edunov, Danqi
+Chen, and Wen-tau Yih. Dense passage retrieval for open-domain question answering. In EMNLP
+(1), pp. 6769–6781, 2020.
+
+Zixuan Ke, Weize Kong, Cheng Li, Mingyang Zhang, Qiaozhu Mei, and Michael Bendersky. Bridg-
+ing the preference gap between retrievers and llms. arXiv preprint arXiv:2401.06954, 2024.
+
+Sangryul Kim and James Thorne. Context filtering with reward modeling in question answering.
+In Proceedings of the 31st International Conference on Computational Linguistics, pp. 11048–
+11055, 2025.
+
+Mandar Kulkarni, Praveen Tangarajan, Kyung Kim, and Anusua Trivedi. Reinforcement learning
+
+for optimizing rag for domain chatbots. arXiv preprint arXiv:2401.06800, 2024.
+
+Tom Kwiatkowski, Jennimaria Palomaki, Olivia Redfield, Michael Collins, Ankur Parikh, Chris
+Alberti, Danielle Epstein, Illia Polosukhin, Jacob Devlin, Kenton Lee, et al. Natural questions: a
+benchmark for question answering research. Transactions of the Association for Computational
+Linguistics, 7:453–466, 2019.
+
+Xiaoxi Li, Jiajie Jin, Guanting Dong, Hongjin Qian, Yutao Zhu, Yongkang Wu, Ji-Rong Wen, and
+Zhicheng Dou. Webthinker: Empowering large reasoning models with deep research capability.
+arXiv preprint arXiv:2504.21776, 2025.
+
+10
+
+Preprint
+
+Xinze Li, Sen Mei, Zhenghao Liu, Yukun Yan, Shuo Wang, Shi Yu, Zheni Zeng, Hao Chen, Ge Yu,
+Zhiyuan Liu, et al. Rag-ddr: Optimizing retrieval-augmented generation using differentiable data
+rewards. arXiv preprint arXiv:2410.13509, 2024a.
+
+Zhonghao Li, Xuming Hu, Aiwei Liu, Kening Zheng, Sirui Huang, and Hui Xiong. Refiner: Re-
+structure retrieval content efficiently to advance question-answering capabilities. arXiv preprint
+arXiv:2406.11357, 2024b.
+
+Xi Victoria Lin, Xilun Chen, Mingda Chen, Weijia Shi, Maria Lomeli, Richard James, Pedro Ro-
+driguez, Jacob Kahn, Gergely Szilvasy, Mike Lewis, et al. Ra-dit: Retrieval-augmented dual
+instruction tuning. In The Twelfth International Conference on Learning Representations, 2023.
+
+Aixin Liu, Bei Feng, Bing Xue, Bingxuan Wang, Bochao Wu, Chengda Lu, Chenggang Zhao,
+Chengqi Deng, Chenyu Zhang, Chong Ruan, et al. Deepseek-v3 technical report. arXiv preprint
+arXiv:2412.19437, 2024.
+
+Nelson F Liu, Kevin Lin, John Hewitt, Ashwin Paranjape, Michele Bevilacqua, Fabio Petroni, and
+Percy Liang. Lost in the middle: How language models use long contexts. arXiv preprint
+arXiv:2307.03172, 2023.
+
+Maxime Louis, Herv´e D´ejean, and St´ephane Clinchant. Pisco: Pretty simple compression for
+
+retrieval-augmented generation. arXiv preprint arXiv:2501.16075, 2025.
+
+Shengyu Mao, Yong Jiang, Boli Chen, Xiao Li, Peng Wang, Xinyu Wang, Pengjun Xie, Fei Huang,
+Huajun Chen, and Ningyu Zhang. Rafe: Ranking feedback improves query rewriting for rag.
+arXiv preprint arXiv:2405.14431, 2024.
+
+Tri Nguyen, Mir Rosenberg, Xia Song, Jianfeng Gao, Saurabh Tiwary, Rangan Majumder, and
+
+Li Deng. Ms marco: A human-generated machine reading comprehension dataset. 2016.
+
+Ori Ram, Yoav Levine, Itay Dalmedigos, Dor Muhlgay, Amnon Shashua, Kevin Leyton-Brown, and
+Yoav Shoham. In-context retrieval-augmented language models. Transactions of the Association
+for Computational Linguistics, 11:1316–1331, 2023.
+
+David Rau, Shuai Wang, Herv´e D´ejean, and St´ephane Clinchant. Context embeddings for efficient
+
+answer generation in rag. arXiv preprint arXiv:2407.09252, 2024.
+
+Stephen E Robertson, Steve Walker, Susan Jones, Micheline M Hancock-Beaulieu, Mike Gatford,
+
+et al. Okapi at TREC-3. British Library Research and Development Department, 1995.
+
+Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang,
+Mingchuan Zhang, YK Li, Yang Wu, et al. Deepseekmath: Pushing the limits of mathemati-
+cal reasoning in open language models. arXiv preprint arXiv:2402.03300, 2024.
+
+Weijia Shi, Sewon Min, Michihiro Yasunaga, Minjoon Seo, Rich James, Mike Lewis, Luke Zettle-
+moyer, and Wen-tau Yih. Replug: Retrieval-augmented black-box language models. arXiv
+preprint arXiv:2301.12652, 2023.
+
+Aditi Singh, Abul Ehtesham, Saket Kumar, and Tala Talaei Khoei. Agentic retrieval-augmented
+
+generation: A survey on agentic rag. arXiv preprint arXiv:2501.09136, 2025.
+
+Huatong Song, Jinhao Jiang, Yingqian Min, Jie Chen, Zhipeng Chen, Wayne Xin Zhao, Lei Fang,
+and Ji-Rong Wen. R1-searcher: Incentivizing the search capability in llms via reinforcement
+learning. arXiv preprint arXiv:2503.05592, 2025.
+
+Chenyuan Wu, Ninglu Shao, Zheng Liu, Shitao Xiao, Chaozhuo Li, Chen Zhang, Senzhang Wang,
+and Defu Lian. Lighter and better: Towards flexible context adaptation for retrieval augmented
+generation. In Proceedings of the Eighteenth ACM International Conference on Web Search and
+Data Mining, pp. 271–280, 2025.
+
+Fangyuan Xu, Weijia Shi, and Eunsol Choi. Recomp: Improving retrieval-augmented lms with
+In The Twelfth International Conference on
+
+context compression and selective augmentation.
+Learning Representations, 2024.
+
+11
+
+Preprint
+
+Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W Cohen, Ruslan Salakhutdinov,
+and Christopher D Manning. Hotpotqa: A dataset for diverse, explainable multi-hop question
+answering. arXiv preprint arXiv:1809.09600, 2018.
+
+Qianchi Zhang, Hainan Zhang, Liang Pang, Hongwei Zheng, and Zhiming Zheng. Adacomp: Ex-
+tractive context compression with adaptive predictor for retrieval-augmented large language mod-
+els. arXiv preprint arXiv:2409.01579, 2024a.
+
+Taolin Zhang, Dongyang Li, Qizhou Chen, Chengyu Wang, Longtao Huang, Hui Xue, Xiaofeng
+He, and Jun Huang. R 4: Reinforced retriever-reorder-responder for retrieval-augmented large
+language models. In ECAI 2024, pp. 2314–2321. IOS Press, 2024b.
+
+Yuxiang Zheng, Dayuan Fu, Xiangkun Hu, Xiaojie Cai, Lyumanshan Ye, Pengrui Lu, and Pengfei
+Liu. Deepresearcher: Scaling deep research via reinforcement learning in real-world environ-
+ments. arXiv preprint arXiv:2504.03160, 2025.
+
+Kun Zhu, Xiaocheng Feng, Xiyuan Du, Yuxuan Gu, Weijiang Yu, Haotian Wang, Qianglong Chen,
+Zheng Chu, Jingchang Chen, and Bing Qin. An information bottleneck perspective for effective
+noise filtering on retrieval-augmented generation. In Proceedings of the 62nd Annual Meeting of
+the Association for Computational Linguistics (Volume 1: Long Papers), pp. 1044–1069, 2024.
+
+12
+
+Preprint
+
+A USE OF LLMS
+
+Large language models (LLMs) were employed solely as writing assistants to enhance the language,
+improve clarity, and check grammatical correctness. They were not used to generate research ideas,
+design or implement methodologies, conduct data analysis, or produce any of the results presented
+in this work. The authors assume full responsibility for the entire content of the paper.
+
+B PROMPT TEMPLATES
+
+Figure 5 displays the prompt employed to train the compressor model for generating a summary
+of the retrieved documents, conditioned on the given query. This prompt is notably concise. For
+end-task answer generation, the prompt provided to the LLM M is illustrated in Figure 6, which
+incorporates few-shot in-context examples, the (generated summary of) retrieved documents, and
+the question.
+
+Figure 5: Prompt template used to generate the summary.
+
+Figure 6: Prompt template for LLM QA.
+
+C CASE STUDY
+
+To conduct an in-depth analysis of the advantages of our compressor, we performed case studies on
+one single-hop QA dataset (NQ) and one multi-hop QA dataset (2Wiki), with the results presented in
+Table 4 and Table 5, respectively. For each case, we compared the summaries generated by off-the-
+shelf Qwen2.5-1.5B-Instruct, RECOMP, and our method CORE based on the same set of documents,
+as well as the predicted answers generated by the LLM after prepending these summaries.
+
+13
+
+Compress the information in the retrieved documents into a 2-sentence summary that could be used to answer the question. If the documents do not contain relevant information, simply output " ".Question:{Question}Retrieved documents: {Documents}Compressed documents: [Instruction] Answer the question. IMPORTANT: Respond ONLY with the exact answer in the same format as the examples. Do NOT add any extra text, explanations, or punctuation. Do NOT include "Answer:" or any similar prefix in your response.[Examples]Question: Which major Russian city borders the body of water in which Saaremaa is located?Answer: Saint PetersburgQuestion: Who was thee first president of the association that wrote the code of ethics for psychology?Answer: G. Stanley HallQuestion: Where did the Baldevinsbryllupdirector die?Answer: Copenhagen[Current Question]{Summary of the retrieved documents} Question: {Question}Answer:Preprint
+
+Table 4: Case study on NQ dataset.
+
+Question: when did the us stop drafting for the vietnam war? Gold answer: [1973]
+
+Top-5 documents:
+last men conscripted, who were born in 1952 and who reported for duty in June 1973. On
+February 2, 1972, a drawing was held to determine draft priority numbers for men born in 1953,
+but in early 1973 it was announced by Secretary of Defense Melvin Laird that no further draft
+orders would be issued. In March 1973, 1974, and 1975, the Selective Service assigned draft
+priority numbers for all men born in 1954, 1955, and 1956, in case the draft was extended, but
+it never was. Command Sergeant Major Jeff Mellinger, believed to be the last drafted enlisted
+ranked.
+The Gates Commission issued its report in February 1970, describing how adequate military
+strength could be maintained without having conscription. The existing draft law was expiring
+at the end of June 1971, but the Department of Defense and Nixon administration decided the
+draft needed to continue for at least some time. In February 1971, the administration requested of
+Congress a two-year extension of the draft, to June 1973. Senatorial opponents of the war wanted
+to reduce this to a one-year extension, or eliminate the draft altogether, or tie the draft renewal to
+a timetable for troop withdrawal from Vietnam; Senator.
+draft operated from 1940 until 1946 when further inductions were suspended, and its legislative
+authorization expired without further extension by Congress in 1947. During this time, more than
+10 million men had been inducted into military service. However, the Selective Service System
+remained intact. Scattered opposition was encountered especially in the northern cities where
+some African-Americans protested the system. The tiny Nation of Islam was at the forefront,
+with many Black Muslims jailed for refusing the draft, and their leader Elijah Muhammed was
+sentenced to federal prison for 5 years for inciting draft resistance. Organized draft resistance
+also developed in.
+was the first time any form of student deferment was used. During the Korean War a student car-
+rying at least twelve semester hours was spared until the end of his current semester. The United
+States breathed easier with the Korean War Armistice on July 27, 1953; however, technology
+brought new promises and threats. U.S. air and nuclear power fueled the Eisenhower doctrine
+of ”massive retaliation”. This strategy demanded more machines and fewer foot soldiers, so the
+draft slipped to the back burner. However, the head of the SSS, Maj. Gen. Hershey, urged caution
+fearing the conflict looming in Vietnam. In.
+policy of using the draft as force to compel ”voluntary” enlistment was unique in U.S. history.
+Previous drafts had not aimed at encouraging individuals to sign up in order to gain preferential
+placement or less dangerous postings. However, the incremental buildup of Vietnam without
+a clear threat to the country bolstered this. Some estimates suggest conscription encompassed
+almost one-third of all eligible men during the period of 1965–69. This group represented those
+without exemption or resources to avoid military service. During the active combat phase, the
+possibility of avoiding combat by selecting their service and military specialty led as many.
+
+Compressor
+
+Generated summary
+
+Off-the-shell
+Qwen2.5-
+1.5B-Instruct
+
+RECOMP
+
+Ours
+
+The US stopped drafting for the Vietnam War in late 1972 after
+the draft expired at the end of June 1971.
+
+The U.S. stopped drafting for the Vietnam War after the
+Selective Service System was officially abolished in December
+1972 due to growing public opposition and the expiration of the
+draft’s legal authority in 1971. While the draft was formally
+ended, some individuals were still consripted into the military
+
+The U.S. stopped drafting for the Vietnam War in 1973 after
+announcing the decision by Secretary of Defense Melvin Laird
+earlier that year. Although the Selective Service System was
+later updated to include draft priority numbers, this decision
+marked the end of the draft’s use for national service.
+
+Predicted
+answer
+
+late 1972
+
+December
+1972
+
+1973
+
+14
+
+Preprint
+
+Table 5: Case study on 2Wiki dataset.
+
+Question: Who is Charles Bretagne Marie De La Tr´emoille’s paternal grandfather?
+Gold answer: [Charles Armand Ren´e de La Tr´emoille]
+
+Top-5 documents:
+as at Versailles: he was brigadier of cavalry (January 1709), first gentleman of the King’s chamber
+(June 1709), governor of Thouars (July 1709), and Mar´echal de camp (February 1719). His sister
+Marie Armande Victoire de La Tr´emoille married Emmanuel Th´eodose de La Tour d’Auvergne.
+On 13 April 1706 he married Marie-Madeleine Motier de La Fayette (1691–1717), the daughter
+of Rene-Armand, marquis de La Fayette and Marie-Madeleine de Marillac, and granddaughter
+of the author Marie-Madeleine Pioche de la Vergne, comtesse de la Fayette. They had one child,
+Charles Armand Ren´e de La Tr´emoille, born in 1708. Charles Louis Bretagne de La
+Charles Bretagne Marie de La Tr´emoille Charles Bretagne Marie de La Tr´emoille (24 March
+1764 – 10 November 1839), 8th duc de Thouars, was a French soldier and the son of Jean Bre-
+tagne Charles de La Tr´emoille and his wife, Marie-Maximilienne, princess of Salm-Kyrburg. La
+Tr´emoille married Louise-Emmanuelle de Chˆatillon in 1781. She was a grand daughter of Louis
+C´esar de La Baume Le Blanc, the famous writer. The couple had one daughter: At the outbreak
+of the French Revolution, he sided with King Louis XVI, as did the rest of his family. In 1789,
+La Tr´emoille and his parents
+Jean Bretagne Charles de La Tr´emoille Jean-Bretagne-Charles de La Tr´emoille (5 February 1737
+– 19 May 1792), 7th duc de Thouars, was a French soldier and the son of Charles Armand Ren´e
+de La Tr´emoille and his wife, Marie Hortense de La Tour d’Auvergne. La Tr´emoille began his
+military career in the Seven Years’ War as the head of the regiment of Aquitaine-Cavalry. He was
+seriously wounded and afterwards promoted to the rank of sergeant, and later of brigadier, of the
+armies of the king. During the French Revolution, La Tr´emoille remained faithful to King Louis
+XVI. He emigrated in
+Charles Louis Bretagne de La Tr´emoille Charles Louis Bretagne de La Tr´emoille (15 March
+1683 – 9 October 1719), 6th duke of Thouars, was the son of Charles Belgique Hollande de La
+Tr´emoille and Madeleine de Cr´equy, daughter and heiress of Charles III de Cr´equy. He became
+duke of Thouars upon his father’s death in 1709. He was also count of Laval and Montfort
+and inherited the ancient French claim to the Kingdom of Naples. The Neapolitan claim gave
+the family the rank of ”princes ´etrangers” at the French court. The Duke made a career in the
+military as well
+de Saint-Didier. They had two daughters: Following her death, La Tr´emoille married for a third
+time in 1830 to Valentine Eug´enie Jos´ephine Walsh de Serrant. They had two children: La
+Tr´emoille died shortly after his son’s birth, in 1839. Charles Bretagne Marie de La Tr´emoille
+Charles Bretagne Marie de La Tr´emoille (24 March 1764 – 10 November 1839), 8th duc de
+Thouars, was a French soldier and the son of Jean Bretagne Charles de La Tr´emoille and his wife,
+Marie-Maximilienne, princess of Salm-Kyrburg. La Tr´emoille married Louise-Emmanuelle de
+Chˆatillon in 1781. She was a grand daughter of Louis C´esar de
+
+Compressor
+
+Generated summary
+
+Off-the-shell
+Qwen2.5-
+1.5B-Instruct
+
+RECOMP
+
+Charles Bretagne Marie de La Tr´emoille’s paternal grandfather
+was Jean Bretagne Charles de La Tr´emoille.
+
+Charles Bretagne Marie de La Tr´emoille’s paternal grandfather
+was Charles Louis Bretagne de La Tr´emoille, who was the son
+of Charles Belgique Hollande de La Tr´emoille and Madeleine
+de Cr´equy. This makes him the direct paternal grandfather of
+Charles Bretagne Marie de La Tr´emoille.
+
+Ours
+
+Charles Bretagne Marie de La Tr´emoille’s paternal grandfather
+is Charles Armand Ren´e de La Tr´emoille, her father’s father, the
+7th duc de Thouars.
+
+Predicted
+answer
+
+Jean Bretagne
+Charles de La
+Tr´emoille
+
+Charles Louis
+Bretagne de
+La Tr´emoille
+
+Charles
+Armand Ren´e
+de La
+Tr´emoille
+
+15
+
+Preprint
+
+Table 6: Open-domain QA results using Qwen2.5-14B-Instruct as the downstream LLM (M ). The
+reported token counts represent the length of in-context documents, excluding few-shot examples.
+RECOMP and our method CORE are both trained using llama3.2-1B-Instruct.
+
+NQ
+
+F1
+
+EM
+
+TriviaQA
+
+HotpotQA
+
+2WikiMultihopQA
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+No Retrieval
+
+0.2136
+
+0.3097
+
+0
+
+0.5323
+
+0.5998
+
+0
+
+0.2105
+
+0.2948
+
+0
+
+0.2611
+
+0.2951
+
+0
+
+RAG without compression
+
+Top1 Document
+Top3 Documents
+Top5 Documents
+Top10 Documents
+
+0.3446
+0.3778
+0.3803
+0.3867
+
+Compression of top 5 docs
+
+llama3.2-1B
+Deepseek-V3 (671B)
+RECOMP (1B)
+CORE (1B)
+
+0.3147
+0.3773
+0.3410
+0.3947
+
+0.4441
+0.4845
+0.4916
+0.5003
+
+0.4227
+0.5039
+0.4655
+0.4923
+
+142
+427
+712
+1425
+
+64
+54
+57
+47
+
+0.6082
+0.6260
+0.6410
+0.6440
+
+0.5552
+0.6528
+0.6071
+0.6483
+
+0.6870
+0.7102
+0.7248
+0.7292
+
+0.6415
+0.7433
+0.6880
+0.7287
+
+143
+430
+715
+1428
+
+60
+51
+48
+43
+
+Compression of top 10 docs (with the compressor trained on top 5 docs)
+58
+0.4228
+53
+0.5107
+52
+0.4661
+45
+0.5033
+
+llama3.2-1B
+Deepseek-V3 (671B)
+RECOMP (1B)
+CORE (1B)
+
+0.3141
+0.3779
+0.3421
+0.4033
+
+0.5651
+0.6529
+0.6095
+0.6521
+
+0.6512
+0.7445
+0.6917
+0.7296
+
+62
+56
+59
+47
+
+0.2920
+0.3164
+0.3299
+0.3395
+
+0.2648
+0.3359
+0.2987
+0.3344
+
+0.2663
+0.3462
+0.2982
+0.3412
+
+0.3893
+0.4187
+0.4369
+0.4488
+
+0.3639
+0.4483
+0.4121
+0.4454
+
+0.3661
+0.4569
+0.4105
+0.4500
+
+147
+442
+737
+1471
+
+58
+48
+49
+45
+
+56
+50
+55
+48
+
+0.2679
+0.2789
+0.2964
+0.3104
+
+0.2498
+0.2507
+0.3045
+0.3378
+
+0.2493
+0.2900
+0.3072
+0.3586
+
+0.3187
+0.3358
+0.3521
+0.3675
+
+0.3003
+0.3031
+0.3653
+0.3969
+
+0.3006
+0.3464
+0.3681
+0.4162
+
+153
+460
+766
+1531
+
+61
+45
+33
+34
+
+61
+40
+44
+42
+
+Table 7: Open-domain QA results using Qwen2.5-14B-Instruct as the downstream LLM (M ). The
+reported token counts represent the length of in-context documents, excluding few-shot examples.
+RECOMP and our method CORE are both trained using llama3.2-3B-Instruct.
+
+NQ
+
+F1
+
+EM
+
+TriviaQA
+
+HotpotQA
+
+2WikiMultihopQA
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+EM
+
+F1
+
+# tok
+
+No Retrieval
+
+0.2136
+
+0.3097
+
+0
+
+0.5323
+
+0.5998
+
+0
+
+0.2105
+
+0.2948
+
+0
+
+0.2611
+
+0.2951
+
+0
+
+RAG without compression
+
+Top1 Document
+Top3 Documents
+Top5 Documents
+Top10 Documents
+
+0.3446
+0.3778
+0.3803
+0.3867
+
+Compression of top 5 docs
+
+llama3.2-3B
+Deepseek-V3 (671B)
+RECOMP (3B)
+CORE (3B)
+
+0.3252
+0.3773
+0.3657
+0.4310
+
+0.4441
+0.4845
+0.4916
+0.5003
+
+0.4334
+0.5039
+0.4912
+0.5234
+
+142
+427
+712
+1425
+
+60
+54
+55
+32
+
+0.6082
+0.6260
+0.6410
+0.6440
+
+0.5650
+0.6528
+0.6183
+0.6650
+
+0.6870
+0.7102
+0.7248
+0.7292
+
+0.6521
+0.7433
+0.6920
+0.7306
+
+143
+430
+715
+1428
+
+59
+51
+47
+38
+
+Compression of top 10 docs (with the compressor trained on top 5 docs)
+57
+0.4359
+53
+0.5107
+44
+0.4963
+37
+0.5467
+
+llama3.2-3B
+Deepseek-V3 (671B)
+RECOMP (3B)
+CORE (3B)
+
+0.3318
+0.3779
+0.3682
+0.4526
+
+0.5720
+0.6529
+0.6205
+0.6736
+
+0.6588
+0.7445
+0.6973
+0.7404
+
+61
+56
+52
+33
+
+0.2920
+0.3164
+0.3299
+0.3395
+
+0.2772
+0.3359
+0.3025
+0.3507
+
+0.2791
+0.3462
+0.3077
+0.3693
+
+0.3893
+0.4187
+0.4369
+0.4488
+
+0.3809
+0.4483
+0.4238
+0.4736
+
+0.3854
+0.4569
+0.4261
+0.4926
+
+147
+442
+737
+1471
+
+58
+48
+52
+51
+
+60
+50
+54
+51
+
+0.2679
+0.2789
+0.2964
+0.3104
+
+0.2485
+0.2507
+0.3274
+0.3905
+
+0.2491
+0.2900
+0.3312
+0.4071
+
+0.3187
+0.3358
+0.3521
+0.3675
+
+0.2995
+0.3031
+0.3806
+0.4474
+
+0.3011
+0.3464
+0.3869
+0.4633
+
+153
+460
+766
+1531
+
+60
+45
+42
+40
+
+59
+40
+50
+48
+
+D IMPACT OF DIFFERENT COMPRESSORS ON PERFORMANCE
+
+In our previous experiments, we employed Qwen2.5-1.5B as the initial model to train our compres-
+sor. In this section, we utilize two additional models—Llama3.2-1B and Llama3.2-3B—as starting
+points to train our compressor and the baseline compressor, respectively. The experimental results
+are presented in Table 6 and Table 7. As shown in the results, our method CORE continues to
+achieve lossless compression with both models, maintaining a high token compression ratio while
+exhibiting no performance degradation in terms of Exact Match (EM) and F1 score compared to
+uncompressed RAG. Furthermore, under both new model configurations, our approach consistently
+outperforms the baseline methods, indicating that its superiority is not dependent on a specific model
+architecture and thus demonstrates strong robustness.
+
+We also observe that our method adheres to a form of scaling law: the compressor trained using the
+3B model outperforms the one trained with the 1B model. Specifically, the 1B compressor improves
+performance by 1–4 EM points over the uncompressed baseline, while the 3B compressor yields
+gains of 3–9 EM points.
+
+16

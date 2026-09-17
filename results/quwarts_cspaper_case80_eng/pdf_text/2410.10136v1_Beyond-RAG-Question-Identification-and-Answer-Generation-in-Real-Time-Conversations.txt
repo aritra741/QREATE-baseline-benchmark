@@ -1,0 +1,810 @@
+Beyond-RAG: Question Identification and Answer Generation in
+Real-Time Conversations
+
+Garima Agrawal
+Arizona State University
+Tempe, Arizona, USA
+garima.agrawal@asu.edu
+
+Sashank Gummuluri
+Minerva CQ
+Sunnyvale, California, USA
+sashank@minervacq.com
+
+Cosimo Spera
+Minerva CQ
+Sunnyvale, California, USA
+cosimo@minervacq.com
+
+Abstract
+
+In customer contact centers, human agents of-
+ten struggle with long average handling times
+(AHT) due to the need to manually interpret
+queries and retrieve relevant knowledge base
+(KB) articles. While retrieval augmented gen-
+eration (RAG) systems using large language
+models (LLMs) have been widely adopted in
+industry to assist with such tasks, RAG faces
+challenges in real-time conversations, such as
+inaccurate query formulation and redundant re-
+trieval of frequently asked questions (FAQs).
+To address these limitations, we propose a deci-
+sion support system that can look beyond RAG
+by first identifying customer questions in real
+time. If the query matches an FAQ, the sys-
+tem retrieves the answer directly from the FAQ
+database; otherwise, it generates answers via
+RAG. Our approach reduces reliance on manual
+queries, providing responses to agents within
+2 seconds. Deployed in AI-powered human-
+agent assist solution at Minerva CQ, this system
+improves efficiency, reduces AHT, and lowers
+operational costs. We also introduce an auto-
+mated LLM-agentic workflow to identify FAQs
+from historical transcripts when no predefined
+FAQs exist.
+
+1
+
+Introduction
+
+In today’s fast-paced customer contact centers, the
+human agents must address customer inquiries ef-
+ficiently while maintaining high service quality.
+One of the key metrics for measuring the effective-
+ness of these interactions is average handling time
+(AHT) (Brantevica, 2018). AHT directly impacts
+both operational costs and customer satisfaction;
+the longer it takes to resolve a query, the higher
+the chances of customer dissatisfaction. Tradition-
+ally, agents manually interpret queries and search
+through vast knowledge bases (KB) for relevant
+articles during the call, which leads to prolonged
+resolution times. To streamline this process, large
+language models (LLMs) have been increasingly
+
+integrated into customer service workflows, with
+retrieval-augmented generation (RAG) emerging
+as a popular solution (Veturi et al., 2024; Agrawal
+et al., 2024a). RAG systems combine the power of
+LLMs with retrieval mechanisms that pull relevant
+documents from knowledge bases to assist agents
+during conversations. Despite its wide adoption,
+RAG faces several limitations in real-time environ-
+ments (Salemi and Zamani, 2024; Agrawal et al.,
+2024b).
+
+Before addressing the challenges we faced and
+how we overcame them, we will first provide a brief
+overview of the Minerva CQ (MinervaCQ, 2021)
+human-agent assist AI solution and the specific use
+cases that highlighted these limitations.
+
+Minerva CQ serves as an AI copilot, supporting
+customer service and sales agents by offering real-
+time assistance during live conversations. This is
+an example of collaborative intelligence (CQ) or
+collaborative AI, which combines human intelli-
+gence and artificial intelligence to achieve better
+outcomes than either could alone. In the workplace,
+CQ allows employees to team up with AI during
+conversations to resolve complex issues, improve
+customer experiences, and focus on more meaning-
+ful work. At Minerva CQ, as call transcripts are
+displayed in real time, the AI drives the interaction
+toward efficient resolutions using adaptive work-
+flows, dialogue suggestions, behavioral cues, and
+knowledge surfacing.
+
+In this setting, we implemented state-of-the-art
+RAG-based solutions to retrieve relevant knowl-
+edge articles for human experts, commonly referred
+to as agents in the customer service industry. How-
+ever, agents frequently reported that the retrieved
+documents were not sufficiently useful or relevant
+to the context of the query. Upon investigation, we
+found that agents were inputting only keywords to
+search for KB articles, causing the RAG system to
+retrieve inaccurate or irrelevant documents due to
+a lack of proper context. This increased the time
+
+4
+2
+0
+2
+
+t
+c
+O
+4
+1
+
+]
+L
+C
+.
+s
+c
+[
+
+1
+v
+6
+3
+1
+0
+1
+.
+0
+1
+4
+2
+:
+v
+i
+X
+r
+a
+
+ 
+ 
+ 
+ 
+ 
+ 
+agents spent sorting through information, hinder-
+ing their efficiency. Additionally, we observed a
+second challenge: the high frequency of similar
+questions across calls resulted in repeated retrieval
+of the same documents by the RAG system, further
+impacting performance.
+
+These limitations highlight the need for more
+advanced systems that surpass the capabilities of
+traditional RAG methodologies. In this paper, we
+present an enhanced decision support system de-
+signed to address these limitations by improving
+both the accuracy of question identification and the
+efficiency of answer generation.
+
+The system automatically identifies questions
+that may require the agent to consult KB articles
+based on the ongoing interaction between the agent
+and customer. It then suggests the most relevant
+questions in real time. Once the agent selects a sug-
+gested question, the system retrieves and presents
+the corresponding answer. If the question matches
+a frequently asked question (FAQ), the answer is
+retrieved from the pre-existing FAQ database, by-
+passing the need for RAG retrieval. For non-FAQ
+questions, the system generates responses using the
+RAG model. By reducing reliance on manual ques-
+tion formulation and combining both FAQ retrieval
+and RAG, the system delivers faster and more ac-
+curate answers, enhancing agent productivity and
+ensuring timely query resolution. This paper also
+introduces a novel workflow for identifying FAQs
+from historical transcripts using an LLM-agentic
+approach. This workflow enables organizations to
+extract relevant FAQs from their data, ensuring a
+comprehensive and up-to-date FAQ database.
+
+The system has been deployed within AI-
+powered human-assist solution at Minerva CQ,
+demonstrating significant improvements in oper-
+ational efficiency, reduced AHT, and cost savings.
+Through this work, we offer a pathway beyond
+the limitations of traditional RAG systems, redefin-
+ing how intelligent decision support can enhance
+customer service operations. We make following
+contributions in the paper:
+
+1. Enhanced Decision Support System: Devel-
+oped a real-time system for accurate question
+identification and efficient answer generation
+to assist agents during live conversations.
+2. FAQ-based Retrieval with RAG: Integrated
+a mechanism that retrieves answers from a pre-
+existing FAQ database for common queries
+and uses RAG for non-FAQ questions, im-
+proving response speed, cost and accuracy.
+
+3. Automated FAQ Identification Workflow:
+Introduced an LLM-based workflow to extract
+FAQs from historical transcripts, enabling
+the creation of comprehensive and up-to-date
+FAQ databases.
+
+2 Solution Design
+
+Problem Formulation: Customer service agents
+spend valuable time manually searching large KB
+systems to address customer queries, increasing
+AHT and reducing efficiency. The challenge is to
+automate this process by providing timely and ac-
+curate suggestions from either a predefined FAQ
+database or dynamically generating relevant ques-
+tions based on the conversation context. The key
+questions are:
+
+• How can we efficiently identify customer in-
+tent and provide relevant FAQs or KB articles
+in real-time without disrupting the conversa-
+tion?
+
+• How can the system distinguish between ques-
+tions that can be answered from the FAQ
+database and those requiring RAG model re-
+trieval?
+
+• How can we ensure the system avoids redun-
+dant or already-answered questions while pro-
+viding contextually appropriate and timely re-
+sponses?
+
+The objective is to minimize manual effort, reduce
+AHT, and improve customer satisfaction by provid-
+ing real-time, context-aware question suggestions
+and answers using a dual-threaded system integrat-
+ing FAQ retrieval and RAG-based generation.
+
+2.1 FAQ Model
+
+We refer to our solution as the FAQ Model, which
+assists agents by offering real-time question sug-
+gestions, reducing the time spent searching KB
+articles. It maintains a database of FAQs learned
+from historical transcripts, with corresponding an-
+swers retrieved through the RAG model. During a
+live call, the model identifies relevant questions by
+analyzing the most recent conversation turns, ignor-
+ing questions already answered by the agent. The
+model performs two parallel operations: Match
+and Generate.
+
+The Match operation analyzes the intent of the
+current conversation and retrieves the top three
+most relevant questions from the FAQ database,
+while the Generate operation dynamically creates
+the top three questions based on the conversation’s
+
+context. Together, these processes present a set of
+six relevant questions, allowing the agent to select
+the most appropriate one. Once a question is se-
+lected, the corresponding answer is retrieved either
+from the FAQ database (for matched questions) or
+through the RAG model (for generated questions).
+
+2.1.1 Views in the FAQ Model:
+
+The FAQ model provides the following four views:
+Agent View: During the call, the agent receives
+six question suggestions (matched and generated)
+from the FAQ model.
+
+• The model is designed to ignore already-
+answered questions and only present those
+that require reference to KB articles.
+
+• The agent selects a question, and the model
+
+retrieves the corresponding answer.
+
+• The agent can tag a generated question as
+FAQ then the question and retrieved answer is
+stored in the FAQ database.
+
+Supervisor View: The system gives full control to
+the agent supervisors, allowing them to view and
+manage the list of FAQs and their answers, with
+the ability to add, remove, edit or update them as
+needed.
+
+• If a question lacks an answer, it can be man-
+ually added or retrieved via the RAG model,
+with the answer stored in the FAQ database.
+
+Model View: The FAQ model is invoked manu-
+ally by the agent or triggered automatically during
+conversation.
+
+• Both Match and Generate threads run in par-
+allel, suggesting six questions based on the
+conversation context.
+
+• Based on agent’s selection, answers are re-
+trieved from the FAQ database or the RAG
+model.
+
+Data View: All FAQ questions and answers are
+stored in a persistent vector database for future
+retrieval and can be edited or updated by the super-
+visor. The database also allows new FAQs to be
+stored at runtime if tagged as such by the agent.
+
+2.2 Key Advantages of the FAQ Model
+
+The FAQ Model offers the following benefits:
+
+• Agent Experience: Automatically suggests
+relevant questions to agents based on the cus-
+tomer query’s intent and the conversation con-
+text, improving workflow efficiency.
+
+• Agent Time and Effort: Eliminates the need
+for agents to manually write queries or input
+keywords, and provides immediate answers to
+
+frequently asked questions, saving both time
+and effort.
+
+• Accuracy: FAQs can be validated and edited
+by supervisors or agents through the supervi-
+sor portal, ensuring responses are up-to-date
+and accurate. For questions not in the FAQ
+database, the system sends a complete query
+to the RAG model, leading to more precise
+and context-aware answers.
+
+• Cost Efficiency: If an answer is already in the
+FAQ database, the system bypasses the RAG
+model, reducing unnecessary API calls and
+associated LLM costs.
+
+3
+
+Implementation
+
+In this section, we outline the implementation ap-
+proach. We begin by describing the automated
+workflow developed for generating FAQs. Next, we
+explain the real-time implementation of the Match
+and Generate models. Finally, we discuss the var-
+ious approaches considered for simulating these
+processes and evaluating response latency.
+
+3.1 LLM-Agentic Workflow to Generate FAQ:
+
+In cases where FAQs are unavailable or insufficient,
+it is necessary to build a comprehensive list of fre-
+quently asked questions. The FAQ model relies on
+this list to match and determine whether a customer
+query corresponds to an existing FAQ during real-
+time conversations, thereby minimizing the need to
+call the RAG model.
+
+To automatically generate FAQs from provided
+transcripts, we employed a set of LLM agents. Fig-
+ure 1 illustrates the automated workflow, utilizing
+five LLM agents built using LangGraph. Historical
+call transcripts, consisting of turn-wise interactions
+between human agents and customers, were used
+as the source data for this process. The size of the
+transcripts varies depending on the availability of
+call logs, with a minimum of 500 calls being suffi-
+cient. For our experiments, we used a large dataset
+containing approximately 30,000 calls.
+
+The first LLM agent is responsible for analyzing
+the transcripts to understand the customer’s intent
+during each call and generating a list of questions
+asked by the customers across all calls in the source
+transcript. The second LLM agent acts as a critic,
+reviewing the output from the first agent and dis-
+carding irrelevant questions related to greetings,
+agent information, personal details (e.g., email ad-
+dress, authentication, ticket number, phone/email
+
+verification), and other non-essential content. To
+maintain the token limit for large files and ensure
+better accuracy, only 30 questions are passed to
+the critic at a time, allowing for sufficient context
+without overwhelming the model. To group similar
+questions, we applied k-means clustering on the
+filtered questions. After generating embeddings,
+we adjusted the number of clusters based on the
+dataset size, using 85 clusters for our experiment.
+The third LLM agent reviews each cluster, com-
+bining similar questions into one representative
+question and recording their frequency. Each ques-
+tion is assigned a unique ID (QID) and stored in a
+CSV, listing the representative questions and their
+corresponding frequencies.
+
+The fourth agent consolidates the various clus-
+ters of FAQs and refines them further by merging
+similar representative questions and aggregating
+their frequencies, while keeping track of the QIDs
+associated with each merged question. This addi-
+tional refinement step after merging helps in con-
+solidating similar questions that may have been
+distributed across different clusters. The fifth agent
+serves as the final reviewer, evaluating the merged
+output to further reduce redundancy and perform
+additional merging if necessary, while updating the
+frequencies accordingly. This step is optional and
+aims to ensure the quality of the final output. If the
+desired quality is not achieved, the output can be
+discarded, and the results from the previous step
+can be used instead.
+
+Finally, we selected the top 100 questions to
+deploy in the FAQ system. Using our existing RAG
+pipeline, we retrieved answers for these questions.
+Both the questions and answers were stored in a
+persistent FAQ database.
+
+3.2 Match and Generate Model
+
+Now that the FAQ database is established, we move
+on to the implementation of the Match and Gener-
+ate model. As discussed in the previous section, the
+goal is to assist human agents during customer calls
+by identifying the intent of the customer’s query
+and presenting a list of probable questions. This
+allows the agent to select the most relevant one,
+after which the system provides the corresponding
+answer, speeding up query resolution.
+
+We achieve this through two methods: Match
+and Generate. The model either finds a match in
+the FAQ database and fetches the corresponding
+answer, or, if no match is found, it generates rele-
+vant questions and retrieves the answer using the
+
+Figure 1: Agentic Workflow for FAQ Generation
+
+existing RAG pipeline.
+
+The key challenge lies in identifying the optimal
+moment during the conversation when the agent
+requires assistance to resolve the query in real time.
+At that point, the model should be triggered to
+present relevant questions.
+
+There are several methods to invoke the model.
+The simplest approach is to allow the agent to re-
+quest help manually, but this undermines the goal
+of providing real-time assistance. Another option
+is for the model to automatically suggest ques-
+tions whenever it detects a need in the conversation.
+However, invoking the model after every conversa-
+tional turn is computationally expensive.
+
+To address this, we implemented a fixed rolling
+window approach, where the model is invoked at
+regular intervals. Additionally, a manual option
+allows the agent to request assistance through a but-
+ton click, providing both proactive and on-demand
+support.
+
+3.2.1
+
+Implementation Approaches
+
+We explored various approaches to implement the
+Match and Generate model at runtime. Multiple
+
+simulations were conducted on different transcripts,
+along with latency analysis, to identify the most
+suitable approach.
+
+• Vector Search Approach: This method uses
+vector search to match the current conversa-
+tion’s context with the questions in the FAQ
+database. It achieved low latency, at less than
+0.6 seconds. However, this approach requires
+a classifier to determine the optimal moment
+to trigger the model during the conversation.
+Training such a classifier requires a labeled
+dataset, and achieving high classification accu-
+racy is difficult since customer queries are of-
+ten spread across multiple conversation turns.
+
+• LLM-Based Approaches: Given the strength
+of LLMs in natural language understanding,
+we explored three LLM-based approaches:
+
+1. Use a large LLM, such as Claude-3.5-
+Sonnet
+(Anthropic, 2024), to attempt
+matching first; if no match is found, it
+generates questions.
+
+2. Use a large LLM to simultaneously
+
+match and generate questions.
+Both of these approaches resulted in high
+latency, with a minimum of 5 seconds
+per operation. Additionally, the cost was
+significantly higher due to the expense
+of using large models.
+
+3. The most promising and cost-effective
+approach involved using two smaller
+LLMs running in parallel—one for
+matching and the other for generating
+questions. We tested six models: Mistral-
+small , 7B (Mistral, 2023), LLaMA-8B
+(LLaMA, 2023), Claude-3-Haiku (An-
+thropic, 2023), and GPT-4o-mini (Ope-
+nAI, 2024). Among these, Claude-3-
+Haiku demonstrated the best accuracy
+for generated questions, with a latency
+of 2-4 seconds. To ensure reliability and
+account for potential model lag or re-
+sponse variability, we selected ten call
+transcripts of varying lengths and ran
+ten simulations per transcript for each
+model.
+
+Based on cost analysis and latency simulations,
+we selected the approach using two parallel threads
+of Claude-3-Haiku, one for matching and the other
+for generating questions. The system presents all
+
+six suggested questions to the agent. Once the
+agent selects a question, the FAQ model either
+retrieves the answer from the FAQ database (if
+matched) or uses the RAG pipeline to fetch the
+answer for generated questions.
+
+3.3 Results and Observations
+
+Due to client data privacy restrictions, we are un-
+able to present specific example conversations in
+this paper. However, we began by developing a
+proof of concept using historical transcripts from
+one of our clients. After observing positive out-
+comes, the FAQ model was fully deployed within
+the Minerva CQ solution.
+
+The following key observations were made re-
+
+garding the model’s performance and results:
+
+• Improved RAG Response Quality: When
+well-structured queries were sent to the RAG
+model, rather than simple keywords, the qual-
+ity of the answers retrieved from the KB ar-
+ticles improved significantly. These answers
+were far more contextually relevant and were
+verified by client domain experts and human
+agents.
+
+• Effective FAQ Generation from Tran-
+scripts: For the automated approach to gen-
+erating FAQs from historical transcripts, we
+manually analyzed and verified the quality of
+the LLM agents’ cached output at each stage
+by sampling random entries. The final list of
+FAQs was then validated by agent supervisors
+and solution experts.
+
+• Relevance of Matched and Generated Ques-
+tions: The questions matched and generated
+by the two parallel LLM threads were rigor-
+ously tested during simulations. We iteratively
+refined the prompts to enhance the relevance
+and accuracy of the responses, making adjust-
+ments until the desired output was consistently
+achieved.
+
+Evaluation Approach: To fully evaluate the per-
+formance of the deployed model, we propose the
+following evaluation parameters:
+
+• Agent Interaction with the Model: Measure
+the number of times agents select an FAQ
+question versus a generated question, com-
+pared to instances where they manually type
+their own query. This will provide insights
+
+into how effectively the model is assisting
+agents in real-time.
+
+• Human Evaluation of Generated FAQs:
+Collect feedback from domain experts and
+agents to assess the relevance and accuracy
+of the FAQs generated by the model. This
+human evaluation will be crucial in verifying
+the model’s utility and impact on customer
+support quality.
+
+• Cost Savings on RAG Queries: Analyze the
+reduction in calls to the RAG model when
+FAQ matches are found, which can provide
+insight into the cost-effectiveness of the sys-
+tem. The goal is to measure how much cost
+is saved by retrieving answers from the FAQ
+database instead of invoking the RAG model.
+
+As the model was just deployed in August 2024,
+these evaluations cannot be conducted immediately.
+We will need to collect sufficient data points over
+time to perform a thorough assessment based on
+these metrics.
+
+4 Related Work
+
+Recent research on real-time assistance systems
+highlights the transformative impact of AI on the
+division of labor between humans and machines,
+particularly in the service sector. Studies such
+as (Link et al., 2020) explore both the challenges
+and opportunities presented by AI-driven support
+systems, which aim to enhance productivity and
+reduce employee workload by shifting decision-
+making to advanced, real-time AI technologies. In
+particular, the growing use of machine learning-
+powered chatbots and virtual assistants has proven
+effective in automating routine customer support
+tasks, providing efficient solutions for common in-
+quiries (KATRAGADDA, 2023).
+
+Building on these advancements, optimizing Nat-
+ural Language Processing (NLP) and LLMs has be-
+come essential for further improving customer ser-
+vice efficiency and enabling hyper-personalization.
+By integrating NLP and LLMs, businesses can
+streamline operations through various applica-
+tions—such as chatbots, virtual assistants, senti-
+ment analysis, and text summarization—ultimately
+boosting productivity and improving the overall
+customer experience (Kolasani, 2023).
+
+Further advancements in RAG systems, such as
+RAG-based question answering for customer ser-
+vice (Veturi et al., 2024) and the RAGADA archi-
+
+tecture (Pitkäranta and Pitkäranta, 2024), showcase
+the potential of RAG systems to enhance decision-
+making in corporate environments. These sys-
+tems bridge human and AI-driven decision-making,
+leveraging LLMs to deliver more accurate and
+context-aware responses.
+
+The evaluation of RAG-based chatbots for cus-
+tomer support (Analytics and Sukhwal, 2024) high-
+lights specific challenges in ensuring the accuracy
+and relevance of system responses. The study em-
+phasizes the critical role of the retriever module,
+where factors such as keyword generation, prompt-
+ing strategies, and other parameters significantly
+impact performance. Despite these advances, there
+is still a need for further research to address the
+practical limitations of traditional RAG systems in
+customer service settings. Two key issues stand
+out: First, during real-time interactions, human
+agents often struggle to formulate well-structured
+queries for the RAG system, reducing its effective-
+ness. Second, the frequent submission of redundant
+queries by multiple agents leads to inefficiencies.
+This underscores the need for a more robust solu-
+tion, such as the FAQ model proposed in this paper,
+which can better handle recurring questions and
+streamline the query process.
+
+5 Conclusion
+
+In this paper, we present a novel decision support
+system that advances beyond traditional RAG ap-
+proaches by optimizing its use in customer contact
+centers. Our system addresses key challenges, such
+as inaccurate query formulation and the redundant
+retrieval of frequently asked questions (FAQs), by
+integrating real-time question identification with
+RAG to improve response accuracy, reduce aver-
+age handling times (AHT), and lower operational
+costs. Deployed within Minerva CQ’s AI-powered
+human-agent assist solution, the system demon-
+strates significant potential to enhance both cost
+efficiency and operational effectiveness over the
+long term. Additionally, we introduce an auto-
+mated LLM-agentic workflow for identifying FAQs
+from transcripts in scenarios where a pre-existing
+database is now available. Future research will fo-
+cus on further advancing beyond RAG, specifically
+on improving the system’s ability to retain conver-
+sation history and manage more complex contexts.
+We also aim to explore the scalability of the system
+across various industries, driving innovation in real-
+time question identification and answer generation.
+
+Acknowledgments
+
+LLaMA. 2023. Llama ai model. Accessed: 2024-10-
+
+02.
+
+MinervaCQ. 2021. Minervacq - conversational ai for
+https://www.minervacq.com/.
+
+contact centers.
+Accessed: 2024-10-03.
+
+Mistral. 2023. Mistral ai. Accessed: 2024-10-02.
+
+OpenAI. 2024. Openai. Accessed: 2024-10-02.
+
+Tapio Pitkäranta and Leena Pitkäranta. 2024. Bridg-
+ing human and ai decision-making with llms: The
+ragada approach. In Proceedings of the 26th Interna-
+tional Conference on Enterprise Information Systems,
+Query date, volume 6, page 45.
+
+Alireza Salemi and Hamed Zamani. 2024. Evaluating
+retrieval quality in retrieval-augmented generation.
+In Proceedings of the 47th International ACM SI-
+GIR Conference on Research and Development in
+Information Retrieval, pages 2395–2400.
+
+Sriram Veturi, Saurabh Vaichal, Nafis Irtiza Tripto,
+Reshma Lal Jagadheesh, and Nian Yan. 2024. Rag
+based question-answering for contextual response
+prediction system. arXiv preprint arXiv:2409.03708.
+
+The authors would like to acknowledge that this
+work is protected under provisional patent ID
+67495178. This research was conducted as part
+of the first author’s summer internship at Miner-
+vaCQ. We also express our sincere gratitude to
+Prof. Huan Liu from the Data Mining and Machine
+Learning Lab (DMML) at Arizona State University
+(ASU) for his invaluable guidance and insightful
+suggestions, which significantly contributed to the
+development and refinement of this paper.
+
+References
+
+Garima Agrawal, Tharindu Kumarage, Zeyad Alghamdi,
+and Huan Liu. 2024a. Can knowledge graphs reduce
+hallucinations in llms?: A survey. In Proceedings of
+the 2024 Conference of the North American Chap-
+ter of the Association for Computational Linguistics:
+Human Language Technologies (Volume 1: Long Pa-
+pers), pages 3947–3960.
+
+Garima Agrawal, Tharindu Kumarage, Zeyad Alghamdi,
+and Huan Liu. 2024b. Mindful-rag: A study of points
+of failure in retrieval augmented generation. arXiv
+preprint arXiv:2407.12216.
+
+Data Analytics and Dishant Sukhwal. 2024. Retrieval
+augmented generation: An evaluation of rag-based
+chatbot for customer support.
+
+Anthropic. 2023. Claude ai by anthropic. Accessed:
+
+2024-09-02.
+
+Anthropic. 2024. Claude ai by anthropic. Accessed:
+
+2024-09-02.
+
+Ieva Brantevica. 2018.
+
+Investigating the relation be-
+tween first call resolution and average handling time
+in a call center. Res. Pap. Bus. Anal, (2595788).
+
+VAMSI KATRAGADDA. 2023. Automating customer
+support: A study on the efficacy of machine learning-
+driven chatbots and virtual assistants. IRE Journals,
+7(1):600–601.
+
+Saydulu Kolasani. 2023. Optimizing natural language
+processing, large language models (llms) for efficient
+customer service, and hyper-personalization to en-
+able sustainable growth and revenue. Transactions
+on Latest Trends in Artificial Intelligence, 4(4).
+
+Maike Link, Claudia Dukino, Walter Ganz, Karin
+Hamann, and Kathrin Schnalzer. 2020. The use of
+ai-based assistance systems in the service sector: op-
+portunities, challenges and applications. In Advances
+in Human Factors and Systems Interaction: Proceed-
+ings of the AHFE 2020 Virtual Conference on Human
+Factors and Systems Interaction, July 16-20, 2020,
+USA, pages 10–16. Springer.

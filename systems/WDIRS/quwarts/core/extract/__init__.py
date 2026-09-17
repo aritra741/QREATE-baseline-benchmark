@@ -6,6 +6,8 @@ import hashlib
 import json
 import math
 import re
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
@@ -41,6 +43,7 @@ class EvidenceStore:
         self.records: dict[str, EvidenceRecord] = {}
         self.lookups = 0
         self.hits = 0
+        self._lock = threading.Lock()
         if self.root:
             self.root.mkdir(parents=True, exist_ok=True)
             self._load()
@@ -58,22 +61,24 @@ class EvidenceStore:
         extractor_cfg_hash: str,
         quality_tier: str,
     ) -> EvidenceRecord | None:
-        self.lookups += 1
         key = evidence_key(segment_id, attribute, extractor_cfg_hash, quality_tier)
-        record = self.records.get(key)
-        if record is not None:
-            self.hits += 1
-        return record
+        with self._lock:
+            self.lookups += 1
+            record = self.records.get(key)
+            if record is not None:
+                self.hits += 1
+            return record
 
     def put(self, record: EvidenceRecord) -> EvidenceRecord:
-        existing = self.records.get(record.key)
-        if existing is not None:
-            self.hits += 1
-            return existing
-        self.records[record.key] = record
-        if self.root:
-            (self.root / f"{record.key}.json").write_text(record.model_dump_json(indent=2))
-        return record
+        with self._lock:
+            existing = self.records.get(record.key)
+            if existing is not None:
+                self.hits += 1
+                return existing
+            self.records[record.key] = record
+            if self.root:
+                (self.root / f"{record.key}.json").write_text(record.model_dump_json(indent=2))
+            return record
 
     def cache_hit_rate(self) -> float:
         if self.lookups == 0:
@@ -136,6 +141,8 @@ def validate_cell(value: Any, dtype: str = "string") -> tuple[str | None, Any, s
         return None, None, "not_found"
     if text[:1] in "{[" or _REFUSAL.search(text):
         return None, None, "non_scalar"
+    if dtype in {"unknown", "", None}:
+        return text, _parse(text), "type_unresolved"
     if dtype in {"numeric", "date"}:
         parsed = _parse(text)
         if not isinstance(parsed, (int, float)):
@@ -291,6 +298,11 @@ def _cell_quality(record: EvidenceRecord) -> int:
         return 0
     if record.null_reason == "dtype_coercion":
         return 1
+    keys = record.candidate_keys or {}
+    if keys.get("route") == "voted" and keys.get("grounded") == "1":
+        return 4
+    if keys.get("route") == "voted":
+        return 3
     return 2
 
 
@@ -384,36 +396,11 @@ def _slug(value: str) -> str:
 
 
 def join_authority(workload: Workload, logical=None) -> dict[str, str]:
-    """Referencing join column -> identity (authority) column.
+    """No name-based authority side. Joins use shared canonical IDs."""
 
-    The authority side is the entity's own identity attribute (``id``,
-    ``name``, ``*_id``, ``*_name``). ``logical`` is accepted so the AST key
-    can be consulted; a one-attribute entity must not promote a foreign
-    key to identity, so the test is structural, not ``identity_name``'s
-    fallback.
-    """
-
+    _ = workload
     _ = logical
-    mapping: dict[str, str] = {}
-    seen: set[tuple[str, str]] = set()
-    for template in workload.templates:
-        for left, right in template.join_pairs:
-            key = tuple(sorted((left, right)))
-            if key in seen or left == right:
-                continue
-            seen.add(key)
-            left_id = _structural_identity(left)
-            right_id = _structural_identity(right)
-            if left_id and not right_id:
-                mapping[right] = left
-            elif right_id and not left_id:
-                mapping[left] = right
-    return mapping
-
-
-def _structural_identity(qualified: str) -> bool:
-    bare = qualified.split(".")[-1].lower()
-    return bare in {"id", "name"} or bare.endswith("_name") or bare.endswith("_id")
+    return {}
 
 
 def _parse_llm_value(text: str, dtype: str = "string") -> tuple[str | None, Any, str | None]:
@@ -485,6 +472,7 @@ class StagedExtractor:
         caller: BudgetedCaller | None = None,
         stage1_recall_threshold: float = 0.15,
         seed: int = 0,
+        workers: int = 16,
     ):
         self.store = store
         self.ledger = ledger
@@ -492,9 +480,27 @@ class StagedExtractor:
         self.caller = caller
         self.stage1_recall_threshold = stage1_recall_threshold
         self.seed = seed
+        self.workers = max(1, int(workers))
         self.stage1_admitted: set[str] = set()
         self.stage1_rate: float = 1.0
         self.constraints: dict[str, str] = {}
+        self.route = "primary"
+        self.prompt_kind = "primary"
+        self.route_model: str | None = None
+        self.route_policy: PreprocessPolicy | None = None
+        self._lock = threading.Lock()
+
+    def configure_route(
+        self,
+        route: str = "primary",
+        prompt_kind: str = "primary",
+        model: str | None = None,
+        policy: PreprocessPolicy | None = None,
+    ) -> None:
+        self.route = route
+        self.prompt_kind = prompt_kind
+        self.route_model = model
+        self.route_policy = policy
 
     def extract(
         self,
@@ -519,6 +525,88 @@ class StagedExtractor:
         total_docs = {segment.doc_id for segment in segments}
         self.stage1_rate = len(admitted_docs | self.stage1_admitted) / max(1, len(total_docs))
         return counts
+
+    def extract_attributes(
+        self,
+        documents: list[SourceDocument],
+        attributes: list[str],
+        tiers: dict[str, str],
+        *,
+        stage: int,
+        workload: Workload | None = None,
+        logical=None,
+    ) -> None:
+        """Extract a named attribute set under the current route configuration."""
+
+        if not attributes:
+            return
+        policy = self.route_policy or PreprocessPolicy(mode="whole_document")
+        segments = segment_documents(documents, policy)
+        format_clusters = cluster_document_formats(documents)
+        if workload is not None:
+            self.constraints = join_authority(workload, logical)
+        dtypes = {}
+        if workload is not None:
+            dtypes = {name: req.dtype for name, req in workload.requirements.items()}
+        self._for_segments(
+            segments,
+            lambda segment: self._extract_many(
+                segment, attributes, tiers, stage,
+                format_clusters, policy, dtypes,
+            ),
+        )
+
+    def commit_vote(
+        self,
+        doc_id: str,
+        attribute: str,
+        surface: str | None,
+        parsed: Any,
+        reason: str | None,
+    ) -> bool:
+        """Write a voted cell so later population prefers it."""
+
+        existing = [
+            record
+            for record in self.store.for_attribute(attribute)
+            if record.doc_id == doc_id
+        ]
+        if not existing:
+            return False
+        base = existing[0]
+        keys = dict(base.candidate_keys or {})
+        keys["route"] = "voted"
+        keys["grounded"] = "0" if reason == "ungrounded" else "1"
+        record = EvidenceRecord(
+            key=evidence_key(base.segment_id, attribute, "voted", "expensive"),
+            segment_id=base.segment_id,
+            doc_id=doc_id,
+            template_cluster_id=base.template_cluster_id,
+            attribute=attribute,
+            surface_value=None if surface is None else str(surface),
+            parsed_value=parsed,
+            original_unit=base.original_unit,
+            null_reason=reason or (None if surface is not None else "not_found"),
+            candidate_keys=keys,
+            span=None,
+            confidence=0.95 if surface is not None else 0.2,
+            extractor_cfg_hash="voted",
+            quality_tier="expensive",
+            stage=3,
+            tokens_spent=0,
+        )
+        self.store.put(record)
+        return True
+
+    def _for_segments(self, segments, fn) -> None:
+        if self.workers <= 1 or len(segments) <= 1:
+            for segment in segments:
+                fn(segment)
+            return
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:
+            futures = [pool.submit(fn, segment) for segment in segments]
+            for future in as_completed(futures):
+                future.result()
 
     def reextract_coerced(
         self,
@@ -584,19 +672,36 @@ class StagedExtractor:
             for name in workload.requirements
             if name in set(self.constraints.values())
         ]
-        for segment in segments:
-            self._extract_many(
+        self._for_segments(
+            segments,
+            lambda segment: self._extract_many(
                 segment, authority, tiers, stage=1,
                 format_clusters=format_clusters, policy=policy, dtypes=dtypes,
-            )
-            counts["stage1"] += len(authority)
-        for segment in segments:
-            keep = False
-            records = self._extract_many(
+            ),
+        )
+        counts["stage1"] += len(authority) * len(segments)
+
+        def _stage1_filter(segment):
+            return self._extract_many(
                 segment, filter_attrs, tiers, stage=1,
                 format_clusters=format_clusters, policy=policy, dtypes=dtypes,
             )
-            counts["stage1"] += len(filter_attrs)
+
+        filter_hits = []
+        if self.workers <= 1 or len(segments) <= 1:
+            filter_hits = [_stage1_filter(segment) for segment in segments]
+        else:
+            with ThreadPoolExecutor(max_workers=self.workers) as pool:
+                futs = {pool.submit(_stage1_filter, segment): segment for segment in segments}
+                for future in as_completed(futs):
+                    filter_hits.append((futs[future], future.result()))
+        if filter_hits and isinstance(filter_hits[0], tuple):
+            paired = filter_hits
+        else:
+            paired = list(zip(segments, filter_hits))
+        counts["stage1"] += len(filter_attrs) * len(segments)
+        for segment, records in paired:
+            keep = False
             for record in records:
                 req = workload.requirements.get(record.attribute)
                 if req is None:
@@ -611,14 +716,17 @@ class StagedExtractor:
         total_docs = {segment.doc_id for segment in segments}
         self.stage1_rate = len(admitted_docs) / max(1, len(total_docs))
 
-        for segment in segments:
-            if filter_attrs and segment.doc_id not in admitted_docs:
-                continue
+        later = [
+            segment
+            for segment in segments
+            if not filter_attrs or segment.doc_id in admitted_docs
+        ]
+
+        def _stage2(segment):
             self._extract_many(
                 segment, remaining, tiers, stage=2,
                 format_clusters=format_clusters, policy=policy, dtypes=dtypes,
             )
-            counts["stage2"] += len(remaining)
             promote = [
                 name
                 for name in filter_attrs
@@ -631,7 +739,18 @@ class StagedExtractor:
                 segment, promote, {name: "expensive" for name in promote}, stage=3,
                 format_clusters=format_clusters, policy=policy, dtypes=dtypes,
             )
-            counts["stage3"] += len(promote)
+            return len(remaining), len(promote)
+
+        results = []
+        if self.workers <= 1 or len(later) <= 1:
+            results = [_stage2(segment) for segment in later]
+        else:
+            with ThreadPoolExecutor(max_workers=self.workers) as pool:
+                futs = [pool.submit(_stage2, segment) for segment in later]
+                results = [future.result() for future in as_completed(futs)]
+        for rem, promo in results:
+            counts["stage2"] += rem
+            counts["stage3"] += promo
 
     def _extract_one(
         self,
@@ -677,11 +796,13 @@ class StagedExtractor:
             else:
                 tag = ""
             dtype = dtypes.get(attribute, "string")
+            route_tag = f"|{self.route}|{self.prompt_kind}|{self.route_model or ''}"
             cfg_hash = hashlib.sha256(
-                f"{policy_hash(policy)}|{tier}|{extractor_name}{tag}|{dtype}".encode()
+                f"{policy_hash(policy)}|{tier}|{extractor_name}{tag}|{dtype}{route_tag}".encode()
             ).hexdigest()[:12]
             cfg_for[attribute] = (cfg_hash, tier)
-            cached = self.store.get(segment.segment_id, attribute, cfg_hash, tier)
+            with self._lock:
+                cached = self.store.get(segment.segment_id, attribute, cfg_hash, tier)
             if cached is not None:
                 records.append(cached)
             else:
@@ -724,10 +845,11 @@ class StagedExtractor:
                         dtypes.get(attribute, "string"),
                     )
                     residue = False
-                self.ledger.spend(
-                    tokens, purpose="extract", attribute=attribute,
-                    tier=cfg_for[attribute][1], stage=stage,
-                )
+                with self._lock:
+                    self.ledger.spend(
+                        tokens, purpose="extract", attribute=attribute,
+                        tier=cfg_for[attribute][1], stage=stage,
+                    )
                 extracted[attribute] = (
                     surface, parsed, reason, tokens,
                     "other" if residue else ("vocab" if attribute in vocab_for else None),
@@ -746,6 +868,7 @@ class StagedExtractor:
             keys = {
                 "surface": str(surface) if surface is not None else "",
                 "doc_id": segment.doc_id,
+                "route": self.route,
             }
             if constrained:
                 keys["constrained"] = constrained
@@ -768,7 +891,8 @@ class StagedExtractor:
                 stage=stage,  # type: ignore[arg-type]
                 tokens_spent=tokens,
             )
-            records.append(self.store.put(record))
+            with self._lock:
+                records.append(self.store.put(record))
         return records
 
     def _authority_vocab(self, auth: str | None) -> list[str]:
@@ -801,16 +925,9 @@ class StagedExtractor:
         limit = 12000 if tier == "expensive" else 4000
         clip = segment.text[:limit]
         listed = ", ".join(missing)
-        prompt = (
-            "Extract the following attributes from the document. "
-            "Return one JSON object mapping each attribute name to a scalar or null. "
-            "No commentary, no nested objects.\n"
-            f"ATTRIBUTES: {listed}\n\nDOCUMENT:\n{clip}"
-        )
+        prompt = self._free_prompt(clip, missing)
         try:
-            text = self.caller.complete(
-                prompt, purpose="extract", attributes=missing, tier=tier,
-            )
+            text = self._complete(prompt, missing, tier)
         except Exception:
             for attribute in missing:
                 extracted[attribute] = (None, None, "provider_error", 0, None)
@@ -822,9 +939,43 @@ class StagedExtractor:
             raw = payload.get(attribute)
             if raw is None:
                 raw = payload.get(attribute.split(".")[-1])
+            if raw is None and self.prompt_kind == "focused":
+                raw = payload.get("value")
             surface, parsed, reason = validate_cell(raw, dtypes.get(attribute, "string"))
             extracted[attribute] = (surface, parsed, reason, share, None)
         return extracted
+
+    def _complete(self, prompt: str, missing: list[str], tier: str) -> str:
+        kwargs: dict[str, Any] = {}
+        if self.route_model:
+            kwargs["model"] = self.route_model
+        return self.caller.complete(
+            prompt, purpose="extract", attributes=missing, tier=tier,
+            route=self.route, **kwargs,
+        )
+
+    def _free_prompt(self, clip: str, missing: list[str]) -> str:
+        listed = ", ".join(missing)
+        if self.prompt_kind == "dissimilar":
+            return (
+                "From the text below, fill a JSON object. Keys are attributes. "
+                "Values must be copied from the text or null. "
+                "Do not infer. Do not normalize.\n"
+                f"KEYS: {listed}\n\nTEXT:\n{clip}"
+            )
+        if self.prompt_kind == "focused" and len(missing) == 1:
+            return (
+                f"Extract only {missing[0]} from the document. "
+                'Return JSON {"value": scalar or null}. '
+                "Use the document's own words. No commentary.\n\n"
+                f"DOCUMENT:\n{clip}"
+            )
+        return (
+            "Extract the following attributes from the document. "
+            "Return one JSON object mapping each attribute name to a scalar or null. "
+            "No commentary, no nested objects.\n"
+            f"ATTRIBUTES: {listed}\n\nDOCUMENT:\n{clip}"
+        )
 
     def _llm_extract_constrained(
         self,
@@ -851,9 +1002,7 @@ class StagedExtractor:
             f"ALLOWED: {json.dumps(vocab)}\n\nDOCUMENT:\n{clip}"
         )
         try:
-            text = self.caller.complete(
-                prompt, purpose="extract", attributes=missing, tier=tier,
-            )
+            text = self._complete(prompt, missing, tier)
         except Exception:
             for attribute in missing:
                 extracted[attribute] = (None, None, "provider_error", 0, None)
@@ -909,26 +1058,19 @@ def _guess_unit(surface: str | None) -> str | None:
 
 
 def allocate_tiers(workload: Workload) -> dict[str, str]:
-    """Section 13.4. Uses amp when present, else role heuristics."""
+    """amp(a) decides spend. Aggregate measures are not cheap projections."""
 
+    from quwarts.core.amplify import amp
+
+    high = {
+        Role.AGG_ADDITIVE, Role.AGG_EXTREMAL, Role.AGG_DISTINCT,
+        Role.GROUP, Role.KEY, Role.JOIN,
+    }
     tiers: dict[str, str] = {}
     for name, req in workload.requirements.items():
-        roles = req.roles
-        rho = req.stats.rho if req.stats else 0.5
-        multiplicity = req.stats.multiplicity if req.stats else 1.0
-        group_size = req.stats.group_size if req.stats else 1.0
-        if roles & {Role.KEY, Role.JOIN}:
+        value = req.amp if req.amp is not None else amp(req)
+        if req.roles & high or value >= 1.5:
             tiers[name] = "expensive"
-        elif roles & {Role.GROUP, Role.AGG_EXTREMAL} and group_size >= 4:
-            tiers[name] = "expensive"
-        elif Role.AGG_DISTINCT in roles and multiplicity >= 2:
-            tiers[name] = "expensive"
-        elif Role.AGG_ADDITIVE in roles and rho <= 0.35:
-            tiers[name] = "cheap"
-        elif Role.PREDICATE in roles and roles & {Role.PROJECT, Role.GROUP, Role.KEY}:
-            tiers[name] = "expensive"
-        elif roles == {Role.PROJECT} or roles <= {Role.PROJECT, Role.PREDICATE}:
-            tiers[name] = "cheap"
         else:
             tiers[name] = "cheap"
     return tiers

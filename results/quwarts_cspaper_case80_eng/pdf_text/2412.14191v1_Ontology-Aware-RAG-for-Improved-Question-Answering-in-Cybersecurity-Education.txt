@@ -1,0 +1,1124 @@
+Ontology-Aware RAG for Improved Question-Answering in
+Cybersecurity Education
+
+Chengshuai Zhao1 Garima Agrawal1, Tharindu Kumarage1, Zhen Tan1, Yuli Deng1,
+Ying-Chih Chen2, Huan Liu1
+1School of Computing and Augmented Intelligence, Arizona State University, USA
+2Mary Lou Fulton Teachers College, Arizona State University, USA
+(czhao93; garima.agrawal; kskumara; ztan36; ydeng19; ychen495; huanliu)@asu.edu
+
+4
+2
+0
+2
+c
+e
+D
+0
+1
+
+]
+
+Y
+C
+.
+s
+c
+[
+
+1
+v
+1
+9
+1
+4
+1
+.
+2
+1
+4
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Integrating AI into education has the potential to transform
+the teaching of science and technology courses, particularly
+in the field of cybersecurity. AI-driven question-answering
+(QA) systems can actively manage uncertainty in cyberse-
+curity problem-solving, offering interactive, inquiry-based
+learning experiences. Large language models (LLMs) have
+gained prominence in AI-driven QA systems, offering ad-
+vanced language understanding and user engagement. How-
+ever, they face challenges like hallucinations and limited
+domain-specific knowledge, which reduce their reliability in
+educational settings. To address these challenges, we propose
+CyberRAG, an ontology-aware retrieval-augmented gener-
+ation (RAG) approach for developing a reliable and safe
+QA system in cybersecurity education. CyberRAG employs
+a two-step approach: first, it augments the domain-specific
+knowledge by retrieving validated cybersecurity documents
+from a knowledge base to enhance the relevance and accuracy
+of the response. Second, it mitigates hallucinations and mis-
+use by integrating a knowledge graph ontology to validate the
+final answer. Experiments on publicly available cybersecurity
+datasets show that CyberRAG delivers accurate, reliable re-
+sponses aligned with domain knowledge, demonstrating the
+potential of AI tools to enhance education.
+
+Introduction
+The use of AI in education has the potential to transform the
+way science and technology courses are taught. In scientific
+learning, students are expected to engage in problem-solving
+and exploration, yet traditional classroom methods often fo-
+cus on the passive acquisition of established knowledge.
+This approach limits opportunities for students to experience
+the process of knowledge creation, leading to lower cogni-
+tive engagement. Cybersecurity is a problem-based learn-
+ing domain where students must master complex tools, de-
+velop defense techniques, and uncover new threats, which
+necessitates a re-imagination of traditional education prac-
+tices (Shivapurkar, Bhatia, and Ahmed 2020).
+
+Prior research highlights that managing uncertainty is a
+crucial component of the learning process, as students often
+struggle with acquiring new skills, applying diverse method-
+ologies, and forming new understandings (Jordan 2015). Ed-
+ucators can effectively manage this uncertainty by increas-
+ing it through the introduction of authentic, ambiguous chal-
+
+lenges to stimulate critical thinking, maintaining it to en-
+courage deeper exploration and problem-solving, and re-
+ducing it by identifying optimal solutions to help students
+integrate new insights with existing knowledge (Chen, Be-
+nus, and Hernandez 2019). AI-driven question-answering
+(QA) systems can help manage this uncertainty in technical
+problem-solving by supporting self-paced learning, signifi-
+cantly enhancing cognitive engagement (Means 2021).
+
+In recent years, large language models (LLMs) have
+become central to AI-driven technologies. While LLM-
+powered QA systems hold great promise for enhancing
+learning, they also face challenges such as hallucination and
+limited domain knowledge, which can undermine their ef-
+fectiveness (Agrawal et al. 2024a; Huang et al. 2023; Zhang
+et al. 2023; Xu, Jain, and Kankanhalli 2024). In cyberse-
+curity education, where precision is critical, ensuring the
+accuracy of AI-generated content is essential. For exam-
+ple, in tasks such as identifying vulnerabilities or interpret-
+ing security policies, inaccurate AI responses could lead to
+misinformation, compromising the learning experience and,
+potentially, real-world security (Kumarage et al. 2024). A
+promising solution to address this challenge is the retrieval-
+augmented generation (RAG) approach (Lewis et al. 2020),
+where the model generates responses by retrieving informa-
+tion from a validated knowledge base, thereby enhancing the
+accuracy and reliability.
+
+Although the RAG approach helps reduce hallucinations
+and address domain knowledge issues to some extent, the
+reliability of LLM-generated answers remains a concern
+for achieving educational goals. Students may ask ques-
+tions that fall outside the scope of the augmented cyberse-
+curity knowledge base. In such cases, LLMs rely on their
+own parametric knowledge to generate responses, which can
+expose the QA system to risks of misinformation or mis-
+use (Tan et al. 2024a,b; Kumarage et al. 2024). In an edu-
+cational setting, it is also crucial to prevent students from
+manipulating the AI system for unintended purposes. There
+is a strong need to provide a validation system to ensure the
+accuracy and safety of LLM-generated responses. One po-
+tential solution is reinforcement learning from human feed-
+back (RLHF) (Christiano et al. 2017). However, this method
+requires verification by cybersecurity experts, making it
+labor-intensive, costly, and time-consuming. Preferably, an
+automatic validation approach is needed. Domain-specific
+
+ 
+ 
+ 
+ 
+ 
+ 
+knowledge graphs, which structure expert knowledge and
+capture the interactions between key entities in alignment
+with domain rules (Abu-Salih 2021), offer a promising
+direction. The knowledge graph ontology encodes these
+rules (Kejriwal 2019). By leveraging this ontology, LLM re-
+sponses can be validated by fact-checking against the prede-
+fined rules, ensuring greater accuracy and reliability without
+the need for constant human oversight.
+
+In this paper, we propose CyberRAG, an ontology-aware
+RAG approach for developing a reliable QA system in
+cybersecurity education, comprising two key components.
+First, we utilize RAG methods to retrieve validated cyber-
+security documents from a knowledge base, enhancing both
+the accuracy and relevance of the answers. Through finely
+crafted prompts, CyberRAG improves QA performance by
+leveraging both cybersecurity content and the natural lan-
+guage processing capabilities of LLMs. Additionally, we in-
+troduce an ontology-based validation approach that uses a
+cybersecurity knowledge graph ontology to automatically
+verify LLM-generated responses, thereby preventing poten-
+tial risks of misuse and hallucination. We conduct com-
+prehensive experiments on publicly available datasets to
+demonstrate the effectiveness of CyberRAG in delivering
+reliable and accurate answers. Our research explores the
+potential of integrating AI into education, emphasizing its
+transformative impact on traditional methods. This approach
+extends beyond cybersecurity and can also be applied to
+other educational subjects. Our contributions can be sum-
+marized as follows:
+
+• We propose CyberRAG, a novel and reliable computa-
+tional framework aimed at creating an interactive and se-
+cure environment for cybersecurity education.
+
+• We design finely crafted prompts that enable CyberRAG
+to produce accurate and relevant answers by integrating a
+cybersecurity knowledge base with the vast prior knowl-
+edge present in LLMs.
+
+• We explore the use of knowledge graph ontology to val-
+idate LLM-generated responses, ensuring accuracy and
+preventing potential misuse of QA systems in education.
+
+Related Work
+
+RAG in Education
+Generative models have the potential to transform tradi-
+tional education by enabling personalized learning and au-
+tomating content creation, making education more adaptive
+and accessible (George 2023). The integration of LLMs in
+education has further enhanced conversational capabilities,
+supporting self-paced learning through AI-driven question-
+answering tools and bots (Moore et al. 2023; Upadhyay et al.
+2024). However, the use of LLMs also presents challenges,
+particularly the risks of hallucinations and inaccurate re-
+sponses, which are critical concerns in educational contexts
+and must be carefully managed to ensure responsible imple-
+mentation (Yan et al. 2024; Li et al. 2023). To address these
+issues, retrieval-augmented generation (RAG) methods are
+used by combining LLMs with real-time knowledge base
+retrieval to improve response accuracy ensuring content is
+
+current and reliable in educational settings (Dakshit 2024;
+Liu et al. 2024; Modran et al. 2024).
+
+LLM-generated Answer Validation
+
+However, most LLM approaches are currently limited to
+handling simple queries, as generating complex answers
+from extensive knowledge articles and course materials
+sourced from diverse knowledge bases remains challenging,
+often leading to issues with the correctness of the answers
+(Elmessiry and Elmessiry 2024). Jeong et al. (Jeong et al.
+2024) proposed an adaptive QA approach to handle complex
+questions, while Li et al. (Li, Liu, and Gao 2024) developed
+an evaluation framework for grounded and modular assess-
+ment of RAG responses.
+
+Various domains are using knowledge graphs to enhance
+LLMs’ reasoning and retrieval capabilities (Hussien et al.
+2024; Agrawal et al. 2024b; De Santis et al. 2024). An on-
+tology within a KG, which defines the rules of a specific
+domain, can also be used to validate LLM responses by
+checking the correctness of relationships between key en-
+tities (Agrawal et al. 2024a). This capability is particularly
+valuable in educational settings, where ensuring the accu-
+racy of LLM-generated content is crucial. While some stu-
+dent questions may extend beyond the scope of the aug-
+mented course material or knowledge base, ontology-aware
+validation offers a promising solution. However, research
+in this area remains limited. Our ontology-aware methods
+mark a significant advancement in this field.
+
+AI for Cybersecurity Education
+
+Learning cybersecurity is crucial for national security, safe-
+guarding critical infrastructure, and ensuring defense (Al-
+Daajeh et al. 2022; Newhouse et al. 2017; Rahman et al.
+2020). However, mastering this complex field requires deep
+knowledge of concepts, tools, and attack-defense simula-
+tions (Cheung et al. 2011; Schneider 2013; Ai et al. 2024).
+While AI shows promising potential in enhancing cogni-
+tive learning, research on its application in cybersecurity ed-
+ucation remains limited (Laato et al. 2020; Grover, Broll,
+and Babb 2023; Wei-Kocsis et al. 2023; Ferrari, Wong, and
+Khmelevsky 2024). Previous efforts include structured flow
+graphs from CTF texts for vulnerability analysis (Pal et al.
+2021) and knowledge graphs for guiding student projects
+(Deng et al. 2019, 2021; Deng, Zeng, and Huang 2021).
+Additionally, a semi-automated approach has been used to
+create knowledge graphs from unstructured course mate-
+rial, improving student learning (Agrawal et al. 2022). The
+AISecKG ontology(Agrawal et al. 2023) further advanced
+this by generating cybersecurity KG and the CyberQ dataset
+(Agrawal et al. 2024c) for LLM-based question-answering.
+However, a significant gap remains: the lack of a self-
+paced learning cybersecurity QA system. To address this, we
+leverage the CyberQ dataset to retrieve structured, authenti-
+cated cybersecurity content using RAG and validate LLM
+outputs with the AISecKG ontology, particularly for queries
+beyond the scope of the CyberQ dataset. Our approach en-
+hances the accuracy, reliability, and safety of AI-driven edu-
+cation tools, effectively addressing this critical research gap.
+
+Figure 1: Overview of CyberRAG Framework.
+
+Preliminaries
+In this section, we will outline the fundamental concepts un-
+derlying our proposed CyberRAG framework.
+
+Problem Formulation
+We consider cybersecurity problem-based learning to be
+a question-answering (QA) problem. Specifically, students
+raise a series of questions Q = {q1, q2, ..., q|Q|}, we ex-
+pect the model to output corresponding responses as answers
+A = {a1, a2, ..., a|A|}, where |Q| = |A| in our scenario.
+
+RAG System
+We employ a retrieval-augmented generation (RAG) system
+as a base framework to solve our problem because of its
+impressive capacity for hallucination mitigation. A classic
+RAG approach entails two parts:
+
+• A retriever R that can effectively retrieve reference doc-
+uments D = {d1, d2, ..., d|D|} from the knowledge base
+K (e.g., knowledge graph, QA database, and text materi-
+als) based on query-document relevance.
+
+• A generation model (e.g., large language model) G that
+provides answers using the documents and human in-
+structions I = {i1, i2, ..., i|I|}.
+
+Knowledge Graph Ontology
+In the context of our CyberRAG framework, we incorporate
+knowledge graph ontology to validate the LLM-generated
+responses. A knowledge graph (KG) is a structured repre-
+sentation of knowledge in which entities (a.k.a, nodes) are
+connected by relationships (a.k.a, edges). Formally, we de-
+fine a knowledge graph as a tuple G = (E, R), where
+E = {e1, e2, ..., e|E|} represents the set of entities, and
+R = {r1, r2, ..., r|R|} represents the set of relationships be-
+tween these entities. Each relationship r ∈ R can be viewed
+as a directed edge connecting two entities ei and ej in the
+graph, thereby forming a triplet (ei, r, ej).
+
+To further formalize the structure and semantics of the
+domain knowledge represented in our system, we utilize an
+ontology O. An ontology is a formal specification of a set
+of concepts within a domain and the relationships between
+those concepts. Formally, we define an ontology O as a tuple
+O = (C, RC, HC), where C = {c1, c2, ..., c|C|} is a set of
+concepts, RC = {rC
+2 , ..., rC
+|RC |} is a set of conceptual
+relationships, and HC ⊆ C × C is a hierarchical structure
+(e.g., a taxonomy) that organizes these concepts.
+
+1 , rC
+
+Method
+
+In this section, we first introduce our approach to Cyber-
+RAG. The detailed design of each component is then dis-
+cussed in the subsequent sections.
+
+CyberRAG
+
+Our proposed framework, named CyberRAG, comprises
+two key components: a retrieval-augmented generation
+(RAG) system and an ontology-based answer validation
+module. By leveraging the RAG system with carefully
+crafted prompts, CyberRAG effectively addresses students’
+questions by utilizing cybersecurity knowledge materi-
+als and the natural language understanding capabilities of
+LLMs. The ontology-based validation approach ensures that
+the responses provided to students are both reliable and se-
+cure. An overview of CyberRAG is presented in Fig. 1.
+
+Cybersecurity Knowledge Retrieval
+
+To retrieve cybersecurity material from the knowledge base,
+the first step is to design an effective retriever. We utilize
+a dual-encoder dense retriever containing two encoders: a
+question encoder EQ, which projects student queries into a
+shared semantic latent space, and a document encoder ED,
+which embeds knowledge base documents into correspond-
+ing vector representations. These encoders are optimized to
+maintain semantic proximity between queries and relevant
+
+OntologyRetrieveRetrieverGenerative Language ModelPassNot PassAnswer ValidationAnswerFactors such as potential impact, exploitability, and affected systems are considered...Human Expert Instruction(app, has_a, feature) (function, uses, tool(user, uses, system) ...QuestionWhat criteria are used to determine the severity level of a vulnerability?DocumentThe severity level of a vulnerability is typically determined by analyzing its potential consequences...DocumentAnswerHuman InstructionOntologyQuestionDataFlowQuery EncoderDocument EncoderPlease judge if theQUESTION andANSWER align well with...Answer the user'sQUESTION using theDOCUMENT text above...documents, ensuring that encoded representations are well-
+aligned in the latent space, thereby facilitating accurate re-
+trieval. Note that the question encoder and the document en-
+coder can be the same in some settings. Then, the retriever
+can retrieve the top k documents according to the query-
+document similarity.
+
+Specifically, given a query qi ∈ Q and a document dj ∈
+D, they are encoded by query encoder EQ and document
+encoder ED, respectively.
+
+hqi = EQ(qi)
+(1)
+hdj = ED(dj)
+(2)
+where hqi and hdj are latent representations of query qi and
+document dj.
+
+Then, the semantic relevance between the question and
+the document is defined by cosine similarity between their
+latent vectors:
+
+sim(hqi , hdj ) =
+
+hqi · hdj
+∥hqi∥∥hdj ∥
+
+(3)
+
+where hqi · hdj are inner product of two vectors and ∥hqi∥
+and ∥hdj ∥ are the magnitudes (a.k.a. Euclidean norms) of qi
+and di, respectively.
+
+Based on the similarities. top-k relevant course docu-
+
+ments can be retrieved.
+
+D = R(Q, K)
+
+(4)
+
+Cybersecurity Answer Generation
+After retrieving relevant cybersecurity documents, the next
+step is to prompt the generative model (i.e., LLMs) to
+generate answers. The most challenging aspect is design-
+ing a prompt that maximizes the effectiveness of both the
+retrieved information and the generative model. An ideal
+prompt should guide the model to summarize the informa-
+tion when the retrieved documents are highly relevant and
+encourage the model to generate new responses by lever-
+aging its own knowledge when the retrieved information is
+insufficient or incomplete.
+
+We design the prompt as illustrated in the Answer Gen-
+eration Prompt. The proposed prompt consists of three key
+elements:
+• Documents: The documents relevant to the student’s
+query are retrieved by the retriever from the knowledge
+base, using the method outlined in the previous section.
+• Questions: These are queries raised by students, which
+
+the generative model is tasked with answering.
+
+• Instructions: These are rules and prompts designed by
+domain experts. The first two instructions guide the gen-
+erative model to answer students’ questions by refer-
+encing the retrieved documents. The third instruction
+encourages the model to generate responses based on
+its own knowledge when the documents are insuffi-
+cient. Thus the proposed framework can address stu-
+dents’ queries, whether or not they are covered by the
+knowledge base.
+
+The final prompt is given as input to the generative model to
+generate the answer to the student’s query:
+
+A = G(D, Q, I)
+
+(5)
+
+Answer Generation Prompt
+
+DOCUMENT
+
+Factors such as potential impact, exploitabil-
+ity, and affected systems are considered when
+determining the severity level of a vulnera-
+bility. Factors such as the ease of exploita-
+tion, potential impact, and affected systems
+or data are typically considered when deter-
+mining the severity level of a vulnerability.
+The severity level of a vulnerability is typ-
+ically determined by analyzing its potential
+consequences, ease of exploitation, and the
+systems it affects.
+
+QUESTION
+
+What criteria are used to determine the sever-
+ity level of a vulnerability?
+
+INSTRUCTION
+
+Answer the user’s QUESTION using the
+DOCUMENT text above.
+Keep your answer grounded in the facts of
+the DOCUMENT.
+If the DOCUMENT doesn’t contain the facts
+to answer the QUESTION, give a response
+based on your knowledge.
+
+Ontology-based Answer Validation
+For ontology validation, we used AISecKG (Agrawal 2023),
+a cybersecurity education ontology that defines relation-
+ships between concepts, applications, and roles within the
+cybersecurity domain. AISecKG organizes these into three
+broad categories with 12 entity types. Concepts include
+features, functions, data, attacks, vulnerabilities, and tech-
+niques, while applications cover tools, systems, and apps.
+Roles consist of users, attackers, and security teams. The on-
+tology defines nine core relationships between these entities,
+represented by 68 unique edges. For example, tuples such
+as (‘attacker’, ‘can exploit’, ‘feature’) and (‘security team’,
+‘can analyze’, ‘feature’) illustrate entities and these relation-
+ships. These triples represent the fundamental domain rules
+that govern cybersecurity information at a schema level. By
+leveraging these ontology-based triples along with the nat-
+ural language understanding capabilities of LLMs, an au-
+tomatic answer validation system can be developed for the
+cybersecurity domain.
+
+Specifically, given the question Q and the corresponding
+response A provided by the generative language model, the
+validation model V takes the QA contexts, ontology rules
+denoted by O = {o1, o2, ..., o|O|}, and validation human in-
+struct I ′ as the input, then produces the validation result R.
+
+R = V(Q, A, O, I ′)
+
+(6)
+
+Algorithm 1: CyberRAG Algorithm
+Input: queries Q
+Parameter: knowledge base K, retriever R, human expert
+instruction I, I ′, generative language model G, ontology O,
+validation model V, threshold σ
+Output: answers A
+1: Retrieve documents from the knowledge base with Eq. 4
+2: Produce answers via generative model with Eq. 5
+3: Verify answers via ontology-based validation with Eq. 6
+4: if R > σ then
+5:
+6: else
+7:
+8: end if
+
+Return Not Pass
+
+Return A
+
+Note that R ∈ [0, 1], and a higher score indicates the re-
+sponse aligns with the ontology well. The complete valida-
+tion prompt is shown in the Ontology Validation Prompt.
+
+Ontology Validation Prompt
+
+QUESTION
+
+What criteria are used to determine the sever-
+ity level of a vulnerability?
+
+ANSWER
+
+Factors like potential impact, exploitability,
+and affected systems are considered when de-
+termining the severity level of a vulnerability.
+
+ONTOLOGY
+
+(attacker, can harm, system),
+(system, can expose, vulnerability),
+(function, can analyze, vulnerability) ...
+
+INSTRUCTION
+
+Please judge if the QUESTION and AN-
+SWER align well with the ONTOLOGY.
+The QUESTION and ANSWER align well
+with the ONTOLOGY if they are in the same
+knowledge domain as the ONTOLOGY and
+the ANSWER follows the relationships de-
+fined in the ONTOLOGY.
+The output format is a tuple: (your judgment:
+Pass/Not Pass, confidence score)
+
+By setting an appropriate threshold σ, the pipeline can
+effectively filter out incorrect answers and identify poten-
+tial misuse behavior. The CyberRAG algorithm is outlined
+in Algorithm 1.
+
+Experiment and Discussion
+
+Dataset
+In this work, we use CyberQ (Agrawal et al. 2024c),
+an open-source cybersecurity dataset containing around
+4,000 open-ended questions and answers on topics such
+as cybersecurity concepts, tool usage, setup instructions,
+attack analysis, and defense techniques. The questions
+vary in complexity, answer length, and vocabulary. The
+dataset was developed using facts from AISecKG (Agrawal
+2023), a cybersecurity knowledge graph, and a three-step
+LLM prompting method. The Zero-shot (ZS) method gen-
+erated 1,027 QA pairs for simple WH-questions on cy-
+bersecurity entities. The Few-shot (FS) method produced
+332 medium-complexity QA pairs related to setup and
+tools. The Ontology-Driven approach generated 2,171 high-
+complexity QA pairs covering attack and defense scenar-
+ios. The dataset includes 30 very short, 1,061 short, and
+2,439 long questions. These cybersecurity questions and an-
+swers are comprehensive, challenging, and not straightfor-
+ward, making them ideal for our goal of developing an inter-
+active QA system to teach cybersecurity to students.
+
+Experiment and Parameter Settings
+The knowledge base for our experiments is the CyberQ
+dataset (Agrawal et al. 2024c), and the cybersecurity knowl-
+edge graph ontology utilized in this work is AISecKG
+(Agrawal 2023). In future work, the knowledge base can
+be expanded to include other PDF documents containing
+cybersecurity-related coursework material. For brevity, we
+will refer to the CyberQ dataset as our KB and AISecKG as
+our ontology. We conduct the main experiments in two sce-
+narios: within the knowledge base (In-KB) and outside the
+knowledge base (Out-of-KB). For the In-KB scenario, stu-
+dents’ queries can be answered using existing documents in
+the knowledge base, while the Out-of-KB scenario involves
+queries for which relevant documents are not present in the
+knowledge base.
+
+We consider BERTScore (Zhang et al. 2020), ME-
+TEOR (Banerjee and Lavie 2005), ROUGE-1 (Lin 2004),
+and ROUGE-2 (Lin 2004) as metrics to evaluate the perfor-
+mance of the generated response. It is important to note that
+the ground truth answers in the CyberQ dataset are annotated
+by human cybersecurity experts. Unless otherwise specified,
+each experiment is run 10 times, with average scores and
+standard deviations recorded.
+
+We use the Contriever (Izacard et al. 2022) as the re-
+triever for document retrieval, employing cosine similar-
+ity as the semantic distance metric to identify and retrieve
+the most relevant documents from the knowledge base. For
+the generative language model, we utilize LLaMA3-8B-
+Instruct (Dubey et al. 2024), with an input text length of 256
+and max-length padding. During the answer generation pro-
+cess, the number of beams for beam search is set to 4. The
+ontology-based validation model is formulated using an-
+other instance of LLaMA3-8B-Instruct (Dubey et al. 2024),
+with an input text length of 512 and max-length padding.
+For all other parameters not explicitly mentioned, default
+settings are applied.
+
+Dataset
+
+Scenarios
+
+BERTScore ↑
+
+METEOR ↑
+
+ROUGE-1 ↑
+
+ROUGE-2 ↑
+
+ZS
+
+FS
+
+OD
+
+0.8571 ± 2.0e-4
+Zero Shot
+Out of KB 0.8720 ± 1.0e-4
+0.9294 ± 1.0e-4
+
+In KB
+
+0.8654 ± 1.0e-4
+Zero Shot
+Out of KB 0.8758 ± 2.0e-4
+0.9461 ± 1.0e-4
+
+In KB
+
+0.8601 ± 1.0e-4
+Zero Shot
+Out of KB 0.8783 ± 1.0e-4
+0.9331 ± 1.0e-4
+
+In KB
+
+0.2645 ± 1.4e-3
+0.3489 ± 1.3e-3
+0.7861 ± 5.0e-4
+
+0.3055 ± 1.0e-3
+0.3746 ± 9.0e-4
+0.8588 ± 7.0e-4
+
+0.2866 ± 8.0e-4
+0.3912 ± 6.0e-4
+0.7861 ± 4.0e-4
+
+0.1326 ± 7.0e-4
+0.2174 ± 6.0e-4
+0.6490 ± 6.0e-4
+
+0.2164 ± 1.3e-3
+0.3130 ± 1.2e-3
+0.7882 ± 5.0e-4
+
+0.1524 ± 5.0e-4
+0.2587 ± 5.0e-4
+0.6407 ± 5.0e-4
+
+0.0626 ± 7.0e-4
+0.1015 ± 7.0e-4
+0.5977 ± 6.0e-4
+
+0.0954 ± 1.1e-3
+0.1484 ± 8.0e-4
+0.7195 ± 8.0e-4
+
+0.0703 ± 5.0e-4
+0.1234 ± 3.0e-4
+0.5931 ± 5.0e-4
+
+Table 1: Performance across different datasets and scenarios.
+
+Research Questions
+To assess our approach, we employ the following evaluation
+methodology and begin by posing the following research
+questions (RQs):
+
+• RQ1: How does the integration of a knowledge base en-
+hance the performance of the CyberRAG framework in
+generating accurate and relevant answers for both In-KB
+and Out-of-KB queries?
+
+• RQ2: What is the impact of the knowledge base and the
+generative language model on the overall performance of
+CyberRAG, and how does their ablation affect the sys-
+tem’s ability to answer students’ questions?
+
+• RQ3: How does the integration of a knowledge base in-
+fluence the quality and reliability of answers generated
+by the CyberRAG framework, and what are the key ben-
+efits observed from the retrieval process?
+
+• RQ4: How effective is the ontology-based validation
+model in ensuring the accuracy, relevance, and scope of
+answers generated by CyberRAG. Can this validate and
+prevent potential misuse behaviors?
+
+Quantitative Results
+To address RQ1, we design a comparative experiment. As
+shown in Table 1, a⃝ CyberRAG consistently achieves good
+performance across all datasets and scenarios. For instance,
+the In-KB question-answering on the FS dataset gives a
+BertScore of 0.9461, a METEOR of 0.8588, a ROUGE-1 of
+0.7882, and a ROUGE-2 of 0.7195. These results demon-
+strate that the answers generated by CyberRAG not only
+align well with the semantic meaning of the ground truth
+but also closely match in exact word terms. b⃝ Compared
+with the Out-of-KB, the model shows relatively higher per-
+formance for In-KB questions. For example, in the ZS sub-
+set for In-KB questions, the model achieves a BERTScore
+of 0.9294, and for more complex questions in the OD sub-
+set, it reaches 0.9331. In contrast, for Out-of-KB questions,
+the BERTScore is 0.8720 in ZS and 0.8783 for the OD sub-
+set. This indicates that the integration of the knowledge base
+provides a solid reference for generating answers for open-
+ended questions in cybersecurity, enhancing the model’s per-
+formance across both simple and complex queries.. c⃝ Cy-
+berRAG provides semantically meaningful and high-quality
+
+answers for questions outside the knowledge base. For ex-
+ample, in the OD dataset with the Out-of-KB settings, the
+BERTScore is 0.8783, while the METEOR, ROUGE-1, and
+ROUGE-2 are 0.3912, 0.2587, and 0.1234, respectively.
+This suggests that while the generated answers may not ex-
+actly match the ground truth in wording, they are highly
+similar to expert-certified answers in meaning. d⃝ Further-
+more, the results show a very low standard deviation (std) in
+both In-KB and the Out-of-KB settings, with std values con-
+sistently below 0.0011. This demonstrates that CyberRAG
+is both stable and reliable in producing accurate answers.
+Overall, these findings suggest that our proposed method is
+promising for answering cybersecurity-related questions.
+
+Ablation Study
+We conducted an ablation study to investigate RQ2; we
+consider two scenarios: (i) CyberRAG is built solely on a
+question-answering dataset, such as CyberQ, without utiliz-
+ing the generative language model. In this case, the QA sys-
+tem is unable to answer questions beyond the scope of the
+training dataset, which is undesirable as it limits the breadth
+of cybersecurity education. (ii) CyberRAG without aug-
+menting the knowledge base. In this case, the model essen-
+tially reverts to functioning as a generative language model,
+answering questions in a zero-shot manner. As shown in
+Fig. 1, the results under zero-shot settings are considerably
+inferior. Compared to the In-KB scenarios, the model un-
+der zero-shot setting lacks access to the ground truth infor-
+mation for reference, leading to significant drop in perfor-
+mances. When comparing the zero-shot results with Out-of-
+KB scenarios, the latter demonstrates a better performance.
+This is because, although Out-of-kb can not be answered
+directly using documents from the knowledge base, these
+documents still provide relevant and supplementary infor-
+mation that may help in formulating the answers. In conclu-
+sion, both the knowledge base and the generative language
+model play significant roles in enhancing the performance
+of a QA systems in cybersecurity education.
+
+Retrieval Analysis
+To research RQ3, we design a retrieval analysis. First, we
+acquire the documents retrieved from the knowledge base
+and then compare the response produced by CyberRAG with
+
+Figure 2: Case Study. The answer validation case study (left) elaborates on how the validation model prevents misuse behaviors.
+The CyberRAG case study (right) showcases the data flow details.
+
+the ground truth to explore how CyberRAG benefits from
+the retrieval augmentation process. We consider the Faith-
+fulness, Answer Relevancy, Context Precision, Context Re-
+call, and Context Entity Recall as metrics and use the RA-
+GAS (ES et al. 2024) package to evaluate our method.
+
+Metric
+
+ZS
+
+FS
+
+OD
+
+Faithfulness ↑
+Answer Relevancy ↑
+Context Precision ↑
+Context Recall ↑
+Context Entity Recall ↑
+
+0.8134
+0.9825
+0.9890
+0.9909
+0.9392
+
+0.8914
+0.9860
+1.0000
+0.9974
+0.9512
+
+0.7598
+0.9828
+0.9960
+0.9946
+0.9671
+
+Table 2: RAGAS evaluation for CyberRAG.
+
+As shown in Table 2, our proposed method CyberRAG
+shows satisfactory results on all metrics, especially on An-
+swer Relevancy, Context Precision, Context Recall, and
+Context Entity Recall. These results indicate that the re-
+trieved documents are highly relevant and accurate for an-
+swer generation and the generated response adheres to the
+reference documents, with minimal hallucination. It is also
+worth mentioning that there is still some room for improve-
+ment in the Faithfulness metrics. The lower score can be
+attributed to the generative model introducing additional
+knowledge from itself to enrich the answers, which is oth-
+erwise beneficial for the Out-of-KB question-answering.
+
+Answer Validation Analysis with Case Study
+We designed an answer validation analysis to explore RQ4.
+We simulate a case-study with an out-of-domain query, such
+as, “How to make money in the stock market?” - a query that
+
+can be considered an unintended or misused case. As shown
+in Fig. 2, although the generative language model produces
+the corresponding answer, it is filtered out by the validation
+model because it fails to adhere to cybersecurity knowledge
+graph ontology. Conversely, when a relevant cybersecurity
+question is posed, it smoothly passes the validation test,
+highlighting the critical role the ontology-based validation
+model in ensuring accuracy and preventing potential misuse.
+Fig. 2 illustrates the data flow in the case study, demonstrat-
+ing the transparency and reliability of CyberRAG.
+
+Conclusion
+The rapid advancement of AI is transforming education,
+particularly in technical fields like cybersecurity. AI-driven
+QA systems enhance cognitive engagement by manag-
+ing uncertainty in problem-based learning. Our proposed
+CyberRAG introduces a novel, ontology-aware retrieval-
+augmented generation approach to create a reliable QA
+system for cybersecurity education. By leveraging domain
+knowledge and an ontology-based validation model, Cyber-
+RAG ensures relevance, accuracy, and safety of responses.
+Comprehensive experiments demonstrate its dependability
+in real-world scenarios, fostering a more interactive and se-
+cure learning environment. This research highlights the po-
+tential of AI to transform educational practices, not only in
+cybersecurity but across various subjects. As AI in education
+evolves, future research will explore innovative methods like
+virtual environments to further enhance students’ practical
+experiences using LLM agents.
+
+Answer Validation Case StudyStudent QuestionHow to make money in the stock market? Please give a summary answer.Response by Generative Language Model:To make money in the stock market: Educate Yourself: Learn the basics of stocks, market operations, and investment strategies. Set Financial Goals: Define your investment objectives and assess your risk tolerance. Develop a Strategy: Choose between long-term investing, day trading, or other strategies. Diversify: Spread investments across different sectors and asset types to reduce risk. Invest Regularly: Consistently invest a portion of your income. Stay Informed: Keep up with market news and adjust your strategy as needed. Be Patient: Focus on long-term growth and avoid reacting to short-term market fluctuations...Answer Validation(Not Pass, 0.1)CyberRAG Case StudyRetrieved Document from Knowledge BaseFactors such as potential impact, exploitability, and affected systems are considered when determining the severity level of a vulnerability.Factors such as the ease of exploitation, potential impact, and affected systems or data are typically considered when determining the severity level of a vulnerability.The severity level of a vulnerability is typically determined by analyzing its potential consequences, ease of exploitation, and the systems it affects.Student QuestionWhat criteria are used to determine the severity level of a vulnerability?Answer: Factors such as potential impact, exploitability, and affected systems are considered when determining the severity level of a vulnerability...Answer Validation(Pass, 0.9)References
+Abu-Salih, B. 2021. Domain-specific knowledge graphs:
+A survey. Journal of Network and Computer Applications,
+185: 103076.
+Agrawal, G. 2023. Aiseckg: Knowledge graph dataset for
+cybersecurity education. AAAI-MAKE 2023: Challenges Re-
+quiring the Combination of Machine Learning 2023.
+Agrawal, G.; Deng, Y.; Park, J.; Liu, H.; and Chen, Y.-C.
+2022. Building knowledge graphs from unstructured texts:
+Applications and impact analyses in cybersecurity educa-
+tion. Information, 13(11): 526.
+Agrawal, G.; Kumarage, T.; Alghamdi, Z.; and Liu, H.
+2024a. Can Knowledge Graphs Reduce Hallucinations in
+In Proceedings of the 2024 Confer-
+LLMs? : A Survey.
+ence of the North American Chapter of the Association for
+Computational Linguistics: Human Language Technologies
+(Volume 1: Long Papers), 3947–3960. Mexico City, Mexico:
+Association for Computational Linguistics.
+Agrawal, G.; Kumarage, T.; Alghamdi, Z.; and Liu, H.
+Mindful-RAG: A Study of Points of Fail-
+2024b.
+arXiv preprint
+ure in Retrieval Augmented Generation.
+arXiv:2407.12216.
+Agrawal, G.; Pal, K.; Deng, Y.; Liu, H.; and Baral, C. 2023.
+AISecKG: Knowledge Graph Dataset for Cybersecurity Ed-
+In Proceedings of the AAAI 2023 Spring Sym-
+ucation.
+posium on Challenges Requiring the Combination of Ma-
+chine Learning and Knowledge Engineering (AAAI-MAKE
+2023), Hyatt Regency, San Francisco Airport, California,
+USA, March 27-29, 2023, volume 3433 of CEUR Workshop
+Proceedings. CEUR-WS.org.
+Agrawal, G.; Pal, K.; Deng, Y.; Liu, H.; and Chen, Y.-C.
+2024c. CyberQ: Generating Questions and Answers for Cy-
+bersecurity Education Using Knowledge Graph-Augmented
+LLMs. In Proceedings of the AAAI Conference on Artificial
+Intelligence, volume 38, 23164–23172.
+Ai, L.; Kumarage, T.; Bhattacharjee, A.; Liu, Z.; Hui,
+Z.; Davinroy, M.; Cook, J.; Cassani, L.; Trapeznikov, K.;
+Kirchner, M.; et al. 2024. Defending Against Social En-
+arXiv preprint
+gineering Attacks in the Age of LLMs.
+arXiv:2406.12263.
+AlDaajeh, S.; Saleous, H.; Alrabaee, S.; Barka, E.; Bre-
+itinger, F.; and Choo, K.-K. R. 2022. The role of national
+cybersecurity strategies on the improvement of cybersecu-
+rity education. Computers & Security, 119: 102754.
+Banerjee, S.; and Lavie, A. 2005. METEOR: An Auto-
+matic Metric for MT Evaluation with Improved Correlation
+In Proceedings of the Workshop
+with Human Judgments.
+on Intrinsic and Extrinsic Evaluation Measures for Ma-
+chine Translation and/or Summarization@ACL 2005, Ann
+Arbor, Michigan, USA, June 29, 2005, 65–72. Association
+for Computational Linguistics.
+Chen, Y.-C.; Benus, M. J.; and Hernandez, J. 2019. Manag-
+ing uncertainty in scientific argumentation. Science Educa-
+tion, 103(5): 1235–1276.
+Cheung, R. S.; Cohen, J. P.; Lo, H. Z.; and Elia, F. 2011.
+Challenge based learning in cybersecurity education. In Pro-
+ceedings of the International Conference on Security and
+
+Management (SAM), volume 1. The Steering Committee of
+The World Congress in Computer Science, Computer. . . .
+Christiano, P. F.; Leike, J.; Brown, T. B.; Martic, M.; Legg,
+S.; and Amodei, D. 2017. Deep Reinforcement Learning
+from Human Preferences. In Advances in Neural Informa-
+tion Processing Systems 30: Annual Conference on Neural
+Information Processing Systems 2017, December 4-9, 2017,
+Long Beach, CA, USA, 4299–4307.
+Dakshit, S. 2024. Faculty Perspectives on the Potential of
+RAG in Computer Science Higher Education. arXiv preprint
+arXiv:2408.01462.
+De Santis, A.; Balduini, M.; De Santis, F.; Proia, A.; Leo,
+A.; Brambilla, M.; and Della Valle, E. 2024.
+Integrating
+Large Language Models and Knowledge Graphs for Extrac-
+tion and Validation of Textual Test Data. arXiv preprint
+arXiv:2408.01700.
+Deng, Y.; Lu, D.; Huang, D.; Chung, C.-J.; and Lin, F. 2019.
+Knowledge graph based learning guidance for cybersecurity
+In Proceedings of the ACM conference on
+hands-on labs.
+global computing education, 194–200.
+Deng, Y.; Zeng, Z.; and Huang, D. 2021. Neocyberkg: En-
+hancing cybersecurity laboratories with a machine learning-
+enabled knowledge graph. In Proceedings of the 26th ACM
+Conference on Innovation and Technology in Computer Sci-
+ence Education V. 1, 310–316.
+Deng, Y.; Zeng, Z.; Jha, K.; and Huang, D. 2021. Problem-
+based cybersecurity lab with knowledge graph as guidance.
+Journal of Artificial Intelligence and Technology.
+Dubey, A.; Jauhri, A.; Pandey, A.; and et al. 2024. The
+Llama 3 Herd of Models. CoRR, abs/2407.21783.
+Elmessiry, A.; and Elmessiry, M. 2024.
+NAVI-
+GATING THE EVOLUTION OF ARTIFICIAL IN-
+TELLIGENCE: TOWARDS EDUCATION-SPECIFIC RE-
+TRIEVAL AUGMENTED GENERATIVE AI (ES-RAG-
+AI). In INTED2024 Proceedings, 7692–7697. IATED.
+ES, S.; James, J.; Anke, L. E.; and Schockaert, S. 2024. RA-
+GAs: Automated Evaluation of Retrieval Augmented Gen-
+eration. In Proceedings of the 18th Conference of the Eu-
+ropean Chapter of the Association for Computational Lin-
+guistics, EACL 2024 - System Demonstrations, St. Julians,
+Malta, March 17-22, 2024, 150–158. Association for Com-
+putational Linguistics.
+Ferrari, E. P.; Wong, A.; and Khmelevsky, Y. 2024. Cyber-
+security Education within a Computing Science Program-
+In Proceedings of the 26th Western
+A Literature Review.
+Canadian Conference on Computing Education, 1–5.
+George, A. S. 2023. The Potential of Generative AI to Re-
+form Graduate Education. Partners Universal International
+Research Journal, 2(4): 36–50.
+Grover, S.; Broll, B.; and Babb, D. 2023. Cybersecurity edu-
+cation in the age of ai: Integrating ai learning into cybersecu-
+rity high school curricula. In Proceedings of the 54th ACM
+Technical Symposium on Computer Science Education V. 1,
+980–986.
+Huang, L.; Yu, W.; Ma, W.; Zhong, W.; Feng, Z.; Wang, H.;
+Chen, Q.; Peng, W.; Feng, X.; Qin, B.; and Liu, T. 2023. A
+
+Survey on Hallucination in Large Language Models: Prin-
+ciples, Taxonomy, Challenges, and Open Questions. CoRR,
+abs/2311.05232.
+Hussien, M. M.; Melo, A. N.; Ballardini, A. L.; Maldonado,
+C. S.; Izquierdo, R.; and Sotelo, M. ´A. 2024. RAG-based
+Explainable Prediction of Road Users Behaviors for Au-
+tomated Driving using Knowledge Graphs and Large Lan-
+guage Models. arXiv preprint arXiv:2405.00449.
+Izacard, G.; Caron, M.; Hosseini, L.; Riedel, S.; Bojanowski,
+P.; Joulin, A.; and Grave, E. 2022. Unsupervised Dense
+Information Retrieval with Contrastive Learning. Trans.
+Mach. Learn. Res., 2022.
+Jeong, S.; Baek, J.; Cho, S.; Hwang, S. J.; and Park, J. C.
+2024. Adaptive-rag: Learning to adapt retrieval-augmented
+large language models through question complexity. arXiv
+preprint arXiv:2403.14403.
+Jordan, M. E. 2015. Variation in students’ propensities for
+managing uncertainty. Learning and Individual differences,
+38: 99–106.
+Kejriwal, M. 2019. Domain-specific knowledge graph con-
+struction. Springer.
+Kumarage, T.; Agrawal, G.; Sheth, P.; Moraffah, R.; Chadha,
+A.; Garland, J.; and Liu, H. 2024. A survey of ai-generated
+text forensic systems: Detection, attribution, and characteri-
+zation. arXiv preprint arXiv:2403.01152.
+Laato, S.; Farooq, A.; Tenhunen, H.; Pitkamaki, T.; Hakkala,
+A.; and Airola, A. 2020. Ai in cybersecurity education-a sys-
+tematic literature review of studies on cybersecurity moocs.
+In 2020 IEEE 20th International Conference on Advanced
+Learning Technologies (ICALT), 6–10. IEEE.
+Lewis, P. S. H.; Perez, E.; Piktus, A.; Petroni, F.; Karpukhin,
+V.; Goyal, N.; K¨uttler, H.; Lewis, M.; Yih, W.; Rockt¨aschel,
+T.; Riedel, S.; and Kiela, D. 2020. Retrieval-Augmented
+In Ad-
+Generation for Knowledge-Intensive NLP Tasks.
+vances in Neural Information Processing Systems 33: An-
+nual Conference on Neural Information Processing Systems
+2020, NeurIPS 2020, December 6-12, 2020, virtual.
+Li, Q.; Fu, L.; Zhang, W.; Chen, X.; Yu, J.; Xia, W.; Zhang,
+W.; Tang, R.; and Yu, Y. 2023. Adapting large language
+models for education: Foundational capabilities, potentials,
+and challenges. arXiv preprint arXiv:2401.08664.
+GRAMMAR:
+Li, X.; Liu, M.; and Gao, S. 2024.
+Grounded and Modular Evaluation of Domain-Specific
+arXiv preprint
+Retrieval-Augmented Language Models.
+arXiv:2404.19232.
+Lin, C.-Y. 2004. Rouge: A package for automatic evaluation
+of summaries. In Text summarization branches out, 74–81.
+Liu, C.; Hoang, L.; Stolman, A.; and Wu, B. 2024. HiTA:
+A RAG-Based Educational Platform that Centers Educators
+In International Conference on
+in the Instructional Loop.
+Artificial Intelligence in Education, 405–412. Springer.
+Means, A. J. 2021. Hypermodernity, automated uncertainty,
+and education policy trajectories. Critical Studies in Educa-
+tion, 62(3): 371–386.
+Modran, H.; Bogdan, I. C.; Ursut,iu, D.; Samoila, C.; and
+Modran, P. L. 2024. LLM Intelligent Agent Tutoring in
+Higher Education Courses using a RAG Approach.
+
+Moore, S.; Tong, R.; Singh, A.; Liu, Z.; Hu, X.; Lu, Y.;
+Liang, J.; Cao, C.; Khosravi, H.; Denny, P.; et al. 2023.
+Empowering education with llms-the next-gen interface and
+content generation. In International Conference on Artificial
+Intelligence in Education, 32–37. Springer.
+Newhouse, W.; Keith, S.; Scribner, B.; and Witte, G. 2017.
+National initiative for cybersecurity education (NICE) cy-
+bersecurity workforce framework. NIST special publication,
+800(2017): 181.
+Pal, K. K.; Kashihara, K.; Banerjee, P.; Mishra, S.; Wang, R.;
+and Baral, C. 2021. Constructing flow graphs from proce-
+dural cybersecurity texts. arXiv preprint arXiv:2105.14357.
+Rahman, N. A. A.; Sairi, I. H.; Zizi, N. A. M.; and Khalid, F.
+2020. The importance of cybersecurity education in school.
+International Journal of Information and Education Tech-
+nology, 10(5): 378–382.
+Schneider, F. B. 2013. Cybersecurity education in universi-
+ties. IEEE Security & Privacy, 11(4): 3–4.
+Shivapurkar, M.; Bhatia, S.; and Ahmed, I. 2020. Problem-
+In Journal of
+based learning for cybersecurity education.
+The Colloquium for Information Systems Security Educa-
+tion, volume 7, 6–6.
+Tan, Z.; Zhao, C.; Moraffah, R.; Li, Y.; Kong, Y.; Chen,
+T.; and Liu, H. 2024a. The Wolf Within: Covert Injection
+of Malice into MLLM Societies via an MLLM Operative.
+CoRR, abs/2402.14859.
+Tan, Z.; Zhao, C.; Moraffah, R.; Li, Y.; Wang, S.; Li, J.;
+Chen, T.; and Liu, H. 2024b. ”Glue pizza and eat rocks”
+- Exploiting Vulnerabilities in Retrieval-Augmented Gener-
+ative Models. CoRR, abs/2406.19417.
+Upadhyay, A.; Farahmand, E.; Mu˜noz, I.; Akber Khan, M.;
+and Witte, N. 2024.
+Influence of LLMs on Learning and
+Teaching in Higher Education. Available at SSRN 4716855.
+Wei-Kocsis, J.; Sabounchi, M.; Mendis, G. J.; Fernando, P.;
+Yang, B.; and Zhang, T. 2023. Cybersecurity Education in
+the Age of Artificial Intelligence: A Novel Proactive and
+IEEE Transactions on
+Collaborative Learning Paradigm.
+Education.
+Xu, Z.; Jain, S.; and Kankanhalli, M. S. 2024. Hallucina-
+tion is Inevitable: An Innate Limitation of Large Language
+Models. CoRR, abs/2401.11817.
+Yan, L.; Sha, L.; Zhao, L.; Li, Y.; Martinez-Maldonado, R.;
+Chen, G.; Li, X.; Jin, Y.; and Gaˇsevi´c, D. 2024. Practical and
+ethical challenges of large language models in education: A
+systematic scoping review. British Journal of Educational
+Technology, 55(1): 90–112.
+Zhang, T.; Kishore, V.; Wu, F.; Weinberger, K. Q.; and Artzi,
+Y. 2020. BERTScore: Evaluating Text Generation with
+BERT. In 8th International Conference on Learning Repre-
+sentations, ICLR 2020, Addis Ababa, Ethiopia, April 26-30,
+2020. OpenReview.net.
+Zhang, Y.; Li, Y.; Cui, L.; Cai, D.; Liu, L.; Fu, T.; Huang, X.;
+Zhao, E.; Zhang, Y.; Chen, Y.; Wang, L.; Luu, A. T.; Bi, W.;
+Shi, F.; and Shi, S. 2023. Siren’s Song in the AI Ocean: A
+Survey on Hallucination in Large Language Models. CoRR,
+abs/2309.01219.

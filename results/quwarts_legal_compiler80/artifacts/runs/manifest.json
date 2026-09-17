@@ -1,0 +1,2873 @@
+{
+  "schema_version": "1",
+  "configurations": [
+    {
+      "schema_version": "1",
+      "id": "24310a52370ec2c0",
+      "schema": {
+        "schema_version": "1",
+        "id": "snowflake-5f9f9609e0",
+        "pattern": "snowflake",
+        "relations": [
+          {
+            "schema_version": "1",
+            "name": "legal",
+            "attributes": [
+              "legal.case_number",
+              "legal.case_type",
+              "legal.evidence",
+              "legal.first_judge",
+              "legal.hearing_year",
+              "legal.judge_name",
+              "legal.judgment_year",
+              "legal.legal_basis_num",
+              "legal.nationality_for_applicant",
+              "legal.verdict"
+            ],
+            "entity_type": "legal"
+          }
+        ],
+        "primary_keys": {
+          "legal": [
+            "legal.judge_name"
+          ]
+        },
+        "foreign_keys": [],
+        "declared_fds": [
+          {
+            "schema_version": "1",
+            "relation": "legal",
+            "determinant": [
+              "legal.judge_name"
+            ],
+            "dependent": [
+              "legal.case_number",
+              "legal.case_type",
+              "legal.evidence",
+              "legal.first_judge",
+              "legal.hearing_year",
+              "legal.judgment_year",
+              "legal.legal_basis_num",
+              "legal.nationality_for_applicant",
+              "legal.verdict"
+            ]
+          }
+        ],
+        "declared_dcs": [
+          {
+            "schema_version": "1",
+            "relation": "legal",
+            "description": "primary key uniqueness",
+            "columns": [
+              "legal.judge_name"
+            ]
+          }
+        ],
+        "covered_attributes": [
+          "legal.verdict",
+          "legal.judge_name",
+          "legal.hearing_year",
+          "legal.first_judge",
+          "legal.judgment_year",
+          "legal.legal_basis_num",
+          "legal.evidence",
+          "legal.case_number",
+          "legal.nationality_for_applicant",
+          "legal.case_type"
+        ]
+      },
+      "pop": {
+        "schema_version": "1",
+        "er": {
+          "legal.defendant_current_status": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.judgment_year": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.first_judge": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.case_type": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.verdict": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.hearing_year": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.legal_basis_num": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.case_number": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.plaintiff_current_status": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.nationality_for_applicant": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.judge_name": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          },
+          "legal.evidence": {
+            "schema_version": "1",
+            "strategy": "merge",
+            "params": {}
+          }
+        },
+        "norm": {
+          "legal.defendant_current_status": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {
+                "Minister for Immigration and Citizenship": "Government",
+                "Not explicitly stated, but the Minister for Immigration and Multicultural and Indigenous Affairs is the respondent.": "Government"
+              },
+              "domain": [
+                "Company",
+                "Government",
+                "Organization"
+              ]
+            }
+          },
+          "legal.case_number": {
+            "schema_version": "1",
+            "strategy": "surface",
+            "params": {}
+          },
+          "legal.judgment_year": {
+            "schema_version": "1",
+            "strategy": "surface",
+            "params": {}
+          },
+          "legal.evidence": {
+            "schema_version": "1",
+            "strategy": "surface",
+            "params": {}
+          },
+          "legal.first_judge": {
+            "schema_version": "1",
+            "strategy": "surface",
+            "params": {}
+          },
+          "legal.hearing_year": {
+            "schema_version": "1",
+            "strategy": "surface",
+            "params": {}
+          },
+          "legal.case_type": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {},
+              "domain": [
+                "Administrative Case",
+                "Civil Case",
+                "Commercial Case"
+              ]
+            }
+          },
+          "legal.verdict": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {},
+              "domain": [
+                "Approved",
+                "Others"
+              ]
+            }
+          },
+          "legal.nationality_for_applicant": {
+            "schema_version": "1",
+            "strategy": "surface",
+            "params": {}
+          },
+          "legal.legal_basis_num": {
+            "schema_version": "1",
+            "strategy": "surface",
+            "params": {}
+          },
+          "legal.plaintiff_current_status": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {},
+              "domain": [
+                "Company",
+                "Government",
+                "Organization"
+              ]
+            }
+          },
+          "legal.judge_name": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {},
+              "domain": [
+                "Flick",
+                "Greenwood",
+                "Heerey",
+                "Marshall",
+                "Moore",
+                "Rares",
+                "Spender",
+                "Tracey"
+              ]
+            }
+          },
+          "verdict": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {},
+              "domain": []
+            }
+          },
+          "judge_name": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {},
+              "domain": []
+            }
+          },
+          "defendant_current_status": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {
+                "Minister for Immigration and Citizenship": "Government",
+                "Not explicitly stated, but the Minister for Immigration and Multicultural and Indigenous Affairs is the respondent.": "Government"
+              },
+              "domain": []
+            }
+          },
+          "plaintiff_current_status": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {},
+              "domain": [
+                "Company",
+                "Government",
+                "Organization"
+              ]
+            }
+          },
+          "case_type": {
+            "schema_version": "1",
+            "strategy": "domain",
+            "params": {
+              "map": {},
+              "domain": [
+                "Administrative Case",
+                "Civil Case",
+                "Commercial Case"
+              ]
+            }
+          }
+        },
+        "unit": {
+          "legal.legal_basis_num": {
+            "schema_version": "1",
+            "strategy": "unit:canonical",
+            "params": {}
+          },
+          "legal.case_number": {
+            "schema_version": "1",
+            "strategy": "unit:canonical",
+            "params": {}
+          },
+          "legal.evidence": {
+            "schema_version": "1",
+            "strategy": "unit:canonical",
+            "params": {}
+          },
+          "legal.first_judge": {
+            "schema_version": "1",
+            "strategy": "unit:canonical",
+            "params": {}
+          },
+          "legal.verdict": {
+            "schema_version": "1",
+            "strategy": "unit:canonical",
+            "params": {}
+          }
+        },
+        "type": {
+          "legal.legal_basis_num": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "legal.case_number": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "legal.evidence": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "legal.first_judge": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "legal.verdict": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "legal.case_type": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "case_type": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "first_judge": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "legal.nationality_for_applicant": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "nationality_for_applicant": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "case_number": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "legal_basis_num": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "legal.judgment_year": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "judgment_year": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "verdict": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "legal.judge_name": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "judge_name": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "legal.hearing_year": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "hearing_year": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "evidence": {
+            "schema_version": "1",
+            "strategy": "numeric",
+            "params": {}
+          },
+          "legal.defendant_current_status": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "defendant_current_status": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "legal.plaintiff_current_status": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          },
+          "plaintiff_current_status": {
+            "schema_version": "1",
+            "strategy": "string",
+            "params": {}
+          }
+        },
+        "miss": {
+          "legal.defendant_current_status": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.case_number": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.judgment_year": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.evidence": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.first_judge": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.hearing_year": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.nationality_for_applicant": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.case_type": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.plaintiff_current_status": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.verdict": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.judge_name": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          },
+          "legal.legal_basis_num": {
+            "schema_version": "1",
+            "strategy": "nulls_preserved",
+            "params": {}
+          }
+        },
+        "grain": {
+          "legal": "mention"
+        }
+      },
+      "pre": {
+        "schema_version": "1",
+        "mode": "whole_document",
+        "chunk_tokens": null,
+        "overlap_tokens": null,
+        "carry_metadata": []
+      },
+      "cluster_id": "c0-ac2e73eb"
+    }
+  ],
+  "route": {
+    "legal_filter20:q6": "24310a52370ec2c0",
+    "054b40955260148e": "24310a52370ec2c0",
+    "legal_filter20:q16": "24310a52370ec2c0",
+    "0c136001dfcc74cb": "24310a52370ec2c0",
+    "legal_multiagg20:q0": "24310a52370ec2c0",
+    "0d1c45c4b970ebc0": "24310a52370ec2c0",
+    "legal_multiagg20:q1": "24310a52370ec2c0",
+    "0d2fb0f5b77c98b4": "24310a52370ec2c0",
+    "legal_filter20:q2": "24310a52370ec2c0",
+    "0d52721f0f33c60a": "24310a52370ec2c0",
+    "legal_filter20:q1": "24310a52370ec2c0",
+    "0d8544ffd6c5a1fc": "24310a52370ec2c0",
+    "legal_groupby20:q15": "24310a52370ec2c0",
+    "115f3de93bf17618": "24310a52370ec2c0",
+    "legal_groupby20:q6": "24310a52370ec2c0",
+    "129cfb6cfa90f404": "24310a52370ec2c0",
+    "legal_multiagg20:q15": "24310a52370ec2c0",
+    "12a06f24ce025c09": "24310a52370ec2c0",
+    "legal_multiagg20:q10": "24310a52370ec2c0",
+    "12e24a5558278379": "24310a52370ec2c0",
+    "legal_multiagg20:q16": "24310a52370ec2c0",
+    "150d2aff132ef7d2": "24310a52370ec2c0",
+    "legal_filter20:q19": "24310a52370ec2c0",
+    "16306604e3f8487d": "24310a52370ec2c0",
+    "legal_groupby20:q17": "24310a52370ec2c0",
+    "18bbdb33cb237cd2": "24310a52370ec2c0",
+    "legal_multiagg20:q3": "24310a52370ec2c0",
+    "1af2056e2a9d9f19": "24310a52370ec2c0",
+    "legal_multiagg20:q12": "24310a52370ec2c0",
+    "1bb549d88aa6b8d2": "24310a52370ec2c0",
+    "legal_filter20:q10": "24310a52370ec2c0",
+    "1eaf9e6fc3656e60": "24310a52370ec2c0",
+    "legal_groupby20:q1": "24310a52370ec2c0",
+    "1f3876dec1c565f7": "24310a52370ec2c0",
+    "legal_agg20:q1": "24310a52370ec2c0",
+    "1f3ed16c235648bd": "24310a52370ec2c0",
+    "legal_agg20:q6": "24310a52370ec2c0",
+    "223d19f94e80f00f": "24310a52370ec2c0",
+    "legal_multiagg20:q14": "24310a52370ec2c0",
+    "2a791845b451b311": "24310a52370ec2c0",
+    "legal_multiagg20:q6": "24310a52370ec2c0",
+    "2bab169d084dabac": "24310a52370ec2c0",
+    "legal_filter20:q13": "24310a52370ec2c0",
+    "2c37a725e0adfab1": "24310a52370ec2c0",
+    "legal_agg20:q12": "24310a52370ec2c0",
+    "2e86e7927caf0ccb": "24310a52370ec2c0",
+    "legal_groupby20:q11": "24310a52370ec2c0",
+    "31006d3bba4733ac": "24310a52370ec2c0",
+    "legal_filter20:q4": "24310a52370ec2c0",
+    "462c057e4e2bb6b3": "24310a52370ec2c0",
+    "legal_agg20:q8": "24310a52370ec2c0",
+    "4b8302a21fd3f8e5": "24310a52370ec2c0",
+    "legal_agg20:q10": "24310a52370ec2c0",
+    "4f3570a733cbb983": "24310a52370ec2c0",
+    "legal_agg20:q16": "24310a52370ec2c0",
+    "529cf80220e81943": "24310a52370ec2c0",
+    "legal_groupby20:q2": "24310a52370ec2c0",
+    "53711ca7a4470ac3": "24310a52370ec2c0",
+    "legal_agg20:q2": "24310a52370ec2c0",
+    "58834043141a5553": "24310a52370ec2c0",
+    "legal_multiagg20:q2": "24310a52370ec2c0",
+    "5a3af5346c6f9243": "24310a52370ec2c0",
+    "legal_agg20:q19": "24310a52370ec2c0",
+    "5b46696fc726433b": "24310a52370ec2c0",
+    "legal_groupby20:q18": "24310a52370ec2c0",
+    "5b4bf3c4be5fc84a": "24310a52370ec2c0",
+    "legal_filter20:q14": "24310a52370ec2c0",
+    "5efe39e855c2c087": "24310a52370ec2c0",
+    "legal_filter20:q12": "24310a52370ec2c0",
+    "5f852b40b2b61f7d": "24310a52370ec2c0",
+    "legal_multiagg20:q19": "24310a52370ec2c0",
+    "65ffc3a10278972e": "24310a52370ec2c0",
+    "legal_filter20:q18": "24310a52370ec2c0",
+    "73e67610adf2b221": "24310a52370ec2c0",
+    "legal_agg20:q15": "24310a52370ec2c0",
+    "7e6f424a5c8d3df8": "24310a52370ec2c0",
+    "legal_agg20:q0": "24310a52370ec2c0",
+    "7e867cfba0c496c5": "24310a52370ec2c0",
+    "legal_agg20:q9": "24310a52370ec2c0",
+    "7fd79cdb7ae1258a": "24310a52370ec2c0",
+    "legal_groupby20:q19": "24310a52370ec2c0",
+    "8272b08e20e4b82a": "24310a52370ec2c0",
+    "legal_agg20:q5": "24310a52370ec2c0",
+    "8cddd3c135007e8a": "24310a52370ec2c0",
+    "legal_groupby20:q13": "24310a52370ec2c0",
+    "8f3d536313e8779e": "24310a52370ec2c0",
+    "legal_groupby20:q4": "24310a52370ec2c0",
+    "9ed5df04c3bccfb7": "24310a52370ec2c0",
+    "legal_groupby20:q10": "24310a52370ec2c0",
+    "9f25fcb4375af5aa": "24310a52370ec2c0",
+    "legal_filter20:q0": "24310a52370ec2c0",
+    "b7acd953257b3ec0": "24310a52370ec2c0",
+    "legal_agg20:q18": "24310a52370ec2c0",
+    "c617c454d774797a": "24310a52370ec2c0",
+    "legal_multiagg20:q17": "24310a52370ec2c0",
+    "d636e9dced7c421f": "24310a52370ec2c0",
+    "legal_groupby20:q9": "24310a52370ec2c0",
+    "de4939d3685a415b": "24310a52370ec2c0",
+    "legal_groupby20:q8": "24310a52370ec2c0",
+    "e0d925b2b31e2ba7": "24310a52370ec2c0",
+    "legal_groupby20:q3": "24310a52370ec2c0",
+    "e45b81d41eb2f8c7": "24310a52370ec2c0",
+    "legal_groupby20:q0": "24310a52370ec2c0",
+    "eb531c935057abc6": "24310a52370ec2c0",
+    "legal_filter20:q3": "24310a52370ec2c0",
+    "f6e21d7bc3f1a5d7": "24310a52370ec2c0",
+    "legal_multiagg20:q8": "24310a52370ec2c0",
+    "fffe3d4c149511ed": "24310a52370ec2c0"
+  },
+  "rewrites": {
+    "054b40955260148e": "SELECT judgment_year, COUNT(*) AS case_count FROM legal WHERE first_judge = 1 AND evidence = 1 AND judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "legal_filter20:q6": "SELECT judgment_year, COUNT(*) AS case_count FROM legal WHERE first_judge = 1 AND evidence = 1 AND judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "0c136001dfcc74cb": "SELECT first_judge, AVG(case_number) AS avg_precedents FROM legal WHERE hearing_year >= 2007 AND hearing_year <= 2009 AND case_number IS NOT NULL GROUP BY first_judge",
+    "legal_filter20:q16": "SELECT first_judge, AVG(case_number) AS avg_precedents FROM legal WHERE hearing_year >= 2007 AND hearing_year <= 2009 AND case_number IS NOT NULL GROUP BY first_judge",
+    "0d1c45c4b970ebc0": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family",
+    "legal_multiagg20:q0": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family",
+    "0d2fb0f5b77c98b4": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, MAX(case_number) AS max_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY verdict_family",
+    "legal_multiagg20:q1": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, MAX(case_number) AS max_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY verdict_family",
+    "0d52721f0f33c60a": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant IN ('Australia', 'China', 'India') GROUP BY case_family",
+    "legal_filter20:q2": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant IN ('Australia', 'China', 'India') GROUP BY case_family",
+    "0d8544ffd6c5a1fc": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE case_type = 'Commercial Case' AND case_number >= 3 GROUP BY verdict_family",
+    "legal_filter20:q1": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE case_type = 'Commercial Case' AND case_number >= 3 GROUP BY verdict_family",
+    "115f3de93bf17618": "SELECT hearing_year, judgment_year, COUNT(*) AS case_count FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 AND judgment_year BETWEEN 2006 AND 2009 GROUP BY hearing_year, judgment_year",
+    "legal_groupby20:q15": "SELECT hearing_year, judgment_year, COUNT(*) AS case_count FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 AND judgment_year BETWEEN 2006 AND 2009 GROUP BY hearing_year, judgment_year",
+    "129cfb6cfa90f404": "SELECT hearing_year, CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END AS statute_band, COUNT(*) AS case_count FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 GROUP BY hearing_year, statute_band",
+    "legal_groupby20:q6": "SELECT hearing_year, CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END AS statute_band, COUNT(*) AS case_count FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 GROUP BY hearing_year, statute_band",
+    "12a06f24ce025c09": "SELECT CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END AS precedent_band, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, SUM(CASE WHEN first_judge = 1 THEN 1 ELSE 0 END) AS first_judge_count FROM legal WHERE case_number IS NOT NULL GROUP BY precedent_band",
+    "legal_multiagg20:q15": "SELECT CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END AS precedent_band, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, SUM(CASE WHEN first_judge = 1 THEN 1 ELSE 0 END) AS first_judge_count FROM legal WHERE case_number IS NOT NULL GROUP BY precedent_band",
+    "12e24a5558278379": "SELECT hearing_year, COUNT(*) AS case_count, MIN(legal_basis_num) AS min_statutes, MAX(legal_basis_num) AS max_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 AND case_number IS NOT NULL GROUP BY hearing_year",
+    "legal_multiagg20:q10": "SELECT hearing_year, COUNT(*) AS case_count, MIN(legal_basis_num) AS min_statutes, MAX(legal_basis_num) AS max_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 AND case_number IS NOT NULL GROUP BY hearing_year",
+    "150d2aff132ef7d2": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count, SUM(CASE WHEN evidence = 1 THEN 1 ELSE 0 END) AS evidence_count, AVG(legal_basis_num) AS avg_statutes FROM legal GROUP BY case_family",
+    "legal_multiagg20:q16": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count, SUM(CASE WHEN evidence = 1 THEN 1 ELSE 0 END) AS evidence_count, AVG(legal_basis_num) AS avg_statutes FROM legal GROUP BY case_family",
+    "16306604e3f8487d": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE evidence = 0 AND first_judge = 1 GROUP BY case_family",
+    "legal_filter20:q19": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE evidence = 0 AND first_judge = 1 GROUP BY case_family",
+    "18bbdb33cb237cd2": "SELECT CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num <= 2 THEN '1_or_2' ELSE '3_or_more' END AS statute_band, CASE WHEN case_number = 0 THEN 'no_precedents' ELSE 'has_precedents' END AS precedent_status, COUNT(*) AS case_count FROM legal WHERE case_number IS NOT NULL GROUP BY statute_band, precedent_status",
+    "legal_groupby20:q17": "SELECT CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num <= 2 THEN '1_or_2' ELSE '3_or_more' END AS statute_band, CASE WHEN case_number = 0 THEN 'no_precedents' ELSE 'has_precedents' END AS precedent_status, COUNT(*) AS case_count FROM legal WHERE case_number IS NOT NULL GROUP BY statute_band, precedent_status",
+    "1af2056e2a9d9f19": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE nationality_for_applicant != '' AND case_number IS NOT NULL GROUP BY applicant_nation",
+    "legal_multiagg20:q3": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE nationality_for_applicant != '' AND case_number IS NOT NULL GROUP BY applicant_nation",
+    "1bb549d88aa6b8d2": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE nationality_for_applicant != '' GROUP BY applicant_nation",
+    "legal_multiagg20:q12": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE nationality_for_applicant != '' GROUP BY applicant_nation",
+    "1eaf9e6fc3656e60": "SELECT judge_name, COUNT(*) AS case_count FROM legal WHERE case_type = 'Administrative Case' AND verdict = 'Dismissed' GROUP BY judge_name HAVING COUNT(*) >= 5",
+    "legal_filter20:q10": "SELECT judge_name, COUNT(*) AS case_count FROM legal WHERE case_type = 'Administrative Case' AND verdict = 'Dismissed' GROUP BY judge_name HAVING COUNT(*) >= 5",
+    "1f3876dec1c565f7": "SELECT judgment_year, first_judge, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 AND first_judge IS NOT NULL GROUP BY judgment_year, first_judge",
+    "legal_groupby20:q1": "SELECT judgment_year, first_judge, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 AND first_judge IS NOT NULL GROUP BY judgment_year, first_judge",
+    "1f3ed16c235648bd": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal GROUP BY verdict_family",
+    "legal_agg20:q1": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal GROUP BY verdict_family",
+    "223d19f94e80f00f": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant != '' GROUP BY applicant_nation",
+    "legal_agg20:q6": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant != '' GROUP BY applicant_nation",
+    "2a791845b451b311": "SELECT judgment_year, first_judge, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 AND first_judge IS NOT NULL AND case_number IS NOT NULL GROUP BY judgment_year, first_judge",
+    "legal_multiagg20:q14": "SELECT judgment_year, first_judge, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 AND first_judge IS NOT NULL AND case_number IS NOT NULL GROUP BY judgment_year, first_judge",
+    "2bab169d084dabac": "SELECT judge_name, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE judge_name != '' AND case_number IS NOT NULL GROUP BY judge_name HAVING COUNT(*) >= 10",
+    "legal_multiagg20:q6": "SELECT judge_name, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE judge_name != '' AND case_number IS NOT NULL GROUP BY judge_name HAVING COUNT(*) >= 10",
+    "2c37a725e0adfab1": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE case_type = 'Administrative Case' AND nationality_for_applicant != '' GROUP BY applicant_nation",
+    "legal_filter20:q13": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE case_type = 'Administrative Case' AND nationality_for_applicant != '' GROUP BY applicant_nation",
+    "2e86e7927caf0ccb": "SELECT judge_name, COUNT(*) AS case_count FROM legal WHERE judge_name != '' GROUP BY judge_name HAVING COUNT(*) >= 10",
+    "legal_agg20:q12": "SELECT judge_name, COUNT(*) AS case_count FROM legal WHERE judge_name != '' GROUP BY judge_name HAVING COUNT(*) >= 10",
+    "31006d3bba4733ac": "SELECT evidence, first_judge, COUNT(*) AS case_count FROM legal WHERE evidence IS NOT NULL AND first_judge IS NOT NULL GROUP BY evidence, first_judge",
+    "legal_groupby20:q11": "SELECT evidence, first_judge, COUNT(*) AS case_count FROM legal WHERE evidence IS NOT NULL AND first_judge IS NOT NULL GROUP BY evidence, first_judge",
+    "462c057e4e2bb6b3": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count FROM legal WHERE case_type = 'Administrative Case' AND verdict = 'Dismissed' AND nationality_for_applicant != '' GROUP BY applicant_nation",
+    "legal_filter20:q4": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count FROM legal WHERE case_type = 'Administrative Case' AND verdict = 'Dismissed' AND nationality_for_applicant != '' GROUP BY applicant_nation",
+    "4b8302a21fd3f8e5": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, AVG(legal_basis_num) AS avg_statutes FROM legal GROUP BY case_family",
+    "legal_agg20:q8": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, AVG(legal_basis_num) AS avg_statutes FROM legal GROUP BY case_family",
+    "4f3570a733cbb983": "SELECT judgment_year, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "legal_agg20:q10": "SELECT judgment_year, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "529cf80220e81943": "SELECT CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num = 1 THEN 'one' WHEN legal_basis_num <= 3 THEN 'two_or_three' ELSE 'four_or_more' END AS statute_band, COUNT(*) AS case_count FROM legal GROUP BY statute_band",
+    "legal_agg20:q16": "SELECT CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num = 1 THEN 'one' WHEN legal_basis_num <= 3 THEN 'two_or_three' ELSE 'four_or_more' END AS statute_band, COUNT(*) AS case_count FROM legal GROUP BY statute_band",
+    "53711ca7a4470ac3": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, evidence, COUNT(*) AS case_count FROM legal WHERE evidence IS NOT NULL GROUP BY case_family, evidence",
+    "legal_groupby20:q2": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, evidence, COUNT(*) AS case_count FROM legal WHERE evidence IS NOT NULL GROUP BY case_family, evidence",
+    "58834043141a5553": "SELECT judgment_year, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "legal_agg20:q2": "SELECT judgment_year, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "5a3af5346c6f9243": "SELECT judgment_year, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, SUM(CASE WHEN evidence = 1 THEN 1 ELSE 0 END) AS evidence_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 AND case_number IS NOT NULL GROUP BY judgment_year",
+    "legal_multiagg20:q2": "SELECT judgment_year, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, SUM(CASE WHEN evidence = 1 THEN 1 ELSE 0 END) AS evidence_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 AND case_number IS NOT NULL GROUP BY judgment_year",
+    "5b46696fc726433b": "SELECT judgment_year, MAX(legal_basis_num) AS max_statutes FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "legal_agg20:q19": "SELECT judgment_year, MAX(legal_basis_num) AS max_statutes FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "5b4bf3c4be5fc84a": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, evidence, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant != '' AND evidence IS NOT NULL GROUP BY applicant_nation, evidence",
+    "legal_groupby20:q18": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, evidence, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant != '' AND evidence IS NOT NULL GROUP BY applicant_nation, evidence",
+    "5efe39e855c2c087": "SELECT judgment_year, COUNT(*) AS case_count FROM legal WHERE case_type = 'Commercial Case' AND legal_basis_num >= 2 AND judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "legal_filter20:q14": "SELECT judgment_year, COUNT(*) AS case_count FROM legal WHERE case_type = 'Commercial Case' AND legal_basis_num >= 2 AND judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+    "5f852b40b2b61f7d": "SELECT evidence, COUNT(*) AS case_count FROM legal WHERE legal_basis_num BETWEEN 2 AND 5 AND case_number >= 4 GROUP BY evidence",
+    "legal_filter20:q12": "SELECT evidence, COUNT(*) AS case_count FROM legal WHERE legal_basis_num BETWEEN 2 AND 5 AND case_number >= 4 GROUP BY evidence",
+    "65ffc3a10278972e": "SELECT hearing_year, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, MAX(case_number) AS max_precedents, SUM(CASE WHEN verdict = 'Approved' THEN 1 ELSE 0 END) AS approved_count FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 AND case_number IS NOT NULL GROUP BY hearing_year",
+    "legal_multiagg20:q19": "SELECT hearing_year, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, MAX(case_number) AS max_precedents, SUM(CASE WHEN verdict = 'Approved' THEN 1 ELSE 0 END) AS approved_count FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 AND case_number IS NOT NULL GROUP BY hearing_year",
+    "73e67610adf2b221": "SELECT CASE WHEN legal_basis_num >= 4 THEN 'statute_heavy' ELSE 'statute_light' END AS statute_band, COUNT(*) AS case_count FROM legal WHERE case_type IN ('Civil Case', 'Commercial Case') GROUP BY statute_band",
+    "legal_filter20:q18": "SELECT CASE WHEN legal_basis_num >= 4 THEN 'statute_heavy' ELSE 'statute_light' END AS statute_band, COUNT(*) AS case_count FROM legal WHERE case_type IN ('Civil Case', 'Commercial Case') GROUP BY statute_band",
+    "7e6f424a5c8d3df8": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, AVG(case_number) AS avg_precedents FROM legal WHERE nationality_for_applicant != '' AND case_number IS NOT NULL GROUP BY applicant_nation",
+    "legal_agg20:q15": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, AVG(case_number) AS avg_precedents FROM legal WHERE nationality_for_applicant != '' AND case_number IS NOT NULL GROUP BY applicant_nation",
+    "7e867cfba0c496c5": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal GROUP BY case_family",
+    "legal_agg20:q0": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal GROUP BY case_family",
+    "7fd79cdb7ae1258a": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(case_number) AS avg_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY verdict_family",
+    "legal_agg20:q9": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(case_number) AS avg_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY verdict_family",
+    "8272b08e20e4b82a": "SELECT judgment_year, CASE WHEN case_type = 'Administrative Case' THEN 'Administrative' ELSE 'non_administrative' END AS case_group, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year, case_group",
+    "legal_groupby20:q19": "SELECT judgment_year, CASE WHEN case_type = 'Administrative Case' THEN 'Administrative' ELSE 'non_administrative' END AS case_group, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year, case_group",
+    "8cddd3c135007e8a": "SELECT evidence, COUNT(*) AS case_count FROM legal WHERE evidence IS NOT NULL GROUP BY evidence",
+    "legal_agg20:q5": "SELECT evidence, COUNT(*) AS case_count FROM legal WHERE evidence IS NOT NULL GROUP BY evidence",
+    "8f3d536313e8779e": "SELECT judge_name, CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END AS dismissal_status, COUNT(*) AS case_count FROM legal WHERE judge_name IN ('Flick', 'Tracey', 'Greenwood', 'Marshall', 'Moore', 'Heerey') GROUP BY judge_name, dismissal_status",
+    "legal_groupby20:q13": "SELECT judge_name, CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END AS dismissal_status, COUNT(*) AS case_count FROM legal WHERE judge_name IN ('Flick', 'Tracey', 'Greenwood', 'Marshall', 'Moore', 'Heerey') GROUP BY judge_name, dismissal_status",
+    "9ed5df04c3bccfb7": "SELECT CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END AS precedent_band, case_type, COUNT(*) AS case_count FROM legal WHERE case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') AND case_number IS NOT NULL GROUP BY precedent_band, case_type",
+    "legal_groupby20:q4": "SELECT CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END AS precedent_band, case_type, COUNT(*) AS case_count FROM legal WHERE case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') AND case_number IS NOT NULL GROUP BY precedent_band, case_type",
+    "9f25fcb4375af5aa": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant != '' GROUP BY applicant_nation, verdict_family",
+    "legal_groupby20:q10": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant != '' GROUP BY applicant_nation, verdict_family",
+    "b7acd953257b3ec0": "SELECT evidence, COUNT(*) AS case_count FROM legal WHERE case_type = 'Administrative Case' AND verdict = 'Dismissed' AND judgment_year BETWEEN 2007 AND 2008 GROUP BY evidence",
+    "legal_filter20:q0": "SELECT evidence, COUNT(*) AS case_count FROM legal WHERE case_type = 'Administrative Case' AND verdict = 'Dismissed' AND judgment_year BETWEEN 2007 AND 2008 GROUP BY evidence",
+    "c617c454d774797a": "SELECT evidence, AVG(case_number) AS avg_precedents FROM legal WHERE evidence IS NOT NULL AND case_number IS NOT NULL GROUP BY evidence",
+    "legal_agg20:q18": "SELECT evidence, AVG(case_number) AS avg_precedents FROM legal WHERE evidence IS NOT NULL AND case_number IS NOT NULL GROUP BY evidence",
+    "d636e9dced7c421f": "SELECT judge_name, COUNT(*) AS case_count, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count, AVG(case_number) AS avg_precedents FROM legal WHERE judge_name IN ('Flick', 'Tracey', 'Greenwood', 'Marshall', 'Moore', 'Heerey', 'Spender', 'Rares') AND case_number IS NOT NULL GROUP BY judge_name",
+    "legal_multiagg20:q17": "SELECT judge_name, COUNT(*) AS case_count, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count, AVG(case_number) AS avg_precedents FROM legal WHERE judge_name IN ('Flick', 'Tracey', 'Greenwood', 'Marshall', 'Moore', 'Heerey', 'Spender', 'Rares') AND case_number IS NOT NULL GROUP BY judge_name",
+    "de4939d3685a415b": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, first_judge, COUNT(*) AS case_count FROM legal WHERE first_judge IS NOT NULL GROUP BY case_family, first_judge",
+    "legal_groupby20:q9": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, first_judge, COUNT(*) AS case_count FROM legal WHERE first_judge IS NOT NULL GROUP BY case_family, first_judge",
+    "e0d925b2b31e2ba7": "SELECT judgment_year, CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END AS dismissal_status, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year, dismissal_status",
+    "legal_groupby20:q8": "SELECT judgment_year, CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END AS dismissal_status, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year, dismissal_status",
+    "e45b81d41eb2f8c7": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant != '' GROUP BY applicant_nation, case_family",
+    "legal_groupby20:q3": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant != '' GROUP BY applicant_nation, case_family",
+    "eb531c935057abc6": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal GROUP BY case_family, verdict_family",
+    "legal_groupby20:q0": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal GROUP BY case_family, verdict_family",
+    "f6e21d7bc3f1a5d7": "SELECT first_judge, COUNT(*) AS case_count FROM legal WHERE case_type = 'Civil Case' AND judgment_year BETWEEN 2006 AND 2008 GROUP BY first_judge",
+    "legal_filter20:q3": "SELECT first_judge, COUNT(*) AS case_count FROM legal WHERE case_type = 'Civil Case' AND judgment_year BETWEEN 2006 AND 2008 GROUP BY first_judge",
+    "fffe3d4c149511ed": "SELECT evidence, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, MAX(case_number) AS max_precedents FROM legal WHERE evidence IS NOT NULL AND case_number IS NOT NULL GROUP BY evidence",
+    "legal_multiagg20:q8": "SELECT evidence, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, MAX(case_number) AS max_precedents FROM legal WHERE evidence IS NOT NULL AND case_number IS NOT NULL GROUP BY evidence"
+  },
+  "databases": [
+    {
+      "schema_version": "1",
+      "config_id": "24310a52370ec2c0",
+      "sqlite_path": "results/quwarts_legal_compiler80/artifacts/databases/24310a52370ec2c0.db",
+      "sha256": "58071d8485acb41ac7d3981c90883b47634360b0cc9b14ede53d5cd74aa14d7c",
+      "row_counts": {
+        "fact": 258,
+        "legal": 258
+      },
+      "tokens_spent": 1532285,
+      "coverage": {
+        "schema_version": "1",
+        "attribute_ranges": {
+          "legal.case_type": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.verdict": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.evidence": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.nationality_for_applicant": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.defendant_current_status": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.plaintiff_current_status": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.judgment_year": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.first_judge": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.judge_name": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.case_number": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.hearing_year": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          },
+          "legal.legal_basis_num": {
+            "schema_version": "1",
+            "kind": "full",
+            "ranges": []
+          }
+        },
+        "attributes_present": [
+          "legal.verdict",
+          "legal.defendant_current_status",
+          "legal.judge_name",
+          "legal.hearing_year",
+          "legal.first_judge",
+          "legal.judgment_year",
+          "legal.plaintiff_current_status",
+          "legal.legal_basis_num",
+          "legal.evidence",
+          "legal.case_number",
+          "legal.nationality_for_applicant",
+          "legal.case_type"
+        ],
+        "grain": {
+          "legal": "mention"
+        },
+        "forms": {
+          "legal.legal_basis_num": [
+            "parsed",
+            "surface"
+          ],
+          "legal.case_number": [
+            "parsed",
+            "surface"
+          ],
+          "legal.case_type": [
+            "parsed",
+            "surface"
+          ],
+          "legal.verdict": [
+            "parsed",
+            "surface",
+            "unit:usd"
+          ],
+          "legal.evidence": [
+            "parsed",
+            "surface",
+            "unit:usd"
+          ],
+          "legal.judgment_year": [
+            "parsed",
+            "surface"
+          ],
+          "legal.nationality_for_applicant": [
+            "parsed",
+            "surface"
+          ],
+          "legal.first_judge": [
+            "parsed",
+            "surface"
+          ],
+          "legal.defendant_current_status": [
+            "parsed",
+            "surface",
+            "unit:usd"
+          ],
+          "legal.hearing_year": [
+            "parsed",
+            "surface"
+          ],
+          "legal.judge_name": [
+            "parsed",
+            "surface"
+          ],
+          "legal.plaintiff_current_status": [
+            "parsed",
+            "surface"
+          ]
+        },
+        "corpus_fingerprint": "74bbf9eb84a18b3d86758597008b3616068e159ccafe6cbe041ca47154edeb14"
+      },
+      "surrogate": {
+        "schema_version": "1",
+        "U_hat": 0.0,
+        "signals": {},
+        "weighted": {}
+      }
+    }
+  ],
+  "tokens_spent": 1532285,
+  "cache_hit_rate": 0.5002922267679719,
+  "seed": 42,
+  "logical_schema": {
+    "schema_version": "1",
+    "id": "L-54ce9e98db9d",
+    "entity_types": [
+      "legal"
+    ],
+    "attributes": [
+      {
+        "schema_version": "1",
+        "name": "case_number",
+        "entity_type": "legal",
+        "dtype": "numeric",
+        "unit_domain": null,
+        "nullable": true
+      },
+      {
+        "schema_version": "1",
+        "name": "case_type",
+        "entity_type": "legal",
+        "dtype": "string",
+        "unit_domain": null,
+        "nullable": true
+      },
+      {
+        "schema_version": "1",
+        "name": "evidence",
+        "entity_type": "legal",
+        "dtype": "numeric",
+        "unit_domain": null,
+        "nullable": true
+      },
+      {
+        "schema_version": "1",
+        "name": "first_judge",
+        "entity_type": "legal",
+        "dtype": "numeric",
+        "unit_domain": null,
+        "nullable": true
+      },
+      {
+        "schema_version": "1",
+        "name": "hearing_year",
+        "entity_type": "legal",
+        "dtype": "numeric",
+        "unit_domain": null,
+        "nullable": true
+      },
+      {
+        "schema_version": "1",
+        "name": "judge_name",
+        "entity_type": "legal",
+        "dtype": "string",
+        "unit_domain": null,
+        "nullable": true
+      },
+      {
+        "schema_version": "1",
+        "name": "judgment_year",
+        "entity_type": "legal",
+        "dtype": "numeric",
+        "unit_domain": null,
+        "nullable": true
+      },
+      {
+        "schema_version": "1",
+        "name": "legal_basis_num",
+        "entity_type": "legal",
+        "dtype": "numeric",
+        "unit_domain": null,
+        "nullable": true
+      },
+      {
+        "schema_version": "1",
+        "name": "nationality_for_applicant",
+        "entity_type": "legal",
+        "dtype": "string",
+        "unit_domain": null,
+        "nullable": true
+      },
+      {
+        "schema_version": "1",
+        "name": "verdict",
+        "entity_type": "legal",
+        "dtype": "string",
+        "unit_domain": null,
+        "nullable": true
+      }
+    ],
+    "relationships": [],
+    "identity_grain": {
+      "legal": "mention"
+    },
+    "expressions": [
+      {
+        "schema_version": "1",
+        "alias": "applicant_nation",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.nationality_for_applicant"
+        ],
+        "sql": "CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END"
+      },
+      {
+        "schema_version": "1",
+        "alias": "case_family",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.case_type"
+        ],
+        "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+      },
+      {
+        "schema_version": "1",
+        "alias": "case_group",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.case_type"
+        ],
+        "sql": "CASE WHEN case_type = 'Administrative Case' THEN 'Administrative' ELSE 'non_administrative' END"
+      },
+      {
+        "schema_version": "1",
+        "alias": "defendant_family",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.defendant_current_status"
+        ],
+        "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END"
+      },
+      {
+        "schema_version": "1",
+        "alias": "dismissal_status",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.verdict"
+        ],
+        "sql": "CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END"
+      },
+      {
+        "schema_version": "1",
+        "alias": "plaintiff_family",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.plaintiff_current_status"
+        ],
+        "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+      },
+      {
+        "schema_version": "1",
+        "alias": "precedent_band",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.case_number"
+        ],
+        "sql": "CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END"
+      },
+      {
+        "schema_version": "1",
+        "alias": "precedent_status",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.case_number"
+        ],
+        "sql": "CASE WHEN case_number = 0 THEN 'no_precedents' ELSE 'has_precedents' END"
+      },
+      {
+        "schema_version": "1",
+        "alias": "statute_band",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.legal_basis_num"
+        ],
+        "sql": "CASE WHEN legal_basis_num >= 3 THEN 'statute_heavy' ELSE 'statute_light' END"
+      },
+      {
+        "schema_version": "1",
+        "alias": "verdict_family",
+        "entity_type": "legal",
+        "base_attributes": [
+          "legal.verdict"
+        ],
+        "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+      }
+    ]
+  },
+  "mode": "compile",
+  "domain_maps": {
+    "legal.case_type": {},
+    "case_type": {},
+    "legal.verdict": {},
+    "verdict": {},
+    "legal.judge_name": {},
+    "judge_name": {},
+    "legal.defendant_current_status": {
+      "Minister for Immigration and Citizenship": "Government",
+      "Not explicitly stated, but the Minister for Immigration and Multicultural and Indigenous Affairs is the respondent.": "Government"
+    },
+    "defendant_current_status": {
+      "Minister for Immigration and Citizenship": "Government",
+      "Not explicitly stated, but the Minister for Immigration and Multicultural and Indigenous Affairs is the respondent.": "Government"
+    },
+    "legal.plaintiff_current_status": {},
+    "plaintiff_current_status": {}
+  },
+  "identity_report": {},
+  "domain_disjoint_rejections": [],
+  "empty_result_rejections": [
+    {
+      "reason": "empty_result_rate",
+      "empty_rate": 0.375,
+      "threshold": 0.25,
+      "empty_ids": [
+        "00e0b73f7c59e910",
+        "01acab6775336b4e",
+        "054b40955260148e",
+        "0d8544ffd6c5a1fc",
+        "16306604e3f8487d",
+        "182e3c5502f02f78",
+        "1eaf9e6fc3656e60",
+        "2bab169d084dabac",
+        "2c37a725e0adfab1",
+        "2ed6fc97a39f2120",
+        "462c057e4e2bb6b3",
+        "46b3c98647aaf8b7",
+        "4b3d521ab6c25387",
+        "4e186e6cacbc0f19",
+        "5efe39e855c2c087",
+        "73e67610adf2b221",
+        "897cd51ce42cf0ee",
+        "8f3d536313e8779e",
+        "9ed5df04c3bccfb7",
+        "9f3a8a415e504d1b",
+        "b7acd953257b3ec0",
+        "d2be73b9b75a9b37",
+        "d636e9dced7c421f",
+        "f6e21d7bc3f1a5d7"
+      ],
+      "cluster": "c0-ac2e73eb"
+    }
+  ],
+  "empty_result_threshold": 0.25,
+  "conflict_mix": {
+    "destructive": 0,
+    "non_destructive": 0,
+    "total": 0
+  },
+  "cluster_count": 1,
+  "bridges": {},
+  "zero_yield_pairs": [],
+  "binding_failures": [
+    "legal_filter20:q5: unbound attribute legal.defendant_current_status",
+    "legal_filter20:q5: unbound attribute legal.defendant_current_status",
+    "legal_filter20:q5: unbound attribute legal.defendant_current_status",
+    "legal_filter20:q5: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q16: unbound attribute legal.plaintiff_current_status",
+    "legal_groupby20:q16: unbound attribute legal.plaintiff_current_status",
+    "legal_groupby20:q16: unbound attribute legal.plaintiff_current_status",
+    "legal_groupby20:q16: unbound attribute legal.plaintiff_current_status",
+    "legal_multiagg20:q7: unbound attribute legal.plaintiff_current_status",
+    "legal_multiagg20:q7: unbound attribute legal.plaintiff_current_status",
+    "legal_multiagg20:q7: unbound attribute legal.plaintiff_current_status",
+    "legal_multiagg20:q7: unbound attribute legal.plaintiff_current_status",
+    "legal_groupby20:q7: unbound attribute legal.plaintiff_current_status",
+    "legal_groupby20:q7: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q7: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q7: unbound attribute legal.plaintiff_current_status",
+    "legal_groupby20:q7: unbound attribute legal.plaintiff_current_status",
+    "legal_groupby20:q7: unbound attribute legal.plaintiff_current_status",
+    "legal_groupby20:q7: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q7: unbound attribute legal.defendant_current_status",
+    "legal_agg20:q7: unbound attribute legal.defendant_current_status",
+    "legal_agg20:q7: unbound attribute legal.defendant_current_status",
+    "legal_agg20:q7: unbound attribute legal.defendant_current_status",
+    "legal_agg20:q7: unbound attribute legal.defendant_current_status",
+    "legal_multiagg20:q5: unbound attribute legal.defendant_current_status",
+    "legal_multiagg20:q5: unbound attribute legal.defendant_current_status",
+    "legal_multiagg20:q5: unbound attribute legal.defendant_current_status",
+    "legal_multiagg20:q5: unbound attribute legal.defendant_current_status",
+    "legal_multiagg20:q13: unbound attribute legal.defendant_current_status",
+    "legal_multiagg20:q13: unbound attribute legal.defendant_current_status",
+    "legal_multiagg20:q13: unbound attribute legal.defendant_current_status",
+    "legal_multiagg20:q13: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q12: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q12: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q12: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q12: unbound attribute legal.defendant_current_status",
+    "legal_filter20:q17: unbound attribute legal.defendant_current_status",
+    "legal_filter20:q17: unbound attribute legal.defendant_current_status",
+    "legal_filter20:q17: unbound attribute legal.defendant_current_status",
+    "legal_filter20:q17: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q5: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q5: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q5: unbound attribute legal.defendant_current_status",
+    "legal_groupby20:q5: unbound attribute legal.defendant_current_status"
+  ],
+  "requirements": {
+    "legal.case_type": {
+      "schema_version": "1",
+      "name": "legal.case_type",
+      "entity_type": "legal",
+      "dtype": "string",
+      "roles": [
+        "predicate",
+        "group",
+        "project"
+      ],
+      "templates": [
+        "de4939d3685a415b",
+        "f6e21d7bc3f1a5d7",
+        "1eaf9e6fc3656e60",
+        "4b8302a21fd3f8e5",
+        "16306604e3f8487d",
+        "8272b08e20e4b82a",
+        "73e67610adf2b221",
+        "53711ca7a4470ac3",
+        "150d2aff132ef7d2",
+        "b7acd953257b3ec0",
+        "e45b81d41eb2f8c7",
+        "2c37a725e0adfab1",
+        "0d52721f0f33c60a",
+        "eb531c935057abc6",
+        "462c057e4e2bb6b3",
+        "0d1c45c4b970ebc0",
+        "0d8544ffd6c5a1fc",
+        "7e867cfba0c496c5",
+        "5efe39e855c2c087",
+        "9ed5df04c3bccfb7"
+      ],
+      "freq_weight": 20.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "full",
+        "ranges": []
+      },
+      "declared_domain": [
+        "Administrative Case",
+        "Civil Case",
+        "Commercial Case"
+      ],
+      "stats": null,
+      "amp": 40.0
+    },
+    "legal.first_judge": {
+      "schema_version": "1",
+      "name": "legal.first_judge",
+      "entity_type": "legal",
+      "dtype": "numeric",
+      "roles": [
+        "agg_additive",
+        "predicate",
+        "group"
+      ],
+      "templates": [
+        "de4939d3685a415b",
+        "f6e21d7bc3f1a5d7",
+        "16306604e3f8487d",
+        "0c136001dfcc74cb",
+        "31006d3bba4733ac",
+        "2a791845b451b311",
+        "12a06f24ce025c09",
+        "054b40955260148e",
+        "1f3876dec1c565f7"
+      ],
+      "freq_weight": 9.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "ranges",
+        "ranges": [
+          {
+            "schema_version": "1",
+            "attribute": "legal.first_judge",
+            "op": "=",
+            "values": [
+              1
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.first_judge",
+            "op": "=",
+            "values": [
+              1
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.case_number",
+            "op": "=",
+            "values": [
+              0
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.case_number",
+            "op": "<=",
+            "values": [
+              4
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.first_judge",
+            "op": "=",
+            "values": [
+              1
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.first_judge",
+            "op": "=",
+            "values": [
+              1
+            ]
+          }
+        ]
+      },
+      "declared_domain": [],
+      "stats": null,
+      "amp": 18.0
+    },
+    "legal.nationality_for_applicant": {
+      "schema_version": "1",
+      "name": "legal.nationality_for_applicant",
+      "entity_type": "legal",
+      "dtype": "string",
+      "roles": [
+        "predicate",
+        "group"
+      ],
+      "templates": [
+        "1af2056e2a9d9f19",
+        "9f25fcb4375af5aa",
+        "7e6f424a5c8d3df8",
+        "1bb549d88aa6b8d2",
+        "e45b81d41eb2f8c7",
+        "2c37a725e0adfab1",
+        "0d52721f0f33c60a",
+        "462c057e4e2bb6b3",
+        "223d19f94e80f00f",
+        "5b4bf3c4be5fc84a"
+      ],
+      "freq_weight": 10.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "ranges",
+        "ranges": [
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          }
+        ]
+      },
+      "declared_domain": [],
+      "stats": null,
+      "amp": 20.0
+    },
+    "legal.case_number": {
+      "schema_version": "1",
+      "name": "legal.case_number",
+      "entity_type": "legal",
+      "dtype": "numeric",
+      "roles": [
+        "agg_additive",
+        "predicate",
+        "agg_extremal",
+        "group"
+      ],
+      "templates": [
+        "1af2056e2a9d9f19",
+        "18bbdb33cb237cd2",
+        "7e6f424a5c8d3df8",
+        "5a3af5346c6f9243",
+        "12e24a5558278379",
+        "c617c454d774797a",
+        "182e3c5502f02f78",
+        "0d2fb0f5b77c98b4",
+        "5f852b40b2b61f7d",
+        "0c136001dfcc74cb",
+        "0d1c45c4b970ebc0",
+        "01acab6775336b4e",
+        "7fd79cdb7ae1258a",
+        "0d8544ffd6c5a1fc",
+        "2bab169d084dabac",
+        "2a791845b451b311",
+        "12a06f24ce025c09",
+        "65ffc3a10278972e",
+        "9ed5df04c3bccfb7",
+        "d636e9dced7c421f",
+        "fffe3d4c149511ed"
+      ],
+      "freq_weight": 21.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "ranges",
+        "ranges": [
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.case_number",
+            "op": "=",
+            "values": [
+              0
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "IN",
+            "values": [
+              "Australia",
+              "China",
+              "India",
+              "Bangladesh"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.nationality_for_applicant",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.evidence",
+            "op": "=",
+            "values": [
+              1
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "IN",
+            "values": [
+              "Company",
+              "Organization",
+              "Government"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.verdict",
+            "op": "=",
+            "values": [
+              "Approved"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.case_number",
+            "op": ">=",
+            "values": [
+              4
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": ">=",
+            "values": [
+              2007
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": "<=",
+            "values": [
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "IN",
+            "values": [
+              "Government",
+              "Company",
+              "Organization"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.evidence",
+            "op": "=",
+            "values": [
+              1
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.case_number",
+            "op": ">=",
+            "values": [
+              3
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judge_name",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.case_number",
+            "op": "=",
+            "values": [
+              0
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.case_number",
+            "op": "<=",
+            "values": [
+              4
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.verdict",
+            "op": "=",
+            "values": [
+              "Approved"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.case_number",
+            "op": "=",
+            "values": [
+              0
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.case_number",
+            "op": "<=",
+            "values": [
+              4
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judge_name",
+            "op": "IN",
+            "values": [
+              "Flick",
+              "Tracey",
+              "Greenwood",
+              "Marshall",
+              "Moore",
+              "Heerey",
+              "Spender",
+              "Rares"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.verdict",
+            "op": "=",
+            "values": [
+              "Dismissed"
+            ]
+          }
+        ]
+      },
+      "declared_domain": [],
+      "stats": null,
+      "amp": 42.0
+    },
+    "legal.legal_basis_num": {
+      "schema_version": "1",
+      "name": "legal.legal_basis_num",
+      "entity_type": "legal",
+      "dtype": "numeric",
+      "roles": [
+        "agg_additive",
+        "predicate",
+        "agg_extremal",
+        "group",
+        "project"
+      ],
+      "templates": [
+        "1af2056e2a9d9f19",
+        "4b8302a21fd3f8e5",
+        "129cfb6cfa90f404",
+        "18bbdb33cb237cd2",
+        "1bb549d88aa6b8d2",
+        "73e67610adf2b221",
+        "5a3af5346c6f9243",
+        "4e186e6cacbc0f19",
+        "150d2aff132ef7d2",
+        "12e24a5558278379",
+        "5b46696fc726433b",
+        "2c37a725e0adfab1",
+        "0d2fb0f5b77c98b4",
+        "5f852b40b2b61f7d",
+        "00e0b73f7c59e910",
+        "529cf80220e81943",
+        "0d1c45c4b970ebc0",
+        "897cd51ce42cf0ee",
+        "0d8544ffd6c5a1fc",
+        "2bab169d084dabac",
+        "4f3570a733cbb983",
+        "2a791845b451b311",
+        "12a06f24ce025c09",
+        "65ffc3a10278972e",
+        "5efe39e855c2c087",
+        "fffe3d4c149511ed"
+      ],
+      "freq_weight": 26.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "full",
+        "ranges": []
+      },
+      "declared_domain": [],
+      "stats": null,
+      "amp": 52.0
+    },
+    "legal.judgment_year": {
+      "schema_version": "1",
+      "name": "legal.judgment_year",
+      "entity_type": "legal",
+      "dtype": "numeric",
+      "roles": [
+        "predicate",
+        "group"
+      ],
+      "templates": [
+        "f6e21d7bc3f1a5d7",
+        "115f3de93bf17618",
+        "8272b08e20e4b82a",
+        "5a3af5346c6f9243",
+        "5b46696fc726433b",
+        "b7acd953257b3ec0",
+        "58834043141a5553",
+        "4f3570a733cbb983",
+        "e0d925b2b31e2ba7",
+        "2a791845b451b311",
+        "054b40955260148e",
+        "5efe39e855c2c087",
+        "1f3876dec1c565f7"
+      ],
+      "freq_weight": 13.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "ranges",
+        "ranges": [
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2008
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2007,
+              2008
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judgment_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          }
+        ]
+      },
+      "declared_domain": [],
+      "stats": null,
+      "amp": 26.0
+    },
+    "legal.verdict": {
+      "schema_version": "1",
+      "name": "legal.verdict",
+      "entity_type": "legal",
+      "dtype": "string",
+      "roles": [
+        "agg_additive",
+        "predicate",
+        "group",
+        "project"
+      ],
+      "templates": [
+        "9f25fcb4375af5aa",
+        "1eaf9e6fc3656e60",
+        "1bb549d88aa6b8d2",
+        "d2be73b9b75a9b37",
+        "150d2aff132ef7d2",
+        "1f3ed16c235648bd",
+        "8f3d536313e8779e",
+        "182e3c5502f02f78",
+        "b7acd953257b3ec0",
+        "0d2fb0f5b77c98b4",
+        "eb531c935057abc6",
+        "462c057e4e2bb6b3",
+        "7fd79cdb7ae1258a",
+        "0d8544ffd6c5a1fc",
+        "e0d925b2b31e2ba7",
+        "4b3d521ab6c25387",
+        "65ffc3a10278972e",
+        "9f3a8a415e504d1b",
+        "d636e9dced7c421f"
+      ],
+      "freq_weight": 19.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "full",
+        "ranges": []
+      },
+      "declared_domain": [
+        "Approved",
+        "Others"
+      ],
+      "stats": null,
+      "amp": 38.0
+    },
+    "legal.judge_name": {
+      "schema_version": "1",
+      "name": "legal.judge_name",
+      "entity_type": "legal",
+      "dtype": "string",
+      "roles": [
+        "predicate",
+        "group"
+      ],
+      "templates": [
+        "1eaf9e6fc3656e60",
+        "8f3d536313e8779e",
+        "2bab169d084dabac",
+        "2e86e7927caf0ccb",
+        "d636e9dced7c421f"
+      ],
+      "freq_weight": 5.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "ranges",
+        "ranges": [
+          {
+            "schema_version": "1",
+            "attribute": "legal.judge_name",
+            "op": "IN",
+            "values": [
+              "Flick",
+              "Tracey",
+              "Greenwood",
+              "Marshall",
+              "Moore",
+              "Heerey"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judge_name",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judge_name",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.judge_name",
+            "op": "IN",
+            "values": [
+              "Flick",
+              "Tracey",
+              "Greenwood",
+              "Marshall",
+              "Moore",
+              "Heerey",
+              "Spender",
+              "Rares"
+            ]
+          }
+        ]
+      },
+      "declared_domain": [
+        "Flick",
+        "Greenwood",
+        "Heerey",
+        "Marshall",
+        "Moore",
+        "Rares",
+        "Spender",
+        "Tracey"
+      ],
+      "stats": null,
+      "amp": 10.0
+    },
+    "legal.hearing_year": {
+      "schema_version": "1",
+      "name": "legal.hearing_year",
+      "entity_type": "legal",
+      "dtype": "numeric",
+      "roles": [
+        "predicate",
+        "group"
+      ],
+      "templates": [
+        "115f3de93bf17618",
+        "129cfb6cfa90f404",
+        "12e24a5558278379",
+        "0c136001dfcc74cb",
+        "65ffc3a10278972e"
+      ],
+      "freq_weight": 5.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "ranges",
+        "ranges": [
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": ">=",
+            "values": [
+              2007
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": "<=",
+            "values": [
+              2009
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.hearing_year",
+            "op": "BETWEEN",
+            "values": [
+              2006,
+              2009
+            ]
+          }
+        ]
+      },
+      "declared_domain": [],
+      "stats": null,
+      "amp": 10.0
+    },
+    "legal.evidence": {
+      "schema_version": "1",
+      "name": "legal.evidence",
+      "entity_type": "legal",
+      "dtype": "numeric",
+      "roles": [
+        "agg_additive",
+        "predicate",
+        "group"
+      ],
+      "templates": [
+        "16306604e3f8487d",
+        "53711ca7a4470ac3",
+        "5a3af5346c6f9243",
+        "150d2aff132ef7d2",
+        "c617c454d774797a",
+        "b7acd953257b3ec0",
+        "5f852b40b2b61f7d",
+        "8cddd3c135007e8a",
+        "01acab6775336b4e",
+        "5b4bf3c4be5fc84a",
+        "31006d3bba4733ac",
+        "054b40955260148e",
+        "fffe3d4c149511ed"
+      ],
+      "freq_weight": 13.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "full",
+        "ranges": []
+      },
+      "declared_domain": [],
+      "stats": null,
+      "amp": 26.0
+    },
+    "legal.defendant_current_status": {
+      "schema_version": "1",
+      "name": "legal.defendant_current_status",
+      "entity_type": "legal",
+      "dtype": "string",
+      "roles": [
+        "predicate",
+        "group"
+      ],
+      "templates": [
+        "4e186e6cacbc0f19",
+        "2ed6fc97a39f2120",
+        "46b3c98647aaf8b7",
+        "00e0b73f7c59e910",
+        "01acab6775336b4e",
+        "897cd51ce42cf0ee",
+        "4b3d521ab6c25387",
+        "9f3a8a415e504d1b"
+      ],
+      "freq_weight": 8.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "ranges",
+        "ranges": [
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "IN",
+            "values": [
+              "Government",
+              "Company",
+              "Organization"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "IN",
+            "values": [
+              "Government",
+              "Company",
+              "Organization"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "IN",
+            "values": [
+              "Government",
+              "Company",
+              "Organization"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "IN",
+            "values": [
+              "Government",
+              "Company",
+              "Organization"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "IN",
+            "values": [
+              "Government",
+              "Company",
+              "Organization"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "IN",
+            "values": [
+              "Government",
+              "Company",
+              "Organization"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "IN",
+            "values": [
+              "Government",
+              "Company",
+              "Organization"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "IN",
+            "values": [
+              "Government",
+              "Company",
+              "Organization"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.defendant_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          }
+        ]
+      },
+      "declared_domain": [
+        "Company",
+        "Government",
+        "Organization"
+      ],
+      "stats": null,
+      "amp": 16.0
+    },
+    "legal.plaintiff_current_status": {
+      "schema_version": "1",
+      "name": "legal.plaintiff_current_status",
+      "entity_type": "legal",
+      "dtype": "string",
+      "roles": [
+        "predicate",
+        "group"
+      ],
+      "templates": [
+        "d2be73b9b75a9b37",
+        "182e3c5502f02f78",
+        "2ed6fc97a39f2120"
+      ],
+      "freq_weight": 3.0,
+      "finest_grain": "mention",
+      "required_forms": [
+        "parsed",
+        "surface"
+      ],
+      "slice": {
+        "schema_version": "1",
+        "kind": "ranges",
+        "ranges": [
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "IN",
+            "values": [
+              "Company",
+              "Organization",
+              "Government"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "IN",
+            "values": [
+              "Company",
+              "Organization",
+              "Government"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "IN",
+            "values": [
+              "Company",
+              "Organization",
+              "Government"
+            ]
+          },
+          {
+            "schema_version": "1",
+            "attribute": "legal.plaintiff_current_status",
+            "op": "!=",
+            "values": [
+              ""
+            ]
+          }
+        ]
+      },
+      "declared_domain": [
+        "Company",
+        "Government",
+        "Organization"
+      ],
+      "stats": null,
+      "amp": 6.0
+    }
+  },
+  "expressions": [
+    {
+      "schema_version": "1",
+      "alias": "applicant_nation",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.nationality_for_applicant"
+      ],
+      "sql": "CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END"
+    },
+    {
+      "schema_version": "1",
+      "alias": "case_family",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.case_type"
+      ],
+      "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+    },
+    {
+      "schema_version": "1",
+      "alias": "case_group",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.case_type"
+      ],
+      "sql": "CASE WHEN case_type = 'Administrative Case' THEN 'Administrative' ELSE 'non_administrative' END"
+    },
+    {
+      "schema_version": "1",
+      "alias": "defendant_family",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.defendant_current_status"
+      ],
+      "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END"
+    },
+    {
+      "schema_version": "1",
+      "alias": "dismissal_status",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.verdict"
+      ],
+      "sql": "CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END"
+    },
+    {
+      "schema_version": "1",
+      "alias": "plaintiff_family",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.plaintiff_current_status"
+      ],
+      "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+    },
+    {
+      "schema_version": "1",
+      "alias": "precedent_band",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.case_number"
+      ],
+      "sql": "CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END"
+    },
+    {
+      "schema_version": "1",
+      "alias": "precedent_status",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.case_number"
+      ],
+      "sql": "CASE WHEN case_number = 0 THEN 'no_precedents' ELSE 'has_precedents' END"
+    },
+    {
+      "schema_version": "1",
+      "alias": "statute_band",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.legal_basis_num"
+      ],
+      "sql": "CASE WHEN legal_basis_num >= 3 THEN 'statute_heavy' ELSE 'statute_light' END"
+    },
+    {
+      "schema_version": "1",
+      "alias": "verdict_family",
+      "entity_type": "legal",
+      "base_attributes": [
+        "legal.verdict"
+      ],
+      "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+    }
+  ]
+}

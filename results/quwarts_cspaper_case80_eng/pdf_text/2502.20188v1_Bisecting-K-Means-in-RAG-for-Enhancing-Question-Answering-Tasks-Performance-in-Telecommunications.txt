@@ -1,0 +1,746 @@
+Bisecting K-Means in RAG for Enhancing
+Question-Answering Tasks Performance in
+Telecommunications
+
+Pedro Sousa∗, Cláudio Klautau Mello∗, Frank B. Morte∗, and Luis F. Solis Navarro†
+∗Federal University of Pará, Institute of Technology, Belém, Brazil
+†State University of Campinas, Institute of Computing, Campinas, Brazil
+∗{pedro.sousa, claudio.mello, frank.morte}@itec.ufpa.br, †L214616@dac.unicamp.br
+
+5
+2
+0
+2
+
+b
+e
+F
+7
+2
+
+]
+
+R
+
+I
+.
+s
+c
+[
+
+1
+v
+8
+8
+1
+0
+2
+.
+2
+0
+5
+2
+:
+v
+i
+X
+r
+a
+
+Abstract—Question-answering tasks in the telecom domain are
+still reasonably unexplored in the literature, primarily due to the
+field’s rapid changes and evolving standards. This work presents
+a novel Retrieval-Augmented Generation framework explicitly
+designed for the telecommunication domain, focusing on datasets
+composed of 3GPP documents. The framework introduces the
+use of the Bisecting K-Means clustering technique to organize
+the embedding vectors by contents, facilitating more efficient
+information retrieval. By leveraging this clustering technique,
+the system pre-selects a subset of clusters that are most similar
+to the user’s query, enhancing the relevance of the retrieved
+information. Aiming for models with lower computational cost
+for inference, the framework was tested using Small Language
+Models, demonstrating improved performance with an accuracy
+of 66.12% on phi-2 and 72.13% on phi-3 fine-tuned models, and
+reduced training time.
+
+Index Terms—Retrieval-Augmented Generation, 3GPP docu-
+
+ments, Bisecting K-Means, Small Language Models
+
+I. INTRODUCTION
+
+Large-scale language models (LLMs) have revolutionized
+many industries by providing better text understanding and
+generation capabilities. These models, such as Microsoft’s phi-
+2 [1], are trained on vast datasets with billions of parameters,
+allowing them to capture linguistic nuances and general knowl-
+edge in depth. LLMs applicability ranges from automating
+administrative tasks to personalized assistance, demonstrating
+their immense potential for innovation in many areas [2].
+
+Despite their versatility, LLM models often need more
+knowledge in highly technical domains [3], such as telecom-
+munications, due to the need for more specific data during
+their initial training. This can lead to inaccurate or inadequate
+answers when faced with questions that require deep, special-
+ized understanding. To overcome these limitations, specializa-
+tion techniques such as fine-tuning and Retrieval-Augmented
+Generation (RAG) are needed.
+
+Fine-tuning involves retraining an existing LLM on a spe-
+cialized dataset. This process adjusts the model’s weights to
+better align its predictions with domain-specific knowledge
+and terminology [4]. During fine-tuning, the model is repeat-
+edly exposed to specialized data, allowing it to capture relevant
+patterns and nuances not present in the initial training. This
+method improves the model’s ability to provide accurate and
+appropriate answers to queries related to a specific domain.
+
+RAG is another powerful technique used to increase the
+accuracy of LLMs. RAG combines text generation with in-
+formation retrieval by integrating external data relevant to
+the query’s context [2]. This is accomplished through two
+main components: a retrieval model that searches for relevant
+documents in an external database and a generative model
+that uses these documents to produce contextualized answers
+[5]. This approach expands the model’s knowledge base and
+ensures that the answers are more accurate and informed by
+the latest, domain-specific context.
+
+In the telecommunications sector, the application of special-
+ized LLMs is particularly relevant [6]. This sector is character-
+ized by its complexity and the need for specific terminology. A
+specialized LLM in this field can significantly reduce the time
+required to access crucial information, increase the accuracy of
+answers, and ensure compliance with international standards.
+This results in more efficient operations and the ability to
+quickly meet the technical demands of the sector.
+
+This paper presents an alternative approach to specializing
+LLM models for the telecommunications sector. It uses the
+TeleQnA dataset [7], created explicitly to assess the telecom-
+munications knowledge of LLMs. The dataset consists of
+10,000 questions and answers extracted from various sources,
+including standards specifications and research papers, ensur-
+ing broad coverage of the required knowledge. The goal is to
+develop a model capable of answering questions about 3GPP
+(The 3rd Generation Partnership Project) standards in release
+18.
+
+The proposal resides in integrating fine-tuning with cluster-
+ing techniques. Specifically, Bisecting K-Means [8], to further
+refine the accuracy and relevance of the model. Bisecting
+K-Means is used to group similar data, identifying patterns
+and trends, that are critical for interpretation and analysis
+in telecommunications. The experimental results demonstrate
+significant improvements, highlighting the effectiveness of this
+methodology in adapting LLMs to highly specialized domains.
+
+II. RELATED WORKS
+
+Recent studies have explored the application of LLMs
+in the telecom domain across various datasets, showcasing
+their potential to enhance numerous aspects of the industry.
+However, many of these studies fall short of addressing the
+
+ 
+ 
+ 
+ 
+ 
+ 
+Fig. 1. Diagram of the RAG pipeline that integrates a routing module with clustering techniques to efficiently retrieve the most relevant documents.
+
+optimization of search processes within knowledge represented
+by embedding vectors. For instance, Telco-RAG [9] introduces
+the concept of leveraging LLMs for telecom datasets in
+question-answering tasks in a wide variety of information
+datasets [7] but lacks clarity on how specific components of the
+pipeline, such as embedding-based retrieval, semantic search,
+and response generation, contribute to overall performance
+improvements. This gap highlights the need for more in-depth
+research that delves into optimizing the search and retrieval
+mechanisms within LLMs to enhance their capabilities in
+telecom applications.
+
+TelecomRAG [10], for instance, is significantly constrained
+by the limitations of its pipeline, failing to address critical
+performance issues prevalent in the telecom sector, such as the
+extensive use of abbreviations and acronyms. This oversight
+can lead to inefficiencies and inaccuracies when processing
+data of this domain. In contrast, this work is designed to
+handle user entries that may pose challenges for an LLM
+to analyze effectively. The proposed framework incorporates
+a text preprocessing step that augments the prompt, ensur-
+ing that text generation is more accurate and reliable. This
+preprocessing enhances the LLM’s ability to understand and
+generate meaningful responses, thereby improving the overall
+performance of question-answering tasks.
+
+Authors of [11] optimized the internal parameters of the
+RAG pipeline, particularly in the retrieval of indexes, demon-
+strating significant efficiency improvements. However, it re-
+mains limited by its reliance on the original structure of
+the content, offering no alternative methods for searching
+the knowledge representation. In contrast, this work delves
+deeper into the knowledge representation by utilizing cluster-
+ing techniques on the content, and in this way grouping the
+embeddings by the chunks content, disregarding their initial
+structure. This approach allows for more efficient searches
+within the embedding space, enhancing the overall perfor-
+mance and effectiveness of the information retrieval process.
+
+III. METHODOLOGY
+
+Several critical steps were implemented to specialize an
+LLM model in answering questions about Telecom domain
+specifications. The documents used in this work were in the
+TeleQnA dataset, a compilation of 3GPP series documents in
+question-answering format with multiple-choice answers.
+
+A series of methods were used to harness better perfor-
+mance. As shown in Figure 1, the RAG pipeline begins with
+the set of 3GPP source documents A, which undergo a data
+extraction process to collect the set of acronyms and abbre-
+viations B. These elements, combined with the user’s query,
+pass through a query enhancement process that augments the
+user’s input for better accuracy. The source documents are
+then converted into the set of chunks C with chunk length
+α and passed through an embedding model to produce the
+embedding matrix E, followed by the Bisecting K-Means step
+with number of clusters β that organizes the information by
+content into the clusters set D. The clustered data is stored
+in a vector database, which in this work was SQLite3 [12],
+as part of the pre-processing block, which is performed only
+once.
+
+In the online processing phase, the set of acronyms and
+abbreviations B and the user query are combined to create the
+enhanced query EQ. Also, in this process, each new user query
+is converted into an embedding matrix Q and is compared with
+the clusters set D in the vector database through a routing
+module. This module selects a subset of clusters K most
+related to the user’s query, being |K| = γ, and retrieves the
+most relevant chunks by using an indexing method - in this
+case, the FAISS model [13] - to obtain the chunks indexes
+vector t. These chunks, which compose the context set R
+that has cardinality |K| = δ, along with the original user
+query and the enhanced version EQ, are combined as the
+final prompt and are provided as the whole context through a
+prompt engineering process to a fine-tuned LLM, which then
+generates an accurate and contextually relevant response.
+
+Algorithm 1 shows the entire process, divided into two
+parts: the first, which is processed only once to create the
+clusters, and the second, which is processed with each new
+user query.
+
+[Initial Query]:
+What functionality does LLDP provide in the TSN
+Transport Network?
+
+Algorithm 1 Question-Answering Algorithm
+Pre-processing Block
+Require: A, α, β
+
+1: procedure PREPROCESSING(A)
+B ← DataExtraction(A)
+2:
+C ← DocumentChunking(A, α)
+3:
+E ← EmbeddingModel(C)
+4:
+D ← BisectingKMeans(E, β)
+for each cluster F ∈ D do
+
+for each embedding e ∈ F do
+
+Store(e, VectorDB)
+
+5:
+6:
+7:
+8:
+9:
+10:
+11: end procedure
+
+end for
+
+end for
+
+Online Processing Block
+Require: UserQuery, B, D, γ, δ
+12: procedure ONLINEPROCESSING(UserQuery)
+EQ ← QueryEnhancement(UserQuery, B)
+13:
+Q ← EmbeddingModel(UserQuery)
+14:
+K ← RoutingModule(D, Q)
+t ← IndexingMethod(K, γ)
+R ← RetrieveContext(t, δ)
+FinalPrompt ← PromptEngineering(UserQuery, R, EQ)
+Output ← LLM(FinalPrompt)
+return Output
+
+15:
+16:
+17:
+18:
+19:
+
+20: end procedure
+
+A. Query Enhancement
+
+In the field of telecommunications, many words, abbre-
+viations, and terms can be challenging to understand [9].
+Language models, such as phi-2, are usually trained with
+general data, so they might not grasp the specific technical
+terms found in 3GPP standard documents.
+
+On the 3GPP website, we can find valuable information to
+enhance queries with the meanings of these terms. These doc-
+uments contain detailed and specialized information, making
+it essential to teach these terms to the language models to help
+them understand and use the information correctly.
+
+The process of enhancing a query involves extracting the
+definitions and abbreviations from the 3GPP documentation
+and incorporating these meanings into the query. To achieve
+this, we create two dictionaries: one for technical terms and
+one for abbreviations. The glossary of technical terms includes
+definitions of phrases such as "System Networking," while
+the glossary of abbreviations provides meanings for terms like
+"5G." These resources are utilized to expand the query and
+provide better context when retrieving information relevant to
+the questions. In Figure 2, we present an example of the query
+enhancement process using the technique mentioned above.
+
+[Definitions]:
+Transport Network: Network infrastructure that
+provides connectivity and bandwidth for customer
+services.
+
+[Abbreviations]
+LLDP: Link Layer Discovery Protocol. TSN: Time-
+Sensitive Networking
+
+[Final Query]:
+What functionality does LLDP provide in the TSN
+Transport Network?
+Transport Network: Network infrastructure that
+provides connectivity and bandwidth for customer
+services.
+LLDP: Link Layer Discovery Protocol.
+TSN: Time-Sensitive Networking
+
+Fig. 2. The process of query enhancement before retrieving information and
+passing it to the LLM for generating an answer.
+
+B. Preprocessing of Document Texts
+
+The texts from the 3GPP release 18 specifications were
+divided into chunks of various sizes, allowing a detailed and
+accurate analysis. Dividing texts into chunks is a common
+practice in natural language processing, as it facilitates the
+manipulation and analysis of large volumes of textual data
+[14]. It was chosen to test two chunk size configurations: 500
+and 250 characters. These values were selected based on the
+results presented in [9], demonstrating that such division sizes
+effectively increase the chosen model’s accuracy, as shown in
+Figure 3.
+
+Fig. 3. Performance of phi-2 on different chunk sizes.
+
+After dividing the texts into chunks, each segment was
+converted to embeddings, a crucial step for the language
+model to understand and use the data. Embeddings are vector
+representations of the texts, translating natural language into
+a form that machine learning models can process. This work
+uses the BAAI bge version large english model [15] to map the
+chunks into numeric vectors, a model known for its efficiency
+in generating robust and accurate embeddings [16].
+
+C. Clustering Methods for RAG
+
+D. Routing Module
+
+To improve the effectiveness of RAG, it is essential to group
+similar data, making it easier to identify patterns and trends
+within telecommunications data. To do this,
+the Bisecting
+K-Means clustering method is employed on the embedding
+vectors calculated in each chunk. This method is a variant of
+the K-Means algorithm that aims to improve the quality of
+the clusters formed, offering advantages in the segmentation
+of large volumes of data [17]. Unlike the traditional technique,
+which partitions the data into K clusters simultaneously,
+Bisecting K-Means adopts a hierarchical divisive approach,
+dividing the data into smaller subgroups iteratively. Figure
+4 represents the difference in accuracy that justifies using
+Bisecting K-Means instead of the traditional method.
+
+The RAG routing module enhances the ability to gen-
+erate more accurate and contextually relevant responses by
+retrieving pertinent
+information from a vast repository of
+documents. This module is necessary because it bridges the
+gap between static knowledge bases and dynamic, query-
+specific information needs, thereby improving the quality and
+relevance of generated content.
+
+Fig. 4. Performance difference between regular K-Means and Bisecting K-
+Means clustering, all performed using the phi-2 model.
+
+Fig. 5. Routing module.
+
+This process can be described in the following steps: at
+the time of initialization of the algorithm, all documents are
+kept in a single cluster. Then, the cluster is divided into two
+clusters using the K-Means algorithm, i.e., B = 2. Then, all
+the calculated clusters are checked in search of the cluster
+with the most considerable Sum of Square Error (SSE). Then,
+the cluster with the highest SSE is recursively split into two
+more clusters with the K-Means algorithm with B = 2, and
+this process is repeated until the desired cluster values are
+generated.
+
+The SSE was used to measure the variability within a
+cluster by calculating the sum of the squares of the distances
+between each data point and the cluster centroid. The lower
+the SSE, the more homogeneous the data within the cluster,
+indicating a better quality in the data segmentation. Using the
+SSE allows us to identify which clusters have more significant
+internal variability and, therefore, which should be subdivided
+to improve the accuracy of the clustering. SSE is calculated
+as follows:
+
+As shown in Figure 5, the routing module takes as input
+D and Q. From the former, the module obtains the centroid
+of each cluster from the vector database - which can be
+represented as embedding vectors - and these vectors are
+compared to the embedded user entry embeddings Q using
+inner products. This comparison produces a vector with a
+number of elements equal to the number of clusters |D| created
+during the preprocessing block. To refine this information, the
+vector undergoes an enhancement process with a Feed Forward
+Layer, which adjusts its size from |D| to 256 dimensions,
+forming I1, which is referred to as Input 1. This number was
+selected due to being an intermediate number between the
+number of clusters and the dimension of Q.
+
+Simultaneously, Q, typically of size 1024 due to the embed-
+ding model used (BAAI), is processed through another Feed
+Forward Layer to reduce its dimensionality to 256, forming
+I2, referred to in Figure 5 as Input 2. The two inputs, now
+both with 256 dimensions of size, are linearly combined to
+create the classifier input Ic, which can be defined as:
+
+SSE =
+
+n
+(cid:88)
+
+(Xi − ¯X)2
+
+i=0
+
+(1)
+
+where Xi represents each data point, and ¯X represents the
+mean of the points in the cluster. This work tested several
+cluster values to determine the ideal configuration.
+
+In this work the embeddings were grouped into 18 clus-
+ters, grouping those with similar values. This simplified the
+identification of groups of data with similar characteristics
+and facilitated the recovery of relevant information during text
+generation.
+
+Ic = αI1 + βI2
+
+(2)
+
+where α and β are constants. Then, Ic is fed into a classifier
+layer, which is a softmax function that generates a probability
+distribution indicating which clusters are more related to the
+user’s query. This distribution allows the system to interpret
+the relevance of each cluster to the query.
+
+To optimize the retrieval process, the probability distribution
+is truncated to focus only on a subset of the clusters K,
+known as the top-K clusters. In this work, this number was
+8. By concentrating on this subset, the system can efficiently
+perform searches in the embedding space, narrowing down
+
+the relevant chunks of information without needing to search
+the entire space. This approach significantly enhances the sys-
+tem’s efficiency and accuracy in retrieving the most pertinent
+information in response to the user’s query. At the same time,
+it also decreases the time to perform searches in the vector
+database, as shown in Section IV.
+
+E. Fine-tuned Model
+
+A fine-tuning process1 was employed to enhance a model’s
+understanding of context and tailor its responses to meet the
+desired results. Based on the probable on-site usage, a small
+model was preferable. Therefore, phi-2 was selected because
+of its size, which allows us to fine-tune it and deploy the model
+on small devices.
+
+To create the training dataset, we generated a context for
+each training example using RAG. By integrating the context
+in the training process, it was ensured that the model could
+better utilize relevant external information, thereby improving
+its ability to comprehend and respond accurately to domain-
+specific queries, as shown in [18]. Specifically, the context
+was concatenated with the terms, definitions, question, options,
+answer, and explanation of the answer, using the base chat
+template from Hugging Face to make it easier for the model
+to separate context, query, and response, as shown in Figure
+6.
+
+<|im_start|>context
+(Retrieved context)
+Terms and Definitions: (Terms and Definitions)
+Abbreviations: (Abbreviations)
+<|im_end|>
+<|im_start|>user
+Please provide the answer to the following multiple-
+choice question: (question and options)
+Choose the correct option from the above options.
+<|im_end|>
+<|im_start|>assistant
+The correct option number is option (correct option
+number): (option text)
+Explanation: (explanation)
+<|im_end|>
+
+the answer. That dataset was only used to fine-tune the phi-2
+model and was named Enhanced responses as in Figure 8.
+
+IV. RESULTS
+
+This section presents the framework’s performance in en-
+hancing the capabilities of LLMs applied to the 3GPP Domain.
+All fine-tuning experiments were conducted using Hugging
+Face AutoTrain on a machine equipped with 8 vCPUs, 30
+GB of RAM, and a single NVIDIA L4 GPU with 24 GB of
+VRAM.
+
+The research focused on the phi-2 model2 due to its
+smaller size and shorter training time compared to Phi-3-4k-
+instruct [20], as illustrated in Figure 7, as well as its better
+performance, in early testings with RAG, than gemma-2-2b
+[21] despite the similar size. After the development, those two
+other models were tested with the whole process, separating
+the gains to demonstrate the effect of each part of the system.
+
+Fig. 7. Time it took to fine-tune the models on 8vCPUs 30GB RAM and
+1xL4 GPU 24GB VRAM in Hugging Face AutoTrain.
+
+As shown in Figure 8, substantial accuracy gains were
+observed by employing the described methods, getting up to
+a 34.4% increase over the base phi-2 model, combining the
+RAG with fine-tuning. Furthermore, it was found that the
+technique also made the gemma-2-2b and Phi-3-4k-instruct
+model’s accuracy increase substantially, indicating that this
+method’s gains might be generalizable to other models and
+even bigger ones like Phi-3-mini-4k-instruct.
+
+Additionally, it was found that the model trained with the
+enhanced response performed worse than the non-enhanced
+one, as shown in Figure 8. Despite that, this model could be
+helpful because of its ability to relate the question to the 3GPP
+documents and provide a better starting point for finding the
+answer.
+
+Fig. 6. Training text example.
+
+V. FUTURE WORKS
+
+A separate dataset was also created in which the answer
+referenced the specific section in the 3GPP documents from
+which the answer was derived. If the answer could not be
+found in the context, it explicitly states it wasn’t found. This
+dataset was used to fine-tune a more reliable model because,
+with the citation, it would be possible to look up the section
+in the documents and confirm the answer. To generate this
+answer, the context, terms, abbreviations, question, options,
+answer, and explanation were fed to GPT-4 [19] to extract
+the most valuable retrievals and documents and cite them in
+
+Although the proposed framework demonstrates advances
+in question-answering tasks, there are still many opportunities
+for performance enhancements. Future research could explore
+novel knowledge representation techniques, such as knowledge
+graphs, to improve information retrieval and reasoning capa-
+bilities. Additionally, greater emphasis on data preprocessing,
+particularly cleaning document chunks before converting them
+to embeddings, could significantly enhance the quality and
+relevance of the input data. Also, refining the routing module
+to output a more focused selection of clusters would likely
+lead to more efficient and accurate responses. Finally, using
+
+1https://huggingface.co/SuLLMerica
+
+2https://github.com/SuLLMerica/SuLLMerica
+
+(LRC) at the State University of Campinas (Unicamp). We
+want to express our profound gratitude for their support in
+developing this research.
+
+REFERENCES
+
+[1] Microsoft Research, “Phi-2: The surprising power of small
+
+lan-
+guage models.” https://www.microsoft.com/en-us/research/blog/phi-2-
+the-surprising-power-of-small-language-models/, 2023. Accessed: 2024-
+08-04.
+
+[2] Y. Gao, Y. Xiong, X. Gao, K. Jia, J. Pan, Y. Bi, Y. Dai, J. Sun,
+M. Wang, and H. Wang, “Retrieval-augmented generation for large
+language models: A survey,” arXiv preprint arXiv:2312.10997, 2024.
+[3] H. Zou, Q. Zhao, Y. Tian, L. Bariah, F. Bader, T. Lestable, and
+M. Debbah, “TelecomGPT: A framework to build telecom-specfic large
+language models,” arXiv preprint arXiv:2407.09424, 2024.
+
+[4] O. Ovadia, M. Brief, M. Mishaeli, and O. Elisha, “Fine-tuning or
+retrieval? comparing knowledge injection in LLMs,” arXiv preprint
+arXiv:2312.05934, 2023.
+
+[5] P. Lewis et al., “Retrieval-augmented generation for knowledge-intensive
+
+NLP tasks,” arXiv preprint arXiv:2005.11401, 2021.
+
+[6] L. Bariah, Q. Zhao, H. Zou, Y. Tian, F. Bader, and M. Debbah, “Large
+Language Models for telecom: The next big thing?,” arXiv preprint
+arXiv:2306.10249, 2023.
+
+[7] A. Maatouk, F. Ayed, N. Piovesan, A. D. Domenico, M. Debbah, and Z.-
+Q. Luo, “TeleQnA: A benchmark dataset to assess large language mod-
+els telecommunications knowledge,” arXiv preprint arXiv:2310.15051,
+2023.
+
+[8] M.
+
+Steinbach,
+
+G.
+
+comparison
+https://conservancy.umn.edu/handle/11299/215421, 2000.
+
+of
+
+Karypis,
+document
+
+and
+V.
+clustering
+
+Kumar,
+
+“A
+techniques,”
+
+[9] A.-L. Bornea, F. Ayed, A. D. Domenico, N. Piovesan, and A. Maatouk,
+“Telco-RAG: Navigating the challenges of retrieval-augmented language
+telecommunications,” arXiv preprint arXiv:2404.15939,
+models for
+2024.
+
+[10] G. M. Yilma, J. A. Ayala-Romero, A. Garcia-Saavedra, and X. Costa-
+Perez, “TelecomRAG: Taming telecom standards with retrieval aug-
+mented generation and LLMs,” arXiv preprint arXiv:2406.07053, 2024.
+[11] S. Roychowdhury, N. Jain, and S. Soman, “Unlocking telecom domain
+knowledge using LLMs,” in 2024 16th International Conference on
+COMmunication Systems & NETworkS (COMSNETS), pp. 267–269,
+2024.
+
+[12] R. D. Hipp, “SQLite.” https://www.sqlite.org/index.html, 2020. Ac-
+
+cessed: August 2024.
+
+[13] M. Douze, A. Guzhva, C. Deng, J. Johnson, G. Szilvasy, P.-E. Mazaré,
+M. Lomeli, L. Hosseini, and H. Jégou, “The Faiss library,” arXiv preprint
+arXiv:2401.08281, 2024.
+
+[14] A. J. Yepes, Y. You, J. Milczek, S. Laverde, and R. Li, “Financial report
+chunking for effective retrieval augmented generation,” arXiv preprint
+arXiv:2402.05131, 2024.
+
+[15] HuggingFace, “Baai/bge-large-en.” https://huggingface.co/BAAI/bge-
+
+large-en, 2023. Accessed: 2024-08-04.
+
+[16] S. Xiao, Z. Liu, P. Zhang, and N. Muennighoff, “C-pack: Pack-
+aged resources to advance general chinese embedding,” arXiv preprint
+arXiv:2309.07597, 2023.
+
+[17] Y. Zhuang, Y. Mao, and X. Chen, “A limited-iteration bisecting
+fast clustering large datasets,” in 2016 IEEE Trust-
+
+k-means for
+com/BigDataSE/ISPA, pp. 2257–2262, 2016.
+
+[18] X. V. Lin, X. Chen, M. Chen, W. Shi, M. Lomeli, R. James, P. Rodriguez,
+J. Kahn, G. Szilvasy, M. Lewis, et al., “RA-DIT: Retrieval-augmented
+dual instruction tuning,” arXiv preprint arXiv:2310.01352, 2023.
+[19] OpenAI, J. Achiam, S. Adler, S. Agarwal, L. Ahmad, et al., “GPT-4
+
+technical report,” arXiv preprint arXiv:2303.08774, 2024.
+
+[20] M. Abdin, S. A. Jacobs, A. A. Awan, J. Aneja, A. Awadallah,
+H. Awadalla, N. Bach, A. Bahree, A. Bakhtiari, H. Behl, et al., “Phi-
+3 technical report: A highly capable language model locally on your
+phone,” arXiv preprint arXiv:2404.14219, 2024.
+
+[21] G. Team, M. Riviere, S. Pathak, P. G. Sessa, C. Hardin, S. Bhupatiraju,
+L. Hussenot, T. Mesnard, B. Shahriari, A. Ramé, et al., “Gemma 2:
+Improving open language models at a practical size,” arXiv preprint
+arXiv:2408.00118, 2024.
+
+Fig. 8. Performance improvement of each model separated by methods.
+
+larger language models such as GPT-4 could yield substantial
+improvements, provided that careful evaluation is conducted to
+strike an optimal balance between model size, computational
+resources, and performance gains.
+
+VI. CONCLUSIONS
+
+This work presented the integration of a routing module
+within the RAG architecture, combined with clustering tech-
+niques, significantly enhancing the efficiency and accuracy of
+information retrieval. By preprocessing 3GPP source docu-
+ments through chunking, embedding, and Bisecting K-Means
+clustering, the system effectively organizes vast amounts of
+data into meaningful clusters. These clusters are stored in a
+vector database, providing a structured foundation that allows
+the RAG model to quickly access and utilize the most relevant
+information in response to user queries.
+
+Ultimately, this approach to RAG architecture leverages
+the power of both the preprocessing phase, by gathering
+embeddings by content instead of using formats defined in
+the source documents, and the real-time processing phase to
+deliver highly accurate and contextually appropriate responses
+in achievable time. The experiment results show that using
+smaller LLMs, it’s possible to obtain 66.12% and 72.13%
+accuracy in telecom documents using phi-2 and phi-3, respec-
+tively, while taking less than 12 and 16 hours of training time
+for both cases, respectively.
+
+ACKNOWLEDGMENT
+
+This work was carried out with the guidance, mentorship,
+and financial investment of Dr. Aldebaro Klautau from LASSE
+— Research and Development Center in Telecommunications,
+Automation, and Electronics — and prof. Carlos Alberto
+Astudillo Trujillo from the Computer Networks Laboratory
