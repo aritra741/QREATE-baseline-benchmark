@@ -114,6 +114,95 @@ def rewrite_sql(
     return apply_identity_keys(sql, join_keys, group_keys, canonical_columns)
 
 
+def apply_like_derived(sql: str, derived) -> str:
+    """LIKE reads the derived column only when that table has it."""
+
+    if not sql or not derived:
+        return sql
+    try:
+        from sqlglot import exp
+        from quwarts.core.workload import parse_sql
+    except Exception:
+        return sql
+    try:
+        tree = parse_sql(sql)
+    except Exception:
+        return sql
+    if isinstance(derived, dict):
+        by_table = {key.lower(): {item.lower() for item in values} for key, values in derived.items()}
+        aliases = {
+            (node.alias or node.name).lower(): node.name.lower()
+            for node in tree.find_all(exp.Table)
+            if node.name
+        }
+        allowed = None
+    else:
+        by_table = {}
+        aliases = {}
+        allowed = {item.lower() for item in derived}
+    for node in tree.find_all((exp.Like, exp.ILike)):
+        for col in node.find_all(exp.Column):
+            name = (col.name or "").lower()
+            if name.endswith("__like"):
+                continue
+            if allowed is not None:
+                if name not in allowed:
+                    continue
+            else:
+                table = aliases.get((col.table or "").lower(), (col.table or "").lower())
+                if name not in by_table.get(table, set()) and name not in by_table.get("", set()):
+                    continue
+            col.set("this", exp.to_identifier(f"{col.name}__like"))
+    return tree.sql(dialect="sqlite")
+
+
+def apply_vocab_derived(sql: str, derived) -> str:
+    """CASE / LIKE / string EQ read the derived vocab column when present."""
+
+    if not sql or not derived:
+        return sql
+    try:
+        from sqlglot import exp
+        from quwarts.core.workload import parse_sql
+    except Exception:
+        return sql
+    try:
+        tree = parse_sql(sql)
+    except Exception:
+        return sql
+    if isinstance(derived, dict):
+        by_table = {key.lower(): {item.lower() for item in values} for key, values in derived.items()}
+        aliases = {
+            (node.alias or node.name).lower(): node.name.lower()
+            for node in tree.find_all(exp.Table)
+            if node.name
+        }
+    else:
+        return sql
+
+    def _rewrite_col(col) -> None:
+        name = (col.name or "").lower()
+        if name.endswith("__vocab") or name.endswith("__like"):
+            return
+        table = aliases.get((col.table or "").lower(), (col.table or "").lower())
+        if name not in by_table.get(table, set()) and name not in by_table.get("", set()):
+            return
+        col.set("this", exp.to_identifier(f"{col.name}__vocab"))
+
+    for node in tree.find_all((exp.Like, exp.ILike)):
+        for col in node.find_all(exp.Column):
+            _rewrite_col(col)
+    for node in tree.find_all((exp.EQ, exp.NEQ)):
+        literals = [
+            item for item in node.find_all(exp.Literal) if not item.is_number
+        ]
+        if not literals:
+            continue
+        for col in node.find_all(exp.Column):
+            _rewrite_col(col)
+    return tree.sql(dialect="sqlite")
+
+
 def apply_identity_keys(
     sql: str,
     join_keys: str,

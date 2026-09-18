@@ -50,6 +50,18 @@ def policy_from_demands(
     return pop
 
 
+def refresh_population_types(pop: PopulationPolicy, workload: Workload) -> PopulationPolicy:
+    """Write SQL-declared types onto an existing population policy."""
+
+    for name, req in workload.requirements.items():
+        pop.type[name] = ModuleConfig(strategy=req.dtype, params={})
+        pop.type[name.split(".")[-1]] = pop.type[name]
+    for name, dtype in workload.literal_types.items():
+        pop.type[name] = ModuleConfig(strategy=dtype, params={})
+        pop.type[name.split(".")[-1]] = pop.type[name]
+    return pop
+
+
 def apply_population(
     records: list[EvidenceRecord],
     config: Configuration,
@@ -74,16 +86,38 @@ def apply_population(
                 bare = record.attribute.split(".")[-1]
                 if row.get(bare) in (None, ""):
                     row[bare] = committed
-                canon = _canonical(record, config.pop, surface if surface not in (None, "") else committed)
+            if surface not in (None, ""):
+                bare = record.attribute.split(".")[-1]
+                canon = _canonical(record, config.pop, surface)
                 if canon not in (None, ""):
                     row[f"{bare}__canonical"] = canon
                     row[f"{record.attribute}__canonical"] = canon
+                keys = record.candidate_keys or {}
+                if keys.get("lo") not in (None, ""):
+                    row[f"{bare}__lo"] = keys["lo"]
+                if keys.get("hi") not in (None, ""):
+                    row[f"{bare}__hi"] = keys["hi"]
+                if keys.get("unit") not in (None, ""):
+                    row[f"{bare}__unit"] = keys["unit"]
             elif record.attribute not in row:
                 row[record.attribute] = None
             if surface not in (None, ""):
                 row.setdefault(f"{record.attribute}__surface", surface)
+                bare = record.attribute.split(".")[-1]
+                if row.get(bare) in (None, ""):
+                    row[bare] = surface
+            keys = record.candidate_keys or {}
+            if keys.get("like_vocab") not in (None, ""):
+                bare = record.attribute.split(".")[-1]
+                row[f"{bare}__like"] = keys["like_vocab"]
+                row[f"{record.attribute}__like"] = keys["like_vocab"]
+            if keys.get("vocab") not in (None, ""):
+                bare = record.attribute.split(".")[-1]
+                row[f"{bare}__vocab"] = keys["vocab"]
+                row[f"{record.attribute}__vocab"] = keys["vocab"]
         rows.append(row)
 
+    clear_merge_audit()
     if any(cfg.strategy == "merge" for cfg in config.pop.er.values()):
         rows = _merge(rows, config, workload)
     grain = config.pop.grain
@@ -101,8 +135,13 @@ def _commit(record: EvidenceRecord, pop: PopulationPolicy) -> Any:
     value: Any = record.surface_value
     if isinstance(value, str):
         value = value.strip()
-    if (record.candidate_keys or {}).get("completed") == "join":
+    keys = record.candidate_keys or {}
+    if keys.get("completed") == "join":
         return value
+    if keys.get("representation") == "absence" or record.null_reason == "absence":
+        return None
+    if keys.get("representation") in {"unit", "boolean", "range", "band"} and record.parsed_value is not None:
+        return record.parsed_value
     unit = pop.unit.get(record.attribute)
     if unit and unit.strategy == "unit:canonical" and record.parsed_value is not None:
         value = record.parsed_value
@@ -124,10 +163,28 @@ def _commit(record: EvidenceRecord, pop: PopulationPolicy) -> Any:
 
 
 def _canonical(record: EvidenceRecord, pop: PopulationPolicy, surface: Any) -> Any:
-    norm = pop.norm.get(record.attribute) or pop.norm.get(record.attribute.split(".")[-1])
-    if norm is None or norm.strategy != "identity":
+    ident = pop.er.get(record.attribute) or pop.er.get(record.attribute.split(".")[-1])
+    mapping = {}
+    if ident is not None and ident.strategy == "identity":
+        mapping = ident.params.get("map") or {}
+    else:
+        norm = pop.norm.get(record.attribute) or pop.norm.get(record.attribute.split(".")[-1])
+        if norm is None or norm.strategy != "identity":
+            return None
+        mapping = norm.params.get("map") or {}
+    return _lookup_id(surface, mapping)
+
+
+def _lookup_id(surface: Any, mapping: dict[str, str]) -> Any:
+    text = str(surface or "").strip()
+    if not text or not mapping:
         return None
-    return apply_domain(surface, norm.params.get("map") or {}, [])
+    if text in mapping:
+        return mapping[text]
+    folded = {}
+    for key, dest in mapping.items():
+        folded.setdefault(" ".join(str(key).replace("_", " ").casefold().split()), dest)
+    return folded.get(" ".join(text.replace("_", " ").casefold().split()))
 
 
 _UNIT_SCALE = {
@@ -178,31 +235,127 @@ def _as_number(value: Any) -> Any:
     return scaled
 
 
+_MERGE_AUDIT: list[dict[str, Any]] = []
+
+
+def clear_merge_audit() -> None:
+    _MERGE_AUDIT.clear()
+
+
+def merge_audit() -> list[dict[str, Any]]:
+    return list(_MERGE_AUDIT)
+
+
+def identity_merge_keys(workload: Workload) -> dict[str, list[str]]:
+    """Only identity-bearing attributes may authorize a merge.
+
+    KEY roles identify the row. A join attribute does so only on a self-join.
+    Cross-entity join attributes are foreign keys. GROUP/categorical attributes
+    never establish identity.
+    """
+
+    from quwarts.core.models import Role
+
+    by_entity: dict[str, set[str]] = defaultdict(set)
+    for template in workload.templates:
+        for name, roles in template.roles_by_attribute.items():
+            entity = name.split(".")[0] if "." in name else ""
+            # JOIN columns are also tagged KEY. A cross-entity join is a
+            # foreign key and does not identify this row.
+            if Role.KEY in roles and Role.JOIN not in roles and entity:
+                by_entity[entity].add(name)
+        for left, right in template.join_pairs:
+            if not left or not right or "." not in left or "." not in right:
+                continue
+            left_ent, right_ent = left.split(".", 1)[0], right.split(".", 1)[0]
+            if left_ent == right_ent:
+                by_entity[left_ent].add(left)
+                by_entity[right_ent].add(right)
+    return {entity: sorted(names) for entity, names in by_entity.items() if names}
+
+
+def _row_entity(row: dict[str, Any]) -> str:
+    doc = str(row.get("doc_id") or "")
+    if "/" in doc:
+        return doc.split("/", 1)[0].lower()
+    return ""
+
+
+def _key_tuple(row: dict[str, Any], names: list[str]) -> tuple[str, ...]:
+    values = []
+    for name in names:
+        bare = name.split(".")[-1]
+        raw = row.get(f"{bare}__canonical")
+        if raw in (None, ""):
+            raw = row.get(name)
+        if raw in (None, ""):
+            raw = row.get(bare)
+        values.append(str(raw or "").strip().lower())
+    return tuple(values)
+
+
 def _merge(rows: list[dict[str, Any]], config: Configuration, workload: Workload) -> list[dict[str, Any]]:
-    keys = [
+    """Same-relation merge on a nonempty identity key. Empty keys stay distinct."""
+
+    clear_merge_audit()
+    authorized = identity_merge_keys(workload)
+    categorical = [
         name
         for name, cfg in config.pop.er.items()
-        if cfg.strategy == "merge"
+        if cfg.strategy == "merge" and name not in {item for names in authorized.values() for item in names}
     ]
-    if not keys:
-        return rows
-    buckets: dict[tuple[Any, ...], dict[str, Any]] = {}
+    by_entity: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    unknown: list[dict[str, Any]] = []
     for row in rows:
-        key = tuple(
-            str(
-                row.get(f"{name.split('.')[-1]}__canonical")
-                or row.get(name, "")
-            ).strip().lower()
-            for name in keys
-        )
-        if key not in buckets:
-            buckets[key] = dict(row)
+        entity = _row_entity(row)
+        if not entity:
+            unknown.append(dict(row))
             continue
-        current = buckets[key]
-        for field, value in row.items():
-            if current.get(field) in (None, "") and value not in (None, ""):
-                current[field] = value
-    return list(buckets.values())
+        by_entity[entity].append(row)
+
+    out: list[dict[str, Any]] = list(unknown)
+    for entity, group in by_entity.items():
+        keys = authorized.get(entity) or []
+        if not keys:
+            out.extend(dict(row) for row in group)
+            continue
+        buckets: dict[tuple[str, ...], dict[str, Any]] = {}
+        members: dict[tuple[str, ...], list[str]] = defaultdict(list)
+        for row in group:
+            key = _key_tuple(row, keys)
+            if not any(key):
+                out.append(dict(row))
+                continue
+            doc = str(row.get("doc_id") or "")
+            if key not in buckets:
+                buckets[key] = dict(row)
+                members[key].append(doc)
+                continue
+            current = buckets[key]
+            members[key].append(doc)
+            for field, value in row.items():
+                if current.get(field) in (None, "") and value not in (None, ""):
+                    current[field] = value
+        for key, row in buckets.items():
+            docs = [item for item in members[key] if item]
+            if len(docs) >= 2:
+                support = [
+                    name
+                    for name in categorical
+                    if name.split(".")[0] == entity and _key_tuple(row, [name])[0]
+                ]
+                _MERGE_AUDIT.append(
+                    {
+                        "entity": entity,
+                        "docs": docs,
+                        "identity_key": list(keys),
+                        "identity_values": list(key),
+                        "categorical_support": support,
+                        "justification": "nonempty identity key matched within one relation",
+                    }
+                )
+            out.append(row)
+    return out
 
 
 def _coarsen(rows: list[dict[str, Any]], config: Configuration) -> list[dict[str, Any]]:

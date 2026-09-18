@@ -8,8 +8,14 @@ from typing import Any
 from quwarts.core.extract import StagedExtractor, allocate_tiers
 from quwarts.core.ledger import BudgetExhausted
 from quwarts.core.models import FrozenPortfolio, PreprocessPolicy, SourceDocument, Workload
-from quwarts.core.repair.actions import execute, propose
+from quwarts.core.repair.actions import eligible_repairs, execute
 from quwarts.core.repair.detectors import issues_from_snapshot, proxy_score, snapshot
+from quwarts.core.repair.diagnose import (
+    diagnose_empty_queries,
+    diagnose_filter_failures,
+    group_diagnoses,
+    issues_from_filter_failures,
+)
 from quwarts.core.repair.er import resolve_shared_ids, stamp_shared_ids
 from quwarts.core.repair.models import RepairReport
 from quwarts.core.repair.rank import rank_repairs
@@ -57,26 +63,45 @@ def run_repair_agent(
             bugfix_log=bugfix_log,
             routing=routing,
             shared_er=identity_report.get("shared_er") or {},
+            infeasible=[],
         )
 
     start = ledger.spent
     before = snapshot(extractor.store, workload, portfolio, statements)
     best = proxy_score(before)
     no_improve = 0
+    blocked: set[str] = set()
+    infeasible: list[dict[str, Any]] = []
     stopped = "budget"
 
     while ledger.remaining() > reserve:
         current = snapshot(extractor.store, workload, portfolio, statements)
         found = issues_from_snapshot(current, workload, statements)
+        if current.empty_query_ids:
+            from quwarts.core.pipeline import serve_plans
+
+            plans = serve_plans(portfolio, statements)
+            diagnoses = diagnose_empty_queries(
+                current.empty_query_ids, statements, plans,
+                store=extractor.store, workload=workload,
+            )
+            empty_ids = set(current.empty_query_ids)
+            found = [
+                issue
+                for issue in found
+                if issue.kind != "empty_query"
+                and not (issue.kind == "join_yield" and empty_ids >= set(issue.query_ids))
+            ]
+            found.extend(group_diagnoses(diagnoses, workload))
+            filter_reports = diagnose_filter_failures(diagnoses, extractor.store, workload)
+            found.extend(issues_from_filter_failures(filter_reports, workload))
         if not found:
             stopped = "no_issues"
             break
-        candidates = []
-        for issue in found:
-            candidates.extend(propose(issue, extractor.store))
+        candidates = eligible_repairs(found, extractor.store, blocked, ledger=ledger)
         ranked = rank_repairs(candidates, workload, len(statements))
         if not ranked:
-            stopped = "no_repairs"
+            stopped = "no_compatible_repairs"
             break
         repair = ranked[0]
         if ledger.remaining() < max(repair.estimated_cost, MIN_REPAIR_TOKENS):
@@ -97,11 +122,16 @@ def run_repair_agent(
             stopped = "budget"
             steps.append({"repair": repair.action, "kind": repair.issue.kind, "stopped": "budget"})
             break
+        if result.get("infeasible"):
+            infeasible.append(result)
+            blocked.add(repair.action)
         if result.get("bugfix"):
             bugfix_log.append(result)
-        rematerialized = rematerialize_same_route(
-            extractor, documents, workload, portfolio, identity_report, artifact_root,
-        )
+        rematerialized = 0
+        if not result.get("infeasible"):
+            rematerialized = rematerialize_same_route(
+                extractor, documents, workload, portfolio, identity_report, artifact_root,
+            )
         after_step = snapshot(extractor.store, workload, portfolio, statements)
         score = proxy_score(after_step)
         improved = score > best + 1e-9
@@ -109,15 +139,18 @@ def run_repair_agent(
             best = score
             no_improve = 0
         else:
+            blocked.add(repair.action)
             no_improve += 1
         steps.append(
             {
                 "repair": repair.action,
                 "kind": repair.issue.kind,
+                "cause": (repair.issue.detail or {}).get("cause"),
                 "priority": repair.priority,
                 "result": {key: result.get(key) for key in result if key != "vote"},
                 "proxy": score,
                 "improved": improved,
+                "blocked_after": repair.action if not improved else None,
                 "rematerialized": rematerialized,
             }
         )
@@ -137,6 +170,7 @@ def run_repair_agent(
         bugfix_log=bugfix_log,
         routing=routing,
         shared_er=identity_report.get("shared_er") or {},
+        infeasible=infeasible,
     )
 
 

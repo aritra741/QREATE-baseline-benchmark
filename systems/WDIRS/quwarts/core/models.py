@@ -92,19 +92,16 @@ class SliceSpec(VersionedModel):
         if not constants:
             return True
         query = _interval(op, constants)
-        if query is not None:
-            covered: list[tuple[float, float]] = []
-            for item in self.ranges:
-                interval = _interval(item.op, item.values)
-                if interval is not None:
-                    covered.append(interval)
-            if covered and _interval_subset(query, covered):
-                return True
-        observed: set[str] = set()
+        if query is None:
+            return True
+        covered: list[tuple[float, float]] = []
         for item in self.ranges:
-            for value in item.values:
-                observed.add(_norm_const(value))
-        return all(_norm_const(value) in observed for value in constants)
+            interval = _interval(item.op, item.values)
+            if interval is not None:
+                covered.append(interval)
+        if not covered:
+            return True
+        return _interval_subset(query, covered)
 
 
 def _norm_const(value: Any) -> str:
@@ -204,6 +201,7 @@ class Workload(VersionedModel):
     requirements: dict[str, AttributeRequirement]
     binding_failures: list[str] = Field(default_factory=list)
     in_lists: dict[str, list[list[str]]] = Field(default_factory=dict)
+    like_tokens: dict[str, list[str]] = Field(default_factory=dict)
     literal_aliases: dict[str, str] = Field(default_factory=dict)
     join_types: dict[str, str] = Field(default_factory=dict)
     literal_types: dict[str, str] = Field(default_factory=dict)
@@ -338,6 +336,7 @@ class EvidenceRecord(VersionedModel):
     quality_tier: Literal["cheap", "expensive"]
     stage: Literal[1, 2, 3]
     tokens_spent: int = 0
+    entity_label: str | None = None
 
 
 class SourceDocument(VersionedModel):

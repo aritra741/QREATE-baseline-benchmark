@@ -46,6 +46,7 @@ def coverage_set(
         req = workload.requirements.get(record.attribute)
         if record.surface_value is not None:
             ranges[record.attribute] = SliceSpec(kind="full")
+            ranges[record.attribute.split(".")[-1]] = SliceSpec(kind="full")
         if req is not None:
             forms[record.attribute].update(req.required_forms)
     grain = dict(config.pop.grain)
@@ -266,6 +267,23 @@ def _relation_columns(relation: Any, seen: set[str]) -> list[str]:
         canon = f"{bare}__canonical"
         if canon not in columns and (canon in seen or f"{attr}__canonical" in seen):
             columns.append(canon)
+        like = f"{bare}__like"
+        if like not in columns and (like in seen or f"{attr}__like" in seen):
+            columns.append(like)
+        vocab = f"{bare}__vocab"
+        if vocab not in columns and (vocab in seen or f"{attr}__vocab" in seen):
+            columns.append(vocab)
+    entity = (getattr(relation, "entity_type", None) or relation.name or "").lower()
+    prefix = f"{entity}."
+    for key in seen:
+        text = str(key)
+        if not text.lower().startswith(prefix):
+            continue
+        bare = text.split(".")[-1]
+        if bare.endswith("__surface") or bare.endswith("__canonical"):
+            continue
+        if bare not in columns:
+            columns.append(bare)
     return columns
 
 
@@ -302,6 +320,64 @@ def _cell(value: Any) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def refresh_schema_from_sqlite(schema: Any, sqlite_path: str) -> None:
+    """Publish columns that exist in the database into the physical schema."""
+
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        tables = {
+            row[0]: [col[1] for col in conn.execute(f'PRAGMA table_info("{row[0]}")')]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+    finally:
+        conn.close()
+    skip = {"doc_id"}
+    for relation in schema.relations:
+        cols = tables.get(relation.name) or []
+        have = {item.split(".")[-1] for item in relation.attributes}
+        entity = getattr(relation, "entity_type", None) or relation.name
+        for col in cols:
+            if col in skip or col.endswith("__surface"):
+                continue
+            if col not in have:
+                qualified = f"{entity}.{col}" if entity else col
+                relation.attributes.append(qualified)
+                have.add(col)
+            schema.covered_attributes.add(col)
+            if entity:
+                schema.covered_attributes.add(f"{entity}.{col}")
+
+
+def refresh_coverage_from_sqlite(coverage: CoverageSet, sqlite_path: str) -> CoverageSet:
+    """Mark nonempty database columns as fully covered."""
+
+    ranges = dict(coverage.attribute_ranges)
+    present = set(coverage.attributes_present)
+    forms = dict(coverage.forms)
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        for table, in conn.execute("SELECT name FROM sqlite_master WHERE type='table'"):
+            cols = [col[1] for col in conn.execute(f'PRAGMA table_info("{table}")')]
+            for col in cols:
+                if col in {"doc_id"} or col.endswith("__surface"):
+                    continue
+                n = conn.execute(
+                    f'SELECT COUNT(*) FROM "{table}" WHERE "{col}" IS NOT NULL AND "{col}" <> \'\''
+                ).fetchone()[0]
+                if n <= 0:
+                    continue
+                spec = SliceSpec(kind="full")
+                ranges[col] = spec
+                ranges[f"{table}.{col}"] = spec
+                present.add(col)
+                present.add(f"{table}.{col}")
+                forms.setdefault(col, set()).update({"surface", "parsed"})
+                forms.setdefault(f"{table}.{col}", set()).update({"surface", "parsed"})
+    finally:
+        conn.close()
+    return coverage.model_copy(update={"attribute_ranges": ranges, "attributes_present": present, "forms": forms})
 
 
 def _payload_hash(rows: list[dict[str, Any]]) -> str:

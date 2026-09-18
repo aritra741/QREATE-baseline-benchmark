@@ -31,6 +31,61 @@ def test_sum_declares_numeric_without_using_the_name() -> None:
     assert Role.AGG_ADDITIVE in workload.requirements["art.awards"].roles
 
 
+def test_sql_columns_are_kept_even_if_name_looks_like_a_coarsening() -> None:
+    logical = infer_logical_schema(
+        ["SELECT item.item_status FROM item WHERE item.item_status <> ''"]
+    )
+    names = {f"{item.entity_type}.{item.name}" for item in logical.attributes}
+    assert "item.item_status" in names
+
+
+def test_like_coverage_is_interval_not_literal_lookup() -> None:
+    from quwarts.core.models import PredicateRange, SliceSpec
+
+    spec = SliceSpec(
+        kind="ranges",
+        ranges=[PredicateRange(attribute="item.kind", op="LIKE", values=["%other%"])],
+    )
+    assert spec.contains_constants(["%wanted%"], op="LIKE")
+
+
+def test_like_rewrite_only_when_table_has_derived_column() -> None:
+    from quwarts.core.rewrite import apply_like_derived
+
+    sql = "SELECT * FROM disease d WHERE LOWER(d.disease_type) LIKE '%x%' AND d.disease_type <> ''"
+    rewritten = apply_like_derived(sql, {"disease": {"disease_type"}})
+    assert "disease_type__like" in rewritten
+    assert "d.disease_type <> ''" in rewritten or "d.disease_type <>" in rewritten
+    skipped = apply_like_derived(sql, {"drug": {"disease_type"}})
+    assert "disease_type__like" not in skipped
+
+
+def test_like_case_is_measured_not_named() -> None:
+    from quwarts.core.repair.like_vocab import measure_like_case
+
+    assert measure_like_case(["token_a", "other"], ["token_a"]) == "a"
+    assert measure_like_case(["unrelated prose"], ["token_a", "token_b"]) == "b"
+    assert measure_like_case(["token_a, token_b"] * 4, ["token_a", "token_b"]) == "c"
+
+
+def test_string_literal_and_like_force_text() -> None:
+    _, workload = analyze_workload(
+        {
+            "q1": "SELECT d.disease_type FROM disease d WHERE d.disease_type <> ''",
+            "q2": "SELECT LOWER(d.disease_type) FROM disease d WHERE LOWER(d.disease_type) LIKE '%infectious%'",
+            "q3": (
+                "SELECT SUM(CASE WHEN LOWER(dr.prescription_status) LIKE '%prescription_only%' "
+                "THEN 1 ELSE 0 END) FROM drug dr WHERE dr.prescription_status <> ''"
+            ),
+        }
+    )
+    assert workload.requirements["disease.disease_type"].dtype == "string"
+    assert workload.requirements["drug.prescription_status"].dtype == "string"
+    assert workload.literal_types["prescription_status"] == "string"
+    assert "prescription_only" in workload.like_tokens.get("drug.prescription_status", [])
+    assert "prescription_only" in workload.like_tokens.get("prescription_status", [])
+
+
 def test_literals_still_type_columns() -> None:
     _, workload = analyze_workload(
         {
@@ -217,3 +272,406 @@ def test_repair_agent_keeps_routing(tmp_path) -> None:
     )
     assert report.routing == {"t1": "cfg-a"}
     assert report.stopped == "below_min_repair_tokens"
+
+
+def test_empty_query_diagnosis_names_first_zero_stage(tmp_path) -> None:
+    import sqlite3
+    from quwarts.core.repair.diagnose import diagnose_empty_query
+
+    path = tmp_path / "med.db"
+    conn = sqlite3.connect(path)
+    conn.execute("CREATE TABLE disease (disease_name TEXT)")
+    conn.execute("CREATE TABLE drug (disease_name TEXT)")
+    conn.executemany("INSERT INTO disease VALUES (?)", [("HIV",), ("Asthma",)])
+    conn.executemany("INSERT INTO drug VALUES (?)", [("Flu",), ("COVID-19",)])
+    conn.commit()
+    conn.close()
+    join_empty = diagnose_empty_query(
+        "q_join",
+        "SELECT d.disease_name FROM drug d JOIN disease t ON d.disease_name = t.disease_name",
+        str(path),
+    )
+    assert join_empty.cause == "join"
+    assert join_empty.first_zero_stage == "join:0"
+    assert "repair_join_vocabulary" in join_empty.compatible_actions
+    assert "HIV" not in join_empty.unmatched.get("left_unmatched", [])
+    assert "Flu" in join_empty.unmatched.get("left_unmatched", [])
+
+    conn = sqlite3.connect(path)
+    conn.execute("CREATE TABLE art (awards TEXT, tone TEXT)")
+    conn.execute("INSERT INTO art VALUES ('none', 'warm')")
+    conn.commit()
+    conn.close()
+    filt = diagnose_empty_query(
+        "q_filter",
+        "SELECT tone FROM art WHERE awards = 'missing'",
+        str(path),
+    )
+    assert filt.cause == "filter"
+    assert filt.first_zero_stage == "filter:0"
+    assert filt.predicate == "awards = 'missing'"
+
+    conn = sqlite3.connect(path)
+    conn.execute("ALTER TABLE disease ADD COLUMN disease_type TEXT")
+    conn.execute("UPDATE disease SET disease_type = 'infectious' WHERE disease_name = 'HIV'")
+    conn.commit()
+    conn.close()
+    cross = diagnose_empty_query(
+        "q_cross",
+        "SELECT d.disease_name FROM drug d JOIN disease t ON d.disease_name = t.disease_name "
+        "WHERE t.disease_type <> ''",
+        str(path),
+    )
+    assert cross.cause == "join"
+    assert cross.first_zero_stage == "join:0"
+
+
+def test_join_diagnosis_allows_only_er_repair() -> None:
+    from quwarts.core.repair.actions import eligible_repairs, propose
+    from quwarts.core.repair.models import RepairIssue
+
+    issue = RepairIssue(
+        kind="empty_query",
+        attributes=["drug.disease_name", "disease.disease_name"],
+        query_ids=["q_join"],
+        severity=1.0,
+        detail={
+            "cause": "join",
+            "compatible_actions": ["repair_join_vocabulary"],
+            "unmatched": {"left_unmatched": ["Flu"], "right_values": ["HIV"]},
+        },
+    )
+    actions = {item.action for item in propose(issue, None)}
+    assert actions == {"repair_join_vocabulary"}
+    assert eligible_repairs([issue], None, blocked={"repair_join_vocabulary"}) == []
+
+
+def test_failed_action_is_not_repeated() -> None:
+    from quwarts.core.repair.actions import eligible_repairs
+    from quwarts.core.repair.models import RepairIssue
+
+    issue = RepairIssue(
+        kind="empty_query",
+        attributes=["art.awards"],
+        query_ids=["q1"],
+        severity=1.0,
+        detail={"cause": "filter", "compatible_actions": ["reextract_attribute_slice"]},
+    )
+    assert eligible_repairs([issue], None, blocked=set())
+    assert eligible_repairs([issue], None, blocked={"reextract_attribute_slice"}) == []
+
+
+def test_inspect_coercion_reads_evidence_before_reextract() -> None:
+    from quwarts.core.extract import EvidenceStore
+    from quwarts.core.repair.diagnose import inspect_coercion
+
+    _, workload = analyze_workload(["SELECT awards FROM art WHERE awards > 0"])
+    store = EvidenceStore()
+    store.put(
+        EvidenceRecord(
+            key="a", segment_id="s", doc_id="d1", attribute="art.awards",
+            surface_value="France", extractor_cfg_hash="h", quality_tier="cheap",
+            stage=1, null_reason="dtype_coercion",
+        )
+    )
+    store.put(
+        EvidenceRecord(
+            key="b", segment_id="s", doc_id="d2", attribute="art.awards",
+            surface_value="12", extractor_cfg_hash="h", quality_tier="cheap",
+            stage=1, null_reason="dtype_coercion",
+        )
+    )
+    report = inspect_coercion(store, workload, ["art.awards"])
+    skipped = {row["surface"] for row in report["skip"]}
+    reparses = {row["surface"] for row in report["reparse"]}
+    assert "France" in skipped
+    assert "12" in reparses
+    assert report["reextract"] == []
+
+
+def test_filter_failure_diagnosis_picks_representation_not_extract() -> None:
+    from quwarts.core.extract import EvidenceStore
+    from quwarts.core.repair.diagnose import diagnose_filter_failure
+    from quwarts.core.repair.represent import extract_unit_and_magnitude, mark_absence_as_null
+
+    _, workload = analyze_workload(["SELECT awards FROM art WHERE awards > 0"])
+    store = EvidenceStore()
+    for key, surface in (("a", "250 mg"), ("b", "none reported"), ("c", "12-18")):
+        store.put(
+            EvidenceRecord(
+                key=key, segment_id="s", doc_id=key, attribute="art.awards",
+                surface_value=surface, extractor_cfg_hash="h", quality_tier="cheap",
+                stage=1,
+            )
+        )
+    report = diagnose_filter_failure(
+        "art.awards", ["q1"], "awards > 0", [0], store, workload,
+    )
+    assert report.n_units >= 1
+    assert report.n_ranges >= 1
+    assert report.n_absence >= 1
+    assert report.n_literal_hits == 0
+    assert "reextract_attribute_slice" not in report.compatible_actions
+    assert "extract_unit_and_magnitude" in report.compatible_actions
+    assert extract_unit_and_magnitude(store, ["art.awards"])["n"] == 1
+    assert store.records["a"].parsed_value == 250
+    assert mark_absence_as_null(store, ["art.awards"])["n"] == 1
+    assert store.records["b"].null_reason == "absence"
+
+
+def test_numeric_category_without_bands_is_infeasible() -> None:
+    from quwarts.core.extract import EvidenceStore
+    from quwarts.core.repair.diagnose import diagnose_filter_failure
+
+    _, workload = analyze_workload(["SELECT age FROM art WHERE age > 65"])
+    store = EvidenceStore()
+    store.put(
+        EvidenceRecord(
+            key="a", segment_id="s", doc_id="d1", attribute="art.age",
+            surface_value="adult", extractor_cfg_hash="h", quality_tier="cheap",
+            stage=1,
+        )
+    )
+    report = diagnose_filter_failure(
+        "art.age", ["q1"], "age > 65", [65], store, workload,
+    )
+    assert report.shape == "infeasible"
+    assert report.compatible_actions == ("infeasible_representation",)
+    assert report.samples == ["adult"]
+
+
+def test_repair_cost_is_observed_spend_not_a_table() -> None:
+    from quwarts.core.ledger import TokenLedger
+    from quwarts.core.repair.actions import estimate_cost
+
+    assert estimate_cost("extract_unit_and_magnitude", 12) == 0
+    assert estimate_cost("infeasible_representation", 8) == 0
+    assert estimate_cost("reextract_attribute_slice", 3) == 3
+
+    ledger = TokenLedger(theta=10_000)
+    ledger.spend(120, "extract", attribute="art.awards")
+    ledger.spend(80, "extract", attribute="art.awards")
+    assert estimate_cost("reextract_attribute_slice", 2, ledger, ["art.awards"]) == 200
+    ledger.spend(50, "extract", attribute="art.tone")
+    assert estimate_cost("reextract_attribute_slice", 1, ledger, ["art.awards"]) == 100
+
+
+def test_like_vocab_survives_vote_replace() -> None:
+    from quwarts.core.extract import carry_derived_keys, prefer_constrained_records
+
+    primary = EvidenceRecord(
+        key="p", segment_id="s", doc_id="d1", attribute="item.kind",
+        surface_value="viral", extractor_cfg_hash="h", quality_tier="cheap",
+        stage=1, candidate_keys={"route": "primary", "like_vocab": "viral|bacterial"},
+    )
+    voted = EvidenceRecord(
+        key="v", segment_id="s", doc_id="d1", attribute="item.kind",
+        surface_value="viral", extractor_cfg_hash="voted", quality_tier="expensive",
+        stage=3, candidate_keys={"route": "voted", "grounded": "1"},
+    )
+    kept = prefer_constrained_records([primary, voted])
+    assert len(kept) == 1
+    assert (kept[0].candidate_keys or {}).get("like_vocab") in (None, "")
+    carried = carry_derived_keys(kept, [primary, voted])
+    assert carried[0].candidate_keys.get("like_vocab") == "viral|bacterial"
+
+
+def test_high_amp_cells_exclude_join() -> None:
+    from quwarts.core.quality import high_amp_cell_attributes
+
+    _, workload = analyze_workload(
+        {
+            "q1": "SELECT SUM(item.amount), item.kind FROM item GROUP BY item.kind",
+            "q2": "SELECT COUNT(DISTINCT item.kind) FROM item",
+            "q3": "SELECT item.amount FROM item JOIN other ON item.name = other.name",
+        }
+    )
+    names = high_amp_cell_attributes(workload)
+    assert "item.amount" in names
+    assert "item.kind" in names
+    assert "other.name" not in names or Role.JOIN in workload.requirements["other.name"].roles
+    join_only = [
+        name
+        for name in names
+        if workload.requirements[name].roles <= {Role.JOIN, Role.KEY, Role.PROJECT}
+    ]
+    assert join_only == []
+
+
+def test_blocking_admission_counts_prefix() -> None:
+    from quwarts.core.repair.join_profile import blocking_admission
+
+    report = blocking_admission(
+        ["cardiovascular disease", "diabetes"],
+        ["cardiovascular diseases", "anemia"],
+        prefix=3,
+        threshold=0.92,
+    )
+    assert report["possible_pairs"] == 4
+    assert report["admitted_pairs"] == 1
+    assert report["high_admitted"] == 1
+    assert report["high_blocked"] == 0
+    blocked = blocking_admission(["xyzabc"], ["abcxyz"], prefix=3, threshold=0.5)
+    assert blocked["admitted_pairs"] == 0
+    assert blocked["high_blocked"] >= 1
+
+
+def test_canonical_lookup_uses_er_map_when_norm_is_domain() -> None:
+    from quwarts.core.models import ModuleConfig, PopulationPolicy
+    from quwarts.core.population import _canonical
+
+    pop = PopulationPolicy()
+    pop.norm["item.name"] = ModuleConfig(strategy="domain", params={"map": {}, "domain": ["x"]})
+    pop.er["item.name"] = ModuleConfig(
+        strategy="identity",
+        params={"map": {"Cardiovascular Disease": "er:abc"}},
+    )
+    record = EvidenceRecord(
+        key="k", segment_id="s", doc_id="d", attribute="item.name",
+        surface_value="cardiovascular disease", extractor_cfg_hash="h",
+        quality_tier="cheap", stage=1,
+    )
+    assert _canonical(record, pop, "cardiovascular disease") == "er:abc"
+
+
+def test_vote_amplified_agrees_then_grounds() -> None:
+    from quwarts.core.extract import EvidenceStore
+    from quwarts.core.ledger import TokenLedger
+    from quwarts.core.models import SourceDocument
+    from quwarts.core.quality import vote_amplified
+
+    _, workload = analyze_workload(["SELECT SUM(item.amount) FROM item GROUP BY item.kind"])
+    store = EvidenceStore()
+    store.put(
+        EvidenceRecord(
+            key="p", segment_id="s", doc_id="d1", attribute="item.amount",
+            surface_value="12", extractor_cfg_hash="h", quality_tier="cheap",
+            stage=1, candidate_keys={"route": "primary"},
+        )
+    )
+    store.put(
+        EvidenceRecord(
+            key="k", segment_id="s", doc_id="d1", attribute="item.kind",
+            surface_value="viral", extractor_cfg_hash="h", quality_tier="cheap",
+            stage=1, candidate_keys={"route": "primary"},
+        )
+    )
+    docs = [SourceDocument(doc_id="d1", text="dose 12 viral")]
+
+    class Fake:
+        def __init__(self) -> None:
+            self.store = store
+            self.ledger = TokenLedger(theta=10_000)
+            self.route = "primary"
+
+        def configure_route(self, route="primary", **_kwargs):
+            self.route = route
+
+        def extract_attributes(self, documents, attributes, tiers, **_kwargs):
+            name = attributes[0]
+            value = "12" if name == "item.amount" else "viral"
+            for doc in documents:
+                store.put(
+                    EvidenceRecord(
+                        key=f"{self.route}-{name}",
+                        segment_id="s",
+                        doc_id=doc.doc_id,
+                        attribute=name,
+                        surface_value=value,
+                        extractor_cfg_hash=self.route,
+                        quality_tier="expensive",
+                        stage=3,
+                        candidate_keys={"route": self.route},
+                    )
+                )
+
+        def commit_vote(self, doc_id, attribute, surface, parsed, reason):
+            store.put(
+                EvidenceRecord(
+                    key=f"voted-{attribute}",
+                    segment_id="s",
+                    doc_id=doc_id,
+                    attribute=attribute,
+                    surface_value=surface,
+                    parsed_value=parsed,
+                    null_reason=reason,
+                    extractor_cfg_hash="voted",
+                    quality_tier="expensive",
+                    stage=3,
+                    candidate_keys={"route": "voted", "grounded": "0" if reason == "ungrounded" else "1"},
+                )
+            )
+            return True
+
+    report = vote_amplified(Fake(), docs, workload, ceiling=5000)
+    assert report["n_agreed"] >= 1
+    assert report["n_grounded"] >= 1
+    voted = [row for row in store.records.values() if row.extractor_cfg_hash == "voted"]
+    assert any(row.surface_value == "12" for row in voted)
+
+
+def test_vote_amplified_nulls_ungrounded() -> None:
+    from quwarts.core.extract import EvidenceStore
+    from quwarts.core.ledger import TokenLedger
+    from quwarts.core.models import SourceDocument
+    from quwarts.core.quality import vote_amplified
+
+    _, workload = analyze_workload(["SELECT SUM(item.amount) FROM item"])
+    store = EvidenceStore()
+    store.put(
+        EvidenceRecord(
+            key="p", segment_id="s", doc_id="d1", attribute="item.amount",
+            surface_value="999", extractor_cfg_hash="h", quality_tier="cheap",
+            stage=1, candidate_keys={"route": "primary"},
+        )
+    )
+    docs = [SourceDocument(doc_id="d1", text="no numeric mention here")]
+
+    class Fake:
+        def __init__(self) -> None:
+            self.store = store
+            self.ledger = TokenLedger(theta=10_000)
+            self.route = "primary"
+
+        def configure_route(self, route="primary", **_kwargs):
+            self.route = route
+
+        def extract_attributes(self, documents, attributes, tiers, **_kwargs):
+            for doc in documents:
+                store.put(
+                    EvidenceRecord(
+                        key=f"{self.route}-item.amount",
+                        segment_id="s",
+                        doc_id=doc.doc_id,
+                        attribute="item.amount",
+                        surface_value="999",
+                        extractor_cfg_hash=self.route,
+                        quality_tier="expensive",
+                        stage=3,
+                        candidate_keys={"route": self.route},
+                    )
+                )
+
+        def commit_vote(self, doc_id, attribute, surface, parsed, reason):
+            store.put(
+                EvidenceRecord(
+                    key="voted-item.amount",
+                    segment_id="s",
+                    doc_id=doc_id,
+                    attribute=attribute,
+                    surface_value=surface,
+                    parsed_value=parsed,
+                    null_reason=reason,
+                    extractor_cfg_hash="voted",
+                    quality_tier="expensive",
+                    stage=3,
+                    candidate_keys={"route": "voted", "grounded": "0" if reason == "ungrounded" else "1"},
+                )
+            )
+            return True
+
+    report = vote_amplified(Fake(), docs, workload, ceiling=5000)
+    assert report["n_ungrounded"] >= 1
+    voted = store.records["voted-item.amount"]
+    assert voted.surface_value is None
+    assert voted.null_reason == "ungrounded"

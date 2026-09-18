@@ -102,7 +102,7 @@ def infer_logical_schema(statements: Iterable[str], schema_id: str = "L") -> Log
 
     def _add_attr(entity: str, attr: str) -> None:
         entity, attr = entity.lower(), attr.lower()
-        if not entity or not attr or is_coarsening(attr):
+        if not entity or not attr:
             return
         if attr in expressions:
             return
@@ -217,3 +217,28 @@ def resolve_bases(logical: LogicalSchema, attribute: str) -> list[str]:
 
 def qualify(entity: str, attribute: str) -> str:
     return f"{entity.lower()}.{attribute.lower()}"
+
+
+def extend_logical_schema(logical: LogicalSchema, statements: Iterable[str]) -> LogicalSchema:
+    """Add AST columns that were omitted when L was first induced."""
+
+    extra = infer_logical_schema(statements, schema_id=logical.id)
+    have = {(item.entity_type, item.name) for item in logical.attributes}
+    attrs = list(logical.attributes)
+    for item in extra.attributes:
+        key = (item.entity_type, item.name)
+        if key in have:
+            continue
+        attrs.append(item)
+        have.add(key)
+    entities = sorted({*logical.entity_types, *extra.entity_types})
+    grain = dict(logical.identity_grain)
+    for entity in entities:
+        grain.setdefault(entity, "mention")
+    return logical.model_copy(
+        update={
+            "entity_types": entities,
+            "attributes": attrs,
+            "identity_grain": grain,
+        }
+    )

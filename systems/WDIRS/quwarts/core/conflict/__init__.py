@@ -45,13 +45,14 @@ def presuppositions(template: Template) -> list[Presupposition]:
                 )
             )
         if Role.GROUP in roles:
+            # Grouping is SQL GROUP BY. It does not authorize row-level ER.
             demands.append(
                 Presupposition(
                     entity_type=entity,
                     attribute=attribute,
-                    module="er",
-                    demand="merge",
-                    destructive=True,
+                    module="grain",
+                    demand="mention",
+                    destructive=False,
                 )
             )
         if Role.AGG_ADDITIVE in roles or Role.AGG_EXTREMAL in roles:

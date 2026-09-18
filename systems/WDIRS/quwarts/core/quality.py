@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import random
 import re
 from collections import Counter, defaultdict
 from typing import Any
 
-from quwarts.core.amplify import amp
-from quwarts.core.extract import StagedExtractor, cluster_document_formats, validate_cell
+from quwarts.core.amplify import amp, attach_amplification
+from quwarts.core.extract import StagedExtractor, cluster_document_formats, find_surface_span, validate_cell
 from quwarts.core.ledger import BudgetExhausted
 from quwarts.core.models import (
     AttributeRequirement,
@@ -317,6 +318,150 @@ def span_adjudicate(
     finally:
         extractor.configure_route()
     return {"cleared": cleared, "nulled": nulled, "tokens": extractor.ledger.spent - start}
+
+
+_CELL_ROLES = {
+    Role.AGG_ADDITIVE, Role.AGG_EXTREMAL, Role.AGG_DISTINCT, Role.GROUP,
+}
+
+
+def high_amp_cell_attributes(workload: Workload) -> list[str]:
+    """Measures, grouping keys, and COUNT DISTINCT args, ranked by amp(a)."""
+
+    attach_amplification(workload)
+    ranked = []
+    for name, req in workload.requirements.items():
+        if not (req.roles & _CELL_ROLES):
+            continue
+        ranked.append((float(req.amp or 0.0), name))
+    ranked.sort(reverse=True)
+    return [name for _amp, name in ranked]
+
+
+def _route_only(store, attribute: str, route: str) -> dict[str, str | None]:
+    found: dict[str, str | None] = {}
+    for record in store.for_attribute(attribute):
+        if (record.candidate_keys or {}).get("route") != route:
+            continue
+        prev = found.get(record.doc_id)
+        if prev not in (None, "") and record.surface_value in (None, ""):
+            continue
+        found[record.doc_id] = record.surface_value
+    return found
+
+
+def vote_amplified(
+    extractor: StagedExtractor,
+    documents: list[SourceDocument],
+    workload: Workload,
+    *,
+    ceiling: int | None = None,
+) -> dict[str, Any]:
+    """Second route on high-amp cells. Agree keep; disagree escalate; span-ground."""
+
+    names = high_amp_cell_attributes(workload)
+    start = extractor.ledger.spent
+    limit = ceiling if ceiling is not None else VOTE_BUDGET
+    by_doc = {doc.doc_id: doc for doc in documents}
+    report = {
+        "attributes": names,
+        "n_agreed": 0,
+        "n_disagreed": 0,
+        "n_escalated": 0,
+        "n_grounded": 0,
+        "n_ungrounded": 0,
+        "per_attribute": {},
+    }
+    for name in names:
+        if extractor.ledger.spent - start >= limit:
+            break
+        req = workload.requirements[name]
+        primary = _surface_map(extractor.store, name)
+        target_ids = {doc_id for doc_id, value in primary.items() if value}
+        print(
+            json.dumps({"vote_attr": name, "n_docs": len(target_ids), "spent": extractor.ledger.spent}),
+            flush=True,
+        )
+        subset = [row for row in documents if row.doc_id in target_ids]
+        if not subset:
+            report["per_attribute"][name] = {"agreed": 0, "disagreed": 0, "grounded": 0, "ungrounded": 0}
+            continue
+        second = _route_only(extractor.store, name, "dissimilar")
+        pending = [row for row in subset if row.doc_id not in second]
+        try:
+            if pending:
+                extractor.configure_route(
+                    route="dissimilar",
+                    prompt_kind="dissimilar",
+                    model=DISSIMILAR_MODEL,
+                    policy=PreprocessPolicy(mode="whole_document"),
+                )
+                extractor.extract_attributes(
+                    pending, [name], {name: "expensive"}, stage=3, workload=workload,
+                )
+                second = _route_only(extractor.store, name, "dissimilar")
+        except BudgetExhausted:
+            break
+        finally:
+            extractor.configure_route()
+        stats = {"agreed": 0, "disagreed": 0, "grounded": 0, "ungrounded": 0}
+        winners: dict[str, str | None] = {}
+        disagreed: list[str] = []
+        for doc_id in sorted(set(primary) | set(second)):
+            left = primary.get(doc_id)
+            right = second.get(doc_id)
+            if not left and not right:
+                continue
+            if left and right and _fold(left) == _fold(right):
+                winners[doc_id] = left
+                report["n_agreed"] += 1
+                stats["agreed"] += 1
+            else:
+                disagreed.append(doc_id)
+                report["n_disagreed"] += 1
+                stats["disagreed"] += 1
+        extra: dict[str, str | None] = {}
+        if disagreed and extractor.ledger.spent - start < limit:
+            try:
+                extractor.configure_route(
+                    route="escalate",
+                    prompt_kind="focused",
+                    model=None,
+                    policy=PreprocessPolicy(mode="whole_document"),
+                )
+                subset = [row for row in documents if row.doc_id in set(disagreed)]
+                extractor.extract_attributes(
+                    subset, [name], {name: "expensive"}, stage=3, workload=workload,
+                )
+                report["n_escalated"] += len(disagreed)
+                extra = _route_only(extractor.store, name, "escalate")
+            except BudgetExhausted:
+                pass
+            finally:
+                extractor.configure_route()
+        for doc_id in disagreed:
+            values = [item for item in (primary.get(doc_id), second.get(doc_id), extra.get(doc_id)) if item]
+            winners[doc_id] = majority(values)
+        for doc_id, winner in winners.items():
+            doc = by_doc.get(doc_id)
+            text = doc.text if doc is not None else ""
+            if not winner or find_surface_span(text, winner) is None:
+                extractor.commit_vote(doc_id, name, None, None, "ungrounded")
+                report["n_ungrounded"] += 1
+                stats["ungrounded"] += 1
+                continue
+            surface, parsed, reason = validate_cell(winner, req.dtype)
+            if surface is None or find_surface_span(text, surface) is None:
+                extractor.commit_vote(doc_id, name, None, None, "ungrounded")
+                report["n_ungrounded"] += 1
+                stats["ungrounded"] += 1
+                continue
+            extractor.commit_vote(doc_id, name, surface, parsed, reason)
+            report["n_grounded"] += 1
+            stats["grounded"] += 1
+        report["per_attribute"][name] = stats
+    report["tokens"] = extractor.ledger.spent - start
+    return report
 
 
 def _surface_in_text(surface: str, text: str) -> bool:

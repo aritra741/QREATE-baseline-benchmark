@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections import defaultdict
 from typing import Any
 
 from quwarts.core.domain import _llm_identity_map, _surfaces, identity_components
@@ -16,6 +15,27 @@ def _fold(value: str) -> str:
     text = str(value or "").strip().lower()
     text = re.sub(r"[^\w\s]+", " ", text, flags=re.UNICODE)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _threshold_merge(values: list[str], threshold: float = 0.92) -> dict[str, str]:
+    """Block on a prefix, merge pairs above a similarity threshold. No corpus rules."""
+
+    from difflib import SequenceMatcher
+
+    blocks: dict[str, list[str]] = {}
+    for value in values:
+        blocks.setdefault(_fold(value)[:3], []).append(value)
+    merged: dict[str, str] = {}
+    for group in blocks.values():
+        for index, left in enumerate(group):
+            if left in merged:
+                continue
+            for right in group[index + 1 :]:
+                if right in merged:
+                    continue
+                if SequenceMatcher(None, _fold(left), _fold(right)).ratio() >= threshold:
+                    merged[right] = left
+    return merged
 
 
 def _canon_id(surface: str) -> str:
@@ -58,6 +78,15 @@ def resolve_shared_ids(
             provenance[value] = "exact_fold"
             confidence[value] = 1.0
         leftovers = sorted({groups[key] for key in groups})
+        for source, dest in _threshold_merge(leftovers).items():
+            dest_id = mapping.get(dest) or dest
+            for surface, current in list(mapping.items()):
+                if current == source or _fold(surface) == _fold(source):
+                    mapping[surface] = dest_id
+                    provenance[surface] = "blocked_threshold"
+                    confidence[surface] = 0.85
+            leftovers = [item for item in leftovers if item != source]
+        leftovers = sorted({mapping.get(item, item) for item in leftovers})
         if caller is not None and len(leftovers) >= 2:
             try:
                 merged = _llm_identity_map(leftovers, leftovers, caller, "+".join(sorted(component)))
@@ -97,6 +126,29 @@ def resolve_shared_ids(
             maps[attr] = dict(attr_map)
             maps[attr.split(".")[-1]] = dict(attr_map)
     return {"table": table, "maps": maps, "linkage": linkage}
+
+
+def align_unmatched(
+    left_values: list[str],
+    right_values: list[str],
+    caller=None,
+    label: str = "join",
+) -> dict[str, str]:
+    """Map unmatched left surfaces onto right representatives."""
+
+    mapping: dict[str, str] = {}
+    right_fold = {_fold(item): item for item in right_values if item}
+    for value in left_values:
+        hit = right_fold.get(_fold(value))
+        if hit is not None:
+            mapping[value] = hit
+    leftover = [item for item in left_values if item not in mapping]
+    if caller is not None and leftover and right_values:
+        try:
+            mapping.update(_llm_identity_map(leftover, list(right_values), caller, label))
+        except BudgetExhausted:
+            pass
+    return mapping
 
 
 def stamp_shared_ids(identity_report: dict[str, Any], shared: dict[str, Any]) -> dict[str, Any]:

@@ -184,6 +184,9 @@ def constrained_cell(
         return None, None, "other", True
     hit = allowed.get(text.lower())
     if hit is not None:
+        if extra and extra.lower() != _OTHER:
+            surface, parsed, reason = validate_cell(extra, dtype)
+            return surface, parsed, reason, False
         surface, parsed, reason = validate_cell(hit, dtype)
         return surface, parsed, reason, False
     if extra and extra.lower() != _OTHER:
@@ -291,6 +294,35 @@ def prefer_constrained_records(
         if record.attribute not in refs
         or (record.candidate_keys or {}).get("constrained")
     ]
+
+
+def carry_derived_keys(
+    kept: list[EvidenceRecord],
+    source: list[EvidenceRecord],
+) -> list[EvidenceRecord]:
+    """Keep LIKE/interval keys when a later vote replaces the cell."""
+
+    extra: dict[tuple[str, str], dict[str, str]] = {}
+    for record in source:
+        keys = record.candidate_keys or {}
+        bag = extra.setdefault((record.doc_id, record.attribute), {})
+        for name in ("like_vocab", "lo", "hi", "unit"):
+            if keys.get(name) not in (None, ""):
+                bag.setdefault(name, str(keys[name]))
+    out: list[EvidenceRecord] = []
+    for record in kept:
+        bag = extra.get((record.doc_id, record.attribute)) or {}
+        if not bag:
+            out.append(record)
+            continue
+        keys = dict(record.candidate_keys or {})
+        changed = False
+        for name, value in bag.items():
+            if keys.get(name) in (None, ""):
+                keys[name] = value
+                changed = True
+        out.append(record.model_copy(update={"candidate_keys": keys}) if changed else record)
+    return out
 
 
 def _cell_quality(record: EvidenceRecord) -> int:
@@ -484,6 +516,8 @@ class StagedExtractor:
         self.stage1_admitted: set[str] = set()
         self.stage1_rate: float = 1.0
         self.constraints: dict[str, str] = {}
+        self.contracts: dict[str, dict] = {}
+        self.use_contracts = False
         self.route = "primary"
         self.prompt_kind = "primary"
         self.route_model: str | None = None
@@ -514,6 +548,12 @@ class StagedExtractor:
         segments = segment_documents(documents, policy)
         format_clusters = format_clusters or cluster_document_formats(documents)
         self.constraints = join_authority(workload, logical)
+        if self.use_contracts:
+            from quwarts.core.contracts import compile_contracts
+
+            self.contracts = compile_contracts(workload)
+        else:
+            self.contracts = {}
         counts = {"stage1": 0, "stage2": 0, "stage3": 0}
         admitted_docs: set[str] = set()
         try:
@@ -615,12 +655,16 @@ class StagedExtractor:
         policy: PreprocessPolicy,
         tiers: dict[str, str],
         logical=None,
+        only: list[tuple[str, str]] | None = None,
     ) -> int:
         """Re-extract cells that failed coercion after the type was corrected."""
 
+        allowed = {(doc, attr) for doc, attr in only} if only is not None else None
         targets: dict[str, set[str]] = defaultdict(set)
         for record in self.store.records.values():
             if record.null_reason != "dtype_coercion":
+                continue
+            if allowed is not None and (record.doc_id, record.attribute) not in allowed:
                 continue
             targets[record.doc_id].add(record.attribute)
         if not targets:
@@ -795,6 +839,10 @@ class StagedExtractor:
                 tag = f"|constrained|{auth}|asserted"
             else:
                 tag = ""
+            contract = self.contracts.get(attribute) or self.contracts.get(attribute.split(".")[-1]) or {}
+            if self.use_contracts and contract.get("vocab") and attribute not in vocab_for:
+                vocab_for[attribute] = list(contract["vocab"])
+                tag += "|contract"
             dtype = dtypes.get(attribute, "string")
             route_tag = f"|{self.route}|{self.prompt_kind}|{self.route_model or ''}"
             cfg_hash = hashlib.sha256(
@@ -814,18 +862,18 @@ class StagedExtractor:
         extracted: dict[str, tuple[str | None, Any, str | None, int, str | None]] = {}
         if self.caller is not None:
             free = [name for name in missing if name not in vocab_for]
-            grouped: dict[str, list[str]] = defaultdict(list)
+            grouped: dict[tuple[str, ...], list[str]] = defaultdict(list)
             for name in missing:
                 if name in vocab_for:
-                    grouped[self.constraints[name]].append(name)
+                    grouped[tuple(vocab_for[name])].append(name)
             if free:
                 extracted.update(
                     self._llm_extract_free(segment, free, cfg_for, dtypes)
                 )
-            for auth, names in grouped.items():
+            for vocab, names in grouped.items():
                 extracted.update(
                     self._llm_extract_constrained(
-                        segment, names, vocab_for[names[0]], cfg_for, dtypes,
+                        segment, names, list(vocab), cfg_for, dtypes,
                     )
                 )
         else:
@@ -871,8 +919,23 @@ class StagedExtractor:
                 "route": self.route,
             }
             if constrained:
-                keys["constrained"] = constrained
+                # Contract vocab is open. Do not span-ground the token itself.
+                if self.use_contracts and constrained == "vocab":
+                    keys["constrained"] = "contract"
+                else:
+                    keys["constrained"] = constrained
                 keys["grounded"] = "0" if reason == "ungrounded" else "1"
+            if self.use_contracts:
+                from quwarts.core.contracts import assign_vocab
+
+                contract = (
+                    self.contracts.get(attribute)
+                    or self.contracts.get(attribute.split(".")[-1])
+                    or {}
+                )
+                assigned = assign_vocab(surface, list(contract.get("vocab") or []))
+                if assigned:
+                    keys["vocab"] = assigned
             record = EvidenceRecord(
                 key=evidence_key(segment.segment_id, attribute, cfg_hash, tier),
                 segment_id=segment.segment_id,
@@ -994,9 +1057,10 @@ class StagedExtractor:
             "Extract the following attributes from the document. "
             "Each value must be exactly one of the allowed values, or the token "
             f"{_OTHER} if the document uses a name that is not listed. "
-            "Return one JSON object mapping each attribute name to an allowed "
-            f"value, null, or {_OTHER}. If {_OTHER}, return "
-            '{"value": "other", "surface": "<name as written>"}. '
+            "The allowed list is query-relevant vocabulary, not a closed domain. "
+            "Always return the document span in surface. "
+            "Return one JSON object mapping each attribute name to "
+            '{"value": <allowed or other or null>, "surface": "<span as written>"}. '
             "No commentary.\n"
             f"ATTRIBUTES: {listed}\n"
             f"ALLOWED: {json.dumps(vocab)}\n\nDOCUMENT:\n{clip}"

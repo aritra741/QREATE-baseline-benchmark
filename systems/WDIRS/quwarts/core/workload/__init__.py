@@ -615,7 +615,8 @@ def analyze_workload(
         in_lists=stored_lists,
         literal_aliases=literal_aliases,
     )
-    from quwarts.core.domain import apply_predicate_types
+    from quwarts.core.domain import apply_predicate_types, like_tokens_from_workload
 
     apply_predicate_types(workload, logical)
+    workload.like_tokens = like_tokens_from_workload(workload)
     return logical, workload

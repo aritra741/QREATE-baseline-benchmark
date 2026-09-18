@@ -245,11 +245,16 @@ def _looks_numeric(value: str) -> bool:
 
 
 def apply_predicate_types(workload: Workload, logical=None) -> dict[str, str]:
-    """SQL literals, casts, comparisons, and aggregate operators set type."""
+    """SQL literals, casts, comparisons, and aggregate operators set type.
+
+    A comparison against a string literal, including ``<> ''`` and ``LIKE``,
+    is TEXT and outranks evidence, names, and SUM/AVG over CASE predicates.
+    """
 
     from quwarts.core.models import Role
 
     derived: dict[str, str] = {}
+    string_forced: set[str] = set()
     for template in workload.templates:
         for slot in template.param_slots:
             inferred = _type_from_slot(slot)
@@ -262,34 +267,75 @@ def apply_predicate_types(workload: Workload, logical=None) -> dict[str, str]:
                     derived[name] = inferred
                 elif current != inferred:
                     derived[name] = "string"
+                if inferred == "string":
+                    string_forced.add(name)
         for name, inferred in _types_from_sql_operators(template).items():
-            current = derived.get(name)
-            if current is None:
-                derived[name] = inferred
-                derived[name.split(".")[-1]] = inferred
-            elif current != inferred:
-                derived[name] = "string"
+            names = {name, name.split(".")[-1]}
+            for item in names:
+                current = derived.get(item)
+                if current is None:
+                    derived[item] = inferred
+                elif current != inferred:
+                    derived[item] = "string"
+                if inferred == "string":
+                    string_forced.add(item)
         for attr, roles in (template.roles_by_attribute or {}).items():
-            if Role.AGG_ADDITIVE in roles and attr not in derived:
+            if Role.AGG_ADDITIVE in roles and attr not in derived and attr.split(".")[-1] not in string_forced:
                 derived[attr] = "numeric"
                 derived[attr.split(".")[-1]] = "numeric"
+    forced_bare = {name.split(".")[-1] for name in string_forced}
+    for name in list(derived):
+        if name.split(".")[-1] in forced_bare:
+            derived[name] = "string"
+    for name in string_forced:
+        derived[name] = "string"
+        derived[name.split(".")[-1]] = "string"
     for name, dtype in derived.items():
-        req = workload.requirements.get(name)
-        if req is None:
-            for key, item in workload.requirements.items():
-                if key.split(".")[-1] == name.split(".")[-1]:
-                    req = item
-                    break
-        if req is not None:
-            req.dtype = dtype
-        workload.literal_types[name] = dtype
-    if logical is not None:
-        for item in logical.attributes:
-            qualified = f"{item.entity_type}.{item.name}"
-            dtype = derived.get(qualified) or derived.get(item.name)
-            if dtype:
-                item.dtype = dtype
+        _assign_literal_type(workload, name, dtype, logical)
+    for name in string_forced:
+        _assign_literal_type(workload, name, "string", logical)
+        _assign_literal_type(workload, name.split(".")[-1], "string", logical)
     return derived
+
+
+def _assign_literal_type(workload: Workload, name: str, dtype: str, logical=None) -> None:
+    workload.literal_types[name] = dtype
+    workload.literal_types[name.split(".")[-1]] = dtype
+    bare = name.split(".")[-1]
+    for key, req in workload.requirements.items():
+        if key == name or key.split(".")[-1] == bare:
+            req.dtype = dtype
+    if logical is None:
+        return
+    for item in logical.attributes:
+        if item.name == bare or f"{item.entity_type}.{item.name}" == name:
+            item.dtype = dtype
+
+
+def restore_sql_string_cells(records: list[EvidenceRecord], workload: Workload) -> int:
+    """Keep surfaces that SQL now types as TEXT. Do not re-extract."""
+
+    from quwarts.core.extract import validate_cell
+
+    changed = 0
+    for record in records:
+        dtype = workload.literal_types.get(record.attribute) or workload.literal_types.get(
+            record.attribute.split(".")[-1]
+        )
+        req = workload.requirements.get(record.attribute)
+        if dtype is None and req is not None:
+            dtype = req.dtype
+        if dtype not in _STRING_TYPES:
+            continue
+        if record.surface_value in (None, ""):
+            continue
+        if record.null_reason not in {"dtype_coercion", "type_unresolved"}:
+            continue
+        _surface, parsed, reason = validate_cell(record.surface_value, "string")
+        record.parsed_value = parsed
+        record.null_reason = reason
+        changed += 1
+    return changed
 
 
 def apply_evidence_types(workload: Workload, records: list[EvidenceRecord]) -> dict[str, str]:
@@ -317,7 +363,7 @@ def apply_evidence_types(workload: Workload, records: list[EvidenceRecord]) -> d
 
 
 def _types_from_sql_operators(template) -> dict[str, str]:
-    """Casts and SUM/AVG declare type. Names are ignored."""
+    """Casts and SUM/AVG declare type. String literals and LIKE outrank them."""
 
     from sqlglot import exp
     from quwarts.core.workload import parse_sql
@@ -340,20 +386,71 @@ def _types_from_sql_operators(template) -> dict[str, str]:
             return None
         return f"{table}.{name}" if table else name
 
+    for name in _string_predicate_columns(tree, _col):
+        found[name] = "string"
     for node in tree.find_all(exp.Cast):
         dtype = _cast_dtype(node)
         if dtype is None:
             continue
         for col in node.find_all(exp.Column):
             qualified = _col(col)
-            if qualified:
+            if qualified and found.get(qualified) != "string":
                 found[qualified] = dtype
     for node in tree.find_all((exp.Sum, exp.Avg)):
-        for col in node.find_all(exp.Column):
+        target = node.this
+        if target is None or target.find(exp.Case) is not None:
+            continue
+        for col in target.find_all(exp.Column):
             qualified = _col(col)
-            if qualified:
+            if qualified and found.get(qualified) != "string":
                 found[qualified] = "numeric"
     return found
+
+
+def _string_predicate_columns(tree, col_name) -> set[str]:
+    """LIKE, IN-of-strings, and ``<> ''`` declare TEXT."""
+
+    from sqlglot import exp
+
+    found: set[str] = set()
+    comparators = (exp.EQ, exp.NEQ, exp.Like, exp.ILike, exp.In)
+    for node in tree.find_all(comparators):
+        cols = [col_name(col) for col in node.find_all(exp.Column)]
+        cols = [name for name in cols if name]
+        if isinstance(node, (exp.Like, exp.ILike)):
+            found.update(cols)
+            continue
+        literals = list(node.expressions) if isinstance(node, exp.In) else list(node.find_all(exp.Literal))
+        if any(isinstance(item, exp.Literal) and not item.is_number for item in literals):
+            found.update(cols)
+    return found
+
+
+def like_tokens_from_workload(workload: Workload) -> dict[str, list[str]]:
+    """Closed tokens declared by LIKE '%token%' patterns. Not IN lists."""
+
+    found: dict[str, set[str]] = defaultdict(set)
+    for template in workload.templates:
+        for slot in template.param_slots:
+            if (slot.op or "").upper() != "LIKE":
+                continue
+            for value in slot.observed_constants or []:
+                token = _like_token(value)
+                if not token:
+                    continue
+                found[slot.attribute].add(token)
+                found[slot.attribute.split(".")[-1]].add(token)
+    return {name: sorted(values) for name, values in found.items()}
+
+
+def _like_token(value: Any) -> str | None:
+    text = str(value or "").strip()
+    if len(text) < 3 or not text.startswith("%") or not text.endswith("%"):
+        return None
+    inner = text[1:-1].strip()
+    if not inner or "%" in inner:
+        return None
+    return inner
 
 
 def _cast_dtype(node) -> str | None:

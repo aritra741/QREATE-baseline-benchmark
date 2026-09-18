@@ -15,6 +15,7 @@ IssueKind = Literal[
     "provenance",
     "constraint",
     "high_null",
+    "infeasible_representation",
 ]
 
 ActionName = Literal[
@@ -24,6 +25,12 @@ ActionName = Literal[
     "repair_join_vocabulary",
     "compare_extractors",
     "adjudicate_disagreement",
+    "extract_unit_and_magnitude",
+    "map_boolean_encoding",
+    "parse_range_to_bounds",
+    "map_category_to_numeric_band",
+    "mark_absence_as_null",
+    "infeasible_representation",
 ]
 
 
@@ -80,3 +87,4 @@ class RepairReport:
     bugfix_log: list[dict[str, Any]]
     routing: dict[str, str]
     shared_er: dict[str, Any] = field(default_factory=dict)
+    infeasible: list[dict[str, Any]] = field(default_factory=list)

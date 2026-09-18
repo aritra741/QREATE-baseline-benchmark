@@ -12,9 +12,11 @@ from quwarts.core.conflict import cluster_templates, conflict_graph, conflict_mi
 from quwarts.core.domain import (
     TypeUnificationError,
     apply_evidence_types,
+    apply_predicate_types,
     build_domain_maps,
     classify_declared_domains,
     disjoint_attributes,
+    restore_sql_string_cells,
     unify_join_types,
 )
 from quwarts.core.extract import (
@@ -24,6 +26,7 @@ from quwarts.core.extract import (
     authority_domains,
     complete_authority,
     ground_constrained_records,
+    carry_derived_keys,
     prefer_constrained_records,
 )
 from quwarts.core.quality import CELL_CHANGE_STOP
@@ -42,15 +45,35 @@ from quwarts.core.models import (
     Workload,
 )
 from quwarts.core.pilot import run_pilot
-from quwarts.core.population import apply_population, policy_from_demands
-from quwarts.core.rewrite import apply_identity_keys, join_yield, rewritable
+from quwarts.core.population import apply_population, refresh_population_types, policy_from_demands
+from quwarts.core.rewrite import (
+    apply_identity_keys,
+    apply_like_derived,
+    apply_vocab_derived,
+    join_yield,
+    rewritable,
+)
 from quwarts.core.route import route_workload
 from quwarts.core.schema import canonical_schema
 from quwarts.core.search import config_id, generate_candidates, marginal_cost, select_portfolio
 from quwarts.core.surrogate import U_hat
 from quwarts.core.workload import analyze_workload
+from quwarts.core.signature import rewrite_sql, statements_as_queries, audit_workload, enumerate_predicates
+from quwarts.core.signature_populate import apply_live_signatures
+from quwarts.core.signature_realize import live_predicates
 
 EMPTY_RESULT_REJECT = 0.25
+
+
+def _signature_predicates(statements: dict[str, str]):
+    report = audit_workload(statements_as_queries(statements))
+    return live_predicates(enumerate_predicates(report.occurrences, report.signature_eligible))
+
+
+def _rewrite_with_signatures(sql: str, sqlite_path: str, predicates) -> str:
+    if predicates:
+        sql = rewrite_sql(sql, predicates)
+    return _join_aware_sql(sql, sqlite_path)
 
 
 def load_documents(root: Path) -> list[SourceDocument]:
@@ -240,10 +263,11 @@ def _stamp_domain_norms(
         )
         pop.norm[name.split(".")[-1]] = pop.norm[name]
     for name, mapping in identity_maps.items():
-        if name in pop.norm and pop.norm[name].strategy == "domain":
-            continue
-        pop.norm[name] = ModuleConfig(strategy="identity", params={"map": mapping})
-        pop.norm[name.split(".")[-1]] = pop.norm[name]
+        pop.er[name] = ModuleConfig(strategy="identity", params={"map": mapping})
+        pop.er[name.split(".")[-1]] = pop.er[name]
+        if name not in pop.norm or pop.norm[name].strategy != "domain":
+            pop.norm[name] = ModuleConfig(strategy="identity", params={"map": mapping})
+            pop.norm[name.split(".")[-1]] = pop.norm[name]
 
 
 def compile_workload(
@@ -257,6 +281,7 @@ def compile_workload(
     caller: BudgetedCaller | None = None,
     extract: bool = True,
     workers: int = 16,
+    use_contracts: bool = False,
 ) -> FrozenPortfolio:
     """Compile Q to a shared extraction plan. No search, no surrogate."""
 
@@ -293,6 +318,7 @@ def compile_workload(
         extractor = StagedExtractor(
             store=store, ledger=ledger, caller=caller, seed=seed, workers=workers,
         )
+        extractor.use_contracts = use_contracts
         extractor.extract(documents, workload, policy, tiers, logical=logical)
 
     records = list(store.records.values())
@@ -385,6 +411,14 @@ def compile_workload(
     needed_pairs = _all_join_pairs(workload)
     zero_yield_pairs = _zero_yield_pairs(workload, routing, config_by_id, db_by_config)
     bridges: dict = {}
+    signature_predicates = apply_live_signatures(
+        [db.sqlite_path for db in selected_dbs],
+        statements,
+        documents,
+        caller,
+        workload,
+        workers=workers,
+    )
     for template in workload.templates:
         chosen = routing.get(template.id)
         if chosen is None and selected_configs:
@@ -397,9 +431,12 @@ def compile_workload(
             db_by_config[chosen].coverage,
             workload.requirements,
         )
-        if not result.ok or result.sql is None:
+        sql = result.sql if result.ok and result.sql else (template.raw_sql or template.canonical_sql)
+        if not sql:
             continue
-        sql = _join_aware_sql(result.sql, db_by_config[chosen].sqlite_path)
+        sql = _rewrite_with_signatures(
+            sql, db_by_config[chosen].sqlite_path, signature_predicates,
+        )
         rewrites[template.id] = sql
         for stmt_id in template.statement_ids:
             rewrites[stmt_id] = sql
@@ -434,6 +471,14 @@ def compile_workload(
             db_by_config = {db.config_id: db for db in selected_dbs}
             config_by_id = {config.id: config for config in selected_configs}
             routing = dict(portfolio.route)
+            signature_predicates = apply_live_signatures(
+                [db.sqlite_path for db in selected_dbs],
+                statements,
+                documents,
+                caller,
+                workload,
+                workers=workers,
+            )
             rewrites = {}
             for template in workload.templates:
                 chosen = routing.get(template.id)
@@ -447,9 +492,12 @@ def compile_workload(
                     db_by_config[chosen].coverage,
                     workload.requirements,
                 )
-                if not result.ok or result.sql is None:
+                sql = result.sql if result.ok and result.sql else (template.raw_sql or template.canonical_sql)
+                if not sql:
                     continue
-                sql = _join_aware_sql(result.sql, db_by_config[chosen].sqlite_path)
+                sql = _rewrite_with_signatures(
+                    sql, db_by_config[chosen].sqlite_path, signature_predicates,
+                )
                 rewrites[template.id] = sql
                 for stmt_id in template.statement_ids:
                     rewrites[stmt_id] = sql
@@ -565,10 +613,10 @@ def serve_plans(
             db_by_id[chosen].coverage,
             workload.requirements,
         )
-        sql = result.sql if result.ok else None
+        sql = result.sql if result.ok and result.sql else (template.raw_sql or template.canonical_sql)
         path = db_by_id[chosen].sqlite_path
         if sql and path:
-            sql = _join_aware_sql(sql, path)
+            sql = _rewrite_with_signatures(sql, path, _signature_predicates(statements))
         for stmt_id in template.statement_ids:
             plans[stmt_id] = {"sql": sql, "sqlite_path": path}
     return plans
@@ -604,9 +652,17 @@ def rematerialize_databases(
 ) -> list:
     """Write the same configurations again. Routing is left to the caller."""
 
+    apply_predicate_types(workload)
+    records = list(store.records.values())
+    restore_sql_string_cells(records, workload)
+    for config in configs:
+        refresh_population_types(config.pop, workload)
     records = complete_authority(
         ground_constrained_records(
-            prefer_constrained_records(list(store.records.values()), workload, None),
+            carry_derived_keys(
+                prefer_constrained_records(records, workload, None),
+                records,
+            ),
             documents,
         ),
         workload,
@@ -631,12 +687,52 @@ def rematerialize_databases(
             authority=authority,
         )
         selected.append(db)
+    statements = {
+        stmt_id: (template.raw_sql or template.canonical_sql)
+        for template in workload.templates
+        for stmt_id in (template.statement_ids or [template.id])
+    }
+    if statements and selected:
+        apply_live_signatures(
+            [db.sqlite_path for db in selected],
+            statements,
+            documents,
+            None,
+            workload,
+        )
     return selected
 
 
-def _join_aware_sql(sql: str, sqlite_path: str) -> str:
-    """Joins and identity operations use the shared canonical ID."""
+def _derived_columns(sqlite_path: str, suffix: str) -> dict[str, set[str]]:
+    import sqlite3
 
+    found: dict[str, set[str]] = {}
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        tables = [row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+        for table in tables:
+            for col in conn.execute(f'PRAGMA table_info("{table}")'):
+                name = str(col[1])
+                if name.endswith(suffix):
+                    found.setdefault(table.lower(), set()).add(name[: -len(suffix)].lower())
+    finally:
+        conn.close()
+    return found
+
+
+def _like_columns(sqlite_path: str) -> dict[str, set[str]]:
+    return _derived_columns(sqlite_path, "__like")
+
+
+def _vocab_columns(sqlite_path: str) -> dict[str, set[str]]:
+    return _derived_columns(sqlite_path, "__vocab")
+
+
+def _join_aware_sql(sql: str, sqlite_path: str) -> str:
+    """Joins use the shared canonical ID. LIKE/CASE read derived vocab columns."""
+
+    sql = apply_like_derived(sql, _like_columns(sqlite_path))
+    sql = apply_vocab_derived(sql, _vocab_columns(sqlite_path))
     canons = _canonical_columns(sqlite_path)
     if not canons:
         return sql

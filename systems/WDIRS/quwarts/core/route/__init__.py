@@ -36,8 +36,10 @@ def route_template(
         if coverage is not None:
             ok = True
             for slot in template.param_slots:
-                ranges = coverage.attribute_ranges.get(slot.attribute)
-                if ranges is None or not ranges.contains_constants(slot.observed_constants):
+                ranges = coverage.attribute_ranges.get(slot.attribute) or coverage.attribute_ranges.get(
+                    slot.attribute.split(".")[-1]
+                )
+                if ranges is None or not ranges.contains_constants(slot.observed_constants, op=slot.op):
                     ok = False
                     break
             if not ok:
