@@ -71,8 +71,11 @@ def _signature_predicates(statements: dict[str, str]):
 
 
 def _rewrite_with_signatures(sql: str, sqlite_path: str, predicates) -> str:
+    from quwarts.core.signature_views import rewrite_signature_views
+
     if predicates:
         sql = rewrite_sql(sql, predicates)
+    sql = rewrite_signature_views(sql, sqlite_path)
     return _join_aware_sql(sql, sqlite_path)
 
 

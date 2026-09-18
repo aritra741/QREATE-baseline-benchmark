@@ -41,6 +41,9 @@ class SupportRow:
     evidence: tuple[dict[str, Any], ...] = ()
     flags: dict[str, int] = field(default_factory=dict)
     source: str = ""
+    witness_key: tuple = ()
+    rowids: dict[str, int] = field(default_factory=dict)
+    distinct_value: str | None = None
 
 
 def _ident(node: exp.Expression | None) -> str:
@@ -146,30 +149,16 @@ def aprime_support(
     predicates: Iterable[AtomicPredicate] | None = None,
     rid_to_entity: dict[int, str] | None = None,
 ) -> list[SupportRow]:
+    from quwarts.core.query_witness import compile_witness_spec, grain_sql_for, support_from_grain
+
+    spec = compile_witness_spec(shape.query_id, shape.sql, shape)
     conn = sqlite3.connect(str(sqlite_path))
     try:
-        sql = official_sql(grain_sql(shape.sql), sqlite_path, list(predicates or []))
+        sql = official_sql(grain_sql_for(spec), sqlite_path, list(predicates or []))
         rows = _execute(conn, sql)
     finally:
         conn.close()
-    alias = shape.primary_alias
-    mapping = rid_to_entity or {}
-    out: list[SupportRow] = []
-    for row in rows:
-        rid = row.get(f"{alias}__rid")
-        rid_i = int(rid or 0)
-        entity = mapping.get(rid_i) or str(rid_i)
-        groups = {name: row.get(name) for name in shape.group_aliases}
-        out.append(
-            SupportRow(
-                entity_id=str(entity),
-                rowid=rid_i,
-                included="true",
-                group_key=groups,
-                source="aprime",
-            )
-        )
-    return out
+    return support_from_grain(spec, rows, rid_to_entity)
 
 
 def universe(
@@ -253,22 +242,31 @@ def excluded_universe(
     entities: Iterable[dict[str, Any]],
     support: Iterable[SupportRow],
 ) -> list[dict[str, Any]]:
-    kept = {row.entity_id for row in support if row.included == "true"}
-    return [item for item in entities if item["entity_id"] not in kept]
+    from quwarts.core.query_witness import witness_key_of
+
+    kept = {witness_key_of(row) for row in support if row.included == "true"}
+    return [item for item in entities if witness_key_of(item) not in kept]
 
 
 def union_support(incumbent: Iterable[SupportRow], additions: Iterable[SupportRow]) -> list[SupportRow]:
-    kept = {row.entity_id: row for row in incumbent if row.included == "true"}
+    from quwarts.core.query_witness import witness_key_of
+
+    kept = {witness_key_of(row): row for row in incumbent if row.included == "true"}
     merged = list(kept.values())
     for row in additions:
-        if row.included != "true" or row.entity_id in kept:
+        key = witness_key_of(row)
+        if row.included != "true" or key in kept:
             continue
-        kept[row.entity_id] = row
+        kept[key] = row
         merged.append(row)
     return merged
 
 
-def support_key(row: SupportRow) -> tuple[str, tuple[tuple[str, Any], ...]]:
+def support_key(row: SupportRow) -> Any:
+    from quwarts.core.query_witness import witness_key_of
+
+    if getattr(row, "witness_key", None) not in (None, (), ""):
+        return witness_key_of(row)
     return (row.entity_id, _freeze(row.group_key))
 
 

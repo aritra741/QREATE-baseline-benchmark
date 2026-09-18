@@ -94,9 +94,21 @@ def _diag(test, gold, predicates, incumbent_db, residual_db, pred_report, meta):
                 "incumbent_n": _count(inc_rows),
                 "undercount": max(0, _count(gold_rows) - _count(pred_rows)),
                 "overcount": max(0, _count(pred_rows) - _count(gold_rows)),
+                "witness_type": extra.get("witness_type"),
+                "incumbent_witnesses": extra.get("incumbent_witnesses"),
                 "n_added": extra.get("n_added"),
                 "n_proposed": extra.get("n_proposed"),
-                "n_excluded": extra.get("n_excluded"),
+                "n_validated": extra.get("n_validated"),
+                "n_materialized": extra.get("n_materialized"),
+                "n_sql_visible": extra.get("n_sql_visible"),
+                "n_excluded": extra.get("excluded_universe") or extra.get("n_excluded"),
+                "n_existing_groups": extra.get("n_existing_groups"),
+                "n_new_groups": extra.get("n_new_groups"),
+                "join_edges_added": extra.get("join_edges_added"),
+                "groups_added": extra.get("groups_added"),
+                "count_mass_before": extra.get("count_mass_before"),
+                "count_mass_after": extra.get("count_mass_after"),
+                "tokens": extra.get("tokens"),
                 "structure_f2": scored.get("structure_f2"),
                 "cell_f1_20": scored.get("cell_f1_20"),
                 "product": (
@@ -151,7 +163,10 @@ def main() -> int:
     ledger = TokenLedger(theta=BUDGET, seed=42)
     ledger.spent = agent_spent
     caller = make_caller(ledger, model=DEFAULT_MODEL, temperature=0.1, max_tokens=280)
-    ckpt = OUT / "residual_ckpt.json"
+    ckpt = OUT / "residual_witness_ckpt.json"
+    stale = OUT / "residual_ckpt.json"
+    if stale.is_file():
+        stale.unlink()
     arm = run_residual_arm(
         dest,
         test,

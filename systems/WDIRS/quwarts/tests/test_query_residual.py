@@ -8,15 +8,25 @@ from quwarts.core.ledger import BudgetedCaller, TokenLedger
 from quwarts.core.query_residual import (
     DECOMPOSE_PROMPT,
     INCLUDE_PROMPT,
+    ConditionDecision,
     EntityDecision,
     apply_addition,
     decision_list,
     normalize_group,
     propose_direct,
     proposed_union,
+    query_bags,
     query_conditions,
     run_residual_arm,
     validate_addition,
+)
+from quwarts.core.query_witness import compile_witness_spec
+from quwarts.core.signature_views import (
+    add_edge,
+    ensure_edge_table,
+    ensure_group_columns,
+    snapshot_edges,
+    write_group,
 )
 from quwarts.core.query_support import (
     SupportRow,
@@ -169,3 +179,116 @@ def test_proposed_union_is_positive_only() -> None:
     union = proposed_union(plans)
     assert set(union) == {"c", "e"}
     assert set(union["c"]) == {"direct"}
+
+
+def test_witness_kinds_from_ast() -> None:
+    row = compile_witness_spec("q0", "SELECT g, COUNT(*) AS n FROM item GROUP BY g")
+    assert "row" in row.kinds and "grouped" in row.kinds
+    counted = compile_witness_spec("q1", "SELECT COUNT(form) AS n FROM item")
+    assert "counted_value" in counted.kinds
+    distinct = compile_witness_spec("q2", "SELECT COUNT(DISTINCT form) AS n FROM item")
+    assert "distinct" in distinct.kinds
+    joined = compile_witness_spec(
+        "q3",
+        "SELECT COUNT(DISTINCT i.doc_id) AS n FROM item i JOIN extra e ON i.doc_id = e.doc_id "
+        "OR '|' || i.form || '|' LIKE '%|' || e.doc_id || '|%'",
+    )
+    assert "join_tuple" in joined.kinds
+    assert "entity_edge" in joined.kinds
+    assert joined.joins
+
+
+def test_join_edge_is_query_observable(tmp_path: Path) -> None:
+    db = tmp_path / "j.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE item (doc_id TEXT, form TEXT)")
+    conn.execute("CREATE TABLE extra (doc_id TEXT)")
+    conn.execute("INSERT INTO item VALUES ('a', 'tablet')")
+    conn.execute("INSERT INTO extra VALUES ('a')")
+    conn.execute("INSERT INTO extra VALUES ('z')")
+    ensure_edge_table(conn)
+    conn.commit()
+    sql = "SELECT COUNT(*) AS n FROM item i JOIN extra e ON i.doc_id = e.doc_id"
+    spec = compile_witness_spec("q0", sql)
+    before = snapshot_edges(conn)
+    join = spec.joins[0]
+    left_rid, right_rid = (2, 1) if join.left_table == "extra" else (1, 2)
+    add_edge(conn, join.join_id, left_rid, right_rid, provenance="q0")
+    conn.commit()
+    assert snapshot_edges(conn) > before
+    add_edge(conn, join.join_id, left_rid, right_rid, provenance="again")
+    assert snapshot_edges(conn) > before
+    from quwarts.core.pipeline import official_sql
+
+    n = conn.execute(official_sql(sql, db, [])).fetchone()[0]
+    assert n >= 2
+    conn.close()
+
+
+def test_group_signature_does_not_write_base_column(tmp_path: Path) -> None:
+    db = tmp_path / "g.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE item (doc_id TEXT, form TEXT)")
+    conn.execute("INSERT INTO item VALUES ('a', 'tablet')")
+    conn.execute("INSERT INTO item VALUES ('c', '')")
+    conn.commit()
+    sql = "SELECT CASE WHEN form != '' THEN 'has' ELSE 'empty' END AS g, COUNT(*) AS n FROM item GROUP BY g"
+    spec = compile_witness_spec("q0", sql)
+    ensure_group_columns(conn, [spec])
+    write_group(conn, "item", 2, spec.group_sql[0], "has", incumbent_rowids={1})
+    conn.commit()
+    form = conn.execute("SELECT form FROM item WHERE doc_id = 'c'").fetchone()[0]
+    assert form == ""
+    from quwarts.core.pipeline import official_sql
+
+    rows = conn.execute(official_sql(sql, db, [])).fetchall()
+    assert any(row[0] == "has" for row in rows)
+    conn.close()
+
+
+def test_unrelated_query_bag_unchanged(tmp_path: Path) -> None:
+    db = tmp_path / "u.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE item (doc_id TEXT, form TEXT, note TEXT)")
+    conn.execute("INSERT INTO item VALUES ('a', 'tablet', 'x')")
+    conn.execute("INSERT INTO item VALUES ('c', '', '')")
+    conn.commit()
+    conn.close()
+    statements = {
+        "q0": "SELECT COUNT(*) AS n FROM item WHERE form != ''",
+        "q1": "SELECT COUNT(*) AS n FROM item WHERE note != ''",
+    }
+    preds = _preds(statements["q0"])
+    before = query_bags(db, statements, preds)
+    shape = query_shape("q0", statements["q0"])
+    conn = sqlite3.connect(db)
+    ensure_signature_columns(conn, preds)
+    conn.commit()
+    decision = EntityDecision(
+        "c",
+        2,
+        "true",
+        "",
+        conditions=[ConditionDecision(preds[0].pred_id, "true", "", "filter")],
+        source="validated",
+    )
+    apply_addition(conn, db, {"entity_id": "c", "rowid": 2, "rowids": {"item": 2}}, decision, shape, preds, {1})
+    conn.commit()
+    conn.close()
+    after = query_bags(db, statements, preds)
+    assert after["q1"] == before["q1"]
+
+
+def test_ineffective_addition_rolls_back(tmp_path: Path) -> None:
+    db = _db(tmp_path)
+    sql = "SELECT COUNT(*) AS n FROM item WHERE form != ''"
+    shape = query_shape("q0", sql)
+    preds = _preds(sql)
+    conn = sqlite3.connect(db)
+    ensure_signature_columns(conn, preds)
+    before = conn.execute("SELECT form FROM item WHERE doc_id = 'c'").fetchone()[0]
+    decision = EntityDecision("c", 3, "true", "", source="validated")
+    assert apply_addition(conn, db, {"entity_id": "c", "rowid": 3, "rowids": {"item": 3}}, decision, shape, preds, {1, 2}) is False
+    after = conn.execute("SELECT form FROM item WHERE doc_id = 'c'").fetchone()[0]
+    assert after == before
+    conn.close()
