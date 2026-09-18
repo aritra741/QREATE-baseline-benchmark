@@ -82,6 +82,14 @@ def assert_null_shared(source_is_null: bool, truths: list[SqlTruth]) -> None:
         raise AssertionError("NULL source must make every derived predicate NULL")
 
 
+def is_label_resolved(label: PredicateLabel | None) -> bool:
+    """Known or conflicted answers are resolved. Abstention stays unresolved."""
+
+    if label is None:
+        return False
+    return label.classifier_status in {"known", "conflict"}
+
+
 def rewrite_cell(label: PredicateLabel) -> int | None:
     """Only sql_truth enters the rewritten column. Status stays metadata."""
 

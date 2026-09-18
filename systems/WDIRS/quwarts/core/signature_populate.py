@@ -26,6 +26,7 @@ from quwarts.core.signature_realize import (
 )
 from quwarts.core.truth import (
     PredicateLabel,
+    is_label_resolved,
     merge_atoms,
     rewrite_cell,
 )
@@ -124,14 +125,20 @@ def deterministic_labels(
     return labels
 
 
-def label_from_stored(value: Any) -> PredicateLabel | None:
-    if value is None:
+def label_from_stored(value: Any, resolved: Any = 1) -> PredicateLabel | None:
+    if resolved != 1:
         return None
     if value == 1:
         return PredicateLabel("TRUE", "known", provenance=("stored",))
     if value == 0:
         return PredicateLabel("FALSE", "known", provenance=("stored",))
+    if value is None:
+        return PredicateLabel("NULL", "known", provenance=("stored_null",))
     return None
+
+
+def atom_unresolved(labels: dict[str, PredicateLabel], pred: AtomicPredicate) -> bool:
+    return not is_label_resolved(labels.get(pred.pred_id))
 
 
 def atom_priority(pred: AtomicPredicate, workload: Workload | None) -> float:
@@ -151,8 +158,7 @@ def job_priority(
 ) -> float:
     total = 0.0
     for pred in predicates:
-        label = labels.get(pred.pred_id)
-        if label is not None and label.sql_truth != "NULL":
+        if not atom_unresolved(labels, pred):
             continue
         total += atom_priority(pred, workload)
     return total
@@ -303,6 +309,11 @@ def ensure_signature_columns(conn: sqlite3.Connection, predicates: Iterable[Atom
         if pred.sig_name not in existing[table]:
             conn.execute(f"ALTER TABLE {_quote(table)} ADD COLUMN {_quote(pred.sig_name)} INTEGER")
             existing[table].add(pred.sig_name)
+        if pred.resolved_name not in existing[table]:
+            conn.execute(
+                f"ALTER TABLE {_quote(table)} ADD COLUMN {_quote(pred.resolved_name)} INTEGER DEFAULT 0"
+            )
+            existing[table].add(pred.resolved_name)
     return existing
 
 
@@ -317,11 +328,18 @@ def _write_row(
     writable = [pred for pred in predicates if pred.sig_name in columns]
     if not writable:
         return
-    assignments = ", ".join(f"{_quote(pred.sig_name)} = ?" for pred in writable)
+    assignments = ", ".join(
+        f"{_quote(pred.sig_name)} = ?, {_quote(pred.resolved_name)} = ?" for pred in writable
+    )
+    values: list[Any] = []
+    for pred in writable:
+        label = labels.get(pred.pred_id)
+        resolved = is_label_resolved(label)
+        values.append(rewrite_cell(label) if label is not None and resolved else None)
+        values.append(1 if resolved else 0)
     conn.execute(
         f"UPDATE {_quote(table)} SET {assignments} WHERE rowid = ?",
-        [rewrite_cell(labels[pred.pred_id]) if pred.pred_id in labels else None for pred in writable]
-        + [rowid],
+        values + [rowid],
     )
 
 
@@ -370,21 +388,13 @@ def apply_row_operators(
     members = [pred for pred in predicates if is_membership(pred)]
     merged = dict(labels)
     if run_presence and presence:
-        unresolved = [
-            pred
-            for pred in presence
-            if pred.pred_id not in merged or merged[pred.pred_id].sql_truth == "NULL"
-        ]
+        unresolved = [pred for pred in presence if atom_unresolved(merged, pred)]
         if unresolved:
             label = populate_nonempty(attribute, cell, document, caller)
             incoming = {pred.pred_id: label for pred in unresolved}
             merged = merge_atoms(merged, incoming, {pred.pred_id for pred in presence})
     if run_membership and members:
-        unresolved = [
-            pred
-            for pred in members
-            if pred.pred_id not in merged or merged[pred.pred_id].sql_truth == "NULL"
-        ]
+        unresolved = [pred for pred in members if atom_unresolved(merged, pred)]
         if unresolved:
             incoming = populate_membership(
                 attribute,
@@ -446,7 +456,10 @@ def populate_signatures(
                 cell = payload.get(column)
                 labels: dict[str, PredicateLabel] = {}
                 for pred in preds:
-                    stored = label_from_stored(payload.get(pred.sig_name)) if pred.sig_name in payload else None
+                    stored = label_from_stored(
+                        payload.get(pred.sig_name),
+                        payload.get(pred.resolved_name),
+                    )
                     if stored is not None:
                         labels[pred.pred_id] = stored
                 labels = merge_atoms(
@@ -475,13 +488,11 @@ def populate_signatures(
 
         def _fill(job: _RowJob) -> _RowJob:
             presence_needed = any(
-                is_presence(pred)
-                and (pred.pred_id not in job.labels or job.labels[pred.pred_id].sql_truth == "NULL")
+                is_presence(pred) and atom_unresolved(job.labels, pred)
                 for pred in job.predicates
             )
             member_needed = any(
-                is_membership(pred)
-                and (pred.pred_id not in job.labels or job.labels[pred.pred_id].sql_truth == "NULL")
+                is_membership(pred) and atom_unresolved(job.labels, pred)
                 for pred in job.predicates
             )
             job.labels = apply_row_operators(

@@ -71,6 +71,10 @@ class AtomicPredicate:
     def sig_name(self) -> str:
         return f"sig_{self.pred_id}"
 
+    @property
+    def resolved_name(self) -> str:
+        return f"sig_{self.pred_id}_r"
+
 
 @dataclass
 class ObservabilityReport:
@@ -526,11 +530,27 @@ def rewrite_sql(sql: str, predicates: Iterable[AtomicPredicate]) -> str:
         qualifier = column.table if column is not None and column.table else None
         replacements.append((node, matched, qualifier))
     for node, pred, qualifier in replacements:
-        sig = exp.Column(
+        original = node.copy()
+        truth = exp.Column(
             this=exp.to_identifier(pred.sig_name),
             table=exp.to_identifier(qualifier) if qualifier else None,
         )
-        node.replace(exp.EQ(this=sig, expression=exp.Literal.number(1)))
+        resolved = exp.Column(
+            this=exp.to_identifier(pred.resolved_name),
+            table=exp.to_identifier(qualifier) if qualifier else None,
+        )
+        case = exp.Case()
+        case.set(
+            "ifs",
+            [
+                exp.If(
+                    this=exp.EQ(this=resolved, expression=exp.Literal.number(1)),
+                    true=truth,
+                )
+            ],
+        )
+        case.set("default", original)
+        node.replace(case)
     return tree.sql(dialect="sqlite")
 
 
@@ -551,7 +571,12 @@ def materialize_signatures(conn: Any, predicates: Iterable[AtomicPredicate]) -> 
         for pred in items:
             if pred.sig_name not in existing:
                 conn.execute(f'ALTER TABLE "{table}" ADD COLUMN "{pred.sig_name}" INTEGER')
+                existing.add(pred.sig_name)
+            if pred.resolved_name not in existing:
+                conn.execute(f'ALTER TABLE "{table}" ADD COLUMN "{pred.resolved_name}" INTEGER')
+                existing.add(pred.resolved_name)
             conn.execute(
-                f'UPDATE "{table}" SET "{pred.sig_name}" = {gold_signature_sql(pred)}'
+                f'UPDATE "{table}" SET "{pred.sig_name}" = {gold_signature_sql(pred)}, '
+                f'"{pred.resolved_name}" = 1'
             )
     conn.commit()

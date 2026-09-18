@@ -122,4 +122,6 @@ def test_rewrite_replaces_like_with_signature() -> None:
     preds = enumerate_predicates(report.occurrences, report.signature_eligible)
     rewritten = rewrite_sql(queries[0]["sql"], preds)
     assert preds[0].sig_name in rewritten
-    assert "LIKE" not in rewritten.upper()
+    assert preds[0].resolved_name in rewritten
+    assert "LIKE" in rewritten.upper()
+    assert "CASE WHEN" in rewritten.upper()

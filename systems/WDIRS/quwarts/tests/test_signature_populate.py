@@ -152,7 +152,9 @@ def test_closure_runs_during_live_populate(tmp_path: Path) -> None:
     conn.close()
     populate_signatures(db, preds, documents={"d1": "film-coated tablet"}, caller=None)
     conn = sqlite3.connect(db)
-    conn.execute(f'UPDATE item SET "{member.sig_name}" = 1')
+    conn.execute(
+        f'UPDATE item SET "{member.sig_name}" = 1, "{member.resolved_name}" = 1'
+    )
     conn.commit()
     conn.close()
     report = populate_signatures(db, preds, documents={"d1": "film-coated tablet"}, caller=None)
