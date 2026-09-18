@@ -529,6 +529,8 @@ def rewrite_sql(sql: str, predicates: Iterable[AtomicPredicate]) -> str:
         column = next((col for col in node.find_all(exp.Column) if resolve_attribute(col, aliases, default)), None)
         qualifier = column.table if column is not None and column.table else None
         replacements.append((node, matched, qualifier))
+    if not replacements:
+        return sql
     for node, pred, qualifier in replacements:
         original = node.copy()
         truth = exp.Column(

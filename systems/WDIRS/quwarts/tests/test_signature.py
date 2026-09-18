@@ -125,3 +125,4 @@ def test_rewrite_replaces_like_with_signature() -> None:
     assert preds[0].resolved_name in rewritten
     assert "LIKE" in rewritten.upper()
     assert "CASE WHEN" in rewritten.upper()
+    assert rewrite_sql("SELECT 1", []) == "SELECT 1"

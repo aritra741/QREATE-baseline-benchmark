@@ -76,6 +76,12 @@ def _rewrite_with_signatures(sql: str, sqlite_path: str, predicates) -> str:
     return _join_aware_sql(sql, sqlite_path)
 
 
+def official_sql(sql: str, sqlite_path: str | Path, predicates=None) -> str:
+    """Join-aware fallback rewrite. All-unresolved matches stored A' bags and scores."""
+
+    return _rewrite_with_signatures(sql, str(sqlite_path), predicates)
+
+
 def load_documents(root: Path) -> list[SourceDocument]:
     documents = []
     for path in sorted(root.rglob("*.txt")):

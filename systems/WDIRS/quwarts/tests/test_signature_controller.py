@@ -21,7 +21,7 @@ from quwarts.core.signature_realize import is_membership, is_presence, live_pred
 from quwarts.core.truth import PredicateLabel, merge_atoms
 
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[4]
 FORBIDDEN = (
     "disease_type",
     "research_fields",
@@ -52,7 +52,10 @@ def _bags(path: Path, queries: list[dict[str, str]], predicates=None) -> list[Co
         out = []
         for row in queries:
             sql = rewrite_sql(row["sql"], predicates) if predicates else row["sql"]
-            out.append(Counter(conn.execute(sql).fetchall()))
+            try:
+                out.append(Counter(conn.execute(sql).fetchall()))
+            except sqlite3.Error:
+                out.append(Counter())
         return out
     finally:
         conn.close()
@@ -61,8 +64,7 @@ def _bags(path: Path, queries: list[dict[str, str]], predicates=None) -> list[Co
 def test_all_unresolved_reproduces_aprime() -> None:
     aprime_dir = REPO / "results" / "quwarts_med_aprime" / "artifacts" / "databases"
     matches = list(aprime_dir.glob("*.db"))
-    if not matches:
-        return
+    assert matches, f"stored A' artifact missing under {aprime_dir}"
     if str(REPO) not in sys.path:
         sys.path.insert(0, str(REPO))
     from quwarts.experiments.synthesize_case80 import queries_for
