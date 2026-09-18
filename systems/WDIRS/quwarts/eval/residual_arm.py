@@ -19,7 +19,7 @@ from quwarts.core.ledger import TokenLedger
 from quwarts.core.llm.openrouter import DEFAULT_MODEL, load_env_file, make_caller
 from quwarts.core.pipeline import official_sql
 from quwarts.core.query_residual import run_residual_arm
-from quwarts.core.schema_columns import ensure_and_assert
+from quwarts.core.schema_columns import assert_queries_execute, ensure_referenced_columns
 from quwarts.core.signature import audit_workload, enumerate_predicates
 from quwarts.core.signature_populate import ensure_signature_columns
 from quwarts.core.signature_realize import live_predicates
@@ -134,12 +134,13 @@ def main() -> int:
     if dest.exists():
         dest.unlink()
     shutil.copy2(agent_db, dest)
-    rewritten = _official_rewrites(queries, dest, predicates)
-    added_cols = ensure_and_assert(dest, statements, rewritten)
     conn = sqlite3.connect(str(dest))
     try:
+        added_cols = ensure_referenced_columns(conn, statements)
         ensure_signature_columns(conn, predicates)
         conn.commit()
+        rewritten = _official_rewrites(queries, dest, predicates)
+        assert_queries_execute(conn, rewritten)
     finally:
         conn.close()
     print(
