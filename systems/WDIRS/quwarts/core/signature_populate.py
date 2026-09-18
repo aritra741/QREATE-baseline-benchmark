@@ -297,6 +297,12 @@ def resolve_table(conn: sqlite3.Connection, pred: AtomicPredicate) -> str | None
         cols = _columns(conn, table)
         if pred.column in cols:
             return table
+    for table in tables:
+        if table.lower() == wanted.lower():
+            return table
+    for table in tables:
+        if table.lower() == "fact":
+            return table
     return None
 
 
@@ -579,8 +585,16 @@ def apply_live_signatures(
 ) -> list[AtomicPredicate]:
     from quwarts.core.signature import audit_workload, enumerate_predicates, statements_as_queries
 
+    from quwarts.core.schema_columns import ensure_referenced_columns
+
     report = audit_workload(statements_as_queries(statements))
     predicates = live_predicates(enumerate_predicates(report.occurrences, report.signature_eligible))
     for path in sqlite_paths:
+        conn = sqlite3.connect(str(path))
+        try:
+            ensure_referenced_columns(conn, statements)
+            conn.commit()
+        finally:
+            conn.close()
         populate_signatures(path, predicates, documents, caller, workload, workers=workers)
     return predicates

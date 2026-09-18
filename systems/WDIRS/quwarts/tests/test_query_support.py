@@ -40,7 +40,7 @@ def test_prompts_are_generic() -> None:
         assert "docetl" not in low
         assert "gold" not in low or "do not use gold" in low
     for name in FORBIDDEN:
-        for path in (CORE / "query_support.py", CORE / "query_plans.py"):
+        for path in (CORE / "query_support.py", CORE / "query_plans.py", CORE / "query_residual.py"):
             assert name not in path.read_text(), f"{name} in {path.name}"
 
 

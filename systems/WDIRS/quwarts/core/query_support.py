@@ -249,6 +249,25 @@ def _freeze(value: Any) -> Any:
     return value
 
 
+def excluded_universe(
+    entities: Iterable[dict[str, Any]],
+    support: Iterable[SupportRow],
+) -> list[dict[str, Any]]:
+    kept = {row.entity_id for row in support if row.included == "true"}
+    return [item for item in entities if item["entity_id"] not in kept]
+
+
+def union_support(incumbent: Iterable[SupportRow], additions: Iterable[SupportRow]) -> list[SupportRow]:
+    kept = {row.entity_id: row for row in incumbent if row.included == "true"}
+    merged = list(kept.values())
+    for row in additions:
+        if row.included != "true" or row.entity_id in kept:
+            continue
+        kept[row.entity_id] = row
+        merged.append(row)
+    return merged
+
+
 def support_key(row: SupportRow) -> tuple[str, tuple[tuple[str, Any], ...]]:
     return (row.entity_id, _freeze(row.group_key))
 

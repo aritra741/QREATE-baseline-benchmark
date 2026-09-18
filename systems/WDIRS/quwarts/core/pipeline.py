@@ -33,7 +33,7 @@ from quwarts.core.quality import CELL_CHANGE_STOP
 from quwarts.core.repair import resolve_shared_ids, run_repair_agent, stamp_shared_ids
 from quwarts.core.ledger import BudgetExhausted, BudgetedCaller, TokenLedger
 from quwarts.core.logical import infer_logical_schema
-from quwarts.core.materialize import materialize
+from quwarts.core.materialize import materialize, refresh_schema_from_sqlite
 from quwarts.core.models import (
     Configuration,
     FrozenPortfolio,
@@ -425,6 +425,9 @@ def compile_workload(
         workload,
         workers=workers,
     )
+    for config in selected_configs:
+        db = db_by_config[config.id]
+        refresh_schema_from_sqlite(config.schema_, db.sqlite_path)
     for template in workload.templates:
         chosen = routing.get(template.id)
         if chosen is None and selected_configs:
