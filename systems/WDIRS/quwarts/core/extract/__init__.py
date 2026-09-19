@@ -25,6 +25,7 @@ from quwarts.core.models import (
 )
 from quwarts.core.preprocess import Segment, segment_documents, policy_hash
 from quwarts.core.models import PreprocessPolicy
+from quwarts.core.provenance import entity_id, source_document_hash
 
 _OTHER = "other"
 
@@ -32,8 +33,48 @@ _OTHER = "other"
 ExtractorFn = Callable[[Segment, str, str], tuple[str | None, Any, int]]
 
 
-def evidence_key(segment_id: str, attribute: str, extractor_cfg_hash: str, quality_tier: str) -> str:
-    payload = f"{segment_id}|{attribute}|{extractor_cfg_hash}|{quality_tier}"
+_CACHE_FIELDS = (
+    "corpus_id",
+    "source_document_hash",
+    "entity_identity",
+    "attribute",
+    "schema_hash",
+    "prompt_hash",
+    "model_id",
+    "extractor_cfg_hash",
+    "quality_tier",
+)
+
+
+def evidence_key(
+    segment_id: str | None = None,
+    attribute: str | None = None,
+    extractor_cfg_hash: str | None = None,
+    quality_tier: str | None = None,
+    *,
+    corpus_id: str | None = None,
+    source_document_hash: str | None = None,
+    entity_identity: str | None = None,
+    schema_hash: str | None = None,
+    prompt_hash: str | None = None,
+    model_id: str | None = None,
+) -> str | None:
+    """Verified cache identity. Returns None when any required field is absent."""
+
+    fields = {
+        "corpus_id": corpus_id,
+        "source_document_hash": source_document_hash,
+        "entity_identity": entity_identity,
+        "attribute": attribute,
+        "schema_hash": schema_hash,
+        "prompt_hash": prompt_hash,
+        "model_id": model_id,
+        "extractor_cfg_hash": extractor_cfg_hash,
+        "quality_tier": quality_tier,
+    }
+    if any(fields[name] in (None, "") for name in _CACHE_FIELDS):
+        return None
+    payload = "|".join(str(fields[name]) for name in _CACHE_FIELDS)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -56,14 +97,34 @@ class EvidenceStore:
 
     def get(
         self,
-        segment_id: str,
-        attribute: str,
-        extractor_cfg_hash: str,
-        quality_tier: str,
+        segment_id: str | None = None,
+        attribute: str | None = None,
+        extractor_cfg_hash: str | None = None,
+        quality_tier: str | None = None,
+        *,
+        corpus_id: str | None = None,
+        source_document_hash: str | None = None,
+        entity_identity: str | None = None,
+        schema_hash: str | None = None,
+        prompt_hash: str | None = None,
+        model_id: str | None = None,
     ) -> EvidenceRecord | None:
-        key = evidence_key(segment_id, attribute, extractor_cfg_hash, quality_tier)
+        key = evidence_key(
+            segment_id,
+            attribute,
+            extractor_cfg_hash,
+            quality_tier,
+            corpus_id=corpus_id,
+            source_document_hash=source_document_hash,
+            entity_identity=entity_identity,
+            schema_hash=schema_hash,
+            prompt_hash=prompt_hash,
+            model_id=model_id,
+        )
         with self._lock:
             self.lookups += 1
+            if key is None:
+                return None
             record = self.records.get(key)
             if record is not None:
                 self.hits += 1
@@ -82,7 +143,7 @@ class EvidenceStore:
 
     def cache_hit_rate(self) -> float:
         if self.lookups == 0:
-            return 1.0 if self.records else 0.0
+            return 0.0
         return self.hits / self.lookups
 
     def for_attribute(self, attribute: str) -> list[EvidenceRecord]:
@@ -371,8 +432,12 @@ def complete_authority(
             extra.append(
                 EvidenceRecord(
                     key=evidence_key(
-                        f"join_complete:{auth}:{slug}", auth, "join_complete", "cheap",
-                    ),
+                        f"join_complete:{auth}:{slug}",
+                        auth,
+                        "join_complete",
+                        "cheap",
+                    )
+                    or hashlib.sha256(f"join_complete:{auth}:{slug}".encode()).hexdigest(),
                     segment_id=f"join_complete:{auth}:{slug}",
                     doc_id=f"{entity}/join_complete/{slug}",
                     attribute=auth,
@@ -522,7 +587,37 @@ class StagedExtractor:
         self.prompt_kind = "primary"
         self.route_model: str | None = None
         self.route_policy: PreprocessPolicy | None = None
+        self.corpus_id = ""
+        self.schema_hash = ""
+        self.prompt_hash = ""
+        self._doc_text: dict[str, str] = {}
         self._lock = threading.Lock()
+
+    def _cache_fields(
+        self,
+        segment: Segment,
+        attribute: str,
+        cfg_hash: str,
+        tier: str,
+    ) -> dict[str, str]:
+        text = self._doc_text.get(segment.doc_id) or segment.text or ""
+        digest = source_document_hash(segment.doc_id, text)
+        model = ""
+        if self.caller is not None:
+            model = str(getattr(self.caller, "model", "") or getattr(self.caller, "route_model", "") or "")
+        if not model:
+            model = self.route_model or "none"
+        return {
+            "corpus_id": self.corpus_id or "local",
+            "source_document_hash": digest,
+            "entity_identity": entity_id(self.corpus_id or "local", digest, 0),
+            "attribute": attribute,
+            "schema_hash": self.schema_hash or "none",
+            "prompt_hash": self.prompt_hash or "none",
+            "model_id": model,
+            "extractor_cfg_hash": cfg_hash,
+            "quality_tier": tier,
+        }
 
     def configure_route(
         self,
@@ -547,6 +642,14 @@ class StagedExtractor:
     ) -> dict[str, int]:
         segments = segment_documents(documents, policy)
         format_clusters = format_clusters or cluster_document_formats(documents)
+        self._doc_text = {doc.doc_id: doc.text for doc in documents}
+        self.schema_hash = hashlib.sha256(
+            "|".join(sorted(workload.requirements)).encode()
+        ).hexdigest()[:16]
+        extractor_name = "llm" if self.caller is not None else self.extractor.__name__
+        self.prompt_hash = hashlib.sha256(
+            f"{self.prompt_kind}|{extractor_name}|{policy_hash(policy)}".encode()
+        ).hexdigest()[:16]
         self.constraints = join_authority(workload, logical)
         if self.use_contracts:
             from quwarts.core.contracts import compile_contracts
@@ -618,7 +721,8 @@ class StagedExtractor:
         keys["route"] = "voted"
         keys["grounded"] = "0" if reason == "ungrounded" else "1"
         record = EvidenceRecord(
-            key=evidence_key(base.segment_id, attribute, "voted", "expensive"),
+            key=evidence_key(base.segment_id, attribute, "voted", "expensive")
+            or hashlib.sha256(f"voted|{base.segment_id}|{attribute}".encode()).hexdigest(),
             segment_id=base.segment_id,
             doc_id=doc_id,
             template_cluster_id=base.template_cluster_id,
@@ -850,7 +954,7 @@ class StagedExtractor:
             ).hexdigest()[:12]
             cfg_for[attribute] = (cfg_hash, tier)
             with self._lock:
-                cached = self.store.get(segment.segment_id, attribute, cfg_hash, tier)
+                cached = self.store.get(**self._cache_fields(segment, attribute, cfg_hash, tier))
             if cached is not None:
                 records.append(cached)
             else:
@@ -937,7 +1041,10 @@ class StagedExtractor:
                 if assigned:
                     keys["vocab"] = assigned
             record = EvidenceRecord(
-                key=evidence_key(segment.segment_id, attribute, cfg_hash, tier),
+                key=evidence_key(**self._cache_fields(segment, attribute, cfg_hash, tier))
+                or hashlib.sha256(
+                    f"{segment.segment_id}|{attribute}|{cfg_hash}|{tier}".encode()
+                ).hexdigest(),
                 segment_id=segment.segment_id,
                 doc_id=segment.doc_id,
                 template_cluster_id=format_clusters.get(segment.doc_id),

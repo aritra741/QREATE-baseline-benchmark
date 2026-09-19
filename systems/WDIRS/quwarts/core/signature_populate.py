@@ -309,17 +309,24 @@ def resolve_table(conn: sqlite3.Connection, pred: AtomicPredicate) -> str | None
 def ensure_signature_columns(conn: sqlite3.Connection, predicates: Iterable[AtomicPredicate]) -> dict[str, set[str]]:
     existing = {table: _columns(conn, table) for table in _tables(conn)}
     for pred in predicates:
-        table = resolve_table(conn, pred)
-        if table is None:
+        targets = []
+        resolved = resolve_table(conn, pred)
+        if resolved:
+            targets.append(resolved)
+        for table in existing:
+            if table.lower() in {pred.table.lower(), "fact"} and table not in targets:
+                targets.append(table)
+        if not targets:
             continue
-        if pred.sig_name not in existing[table]:
-            conn.execute(f"ALTER TABLE {_quote(table)} ADD COLUMN {_quote(pred.sig_name)} INTEGER")
-            existing[table].add(pred.sig_name)
-        if pred.resolved_name not in existing[table]:
-            conn.execute(
-                f"ALTER TABLE {_quote(table)} ADD COLUMN {_quote(pred.resolved_name)} INTEGER DEFAULT 0"
-            )
-            existing[table].add(pred.resolved_name)
+        for table in targets:
+            if pred.sig_name not in existing[table]:
+                conn.execute(f"ALTER TABLE {_quote(table)} ADD COLUMN {_quote(pred.sig_name)} INTEGER")
+                existing[table].add(pred.sig_name)
+            if pred.resolved_name not in existing[table]:
+                conn.execute(
+                    f"ALTER TABLE {_quote(table)} ADD COLUMN {_quote(pred.resolved_name)} INTEGER DEFAULT 0"
+                )
+                existing[table].add(pred.resolved_name)
     return existing
 
 

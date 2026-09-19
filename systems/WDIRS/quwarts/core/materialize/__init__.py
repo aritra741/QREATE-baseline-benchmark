@@ -19,6 +19,7 @@ from quwarts.core.models import (
 )
 from quwarts.core.extract import _slug
 from quwarts.core.population import apply_population
+from quwarts.core.provenance import PROVENANCE_COL, PROVENANCE_LABEL
 
 
 def corpus_fingerprint(documents: list[SourceDocument]) -> str:
@@ -232,7 +233,13 @@ def materialize(
     surrogate: SurrogateReport | None = None,
     authority: dict[str, list[str]] | None = None,
 ) -> MaterializedDB:
-    rows = apply_population(records, config, workload)
+    rows = apply_population(
+        records,
+        config,
+        workload,
+        documents=documents,
+        corpus_id=(documents[0].metadata or {}).get("corpus") if documents else None,
+    )
     path, counts = write_sqlite(config, rows, output_dir)
     if authority:
         stamp_authority_domains(str(path), authority)
@@ -260,6 +267,10 @@ def materialize(
 
 def _relation_columns(relation: Any, seen: set[str]) -> list[str]:
     columns = ["doc_id"]
+    if PROVENANCE_COL in seen and PROVENANCE_COL not in columns:
+        columns.append(PROVENANCE_COL)
+    if PROVENANCE_LABEL in seen and PROVENANCE_LABEL not in columns:
+        columns.append(PROVENANCE_LABEL)
     for attr in relation.attributes:
         bare = attr.split(".")[-1]
         if bare not in columns:
@@ -310,10 +321,9 @@ def _row_belongs(row: dict[str, Any], relation: Any) -> bool:
     prefix = doc_id.split("/", 1)[0].lower()
     if "/" in doc_id:
         return prefix == entity.lower()
-    return any(
-        _value(row, attr.split(".")[-1]) not in (None, "")
-        for attr in relation.attributes
-    )
+    if row.get(PROVENANCE_COL):
+        return True
+    return True
 
 
 def _cell(value: Any) -> str | None:
@@ -333,13 +343,13 @@ def refresh_schema_from_sqlite(schema: Any, sqlite_path: str) -> None:
         }
     finally:
         conn.close()
-    skip = {"doc_id"}
+    skip = {"doc_id", PROVENANCE_COL, PROVENANCE_LABEL}
     for relation in schema.relations:
         cols = tables.get(relation.name) or []
         have = {item.split(".")[-1] for item in relation.attributes}
         entity = getattr(relation, "entity_type", None) or relation.name
         for col in cols:
-            if col in skip or col.endswith("__surface"):
+            if col in skip or col.startswith("__") or col.endswith("__surface"):
                 continue
             if col not in have:
                 qualified = f"{entity}.{col}" if entity else col

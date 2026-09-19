@@ -13,7 +13,14 @@ from quwarts.core.models import (
     ModuleConfig,
     PopulationPolicy,
     Role,
+    SourceDocument,
     Workload,
+)
+from quwarts.core.provenance import (
+    PROVENANCE_COL,
+    dedup_provenance,
+    ensure_document_rows,
+    stamp_row,
 )
 
 
@@ -66,6 +73,8 @@ def apply_population(
     records: list[EvidenceRecord],
     config: Configuration,
     workload: Workload,
+    documents: list[SourceDocument] | None = None,
+    corpus_id: str | None = None,
 ) -> list[dict[str, Any]]:
     """Pure view. Must not touch the ledger."""
 
@@ -117,6 +126,11 @@ def apply_population(
                 row[f"{record.attribute}__vocab"] = keys["vocab"]
         rows.append(row)
 
+    corpus = corpus_id or ""
+    rows = [stamp_row(row, corpus_id=corpus, documents=documents) for row in rows]
+    if documents:
+        rows = ensure_document_rows(rows, documents, corpus)
+    rows = dedup_provenance(rows)
     clear_merge_audit()
     if any(cfg.strategy == "merge" for cfg in config.pop.er.values()):
         rows = _merge(rows, config, workload)

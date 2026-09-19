@@ -1,0 +1,86 @@
+{
+  "policy": {
+    "policy": "unknown_else_escape",
+    "site_local": true,
+    "compile": "finite_case_from_workload_ast",
+    "dataset_allowlists": false,
+    "query_allowlists": false,
+    "attribute_allowlists": false,
+    "resolve": "direct_branch_or_majority_of_2",
+    "never_overwrite_true_branch": true,
+    "case_eval": "sqlite_3vl",
+    "all_else_escape": "diagnostic_only",
+    "writes": "query_site_local_sidecar",
+    "preserve": [
+      "witness_support",
+      "filters",
+      "joins",
+      "presence",
+      "distinct_identity",
+      "base_checksums"
+    ]
+  },
+  "policy_digest": "ca9783462fcc94c22c0b75e816cb8546ddf2298b8c83ab0c83961736eacd9f06",
+  "prompts": {
+    "direct": "Choose exactly one group label from the allowed result set.\nThe set is the complete CASE definition: every THEN result and the ELSE/NULL result.\nLiteral absence is not automatically FALSE. Semantic inference is allowed.\nReturn JSON {\"label\":\"<one allowed label>\",\"evidence\":\"...\"}.\nALLOWED_LABELS:\n",
+    "branch": "Judge this single CASE branch condition independently.\nDo not choose the final group label. Return whether THIS condition holds.\nLiteral absence is not automatically FALSE. Semantic inference is allowed.\nReturn JSON {\"truth\":\"true|false|unknown\",\"evidence\":\"...\"}.\nBRANCH_CONDITION:\n",
+    "adjudicator": "Two strategies proposed different group labels for the same CASE.\nSee the expression, source context, and both labels. Do not invent a third label\nunless it is in the allowed set. Return one allowed label.\nReturn JSON {\"label\":\"<one allowed label>\",\"evidence\":\"...\"}.\n",
+    "direct_digest": "ae51eff8814b5f8ce17f2a0cbc8060aa4fddf512e84e6680065de071375d8989",
+    "branch_digest": "bc4e62afa204ea5b16e1d4d1bc8f5eb92707f97d70f8a416f3b88a8e501bf3ff",
+    "adjudicator_digest": "f371afd452d0ebe236c2c19ba7e0b13001d72a0bb80834903d51a046ec9a34ff"
+  },
+  "model": {
+    "name": "qwen/qwen-2.5-7b-instruct",
+    "temperature": 0.1,
+    "max_tokens": 220
+  },
+  "eligibility": {
+    "compile": "finite CASE from workload AST",
+    "static_THEN_and_ELSE": true,
+    "no_nested_aggregates": true,
+    "no_dataset_allowlists": true,
+    "no_query_allowlists": true,
+    "no_attribute_allowlists": true
+  },
+  "resolve": "direct_branch if same non-NULL label else majority-of-2 else unresolved",
+  "materialize": {
+    "rule": "unknown_else_escape",
+    "require": [
+      "no WHEN is TRUE",
+      "CASE takes ELSE",
+      "at least one WHEN is SQL NULL",
+      "proposed is resolved non-NULL legal non-ELSE branch"
+    ],
+    "never_overwrite_true_branch": true,
+    "all_else_escape": "diagnostic_only"
+  },
+  "scheduling": {
+    "batch": 4,
+    "est_tokens_per_call": 350,
+    "rank": "freq * amp * n_witnesses / cost",
+    "site_local": true
+  },
+  "budget": {
+    "rule": "theta = 0.25 * docetl_tokens(corpus)",
+    "includes": [
+      "incumbent",
+      "group_direct",
+      "group_branch",
+      "group_adjudicator"
+    ],
+    "seed": 42
+  },
+  "scorer": {
+    "path": "official_sql + apply_official_group(site_local)",
+    "split": "80/20",
+    "seed": 42,
+    "metric": "mean_q[structure_F2 x cell_F1@0.20]",
+    "test_filter": "is_count_query"
+  },
+  "corpora": [
+    "Finan",
+    "Legal"
+  ],
+  "gold_enabled": false,
+  "configuration_locked": true
+}

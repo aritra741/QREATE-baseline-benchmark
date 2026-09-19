@@ -73,7 +73,7 @@ def _denormalized(logical: LogicalSchema, covered: set[str]) -> PhysicalSchema:
     pk: list[str] = []
     for entity in logical.entity_types:
         pk.extend(_pk_for(entity, logical))
-    pk = [item for item in pk if item in covered] or attributes[:1]
+    pk = [item for item in pk if item in covered]
     relation = Relation(name="fact", attributes=attributes, entity_type=None)
     return PhysicalSchema(
         id=_sid("denormalized", attributes),
@@ -163,8 +163,7 @@ def _snowflake(logical: LogicalSchema, covered: set[str]) -> PhysicalSchema:
         if not attrs:
             continue
         name = entity
-        pk = _pk_for(entity, logical)
-        pk = [item for item in pk if item in covered] or attrs[:1]
+        pk = [item for item in _pk_for(entity, logical) if item in covered]
         relations.append(Relation(name=name, attributes=attrs, entity_type=entity))
         pks[name] = pk
         fds.extend(_fds(logical, name, attrs, pk))

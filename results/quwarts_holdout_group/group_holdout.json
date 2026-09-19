@@ -1,0 +1,1325 @@
+{
+  "configuration_changed_after_pin": false,
+  "corpora_influenced_each_other": false,
+  "gold_loaded_before_both_frozen": false,
+  "pin": {
+    "policy": {
+      "policy": "unknown_else_escape",
+      "site_local": true,
+      "compile": "finite_case_from_workload_ast",
+      "dataset_allowlists": false,
+      "query_allowlists": false,
+      "attribute_allowlists": false,
+      "resolve": "direct_branch_or_majority_of_2",
+      "never_overwrite_true_branch": true,
+      "case_eval": "sqlite_3vl",
+      "all_else_escape": "diagnostic_only",
+      "writes": "query_site_local_sidecar",
+      "preserve": [
+        "witness_support",
+        "filters",
+        "joins",
+        "presence",
+        "distinct_identity",
+        "base_checksums"
+      ]
+    },
+    "policy_digest": "ca9783462fcc94c22c0b75e816cb8546ddf2298b8c83ab0c83961736eacd9f06",
+    "prompts": {
+      "direct": "Choose exactly one group label from the allowed result set.\nThe set is the complete CASE definition: every THEN result and the ELSE/NULL result.\nLiteral absence is not automatically FALSE. Semantic inference is allowed.\nReturn JSON {\"label\":\"<one allowed label>\",\"evidence\":\"...\"}.\nALLOWED_LABELS:\n",
+      "branch": "Judge this single CASE branch condition independently.\nDo not choose the final group label. Return whether THIS condition holds.\nLiteral absence is not automatically FALSE. Semantic inference is allowed.\nReturn JSON {\"truth\":\"true|false|unknown\",\"evidence\":\"...\"}.\nBRANCH_CONDITION:\n",
+      "adjudicator": "Two strategies proposed different group labels for the same CASE.\nSee the expression, source context, and both labels. Do not invent a third label\nunless it is in the allowed set. Return one allowed label.\nReturn JSON {\"label\":\"<one allowed label>\",\"evidence\":\"...\"}.\n",
+      "direct_digest": "ae51eff8814b5f8ce17f2a0cbc8060aa4fddf512e84e6680065de071375d8989",
+      "branch_digest": "bc4e62afa204ea5b16e1d4d1bc8f5eb92707f97d70f8a416f3b88a8e501bf3ff",
+      "adjudicator_digest": "f371afd452d0ebe236c2c19ba7e0b13001d72a0bb80834903d51a046ec9a34ff"
+    },
+    "model": {
+      "name": "qwen/qwen-2.5-7b-instruct",
+      "temperature": 0.1,
+      "max_tokens": 220
+    },
+    "eligibility": {
+      "compile": "finite CASE from workload AST",
+      "static_THEN_and_ELSE": true,
+      "no_nested_aggregates": true,
+      "no_dataset_allowlists": true,
+      "no_query_allowlists": true,
+      "no_attribute_allowlists": true
+    },
+    "resolve": "direct_branch if same non-NULL label else majority-of-2 else unresolved",
+    "materialize": {
+      "rule": "unknown_else_escape",
+      "require": [
+        "no WHEN is TRUE",
+        "CASE takes ELSE",
+        "at least one WHEN is SQL NULL",
+        "proposed is resolved non-NULL legal non-ELSE branch"
+      ],
+      "never_overwrite_true_branch": true,
+      "all_else_escape": "diagnostic_only"
+    },
+    "scheduling": {
+      "batch": 4,
+      "est_tokens_per_call": 350,
+      "rank": "freq * amp * n_witnesses / cost",
+      "site_local": true
+    },
+    "budget": {
+      "rule": "theta = 0.25 * docetl_tokens(corpus)",
+      "includes": [
+        "incumbent",
+        "group_direct",
+        "group_branch",
+        "group_adjudicator"
+      ],
+      "seed": 42
+    },
+    "scorer": {
+      "path": "official_sql + apply_official_group(site_local)",
+      "split": "80/20",
+      "seed": 42,
+      "metric": "mean_q[structure_F2 x cell_F1@0.20]",
+      "test_filter": "is_count_query"
+    },
+    "corpora": [
+      "Finan",
+      "Legal"
+    ],
+    "gold_enabled": false,
+    "configuration_locked": true
+  },
+  "frozen": {
+    "Finan": {
+      "corpus": "Finan",
+      "gold_loaded": false,
+      "policy": "unknown_else_escape",
+      "policy_digest": "ca9783462fcc94c22c0b75e816cb8546ddf2298b8c83ab0c83961736eacd9f06",
+      "pin_digest": "5d6bf962c7d79223cc1e7681146a340b1045f080c5900e17dd1a05e53ee58863",
+      "theta": 345457,
+      "docetl_tokens": 1381827,
+      "incumbent_tokens": 595,
+      "tokens_spent": 90197,
+      "tokens_direct": 25558,
+      "tokens_branch": 49448,
+      "tokens_adjudicator": 14596,
+      "qwen_calls": 307,
+      "budget_exhausted": false,
+      "remaining": 255260,
+      "n_eligible": 93,
+      "n_ineligible": 9,
+      "n_witnesses": 88,
+      "n_attempted": 0,
+      "n_resolved": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_fallback": 0,
+      "n_sidecar_rows": 0,
+      "n_isolation_fail": 0,
+      "changed_queries": [],
+      "n_changed_queries": 0,
+      "checksums_match_incumbent_base": true,
+      "case_state": {
+        "n_inspected": 88,
+        "when_true": 67,
+        "when_false": 107,
+        "when_null": 0,
+        "selected_branch": 67,
+        "selected_else": 21,
+        "n_unknown_else_escape": 0,
+        "n_all_else_escape": 13
+      },
+      "agreement": {
+        "majority": 45,
+        "direct_branch": 43
+      },
+      "eligibility": {
+        "n_eligible": 93,
+        "n_ineligible": 9,
+        "eligible_head": [
+          {
+            "query_id": "finan_agg20:q0",
+            "alias": "exchange_family",
+            "expr_id": "eafb8261f83fe643",
+            "sql": "CASE WHEN CASE WHEN sig_1ac29ea2d077_r = 1 THEN sig_1ac29ea2d077 ELSE exchange_code LIKE '%NASDAQ%' END THEN 'NASDAQ' WHEN CASE WHEN sig_23e710e9c9a2_r = 1 THEN sig_23e710e9c9a2 ELSE exchange_code LIKE '%NYSE%' END THEN 'NYSE' WHEN CASE WHEN sig_76c7c06dba18_r = 1 THEN sig_76c7c06dba18 ELSE exchange_code LIKE '%ASX%' END THEN 'ASX' WHEN CASE WHEN sig_bf9caaeb17da_r = 1 THEN sig_bf9caaeb17da ELSE exchange_code LIKE '%LSE%' END OR CASE WHEN sig_1f4f572b6524_r = 1 THEN sig_1f4f572b6524 ELSE exchange_code LIKE '%AIM%' END THEN 'London' WHEN CASE WHEN sig_d362efcb9195_r = 1 THEN sig_d362efcb9195 ELSE exchange_code <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "NASDAQ",
+              "NYSE",
+              "ASX",
+              "London",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q1",
+            "alias": "activity_family",
+            "expr_id": "40e85a2898fe8023",
+            "sql": "CASE WHEN CASE WHEN sig_dad93073d134_r = 1 THEN sig_dad93073d134 ELSE principal_activities LIKE '%Finance%' END THEN 'Finance' WHEN CASE WHEN sig_a85a4ea2685f_r = 1 THEN sig_a85a4ea2685f ELSE principal_activities LIKE '%Healthcare%' END THEN 'Healthcare' WHEN CASE WHEN sig_05a38d2442a7_r = 1 THEN sig_05a38d2442a7 ELSE principal_activities LIKE '%Technology%' END THEN 'Technology' WHEN CASE WHEN sig_05eea16528c3_r = 1 THEN sig_05eea16528c3 ELSE principal_activities LIKE '%Retail%' END THEN 'Retail' WHEN CASE WHEN sig_eaffe5ba7ff8_r = 1 THEN sig_eaffe5ba7ff8 ELSE principal_activities LIKE '%Mining%' END THEN 'Mining' WHEN CASE WHEN sig_aa41e4ad673e_r = 1 THEN sig_aa41e4ad673e ELSE principal_activities <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "Finance",
+              "Healthcare",
+              "Technology",
+              "Retail",
+              "Mining",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q2",
+            "alias": "auditor_family",
+            "expr_id": "a3c833c410a14e3a",
+            "sql": "CASE WHEN CASE WHEN sig_51bf51ea3e8f_r = 1 THEN sig_51bf51ea3e8f ELSE auditor LIKE '%Ernst & Young%' END OR CASE WHEN sig_3c264ce21e79_r = 1 THEN sig_3c264ce21e79 ELSE auditor LIKE 'EY%' END THEN 'EY' WHEN CASE WHEN sig_eed91a553653_r = 1 THEN sig_eed91a553653 ELSE auditor LIKE '%KPMG%' END THEN 'KPMG' WHEN CASE WHEN sig_e709f967b919_r = 1 THEN sig_e709f967b919 ELSE auditor LIKE '%Pricewaterhouse%' END OR CASE WHEN sig_218ddd3735c4_r = 1 THEN sig_218ddd3735c4 ELSE auditor LIKE '%PwC%' END THEN 'PwC' WHEN CASE WHEN sig_afd1c3584683_r = 1 THEN sig_afd1c3584683 ELSE auditor LIKE '%Deloitte%' END THEN 'Deloitte' WHEN CASE WHEN sig_a39a969ae053_r = 1 THEN sig_a39a969ae053 ELSE auditor <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "EY",
+              "KPMG",
+              "PwC",
+              "Deloitte",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q4",
+            "alias": "pay_policy",
+            "expr_id": "b99c7417ab5c7168",
+            "sql": "CASE WHEN CASE WHEN sig_aaa7c05728e9_r = 1 THEN sig_aaa7c05728e9 ELSE remuneration_policy LIKE '%Mixed%' END THEN 'Mixed' WHEN CASE WHEN sig_bc20fcc800f4_r = 1 THEN sig_bc20fcc800f4 ELSE remuneration_policy <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "Mixed",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q5",
+            "alias": "exchange_family",
+            "expr_id": "eafb8261f83fe643",
+            "sql": "CASE WHEN CASE WHEN sig_1ac29ea2d077_r = 1 THEN sig_1ac29ea2d077 ELSE exchange_code LIKE '%NASDAQ%' END THEN 'NASDAQ' WHEN CASE WHEN sig_23e710e9c9a2_r = 1 THEN sig_23e710e9c9a2 ELSE exchange_code LIKE '%NYSE%' END THEN 'NYSE' WHEN CASE WHEN sig_76c7c06dba18_r = 1 THEN sig_76c7c06dba18 ELSE exchange_code LIKE '%ASX%' END THEN 'ASX' WHEN CASE WHEN sig_bf9caaeb17da_r = 1 THEN sig_bf9caaeb17da ELSE exchange_code LIKE '%LSE%' END OR CASE WHEN sig_1f4f572b6524_r = 1 THEN sig_1f4f572b6524 ELSE exchange_code LIKE '%AIM%' END THEN 'London' WHEN CASE WHEN sig_d362efcb9195_r = 1 THEN sig_d362efcb9195 ELSE exchange_code <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "NASDAQ",
+              "NYSE",
+              "ASX",
+              "London",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q6",
+            "alias": "activity_family",
+            "expr_id": "40e85a2898fe8023",
+            "sql": "CASE WHEN CASE WHEN sig_dad93073d134_r = 1 THEN sig_dad93073d134 ELSE principal_activities LIKE '%Finance%' END THEN 'Finance' WHEN CASE WHEN sig_a85a4ea2685f_r = 1 THEN sig_a85a4ea2685f ELSE principal_activities LIKE '%Healthcare%' END THEN 'Healthcare' WHEN CASE WHEN sig_05a38d2442a7_r = 1 THEN sig_05a38d2442a7 ELSE principal_activities LIKE '%Technology%' END THEN 'Technology' WHEN CASE WHEN sig_05eea16528c3_r = 1 THEN sig_05eea16528c3 ELSE principal_activities LIKE '%Retail%' END THEN 'Retail' WHEN CASE WHEN sig_eaffe5ba7ff8_r = 1 THEN sig_eaffe5ba7ff8 ELSE principal_activities LIKE '%Mining%' END THEN 'Mining' WHEN CASE WHEN sig_aa41e4ad673e_r = 1 THEN sig_aa41e4ad673e ELSE principal_activities <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "Finance",
+              "Healthcare",
+              "Technology",
+              "Retail",
+              "Mining",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q7",
+            "alias": "auditor_family",
+            "expr_id": "a3c833c410a14e3a",
+            "sql": "CASE WHEN CASE WHEN sig_51bf51ea3e8f_r = 1 THEN sig_51bf51ea3e8f ELSE auditor LIKE '%Ernst & Young%' END OR CASE WHEN sig_3c264ce21e79_r = 1 THEN sig_3c264ce21e79 ELSE auditor LIKE 'EY%' END THEN 'EY' WHEN CASE WHEN sig_eed91a553653_r = 1 THEN sig_eed91a553653 ELSE auditor LIKE '%KPMG%' END THEN 'KPMG' WHEN CASE WHEN sig_e709f967b919_r = 1 THEN sig_e709f967b919 ELSE auditor LIKE '%Pricewaterhouse%' END OR CASE WHEN sig_218ddd3735c4_r = 1 THEN sig_218ddd3735c4 ELSE auditor LIKE '%PwC%' END THEN 'PwC' WHEN CASE WHEN sig_afd1c3584683_r = 1 THEN sig_afd1c3584683 ELSE auditor LIKE '%Deloitte%' END THEN 'Deloitte' WHEN CASE WHEN sig_a39a969ae053_r = 1 THEN sig_a39a969ae053 ELSE auditor <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "EY",
+              "KPMG",
+              "PwC",
+              "Deloitte",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q9",
+            "alias": "exchange_family",
+            "expr_id": "eafb8261f83fe643",
+            "sql": "CASE WHEN CASE WHEN sig_1ac29ea2d077_r = 1 THEN sig_1ac29ea2d077 ELSE exchange_code LIKE '%NASDAQ%' END THEN 'NASDAQ' WHEN CASE WHEN sig_23e710e9c9a2_r = 1 THEN sig_23e710e9c9a2 ELSE exchange_code LIKE '%NYSE%' END THEN 'NYSE' WHEN CASE WHEN sig_76c7c06dba18_r = 1 THEN sig_76c7c06dba18 ELSE exchange_code LIKE '%ASX%' END THEN 'ASX' WHEN CASE WHEN sig_bf9caaeb17da_r = 1 THEN sig_bf9caaeb17da ELSE exchange_code LIKE '%LSE%' END OR CASE WHEN sig_1f4f572b6524_r = 1 THEN sig_1f4f572b6524 ELSE exchange_code LIKE '%AIM%' END THEN 'London' WHEN CASE WHEN sig_d362efcb9195_r = 1 THEN sig_d362efcb9195 ELSE exchange_code <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "NASDAQ",
+              "NYSE",
+              "ASX",
+              "London",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q10",
+            "alias": "profit_status",
+            "expr_id": "bccc18fc170c05c3",
+            "sql": "CASE WHEN net_profit_or_loss > 0 THEN 'profitable' WHEN net_profit_or_loss < 0 THEN 'loss_making' END",
+            "reason": "case_finite",
+            "allowed": [
+              "profitable",
+              "loss_making",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q11",
+            "alias": "activity_family",
+            "expr_id": "40e85a2898fe8023",
+            "sql": "CASE WHEN CASE WHEN sig_dad93073d134_r = 1 THEN sig_dad93073d134 ELSE principal_activities LIKE '%Finance%' END THEN 'Finance' WHEN CASE WHEN sig_a85a4ea2685f_r = 1 THEN sig_a85a4ea2685f ELSE principal_activities LIKE '%Healthcare%' END THEN 'Healthcare' WHEN CASE WHEN sig_05a38d2442a7_r = 1 THEN sig_05a38d2442a7 ELSE principal_activities LIKE '%Technology%' END THEN 'Technology' WHEN CASE WHEN sig_05eea16528c3_r = 1 THEN sig_05eea16528c3 ELSE principal_activities LIKE '%Retail%' END THEN 'Retail' WHEN CASE WHEN sig_eaffe5ba7ff8_r = 1 THEN sig_eaffe5ba7ff8 ELSE principal_activities LIKE '%Mining%' END THEN 'Mining' WHEN CASE WHEN sig_aa41e4ad673e_r = 1 THEN sig_aa41e4ad673e ELSE principal_activities <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "Finance",
+              "Healthcare",
+              "Technology",
+              "Retail",
+              "Mining",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q12",
+            "alias": "dividend_status",
+            "expr_id": "c36e6813d5b088e9",
+            "sql": "CASE WHEN dividend_per_share > 0 THEN 'pays_dividend' WHEN dividend_per_share = 0 THEN 'no_dividend' END",
+            "reason": "case_finite",
+            "allowed": [
+              "pays_dividend",
+              "no_dividend",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q13",
+            "alias": "auditor_family",
+            "expr_id": "a3c833c410a14e3a",
+            "sql": "CASE WHEN CASE WHEN sig_51bf51ea3e8f_r = 1 THEN sig_51bf51ea3e8f ELSE auditor LIKE '%Ernst & Young%' END OR CASE WHEN sig_3c264ce21e79_r = 1 THEN sig_3c264ce21e79 ELSE auditor LIKE 'EY%' END THEN 'EY' WHEN CASE WHEN sig_eed91a553653_r = 1 THEN sig_eed91a553653 ELSE auditor LIKE '%KPMG%' END THEN 'KPMG' WHEN CASE WHEN sig_e709f967b919_r = 1 THEN sig_e709f967b919 ELSE auditor LIKE '%Pricewaterhouse%' END OR CASE WHEN sig_218ddd3735c4_r = 1 THEN sig_218ddd3735c4 ELSE auditor LIKE '%PwC%' END THEN 'PwC' WHEN CASE WHEN sig_afd1c3584683_r = 1 THEN sig_afd1c3584683 ELSE auditor LIKE '%Deloitte%' END THEN 'Deloitte' WHEN CASE WHEN sig_a39a969ae053_r = 1 THEN sig_a39a969ae053 ELSE auditor <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "EY",
+              "KPMG",
+              "PwC",
+              "Deloitte",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q14",
+            "alias": "exchange_family",
+            "expr_id": "eafb8261f83fe643",
+            "sql": "CASE WHEN CASE WHEN sig_1ac29ea2d077_r = 1 THEN sig_1ac29ea2d077 ELSE exchange_code LIKE '%NASDAQ%' END THEN 'NASDAQ' WHEN CASE WHEN sig_23e710e9c9a2_r = 1 THEN sig_23e710e9c9a2 ELSE exchange_code LIKE '%NYSE%' END THEN 'NYSE' WHEN CASE WHEN sig_76c7c06dba18_r = 1 THEN sig_76c7c06dba18 ELSE exchange_code LIKE '%ASX%' END THEN 'ASX' WHEN CASE WHEN sig_bf9caaeb17da_r = 1 THEN sig_bf9caaeb17da ELSE exchange_code LIKE '%LSE%' END OR CASE WHEN sig_1f4f572b6524_r = 1 THEN sig_1f4f572b6524 ELSE exchange_code LIKE '%AIM%' END THEN 'London' WHEN CASE WHEN sig_d362efcb9195_r = 1 THEN sig_d362efcb9195 ELSE exchange_code <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "NASDAQ",
+              "NYSE",
+              "ASX",
+              "London",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q15",
+            "alias": "segment_band",
+            "expr_id": "592df236c46735cc",
+            "sql": "CASE WHEN business_segments_num = 1 THEN 'single_segment' WHEN business_segments_num BETWEEN 2 AND 3 THEN 'two_or_three' WHEN business_segments_num >= 4 THEN 'four_or_more' END",
+            "reason": "case_finite",
+            "allowed": [
+              "single_segment",
+              "two_or_three",
+              "four_or_more",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q16",
+            "alias": "activity_family",
+            "expr_id": "40e85a2898fe8023",
+            "sql": "CASE WHEN CASE WHEN sig_dad93073d134_r = 1 THEN sig_dad93073d134 ELSE principal_activities LIKE '%Finance%' END THEN 'Finance' WHEN CASE WHEN sig_a85a4ea2685f_r = 1 THEN sig_a85a4ea2685f ELSE principal_activities LIKE '%Healthcare%' END THEN 'Healthcare' WHEN CASE WHEN sig_05a38d2442a7_r = 1 THEN sig_05a38d2442a7 ELSE principal_activities LIKE '%Technology%' END THEN 'Technology' WHEN CASE WHEN sig_05eea16528c3_r = 1 THEN sig_05eea16528c3 ELSE principal_activities LIKE '%Retail%' END THEN 'Retail' WHEN CASE WHEN sig_eaffe5ba7ff8_r = 1 THEN sig_eaffe5ba7ff8 ELSE principal_activities LIKE '%Mining%' END THEN 'Mining' WHEN CASE WHEN sig_aa41e4ad673e_r = 1 THEN sig_aa41e4ad673e ELSE principal_activities <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "Finance",
+              "Healthcare",
+              "Technology",
+              "Retail",
+              "Mining",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q18",
+            "alias": "exchange_family",
+            "expr_id": "eafb8261f83fe643",
+            "sql": "CASE WHEN CASE WHEN sig_1ac29ea2d077_r = 1 THEN sig_1ac29ea2d077 ELSE exchange_code LIKE '%NASDAQ%' END THEN 'NASDAQ' WHEN CASE WHEN sig_23e710e9c9a2_r = 1 THEN sig_23e710e9c9a2 ELSE exchange_code LIKE '%NYSE%' END THEN 'NYSE' WHEN CASE WHEN sig_76c7c06dba18_r = 1 THEN sig_76c7c06dba18 ELSE exchange_code LIKE '%ASX%' END THEN 'ASX' WHEN CASE WHEN sig_bf9caaeb17da_r = 1 THEN sig_bf9caaeb17da ELSE exchange_code LIKE '%LSE%' END OR CASE WHEN sig_1f4f572b6524_r = 1 THEN sig_1f4f572b6524 ELSE exchange_code LIKE '%AIM%' END THEN 'London' WHEN CASE WHEN sig_d362efcb9195_r = 1 THEN sig_d362efcb9195 ELSE exchange_code <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "NASDAQ",
+              "NYSE",
+              "ASX",
+              "London",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_agg20:q19",
+            "alias": "auditor_family",
+            "expr_id": "a3c833c410a14e3a",
+            "sql": "CASE WHEN CASE WHEN sig_51bf51ea3e8f_r = 1 THEN sig_51bf51ea3e8f ELSE auditor LIKE '%Ernst & Young%' END OR CASE WHEN sig_3c264ce21e79_r = 1 THEN sig_3c264ce21e79 ELSE auditor LIKE 'EY%' END THEN 'EY' WHEN CASE WHEN sig_eed91a553653_r = 1 THEN sig_eed91a553653 ELSE auditor LIKE '%KPMG%' END THEN 'KPMG' WHEN CASE WHEN sig_e709f967b919_r = 1 THEN sig_e709f967b919 ELSE auditor LIKE '%Pricewaterhouse%' END OR CASE WHEN sig_218ddd3735c4_r = 1 THEN sig_218ddd3735c4 ELSE auditor LIKE '%PwC%' END THEN 'PwC' WHEN CASE WHEN sig_afd1c3584683_r = 1 THEN sig_afd1c3584683 ELSE auditor LIKE '%Deloitte%' END THEN 'Deloitte' WHEN CASE WHEN sig_a39a969ae053_r = 1 THEN sig_a39a969ae053 ELSE auditor <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "EY",
+              "KPMG",
+              "PwC",
+              "Deloitte",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_filter20:q0",
+            "alias": "exchange_family",
+            "expr_id": "eafb8261f83fe643",
+            "sql": "CASE WHEN CASE WHEN sig_1ac29ea2d077_r = 1 THEN sig_1ac29ea2d077 ELSE exchange_code LIKE '%NASDAQ%' END THEN 'NASDAQ' WHEN CASE WHEN sig_23e710e9c9a2_r = 1 THEN sig_23e710e9c9a2 ELSE exchange_code LIKE '%NYSE%' END THEN 'NYSE' WHEN CASE WHEN sig_76c7c06dba18_r = 1 THEN sig_76c7c06dba18 ELSE exchange_code LIKE '%ASX%' END THEN 'ASX' WHEN CASE WHEN sig_bf9caaeb17da_r = 1 THEN sig_bf9caaeb17da ELSE exchange_code LIKE '%LSE%' END OR CASE WHEN sig_1f4f572b6524_r = 1 THEN sig_1f4f572b6524 ELSE exchange_code LIKE '%AIM%' END THEN 'London' WHEN CASE WHEN sig_d362efcb9195_r = 1 THEN sig_d362efcb9195 ELSE exchange_code <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "NASDAQ",
+              "NYSE",
+              "ASX",
+              "London",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_filter20:q1",
+            "alias": "auditor_family",
+            "expr_id": "a3c833c410a14e3a",
+            "sql": "CASE WHEN CASE WHEN sig_51bf51ea3e8f_r = 1 THEN sig_51bf51ea3e8f ELSE auditor LIKE '%Ernst & Young%' END OR CASE WHEN sig_3c264ce21e79_r = 1 THEN sig_3c264ce21e79 ELSE auditor LIKE 'EY%' END THEN 'EY' WHEN CASE WHEN sig_eed91a553653_r = 1 THEN sig_eed91a553653 ELSE auditor LIKE '%KPMG%' END THEN 'KPMG' WHEN CASE WHEN sig_e709f967b919_r = 1 THEN sig_e709f967b919 ELSE auditor LIKE '%Pricewaterhouse%' END OR CASE WHEN sig_218ddd3735c4_r = 1 THEN sig_218ddd3735c4 ELSE auditor LIKE '%PwC%' END THEN 'PwC' WHEN CASE WHEN sig_afd1c3584683_r = 1 THEN sig_afd1c3584683 ELSE auditor LIKE '%Deloitte%' END THEN 'Deloitte' WHEN CASE WHEN sig_a39a969ae053_r = 1 THEN sig_a39a969ae053 ELSE auditor <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "EY",
+              "KPMG",
+              "PwC",
+              "Deloitte",
+              "Other",
+              null
+            ]
+          },
+          {
+            "query_id": "finan_filter20:q2",
+            "alias": "activity_family",
+            "expr_id": "40e85a2898fe8023",
+            "sql": "CASE WHEN CASE WHEN sig_dad93073d134_r = 1 THEN sig_dad93073d134 ELSE principal_activities LIKE '%Finance%' END THEN 'Finance' WHEN CASE WHEN sig_a85a4ea2685f_r = 1 THEN sig_a85a4ea2685f ELSE principal_activities LIKE '%Healthcare%' END THEN 'Healthcare' WHEN CASE WHEN sig_05a38d2442a7_r = 1 THEN sig_05a38d2442a7 ELSE principal_activities LIKE '%Technology%' END THEN 'Technology' WHEN CASE WHEN sig_05eea16528c3_r = 1 THEN sig_05eea16528c3 ELSE principal_activities LIKE '%Retail%' END THEN 'Retail' WHEN CASE WHEN sig_eaffe5ba7ff8_r = 1 THEN sig_eaffe5ba7ff8 ELSE principal_activities LIKE '%Mining%' END THEN 'Mining' WHEN CASE WHEN sig_aa41e4ad673e_r = 1 THEN sig_aa41e4ad673e ELSE principal_activities <> '' END THEN 'Other' END",
+            "reason": "case_finite",
+            "allowed": [
+              "Finance",
+              "Healthcare",
+              "Technology",
+              "Retail",
+              "Mining",
+              "Other",
+              null
+            ]
+          }
+        ],
+        "ineligible_reasons": [
+          {
+            "query_id": "finan_agg20:q3",
+            "alias": "c0",
+            "expr_id": "1cc0fa5cf3990d1a",
+            "sql": "major_equity_changes",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "finan_agg20:q8",
+            "alias": "c0",
+            "expr_id": "bd4c2eb3772b02fd",
+            "sql": "business_segments_num",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "finan_agg20:q17",
+            "alias": "c0",
+            "expr_id": "1cc0fa5cf3990d1a",
+            "sql": "major_equity_changes",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "finan_filter20:q15",
+            "alias": "c0",
+            "expr_id": "1cc0fa5cf3990d1a",
+            "sql": "major_equity_changes",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "finan_groupby20:q1",
+            "alias": "c1",
+            "expr_id": "1cc0fa5cf3990d1a",
+            "sql": "major_equity_changes",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "finan_groupby20:q8",
+            "alias": "c1",
+            "expr_id": "1cc0fa5cf3990d1a",
+            "sql": "major_equity_changes",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "finan_groupby20:q16",
+            "alias": "c1",
+            "expr_id": "1cc0fa5cf3990d1a",
+            "sql": "major_equity_changes",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "finan_multiagg20:q3",
+            "alias": "c0",
+            "expr_id": "1cc0fa5cf3990d1a",
+            "sql": "major_equity_changes",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "finan_multiagg20:q17",
+            "alias": "c0",
+            "expr_id": "1cc0fa5cf3990d1a",
+            "sql": "major_equity_changes",
+            "reason": "open_ended_projection",
+            "allowed": []
+          }
+        ]
+      },
+      "hashes": {
+        "incumbent_db": "812bd5a391acb66ab458c6042e22456fe278e2622a6e0d18c16d217dcc1c711f",
+        "result_db": "022ffe8f7dc1d8289d514d9fd751661adf42df4a688a87d58ac6ee603038d16a",
+        "vote_journal": "695dcdb658ce32e665a5348fff311b58596575ebcd67044c75f6387bf072fdfb",
+        "ledger": "a4a6cfba7508abe0def44a594e69e322331f43dc96c061e29768da1f9215a150",
+        "incumbent_bags": "9fbb37845ff91e3cd827d5421b8c27e3568d5ca7a8207cea31c9c16fe99fef47",
+        "output_bags": "9fbb37845ff91e3cd827d5421b8c27e3568d5ca7a8207cea31c9c16fe99fef47",
+        "policy": "ca9783462fcc94c22c0b75e816cb8546ddf2298b8c83ab0c83961736eacd9f06",
+        "direct_prompt": "ae51eff8814b5f8ce17f2a0cbc8060aa4fddf512e84e6680065de071375d8989",
+        "branch_prompt": "bc4e62afa204ea5b16e1d4d1bc8f5eb92707f97d70f8a416f3b88a8e501bf3ff",
+        "adjudicator_prompt": "f371afd452d0ebe236c2c19ba7e0b13001d72a0bb80834903d51a046ec9a34ff"
+      },
+      "paths": {
+        "incumbent": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_finan_group/artifacts/incumbent.db",
+        "dest": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_finan_group/artifacts/aprime_group_live.db",
+        "journal": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_finan_group/group_votes.jsonl",
+        "ledger": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_finan_group/ledger.json"
+      }
+    },
+    "Legal": {
+      "corpus": "Legal",
+      "gold_loaded": false,
+      "policy": "unknown_else_escape",
+      "policy_digest": "ca9783462fcc94c22c0b75e816cb8546ddf2298b8c83ab0c83961736eacd9f06",
+      "pin_digest": "5d6bf962c7d79223cc1e7681146a340b1045f080c5900e17dd1a05e53ee58863",
+      "theta": 12610011,
+      "docetl_tokens": 50440043,
+      "incumbent_tokens": 1532285,
+      "tokens_spent": 2614827,
+      "tokens_direct": 329675,
+      "tokens_branch": 565214,
+      "tokens_adjudicator": 187653,
+      "qwen_calls": 3504,
+      "budget_exhausted": false,
+      "remaining": 9995184,
+      "n_eligible": 14,
+      "n_ineligible": 89,
+      "n_witnesses": 1056,
+      "n_attempted": 206,
+      "n_resolved": 206,
+      "n_materialized": 206,
+      "n_sql_visible": 206,
+      "n_fallback": 22,
+      "n_sidecar_rows": 206,
+      "n_isolation_fail": 0,
+      "changed_queries": [
+        "legal_agg20:q16",
+        "legal_groupby20:q6",
+        "legal_groupby20:q8",
+        "legal_groupby20:q17",
+        "legal_groupby20:q19",
+        "legal_multiagg20:q11"
+      ],
+      "n_changed_queries": 6,
+      "checksums_match_incumbent_base": true,
+      "case_state": {
+        "n_inspected": 1056,
+        "when_true": 91,
+        "when_false": 658,
+        "when_null": 1145,
+        "selected_branch": 87,
+        "selected_else": 969,
+        "n_unknown_else_escape": 206,
+        "n_all_else_escape": 394
+      },
+      "agreement": {
+        "direct_branch": 502,
+        "majority": 532,
+        "fallback": 22
+      },
+      "eligibility": {
+        "n_eligible": 14,
+        "n_ineligible": 89,
+        "eligible_head": [
+          {
+            "query_id": "legal_agg20:q16",
+            "alias": "statute_band",
+            "expr_id": "1d35e52c93b628b6",
+            "sql": "CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num = 1 THEN 'one' WHEN legal_basis_num <= 3 THEN 'two_or_three' ELSE 'four_or_more' END",
+            "reason": "case_finite",
+            "allowed": [
+              "none",
+              "one",
+              "two_or_three",
+              "four_or_more"
+            ]
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "alias": "precedent_band",
+            "expr_id": "604f8c1c5948bd31",
+            "sql": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+            "reason": "case_finite",
+            "allowed": [
+              "many_precedents",
+              "fewer_precedents"
+            ]
+          },
+          {
+            "query_id": "legal_filter20:q18",
+            "alias": "statute_band",
+            "expr_id": "b4f0c9aa49c5c654",
+            "sql": "CASE WHEN legal_basis_num >= 4 THEN 'statute_heavy' ELSE 'statute_light' END",
+            "reason": "case_finite",
+            "allowed": [
+              "statute_heavy",
+              "statute_light"
+            ]
+          },
+          {
+            "query_id": "legal_groupby20:q4",
+            "alias": "precedent_band",
+            "expr_id": "5c396c16e7946f21",
+            "sql": "CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END",
+            "reason": "case_finite",
+            "allowed": [
+              "none",
+              "1_to_4",
+              "5_or_more"
+            ]
+          },
+          {
+            "query_id": "legal_groupby20:q6",
+            "alias": "statute_band",
+            "expr_id": "ad6485d2d618f32f",
+            "sql": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+            "reason": "case_finite",
+            "allowed": [
+              "0_or_1",
+              "2_or_3",
+              "4_or_more"
+            ]
+          },
+          {
+            "query_id": "legal_groupby20:q8",
+            "alias": "dismissal_status",
+            "expr_id": "fd5bd02d81971915",
+            "sql": "CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END",
+            "reason": "case_finite",
+            "allowed": [
+              "Dismissed",
+              "not_dismissed"
+            ]
+          },
+          {
+            "query_id": "legal_groupby20:q12",
+            "alias": "statute_band",
+            "expr_id": "7717f9b98766d341",
+            "sql": "CASE WHEN legal_basis_num >= 3 THEN 'statute_heavy' ELSE 'statute_light' END",
+            "reason": "case_finite",
+            "allowed": [
+              "statute_heavy",
+              "statute_light"
+            ]
+          },
+          {
+            "query_id": "legal_groupby20:q13",
+            "alias": "dismissal_status",
+            "expr_id": "fd5bd02d81971915",
+            "sql": "CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END",
+            "reason": "case_finite",
+            "allowed": [
+              "Dismissed",
+              "not_dismissed"
+            ]
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "alias": "precedent_band",
+            "expr_id": "14317f03a395b6fc",
+            "sql": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+            "reason": "case_finite",
+            "allowed": [
+              "precedent_heavy",
+              "precedent_light"
+            ]
+          },
+          {
+            "query_id": "legal_groupby20:q17",
+            "alias": "statute_band",
+            "expr_id": "f4e9935e780424a8",
+            "sql": "CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num <= 2 THEN '1_or_2' ELSE '3_or_more' END",
+            "reason": "case_finite",
+            "allowed": [
+              "none",
+              "1_or_2",
+              "3_or_more"
+            ]
+          },
+          {
+            "query_id": "legal_groupby20:q17",
+            "alias": "precedent_status",
+            "expr_id": "651223c740909d85",
+            "sql": "CASE WHEN case_number = 0 THEN 'no_precedents' ELSE 'has_precedents' END",
+            "reason": "case_finite",
+            "allowed": [
+              "no_precedents",
+              "has_precedents"
+            ]
+          },
+          {
+            "query_id": "legal_groupby20:q19",
+            "alias": "case_group",
+            "expr_id": "497f96e2eab51a08",
+            "sql": "CASE WHEN case_type = 'Administrative Case' THEN 'Administrative' ELSE 'non_administrative' END",
+            "reason": "case_finite",
+            "allowed": [
+              "Administrative",
+              "non_administrative"
+            ]
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "alias": "statute_band",
+            "expr_id": "ad6485d2d618f32f",
+            "sql": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+            "reason": "case_finite",
+            "allowed": [
+              "0_or_1",
+              "2_or_3",
+              "4_or_more"
+            ]
+          },
+          {
+            "query_id": "legal_multiagg20:q15",
+            "alias": "precedent_band",
+            "expr_id": "5c396c16e7946f21",
+            "sql": "CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END",
+            "reason": "case_finite",
+            "allowed": [
+              "none",
+              "1_to_4",
+              "5_or_more"
+            ]
+          }
+        ],
+        "ineligible_reasons": [
+          {
+            "query_id": "legal_agg20:q0",
+            "alias": "case_family",
+            "expr_id": "527b1b1b382250dd",
+            "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q1",
+            "alias": "verdict_family",
+            "expr_id": "aa550ee26a7ef560",
+            "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q2",
+            "alias": "c0",
+            "expr_id": "bd275689721741e1",
+            "sql": "judgment_year",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "alias": "c0",
+            "expr_id": "5bdddecba777f05f",
+            "sql": "hearing_year",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "alias": "c0",
+            "expr_id": "27a5250d423f8d24",
+            "sql": "first_judge",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q5",
+            "alias": "c0",
+            "expr_id": "ee8250fb76e094b3",
+            "sql": "evidence",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q6",
+            "alias": "applicant_nation",
+            "expr_id": "9b3efae81dbfbe1f",
+            "sql": "CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q7",
+            "alias": "defendant_family",
+            "expr_id": "975bcfe7f73d5232",
+            "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q8",
+            "alias": "case_family",
+            "expr_id": "527b1b1b382250dd",
+            "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q9",
+            "alias": "verdict_family",
+            "expr_id": "aa550ee26a7ef560",
+            "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q10",
+            "alias": "c0",
+            "expr_id": "bd275689721741e1",
+            "sql": "judgment_year",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "alias": "plaintiff_family",
+            "expr_id": "72e4b26364c83421",
+            "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q12",
+            "alias": "c0",
+            "expr_id": "4188f601323177e6",
+            "sql": "judge_name",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "alias": "case_family",
+            "expr_id": "527b1b1b382250dd",
+            "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "alias": "c0",
+            "expr_id": "27a5250d423f8d24",
+            "sql": "first_judge",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q15",
+            "alias": "applicant_nation",
+            "expr_id": "9b3efae81dbfbe1f",
+            "sql": "CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "alias": "defendant_family",
+            "expr_id": "975bcfe7f73d5232",
+            "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+            "reason": "open_ended_result",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q18",
+            "alias": "c0",
+            "expr_id": "ee8250fb76e094b3",
+            "sql": "evidence",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_agg20:q19",
+            "alias": "c0",
+            "expr_id": "bd275689721741e1",
+            "sql": "judgment_year",
+            "reason": "open_ended_projection",
+            "allowed": []
+          },
+          {
+            "query_id": "legal_filter20:q0",
+            "alias": "c0",
+            "expr_id": "ee8250fb76e094b3",
+            "sql": "evidence",
+            "reason": "open_ended_projection",
+            "allowed": []
+          }
+        ]
+      },
+      "hashes": {
+        "incumbent_db": "58071d8485acb41ac7d3981c90883b47634360b0cc9b14ede53d5cd74aa14d7c",
+        "result_db": "d14415ccb94836084bc1be4617c222d7205f3b72b1b624755bec0a03d6a03a73",
+        "vote_journal": "1a70c0111ae3100b2e142c8f0acfc669535ee02ce743e6e3b18a0bf49d45f087",
+        "ledger": "a342f79f24d72471f713f5e9c7010e775ffed04db03c72a66a36d61e4e4c230d",
+        "incumbent_bags": "5ea3ef53a03d416b2fd9e7ca8afabaa1f141ae970d93d40df661187570f47093",
+        "output_bags": "cc4e057282113dc543450e985931a9c96c163dc54b1344e3e34ab7237992828e",
+        "policy": "ca9783462fcc94c22c0b75e816cb8546ddf2298b8c83ab0c83961736eacd9f06",
+        "direct_prompt": "ae51eff8814b5f8ce17f2a0cbc8060aa4fddf512e84e6680065de071375d8989",
+        "branch_prompt": "bc4e62afa204ea5b16e1d4d1bc8f5eb92707f97d70f8a416f3b88a8e501bf3ff",
+        "adjudicator_prompt": "f371afd452d0ebe236c2c19ba7e0b13001d72a0bb80834903d51a046ec9a34ff"
+      },
+      "paths": {
+        "incumbent": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_legal_group/artifacts/incumbent.db",
+        "dest": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_legal_group/artifacts/aprime_group_live.db",
+        "journal": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_legal_group/group_votes.jsonl",
+        "ledger": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_legal_group/ledger.json"
+      }
+    }
+  },
+  "hashes": {
+    "Finan": {
+      "incumbent_db": "812bd5a391acb66ab458c6042e22456fe278e2622a6e0d18c16d217dcc1c711f",
+      "result_db": "022ffe8f7dc1d8289d514d9fd751661adf42df4a688a87d58ac6ee603038d16a",
+      "vote_journal": "695dcdb658ce32e665a5348fff311b58596575ebcd67044c75f6387bf072fdfb",
+      "ledger": "a4a6cfba7508abe0def44a594e69e322331f43dc96c061e29768da1f9215a150",
+      "output_bags": "9fbb37845ff91e3cd827d5421b8c27e3568d5ca7a8207cea31c9c16fe99fef47"
+    },
+    "Legal": {
+      "incumbent_db": "58071d8485acb41ac7d3981c90883b47634360b0cc9b14ede53d5cd74aa14d7c",
+      "result_db": "d14415ccb94836084bc1be4617c222d7205f3b72b1b624755bec0a03d6a03a73",
+      "vote_journal": "1a70c0111ae3100b2e142c8f0acfc669535ee02ce743e6e3b18a0bf49d45f087",
+      "ledger": "a342f79f24d72471f713f5e9c7010e775ffed04db03c72a66a36d61e4e4c230d",
+      "output_bags": "cc4e057282113dc543450e985931a9c96c163dc54b1344e3e34ab7237992828e"
+    }
+  },
+  "scores": {
+    "Finan": {
+      "incumbent": {
+        "mean_structure_f2": 0.14074074074074075,
+        "mean_cell_f1_at_0.20": 0.05277777777777778,
+        "mean_per_query_product": 0.03302469135802469
+      },
+      "live": {
+        "mean_structure_f2": 0.14074074074074075,
+        "mean_cell_f1_at_0.20": 0.05277777777777778,
+        "mean_per_query_product": 0.03302469135802469
+      },
+      "docetl_product": 0.08410358973968853,
+      "docetl_f2": 0.5366961392904789,
+      "docetl_f1": 0.11424778244631187,
+      "per_query": [
+        {
+          "query_id": "finan_multiagg20:q4",
+          "inc_product": 0.125,
+          "arm_product": 0.125,
+          "delta": 0.0,
+          "inc_f2": 1.0,
+          "arm_f2": 1.0,
+          "inc_f1": 0.125,
+          "arm_f1": 0.125,
+          "changed": false
+        },
+        {
+          "query_id": "finan_filter20:q9",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_filter20:q7",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_multiagg20:q11",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_multiagg20:q18",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_agg20:q4",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_groupby20:q14",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_agg20:q11",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_multiagg20:q9",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_agg20:q13",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_agg20:q17",
+          "inc_product": 0.37037037037037035,
+          "arm_product": 0.37037037037037035,
+          "delta": 0.0,
+          "inc_f2": 0.5555555555555556,
+          "arm_f2": 0.5555555555555556,
+          "inc_f1": 0.6666666666666666,
+          "arm_f1": 0.6666666666666666,
+          "changed": false
+        },
+        {
+          "query_id": "finan_filter20:q8",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_filter20:q11",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_filter20:q15",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "finan_agg20:q3",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.5555555555555556,
+          "arm_f2": 0.5555555555555556,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        }
+      ],
+      "test_changed": []
+    },
+    "Legal": {
+      "incumbent": {
+        "mean_structure_f2": 0.16228991596638656,
+        "mean_cell_f1_at_0.20": 0.03333333333333334,
+        "mean_per_query_product": 0.022128851540616248
+      },
+      "live": {
+        "mean_structure_f2": 0.16228991596638656,
+        "mean_cell_f1_at_0.20": 0.03333333333333334,
+        "mean_per_query_product": 0.022128851540616248
+      },
+      "docetl_product": 0.12350932750098194,
+      "docetl_f2": 0.789182868672047,
+      "docetl_f1": 0.12938762626262626,
+      "per_query": [
+        {
+          "query_id": "legal_multiagg20:q4",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_filter20:q9",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_filter20:q7",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.29411764705882354,
+          "arm_f2": 0.29411764705882354,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_multiagg20:q11",
+          "inc_product": 0.09523809523809522,
+          "arm_product": 0.09523809523809522,
+          "delta": 0.0,
+          "inc_f2": 0.7142857142857142,
+          "arm_f2": 0.7142857142857142,
+          "inc_f1": 0.13333333333333333,
+          "arm_f1": 0.13333333333333333,
+          "changed": true
+        },
+        {
+          "query_id": "legal_multiagg20:q18",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_agg20:q4",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_groupby20:q14",
+          "inc_product": 0.05882352941176471,
+          "arm_product": 0.05882352941176471,
+          "delta": 0.0,
+          "inc_f2": 0.29411764705882354,
+          "arm_f2": 0.29411764705882354,
+          "inc_f1": 0.2,
+          "arm_f1": 0.2,
+          "changed": false
+        },
+        {
+          "query_id": "legal_agg20:q11",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_multiagg20:q9",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_agg20:q13",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.29411764705882354,
+          "arm_f2": 0.29411764705882354,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_agg20:q17",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_filter20:q8",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_filter20:q11",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_filter20:q15",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        },
+        {
+          "query_id": "legal_agg20:q3",
+          "inc_product": 0.20000000000000004,
+          "arm_product": 0.20000000000000004,
+          "delta": 0.0,
+          "inc_f2": 1.0,
+          "arm_f2": 1.0,
+          "inc_f1": 0.20000000000000004,
+          "arm_f1": 0.20000000000000004,
+          "changed": false
+        },
+        {
+          "query_id": "legal_agg20:q14",
+          "inc_product": 0.0,
+          "arm_product": 0.0,
+          "delta": 0.0,
+          "inc_f2": 0.0,
+          "arm_f2": 0.0,
+          "inc_f1": 0.0,
+          "arm_f1": 0.0,
+          "changed": false
+        }
+      ],
+      "test_changed": [
+        "legal_multiagg20:q11"
+      ]
+    }
+  }
+}

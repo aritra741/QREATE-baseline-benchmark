@@ -1,0 +1,399 @@
+{
+  "corpus": "Legal",
+  "gold_loaded": false,
+  "policy": "unknown_else_escape",
+  "policy_digest": "ca9783462fcc94c22c0b75e816cb8546ddf2298b8c83ab0c83961736eacd9f06",
+  "pin_digest": "5d6bf962c7d79223cc1e7681146a340b1045f080c5900e17dd1a05e53ee58863",
+  "theta": 12610011,
+  "docetl_tokens": 50440043,
+  "incumbent_tokens": 1532285,
+  "tokens_spent": 2614827,
+  "tokens_direct": 329675,
+  "tokens_branch": 565214,
+  "tokens_adjudicator": 187653,
+  "qwen_calls": 3504,
+  "budget_exhausted": false,
+  "remaining": 9995184,
+  "n_eligible": 14,
+  "n_ineligible": 89,
+  "n_witnesses": 1056,
+  "n_attempted": 206,
+  "n_resolved": 206,
+  "n_materialized": 206,
+  "n_sql_visible": 206,
+  "n_fallback": 22,
+  "n_sidecar_rows": 206,
+  "n_isolation_fail": 0,
+  "changed_queries": [
+    "legal_agg20:q16",
+    "legal_groupby20:q6",
+    "legal_groupby20:q8",
+    "legal_groupby20:q17",
+    "legal_groupby20:q19",
+    "legal_multiagg20:q11"
+  ],
+  "n_changed_queries": 6,
+  "checksums_match_incumbent_base": true,
+  "case_state": {
+    "n_inspected": 1056,
+    "when_true": 91,
+    "when_false": 658,
+    "when_null": 1145,
+    "selected_branch": 87,
+    "selected_else": 969,
+    "n_unknown_else_escape": 206,
+    "n_all_else_escape": 394
+  },
+  "agreement": {
+    "direct_branch": 502,
+    "majority": 532,
+    "fallback": 22
+  },
+  "eligibility": {
+    "n_eligible": 14,
+    "n_ineligible": 89,
+    "eligible_head": [
+      {
+        "query_id": "legal_agg20:q16",
+        "alias": "statute_band",
+        "expr_id": "1d35e52c93b628b6",
+        "sql": "CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num = 1 THEN 'one' WHEN legal_basis_num <= 3 THEN 'two_or_three' ELSE 'four_or_more' END",
+        "reason": "case_finite",
+        "allowed": [
+          "none",
+          "one",
+          "two_or_three",
+          "four_or_more"
+        ]
+      },
+      {
+        "query_id": "legal_filter20:q8",
+        "alias": "precedent_band",
+        "expr_id": "604f8c1c5948bd31",
+        "sql": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+        "reason": "case_finite",
+        "allowed": [
+          "many_precedents",
+          "fewer_precedents"
+        ]
+      },
+      {
+        "query_id": "legal_filter20:q18",
+        "alias": "statute_band",
+        "expr_id": "b4f0c9aa49c5c654",
+        "sql": "CASE WHEN legal_basis_num >= 4 THEN 'statute_heavy' ELSE 'statute_light' END",
+        "reason": "case_finite",
+        "allowed": [
+          "statute_heavy",
+          "statute_light"
+        ]
+      },
+      {
+        "query_id": "legal_groupby20:q4",
+        "alias": "precedent_band",
+        "expr_id": "5c396c16e7946f21",
+        "sql": "CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END",
+        "reason": "case_finite",
+        "allowed": [
+          "none",
+          "1_to_4",
+          "5_or_more"
+        ]
+      },
+      {
+        "query_id": "legal_groupby20:q6",
+        "alias": "statute_band",
+        "expr_id": "ad6485d2d618f32f",
+        "sql": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+        "reason": "case_finite",
+        "allowed": [
+          "0_or_1",
+          "2_or_3",
+          "4_or_more"
+        ]
+      },
+      {
+        "query_id": "legal_groupby20:q8",
+        "alias": "dismissal_status",
+        "expr_id": "fd5bd02d81971915",
+        "sql": "CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END",
+        "reason": "case_finite",
+        "allowed": [
+          "Dismissed",
+          "not_dismissed"
+        ]
+      },
+      {
+        "query_id": "legal_groupby20:q12",
+        "alias": "statute_band",
+        "expr_id": "7717f9b98766d341",
+        "sql": "CASE WHEN legal_basis_num >= 3 THEN 'statute_heavy' ELSE 'statute_light' END",
+        "reason": "case_finite",
+        "allowed": [
+          "statute_heavy",
+          "statute_light"
+        ]
+      },
+      {
+        "query_id": "legal_groupby20:q13",
+        "alias": "dismissal_status",
+        "expr_id": "fd5bd02d81971915",
+        "sql": "CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END",
+        "reason": "case_finite",
+        "allowed": [
+          "Dismissed",
+          "not_dismissed"
+        ]
+      },
+      {
+        "query_id": "legal_groupby20:q14",
+        "alias": "precedent_band",
+        "expr_id": "14317f03a395b6fc",
+        "sql": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+        "reason": "case_finite",
+        "allowed": [
+          "precedent_heavy",
+          "precedent_light"
+        ]
+      },
+      {
+        "query_id": "legal_groupby20:q17",
+        "alias": "statute_band",
+        "expr_id": "f4e9935e780424a8",
+        "sql": "CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num <= 2 THEN '1_or_2' ELSE '3_or_more' END",
+        "reason": "case_finite",
+        "allowed": [
+          "none",
+          "1_or_2",
+          "3_or_more"
+        ]
+      },
+      {
+        "query_id": "legal_groupby20:q17",
+        "alias": "precedent_status",
+        "expr_id": "651223c740909d85",
+        "sql": "CASE WHEN case_number = 0 THEN 'no_precedents' ELSE 'has_precedents' END",
+        "reason": "case_finite",
+        "allowed": [
+          "no_precedents",
+          "has_precedents"
+        ]
+      },
+      {
+        "query_id": "legal_groupby20:q19",
+        "alias": "case_group",
+        "expr_id": "497f96e2eab51a08",
+        "sql": "CASE WHEN case_type = 'Administrative Case' THEN 'Administrative' ELSE 'non_administrative' END",
+        "reason": "case_finite",
+        "allowed": [
+          "Administrative",
+          "non_administrative"
+        ]
+      },
+      {
+        "query_id": "legal_multiagg20:q11",
+        "alias": "statute_band",
+        "expr_id": "ad6485d2d618f32f",
+        "sql": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+        "reason": "case_finite",
+        "allowed": [
+          "0_or_1",
+          "2_or_3",
+          "4_or_more"
+        ]
+      },
+      {
+        "query_id": "legal_multiagg20:q15",
+        "alias": "precedent_band",
+        "expr_id": "5c396c16e7946f21",
+        "sql": "CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END",
+        "reason": "case_finite",
+        "allowed": [
+          "none",
+          "1_to_4",
+          "5_or_more"
+        ]
+      }
+    ],
+    "ineligible_reasons": [
+      {
+        "query_id": "legal_agg20:q0",
+        "alias": "case_family",
+        "expr_id": "527b1b1b382250dd",
+        "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q1",
+        "alias": "verdict_family",
+        "expr_id": "aa550ee26a7ef560",
+        "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q2",
+        "alias": "c0",
+        "expr_id": "bd275689721741e1",
+        "sql": "judgment_year",
+        "reason": "open_ended_projection",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q3",
+        "alias": "c0",
+        "expr_id": "5bdddecba777f05f",
+        "sql": "hearing_year",
+        "reason": "open_ended_projection",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q4",
+        "alias": "c0",
+        "expr_id": "27a5250d423f8d24",
+        "sql": "first_judge",
+        "reason": "open_ended_projection",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q5",
+        "alias": "c0",
+        "expr_id": "ee8250fb76e094b3",
+        "sql": "evidence",
+        "reason": "open_ended_projection",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q6",
+        "alias": "applicant_nation",
+        "expr_id": "9b3efae81dbfbe1f",
+        "sql": "CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q7",
+        "alias": "defendant_family",
+        "expr_id": "975bcfe7f73d5232",
+        "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q8",
+        "alias": "case_family",
+        "expr_id": "527b1b1b382250dd",
+        "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q9",
+        "alias": "verdict_family",
+        "expr_id": "aa550ee26a7ef560",
+        "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q10",
+        "alias": "c0",
+        "expr_id": "bd275689721741e1",
+        "sql": "judgment_year",
+        "reason": "open_ended_projection",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q11",
+        "alias": "plaintiff_family",
+        "expr_id": "72e4b26364c83421",
+        "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q12",
+        "alias": "c0",
+        "expr_id": "4188f601323177e6",
+        "sql": "judge_name",
+        "reason": "open_ended_projection",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q13",
+        "alias": "case_family",
+        "expr_id": "527b1b1b382250dd",
+        "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q14",
+        "alias": "c0",
+        "expr_id": "27a5250d423f8d24",
+        "sql": "first_judge",
+        "reason": "open_ended_projection",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q15",
+        "alias": "applicant_nation",
+        "expr_id": "9b3efae81dbfbe1f",
+        "sql": "CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q17",
+        "alias": "defendant_family",
+        "expr_id": "975bcfe7f73d5232",
+        "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+        "reason": "open_ended_result",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q18",
+        "alias": "c0",
+        "expr_id": "ee8250fb76e094b3",
+        "sql": "evidence",
+        "reason": "open_ended_projection",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_agg20:q19",
+        "alias": "c0",
+        "expr_id": "bd275689721741e1",
+        "sql": "judgment_year",
+        "reason": "open_ended_projection",
+        "allowed": []
+      },
+      {
+        "query_id": "legal_filter20:q0",
+        "alias": "c0",
+        "expr_id": "ee8250fb76e094b3",
+        "sql": "evidence",
+        "reason": "open_ended_projection",
+        "allowed": []
+      }
+    ]
+  },
+  "hashes": {
+    "incumbent_db": "58071d8485acb41ac7d3981c90883b47634360b0cc9b14ede53d5cd74aa14d7c",
+    "result_db": "d14415ccb94836084bc1be4617c222d7205f3b72b1b624755bec0a03d6a03a73",
+    "vote_journal": "1a70c0111ae3100b2e142c8f0acfc669535ee02ce743e6e3b18a0bf49d45f087",
+    "ledger": "a342f79f24d72471f713f5e9c7010e775ffed04db03c72a66a36d61e4e4c230d",
+    "incumbent_bags": "5ea3ef53a03d416b2fd9e7ca8afabaa1f141ae970d93d40df661187570f47093",
+    "output_bags": "cc4e057282113dc543450e985931a9c96c163dc54b1344e3e34ab7237992828e",
+    "policy": "ca9783462fcc94c22c0b75e816cb8546ddf2298b8c83ab0c83961736eacd9f06",
+    "direct_prompt": "ae51eff8814b5f8ce17f2a0cbc8060aa4fddf512e84e6680065de071375d8989",
+    "branch_prompt": "bc4e62afa204ea5b16e1d4d1bc8f5eb92707f97d70f8a416f3b88a8e501bf3ff",
+    "adjudicator_prompt": "f371afd452d0ebe236c2c19ba7e0b13001d72a0bb80834903d51a046ec9a34ff"
+  },
+  "paths": {
+    "incumbent": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_legal_group/artifacts/incumbent.db",
+    "dest": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_legal_group/artifacts/aprime_group_live.db",
+    "journal": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_legal_group/group_votes.jsonl",
+    "ledger": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_legal_group/ledger.json"
+  }
+}

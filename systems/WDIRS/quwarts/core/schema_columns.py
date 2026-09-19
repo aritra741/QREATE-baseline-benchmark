@@ -118,6 +118,8 @@ def missing_column_error(exc: BaseException) -> bool:
 def assert_queries_execute(
     conn: sqlite3.Connection,
     statements: dict[str, str],
+    *,
+    any_error: bool = False,
 ) -> None:
     """Every statement must run without a missing-column error."""
 
@@ -128,11 +130,39 @@ def assert_queries_execute(
         try:
             conn.execute(sql)
         except sqlite3.Error as exc:
-            if missing_column_error(exc):
+            if any_error or missing_column_error(exc):
                 failures.append((query_id, str(exc)))
     if failures:
         detail = "; ".join(f"{qid}: {msg}" for qid, msg in failures)
         raise MissingColumnError(detail)
+
+
+def complete_physical_schema(
+    conn: sqlite3.Connection,
+    statements: dict[str, str] | Iterable[str],
+    predicates=None,
+) -> list[tuple[str, str, str]]:
+    """Referenced columns plus unresolved signature fallback columns."""
+
+    from quwarts.core.signature_populate import ensure_signature_columns
+
+    added = ensure_referenced_columns(conn, statements)
+    if predicates:
+        before = {
+            table: set(_columns(conn, table))
+            for table in _tables(conn).values()
+        }
+        ensure_signature_columns(conn, predicates)
+        for table in _tables(conn).values():
+            have = _columns(conn, table)
+            for col in have - before.get(table, set()):
+                kind = "INTEGER"
+                added.append((table, col, kind))
+                if col.endswith("_r"):
+                    conn.execute(
+                        f"UPDATE {_quote(table)} SET {_quote(col)} = 0 WHERE {_quote(col)} IS NULL"
+                    )
+    return added
 
 
 def ensure_and_assert(
