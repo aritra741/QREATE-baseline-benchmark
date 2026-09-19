@@ -1,0 +1,16 @@
+{
+  "canonical_columns_in_db": [
+    "disease.disease_name",
+    "disease_name",
+    "drug.disease_name",
+    "institution.research_diseases",
+    "research_diseases"
+  ],
+  "n_join_plans": 44,
+  "n_join_plans_with_canonical": 44,
+  "rewriter_inserts_canonical": true,
+  "example_on": " ON (LOWER(TRIM(dr.disease_name__canonical)) = LOWER(TRIM(d.disease_name__canonical)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name__canonical), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name__canonical)) || '|%') WHERE dr.manufacturer <> '' AND dr.phar",
+  "er_same_id_pairs": 4,
+  "db_same_id_among_er_pairs": 2,
+  "stamp_reaches_both_sides": false
+}

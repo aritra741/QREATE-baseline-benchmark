@@ -1,0 +1,745 @@
+{
+  "budget": 1543790,
+  "model": "qwen/qwen-2.5-7b-instruct",
+  "temperature": 0.1,
+  "max_tokens": 280,
+  "n_predicates": 55,
+  "n_presence": 20,
+  "n_membership": 35,
+  "candidates": {
+    "tokens_spent": 1161706,
+    "tokens_planner": 24345,
+    "tokens_executor": 485425,
+    "tokens_refiner": 310303,
+    "tokens_validator": 341633,
+    "tokens_other": 0,
+    "n_cohorts_attempted": 19,
+    "n_cohorts_accepted": 8,
+    "validator_agree": 65,
+    "validator_tie": 271,
+    "validator_agreement_rate": 0.19345238095238096,
+    "validator_tie_rate": 0.8065476190476191,
+    "grounded_ok": 52,
+    "grounded_n": 114,
+    "grounded_span_rate": 0.45614035087719296,
+    "resolved": {
+      "true": 295,
+      "false": 244,
+      "null": 0,
+      "unresolved": 4719
+    },
+    "sample_true_false_null": {
+      "true": 295,
+      "false": 244,
+      "null": 869
+    },
+    "n_conflicts": 0,
+    "cache_hits": 1543,
+    "cache_misses": 1503,
+    "accepted": [
+      {
+        "plan": {
+          "strategy": "gleaning",
+          "operator": "semantic_membership",
+          "context": "document",
+          "n_passes": 1,
+          "estimated_cost": 38280,
+          "prompt": "Extract all relevant sentences mentioning disease treatments, validate their relevance, and refine to ensure accuracy.",
+          "attribute": "disease.treatments",
+          "predicate_ids": [
+            "4eee3fff55d5",
+            "3d1b0ae2f063",
+            "b8765cbbbe31",
+            "ff15bb2d7635"
+          ]
+        },
+        "query_deltas": [
+          {
+            "query_id": "med_agg20:q1",
+            "before": 1,
+            "after": 2,
+            "empty_before": false,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          },
+          {
+            "query_id": "med_groupby20:q0",
+            "before": 1,
+            "after": 2,
+            "empty_before": false,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          },
+          {
+            "query_id": "med_groupby20:q9",
+            "before": 2,
+            "after": 3,
+            "empty_before": false,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          },
+          {
+            "query_id": "med_groupby20:q18",
+            "before": 1,
+            "after": 2,
+            "empty_before": false,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          },
+          {
+            "query_id": "med_filterjoin20:q0",
+            "before": 0,
+            "after": 1,
+            "empty_before": true,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          },
+          {
+            "query_id": "med_filterjoin20:q18",
+            "before": 0,
+            "after": 1,
+            "empty_before": true,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          }
+        ],
+        "accepted": true,
+        "resolution": {
+          "true": 70,
+          "false": 69,
+          "null": 212
+        },
+        "conflicts": 0,
+        "empty_rate": 0.0,
+        "cardinality_changes": 6,
+        "join_yield_changes": 0,
+        "tokens": 311630,
+        "remaining": 1123579
+      },
+      {
+        "plan": {
+          "strategy": "gleaning",
+          "operator": "semantic_membership",
+          "context": "document",
+          "n_passes": 1,
+          "estimated_cost": 3000,
+          "prompt": "Extract sentences related to drug prescription status, validate their relevance, and refine for accuracy.",
+          "attribute": "drug.prescription_status",
+          "predicate_ids": [
+            "08244f7aa9a2",
+            "f1cf95689a2b"
+          ]
+        },
+        "query_deltas": [
+          {
+            "query_id": "med_filterjoin20:q4",
+            "before": 1,
+            "after": 2,
+            "empty_before": false,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          }
+        ],
+        "accepted": true,
+        "resolution": {
+          "true": 32,
+          "false": 25,
+          "null": 70
+        },
+        "conflicts": 0,
+        "empty_rate": 0.0,
+        "cardinality_changes": 1,
+        "join_yield_changes": 0,
+        "tokens": 292495,
+        "remaining": 800507
+      },
+      {
+        "plan": {
+          "strategy": "decompose",
+          "operator": "grounded_existence",
+          "context": "value",
+          "n_passes": 1,
+          "estimated_cost": 7309,
+          "prompt": "Extract mentions of drug manufacturers in the text, then validate each instance to confirm its relevance.",
+          "attribute": "drug.manufacturer",
+          "predicate_ids": [
+            "6ff679973fdd"
+          ]
+        },
+        "query_deltas": [],
+        "accepted": true,
+        "resolution": {
+          "true": 17,
+          "false": 0,
+          "null": 81
+        },
+        "conflicts": 0,
+        "empty_rate": 0.0,
+        "cardinality_changes": 0,
+        "join_yield_changes": 0,
+        "tokens": 8282,
+        "remaining": 708855
+      },
+      {
+        "plan": {
+          "strategy": "direct",
+          "operator": "semantic_membership",
+          "context": "document",
+          "n_passes": 1,
+          "estimated_cost": 20000,
+          "prompt": "Directly extract sentences that describe the pathogenesis of the disease, validate their relevance, and ensure accuracy.",
+          "attribute": "disease.pathogenesis",
+          "predicate_ids": [
+            "3d2b950bfe02",
+            "c3b34b383475",
+            "cc4954de6a01",
+            "3669a404526c",
+            "32543ffa7fda"
+          ]
+        },
+        "query_deltas": [
+          {
+            "query_id": "med_agg20:q11",
+            "before": 1,
+            "after": 3,
+            "empty_before": false,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          },
+          {
+            "query_id": "med_groupby20:q6",
+            "before": 1,
+            "after": 3,
+            "empty_before": false,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          },
+          {
+            "query_id": "med_groupby20:q18",
+            "before": 2,
+            "after": 5,
+            "empty_before": false,
+            "empty_after": false,
+            "join_yield_before": null,
+            "join_yield_after": null
+          }
+        ],
+        "accepted": true,
+        "resolution": {
+          "true": 65,
+          "false": 150,
+          "null": 222
+        },
+        "conflicts": 0,
+        "empty_rate": 0.0,
+        "cardinality_changes": 3,
+        "join_yield_changes": 0,
+        "tokens": 110592,
+        "remaining": 558168
+      },
+      {
+        "plan": {
+          "strategy": "decompose",
+          "operator": "grounded_existence",
+          "context": "value",
+          "n_passes": 1,
+          "estimated_cost": 13112,
+          "prompt": "Extract mentions of institutions involved in international collaboration, then validate each instance to confirm its relevance.",
+          "attribute": "institution.international_collaboration",
+          "predicate_ids": [
+            "3b657dc355b0"
+          ]
+        },
+        "query_deltas": [],
+        "accepted": true,
+        "resolution": {
+          "true": 6,
+          "false": 0,
+          "null": 93
+        },
+        "conflicts": 0,
+        "empty_rate": 0.0,
+        "cardinality_changes": 0,
+        "join_yield_changes": 0,
+        "tokens": 306,
+        "remaining": 509038
+      },
+      {
+        "plan": {
+          "strategy": "decompose",
+          "operator": "grounded_existence",
+          "context": "value",
+          "n_passes": 1,
+          "estimated_cost": 2000,
+          "prompt": "Extract mentions of specific funding sources in the text, then validate each instance to confirm its relevance.",
+          "attribute": "institution.funding_sources",
+          "predicate_ids": [
+            "7d09d1bfc636"
+          ]
+        },
+        "query_deltas": [],
+        "accepted": true,
+        "resolution": {
+          "true": 13,
+          "false": 0,
+          "null": 86
+        },
+        "conflicts": 0,
+        "empty_rate": 0.0,
+        "cardinality_changes": 0,
+        "join_yield_changes": 0,
+        "tokens": 981,
+        "remaining": 493551
+      },
+      {
+        "plan": {
+          "strategy": "decompose",
+          "operator": "grounded_existence",
+          "context": "value",
+          "n_passes": 1,
+          "estimated_cost": 7309,
+          "prompt": "Extract mentions of the drug's mechanism of action in the text, then validate each instance to confirm its relevance.",
+          "attribute": "drug.mechanism_of_action",
+          "predicate_ids": [
+            "660b3095778d"
+          ]
+        },
+        "query_deltas": [],
+        "accepted": true,
+        "resolution": {
+          "true": 60,
+          "false": 0,
+          "null": 38
+        },
+        "conflicts": 0,
+        "empty_rate": 0.0,
+        "cardinality_changes": 0,
+        "join_yield_changes": 0,
+        "tokens": 11188,
+        "remaining": 399899
+      },
+      {
+        "plan": {
+          "strategy": "decompose",
+          "operator": "grounded_existence",
+          "context": "value",
+          "n_passes": 1,
+          "estimated_cost": 7309,
+          "prompt": "Extract mentions of institutions involved in research collaborations, then validate each instance to confirm its relevance.",
+          "attribute": "institution.key_technologies",
+          "predicate_ids": [
+            "1164960c748c"
+          ]
+        },
+        "query_deltas": [],
+        "accepted": true,
+        "resolution": {
+          "true": 32,
+          "false": 0,
+          "null": 67
+        },
+        "conflicts": 0,
+        "empty_rate": 0.0,
+        "cardinality_changes": 0,
+        "join_yield_changes": 0,
+        "tokens": 2602,
+        "remaining": 382084
+      }
+    ],
+    "query_deltas": [
+      {
+        "plan": "gleaning",
+        "attribute": "disease.treatments",
+        "query_id": "med_agg20:q1",
+        "before": 1,
+        "after": 2,
+        "empty_before": false,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      },
+      {
+        "plan": "gleaning",
+        "attribute": "disease.treatments",
+        "query_id": "med_groupby20:q0",
+        "before": 1,
+        "after": 2,
+        "empty_before": false,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      },
+      {
+        "plan": "gleaning",
+        "attribute": "disease.treatments",
+        "query_id": "med_groupby20:q9",
+        "before": 2,
+        "after": 3,
+        "empty_before": false,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      },
+      {
+        "plan": "gleaning",
+        "attribute": "disease.treatments",
+        "query_id": "med_groupby20:q18",
+        "before": 1,
+        "after": 2,
+        "empty_before": false,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      },
+      {
+        "plan": "gleaning",
+        "attribute": "disease.treatments",
+        "query_id": "med_filterjoin20:q0",
+        "before": 0,
+        "after": 1,
+        "empty_before": true,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      },
+      {
+        "plan": "gleaning",
+        "attribute": "disease.treatments",
+        "query_id": "med_filterjoin20:q18",
+        "before": 0,
+        "after": 1,
+        "empty_before": true,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      },
+      {
+        "plan": "gleaning",
+        "attribute": "drug.prescription_status",
+        "query_id": "med_filterjoin20:q4",
+        "before": 1,
+        "after": 2,
+        "empty_before": false,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      },
+      {
+        "plan": "direct",
+        "attribute": "disease.pathogenesis",
+        "query_id": "med_agg20:q11",
+        "before": 1,
+        "after": 3,
+        "empty_before": false,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      },
+      {
+        "plan": "direct",
+        "attribute": "disease.pathogenesis",
+        "query_id": "med_groupby20:q6",
+        "before": 1,
+        "after": 3,
+        "empty_before": false,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      },
+      {
+        "plan": "direct",
+        "attribute": "disease.pathogenesis",
+        "query_id": "med_groupby20:q18",
+        "before": 2,
+        "after": 5,
+        "empty_before": false,
+        "empty_after": false,
+        "join_yield_before": null,
+        "join_yield_after": null
+      }
+    ],
+    "sqlite_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_med_signatures/artifacts/aprime_candidates.db",
+    "mean_structure_f2": 0.49540035987404407,
+    "mean_cell_f1_at_0.20": 0.11773809523809524,
+    "mean_per_query_product": 0.10886591478696743,
+    "per_query": [
+      {
+        "query_id": "med_filterjoin20:q5",
+        "product": null,
+        "structure_f2": 0.2777777777777778,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q9",
+        "product": null,
+        "structure_f2": 0.7894736842105263,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q7",
+        "product": null,
+        "structure_f2": 0.7894736842105263,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q8",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q17",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_join20:q15",
+        "product": null,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_filterjoin20:q16",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_filterjoin20:q10",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q7",
+        "product": null,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q8",
+        "product": null,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q11",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q15",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q15",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "product": null,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q2",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      }
+    ],
+    "test_empty_query_count": 7
+  },
+  "abstain_all": {
+    "tokens_spent": 0,
+    "n_cohorts_accepted": 0,
+    "sqlite_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_med_signatures/artifacts/aprime_abstain.db",
+    "mean_structure_f2": 0.45293522267206476,
+    "mean_cell_f1_at_0.20": 0.12011904761904761,
+    "mean_per_query_product": 0.10684697855750487,
+    "per_query": [
+      {
+        "query_id": "med_filterjoin20:q5",
+        "product": null,
+        "structure_f2": 0.2777777777777778,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q9",
+        "product": null,
+        "structure_f2": 0.5555555555555556,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q7",
+        "product": null,
+        "structure_f2": 0.7894736842105263,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q8",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q17",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_join20:q15",
+        "product": null,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_filterjoin20:q16",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "product": null,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_filterjoin20:q10",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q7",
+        "product": null,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q8",
+        "product": null,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q11",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q15",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q15",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "product": null,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q2",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      }
+    ],
+    "test_empty_query_count": 7
+  },
+  "aprime_product": 0.1081697298802562,
+  "aprime_structure_f2": 0.4744553691922113,
+  "aprime_cell_f1_at_0.20": 0.12567460317460316,
+  "fixed": {
+    "tokens_spent": 1543732,
+    "mean_structure_f2": 0.5174545226015814,
+    "mean_cell_f1_at_0.20": 0.15158730158730158,
+    "mean_per_query_product": 0.09025327885622003
+  },
+  "agent": {
+    "tokens_spent": 37718,
+    "mean_structure_f2": 0.45293522267206476,
+    "mean_cell_f1_at_0.20": 0.13123015873015872,
+    "mean_per_query_product": 0.10949248120300752
+  },
+  "query_product_changes": []
+}

@@ -1,0 +1,323 @@
+{
+  "n_missing": 9,
+  "genuine_coverage": 1,
+  "false_negative_L": 8,
+  "rows": [
+    {
+      "query_id": "med_multiagg20:q3",
+      "sql": "SELECT CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route != '' THEN 'non_oral' END AS route_family, COUNT(*) AS drug_count, SUM(CASE WHEN dr.prescription_status LIKE '%prescription_only%' THEN 1 ELSE 0 END) AS rx_only_count, SUM(CASE WHEN LOWER(dr.storage_conditions) LIKE '%room temperature%' THEN 1 ELSE 0 END) AS room_temp_count FROM drug dr WHERE dr.administration_route != '' GROUP BY route_family",
+      "slice_safe": true,
+      "shape": "TemplateShape.CROSS_ATTRIBUTE_FILTER",
+      "binding_errors": [
+        "unbound attribute drug.prescription_status"
+      ],
+      "absent_from_L": [
+        "drug.prescription_status"
+      ],
+      "unbound": [
+        "drug.prescription_status"
+      ],
+      "rewrite_reason": "missing attributes: ['drug.prescription_status']",
+      "reasons": [
+        "absent_from_L",
+        "absent_from_physical",
+        "identifier_unbound"
+      ],
+      "ok": false
+    },
+    {
+      "query_id": "med_multiagg20:q14",
+      "sql": "SELECT CASE WHEN LOWER(i.institution_type) LIKE '%university%' THEN 'university_affiliated' WHEN LOWER(i.institution_type) LIKE '%public%' THEN 'public' WHEN i.institution_type != '' THEN 'other' END AS inst_type, COUNT(DISTINCT dr.id) AS drug_count, COUNT(DISTINCT CASE WHEN dr.prescription_status LIKE '%prescription_only%' THEN dr.id END) AS rx_only_count, COUNT(DISTINCT CASE WHEN d.treatments != '' THEN d.id END) AS treatment_recorded_count FROM drug dr JOIN disease d ON ( LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) JOIN institution i ON ( LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) WHERE i.institution_type != '' GROUP BY inst_type",
+      "slice_safe": true,
+      "shape": "TemplateShape.CROSS_ATTRIBUTE_FILTER",
+      "binding_errors": [
+        "unbound attribute drug.prescription_status"
+      ],
+      "absent_from_L": [
+        "drug.prescription_status"
+      ],
+      "unbound": [
+        "drug.prescription_status"
+      ],
+      "rewrite_reason": "missing attributes: ['drug.prescription_status']",
+      "reasons": [
+        "absent_from_L",
+        "absent_from_physical",
+        "identifier_unbound"
+      ],
+      "ok": false
+    },
+    {
+      "query_id": "med_filterjoin20:q4",
+      "sql": "SELECT CASE WHEN prescription_status LIKE '%prescription_only%' THEN 'prescription_only' ELSE 'other' END AS rx_status, COUNT(*) AS drug_count FROM drug WHERE LOWER(pharmaceutical_form) LIKE '%tablet%' AND prescription_status != '' GROUP BY rx_status",
+      "slice_safe": true,
+      "shape": "TemplateShape.FILTERED_AGGREGATE",
+      "binding_errors": [
+        "unbound attribute drug.prescription_status",
+        "unbound attribute drug.prescription_status"
+      ],
+      "absent_from_L": [
+        "drug.prescription_status"
+      ],
+      "unbound": [
+        "drug.prescription_status"
+      ],
+      "rewrite_reason": "missing attributes: ['drug.prescription_status']",
+      "reasons": [
+        "absent_from_L",
+        "absent_from_physical",
+        "identifier_unbound"
+      ],
+      "ok": false
+    },
+    {
+      "query_id": "med_join20:q4",
+      "sql": "SELECT CASE WHEN dr.prescription_status LIKE '%prescription_only%' THEN 'prescription_only' WHEN dr.prescription_status != '' THEN 'other' END AS rx_status, COUNT(DISTINCT dr.id) AS drug_count FROM drug dr JOIN disease d ON ( LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) WHERE dr.prescription_status != '' GROUP BY rx_status",
+      "slice_safe": true,
+      "shape": "TemplateShape.CROSS_ATTRIBUTE_FILTER",
+      "binding_errors": [
+        "unbound attribute drug.prescription_status",
+        "unbound attribute drug.prescription_status",
+        "unbound attribute drug.prescription_status"
+      ],
+      "absent_from_L": [
+        "drug.prescription_status"
+      ],
+      "unbound": [
+        "drug.prescription_status"
+      ],
+      "rewrite_reason": "missing attributes: ['drug.prescription_status']",
+      "reasons": [
+        "absent_from_L",
+        "absent_from_physical",
+        "identifier_unbound"
+      ],
+      "ok": false
+    },
+    {
+      "query_id": "med_multiagg20:q18",
+      "sql": "SELECT CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route != '' THEN 'non_oral' END AS route_family, CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type != '' THEN 'other' END AS type_family, COUNT(DISTINCT dr.id) AS drug_count, COUNT(DISTINCT CASE WHEN dr.manufacturer != '' THEN dr.id END) AS known_mfr_count FROM drug dr JOIN disease d ON ( LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) WHERE dr.administration_route != '' AND d.disease_type != '' GROUP BY route_family, type_family HAVING COUNT(DISTINCT dr.id) >= 2",
+      "slice_safe": true,
+      "shape": "TemplateShape.CROSS_ATTRIBUTE_FILTER",
+      "rewrite_reason": "no coverage for drug.id",
+      "coverage": [
+        {
+          "attribute": "drug.id",
+          "op": ">=",
+          "constants": [
+            2
+          ],
+          "coverage_kind": null,
+          "contains": null,
+          "lookup": "missing"
+        },
+        {
+          "attribute": "disease.disease_type",
+          "op": "!=",
+          "constants": [
+            ""
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "drug.administration_route",
+          "op": "!=",
+          "constants": [
+            ""
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "drug.administration_route",
+          "op": "LIKE",
+          "constants": [
+            "%oral%"
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "drug.administration_route",
+          "op": "!=",
+          "constants": [
+            ""
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "disease.disease_type",
+          "op": "LIKE",
+          "constants": [
+            "%infectious%"
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "disease.disease_type",
+          "op": "LIKE",
+          "constants": [
+            "%neoplastic%"
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "disease.disease_type",
+          "op": "LIKE",
+          "constants": [
+            "%inflammatory%"
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "disease.disease_type",
+          "op": "LIKE",
+          "constants": [
+            "%psychiatric%"
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "disease.disease_type",
+          "op": "!=",
+          "constants": [
+            ""
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "disease.disease_name",
+          "op": "LIKE",
+          "constants": [
+            "|"
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        },
+        {
+          "attribute": "drug.manufacturer",
+          "op": "!=",
+          "constants": [
+            ""
+          ],
+          "coverage_kind": "full",
+          "contains": true,
+          "lookup": "interval_or_presence"
+        }
+      ],
+      "reasons": [
+        "coverage_rejected"
+      ],
+      "ok": false
+    },
+    {
+      "query_id": "med_groupby20:q3",
+      "sql": "SELECT CASE WHEN prescription_status LIKE '%prescription_only%' THEN 'prescription_only' ELSE 'other' END AS rx_status, CASE WHEN LOWER(storage_conditions) LIKE '%room temperature%' THEN 'room_temperature' ELSE 'other_storage' END AS storage_group, COUNT(*) AS drug_count FROM drug WHERE prescription_status != '' AND storage_conditions != '' GROUP BY rx_status, storage_group",
+      "slice_safe": true,
+      "shape": "TemplateShape.FILTERED_AGGREGATE",
+      "binding_errors": [
+        "unbound attribute drug.prescription_status",
+        "unbound attribute drug.prescription_status"
+      ],
+      "absent_from_L": [
+        "drug.prescription_status"
+      ],
+      "unbound": [
+        "drug.prescription_status"
+      ],
+      "rewrite_reason": "missing attributes: ['drug.prescription_status']",
+      "reasons": [
+        "absent_from_L",
+        "absent_from_physical",
+        "identifier_unbound"
+      ],
+      "ok": false
+    },
+    {
+      "query_id": "med_filterjoin20:q8",
+      "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type != '' THEN 'other' END AS type_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug dr JOIN disease d ON ( LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) WHERE dr.prescription_status LIKE '%prescription_only%' AND d.disease_type != '' GROUP BY type_family",
+      "slice_safe": true,
+      "shape": "TemplateShape.CROSS_ATTRIBUTE_FILTER",
+      "binding_errors": [
+        "unbound attribute drug.prescription_status"
+      ],
+      "absent_from_L": [
+        "drug.prescription_status"
+      ],
+      "unbound": [
+        "drug.prescription_status"
+      ],
+      "rewrite_reason": "missing attributes: ['drug.prescription_status']",
+      "reasons": [
+        "absent_from_L",
+        "absent_from_physical",
+        "identifier_unbound"
+      ],
+      "ok": false
+    },
+    {
+      "query_id": "med_agg20:q6",
+      "sql": "SELECT CASE WHEN prescription_status LIKE '%prescription_only%' THEN 'prescription_only' WHEN prescription_status != '' THEN 'other' END AS rx_status, COUNT(*) AS drug_count FROM drug WHERE prescription_status != '' GROUP BY rx_status",
+      "slice_safe": true,
+      "shape": "TemplateShape.FILTERED_AGGREGATE",
+      "binding_errors": [
+        "unbound attribute drug.prescription_status",
+        "unbound attribute drug.prescription_status",
+        "unbound attribute drug.prescription_status"
+      ],
+      "absent_from_L": [
+        "drug.prescription_status"
+      ],
+      "unbound": [
+        "drug.prescription_status"
+      ],
+      "rewrite_reason": "missing attributes: ['drug.prescription_status']",
+      "reasons": [
+        "absent_from_L",
+        "absent_from_physical",
+        "identifier_unbound"
+      ],
+      "ok": false
+    },
+    {
+      "query_id": "med_multiagg20:q9",
+      "sql": "SELECT CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route != '' THEN 'non_oral' END AS route_family, COUNT(DISTINCT dr.id) AS drug_count, COUNT(DISTINCT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN dr.id END) AS infectious_count, COUNT(DISTINCT CASE WHEN dr.prescription_status LIKE '%prescription_only%' THEN dr.id END) AS rx_only_count FROM drug dr JOIN disease d ON ( LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) WHERE dr.administration_route != '' GROUP BY route_family",
+      "slice_safe": true,
+      "shape": "TemplateShape.CROSS_ATTRIBUTE_FILTER",
+      "binding_errors": [
+        "unbound attribute drug.prescription_status"
+      ],
+      "absent_from_L": [
+        "drug.prescription_status"
+      ],
+      "unbound": [
+        "drug.prescription_status"
+      ],
+      "rewrite_reason": "missing attributes: ['drug.prescription_status']",
+      "reasons": [
+        "absent_from_L",
+        "absent_from_physical",
+        "identifier_unbound"
+      ],
+      "ok": false
+    }
+  ],
+  "containment": "interval; LIKE/string presence is not literal lookup"
+}

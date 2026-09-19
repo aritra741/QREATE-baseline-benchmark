@@ -1,0 +1,260 @@
+{
+  "before_empty": 35,
+  "after_empty": 30,
+  "moved": [
+    "med_join20:q14",
+    "med_join20:q17",
+    "med_join20:q19",
+    "med_multiagg20:q13",
+    "med_multiagg20:q19"
+  ],
+  "still_empty": [
+    "med_agg20:q6",
+    "med_filterjoin20:q0",
+    "med_filterjoin20:q12",
+    "med_filterjoin20:q13",
+    "med_filterjoin20:q14",
+    "med_filterjoin20:q15",
+    "med_filterjoin20:q17",
+    "med_filterjoin20:q18",
+    "med_filterjoin20:q19",
+    "med_filterjoin20:q3",
+    "med_filterjoin20:q4",
+    "med_filterjoin20:q6",
+    "med_filterjoin20:q7",
+    "med_filterjoin20:q8",
+    "med_filterjoin20:q9",
+    "med_groupby20:q10",
+    "med_groupby20:q16",
+    "med_groupby20:q17",
+    "med_groupby20:q3",
+    "med_join20:q1",
+    "med_join20:q10",
+    "med_join20:q11",
+    "med_join20:q16",
+    "med_join20:q18",
+    "med_join20:q2",
+    "med_join20:q4",
+    "med_multiagg20:q14",
+    "med_multiagg20:q18",
+    "med_multiagg20:q3",
+    "med_multiagg20:q9"
+  ],
+  "new_empty": [],
+  "empty_causes": {
+    "join": 16,
+    "filter": 5,
+    "rewrite_missing": 9
+  },
+  "before_coercion": 678,
+  "after_coercion": 32,
+  "tokens_spent": 0,
+  "types": {
+    "institution.institution_country": "string",
+    "institution.research_fields": "string",
+    "disease.treatments": "string",
+    "disease.disease_type": "string",
+    "drug.prescription_status": "string"
+  },
+  "like_tokens": {
+    "drug.prescription_status": [
+      "prescription_only"
+    ],
+    "disease.disease_type": [
+      "infectious",
+      "inflammatory",
+      "neoplastic",
+      "psychiatric"
+    ],
+    "institution.research_fields": [
+      "clinical_research",
+      "immunology",
+      "microbiology",
+      "neuroscience",
+      "oncology"
+    ]
+  },
+  "filter_columns": [
+    {
+      "attribute": "disease.treatments",
+      "query_ids": [
+        "med_filterjoin20:q0",
+        "med_filterjoin20:q18"
+      ],
+      "predicate": "LOWER(d.treatments) LIKE '%oral_medication%'",
+      "literals": [
+        "%oral_medication%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "acetaminophen (paracetamol)",
+        "acitretin",
+        "ADHD medication",
+        "AHSCT",
+        "AK112 + olaparib",
+        "Alpha-blockers",
+        "Anemia in Chronic Renal Failure",
+        "Angioplasty",
+        "angioplasty, bypass surgery",
+        "anti-depressant medication",
+        "Anti-rabies vaccines",
+        "antibacterials",
+        "antibiotics",
+        "Antibiotics for Lepto",
+        "antidepressants",
+        "antigen tests",
+        "antihistamines",
+        "Antihypertensives",
+        "antipsychotic medication",
+        "apipuncture"
+      ],
+      "n_distinct": 121,
+      "n_digits": 7,
+      "n_units": 3,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "unit",
+      "compatible_actions": [
+        "extract_unit_and_magnitude"
+      ]
+    },
+    {
+      "attribute": "institution.institution_type",
+      "query_ids": [
+        "med_filterjoin20:q19"
+      ],
+      "predicate": "LOWER(i.institution_type) LIKE '%university%'",
+      "literals": [
+        "%university%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "Academic hospital",
+        "Academic Medical Center",
+        "Albert Einstein College of Medicine, Montefiore",
+        "animal facility",
+        "behavioral healthcare and addiction treatment facility",
+        "biopharmaceutical company",
+        "CAMBRIDGE, Mass., MD Anderson Cancer Center",
+        "Cancer Center",
+        "Cancer Center, Research Institution",
+        "CDMO",
+        "Centre for Doctoral Training",
+        "clinic",
+        "Clinic",
+        "clinical trial sites, cancer centers",
+        "Cobb County Fire and Emergency Services",
+        "concierge medical practice",
+        "Dental clinic",
+        "Dental practice",
+        "Department of Otorhinolaryngology-Head and Neck Surgery",
+        "diagnostic company"
+      ],
+      "n_distinct": 103,
+      "n_digits": 0,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    },
+    {
+      "attribute": "disease.disease_type",
+      "query_ids": [
+        "med_filterjoin20:q9"
+      ],
+      "predicate": "LOWER(d.disease_type) LIKE '%infectious%'",
+      "literals": [
+        "%infectious%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "Acne",
+        "Acquired brain injury",
+        "Acute bronchitis",
+        "acute myeloid leukemia",
+        "acute peripheral facial paralysis",
+        "Alcoholism",
+        "allergic reactions",
+        "anxiety disorders",
+        "Anxiety disorders",
+        "Arthritis",
+        "Asthma",
+        "asthma",
+        "atherosclerotic cardiovascular disease",
+        "autoimmune",
+        "Benign prostatic hyperplasia",
+        "Benign prostatic hypertrophy",
+        "bleeding diathesis",
+        "bloodborne",
+        "bone marrow transplant complication",
+        "bronchiolitis"
+      ],
+      "n_distinct": 102,
+      "n_digits": 1,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    },
+    {
+      "attribute": "disease.diagnostic_methods",
+      "query_ids": [
+        "med_filterjoin20:q3"
+      ],
+      "predicate": "LOWER(diagnostic_methods) LIKE '%clinical_evaluation%'",
+      "literals": [
+        "%clinical_evaluation%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "99mTc-3,3-diphosphono-1,2-propanodicarboxylic acid (DPD) scintigraphy",
+        "advanced imaging techniques",
+        "angina, arrhythmia, big data analysis",
+        "antigen tests",
+        "Blood analysis",
+        "blood glucose monitoring",
+        "Blood pressure measurement",
+        "blood tests",
+        "capsule endoscopy",
+        "CAT scan",
+        "chest x-ray",
+        "Clinical samples for the rabies virus",
+        "complete physical examination",
+        "DSM-IV depression criteria",
+        "echocardiogram",
+        "EDSS",
+        "ELISA-F29 test",
+        "excessive thirst",
+        "exclusion of other medical causes of psychosis",
+        "eye examination"
+      ],
+      "n_distinct": 68,
+      "n_digits": 6,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    }
+  ]
+}

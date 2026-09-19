@@ -55,10 +55,74 @@ def _norm_sql(sql: str) -> str:
     return " ".join((sql or "").lower().split())
 
 
-def join_signature_id(left_table: str, right_table: str, on_sql: str) -> str:
-    a, b = sorted((left_table.lower(), right_table.lower()))
-    digest = hashlib.sha256(f"{a}|{b}|{_norm_sql(on_sql)}".encode()).hexdigest()[:16]
-    return digest
+def normalize_on_ast(
+    on: exp.Expression | str,
+    left_alias: str,
+    right_alias: str,
+) -> str:
+    try:
+        tree = on.copy() if isinstance(on, exp.Expression) else parse_sql(str(on))
+    except Exception:
+        return _norm_sql(str(on))
+    left = (left_alias or "").lower()
+    right = (right_alias or "").lower()
+    for col in tree.find_all(exp.Column):
+        raw = (col.table or "").lower()
+        if raw == left:
+            col.set("table", exp.to_identifier("$L"))
+        elif raw == right:
+            col.set("table", exp.to_identifier("$R"))
+    return _norm_sql(tree.sql(dialect="sqlite"))
+
+
+def join_signature_id(
+    left_table: str,
+    right_table: str,
+    left_alias: str,
+    right_alias: str,
+    on: exp.Expression | str,
+) -> str:
+    payload = "|".join(
+        [
+            f"left:{left_table.lower()}:{left_alias.lower()}",
+            f"right:{right_table.lower()}:{right_alias.lower()}",
+            normalize_on_ast(on, left_alias, right_alias),
+        ]
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
+def group_expr_tables(expr_sql: str, spec: WitnessSpec) -> tuple[str, ...]:
+    aliases = dict(spec.alias_to_table)
+    try:
+        tree = parse_sql(expr_sql)
+    except Exception:
+        if expr_sql and "." not in expr_sql and len(spec.tables) == 1:
+            return (spec.primary,)
+        return ()
+    tables: list[str] = []
+    unqualified = False
+    for col in tree.find_all(exp.Column):
+        raw = (col.table or "").lower()
+        if not raw:
+            unqualified = True
+            continue
+        table = aliases.get(raw, raw)
+        if table:
+            tables.append(table)
+    uniq = tuple(dict.fromkeys(tables))
+    if uniq:
+        return uniq
+    if unqualified and len(spec.tables) == 1:
+        return (spec.primary,)
+    return ()
+
+
+def group_owner_table(expr_sql: str, spec: WitnessSpec) -> str | None:
+    tables = group_expr_tables(expr_sql, spec)
+    if len(tables) == 1:
+        return tables[0]
+    return None
 
 
 def group_digest(expr_sql: str) -> str:
@@ -173,25 +237,20 @@ def _join_specs(tree: exp.Expression, aliases: dict[str, str]) -> list[JoinSpec]
         left_table = aliases.get(left_alias, (prior.name or "").lower())
         right_table = aliases.get(right_alias, (table.name or "").lower())
         on_sql = on.sql(dialect="sqlite")
-        join_id = join_signature_id(left_table, right_table, on_sql)
+        join_id = join_signature_id(left_table, right_table, left_alias, right_alias, on)
         if join_id in seen:
             prior = table
             continue
         seen.add(join_id)
         low = _norm_sql(on_sql)
         entity_edge = any(marker in low for marker in _TOKEN_MARKERS)
-        a_table, b_table = (left_table, right_table)
-        a_alias, b_alias = (left_alias, right_alias)
-        if left_table > right_table:
-            a_table, b_table = right_table, left_table
-            a_alias, b_alias = right_alias, left_alias
         found.append(
             JoinSpec(
                 join_id=join_id,
-                left_table=a_table,
-                right_table=b_table,
-                left_alias=a_alias,
-                right_alias=b_alias,
+                left_table=left_table,
+                right_table=right_table,
+                left_alias=left_alias,
+                right_alias=right_alias,
                 on_sql=on_sql,
                 entity_edge=entity_edge,
             )

@@ -1,0 +1,577 @@
+{
+  "label": "zero_token_replay",
+  "realizability_before_repair": {
+    "step5": {
+      "n_row_attributes": 1980,
+      "n_illegal": 1,
+      "kinds": {
+        "membership_true_nonempty_not_true": 1
+      }
+    },
+    "v2_subset": {
+      "n_row_attributes": 1980,
+      "n_illegal": 10,
+      "kinds": {
+        "membership_true_nonempty_not_true": 10
+      }
+    },
+    "gold": {
+      "n_row_attributes": 1980,
+      "n_illegal": 0,
+      "kinds": {}
+    }
+  },
+  "variants": {
+    "hybrid": {
+      "mean_structure_f2": 0.4789730737099158,
+      "mean_cell_f1_at_0.20": 0.14789682539682542,
+      "mean_per_query_product": 0.1372159922598519,
+      "test_empty": 7
+    },
+    "hybrid_plus_closure": {
+      "mean_structure_f2": 0.4789730737099158,
+      "mean_cell_f1_at_0.20": 0.14789682539682542,
+      "mean_per_query_product": 0.1372159922598519,
+      "test_empty": 7,
+      "n_rows_closed": 5
+    },
+    "v2_membership_gold_presence": {
+      "mean_structure_f2": 0.49367895606285706,
+      "mean_cell_f1_at_0.20": 0.18706349206349207,
+      "mean_per_query_product": 0.17304429794109877,
+      "test_empty": 6
+    },
+    "v2_membership_gold_presence_closed": {
+      "mean_structure_f2": 0.49367895606285706,
+      "mean_cell_f1_at_0.20": 0.18706349206349207,
+      "mean_per_query_product": 0.17304429794109877,
+      "test_empty": 6
+    },
+    "gold_membership_model_presence": {
+      "mean_structure_f2": 0.4789730737099158,
+      "mean_cell_f1_at_0.20": 0.13123015873015872,
+      "mean_per_query_product": 0.12054932559318525,
+      "test_empty": 7
+    },
+    "step5": {
+      "mean_structure_f2": 0.4735749630486472,
+      "mean_cell_f1_at_0.20": 0.13551587301587303,
+      "mean_per_query_product": 0.12456256381694979,
+      "test_empty": 7
+    },
+    "v2_raw": {
+      "mean_structure_f2": 0.44683243104295733,
+      "mean_cell_f1_at_0.20": 0.11285103785103785,
+      "mean_per_query_product": 0.09439039482899132,
+      "test_empty": 7
+    }
+  },
+  "presence_audit": {
+    "8f6088ef6933": {
+      "attribute": "disease.diagnostic_methods",
+      "gold_prevalence": {
+        "TRUE": 56,
+        "FALSE": 44,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.56,
+      "gold_true": 56,
+      "span_supported": 21,
+      "span_rate": 0.375,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 35,
+      "unavailable_rate": 0.625,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "3092e90e517f": {
+      "attribute": "disease.disease_type",
+      "gold_prevalence": {
+        "TRUE": 90,
+        "FALSE": 10,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.9,
+      "gold_true": 90,
+      "span_supported": 61,
+      "span_rate": 0.6777777777777778,
+      "name_overlap": 6,
+      "name_overlap_rate": 0.06666666666666667,
+      "apparently_unavailable": 29,
+      "unavailable_rate": 0.32222222222222224,
+      "always_true_product": 0.1258853151397011,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0013227513227513227,
+      "always_false_delta": 0.0
+    },
+    "3d2b950bfe02": {
+      "attribute": "disease.pathogenesis",
+      "gold_prevalence": {
+        "TRUE": 80,
+        "FALSE": 20,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.8,
+      "gold_true": 80,
+      "span_supported": 43,
+      "span_rate": 0.5375,
+      "name_overlap": 3,
+      "name_overlap_rate": 0.0375,
+      "apparently_unavailable": 37,
+      "unavailable_rate": 0.4625,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "dd2acd0d7a8f": {
+      "attribute": "disease.preventive_measures",
+      "gold_prevalence": {
+        "TRUE": 32,
+        "FALSE": 68,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.32,
+      "gold_true": 32,
+      "span_supported": 11,
+      "span_rate": 0.34375,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 21,
+      "unavailable_rate": 0.65625,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "1ea3591105f3": {
+      "attribute": "disease.prognosis",
+      "gold_prevalence": {
+        "TRUE": 56,
+        "FALSE": 44,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.56,
+      "gold_true": 56,
+      "span_supported": 27,
+      "span_rate": 0.48214285714285715,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 29,
+      "unavailable_rate": 0.5178571428571429,
+      "always_true_product": 0.10789589715028311,
+      "always_false_product": 0.10789589715028311,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": -0.016666666666666677,
+      "always_false_delta": -0.016666666666666677
+    },
+    "671eb3a1829a": {
+      "attribute": "disease.quality_of_life_impact",
+      "gold_prevalence": {
+        "TRUE": 53,
+        "FALSE": 47,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.53,
+      "gold_true": 53,
+      "span_supported": 25,
+      "span_rate": 0.4716981132075472,
+      "name_overlap": 1,
+      "name_overlap_rate": 0.018867924528301886,
+      "apparently_unavailable": 28,
+      "unavailable_rate": 0.5283018867924528,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "4eee3fff55d5": {
+      "attribute": "disease.treatments",
+      "gold_prevalence": {
+        "TRUE": 89,
+        "FALSE": 11,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.89,
+      "gold_true": 89,
+      "span_supported": 49,
+      "span_rate": 0.550561797752809,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 40,
+      "unavailable_rate": 0.449438202247191,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.113284368328228,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": -0.01127819548872179
+    },
+    "f3544394e3ce": {
+      "attribute": "drug.administration_route",
+      "gold_prevalence": {
+        "TRUE": 77,
+        "FALSE": 21,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.7857142857142857,
+      "gold_true": 77,
+      "span_supported": 72,
+      "span_rate": 0.935064935064935,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 5,
+      "unavailable_rate": 0.06493506493506493,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.09956256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": -0.024999999999999994
+    },
+    "6ff679973fdd": {
+      "attribute": "drug.manufacturer",
+      "gold_prevalence": {
+        "TRUE": 28,
+        "FALSE": 70,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.2857142857142857,
+      "gold_true": 28,
+      "span_supported": 27,
+      "span_rate": 0.9642857142857143,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 1,
+      "unavailable_rate": 0.03571428571428571,
+      "always_true_product": 0.11374733129119094,
+      "always_false_product": 0.12254362758748724,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": -0.010815232525758847,
+      "always_false_delta": -0.002018936229462545
+    },
+    "660b3095778d": {
+      "attribute": "drug.mechanism_of_action",
+      "gold_prevalence": {
+        "TRUE": 70,
+        "FALSE": 28,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.7142857142857143,
+      "gold_true": 70,
+      "span_supported": 38,
+      "span_rate": 0.5428571428571428,
+      "name_overlap": 2,
+      "name_overlap_rate": 0.02857142857142857,
+      "apparently_unavailable": 30,
+      "unavailable_rate": 0.42857142857142855,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "4073d2d81e57": {
+      "attribute": "drug.pharmaceutical_form",
+      "gold_prevalence": {
+        "TRUE": 74,
+        "FALSE": 24,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.7551020408163265,
+      "gold_true": 74,
+      "span_supported": 71,
+      "span_rate": 0.9594594594594594,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 3,
+      "unavailable_rate": 0.04054054054054054,
+      "always_true_product": 0.09441181930862014,
+      "always_false_product": 0.059117701661561314,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": -0.03015074450832965,
+      "always_false_delta": -0.06544486215538847
+    },
+    "08244f7aa9a2": {
+      "attribute": "drug.prescription_status",
+      "gold_prevalence": {
+        "TRUE": 45,
+        "FALSE": 53,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.45918367346938777,
+      "gold_true": 45,
+      "span_supported": 7,
+      "span_rate": 0.15555555555555556,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 38,
+      "unavailable_rate": 0.8444444444444444,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "ed7e21bd8de7": {
+      "attribute": "drug.storage_conditions",
+      "gold_prevalence": {
+        "TRUE": 18,
+        "FALSE": 80,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.1836734693877551,
+      "gold_true": 18,
+      "span_supported": 5,
+      "span_rate": 0.2777777777777778,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 13,
+      "unavailable_rate": 0.7222222222222222,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "c6cf446faee0": {
+      "attribute": "drug.unsuitable_population",
+      "gold_prevalence": {
+        "TRUE": 57,
+        "FALSE": 41,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.5816326530612245,
+      "gold_true": 57,
+      "span_supported": 42,
+      "span_rate": 0.7368421052631579,
+      "name_overlap": 7,
+      "name_overlap_rate": 0.12280701754385964,
+      "apparently_unavailable": 14,
+      "unavailable_rate": 0.24561403508771928,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "7d09d1bfc636": {
+      "attribute": "institution.funding_sources",
+      "gold_prevalence": {
+        "TRUE": 29,
+        "FALSE": 70,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.29292929292929293,
+      "gold_true": 29,
+      "span_supported": 2,
+      "span_rate": 0.06896551724137931,
+      "name_overlap": 0,
+      "name_overlap_rate": 0.0,
+      "apparently_unavailable": 27,
+      "unavailable_rate": 0.9310344827586207,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "18618d1b0602": {
+      "attribute": "institution.institution_country",
+      "gold_prevalence": {
+        "TRUE": 86,
+        "FALSE": 13,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.8686868686868687,
+      "gold_true": 86,
+      "span_supported": 78,
+      "span_rate": 0.9069767441860465,
+      "name_overlap": 2,
+      "name_overlap_rate": 0.023255813953488372,
+      "apparently_unavailable": 8,
+      "unavailable_rate": 0.09302325581395349,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "48a86d8f41ed": {
+      "attribute": "institution.institution_type",
+      "gold_prevalence": {
+        "TRUE": 69,
+        "FALSE": 30,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.696969696969697,
+      "gold_true": 69,
+      "span_supported": 33,
+      "span_rate": 0.4782608695652174,
+      "name_overlap": 1,
+      "name_overlap_rate": 0.014492753623188406,
+      "apparently_unavailable": 36,
+      "unavailable_rate": 0.5217391304347826,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.11838972431077695,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": -0.006172839506172839
+    },
+    "3b657dc355b0": {
+      "attribute": "institution.international_collaboration",
+      "gold_prevalence": {
+        "TRUE": 24,
+        "FALSE": 75,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.24242424242424243,
+      "gold_true": 24,
+      "span_supported": 24,
+      "span_rate": 1.0,
+      "name_overlap": 3,
+      "name_overlap_rate": 0.125,
+      "apparently_unavailable": 0,
+      "unavailable_rate": 0.0,
+      "always_true_product": 0.12319741661846925,
+      "always_false_product": 0.11838972431077695,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": -0.0013651471984805347,
+      "always_false_delta": -0.006172839506172839
+    },
+    "1164960c748c": {
+      "attribute": "institution.key_technologies",
+      "gold_prevalence": {
+        "TRUE": 72,
+        "FALSE": 27,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.7272727272727273,
+      "gold_true": 72,
+      "span_supported": 63,
+      "span_rate": 0.875,
+      "name_overlap": 1,
+      "name_overlap_rate": 0.013888888888888888,
+      "apparently_unavailable": 9,
+      "unavailable_rate": 0.125,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    },
+    "7b008d5de014": {
+      "attribute": "institution.research_fields",
+      "gold_prevalence": {
+        "TRUE": 92,
+        "FALSE": 7,
+        "NULL": 0
+      },
+      "gold_true_rate": 0.9292929292929293,
+      "gold_true": 92,
+      "span_supported": 61,
+      "span_rate": 0.6630434782608695,
+      "name_overlap": 5,
+      "name_overlap_rate": 0.05434782608695652,
+      "apparently_unavailable": 31,
+      "unavailable_rate": 0.33695652173913043,
+      "always_true_product": 0.12456256381694979,
+      "always_false_product": 0.12456256381694979,
+      "step5_product": 0.12456256381694979,
+      "always_true_delta": 0.0,
+      "always_false_delta": 0.0
+    }
+  },
+  "cache_reuse": {
+    "gold_entity_name": {
+      "disease": {
+        "n_entities": 100,
+        "n_distinct_keys": 100,
+        "keys_over_entities": 1.0,
+        "n_keys_reused": 0,
+        "max_reuse": 1,
+        "mean_reuse": 1.0,
+        "reuse_histogram": {
+          "1": 100
+        }
+      },
+      "drug": {
+        "n_entities": 98,
+        "n_distinct_keys": 98,
+        "keys_over_entities": 1.0,
+        "n_keys_reused": 0,
+        "max_reuse": 1,
+        "mean_reuse": 1.0,
+        "reuse_histogram": {
+          "1": 98
+        }
+      },
+      "institution": {
+        "n_entities": 99,
+        "n_distinct_keys": 98,
+        "keys_over_entities": 0.98989898989899,
+        "n_keys_reused": 1,
+        "max_reuse": 2,
+        "mean_reuse": 1.010204081632653,
+        "reuse_histogram": {
+          "1": 97,
+          "2": 1
+        }
+      }
+    },
+    "aprime_native_key": {
+      "disease": {
+        "n_entities": 100,
+        "n_distinct_keys": 96,
+        "keys_over_entities": 0.96,
+        "n_keys_reused": 3,
+        "max_reuse": 3,
+        "mean_reuse": 1.0416666666666667,
+        "reuse_histogram": {
+          "1": 93,
+          "2": 2,
+          "3": 1
+        }
+      },
+      "drug": {
+        "n_entities": 98,
+        "n_distinct_keys": 98,
+        "keys_over_entities": 1.0,
+        "n_keys_reused": 0,
+        "max_reuse": 1,
+        "mean_reuse": 1.0,
+        "reuse_histogram": {
+          "1": 98
+        }
+      },
+      "institution": {
+        "n_entities": 99,
+        "n_distinct_keys": 99,
+        "keys_over_entities": 1.0,
+        "n_keys_reused": 0,
+        "max_reuse": 1,
+        "mean_reuse": 1.0,
+        "reuse_histogram": {
+          "1": 99
+        }
+      }
+    }
+  },
+  "entity_label": {
+    "added_to_evidence": true,
+    "query_visible": false,
+    "note": "Internal subject label for cache/ER/diagnostics. Not a user-visible column."
+  },
+  "v2_scope": [
+    "drug.manufacturer",
+    "drug.pharmaceutical_form"
+  ],
+  "n_membership": 35,
+  "n_presence": 20
+}

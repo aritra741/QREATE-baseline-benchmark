@@ -1,0 +1,322 @@
+{
+  "budget": 1543790,
+  "model": "qwen/qwen-2.5-7b-instruct",
+  "n_predicates": 55,
+  "n_presence": 20,
+  "n_membership": 35,
+  "aprime_product": 0.1081697298802562,
+  "fixed": {
+    "policy": "fixed",
+    "tokens_spent": 1543732,
+    "tokens_controller": 0,
+    "tokens_operators": 1543732,
+    "sqlite_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_med_signatures/artifacts/aprime_fixed.db",
+    "presence_true": 612,
+    "presence_null": 1270,
+    "membership_true": 207,
+    "membership_false": 758,
+    "membership_null": 2411,
+    "n_conflicts": 0,
+    "n_closed": 20,
+    "mean_structure_f2": 0.5174545226015814,
+    "mean_cell_f1_at_0.20": 0.15158730158730158,
+    "mean_per_query_product": 0.09025327885622003,
+    "per_query": [
+      {
+        "query_id": "med_filterjoin20:q5",
+        "product": null,
+        "structure_f2": 0.75,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q9",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q7",
+        "product": null,
+        "structure_f2": 0.5555555555555556,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q8",
+        "product": null,
+        "structure_f2": 0.29411764705882354,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q17",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "product": null,
+        "structure_f2": 0.5555555555555556,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_join20:q15",
+        "product": null,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_filterjoin20:q16",
+        "product": null,
+        "structure_f2": 0.5555555555555556,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "product": null,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_filterjoin20:q10",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q7",
+        "product": null,
+        "structure_f2": 0.45454545454545453,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q8",
+        "product": null,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q11",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q15",
+        "product": null,
+        "structure_f2": 0.1923076923076923,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q15",
+        "product": null,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "product": null,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q2",
+        "product": null,
+        "structure_f2": 0.5555555555555556,
+        "cell_f1": null
+      }
+    ],
+    "test_empty_query_count": 3
+  },
+  "agent": {
+    "policy": "agent",
+    "tokens_spent": 37718,
+    "tokens_controller": 7199,
+    "tokens_operators": 30519,
+    "sqlite_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_med_signatures/artifacts/aprime_agent.db",
+    "n_actions": 2,
+    "n_resolved": 77,
+    "n_conflicts": 0,
+    "n_abstentions": 367,
+    "actions": [
+      {
+        "scope": {
+          "predicate_ids": [
+            "b28ac76e087d",
+            "287157291272",
+            "e5712afe1b87",
+            "9b426785d07a"
+          ],
+          "attribute": "disease.disease_type",
+          "entity_cohort": "unresolved"
+        },
+        "operator": "semantic_membership",
+        "context": "value",
+        "model": "",
+        "max_tokens": 0,
+        "reason": "Given the high unresolved membership atoms (399) and query frequency (101), semantic_membership is chosen to classify all membership atoms for the disease.disease_type attribute, which is likely to provide significant insights into the cohort.",
+        "tokens": 30519,
+        "error": ""
+      },
+      {
+        "scope": {
+          "predicate_ids": [],
+          "attribute": "disease.disease_type",
+          "entity_cohort": "unresolved"
+        },
+        "operator": "abstain",
+        "context": "document",
+        "model": "",
+        "max_tokens": 0,
+        "reason": "repeat_cohort",
+        "tokens": 0,
+        "error": ""
+      }
+    ],
+    "mean_structure_f2": 0.45293522267206476,
+    "mean_cell_f1_at_0.20": 0.13123015873015872,
+    "mean_per_query_product": 0.10949248120300752,
+    "per_query": [
+      {
+        "query_id": "med_filterjoin20:q5",
+        "product": null,
+        "structure_f2": 0.2777777777777778,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q9",
+        "product": null,
+        "structure_f2": 0.5555555555555556,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q7",
+        "product": null,
+        "structure_f2": 0.7894736842105263,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q8",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q17",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_join20:q15",
+        "product": null,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_filterjoin20:q16",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "product": null,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_filterjoin20:q10",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q7",
+        "product": null,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q8",
+        "product": null,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q11",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_groupby20:q15",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q15",
+        "product": null,
+        "structure_f2": null,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "product": null,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      },
+      {
+        "query_id": "med_multiagg20:q2",
+        "product": null,
+        "structure_f2": 1.0,
+        "cell_f1": null
+      }
+    ],
+    "test_empty_query_count": 7
+  },
+  "delta_product_agent_minus_fixed": 0.019239202346787485,
+  "delta_tokens_agent_minus_fixed": -1506014
+}

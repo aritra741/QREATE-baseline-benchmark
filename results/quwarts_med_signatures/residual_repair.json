@@ -1,0 +1,3406 @@
+{
+  "budget": 1543790,
+  "model": "qwen/qwen-2.5-7b-instruct",
+  "incumbent": "agent",
+  "incumbent_tokens": 37718,
+  "tokens_spent": 909152,
+  "tokens_residual": 871434,
+  "tokens_executor": 678980,
+  "tokens_refiner": 188948,
+  "tokens_validator": 3506,
+  "added_columns": [
+    [
+      "drug",
+      "unsuitable_population",
+      "TEXT"
+    ]
+  ],
+  "n_queries": 20,
+  "n_proposed": 11,
+  "n_added": 0,
+  "n_unknown": 7,
+  "n_new_groups": 0,
+  "n_existing_groups": 0,
+  "n_validated": 4,
+  "n_materialized": 0,
+  "n_sql_visible": 0,
+  "n_base_row": 0,
+  "n_join_edge": 0,
+  "n_distinct": 0,
+  "rollbacks": [
+    {
+      "query_id": "med_groupby20:q15",
+      "stage": "addition",
+      "entity_id": "drug/489250.txt|disease/1415.txt|18|77",
+      "reason": "incumbent group reassigned"
+    },
+    {
+      "query_id": "med_join20:q15",
+      "stage": "addition",
+      "entity_id": "drug/489250.txt|disease/1415.txt|18|77",
+      "reason": "addition did not appear"
+    },
+    {
+      "query_id": "med_join20:q15",
+      "stage": "addition",
+      "entity_id": "drug/658631.txt|disease/493.txt|98|39",
+      "reason": "addition did not appear"
+    },
+    {
+      "query_id": "med_groupby20:q15",
+      "stage": "addition",
+      "entity_id": "drug/658631.txt|disease/493.txt|98|39",
+      "reason": "incumbent group reassigned"
+    }
+  ],
+  "skipped": [],
+  "blocking": [
+    {
+      "query_id": "med_agg20:q17",
+      "cartesian": 98,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_filterjoin20:q10",
+      "cartesian": 9900,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "exact+token+transform"
+    },
+    {
+      "query_id": "med_filterjoin20:q16",
+      "cartesian": 9800,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "exact+token+transform"
+    },
+    {
+      "query_id": "med_groupby20:q11",
+      "cartesian": 9800,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "exact+token+transform"
+    },
+    {
+      "query_id": "med_multiagg20:q8",
+      "cartesian": 9800,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "exact+token+transform"
+    },
+    {
+      "query_id": "med_agg20:q11",
+      "cartesian": 100,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_agg20:q14",
+      "cartesian": 98,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_agg20:q3",
+      "cartesian": 100,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_agg20:q4",
+      "cartesian": 98,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_filterjoin20:q5",
+      "cartesian": 99,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_groupby20:q15",
+      "cartesian": 9800,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "exact+token+transform"
+    },
+    {
+      "query_id": "med_groupby20:q7",
+      "cartesian": 98,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_groupby20:q9",
+      "cartesian": 100,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_join20:q15",
+      "cartesian": 9800,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "exact+token+transform"
+    },
+    {
+      "query_id": "med_multiagg20:q15",
+      "cartesian": 9800,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "exact+token+transform"
+    },
+    {
+      "query_id": "med_multiagg20:q2",
+      "cartesian": 98,
+      "blocked": 48,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_groupby20:q8",
+      "cartesian": 99,
+      "blocked": 45,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_multiagg20:q7",
+      "cartesian": 9800,
+      "blocked": 44,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "exact+token+transform"
+    },
+    {
+      "query_id": "med_agg20:q13",
+      "cartesian": 98,
+      "blocked": 0,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    },
+    {
+      "query_id": "med_multiagg20:q17",
+      "cartesian": 98,
+      "blocked": 0,
+      "skip_reason": "",
+      "per_left_cap": 8,
+      "per_query_cap": 48,
+      "signal": "row"
+    }
+  ],
+  "gates": {
+    "bags": {
+      "ok": true,
+      "matched": 99,
+      "total": 99,
+      "mismatched": []
+    },
+    "pre_score": {
+      "mean_structure_f2": 0.4840707538075959,
+      "mean_cell_f1_at_0.20": 0.17845238095238097,
+      "mean_per_query_product": 0.12439887110939743
+    },
+    "edge": {
+      "ok": true,
+      "checks": [
+        {
+          "name": "empty_edge_keeps_on",
+          "before": 1,
+          "ok": true
+        },
+        {
+          "name": "positive_edge_adds_one",
+          "before": 1,
+          "after": 2,
+          "ok": true
+        },
+        {
+          "name": "exists_no_duplicate",
+          "before": 1,
+          "after": 1,
+          "ok": true
+        },
+        {
+          "name": "self_join_aliases",
+          "before": 0,
+          "after": 1,
+          "ok": true,
+          "left_alias": "a",
+          "right_alias": "b"
+        }
+      ]
+    },
+    "live_join": {
+      "ok": true,
+      "checks": [
+        {
+          "name": "live_positive_edge",
+          "query_id": "med_groupby20:q10",
+          "before": 0,
+          "after": 0,
+          "ok": true
+        },
+        {
+          "name": "live_no_duplicate",
+          "query_id": "med_groupby20:q10",
+          "before": 0,
+          "after": 0,
+          "ok": true
+        }
+      ]
+    }
+  },
+  "cache_hits": 12,
+  "cache_misses": 1794,
+  "residual": {
+    "mean_structure_f2": 0.4840707538075959,
+    "mean_cell_f1_at_0.20": 0.17845238095238097,
+    "mean_per_query_product": 0.12439887110939743,
+    "per_query": [
+      {
+        "query_id": "med_filterjoin20:q5",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.2533333333333333,
+        "gold_rows": 4,
+        "pred_rows": 2,
+        "structure_f2": 0.2777777777777778,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q9",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.5389957264957265,
+        "gold_rows": 4,
+        "pred_rows": 2,
+        "structure_f2": 0.5555555555555556,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.3333333333333333,
+        "query_score_20": 0.18518518518518517
+      },
+      {
+        "query_id": "med_groupby20:q7",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.745964778588892,
+        "gold_rows": 8,
+        "pred_rows": 6,
+        "structure_f2": 0.7894736842105263,
+        "cell_f1_05": 0.14285714285714288,
+        "query_score_05": 0.11278195488721807,
+        "cell_f1_20": 0.28571428571428575,
+        "query_score_20": 0.22556390977443613
+      },
+      {
+        "query_id": "med_multiagg20:q8",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 4,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q17",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.7125371084796339,
+        "gold_rows": 2,
+        "pred_rows": 2,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "pack": "med_agg20",
+        "official_accuracy": 0.7967449592449592,
+        "gold_rows": 4,
+        "pred_rows": 4,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.5,
+        "query_score_20": 0.5
+      },
+      {
+        "query_id": "med_join20:q15",
+        "pack": "med_join20",
+        "official_accuracy": 0.38636363636363635,
+        "gold_rows": 3,
+        "pred_rows": 1,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q16",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "pack": "med_agg20",
+        "official_accuracy": 0.44886363636363635,
+        "gold_rows": 3,
+        "pred_rows": 1,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q10",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q7",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.30000000000000004,
+        "gold_rows": 5,
+        "pred_rows": 1,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1_05": 0.2222222222222222,
+        "query_score_05": 0.05291005291005291,
+        "cell_f1_20": 0.33333333333333337,
+        "query_score_20": 0.07936507936507937
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "pack": "med_agg20",
+        "official_accuracy": 0.8959650707618187,
+        "gold_rows": 2,
+        "pred_rows": 2,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "pack": "med_agg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q8",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.6462481962481963,
+        "gold_rows": 6,
+        "pred_rows": 4,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.2,
+        "query_score_20": 0.14285714285714285
+      },
+      {
+        "query_id": "med_groupby20:q11",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q15",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.4722222222222221,
+        "gold_rows": 6,
+        "pred_rows": 2,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_05": 0.25,
+        "query_score_05": 0.09615384615384615,
+        "cell_f1_20": 0.5,
+        "query_score_20": 0.1923076923076923
+      },
+      {
+        "query_id": "med_multiagg20:q15",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.3055555555555556,
+        "gold_rows": 5,
+        "pred_rows": 1,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1_05": 0.2222222222222222,
+        "query_score_05": 0.05291005291005291,
+        "cell_f1_20": 0.33333333333333337,
+        "query_score_20": 0.07936507936507937
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "pack": "med_agg20",
+        "official_accuracy": 0.65,
+        "gold_rows": 3,
+        "pred_rows": 2,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "pack": "med_agg20",
+        "official_accuracy": 0.7872536945812808,
+        "gold_rows": 2,
+        "pred_rows": 2,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.5,
+        "query_score_20": 0.5
+      },
+      {
+        "query_id": "med_multiagg20:q2",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.7318237794800295,
+        "gold_rows": 4,
+        "pred_rows": 4,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.16666666666666666,
+        "query_score_05": 0.16666666666666666,
+        "cell_f1_20": 0.5833333333333334,
+        "query_score_20": 0.5833333333333334
+      }
+    ],
+    "test_empty_query_count": 5
+  },
+  "aprime_official": {
+    "mean_structure_f2": 0.0,
+    "mean_cell_f1_at_0.20": 0.0,
+    "mean_per_query_product": 0.0,
+    "per_query": [
+      {
+        "query_id": "med_filterjoin20:q5",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.0,
+        "gold_rows": 4,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q9",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.0,
+        "gold_rows": 4,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q7",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.0,
+        "gold_rows": 8,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q8",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 4,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q17",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "pack": "med_agg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 4,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_join20:q15",
+        "pack": "med_join20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q16",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "pack": "med_agg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q10",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q7",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 5,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "pack": "med_agg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "pack": "med_agg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q8",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.0,
+        "gold_rows": 6,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q11",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q15",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.0,
+        "gold_rows": 6,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q15",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 5,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "pack": "med_agg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "pack": "med_agg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q2",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 4,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      }
+    ],
+    "test_empty_query_count": 20
+  },
+  "agent_official": {
+    "mean_structure_f2": 0.4840707538075959,
+    "mean_cell_f1_at_0.20": 0.17845238095238097,
+    "mean_per_query_product": 0.12439887110939743,
+    "per_query": [
+      {
+        "query_id": "med_filterjoin20:q5",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.2533333333333333,
+        "gold_rows": 4,
+        "pred_rows": 2,
+        "structure_f2": 0.2777777777777778,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q9",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.5389957264957265,
+        "gold_rows": 4,
+        "pred_rows": 2,
+        "structure_f2": 0.5555555555555556,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.3333333333333333,
+        "query_score_20": 0.18518518518518517
+      },
+      {
+        "query_id": "med_groupby20:q7",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.745964778588892,
+        "gold_rows": 8,
+        "pred_rows": 6,
+        "structure_f2": 0.7894736842105263,
+        "cell_f1_05": 0.14285714285714288,
+        "query_score_05": 0.11278195488721807,
+        "cell_f1_20": 0.28571428571428575,
+        "query_score_20": 0.22556390977443613
+      },
+      {
+        "query_id": "med_multiagg20:q8",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 4,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q17",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.7125371084796339,
+        "gold_rows": 2,
+        "pred_rows": 2,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "pack": "med_agg20",
+        "official_accuracy": 0.7967449592449592,
+        "gold_rows": 4,
+        "pred_rows": 4,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.5,
+        "query_score_20": 0.5
+      },
+      {
+        "query_id": "med_join20:q15",
+        "pack": "med_join20",
+        "official_accuracy": 0.38636363636363635,
+        "gold_rows": 3,
+        "pred_rows": 1,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q16",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "pack": "med_agg20",
+        "official_accuracy": 0.44886363636363635,
+        "gold_rows": 3,
+        "pred_rows": 1,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q10",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q7",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.30000000000000004,
+        "gold_rows": 5,
+        "pred_rows": 1,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1_05": 0.2222222222222222,
+        "query_score_05": 0.05291005291005291,
+        "cell_f1_20": 0.33333333333333337,
+        "query_score_20": 0.07936507936507937
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "pack": "med_agg20",
+        "official_accuracy": 0.8959650707618187,
+        "gold_rows": 2,
+        "pred_rows": 2,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "pack": "med_agg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q8",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.6462481962481963,
+        "gold_rows": 6,
+        "pred_rows": 4,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.2,
+        "query_score_20": 0.14285714285714285
+      },
+      {
+        "query_id": "med_groupby20:q11",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q15",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.4722222222222221,
+        "gold_rows": 6,
+        "pred_rows": 2,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_05": 0.25,
+        "query_score_05": 0.09615384615384615,
+        "cell_f1_20": 0.5,
+        "query_score_20": 0.1923076923076923
+      },
+      {
+        "query_id": "med_multiagg20:q15",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.3055555555555556,
+        "gold_rows": 5,
+        "pred_rows": 1,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1_05": 0.2222222222222222,
+        "query_score_05": 0.05291005291005291,
+        "cell_f1_20": 0.33333333333333337,
+        "query_score_20": 0.07936507936507937
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "pack": "med_agg20",
+        "official_accuracy": 0.65,
+        "gold_rows": 3,
+        "pred_rows": 2,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "pack": "med_agg20",
+        "official_accuracy": 0.7872536945812808,
+        "gold_rows": 2,
+        "pred_rows": 2,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.5,
+        "query_score_20": 0.5
+      },
+      {
+        "query_id": "med_multiagg20:q2",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.7318237794800295,
+        "gold_rows": 4,
+        "pred_rows": 4,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.16666666666666666,
+        "query_score_05": 0.16666666666666666,
+        "cell_f1_20": 0.5833333333333334,
+        "query_score_20": 0.5833333333333334
+      }
+    ],
+    "test_empty_query_count": 5
+  },
+  "predicate_arm_official": {
+    "mean_structure_f2": 0.5169205063941906,
+    "mean_cell_f1_at_0.20": 0.1232936507936508,
+    "mean_per_query_product": 0.11018866610971875,
+    "per_query": [
+      {
+        "query_id": "med_filterjoin20:q5",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.2533333333333333,
+        "gold_rows": 4,
+        "pred_rows": 2,
+        "structure_f2": 0.2777777777777778,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q9",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.7140026826476994,
+        "gold_rows": 4,
+        "pred_rows": 3,
+        "structure_f2": 0.7894736842105263,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.28571428571428575,
+        "query_score_20": 0.22556390977443613
+      },
+      {
+        "query_id": "med_groupby20:q7",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.745964778588892,
+        "gold_rows": 8,
+        "pred_rows": 6,
+        "structure_f2": 0.7894736842105263,
+        "cell_f1_05": 0.14285714285714288,
+        "query_score_05": 0.11278195488721807,
+        "cell_f1_20": 0.28571428571428575,
+        "query_score_20": 0.22556390977443613
+      },
+      {
+        "query_id": "med_multiagg20:q8",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 4,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q17",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.7138636390918789,
+        "gold_rows": 2,
+        "pred_rows": 2,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "pack": "med_agg20",
+        "official_accuracy": 0.7967449592449592,
+        "gold_rows": 4,
+        "pred_rows": 4,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.5,
+        "query_score_20": 0.5
+      },
+      {
+        "query_id": "med_join20:q15",
+        "pack": "med_join20",
+        "official_accuracy": 0.38636363636363635,
+        "gold_rows": 3,
+        "pred_rows": 1,
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q16",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "pack": "med_agg20",
+        "official_accuracy": 0.840133008572725,
+        "gold_rows": 3,
+        "pred_rows": 3,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q10",
+        "pack": "med_filterjoin20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q7",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.20999999999999996,
+        "gold_rows": 5,
+        "pred_rows": 1,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "pack": "med_agg20",
+        "official_accuracy": 0.8959650707618187,
+        "gold_rows": 2,
+        "pred_rows": 2,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "pack": "med_agg20",
+        "official_accuracy": 0.0,
+        "gold_rows": 2,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q8",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.6462481962481963,
+        "gold_rows": 6,
+        "pred_rows": 4,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.2,
+        "query_score_20": 0.14285714285714285
+      },
+      {
+        "query_id": "med_groupby20:q11",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.0,
+        "gold_rows": 3,
+        "pred_rows": 0,
+        "structure_f2": 0.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q15",
+        "pack": "med_groupby20",
+        "official_accuracy": 0.2142857142857143,
+        "gold_rows": 6,
+        "pred_rows": 2,
+        "structure_f2": 0.1923076923076923,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q15",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.17261904761904767,
+        "gold_rows": 5,
+        "pred_rows": 1,
+        "structure_f2": 0.23809523809523808,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.1111111111111111,
+        "query_score_20": 0.026455026455026454
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "pack": "med_agg20",
+        "official_accuracy": 0.65,
+        "gold_rows": 3,
+        "pred_rows": 2,
+        "structure_f2": 0.7142857142857142,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.0,
+        "query_score_20": 0.0
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "pack": "med_agg20",
+        "official_accuracy": 0.7872536945812808,
+        "gold_rows": 2,
+        "pred_rows": 2,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.0,
+        "query_score_05": 0.0,
+        "cell_f1_20": 0.5,
+        "query_score_20": 0.5
+      },
+      {
+        "query_id": "med_multiagg20:q2",
+        "pack": "med_multiagg20",
+        "official_accuracy": 0.7318237794800295,
+        "gold_rows": 4,
+        "pred_rows": 4,
+        "structure_f2": 1.0,
+        "cell_f1_05": 0.16666666666666666,
+        "query_score_05": 0.16666666666666666,
+        "cell_f1_20": 0.5833333333333334,
+        "query_score_20": 0.5833333333333334
+      }
+    ],
+    "test_empty_query_count": 5
+  },
+  "query_replacement_product": 0.06557345160286336,
+  "stored_aprime_product": 0.1081697298802562,
+  "per_query": [
+    {
+      "query_id": "med_agg20:q17",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 0,
+      "excluded_universe": 48,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 1,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 1,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 53657,
+      "tokens_executor": 44752,
+      "tokens_refiner": 8905,
+      "tokens_validator": 0,
+      "incumbent_n": 0
+    },
+    {
+      "query_id": "med_filterjoin20:q10",
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 0,
+      "excluded_universe": 48,
+      "n_cartesian": 9900,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "exact+token+transform",
+      "n_proposed": 2,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 2,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 43926,
+      "tokens_executor": 36606,
+      "tokens_refiner": 7320,
+      "tokens_validator": 0,
+      "incumbent_n": 0
+    },
+    {
+      "query_id": "med_filterjoin20:q16",
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 0,
+      "excluded_universe": 48,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "exact+token+transform",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 41596,
+      "tokens_executor": 28445,
+      "tokens_refiner": 13151,
+      "tokens_validator": 0,
+      "incumbent_n": 0
+    },
+    {
+      "query_id": "med_groupby20:q11",
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 0,
+      "excluded_universe": 48,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "exact+token+transform",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 33421,
+      "tokens_executor": 20612,
+      "tokens_refiner": 12809,
+      "tokens_validator": 0,
+      "incumbent_n": 0
+    },
+    {
+      "query_id": "med_multiagg20:q8",
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 0,
+      "excluded_universe": 48,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "exact+token+transform",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 47098,
+      "tokens_executor": 34797,
+      "tokens_refiner": 12301,
+      "tokens_validator": 0,
+      "incumbent_n": 0
+    },
+    {
+      "query_id": "med_agg20:q11",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 26,
+      "excluded_universe": 48,
+      "n_cartesian": 100,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 26,
+      "count_mass_after": 26,
+      "tokens": 56660,
+      "tokens_executor": 48642,
+      "tokens_refiner": 8018,
+      "tokens_validator": 0,
+      "incumbent_n": 26
+    },
+    {
+      "query_id": "med_agg20:q14",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 21,
+      "excluded_universe": 48,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 21,
+      "count_mass_after": 21,
+      "tokens": 57744,
+      "tokens_executor": 47849,
+      "tokens_refiner": 9895,
+      "tokens_validator": 0,
+      "incumbent_n": 21
+    },
+    {
+      "query_id": "med_agg20:q3",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 24,
+      "excluded_universe": 48,
+      "n_cartesian": 100,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 24,
+      "count_mass_after": 24,
+      "tokens": 56451,
+      "tokens_executor": 46703,
+      "tokens_refiner": 9748,
+      "tokens_validator": 0,
+      "incumbent_n": 24
+    },
+    {
+      "query_id": "med_agg20:q4",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 24,
+      "excluded_universe": 48,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 24,
+      "count_mass_after": 24,
+      "tokens": 63173,
+      "tokens_executor": 53790,
+      "tokens_refiner": 9383,
+      "tokens_validator": 0,
+      "incumbent_n": 24
+    },
+    {
+      "query_id": "med_filterjoin20:q5",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 18,
+      "excluded_universe": 48,
+      "n_cartesian": 99,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 18,
+      "count_mass_after": 18,
+      "tokens": 59961,
+      "tokens_executor": 55521,
+      "tokens_refiner": 4440,
+      "tokens_validator": 0,
+      "incumbent_n": 18
+    },
+    {
+      "query_id": "med_groupby20:q15",
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 6,
+      "excluded_universe": 48,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "exact+token+transform",
+      "n_proposed": 4,
+      "n_validated": 2,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 2,
+      "n_added": 0,
+      "n_unknown": 2,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 2,
+      "count_mass_after": 2,
+      "tokens": 64637,
+      "tokens_executor": 46179,
+      "tokens_refiner": 16130,
+      "tokens_validator": 2328,
+      "incumbent_n": 1
+    },
+    {
+      "query_id": "med_groupby20:q7",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 24,
+      "excluded_universe": 48,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 24,
+      "count_mass_after": 24,
+      "tokens": 31130,
+      "tokens_executor": 22570,
+      "tokens_refiner": 8560,
+      "tokens_validator": 0,
+      "incumbent_n": 24
+    },
+    {
+      "query_id": "med_groupby20:q9",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 49,
+      "excluded_universe": 48,
+      "n_cartesian": 100,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 49,
+      "count_mass_after": 49,
+      "tokens": 58926,
+      "tokens_executor": 50637,
+      "tokens_refiner": 8289,
+      "tokens_validator": 0,
+      "incumbent_n": 49
+    },
+    {
+      "query_id": "med_join20:q15",
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 5,
+      "excluded_universe": 48,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "exact+token+transform",
+      "n_proposed": 4,
+      "n_validated": 2,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 2,
+      "n_added": 0,
+      "n_unknown": 2,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 1,
+      "count_mass_after": 1,
+      "tokens": 47547,
+      "tokens_executor": 30211,
+      "tokens_refiner": 16158,
+      "tokens_validator": 1178,
+      "incumbent_n": 3
+    },
+    {
+      "query_id": "med_multiagg20:q15",
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 6,
+      "excluded_universe": 48,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "exact+token+transform",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 2,
+      "count_mass_after": 2,
+      "tokens": 39320,
+      "tokens_executor": 24520,
+      "tokens_refiner": 14800,
+      "tokens_validator": 0,
+      "incumbent_n": 1
+    },
+    {
+      "query_id": "med_multiagg20:q2",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 24,
+      "excluded_universe": 48,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 39,
+      "count_mass_after": 39,
+      "tokens": 24535,
+      "tokens_executor": 16809,
+      "tokens_refiner": 7726,
+      "tokens_validator": 0,
+      "incumbent_n": 24
+    },
+    {
+      "query_id": "med_groupby20:q8",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 54,
+      "excluded_universe": 45,
+      "n_cartesian": 99,
+      "n_blocked": 45,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 54,
+      "count_mass_after": 54,
+      "tokens": 54774,
+      "tokens_executor": 46368,
+      "tokens_refiner": 8406,
+      "tokens_validator": 0,
+      "incumbent_n": 54
+    },
+    {
+      "query_id": "med_multiagg20:q7",
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 4,
+      "excluded_universe": 44,
+      "n_cartesian": 9800,
+      "n_blocked": 44,
+      "skip_reason": "",
+      "block_signal": "exact+token+transform",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 1,
+      "count_mass_after": 1,
+      "tokens": 36878,
+      "tokens_executor": 23969,
+      "tokens_refiner": 12909,
+      "tokens_validator": 0,
+      "incumbent_n": 2
+    },
+    {
+      "query_id": "med_agg20:q13",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 98,
+      "excluded_universe": 0,
+      "n_cartesian": 98,
+      "n_blocked": 0,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 98,
+      "count_mass_after": 0,
+      "tokens": 0,
+      "tokens_executor": 0,
+      "tokens_refiner": 0,
+      "tokens_validator": 0,
+      "incumbent_n": 98
+    },
+    {
+      "query_id": "med_multiagg20:q17",
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 98,
+      "excluded_universe": 0,
+      "n_cartesian": 98,
+      "n_blocked": 0,
+      "skip_reason": "",
+      "block_signal": "row",
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_ineffective": 0,
+      "n_added": 0,
+      "n_unknown": 0,
+      "n_base_row": 0,
+      "n_join_edge": 0,
+      "n_distinct": 0,
+      "n_new_groups": 0,
+      "n_existing_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 110,
+      "count_mass_after": 0,
+      "tokens": 0,
+      "tokens_executor": 0,
+      "tokens_refiner": 0,
+      "tokens_validator": 0,
+      "incumbent_n": 98
+    }
+  ],
+  "per_query_debug": [
+    {
+      "query_id": "med_filterjoin20:q5",
+      "gold_groups": [
+        {
+          "field_family": "clinical_research",
+          "institution_count": 21
+        },
+        {
+          "field_family": "immuno_micro",
+          "institution_count": 13
+        },
+        {
+          "field_family": "neuroscience",
+          "institution_count": 7
+        },
+        {
+          "field_family": "oncology",
+          "institution_count": 10
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "field_family": "immuno_micro",
+          "institution_count": 1
+        },
+        {
+          "field_family": "other",
+          "institution_count": 17
+        }
+      ],
+      "pred_groups": [
+        {
+          "field_family": "immuno_micro",
+          "institution_count": 1
+        },
+        {
+          "field_family": "other",
+          "institution_count": 17
+        }
+      ],
+      "gold_n": 51,
+      "pred_n": 18,
+      "incumbent_n": 18,
+      "undercount": 33,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 18,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 99,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 55521,
+      "tokens_refiner": 4440,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 18,
+      "count_mass_after": 18,
+      "tokens": 59961,
+      "structure_f2": 0.2777777777777778,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_groupby20:q9",
+      "gold_groups": [
+        {
+          "injection_status": "no_injection",
+          "oral_status": "no_oral",
+          "disease_count": 15
+        },
+        {
+          "injection_status": "no_injection",
+          "oral_status": "uses_oral",
+          "disease_count": 53
+        },
+        {
+          "injection_status": "uses_injection",
+          "oral_status": "no_oral",
+          "disease_count": 7
+        },
+        {
+          "injection_status": "uses_injection",
+          "oral_status": "uses_oral",
+          "disease_count": 14
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "injection_status": "no_injection",
+          "oral_status": "no_oral",
+          "disease_count": 48
+        },
+        {
+          "injection_status": "uses_injection",
+          "oral_status": "no_oral",
+          "disease_count": 1
+        }
+      ],
+      "pred_groups": [
+        {
+          "injection_status": "no_injection",
+          "oral_status": "no_oral",
+          "disease_count": 48
+        },
+        {
+          "injection_status": "uses_injection",
+          "oral_status": "no_oral",
+          "disease_count": 1
+        }
+      ],
+      "gold_n": 89,
+      "pred_n": 49,
+      "incumbent_n": 49,
+      "undercount": 40,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 49,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 100,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 50637,
+      "tokens_refiner": 8289,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 49,
+      "count_mass_after": 49,
+      "tokens": 58926,
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.3333333333333333,
+      "product": 0.18518518518518517
+    },
+    {
+      "query_id": "med_groupby20:q7",
+      "gold_groups": [
+        {
+          "form_family": "capsule",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 1
+        },
+        {
+          "form_family": "capsule",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 7
+        },
+        {
+          "form_family": "injection",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 7
+        },
+        {
+          "form_family": "injection",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 4
+        },
+        {
+          "form_family": "other",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 2
+        },
+        {
+          "form_family": "other",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 11
+        },
+        {
+          "form_family": "tablet",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 16
+        },
+        {
+          "form_family": "tablet",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 28
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "form_family": "capsule",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 1
+        },
+        {
+          "form_family": "injection",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 1
+        },
+        {
+          "form_family": "other",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 1
+        },
+        {
+          "form_family": "other",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 7
+        },
+        {
+          "form_family": "tablet",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 5
+        },
+        {
+          "form_family": "tablet",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 9
+        }
+      ],
+      "pred_groups": [
+        {
+          "form_family": "capsule",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 1
+        },
+        {
+          "form_family": "injection",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 1
+        },
+        {
+          "form_family": "other",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 1
+        },
+        {
+          "form_family": "other",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 7
+        },
+        {
+          "form_family": "tablet",
+          "mfr_status": "known_manufacturer",
+          "drug_count": 5
+        },
+        {
+          "form_family": "tablet",
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 9
+        }
+      ],
+      "gold_n": 76,
+      "pred_n": 24,
+      "incumbent_n": 24,
+      "undercount": 52,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 24,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 22570,
+      "tokens_refiner": 8560,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 24,
+      "count_mass_after": 24,
+      "tokens": 31130,
+      "structure_f2": 0.7894736842105263,
+      "cell_f1_20": 0.28571428571428575,
+      "product": 0.22556390977443613
+    },
+    {
+      "query_id": "med_multiagg20:q8",
+      "gold_groups": [
+        {
+          "form_family": "capsule",
+          "drug_count": 3,
+          "oral_disease_count": 2,
+          "prognosis_recorded_count": 2
+        },
+        {
+          "form_family": "injection",
+          "drug_count": 4,
+          "oral_disease_count": 1,
+          "prognosis_recorded_count": 1
+        },
+        {
+          "form_family": "other",
+          "drug_count": 4,
+          "oral_disease_count": 4,
+          "prognosis_recorded_count": 0
+        },
+        {
+          "form_family": "tablet",
+          "drug_count": 13,
+          "oral_disease_count": 5,
+          "prognosis_recorded_count": 3
+        }
+      ],
+      "incumbent_groups": [],
+      "pred_groups": [],
+      "gold_n": 24,
+      "pred_n": 0,
+      "incumbent_n": 0,
+      "undercount": 24,
+      "overcount": 0,
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 0,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "exact+token+transform",
+      "skip_reason": "",
+      "tokens_executor": 34797,
+      "tokens_refiner": 12301,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 47098,
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_multiagg20:q17",
+      "gold_groups": [
+        {
+          "mfr_status": "known_manufacturer",
+          "drug_count": 29,
+          "oral_count": 17,
+          "rx_only_count": 15
+        },
+        {
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 71,
+          "oral_count": 40,
+          "rx_only_count": 26
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "mfr_status": "known_manufacturer",
+          "drug_count": 17,
+          "oral_count": 2,
+          "rx_only_count": 1
+        },
+        {
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 81,
+          "oral_count": 7,
+          "rx_only_count": 2
+        }
+      ],
+      "pred_groups": [
+        {
+          "mfr_status": "known_manufacturer",
+          "drug_count": 17,
+          "oral_count": 2,
+          "rx_only_count": 1
+        },
+        {
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 81,
+          "oral_count": 7,
+          "rx_only_count": 2
+        }
+      ],
+      "gold_n": 100,
+      "pred_n": 98,
+      "incumbent_n": 98,
+      "undercount": 2,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 98,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 98,
+      "n_blocked": null,
+      "n_excluded": null,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 0,
+      "tokens_refiner": 0,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 110,
+      "count_mass_after": 0,
+      "tokens": 0,
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_agg20:q4",
+      "gold_groups": [
+        {
+          "form_family": "capsule",
+          "drug_count": 8
+        },
+        {
+          "form_family": "injection",
+          "drug_count": 11
+        },
+        {
+          "form_family": "other",
+          "drug_count": 13
+        },
+        {
+          "form_family": "tablet",
+          "drug_count": 44
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "form_family": "capsule",
+          "drug_count": 1
+        },
+        {
+          "form_family": "injection",
+          "drug_count": 1
+        },
+        {
+          "form_family": "other",
+          "drug_count": 8
+        },
+        {
+          "form_family": "tablet",
+          "drug_count": 14
+        }
+      ],
+      "pred_groups": [
+        {
+          "form_family": "capsule",
+          "drug_count": 1
+        },
+        {
+          "form_family": "injection",
+          "drug_count": 1
+        },
+        {
+          "form_family": "other",
+          "drug_count": 8
+        },
+        {
+          "form_family": "tablet",
+          "drug_count": 14
+        }
+      ],
+      "gold_n": 76,
+      "pred_n": 24,
+      "incumbent_n": 24,
+      "undercount": 52,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 24,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 53790,
+      "tokens_refiner": 9383,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 24,
+      "count_mass_after": 24,
+      "tokens": 63173,
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.5,
+      "product": 0.5
+    },
+    {
+      "query_id": "med_join20:q15",
+      "gold_groups": [
+        {
+          "inst_type": "other",
+          "drug_count": 6
+        },
+        {
+          "inst_type": "public",
+          "drug_count": 1
+        },
+        {
+          "inst_type": "university_affiliated",
+          "drug_count": 9
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "inst_type": "other",
+          "drug_count": 1
+        }
+      ],
+      "pred_groups": [
+        {
+          "inst_type": "other",
+          "drug_count": 1
+        }
+      ],
+      "gold_n": 16,
+      "pred_n": 1,
+      "incumbent_n": 1,
+      "undercount": 15,
+      "overcount": 0,
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 5,
+      "n_added": 0,
+      "n_proposed": 4,
+      "n_validated": 2,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "exact+token+transform",
+      "skip_reason": "",
+      "tokens_executor": 30211,
+      "tokens_refiner": 16158,
+      "tokens_validator": 1178,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 1,
+      "count_mass_after": 1,
+      "tokens": 47547,
+      "structure_f2": 0.3846153846153846,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_filterjoin20:q16",
+      "gold_groups": [
+        {
+          "route_family": "non_oral",
+          "drug_count": 2
+        },
+        {
+          "route_family": "oral",
+          "drug_count": 6
+        }
+      ],
+      "incumbent_groups": [],
+      "pred_groups": [],
+      "gold_n": 8,
+      "pred_n": 0,
+      "incumbent_n": 0,
+      "undercount": 8,
+      "overcount": 0,
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 0,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "exact+token+transform",
+      "skip_reason": "",
+      "tokens_executor": 28445,
+      "tokens_refiner": 13151,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 41596,
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_agg20:q11",
+      "gold_groups": [
+        {
+          "path_group": "infectious",
+          "disease_count": 27
+        },
+        {
+          "path_group": "inflammatory",
+          "disease_count": 18
+        },
+        {
+          "path_group": "other",
+          "disease_count": 35
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "path_group": "other",
+          "disease_count": 26
+        }
+      ],
+      "pred_groups": [
+        {
+          "path_group": "other",
+          "disease_count": 26
+        }
+      ],
+      "gold_n": 80,
+      "pred_n": 26,
+      "incumbent_n": 26,
+      "undercount": 54,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 26,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 100,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 48642,
+      "tokens_refiner": 8018,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 26,
+      "count_mass_after": 26,
+      "tokens": 56660,
+      "structure_f2": 0.3846153846153846,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_filterjoin20:q10",
+      "gold_groups": [
+        {
+          "inst_type": "other",
+          "institution_count": 3
+        },
+        {
+          "inst_type": "public",
+          "institution_count": 3
+        },
+        {
+          "inst_type": "university_affiliated",
+          "institution_count": 6
+        }
+      ],
+      "incumbent_groups": [],
+      "pred_groups": [],
+      "gold_n": 12,
+      "pred_n": 0,
+      "incumbent_n": 0,
+      "undercount": 12,
+      "overcount": 0,
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 0,
+      "n_added": 0,
+      "n_proposed": 2,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 9900,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "exact+token+transform",
+      "skip_reason": "",
+      "tokens_executor": 36606,
+      "tokens_refiner": 7320,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 43926,
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_multiagg20:q7",
+      "gold_groups": [
+        {
+          "type_family": "infectious",
+          "drug_count": 6,
+          "oral_count": 3,
+          "tablet_count": 3
+        },
+        {
+          "type_family": "inflammatory",
+          "drug_count": 2,
+          "oral_count": 1,
+          "tablet_count": 0
+        },
+        {
+          "type_family": "neoplastic",
+          "drug_count": 3,
+          "oral_count": 0,
+          "tablet_count": 0
+        },
+        {
+          "type_family": "other",
+          "drug_count": 13,
+          "oral_count": 8,
+          "tablet_count": 8
+        },
+        {
+          "type_family": "psychiatric",
+          "drug_count": 7,
+          "oral_count": 5,
+          "tablet_count": 3
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "type_family": "neoplastic",
+          "drug_count": 1,
+          "oral_count": 0,
+          "tablet_count": 0
+        }
+      ],
+      "pred_groups": [
+        {
+          "type_family": "neoplastic",
+          "drug_count": 1,
+          "oral_count": 0,
+          "tablet_count": 0
+        }
+      ],
+      "gold_n": 31,
+      "pred_n": 1,
+      "incumbent_n": 1,
+      "undercount": 30,
+      "overcount": 0,
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 4,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 9800,
+      "n_blocked": 44,
+      "n_excluded": 44,
+      "block_signal": "exact+token+transform",
+      "skip_reason": "",
+      "tokens_executor": 23969,
+      "tokens_refiner": 12909,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 1,
+      "count_mass_after": 1,
+      "tokens": 36878,
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.33333333333333337,
+      "product": 0.07936507936507937
+    },
+    {
+      "query_id": "med_agg20:q13",
+      "gold_groups": [
+        {
+          "mfr_status": "known_manufacturer",
+          "drug_count": 29
+        },
+        {
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 71
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "mfr_status": "known_manufacturer",
+          "drug_count": 17
+        },
+        {
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 81
+        }
+      ],
+      "pred_groups": [
+        {
+          "mfr_status": "known_manufacturer",
+          "drug_count": 17
+        },
+        {
+          "mfr_status": "manufacturer_unknown",
+          "drug_count": 81
+        }
+      ],
+      "gold_n": 100,
+      "pred_n": 98,
+      "incumbent_n": 98,
+      "undercount": 2,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 98,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 98,
+      "n_blocked": null,
+      "n_excluded": null,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 0,
+      "tokens_refiner": 0,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 98,
+      "count_mass_after": 0,
+      "tokens": 0,
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_agg20:q17",
+      "gold_groups": [
+        {
+          "restriction_group": "mentions_pregnancy",
+          "drug_count": 29
+        },
+        {
+          "restriction_group": "other_restriction",
+          "drug_count": 30
+        }
+      ],
+      "incumbent_groups": [],
+      "pred_groups": [],
+      "gold_n": 59,
+      "pred_n": 0,
+      "incumbent_n": 0,
+      "undercount": 59,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 0,
+      "n_added": 0,
+      "n_proposed": 1,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 44752,
+      "tokens_refiner": 8905,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 53657,
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_groupby20:q8",
+      "gold_groups": [
+        {
+          "inst_type": "other",
+          "collab_status": "has_collaboration",
+          "institution_count": 1
+        },
+        {
+          "inst_type": "other",
+          "collab_status": "no_collaboration_recorded",
+          "institution_count": 6
+        },
+        {
+          "inst_type": "public",
+          "collab_status": "has_collaboration",
+          "institution_count": 3
+        },
+        {
+          "inst_type": "public",
+          "collab_status": "no_collaboration_recorded",
+          "institution_count": 9
+        },
+        {
+          "inst_type": "university_affiliated",
+          "collab_status": "has_collaboration",
+          "institution_count": 15
+        },
+        {
+          "inst_type": "university_affiliated",
+          "collab_status": "no_collaboration_recorded",
+          "institution_count": 36
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "inst_type": "other",
+          "collab_status": "has_collaboration",
+          "institution_count": 3
+        },
+        {
+          "inst_type": "other",
+          "collab_status": "no_collaboration_recorded",
+          "institution_count": 33
+        },
+        {
+          "inst_type": "university_affiliated",
+          "collab_status": "has_collaboration",
+          "institution_count": 2
+        },
+        {
+          "inst_type": "university_affiliated",
+          "collab_status": "no_collaboration_recorded",
+          "institution_count": 16
+        }
+      ],
+      "pred_groups": [
+        {
+          "inst_type": "other",
+          "collab_status": "has_collaboration",
+          "institution_count": 3
+        },
+        {
+          "inst_type": "other",
+          "collab_status": "no_collaboration_recorded",
+          "institution_count": 33
+        },
+        {
+          "inst_type": "university_affiliated",
+          "collab_status": "has_collaboration",
+          "institution_count": 2
+        },
+        {
+          "inst_type": "university_affiliated",
+          "collab_status": "no_collaboration_recorded",
+          "institution_count": 16
+        }
+      ],
+      "gold_n": 70,
+      "pred_n": 54,
+      "incumbent_n": 54,
+      "undercount": 16,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 54,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 99,
+      "n_blocked": 45,
+      "n_excluded": 45,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 46368,
+      "tokens_refiner": 8406,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 54,
+      "count_mass_after": 54,
+      "tokens": 54774,
+      "structure_f2": 0.7142857142857142,
+      "cell_f1_20": 0.2,
+      "product": 0.14285714285714285
+    },
+    {
+      "query_id": "med_groupby20:q11",
+      "gold_groups": [
+        {
+          "route_family": "non_oral",
+          "prognosis_group": "chronic",
+          "drug_count": 1
+        },
+        {
+          "route_family": "oral",
+          "prognosis_group": "chronic",
+          "drug_count": 5
+        },
+        {
+          "route_family": "oral",
+          "prognosis_group": "other_prognosis",
+          "drug_count": 1
+        }
+      ],
+      "incumbent_groups": [],
+      "pred_groups": [],
+      "gold_n": 7,
+      "pred_n": 0,
+      "incumbent_n": 0,
+      "undercount": 7,
+      "overcount": 0,
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 0,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "exact+token+transform",
+      "skip_reason": "",
+      "tokens_executor": 20612,
+      "tokens_refiner": 12809,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 0,
+      "count_mass_after": 0,
+      "tokens": 33421,
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_groupby20:q15",
+      "gold_groups": [
+        {
+          "type_family": "infectious",
+          "country_family": "USA",
+          "drug_count": 1
+        },
+        {
+          "type_family": "inflammatory",
+          "country_family": "USA",
+          "drug_count": 1
+        },
+        {
+          "type_family": "neoplastic",
+          "country_family": "USA",
+          "drug_count": 1
+        },
+        {
+          "type_family": "neoplastic",
+          "country_family": "outside_USA",
+          "drug_count": 2
+        },
+        {
+          "type_family": "other",
+          "country_family": "outside_USA",
+          "drug_count": 4
+        },
+        {
+          "type_family": "psychiatric",
+          "country_family": "USA",
+          "drug_count": 6
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "type_family": "neoplastic",
+          "country_family": "USA",
+          "drug_count": 1
+        },
+        {
+          "type_family": "neoplastic",
+          "country_family": "outside_USA",
+          "drug_count": 1
+        }
+      ],
+      "pred_groups": [
+        {
+          "type_family": "neoplastic",
+          "country_family": "USA",
+          "drug_count": 1
+        },
+        {
+          "type_family": "neoplastic",
+          "country_family": "outside_USA",
+          "drug_count": 1
+        }
+      ],
+      "gold_n": 15,
+      "pred_n": 2,
+      "incumbent_n": 2,
+      "undercount": 13,
+      "overcount": 0,
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 6,
+      "n_added": 0,
+      "n_proposed": 4,
+      "n_validated": 2,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "exact+token+transform",
+      "skip_reason": "",
+      "tokens_executor": 46179,
+      "tokens_refiner": 16130,
+      "tokens_validator": 2328,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 2,
+      "count_mass_after": 2,
+      "tokens": 64637,
+      "structure_f2": 0.3846153846153846,
+      "cell_f1_20": 0.5,
+      "product": 0.1923076923076923
+    },
+    {
+      "query_id": "med_multiagg20:q15",
+      "gold_groups": [
+        {
+          "type_family": "infectious",
+          "drug_count": 1,
+          "usa_count": 1,
+          "oral_count": 1
+        },
+        {
+          "type_family": "inflammatory",
+          "drug_count": 1,
+          "usa_count": 1,
+          "oral_count": 1
+        },
+        {
+          "type_family": "neoplastic",
+          "drug_count": 2,
+          "usa_count": 1,
+          "oral_count": 0
+        },
+        {
+          "type_family": "other",
+          "drug_count": 4,
+          "usa_count": 0,
+          "oral_count": 3
+        },
+        {
+          "type_family": "psychiatric",
+          "drug_count": 6,
+          "usa_count": 6,
+          "oral_count": 4
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "type_family": "neoplastic",
+          "drug_count": 1,
+          "usa_count": 1,
+          "oral_count": 0
+        }
+      ],
+      "pred_groups": [
+        {
+          "type_family": "neoplastic",
+          "drug_count": 1,
+          "usa_count": 1,
+          "oral_count": 0
+        }
+      ],
+      "gold_n": 14,
+      "pred_n": 1,
+      "incumbent_n": 1,
+      "undercount": 13,
+      "overcount": 0,
+      "witness_type": "distinct+join_tuple+entity_edge+grouped",
+      "incumbent_witnesses": 6,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 9800,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "exact+token+transform",
+      "skip_reason": "",
+      "tokens_executor": 24520,
+      "tokens_refiner": 14800,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 2,
+      "count_mass_after": 2,
+      "tokens": 39320,
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.33333333333333337,
+      "product": 0.07936507936507937
+    },
+    {
+      "query_id": "med_agg20:q3",
+      "gold_groups": [
+        {
+          "prognosis_group": "chronic",
+          "disease_count": 23
+        },
+        {
+          "prognosis_group": "high_mortality",
+          "disease_count": 17
+        },
+        {
+          "prognosis_group": "other",
+          "disease_count": 16
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "prognosis_group": "chronic",
+          "disease_count": 2
+        },
+        {
+          "prognosis_group": "other",
+          "disease_count": 22
+        }
+      ],
+      "pred_groups": [
+        {
+          "prognosis_group": "chronic",
+          "disease_count": 2
+        },
+        {
+          "prognosis_group": "other",
+          "disease_count": 22
+        }
+      ],
+      "gold_n": 56,
+      "pred_n": 24,
+      "incumbent_n": 24,
+      "undercount": 32,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 24,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 100,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 46703,
+      "tokens_refiner": 9748,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 24,
+      "count_mass_after": 24,
+      "tokens": 56451,
+      "structure_f2": 0.7142857142857142,
+      "cell_f1_20": 0.0,
+      "product": 0.0
+    },
+    {
+      "query_id": "med_agg20:q14",
+      "gold_groups": [
+        {
+          "route_group": "injectable_route",
+          "drug_count": 12
+        },
+        {
+          "route_group": "other_route",
+          "drug_count": 67
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "route_group": "injectable_route",
+          "drug_count": 3
+        },
+        {
+          "route_group": "other_route",
+          "drug_count": 18
+        }
+      ],
+      "pred_groups": [
+        {
+          "route_group": "injectable_route",
+          "drug_count": 3
+        },
+        {
+          "route_group": "other_route",
+          "drug_count": 18
+        }
+      ],
+      "gold_n": 79,
+      "pred_n": 21,
+      "incumbent_n": 21,
+      "undercount": 58,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 21,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 47849,
+      "tokens_refiner": 9895,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 21,
+      "count_mass_after": 21,
+      "tokens": 57744,
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.5,
+      "product": 0.5
+    },
+    {
+      "query_id": "med_multiagg20:q2",
+      "gold_groups": [
+        {
+          "form_family": "capsule",
+          "drug_count": 8,
+          "oral_count": 7,
+          "known_mfr_count": 1
+        },
+        {
+          "form_family": "injection",
+          "drug_count": 11,
+          "oral_count": 0,
+          "known_mfr_count": 7
+        },
+        {
+          "form_family": "other",
+          "drug_count": 13,
+          "oral_count": 2,
+          "known_mfr_count": 2
+        },
+        {
+          "form_family": "tablet",
+          "drug_count": 44,
+          "oral_count": 43,
+          "known_mfr_count": 16
+        }
+      ],
+      "incumbent_groups": [
+        {
+          "form_family": "capsule",
+          "drug_count": 1,
+          "oral_count": 0,
+          "known_mfr_count": 0
+        },
+        {
+          "form_family": "injection",
+          "drug_count": 1,
+          "oral_count": 0,
+          "known_mfr_count": 1
+        },
+        {
+          "form_family": "other",
+          "drug_count": 8,
+          "oral_count": 2,
+          "known_mfr_count": 1
+        },
+        {
+          "form_family": "tablet",
+          "drug_count": 14,
+          "oral_count": 6,
+          "known_mfr_count": 5
+        }
+      ],
+      "pred_groups": [
+        {
+          "form_family": "capsule",
+          "drug_count": 1,
+          "oral_count": 0,
+          "known_mfr_count": 0
+        },
+        {
+          "form_family": "injection",
+          "drug_count": 1,
+          "oral_count": 0,
+          "known_mfr_count": 1
+        },
+        {
+          "form_family": "other",
+          "drug_count": 8,
+          "oral_count": 2,
+          "known_mfr_count": 1
+        },
+        {
+          "form_family": "tablet",
+          "drug_count": 14,
+          "oral_count": 6,
+          "known_mfr_count": 5
+        }
+      ],
+      "gold_n": 76,
+      "pred_n": 24,
+      "incumbent_n": 24,
+      "undercount": 52,
+      "overcount": 0,
+      "witness_type": "row+grouped",
+      "incumbent_witnesses": 24,
+      "n_added": 0,
+      "n_proposed": 0,
+      "n_validated": 0,
+      "n_materialized": 0,
+      "n_sql_visible": 0,
+      "n_cartesian": 98,
+      "n_blocked": 48,
+      "n_excluded": 48,
+      "block_signal": "row",
+      "skip_reason": "",
+      "tokens_executor": 16809,
+      "tokens_refiner": 7726,
+      "tokens_validator": 0,
+      "n_existing_groups": 0,
+      "n_new_groups": 0,
+      "join_edges_added": 0,
+      "groups_added": 0,
+      "count_mass_before": 39,
+      "count_mass_after": 39,
+      "tokens": 24535,
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.5833333333333334,
+      "product": 0.5833333333333334
+    }
+  ]
+}

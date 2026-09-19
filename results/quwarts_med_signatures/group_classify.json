@@ -1,0 +1,1805 @@
+{
+  "tokens_spent": 1543772,
+  "qwen_calls": 2350,
+  "tokens_by_strategy": {
+    "direct": 379233,
+    "branch": 881177,
+    "adjudicator": 245644
+  },
+  "frozen_db_written": true,
+  "incumbent": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_med_signatures/artifacts/aprime_agent.db",
+  "dest": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_med_signatures/artifacts/aprime_group.db",
+  "gates": {
+    "empty_identity": {
+      "ok": true,
+      "mismatched": [],
+      "matched": 99
+    },
+    "gold_product": {
+      "ok": true,
+      "product": 0.220496754707281,
+      "expected": 0.220496754707281,
+      "score": {
+        "mean_structure_f2": 0.5993637941006362,
+        "mean_cell_f1_at_0.20": 0.2642857142857143,
+        "mean_per_query_product": 0.220496754707281,
+        "per_query": [
+          {
+            "query_id": "med_filterjoin20:q5",
+            "structure_f2": 0.9523809523809523,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "med_groupby20:q9",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.75,
+            "product": 0.75
+          },
+          {
+            "query_id": "med_groupby20:q7",
+            "structure_f2": 0.7894736842105263,
+            "cell_f1_20": 0.28571428571428575,
+            "product": 0.22556390977443613
+          },
+          {
+            "query_id": "med_multiagg20:q8",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "med_multiagg20:q17",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.3333333333333333,
+            "product": 0.3333333333333333
+          },
+          {
+            "query_id": "med_agg20:q4",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.25,
+            "product": 0.25
+          },
+          {
+            "query_id": "med_join20:q15",
+            "structure_f2": 0.3846153846153846,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "med_filterjoin20:q16",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "med_agg20:q11",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "med_filterjoin20:q10",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "med_multiagg20:q7",
+            "structure_f2": 0.23809523809523808,
+            "cell_f1_20": 0.33333333333333337,
+            "product": 0.07936507936507937
+          },
+          {
+            "query_id": "med_agg20:q13",
+            "structure_f2": 1.0,
+            "cell_f1_20": 1.0,
+            "product": 1.0
+          },
+          {
+            "query_id": "med_agg20:q17",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "med_groupby20:q8",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.5,
+            "product": 0.5
+          },
+          {
+            "query_id": "med_groupby20:q11",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "med_groupby20:q15",
+            "structure_f2": 0.3846153846153846,
+            "cell_f1_20": 0.5,
+            "product": 0.1923076923076923
+          },
+          {
+            "query_id": "med_multiagg20:q15",
+            "structure_f2": 0.23809523809523808,
+            "cell_f1_20": 0.33333333333333337,
+            "product": 0.07936507936507937
+          },
+          {
+            "query_id": "med_agg20:q3",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "med_agg20:q14",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.5,
+            "product": 0.5
+          },
+          {
+            "query_id": "med_multiagg20:q2",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.5,
+            "product": 0.5
+          }
+        ]
+      }
+    },
+    "reaggregate": {
+      "ok": true,
+      "failed": [],
+      "n_failed": 0
+    },
+    "poison": {
+      "ok": true
+    },
+    "checksums": {
+      "ok": true
+    },
+    "same_sites": {
+      "ok": true,
+      "failed": []
+    },
+    "gold_writes": 837,
+    "ok": true
+  },
+  "eligibility": {
+    "n_eligible": 124,
+    "n_ineligible": 0,
+    "ineligible_reasons": [],
+    "eligible_head": [
+      {
+        "query_id": "med_agg20:q0",
+        "alias": "type_family",
+        "expr_id": "67c64b62b8a9a2ca",
+        "sql": "CASE WHEN CASE WHEN d.sig_b28ac76e087d_r = 1 THEN d.sig_b28ac76e087d ELSE LOWER(d.disease_type) LIKE '%infectious%' END THEN 'infectious' WHEN CASE WHEN d.sig_e5712afe1b87_r = 1 THEN d.sig_e5712afe1b87 ELSE LOWER(d.disease_type) LIKE '%neoplastic%' END THEN 'neoplastic' WHEN CASE WHEN d.sig_287157291272_r = 1 THEN d.sig_287157291272 ELSE LOWER(d.disease_type) LIKE '%inflammatory%' END THEN 'inflammatory' WHEN CASE WHEN d.sig_9b426785d07a_r = 1 THEN d.sig_9b426785d07a ELSE LOWER(d.disease_type) LIKE '%psychiatric%' END THEN 'psychiatric' WHEN CASE WHEN d.sig_3092e90e517f_r = 1 THEN d.sig_3092e90e517f ELSE d.disease_type <> '' END THEN 'other' END",
+        "reason": "case_finite",
+        "allowed": [
+          "infectious",
+          "neoplastic",
+          "inflammatory",
+          "psychiatric",
+          "other",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q1",
+        "alias": "treatment_group",
+        "expr_id": "cd4b3bec466c59c7",
+        "sql": "CASE WHEN CASE WHEN sig_b8765cbbbe31_r = 1 THEN sig_b8765cbbbe31 ELSE LOWER(treatments) LIKE '%oral_medication%' END THEN 'uses_oral_medication' WHEN CASE WHEN sig_4eee3fff55d5_r = 1 THEN sig_4eee3fff55d5 ELSE treatments <> '' END THEN 'no_oral_medication' END",
+        "reason": "case_finite",
+        "allowed": [
+          "uses_oral_medication",
+          "no_oral_medication",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q2",
+        "alias": "dx_group",
+        "expr_id": "cee7ea83ec5ea22d",
+        "sql": "CASE WHEN CASE WHEN sig_c49a6db77232_r = 1 THEN sig_c49a6db77232 ELSE LOWER(diagnostic_methods) LIKE '%clinical_evaluation%' END THEN 'clinical_evaluation' WHEN CASE WHEN sig_8f6088ef6933_r = 1 THEN sig_8f6088ef6933 ELSE diagnostic_methods <> '' END THEN 'other_methods' END",
+        "reason": "case_finite",
+        "allowed": [
+          "clinical_evaluation",
+          "other_methods",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "alias": "prognosis_group",
+        "expr_id": "e7ce2a3756347364",
+        "sql": "CASE WHEN CASE WHEN sig_509ec6b6bb75_r = 1 THEN sig_509ec6b6bb75 ELSE LOWER(prognosis) LIKE '%high_mortality%' END THEN 'high_mortality' WHEN CASE WHEN sig_178df0b3b0b0_r = 1 THEN sig_178df0b3b0b0 ELSE LOWER(prognosis) LIKE '%chronic%' END THEN 'chronic' WHEN CASE WHEN sig_1ea3591105f3_r = 1 THEN sig_1ea3591105f3 ELSE prognosis <> '' END THEN 'other' END",
+        "reason": "case_finite",
+        "allowed": [
+          "high_mortality",
+          "chronic",
+          "other",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "alias": "form_family",
+        "expr_id": "0d8c67b104646ea9",
+        "sql": "CASE WHEN CASE WHEN dr.sig_0f82e0d57341_r = 1 THEN dr.sig_0f82e0d57341 ELSE LOWER(dr.pharmaceutical_form) LIKE '%tablet%' END THEN 'tablet' WHEN CASE WHEN dr.sig_81b0b9ce26dc_r = 1 THEN dr.sig_81b0b9ce26dc ELSE LOWER(dr.pharmaceutical_form) LIKE '%injection%' END THEN 'injection' WHEN CASE WHEN dr.sig_2f8164f5e0d4_r = 1 THEN dr.sig_2f8164f5e0d4 ELSE LOWER(dr.pharmaceutical_form) LIKE '%capsule%' END THEN 'capsule' WHEN CASE WHEN dr.sig_4073d2d81e57_r = 1 THEN dr.sig_4073d2d81e57 ELSE dr.pharmaceutical_form <> '' END THEN 'other' END",
+        "reason": "case_finite",
+        "allowed": [
+          "tablet",
+          "injection",
+          "capsule",
+          "other",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q5",
+        "alias": "route_family",
+        "expr_id": "abf727a68cd3c3b6",
+        "sql": "CASE WHEN CASE WHEN dr.sig_82b496f01918_r = 1 THEN dr.sig_82b496f01918 ELSE LOWER(dr.administration_route) LIKE '%oral%' END THEN 'oral' WHEN CASE WHEN dr.sig_f3544394e3ce_r = 1 THEN dr.sig_f3544394e3ce ELSE dr.administration_route <> '' END THEN 'non_oral' END",
+        "reason": "case_finite",
+        "allowed": [
+          "oral",
+          "non_oral",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q6",
+        "alias": "rx_status",
+        "expr_id": "05007f09de1dc41c",
+        "sql": "CASE WHEN CASE WHEN sig_f1cf95689a2b_r = 1 THEN sig_f1cf95689a2b ELSE prescription_status LIKE '%prescription_only%' END THEN 'prescription_only' WHEN CASE WHEN sig_08244f7aa9a2_r = 1 THEN sig_08244f7aa9a2 ELSE prescription_status <> '' END THEN 'other' END",
+        "reason": "case_finite",
+        "allowed": [
+          "prescription_only",
+          "other",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q7",
+        "alias": "moa_status",
+        "expr_id": "28d9315017780b3e",
+        "sql": "CASE WHEN CASE WHEN sig_660b3095778d_r = 1 THEN sig_660b3095778d ELSE mechanism_of_action <> '' END THEN 'mechanism_recorded' ELSE 'mechanism_unknown' END",
+        "reason": "case_finite",
+        "allowed": [
+          "mechanism_recorded",
+          "mechanism_unknown"
+        ]
+      },
+      {
+        "query_id": "med_agg20:q8",
+        "alias": "inst_type",
+        "expr_id": "ba47e5d9803de5f9",
+        "sql": "CASE WHEN CASE WHEN i.sig_a6df4bdc67f4_r = 1 THEN i.sig_a6df4bdc67f4 ELSE LOWER(i.institution_type) LIKE '%university%' END THEN 'university_affiliated' WHEN CASE WHEN i.sig_e0fa586172a5_r = 1 THEN i.sig_e0fa586172a5 ELSE LOWER(i.institution_type) LIKE '%public%' END THEN 'public' WHEN CASE WHEN i.sig_48a86d8f41ed_r = 1 THEN i.sig_48a86d8f41ed ELSE i.institution_type <> '' END THEN 'other' END",
+        "reason": "case_finite",
+        "allowed": [
+          "university_affiliated",
+          "public",
+          "other",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q9",
+        "alias": "country_family",
+        "expr_id": "86bb9c21cbee9d68",
+        "sql": "CASE WHEN CASE WHEN i.sig_0ffcf3058ea2_r = 1 THEN i.sig_0ffcf3058ea2 ELSE i.institution_country LIKE '%USA%' END THEN 'USA' WHEN CASE WHEN i.sig_18618d1b0602_r = 1 THEN i.sig_18618d1b0602 ELSE i.institution_country <> '' END THEN 'outside_USA' END",
+        "reason": "case_finite",
+        "allowed": [
+          "USA",
+          "outside_USA",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q10",
+        "alias": "field_family",
+        "expr_id": "3e6cc6366b8ee438",
+        "sql": "CASE WHEN CASE WHEN i.sig_af02093e994d_r = 1 THEN i.sig_af02093e994d ELSE LOWER(i.research_fields) LIKE '%oncology%' END THEN 'oncology' WHEN CASE WHEN i.sig_0b6fa5842a9f_r = 1 THEN i.sig_0b6fa5842a9f ELSE LOWER(i.research_fields) LIKE '%neuroscience%' END THEN 'neuroscience' WHEN CASE WHEN i.sig_6846b7b1974f_r = 1 THEN i.sig_6846b7b1974f ELSE LOWER(i.research_fields) LIKE '%immunology%' END OR CASE WHEN i.sig_7bb9be5afcaf_r = 1 THEN i.sig_7bb9be5afcaf ELSE LOWER(i.research_fields) LIKE '%microbiology%' END THEN 'immuno_micro' WHEN CASE WHEN i.sig_12fe12398cb8_r = 1 THEN i.sig_12fe12398cb8 ELSE LOWER(i.research_fields) LIKE '%clinical_research%' END THEN 'clinical_research' WHEN CASE WHEN i.sig_7b008d5de014_r = 1 THEN i.sig_7b008d5de014 ELSE i.research_fields <> '' END THEN 'other' END",
+        "reason": "case_finite",
+        "allowed": [
+          "oncology",
+          "neuroscience",
+          "immuno_micro",
+          "clinical_research",
+          "other",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "alias": "path_group",
+        "expr_id": "51bec88df265e9d2",
+        "sql": "CASE WHEN CASE WHEN sig_cc4954de6a01_r = 1 THEN sig_cc4954de6a01 ELSE LOWER(pathogenesis) LIKE '%infectious%' END THEN 'infectious' WHEN CASE WHEN sig_3669a404526c_r = 1 THEN sig_3669a404526c ELSE LOWER(pathogenesis) LIKE '%inflammatory%' END THEN 'inflammatory' WHEN CASE WHEN sig_3d2b950bfe02_r = 1 THEN sig_3d2b950bfe02 ELSE pathogenesis <> '' END THEN 'other' END",
+        "reason": "case_finite",
+        "allowed": [
+          "infectious",
+          "inflammatory",
+          "other",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q12",
+        "alias": "treatment_group",
+        "expr_id": "603b0775d26c154f",
+        "sql": "CASE WHEN CASE WHEN sig_3d1b0ae2f063_r = 1 THEN sig_3d1b0ae2f063 ELSE LOWER(treatments) LIKE '%injection%' END THEN 'uses_injection' WHEN CASE WHEN sig_4eee3fff55d5_r = 1 THEN sig_4eee3fff55d5 ELSE treatments <> '' END THEN 'no_injection' END",
+        "reason": "case_finite",
+        "allowed": [
+          "uses_injection",
+          "no_injection",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "alias": "mfr_status",
+        "expr_id": "fdd067fed7d44b7a",
+        "sql": "CASE WHEN CASE WHEN sig_6ff679973fdd_r = 1 THEN sig_6ff679973fdd ELSE manufacturer <> '' END THEN 'known_manufacturer' ELSE 'manufacturer_unknown' END",
+        "reason": "case_finite",
+        "allowed": [
+          "known_manufacturer",
+          "manufacturer_unknown"
+        ]
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "alias": "route_group",
+        "expr_id": "c0cc33311a3eb2e7",
+        "sql": "CASE WHEN CASE WHEN sig_e0118bdd3969_r = 1 THEN sig_e0118bdd3969 ELSE LOWER(administration_route) LIKE '%intravenous%' END OR CASE WHEN sig_f1a7e74af468_r = 1 THEN sig_f1a7e74af468 ELSE LOWER(administration_route) LIKE '%subcutaneous%' END THEN 'injectable_route' WHEN CASE WHEN sig_f3544394e3ce_r = 1 THEN sig_f3544394e3ce ELSE administration_route <> '' END THEN 'other_route' END",
+        "reason": "case_finite",
+        "allowed": [
+          "injectable_route",
+          "other_route",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q15",
+        "alias": "collab_status",
+        "expr_id": "a72a2cf5ab6f05fe",
+        "sql": "CASE WHEN CASE WHEN sig_3b657dc355b0_r = 1 THEN sig_3b657dc355b0 ELSE international_collaboration <> '' END THEN 'has_collaboration' ELSE 'no_collaboration_recorded' END",
+        "reason": "case_finite",
+        "allowed": [
+          "has_collaboration",
+          "no_collaboration_recorded"
+        ]
+      },
+      {
+        "query_id": "med_agg20:q16",
+        "alias": "qol_group",
+        "expr_id": "e061d7ad0632401f",
+        "sql": "CASE WHEN CASE WHEN sig_532022ea8210_r = 1 THEN sig_532022ea8210 ELSE LOWER(quality_of_life_impact) LIKE '%quality_of_life_decline%' END THEN 'qol_decline' WHEN CASE WHEN sig_671eb3a1829a_r = 1 THEN sig_671eb3a1829a ELSE quality_of_life_impact <> '' END THEN 'other_impact' END",
+        "reason": "case_finite",
+        "allowed": [
+          "qol_decline",
+          "other_impact",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "alias": "restriction_group",
+        "expr_id": "146dfd77f0454362",
+        "sql": "CASE WHEN CASE WHEN sig_5827646062f8_r = 1 THEN sig_5827646062f8 ELSE LOWER(unsuitable_population) LIKE '%pregnant%' END THEN 'mentions_pregnancy' WHEN CASE WHEN sig_c6cf446faee0_r = 1 THEN sig_c6cf446faee0 ELSE unsuitable_population <> '' END THEN 'other_restriction' END",
+        "reason": "case_finite",
+        "allowed": [
+          "mentions_pregnancy",
+          "other_restriction",
+          null
+        ]
+      },
+      {
+        "query_id": "med_agg20:q18",
+        "alias": "funding_status",
+        "expr_id": "abe61cea8c72d224",
+        "sql": "CASE WHEN CASE WHEN sig_7d09d1bfc636_r = 1 THEN sig_7d09d1bfc636 ELSE funding_sources <> '' END THEN 'funding_recorded' ELSE 'funding_unknown' END",
+        "reason": "case_finite",
+        "allowed": [
+          "funding_recorded",
+          "funding_unknown"
+        ]
+      },
+      {
+        "query_id": "med_agg20:q19",
+        "alias": "prevention_group",
+        "expr_id": "c60517c05c2285a2",
+        "sql": "CASE WHEN CASE WHEN sig_34c31417b01e_r = 1 THEN sig_34c31417b01e ELSE LOWER(preventive_measures) LIKE '%screening%' END THEN 'mentions_screening' WHEN CASE WHEN sig_dd2acd0d7a8f_r = 1 THEN sig_dd2acd0d7a8f ELSE preventive_measures <> '' END THEN 'other_prevention' END",
+        "reason": "case_finite",
+        "allowed": [
+          "mentions_screening",
+          "other_prevention",
+          null
+        ]
+      }
+    ]
+  },
+  "arm": {
+    "n_eligible_expressions": 41,
+    "n_ineligible": 0,
+    "n_witnesses": 1290,
+    "n_attempted": 646,
+    "n_resolved": 258,
+    "n_fallback": 0,
+    "n_sql_visible": 258,
+    "n_materialized": 258,
+    "agreement": {
+      "majority": 381,
+      "direct_branch": 265
+    },
+    "n_direct_branch_agree": 265,
+    "n_disagreement": 381,
+    "n_adjudicator": 292,
+    "labels": {
+      "inflammatory": 7,
+      "oncology": 10,
+      "clinical_research": 1,
+      "None": 90,
+      "non_oral": 2,
+      "uses_oral": 4,
+      "uses_injection": 8,
+      "uses_oral_medication": 12,
+      "oral_medication": 16,
+      "prescription_only": 9,
+      "infectious": 7,
+      "qol_decline": 9,
+      "infectious_pathogenesis": 8,
+      "high_mortality": 12,
+      "chronic": 3,
+      "clinical_evaluation": 17,
+      "bacterial": 1,
+      "mentions_screening": 4,
+      "funding_recorded": 5,
+      "oral_treatment_disease": 1,
+      "uses_imaging": 1,
+      "other": 2,
+      "known_manufacturer": 5,
+      "mechanism_unknown": 5,
+      "lab_test": 3,
+      "viral": 3,
+      "oral_treatment": 1,
+      "outside_USA": 1,
+      "no_injection": 2,
+      "injectable_route": 2,
+      "USA": 2,
+      "has_collaboration": 1,
+      "mechanism_recorded": 1,
+      "neoplastic": 1,
+      "manufacturer_unknown": 1,
+      "injection": 1
+    },
+    "cache_hits": 24,
+    "cache_misses": 2350,
+    "retries": 23,
+    "rollbacks": [
+      {
+        "expr_id": "67c64b62b8a9a2ca",
+        "witness_key": "2",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "67c64b62b8a9a2ca",
+        "witness_key": "3",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "67c64b62b8a9a2ca",
+        "witness_key": "5",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "3e6cc6366b8ee438",
+        "witness_key": "8",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "ba47e5d9803de5f9",
+        "witness_key": "6",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "ba47e5d9803de5f9",
+        "witness_key": "10",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "86bb9c21cbee9d68",
+        "witness_key": "4",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "86bb9c21cbee9d68",
+        "witness_key": "8",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "86bb9c21cbee9d68",
+        "witness_key": "10",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "fdd067fed7d44b7a",
+        "witness_key": "1",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "fdd067fed7d44b7a",
+        "witness_key": "2",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "fdd067fed7d44b7a",
+        "witness_key": "3",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "fdd067fed7d44b7a",
+        "witness_key": "4",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "0d8c67b104646ea9",
+        "witness_key": "6",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "0d8c67b104646ea9",
+        "witness_key": "7",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "abf727a68cd3c3b6",
+        "witness_key": "6",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "abf727a68cd3c3b6",
+        "witness_key": "7",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "abf727a68cd3c3b6",
+        "witness_key": "15",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "a72a2cf5ab6f05fe",
+        "witness_key": "1",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "a72a2cf5ab6f05fe",
+        "witness_key": "2",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "a72a2cf5ab6f05fe",
+        "witness_key": "3",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "a72a2cf5ab6f05fe",
+        "witness_key": "4",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "abe61cea8c72d224",
+        "witness_key": "1",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "abe61cea8c72d224",
+        "witness_key": "2",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "abe61cea8c72d224",
+        "witness_key": "3",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "abe61cea8c72d224",
+        "witness_key": "4",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "28d9315017780b3e",
+        "witness_key": "1",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "28d9315017780b3e",
+        "witness_key": "2",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "28d9315017780b3e",
+        "witness_key": "3",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "28d9315017780b3e",
+        "witness_key": "4",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "5a838585b19f70bf",
+        "witness_key": "5",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "5a838585b19f70bf",
+        "witness_key": "9",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "5a838585b19f70bf",
+        "witness_key": "11",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "603b0775d26c154f",
+        "witness_key": "5",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "603b0775d26c154f",
+        "witness_key": "9",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "603b0775d26c154f",
+        "witness_key": "11",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "8122ea9e7e350abd",
+        "witness_key": "3",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "8122ea9e7e350abd",
+        "witness_key": "5",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "8122ea9e7e350abd",
+        "witness_key": "9",
+        "reason": "ineffective"
+      },
+      {
+        "expr_id": "8122ea9e7e350abd",
+        "witness_key": "11",
+        "reason": "ineffective"
+      }
+    ],
+    "expressions": [
+      {
+        "expr_id": "67c64b62b8a9a2ca",
+        "sql": "CASE WHEN CASE WHEN d.sig_b28ac76e087d_r = 1 THEN d.sig_b28ac76e087d ELSE LOWER(d.disease_type) LIKE '%infectious%' END THEN 'infectious' WHEN CASE WHEN d.sig_e5712afe1b87_r = 1 THEN d.sig_e5712afe1b87 ELSE LOWER(d.disease_type) LIKE '%neoplastic%' END THEN 'neoplastic' WHEN CASE WHEN d.sig_287157291272_r = 1 THEN d.sig_287157291272 ELSE LOWER(d.disease_type) LIKE '%inflammatory%' END THEN 'inflammatory' WHEN CASE WHEN d.sig_9b426785d07a_r = 1 THEN d.sig_9b426785d07a ELSE LOWER(d.disease_type) LIKE '%psychiatric%' END THEN 'psychiatric' WHEN CASE WHEN d.sig_3092e90e517f_r = 1 THEN d.sig_3092e90e517f ELSE d.disease_type <> '' END THEN 'other' END",
+        "alias": "type_family",
+        "allowed": [
+          "infectious",
+          "neoplastic",
+          "inflammatory",
+          "psychiatric",
+          "other",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 19,
+        "n_witnesses": 69,
+        "freq": 19,
+        "amp": 1.0,
+        "score": 1.8728571428571428
+      },
+      {
+        "expr_id": "cd4b3bec466c59c7",
+        "sql": "CASE WHEN CASE WHEN sig_b8765cbbbe31_r = 1 THEN sig_b8765cbbbe31 ELSE LOWER(treatments) LIKE '%oral_medication%' END THEN 'uses_oral_medication' WHEN CASE WHEN sig_4eee3fff55d5_r = 1 THEN sig_4eee3fff55d5 ELSE treatments <> '' END THEN 'no_oral_medication' END",
+        "alias": "treatment_group",
+        "allowed": [
+          "uses_oral_medication",
+          "no_oral_medication",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 49,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.07
+      },
+      {
+        "expr_id": "cee7ea83ec5ea22d",
+        "sql": "CASE WHEN CASE WHEN sig_c49a6db77232_r = 1 THEN sig_c49a6db77232 ELSE LOWER(diagnostic_methods) LIKE '%clinical_evaluation%' END THEN 'clinical_evaluation' WHEN CASE WHEN sig_8f6088ef6933_r = 1 THEN sig_8f6088ef6933 ELSE diagnostic_methods <> '' END THEN 'other_methods' END",
+        "alias": "dx_group",
+        "allowed": [
+          "clinical_evaluation",
+          "other_methods",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 24,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.03428571428571429
+      },
+      {
+        "expr_id": "e7ce2a3756347364",
+        "sql": "CASE WHEN CASE WHEN sig_509ec6b6bb75_r = 1 THEN sig_509ec6b6bb75 ELSE LOWER(prognosis) LIKE '%high_mortality%' END THEN 'high_mortality' WHEN CASE WHEN sig_178df0b3b0b0_r = 1 THEN sig_178df0b3b0b0 ELSE LOWER(prognosis) LIKE '%chronic%' END THEN 'chronic' WHEN CASE WHEN sig_1ea3591105f3_r = 1 THEN sig_1ea3591105f3 ELSE prognosis <> '' END THEN 'other' END",
+        "alias": "prognosis_group",
+        "allowed": [
+          "high_mortality",
+          "chronic",
+          "other",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 24,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.03428571428571429
+      },
+      {
+        "expr_id": "0d8c67b104646ea9",
+        "sql": "CASE WHEN CASE WHEN dr.sig_0f82e0d57341_r = 1 THEN dr.sig_0f82e0d57341 ELSE LOWER(dr.pharmaceutical_form) LIKE '%tablet%' END THEN 'tablet' WHEN CASE WHEN dr.sig_81b0b9ce26dc_r = 1 THEN dr.sig_81b0b9ce26dc ELSE LOWER(dr.pharmaceutical_form) LIKE '%injection%' END THEN 'injection' WHEN CASE WHEN dr.sig_2f8164f5e0d4_r = 1 THEN dr.sig_2f8164f5e0d4 ELSE LOWER(dr.pharmaceutical_form) LIKE '%capsule%' END THEN 'capsule' WHEN CASE WHEN dr.sig_4073d2d81e57_r = 1 THEN dr.sig_4073d2d81e57 ELSE dr.pharmaceutical_form <> '' END THEN 'other' END",
+        "alias": "form_family",
+        "allowed": [
+          "tablet",
+          "injection",
+          "capsule",
+          "other",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 12,
+        "n_witnesses": 24,
+        "freq": 12,
+        "amp": 1.0,
+        "score": 0.4114285714285714
+      },
+      {
+        "expr_id": "abf727a68cd3c3b6",
+        "sql": "CASE WHEN CASE WHEN dr.sig_82b496f01918_r = 1 THEN dr.sig_82b496f01918 ELSE LOWER(dr.administration_route) LIKE '%oral%' END THEN 'oral' WHEN CASE WHEN dr.sig_f3544394e3ce_r = 1 THEN dr.sig_f3544394e3ce ELSE dr.administration_route <> '' END THEN 'non_oral' END",
+        "alias": "route_family",
+        "allowed": [
+          "oral",
+          "non_oral",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 13,
+        "n_witnesses": 21,
+        "freq": 13,
+        "amp": 1.0,
+        "score": 0.39
+      },
+      {
+        "expr_id": "05007f09de1dc41c",
+        "sql": "CASE WHEN CASE WHEN sig_f1cf95689a2b_r = 1 THEN sig_f1cf95689a2b ELSE prescription_status LIKE '%prescription_only%' END THEN 'prescription_only' WHEN CASE WHEN sig_08244f7aa9a2_r = 1 THEN sig_08244f7aa9a2 ELSE prescription_status <> '' END THEN 'other' END",
+        "alias": "rx_status",
+        "allowed": [
+          "prescription_only",
+          "other",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 29,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.041428571428571426
+      },
+      {
+        "expr_id": "28d9315017780b3e",
+        "sql": "CASE WHEN CASE WHEN sig_660b3095778d_r = 1 THEN sig_660b3095778d ELSE mechanism_of_action <> '' END THEN 'mechanism_recorded' ELSE 'mechanism_unknown' END",
+        "alias": "moa_status",
+        "allowed": [
+          "mechanism_recorded",
+          "mechanism_unknown"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 98,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.14
+      },
+      {
+        "expr_id": "ba47e5d9803de5f9",
+        "sql": "CASE WHEN CASE WHEN i.sig_a6df4bdc67f4_r = 1 THEN i.sig_a6df4bdc67f4 ELSE LOWER(i.institution_type) LIKE '%university%' END THEN 'university_affiliated' WHEN CASE WHEN i.sig_e0fa586172a5_r = 1 THEN i.sig_e0fa586172a5 ELSE LOWER(i.institution_type) LIKE '%public%' END THEN 'public' WHEN CASE WHEN i.sig_48a86d8f41ed_r = 1 THEN i.sig_48a86d8f41ed ELSE i.institution_type <> '' END THEN 'other' END",
+        "alias": "inst_type",
+        "allowed": [
+          "university_affiliated",
+          "public",
+          "other",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 13,
+        "n_witnesses": 66,
+        "freq": 13,
+        "amp": 1.0,
+        "score": 1.2257142857142858
+      },
+      {
+        "expr_id": "86bb9c21cbee9d68",
+        "sql": "CASE WHEN CASE WHEN i.sig_0ffcf3058ea2_r = 1 THEN i.sig_0ffcf3058ea2 ELSE i.institution_country LIKE '%USA%' END THEN 'USA' WHEN CASE WHEN i.sig_18618d1b0602_r = 1 THEN i.sig_18618d1b0602 ELSE i.institution_country <> '' END THEN 'outside_USA' END",
+        "alias": "country_family",
+        "allowed": [
+          "USA",
+          "outside_USA",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 14,
+        "n_witnesses": 59,
+        "freq": 14,
+        "amp": 1.0,
+        "score": 1.18
+      },
+      {
+        "expr_id": "3e6cc6366b8ee438",
+        "sql": "CASE WHEN CASE WHEN i.sig_af02093e994d_r = 1 THEN i.sig_af02093e994d ELSE LOWER(i.research_fields) LIKE '%oncology%' END THEN 'oncology' WHEN CASE WHEN i.sig_0b6fa5842a9f_r = 1 THEN i.sig_0b6fa5842a9f ELSE LOWER(i.research_fields) LIKE '%neuroscience%' END THEN 'neuroscience' WHEN CASE WHEN i.sig_6846b7b1974f_r = 1 THEN i.sig_6846b7b1974f ELSE LOWER(i.research_fields) LIKE '%immunology%' END OR CASE WHEN i.sig_7bb9be5afcaf_r = 1 THEN i.sig_7bb9be5afcaf ELSE LOWER(i.research_fields) LIKE '%microbiology%' END THEN 'immuno_micro' WHEN CASE WHEN i.sig_12fe12398cb8_r = 1 THEN i.sig_12fe12398cb8 ELSE LOWER(i.research_fields) LIKE '%clinical_research%' END THEN 'clinical_research' WHEN CASE WHEN i.sig_7b008d5de014_r = 1 THEN i.sig_7b008d5de014 ELSE i.research_fields <> '' END THEN 'other' END",
+        "alias": "field_family",
+        "allowed": [
+          "oncology",
+          "neuroscience",
+          "immuno_micro",
+          "clinical_research",
+          "other",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 13,
+        "n_witnesses": 66,
+        "freq": 13,
+        "amp": 1.0,
+        "score": 1.2257142857142858
+      },
+      {
+        "expr_id": "51bec88df265e9d2",
+        "sql": "CASE WHEN CASE WHEN sig_cc4954de6a01_r = 1 THEN sig_cc4954de6a01 ELSE LOWER(pathogenesis) LIKE '%infectious%' END THEN 'infectious' WHEN CASE WHEN sig_3669a404526c_r = 1 THEN sig_3669a404526c ELSE LOWER(pathogenesis) LIKE '%inflammatory%' END THEN 'inflammatory' WHEN CASE WHEN sig_3d2b950bfe02_r = 1 THEN sig_3d2b950bfe02 ELSE pathogenesis <> '' END THEN 'other' END",
+        "alias": "path_group",
+        "allowed": [
+          "infectious",
+          "inflammatory",
+          "other",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 26,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.037142857142857144
+      },
+      {
+        "expr_id": "603b0775d26c154f",
+        "sql": "CASE WHEN CASE WHEN sig_3d1b0ae2f063_r = 1 THEN sig_3d1b0ae2f063 ELSE LOWER(treatments) LIKE '%injection%' END THEN 'uses_injection' WHEN CASE WHEN sig_4eee3fff55d5_r = 1 THEN sig_4eee3fff55d5 ELSE treatments <> '' END THEN 'no_injection' END",
+        "alias": "treatment_group",
+        "allowed": [
+          "uses_injection",
+          "no_injection",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 49,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.07
+      },
+      {
+        "expr_id": "fdd067fed7d44b7a",
+        "sql": "CASE WHEN CASE WHEN sig_6ff679973fdd_r = 1 THEN sig_6ff679973fdd ELSE manufacturer <> '' END THEN 'known_manufacturer' ELSE 'manufacturer_unknown' END",
+        "alias": "mfr_status",
+        "allowed": [
+          "known_manufacturer",
+          "manufacturer_unknown"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 3,
+        "n_witnesses": 98,
+        "freq": 3,
+        "amp": 1.0,
+        "score": 0.42
+      },
+      {
+        "expr_id": "c0cc33311a3eb2e7",
+        "sql": "CASE WHEN CASE WHEN sig_e0118bdd3969_r = 1 THEN sig_e0118bdd3969 ELSE LOWER(administration_route) LIKE '%intravenous%' END OR CASE WHEN sig_f1a7e74af468_r = 1 THEN sig_f1a7e74af468 ELSE LOWER(administration_route) LIKE '%subcutaneous%' END THEN 'injectable_route' WHEN CASE WHEN sig_f3544394e3ce_r = 1 THEN sig_f3544394e3ce ELSE administration_route <> '' END THEN 'other_route' END",
+        "alias": "route_group",
+        "allowed": [
+          "injectable_route",
+          "other_route",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 21,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.03
+      },
+      {
+        "expr_id": "a72a2cf5ab6f05fe",
+        "sql": "CASE WHEN CASE WHEN sig_3b657dc355b0_r = 1 THEN sig_3b657dc355b0 ELSE international_collaboration <> '' END THEN 'has_collaboration' ELSE 'no_collaboration_recorded' END",
+        "alias": "collab_status",
+        "allowed": [
+          "has_collaboration",
+          "no_collaboration_recorded"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 2,
+        "n_witnesses": 99,
+        "freq": 2,
+        "amp": 1.0,
+        "score": 0.28285714285714286
+      },
+      {
+        "expr_id": "e061d7ad0632401f",
+        "sql": "CASE WHEN CASE WHEN sig_532022ea8210_r = 1 THEN sig_532022ea8210 ELSE LOWER(quality_of_life_impact) LIKE '%quality_of_life_decline%' END THEN 'qol_decline' WHEN CASE WHEN sig_671eb3a1829a_r = 1 THEN sig_671eb3a1829a ELSE quality_of_life_impact <> '' END THEN 'other_impact' END",
+        "alias": "qol_group",
+        "allowed": [
+          "qol_decline",
+          "other_impact",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 26,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.037142857142857144
+      },
+      {
+        "expr_id": "146dfd77f0454362",
+        "sql": "CASE WHEN CASE WHEN sig_5827646062f8_r = 1 THEN sig_5827646062f8 ELSE LOWER(unsuitable_population) LIKE '%pregnant%' END THEN 'mentions_pregnancy' WHEN CASE WHEN sig_c6cf446faee0_r = 1 THEN sig_c6cf446faee0 ELSE unsuitable_population <> '' END THEN 'other_restriction' END",
+        "alias": "restriction_group",
+        "allowed": [
+          "mentions_pregnancy",
+          "other_restriction",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 0,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.0
+      },
+      {
+        "expr_id": "abe61cea8c72d224",
+        "sql": "CASE WHEN CASE WHEN sig_7d09d1bfc636_r = 1 THEN sig_7d09d1bfc636 ELSE funding_sources <> '' END THEN 'funding_recorded' ELSE 'funding_unknown' END",
+        "alias": "funding_status",
+        "allowed": [
+          "funding_recorded",
+          "funding_unknown"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 99,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.14142857142857143
+      },
+      {
+        "expr_id": "c60517c05c2285a2",
+        "sql": "CASE WHEN CASE WHEN sig_34c31417b01e_r = 1 THEN sig_34c31417b01e ELSE LOWER(preventive_measures) LIKE '%screening%' END THEN 'mentions_screening' WHEN CASE WHEN sig_dd2acd0d7a8f_r = 1 THEN sig_dd2acd0d7a8f ELSE preventive_measures <> '' END THEN 'other_prevention' END",
+        "alias": "prevention_group",
+        "allowed": [
+          "mentions_screening",
+          "other_prevention",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 18,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.025714285714285714
+      },
+      {
+        "expr_id": "c16ddaf39e55819a",
+        "sql": "CASE WHEN CASE WHEN d.sig_b8765cbbbe31_r = 1 THEN d.sig_b8765cbbbe31 ELSE LOWER(d.treatments) LIKE '%oral_medication%' END THEN 'oral_medication' ELSE 'other_treatment' END",
+        "alias": "treatment_group",
+        "allowed": [
+          "oral_medication",
+          "other_treatment"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 39,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.055714285714285716
+      },
+      {
+        "expr_id": "882b4d5cbb4e6236",
+        "sql": "CASE WHEN CASE WHEN sig_c49a6db77232_r = 1 THEN sig_c49a6db77232 ELSE LOWER(diagnostic_methods) LIKE '%clinical_evaluation%' END THEN 'clinical_evaluation' ELSE 'other_methods' END",
+        "alias": "dx_group",
+        "allowed": [
+          "clinical_evaluation",
+          "other_methods"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 14,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.02
+      },
+      {
+        "expr_id": "2a4bb184a7ae3dbd",
+        "sql": "CASE WHEN CASE WHEN sig_509ec6b6bb75_r = 1 THEN sig_509ec6b6bb75 ELSE LOWER(prognosis) LIKE '%high_mortality%' END THEN 'high_mortality' WHEN CASE WHEN sig_1ea3591105f3_r = 1 THEN sig_1ea3591105f3 ELSE prognosis <> '' END THEN 'other_prognosis' END",
+        "alias": "prognosis_group",
+        "allowed": [
+          "high_mortality",
+          "other_prognosis",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 14,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.02
+      },
+      {
+        "expr_id": "7f474d0a3958cfed",
+        "sql": "CASE WHEN CASE WHEN sig_f1cf95689a2b_r = 1 THEN sig_f1cf95689a2b ELSE prescription_status LIKE '%prescription_only%' END THEN 'prescription_only' ELSE 'other' END",
+        "alias": "rx_status",
+        "allowed": [
+          "prescription_only",
+          "other"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 2,
+        "n_witnesses": 14,
+        "freq": 2,
+        "amp": 1.0,
+        "score": 0.04
+      },
+      {
+        "expr_id": "a88bf13eef4ad0e3",
+        "sql": "CASE WHEN CASE WHEN sig_51256958ae75_r = 1 THEN sig_51256958ae75 ELSE LOWER(storage_conditions) LIKE '%room temperature%' END THEN 'room_temperature' ELSE 'other_storage' END",
+        "alias": "storage_group",
+        "allowed": [
+          "room_temperature",
+          "other_storage"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 3,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.004285714285714286
+      },
+      {
+        "expr_id": "baa290129e370e5f",
+        "sql": "CASE WHEN CASE WHEN d.sig_cc4954de6a01_r = 1 THEN d.sig_cc4954de6a01 ELSE LOWER(d.pathogenesis) LIKE '%infectious%' END THEN 'infectious_pathogenesis' WHEN CASE WHEN d.sig_3d2b950bfe02_r = 1 THEN d.sig_3d2b950bfe02 ELSE d.pathogenesis <> '' END THEN 'other_pathogenesis' END",
+        "alias": "path_group",
+        "allowed": [
+          "infectious_pathogenesis",
+          "other_pathogenesis",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 25,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.03571428571428571
+      },
+      {
+        "expr_id": "8122ea9e7e350abd",
+        "sql": "CASE WHEN CASE WHEN sig_3d1b0ae2f063_r = 1 THEN sig_3d1b0ae2f063 ELSE LOWER(treatments) LIKE '%injection%' END THEN 'uses_injection' ELSE 'no_injection' END",
+        "alias": "injection_status",
+        "allowed": [
+          "uses_injection",
+          "no_injection"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 49,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.07
+      },
+      {
+        "expr_id": "5a838585b19f70bf",
+        "sql": "CASE WHEN CASE WHEN sig_b8765cbbbe31_r = 1 THEN sig_b8765cbbbe31 ELSE LOWER(treatments) LIKE '%oral_medication%' END THEN 'uses_oral' ELSE 'no_oral' END",
+        "alias": "oral_status",
+        "allowed": [
+          "uses_oral",
+          "no_oral"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 49,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.07
+      },
+      {
+        "expr_id": "8dc68c978266c5ae",
+        "sql": "CASE WHEN CASE WHEN d.sig_178df0b3b0b0_r = 1 THEN d.sig_178df0b3b0b0 ELSE LOWER(d.prognosis) LIKE '%chronic%' END THEN 'chronic' WHEN CASE WHEN d.sig_1ea3591105f3_r = 1 THEN d.sig_1ea3591105f3 ELSE d.prognosis <> '' END THEN 'other_prognosis' END",
+        "alias": "prognosis_group",
+        "allowed": [
+          "chronic",
+          "other_prognosis",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 0,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.0
+      },
+      {
+        "expr_id": "666e2e5ad09bc791",
+        "sql": "CASE WHEN CASE WHEN d.sig_b8765cbbbe31_r = 1 THEN d.sig_b8765cbbbe31 ELSE LOWER(d.treatments) LIKE '%oral_medication%' END THEN 'oral_treatment' ELSE 'other_treatment' END",
+        "alias": "treatment_group",
+        "allowed": [
+          "oral_treatment",
+          "other_treatment"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 5,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.007142857142857143
+      },
+      {
+        "expr_id": "08bb082d4468651c",
+        "sql": "CASE WHEN CASE WHEN d.sig_210ae60cbab3_r = 1 THEN d.sig_210ae60cbab3 ELSE LOWER(d.diagnostic_methods) LIKE '%imaging%' END THEN 'uses_imaging' WHEN CASE WHEN d.sig_8f6088ef6933_r = 1 THEN d.sig_8f6088ef6933 ELSE d.diagnostic_methods <> '' END THEN 'no_imaging' END",
+        "alias": "imaging_status",
+        "allowed": [
+          "uses_imaging",
+          "no_imaging",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 2,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.002857142857142857
+      },
+      {
+        "expr_id": "04b8a00b3e736c7c",
+        "sql": "CASE WHEN CASE WHEN sig_c3b34b383475_r = 1 THEN sig_c3b34b383475 ELSE LOWER(pathogenesis) LIKE '%bacterial%' END THEN 'bacterial' WHEN CASE WHEN sig_32543ffa7fda_r = 1 THEN sig_32543ffa7fda ELSE LOWER(pathogenesis) LIKE '%viral%' END THEN 'viral' WHEN CASE WHEN sig_3d2b950bfe02_r = 1 THEN sig_3d2b950bfe02 ELSE pathogenesis <> '' END THEN 'other' END",
+        "alias": "path_group",
+        "allowed": [
+          "bacterial",
+          "viral",
+          "other",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 23,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.032857142857142856
+      },
+      {
+        "expr_id": "312ef298a7815f39",
+        "sql": "CASE WHEN CASE WHEN sig_b8765cbbbe31_r = 1 THEN sig_b8765cbbbe31 ELSE LOWER(treatments) LIKE '%oral_medication%' END THEN 'oral_medication' ELSE 'other_treatment' END",
+        "alias": "treatment_group",
+        "allowed": [
+          "oral_medication",
+          "other_treatment"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 23,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.032857142857142856
+      },
+      {
+        "expr_id": "5746117d8886ae85",
+        "sql": "CASE WHEN CASE WHEN i.sig_7d09d1bfc636_r = 1 THEN i.sig_7d09d1bfc636 ELSE i.funding_sources <> '' END THEN 'funding_recorded' ELSE 'funding_unknown' END",
+        "alias": "funding_status",
+        "allowed": [
+          "funding_recorded",
+          "funding_unknown"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 10,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.014285714285714285
+      },
+      {
+        "expr_id": "4faf6d54db92256a",
+        "sql": "CASE WHEN CASE WHEN d.sig_b8765cbbbe31_r = 1 THEN d.sig_b8765cbbbe31 ELSE LOWER(d.treatments) LIKE '%oral_medication%' END THEN 'oral_treatment_disease' ELSE 'other_treatment_disease' END",
+        "alias": "treatment_group",
+        "allowed": [
+          "oral_treatment_disease",
+          "other_treatment_disease"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 2,
+        "n_witnesses": 3,
+        "freq": 2,
+        "amp": 1.0,
+        "score": 0.008571428571428572
+      },
+      {
+        "expr_id": "ecf24ecb668bb4a5",
+        "sql": "CASE WHEN CASE WHEN dr.sig_f1cf95689a2b_r = 1 THEN dr.sig_f1cf95689a2b ELSE dr.prescription_status LIKE '%prescription_only%' END THEN 'prescription_only' WHEN CASE WHEN dr.sig_08244f7aa9a2_r = 1 THEN dr.sig_08244f7aa9a2 ELSE dr.prescription_status <> '' END THEN 'other' END",
+        "alias": "rx_status",
+        "allowed": [
+          "prescription_only",
+          "other",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 2,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.002857142857142857
+      },
+      {
+        "expr_id": "97e6ce6b2ced38ce",
+        "sql": "CASE WHEN CASE WHEN d.sig_c49a6db77232_r = 1 THEN d.sig_c49a6db77232 ELSE LOWER(d.diagnostic_methods) LIKE '%clinical_evaluation%' END THEN 'clinical_evaluation' ELSE 'other_methods' END",
+        "alias": "dx_group",
+        "allowed": [
+          "clinical_evaluation",
+          "other_methods"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 2,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.002857142857142857
+      },
+      {
+        "expr_id": "63a318d0225c549f",
+        "sql": "CASE WHEN CASE WHEN sig_509ec6b6bb75_r = 1 THEN sig_509ec6b6bb75 ELSE LOWER(prognosis) LIKE '%high_mortality%' END THEN 'high_mortality' ELSE 'other_prognosis' END",
+        "alias": "prognosis_group",
+        "allowed": [
+          "high_mortality",
+          "other_prognosis"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 0,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.0
+      },
+      {
+        "expr_id": "d29ddd3f3b1cda28",
+        "sql": "CASE WHEN CASE WHEN sig_34c31417b01e_r = 1 THEN sig_34c31417b01e ELSE LOWER(preventive_measures) LIKE '%screening%' END THEN 'mentions_screening' ELSE 'other_prevention' END",
+        "alias": "prevention_group",
+        "allowed": [
+          "mentions_screening",
+          "other_prevention"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 0,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.0
+      },
+      {
+        "expr_id": "84847c39bcbe3230",
+        "sql": "CASE WHEN CASE WHEN sig_509ec6b6bb75_r = 1 THEN sig_509ec6b6bb75 ELSE LOWER(prognosis) LIKE '%high_mortality%' END THEN 'high_mortality' WHEN CASE WHEN sig_178df0b3b0b0_r = 1 THEN sig_178df0b3b0b0 ELSE LOWER(prognosis) LIKE '%chronic%' END THEN 'chronic' ELSE 'other' END",
+        "alias": "prognosis_group",
+        "allowed": [
+          "high_mortality",
+          "chronic",
+          "other"
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 24,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.03428571428571429
+      },
+      {
+        "expr_id": "e803015597e5c6a8",
+        "sql": "CASE WHEN CASE WHEN sig_fec3f723b4e1_r = 1 THEN sig_fec3f723b4e1 ELSE LOWER(diagnostic_methods) LIKE '%laboratory_test%' END THEN 'lab_test' WHEN CASE WHEN sig_8f6088ef6933_r = 1 THEN sig_8f6088ef6933 ELSE diagnostic_methods <> '' END THEN 'other_methods' END",
+        "alias": "dx_group",
+        "allowed": [
+          "lab_test",
+          "other_methods",
+          null
+        ],
+        "eligible": true,
+        "reason": "case_finite",
+        "n_queries": 1,
+        "n_witnesses": 24,
+        "freq": 1,
+        "amp": 1.0,
+        "score": 0.03428571428571429
+      }
+    ]
+  },
+  "changed_queries": [
+    "med_agg20:q0",
+    "med_agg20:q1",
+    "med_agg20:q2",
+    "med_agg20:q3",
+    "med_agg20:q4",
+    "med_agg20:q5",
+    "med_agg20:q6",
+    "med_agg20:q7",
+    "med_agg20:q8",
+    "med_agg20:q9",
+    "med_agg20:q10",
+    "med_agg20:q11",
+    "med_agg20:q12",
+    "med_agg20:q13",
+    "med_agg20:q14",
+    "med_agg20:q15",
+    "med_agg20:q16",
+    "med_agg20:q18",
+    "med_agg20:q19",
+    "med_groupby20:q0",
+    "med_groupby20:q1",
+    "med_groupby20:q2",
+    "med_groupby20:q3",
+    "med_groupby20:q4",
+    "med_groupby20:q5",
+    "med_groupby20:q6",
+    "med_groupby20:q7",
+    "med_groupby20:q8",
+    "med_groupby20:q9",
+    "med_groupby20:q13",
+    "med_groupby20:q14",
+    "med_groupby20:q18",
+    "med_groupby20:q19",
+    "med_join20:q3",
+    "med_filterjoin20:q1",
+    "med_filterjoin20:q2",
+    "med_filterjoin20:q4",
+    "med_filterjoin20:q5",
+    "med_multiagg20:q0",
+    "med_multiagg20:q1",
+    "med_multiagg20:q2",
+    "med_multiagg20:q3",
+    "med_multiagg20:q4",
+    "med_multiagg20:q5",
+    "med_multiagg20:q6",
+    "med_multiagg20:q16",
+    "med_multiagg20:q17"
+  ],
+  "n_changed_queries": 47,
+  "test_changed": [
+    "med_filterjoin20:q5",
+    "med_groupby20:q9",
+    "med_groupby20:q7",
+    "med_multiagg20:q17",
+    "med_agg20:q4",
+    "med_agg20:q11",
+    "med_agg20:q13",
+    "med_groupby20:q8",
+    "med_agg20:q3",
+    "med_agg20:q14",
+    "med_multiagg20:q2"
+  ],
+  "checksums_match_incumbent_base": true,
+  "incumbent_score": {
+    "mean_structure_f2": 0.4840707538075959,
+    "mean_cell_f1_at_0.20": 0.17845238095238097,
+    "mean_per_query_product": 0.12439887110939743,
+    "per_query": [
+      {
+        "query_id": "med_filterjoin20:q5",
+        "structure_f2": 0.2777777777777778,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q9",
+        "structure_f2": 0.5555555555555556,
+        "cell_f1_20": 0.3333333333333333,
+        "product": 0.18518518518518517
+      },
+      {
+        "query_id": "med_groupby20:q7",
+        "structure_f2": 0.7894736842105263,
+        "cell_f1_20": 0.28571428571428575,
+        "product": 0.22556390977443613
+      },
+      {
+        "query_id": "med_multiagg20:q8",
+        "structure_f2": 0.0,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q17",
+        "structure_f2": 1.0,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_agg20:q4",
+        "structure_f2": 1.0,
+        "cell_f1_20": 0.5,
+        "product": 0.5
+      },
+      {
+        "query_id": "med_join20:q15",
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q16",
+        "structure_f2": 0.0,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_agg20:q11",
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_filterjoin20:q10",
+        "structure_f2": 0.0,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_multiagg20:q7",
+        "structure_f2": 0.23809523809523808,
+        "cell_f1_20": 0.33333333333333337,
+        "product": 0.07936507936507937
+      },
+      {
+        "query_id": "med_agg20:q13",
+        "structure_f2": 1.0,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_agg20:q17",
+        "structure_f2": 0.0,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q8",
+        "structure_f2": 0.7142857142857142,
+        "cell_f1_20": 0.2,
+        "product": 0.14285714285714285
+      },
+      {
+        "query_id": "med_groupby20:q11",
+        "structure_f2": 0.0,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_groupby20:q15",
+        "structure_f2": 0.3846153846153846,
+        "cell_f1_20": 0.5,
+        "product": 0.1923076923076923
+      },
+      {
+        "query_id": "med_multiagg20:q15",
+        "structure_f2": 0.23809523809523808,
+        "cell_f1_20": 0.33333333333333337,
+        "product": 0.07936507936507937
+      },
+      {
+        "query_id": "med_agg20:q3",
+        "structure_f2": 0.7142857142857142,
+        "cell_f1_20": 0.0,
+        "product": 0.0
+      },
+      {
+        "query_id": "med_agg20:q14",
+        "structure_f2": 1.0,
+        "cell_f1_20": 0.5,
+        "product": 0.5
+      },
+      {
+        "query_id": "med_multiagg20:q2",
+        "structure_f2": 1.0,
+        "cell_f1_20": 0.5833333333333334,
+        "product": 0.5833333333333334
+      }
+    ]
+  },
+  "arm_score": {
+    "mean_structure_f2": 0.5216406035484983,
+    "mean_cell_f1_at_0.20": 0.19291666666666668,
+    "mean_per_query_product": 0.1443894647019647
+  },
+  "comparators": {
+    "incumbent": 0.12439887110939743,
+    "docetl": 0.16564255550190216,
+    "isolated_group_ceiling": 0.220496754707281,
+    "prior_stem_key_ceiling": 0.2355006105006105
+  },
+  "per_query": [
+    {
+      "query_id": "med_filterjoin20:q5",
+      "inc_f2": 0.2777777777777778,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 0.5263157894736842,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": true
+    },
+    {
+      "query_id": "med_groupby20:q9",
+      "inc_f2": 0.5555555555555556,
+      "inc_f1": 0.3333333333333333,
+      "inc_product": 0.18518518518518517,
+      "arm_f2": 0.5555555555555556,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": true
+    },
+    {
+      "query_id": "med_groupby20:q7",
+      "inc_f2": 0.7894736842105263,
+      "inc_f1": 0.28571428571428575,
+      "inc_product": 0.22556390977443613,
+      "arm_f2": 0.75,
+      "arm_f1": 0.125,
+      "arm_product": 0.09375,
+      "changed": true
+    },
+    {
+      "query_id": "med_multiagg20:q8",
+      "inc_f2": 0.0,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 0.0,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": false
+    },
+    {
+      "query_id": "med_multiagg20:q17",
+      "inc_f2": 1.0,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 1.0,
+      "arm_f1": 0.3333333333333333,
+      "arm_product": 0.3333333333333333,
+      "changed": true
+    },
+    {
+      "query_id": "med_agg20:q4",
+      "inc_f2": 1.0,
+      "inc_f1": 0.5,
+      "inc_product": 0.5,
+      "arm_f2": 0.9523809523809523,
+      "arm_f1": 0.22222222222222224,
+      "arm_product": 0.21164021164021166,
+      "changed": true
+    },
+    {
+      "query_id": "med_join20:q15",
+      "inc_f2": 0.3846153846153846,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 0.3846153846153846,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": false
+    },
+    {
+      "query_id": "med_filterjoin20:q16",
+      "inc_f2": 0.0,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 0.0,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": false
+    },
+    {
+      "query_id": "med_agg20:q11",
+      "inc_f2": 0.3846153846153846,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 0.9375,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": true
+    },
+    {
+      "query_id": "med_filterjoin20:q10",
+      "inc_f2": 0.0,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 0.0,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": false
+    },
+    {
+      "query_id": "med_multiagg20:q7",
+      "inc_f2": 0.23809523809523808,
+      "inc_f1": 0.33333333333333337,
+      "inc_product": 0.07936507936507937,
+      "arm_f2": 0.23809523809523808,
+      "arm_f1": 0.33333333333333337,
+      "arm_product": 0.07936507936507937,
+      "changed": false
+    },
+    {
+      "query_id": "med_agg20:q13",
+      "inc_f2": 1.0,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 1.0,
+      "arm_f1": 1.0,
+      "arm_product": 1.0,
+      "changed": true
+    },
+    {
+      "query_id": "med_agg20:q17",
+      "inc_f2": 0.0,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 0.0,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": false
+    },
+    {
+      "query_id": "med_groupby20:q8",
+      "inc_f2": 0.7142857142857142,
+      "inc_f1": 0.2,
+      "inc_product": 0.14285714285714285,
+      "arm_f2": 0.6666666666666666,
+      "arm_f1": 0.16666666666666666,
+      "arm_product": 0.1111111111111111,
+      "changed": true
+    },
+    {
+      "query_id": "med_groupby20:q11",
+      "inc_f2": 0.0,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 0.0,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": false
+    },
+    {
+      "query_id": "med_groupby20:q15",
+      "inc_f2": 0.3846153846153846,
+      "inc_f1": 0.5,
+      "inc_product": 0.1923076923076923,
+      "arm_f2": 0.3846153846153846,
+      "arm_f1": 0.5,
+      "arm_product": 0.1923076923076923,
+      "changed": false
+    },
+    {
+      "query_id": "med_multiagg20:q15",
+      "inc_f2": 0.23809523809523808,
+      "inc_f1": 0.33333333333333337,
+      "inc_product": 0.07936507936507937,
+      "arm_f2": 0.23809523809523808,
+      "arm_f1": 0.33333333333333337,
+      "arm_product": 0.07936507936507937,
+      "changed": false
+    },
+    {
+      "query_id": "med_agg20:q3",
+      "inc_f2": 0.7142857142857142,
+      "inc_f1": 0.0,
+      "inc_product": 0.0,
+      "arm_f2": 0.9375,
+      "arm_f1": 0.0,
+      "arm_product": 0.0,
+      "changed": true
+    },
+    {
+      "query_id": "med_agg20:q14",
+      "inc_f2": 1.0,
+      "inc_f1": 0.5,
+      "inc_product": 0.5,
+      "arm_f2": 0.9090909090909091,
+      "arm_f1": 0.4,
+      "arm_product": 0.36363636363636365,
+      "changed": true
+    },
+    {
+      "query_id": "med_multiagg20:q2",
+      "inc_f2": 1.0,
+      "inc_f1": 0.5833333333333334,
+      "inc_product": 0.5833333333333334,
+      "arm_f2": 0.9523809523809523,
+      "arm_f1": 0.4444444444444445,
+      "arm_product": 0.4232804232804233,
+      "changed": true
+    }
+  ],
+  "gold_label_accuracy": {
+    "gold_unique_keys": 529,
+    "gold_fill_writes": 837,
+    "arm_visible_writes": 258,
+    "overlap_keys": 134,
+    "overlap_match": 77,
+    "overlap_mismatch": 57,
+    "overlap_precision": 0.5746268656716418,
+    "arm_only": 124,
+    "gold_only": 395,
+    "gold_diff_keys_attempted": 286,
+    "gold_diff_keys_matched": 77,
+    "attempted_vs_gold_diff": {
+      "match": 77,
+      "mismatch": 209,
+      "no_gold_write": 360
+    }
+  },
+  "invariants": {
+    "checksums_match_incumbent_base": true,
+    "cohort_interference_rollbacks": 0,
+    "ineffective_rollbacks": 388,
+    "support_preservation": true,
+    "unrelated_bags_identical": true
+  }
+}

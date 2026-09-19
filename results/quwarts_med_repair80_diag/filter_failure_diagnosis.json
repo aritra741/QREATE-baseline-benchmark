@@ -1,0 +1,664 @@
+{
+  "n_empty": 35,
+  "empty_causes": {
+    "join": 5,
+    "filter": 12,
+    "filter_coercion": 17,
+    "group": 1
+  },
+  "n_filter_columns": 7,
+  "infeasible": [
+    {
+      "attribute": "disease.disease_type",
+      "n_queries": 8,
+      "samples": [
+        "Acne",
+        "Acquired brain injury",
+        "Acute bronchitis",
+        "acute myeloid leukemia",
+        "acute peripheral facial paralysis",
+        "Alcoholism",
+        "allergic reactions",
+        "Anxiety disorders",
+        "anxiety disorders",
+        "Arthritis",
+        "Asthma",
+        "asthma",
+        "atherosclerotic cardiovascular disease",
+        "autoimmune",
+        "Benign prostatic hyperplasia",
+        "Benign prostatic hypertrophy",
+        "bleeding diathesis",
+        "bloodborne",
+        "bone marrow transplant complication",
+        "bronchiolitis"
+      ]
+    },
+    {
+      "attribute": "drug.prescription_status",
+      "n_queries": 5,
+      "samples": [
+        "approved by the Food and Drug Administration (FDA)",
+        "approved in patients undergoing liver transplants",
+        "by doctor's prescription only",
+        "CIV",
+        "Class III scheduled drug",
+        "commonly prescribed",
+        "FDA approval for exenatide",
+        "FDA-approved for alcoholism treatment",
+        "intravenously or orally",
+        "may have negative interactions with other drugs",
+        "not FDA-approved",
+        "not paramount for herbal healthcare supplements",
+        "OTC",
+        "Over the counter",
+        "Over-the-counter",
+        "pharmaceutical controls (metformin and clomiphene citrate)",
+        "Pregnancy Category C",
+        "prescribed",
+        "Prescribed by a veterinarian for Lepto",
+        "prescribed by doctor"
+      ]
+    },
+    {
+      "attribute": "institution.research_fields",
+      "n_queries": 4,
+      "samples": [
+        "3D-printed model",
+        "Addiction",
+        "ADHD",
+        "ADHD treatment patterns",
+        "AIDS, HIV/AIDS, COVID-19, Multicriteria Decision-Making Techniques",
+        "Alcoholism treatment",
+        "Associate Research",
+        "automatic system for precise analysis of massive data in glass track detectors",
+        "basic biomedical research",
+        "behavior medicine",
+        "biological mass spectrometry",
+        "biomedical sciences, forensic science, biotechnology, developmental biology, graph theory",
+        "cancer",
+        "cancer care, oncology",
+        "cancer centers",
+        "cancer research",
+        "Cancer Therapeutics",
+        "cancer treatment",
+        "cancer, cardiovascular diseases, neurology",
+        "cancer, hair dyes, fatty liver, thyroid nodules"
+      ]
+    },
+    {
+      "attribute": "institution.institution_country",
+      "n_queries": 4,
+      "samples": [
+        "America, Australia, Egypt, Hong Kong, Iran, Italy, Turkey, United Kingdom, Venezuela",
+        "Argentina",
+        "Australia",
+        "Austria",
+        "Bangladesh",
+        "Belgium, Italy, Brazil",
+        "Canada",
+        "China",
+        "France",
+        "Grenada",
+        "Hong Kong",
+        "India",
+        "Ireland",
+        "Japan",
+        "Korea",
+        "Nepal",
+        "Netherlands",
+        "Singapore",
+        "South Africa",
+        "South Korea, USA, Japan"
+      ]
+    },
+    {
+      "attribute": "institution.institution_type",
+      "n_queries": 3,
+      "samples": [
+        "Academic hospital",
+        "Academic Medical Center",
+        "Albert Einstein College of Medicine, Montefiore",
+        "animal facility",
+        "behavioral healthcare and addiction treatment facility",
+        "biopharmaceutical company",
+        "CAMBRIDGE, Mass., MD Anderson Cancer Center",
+        "Cancer Center",
+        "Cancer Center, Research Institution",
+        "CDMO",
+        "Centre for Doctoral Training",
+        "clinic",
+        "Clinic",
+        "clinical trial sites, cancer centers",
+        "Cobb County Fire and Emergency Services",
+        "concierge medical practice",
+        "Dental clinic",
+        "Dental practice",
+        "Department of Otorhinolaryngology-Head and Neck Surgery",
+        "diagnostic company"
+      ]
+    },
+    {
+      "attribute": "disease.diagnostic_methods",
+      "n_queries": 1,
+      "samples": [
+        "99mTc-3,3-diphosphono-1,2-propanodicarboxylic acid (DPD) scintigraphy",
+        "advanced imaging techniques",
+        "angina, arrhythmia, big data analysis",
+        "antigen tests",
+        "Blood analysis",
+        "blood glucose monitoring",
+        "Blood pressure measurement",
+        "blood tests",
+        "capsule endoscopy",
+        "CAT scan",
+        "chest x-ray",
+        "Clinical samples for the rabies virus",
+        "complete physical examination",
+        "DSM-IV depression criteria",
+        "echocardiogram",
+        "EDSS",
+        "ELISA-F29 test",
+        "excessive thirst",
+        "exclusion of other medical causes of psychosis",
+        "eye examination"
+      ]
+    }
+  ],
+  "columns": [
+    {
+      "attribute": "disease.disease_type",
+      "query_ids": [
+        "med_filterjoin20:q15",
+        "med_groupby20:q10",
+        "med_join20:q17",
+        "med_filterjoin20:q9",
+        "med_multiagg20:q18",
+        "med_join20:q10",
+        "med_filterjoin20:q6",
+        "med_filterjoin20:q12"
+      ],
+      "predicate": "d.disease_type <> ''",
+      "literals": [
+        "",
+        "%infectious%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "Acne",
+        "Acquired brain injury",
+        "Acute bronchitis",
+        "acute myeloid leukemia",
+        "acute peripheral facial paralysis",
+        "Alcoholism",
+        "allergic reactions",
+        "Anxiety disorders",
+        "anxiety disorders",
+        "Arthritis",
+        "Asthma",
+        "asthma",
+        "atherosclerotic cardiovascular disease",
+        "autoimmune",
+        "Benign prostatic hyperplasia",
+        "Benign prostatic hypertrophy",
+        "bleeding diathesis",
+        "bloodborne",
+        "bone marrow transplant complication",
+        "bronchiolitis"
+      ],
+      "n_distinct": 102,
+      "n_digits": 1,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    },
+    {
+      "attribute": "drug.prescription_status",
+      "query_ids": [
+        "med_filterjoin20:q4",
+        "med_join20:q4",
+        "med_groupby20:q3",
+        "med_filterjoin20:q8",
+        "med_agg20:q6"
+      ],
+      "predicate": "prescription_status <> ''",
+      "literals": [
+        "",
+        "%prescription_only%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "approved by the Food and Drug Administration (FDA)",
+        "approved in patients undergoing liver transplants",
+        "by doctor's prescription only",
+        "CIV",
+        "Class III scheduled drug",
+        "commonly prescribed",
+        "FDA approval for exenatide",
+        "FDA-approved for alcoholism treatment",
+        "intravenously or orally",
+        "may have negative interactions with other drugs",
+        "not FDA-approved",
+        "not paramount for herbal healthcare supplements",
+        "OTC",
+        "Over the counter",
+        "Over-the-counter",
+        "pharmaceutical controls (metformin and clomiphene citrate)",
+        "Pregnancy Category C",
+        "prescribed",
+        "Prescribed by a veterinarian for Lepto",
+        "prescribed by doctor"
+      ],
+      "n_distinct": 36,
+      "n_digits": 0,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    },
+    {
+      "attribute": "institution.research_fields",
+      "query_ids": [
+        "med_groupby20:q17",
+        "med_join20:q19",
+        "med_filterjoin20:q17",
+        "med_multiagg20:q19"
+      ],
+      "predicate": "i.research_fields <> ''",
+      "literals": [
+        ""
+      ],
+      "expected_type": "string",
+      "samples": [
+        "3D-printed model",
+        "Addiction",
+        "ADHD",
+        "ADHD treatment patterns",
+        "AIDS, HIV/AIDS, COVID-19, Multicriteria Decision-Making Techniques",
+        "Alcoholism treatment",
+        "Associate Research",
+        "automatic system for precise analysis of massive data in glass track detectors",
+        "basic biomedical research",
+        "behavior medicine",
+        "biological mass spectrometry",
+        "biomedical sciences, forensic science, biotechnology, developmental biology, graph theory",
+        "cancer",
+        "cancer care, oncology",
+        "cancer centers",
+        "cancer research",
+        "Cancer Therapeutics",
+        "cancer treatment",
+        "cancer, cardiovascular diseases, neurology",
+        "cancer, hair dyes, fatty liver, thyroid nodules"
+      ],
+      "n_distinct": 139,
+      "n_digits": 6,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    },
+    {
+      "attribute": "disease.treatments",
+      "query_ids": [
+        "med_join20:q11",
+        "med_filterjoin20:q7",
+        "med_filterjoin20:q0",
+        "med_filterjoin20:q18"
+      ],
+      "predicate": "d.treatments <> ''",
+      "literals": [
+        "",
+        "%oral_medication%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "acetaminophen (paracetamol)",
+        "acitretin",
+        "ADHD medication",
+        "AHSCT",
+        "AK112 + olaparib",
+        "Alpha-blockers",
+        "Anemia in Chronic Renal Failure",
+        "Angioplasty",
+        "angioplasty, bypass surgery",
+        "anti-depressant medication",
+        "Anti-rabies vaccines",
+        "antibacterials",
+        "antibiotics",
+        "Antibiotics for Lepto",
+        "antidepressants",
+        "antigen tests",
+        "antihistamines",
+        "Antihypertensives",
+        "antipsychotic medication",
+        "apipuncture"
+      ],
+      "n_distinct": 121,
+      "n_digits": 7,
+      "n_units": 3,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "unit",
+      "compatible_actions": [
+        "extract_unit_and_magnitude"
+      ]
+    },
+    {
+      "attribute": "institution.institution_country",
+      "query_ids": [
+        "med_filterjoin20:q14",
+        "med_join20:q18",
+        "med_multiagg20:q13",
+        "med_join20:q14"
+      ],
+      "predicate": "i.institution_country <> ''",
+      "literals": [
+        ""
+      ],
+      "expected_type": "string",
+      "samples": [
+        "America, Australia, Egypt, Hong Kong, Iran, Italy, Turkey, United Kingdom, Venezuela",
+        "Argentina",
+        "Australia",
+        "Austria",
+        "Bangladesh",
+        "Belgium, Italy, Brazil",
+        "Canada",
+        "China",
+        "France",
+        "Grenada",
+        "Hong Kong",
+        "India",
+        "Ireland",
+        "Japan",
+        "Korea",
+        "Nepal",
+        "Netherlands",
+        "Singapore",
+        "South Africa",
+        "South Korea, USA, Japan"
+      ],
+      "n_distinct": 30,
+      "n_digits": 0,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    },
+    {
+      "attribute": "institution.institution_type",
+      "query_ids": [
+        "med_multiagg20:q14",
+        "med_filterjoin20:q19",
+        "med_groupby20:q16"
+      ],
+      "predicate": "i.institution_type <> ''",
+      "literals": [
+        "",
+        "%university%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "Academic hospital",
+        "Academic Medical Center",
+        "Albert Einstein College of Medicine, Montefiore",
+        "animal facility",
+        "behavioral healthcare and addiction treatment facility",
+        "biopharmaceutical company",
+        "CAMBRIDGE, Mass., MD Anderson Cancer Center",
+        "Cancer Center",
+        "Cancer Center, Research Institution",
+        "CDMO",
+        "Centre for Doctoral Training",
+        "clinic",
+        "Clinic",
+        "clinical trial sites, cancer centers",
+        "Cobb County Fire and Emergency Services",
+        "concierge medical practice",
+        "Dental clinic",
+        "Dental practice",
+        "Department of Otorhinolaryngology-Head and Neck Surgery",
+        "diagnostic company"
+      ],
+      "n_distinct": 103,
+      "n_digits": 0,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    },
+    {
+      "attribute": "disease.diagnostic_methods",
+      "query_ids": [
+        "med_filterjoin20:q3"
+      ],
+      "predicate": "LOWER(diagnostic_methods) LIKE '%clinical_evaluation%'",
+      "literals": [
+        "%clinical_evaluation%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "99mTc-3,3-diphosphono-1,2-propanodicarboxylic acid (DPD) scintigraphy",
+        "advanced imaging techniques",
+        "angina, arrhythmia, big data analysis",
+        "antigen tests",
+        "Blood analysis",
+        "blood glucose monitoring",
+        "Blood pressure measurement",
+        "blood tests",
+        "capsule endoscopy",
+        "CAT scan",
+        "chest x-ray",
+        "Clinical samples for the rabies virus",
+        "complete physical examination",
+        "DSM-IV depression criteria",
+        "echocardiogram",
+        "EDSS",
+        "ELISA-F29 test",
+        "excessive thirst",
+        "exclusion of other medical causes of psychosis",
+        "eye examination"
+      ],
+      "n_distinct": 68,
+      "n_digits": 6,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    }
+  ],
+  "worst_three": [
+    {
+      "attribute": "disease.disease_type",
+      "query_ids": [
+        "med_filterjoin20:q15",
+        "med_groupby20:q10",
+        "med_join20:q17",
+        "med_filterjoin20:q9",
+        "med_multiagg20:q18",
+        "med_join20:q10",
+        "med_filterjoin20:q6",
+        "med_filterjoin20:q12"
+      ],
+      "predicate": "d.disease_type <> ''",
+      "literals": [
+        "",
+        "%infectious%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "Acne",
+        "Acquired brain injury",
+        "Acute bronchitis",
+        "acute myeloid leukemia",
+        "acute peripheral facial paralysis",
+        "Alcoholism",
+        "allergic reactions",
+        "Anxiety disorders",
+        "anxiety disorders",
+        "Arthritis",
+        "Asthma",
+        "asthma",
+        "atherosclerotic cardiovascular disease",
+        "autoimmune",
+        "Benign prostatic hyperplasia",
+        "Benign prostatic hypertrophy",
+        "bleeding diathesis",
+        "bloodborne",
+        "bone marrow transplant complication",
+        "bronchiolitis"
+      ],
+      "n_distinct": 102,
+      "n_digits": 1,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    },
+    {
+      "attribute": "drug.prescription_status",
+      "query_ids": [
+        "med_filterjoin20:q4",
+        "med_join20:q4",
+        "med_groupby20:q3",
+        "med_filterjoin20:q8",
+        "med_agg20:q6"
+      ],
+      "predicate": "prescription_status <> ''",
+      "literals": [
+        "",
+        "%prescription_only%"
+      ],
+      "expected_type": "string",
+      "samples": [
+        "approved by the Food and Drug Administration (FDA)",
+        "approved in patients undergoing liver transplants",
+        "by doctor's prescription only",
+        "CIV",
+        "Class III scheduled drug",
+        "commonly prescribed",
+        "FDA approval for exenatide",
+        "FDA-approved for alcoholism treatment",
+        "intravenously or orally",
+        "may have negative interactions with other drugs",
+        "not FDA-approved",
+        "not paramount for herbal healthcare supplements",
+        "OTC",
+        "Over the counter",
+        "Over-the-counter",
+        "pharmaceutical controls (metformin and clomiphene citrate)",
+        "Pregnancy Category C",
+        "prescribed",
+        "Prescribed by a veterinarian for Lepto",
+        "prescribed by doctor"
+      ],
+      "n_distinct": 36,
+      "n_digits": 0,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    },
+    {
+      "attribute": "institution.research_fields",
+      "query_ids": [
+        "med_groupby20:q17",
+        "med_join20:q19",
+        "med_filterjoin20:q17",
+        "med_multiagg20:q19"
+      ],
+      "predicate": "i.research_fields <> ''",
+      "literals": [
+        ""
+      ],
+      "expected_type": "string",
+      "samples": [
+        "3D-printed model",
+        "Addiction",
+        "ADHD",
+        "ADHD treatment patterns",
+        "AIDS, HIV/AIDS, COVID-19, Multicriteria Decision-Making Techniques",
+        "Alcoholism treatment",
+        "Associate Research",
+        "automatic system for precise analysis of massive data in glass track detectors",
+        "basic biomedical research",
+        "behavior medicine",
+        "biological mass spectrometry",
+        "biomedical sciences, forensic science, biotechnology, developmental biology, graph theory",
+        "cancer",
+        "cancer care, oncology",
+        "cancer centers",
+        "cancer research",
+        "Cancer Therapeutics",
+        "cancer treatment",
+        "cancer, cardiovascular diseases, neurology",
+        "cancer, hair dyes, fatty liver, thyroid nodules"
+      ],
+      "n_distinct": 139,
+      "n_digits": 6,
+      "n_units": 0,
+      "n_ranges": 0,
+      "n_boolean": 0,
+      "n_absence": 0,
+      "n_literal_hits": 0,
+      "has_sql_bands": false,
+      "shape": "infeasible",
+      "compatible_actions": [
+        "infeasible_representation"
+      ]
+    }
+  ]
+}

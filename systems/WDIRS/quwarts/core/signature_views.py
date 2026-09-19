@@ -8,7 +8,14 @@ from typing import Any, Iterable
 
 from sqlglot import exp
 
-from quwarts.core.query_witness import JoinSpec, WitnessSpec, compile_witness_spec, group_sig_names
+from quwarts.core.query_witness import (
+    JoinSpec,
+    WitnessSpec,
+    compile_witness_spec,
+    group_owner_table,
+    group_sig_names,
+    join_signature_id,
+)
 from quwarts.core.signature import table_aliases
 from quwarts.core.workload import parse_sql
 
@@ -52,11 +59,14 @@ def ensure_group_columns(conn: sqlite3.Connection, specs: Iterable[WitnessSpec])
     added: list[tuple[str, str]] = []
     names = _tables(conn)
     for spec in specs:
-        table = names.get(spec.primary.lower())
-        if table is None:
-            continue
-        have = _columns(conn, table)
         for expr in spec.group_sql:
+            owner = group_owner_table(expr, spec)
+            if owner is None:
+                continue
+            table = names.get(owner.lower())
+            if table is None:
+                continue
+            have = _columns(conn, table)
             sig, resolved = group_sig_names(expr)
             if sig not in have:
                 conn.execute(f"ALTER TABLE {_quote(table)} ADD COLUMN {_quote(sig)} TEXT")
@@ -142,6 +152,22 @@ def _has_edges(sqlite_path: str | Path) -> bool:
         conn.close()
 
 
+def _positive_join_ids(sqlite_path: str | Path) -> set[str]:
+    conn = sqlite3.connect(str(sqlite_path))
+    try:
+        if "signature_edges" not in _tables(conn):
+            return set()
+        return {
+            str(row[0])
+            for row in conn.execute(
+                "SELECT DISTINCT join_signature_id FROM signature_edges "
+                "WHERE resolved = 1 AND truth = 1"
+            )
+        }
+    finally:
+        conn.close()
+
+
 def _group_columns(sqlite_path: str | Path) -> dict[str, set[str]]:
     conn = sqlite3.connect(str(sqlite_path))
     try:
@@ -184,15 +210,30 @@ def rewrite_group_sql(sql: str, sqlite_path: str | Path) -> str:
     changed = False
 
     def _owner(expr: exp.Expression) -> tuple[str, str] | None:
+        tables: list[str] = []
+        quals: list[str] = []
         for col in expr.find_all(exp.Column):
+            if (col.name or "").lower() in skip and not col.table:
+                continue
             raw = (col.table or "").lower()
-            table = aliases.get(raw, raw or (default or ""))
-            if table and table in available:
-                return table, raw or table
-        table = default or ""
-        if table in available:
-            return table, next((alias for alias, name in aliases.items() if name == table), table)
-        return None
+            table = aliases.get(raw, raw or "")
+            if not table:
+                continue
+            tables.append(table)
+            quals.append(raw or table)
+        uniq = list(dict.fromkeys(tables))
+        if not uniq:
+            if default and default in available and len(set(aliases.values())) <= 1:
+                return default, next(
+                    (alias for alias, name in aliases.items() if name == default), default
+                )
+            return None
+        if len(uniq) != 1:
+            return None
+        table = uniq[0]
+        if table not in available:
+            return None
+        return table, quals[0] if quals else table
 
     def _wrap(expr: exp.Expression) -> exp.Expression:
         nonlocal changed
@@ -228,14 +269,20 @@ def rewrite_group_sql(sql: str, sqlite_path: str | Path) -> str:
     return tree.sql(dialect="sqlite") if changed else sql
 
 
-def rewrite_edge_sql(sql: str, sqlite_path: str | Path) -> str:
+def rewrite_edge_sql(
+    sql: str,
+    sqlite_path: str | Path,
+    joins: Iterable[JoinSpec] | None = None,
+) -> str:
     if not _has_edges(sqlite_path):
         return sql
-    try:
-        spec = compile_witness_spec("rewrite", sql)
-    except Exception:
-        return sql
-    if not spec.joins:
+    items = list(joins) if joins is not None else []
+    if not items:
+        try:
+            items = list(compile_witness_spec("rewrite", sql).joins)
+        except Exception:
+            return sql
+    if not items:
         return sql
     try:
         tree = parse_sql(sql)
@@ -244,18 +291,35 @@ def rewrite_edge_sql(sql: str, sqlite_path: str | Path) -> str:
     joins = list(tree.find_all(exp.Join))
     if not joins:
         return sql
-    by_on = {_norm_join(item.on_sql): item for item in spec.joins}
+    by_id = {item.join_id: item for item in items}
+    by_alias = {(item.left_alias, item.right_alias): item for item in items}
     changed = False
-    for join in joins:
-        on = join.args.get("on")
-        if on is None:
+    prior: exp.Table | None = None
+    aliases = table_aliases(tree)
+    for table in tree.find_all(exp.Table):
+        if prior is None:
+            prior = table
             continue
-        on_sql = on.sql(dialect="sqlite")
-        item = by_on.get(_norm_join(on_sql))
+        parent = table.parent
+        while parent is not None and not isinstance(parent, exp.Join):
+            parent = parent.parent
+        on = parent.args.get("on") if isinstance(parent, exp.Join) else None
+        if on is None or prior is None:
+            prior = table
+            continue
+        left_alias = (prior.alias or prior.name or "").lower()
+        right_alias = (table.alias or table.name or "").lower()
+        left_table = aliases.get(left_alias, (prior.name or "").lower())
+        right_table = aliases.get(right_alias, (table.name or "").lower())
+        item = by_id.get(join_signature_id(left_table, right_table, left_alias, right_alias, on))
+        if item is None:
+            item = by_alias.get((left_alias, right_alias))
+        prior = table
         if item is None:
             continue
-        join.set("on", _edge_predicate(item, on.copy()))
-        changed = True
+        if isinstance(parent, exp.Join):
+            parent.set("on", _edge_predicate(item, on.copy()))
+            changed = True
     return tree.sql(dialect="sqlite") if changed else sql
 
 
@@ -265,19 +329,16 @@ def _norm_join(sql: str) -> str:
 
 def _edge_predicate(item: JoinSpec, original: exp.Expression) -> exp.Expression:
     join_id = item.join_id.replace("'", "''")
-    left = f'"{item.left_alias}"."rowid"'
-    right = f'"{item.right_alias}"."rowid"'
-    lookup = (
-        f"SELECT {{col}} FROM signature_edges "
-        f"WHERE join_signature_id = '{join_id}' AND left_rowid = {left} "
-        f"AND right_rowid = {right}"
+    left = f'"{item.left_alias}".rowid'
+    right = f'"{item.right_alias}".rowid'
+    exists = (
+        f"EXISTS (SELECT 1 FROM signature_edges se "
+        f"WHERE se.join_signature_id = '{join_id}' "
+        f"AND se.left_rowid = {left} "
+        f"AND se.right_rowid = {right} "
+        f"AND se.resolved = 1 AND se.truth = 1)"
     )
-    wrapped = (
-        f"CASE WHEN ({lookup.format(col='resolved')}) = 1 "
-        f"THEN ({lookup.format(col='truth')}) "
-        f"ELSE ({original.sql(dialect='sqlite')}) END"
-    )
-    return parse_sql(wrapped)
+    return parse_sql(f"({original.sql(dialect='sqlite')}) OR ({exists})")
 
 
 def rewrite_signature_views(sql: str, sqlite_path: str | Path) -> str:

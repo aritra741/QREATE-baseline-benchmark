@@ -1,0 +1,935 @@
+{
+  "step": 0,
+  "n_queries": 99,
+  "n_train": 79,
+  "n_test": 20,
+  "signature_eligible": [
+    "disease.diagnostic_methods",
+    "disease.disease_type",
+    "disease.pathogenesis",
+    "disease.preventive_measures",
+    "disease.prognosis",
+    "disease.quality_of_life_impact",
+    "disease.treatments",
+    "drug.administration_route",
+    "drug.manufacturer",
+    "drug.mechanism_of_action",
+    "drug.pharmaceutical_form",
+    "drug.prescription_status",
+    "drug.storage_conditions",
+    "drug.unsuitable_population",
+    "institution.funding_sources",
+    "institution.institution_country",
+    "institution.institution_type",
+    "institution.international_collaboration",
+    "institution.key_technologies",
+    "institution.research_fields"
+  ],
+  "full_value_required": [
+    "disease.disease_name",
+    "disease.id",
+    "drug.disease_name",
+    "drug.id",
+    "institution.id",
+    "institution.research_diseases"
+  ],
+  "usages": {
+    "disease.diagnostic_methods": [
+      "case_condition",
+      "eq_literal",
+      "like_literal"
+    ],
+    "disease.disease_name": [
+      "equijoin",
+      "var_compare"
+    ],
+    "disease.disease_type": [
+      "case_condition",
+      "eq_literal",
+      "like_literal"
+    ],
+    "disease.id": [
+      "unclassified"
+    ],
+    "disease.pathogenesis": [
+      "case_condition",
+      "eq_literal"
+    ],
+    "disease.preventive_measures": [
+      "case_condition",
+      "eq_literal"
+    ],
+    "disease.prognosis": [
+      "case_condition",
+      "eq_literal"
+    ],
+    "disease.quality_of_life_impact": [
+      "case_condition",
+      "eq_literal"
+    ],
+    "disease.treatments": [
+      "case_condition",
+      "eq_literal",
+      "like_literal"
+    ],
+    "drug.administration_route": [
+      "case_condition",
+      "eq_literal",
+      "like_literal"
+    ],
+    "drug.disease_name": [
+      "equijoin",
+      "var_compare"
+    ],
+    "drug.id": [
+      "cmp_literal",
+      "unclassified"
+    ],
+    "drug.manufacturer": [
+      "case_condition",
+      "eq_literal"
+    ],
+    "drug.mechanism_of_action": [
+      "case_condition"
+    ],
+    "drug.pharmaceutical_form": [
+      "case_condition",
+      "eq_literal",
+      "like_literal"
+    ],
+    "drug.prescription_status": [
+      "case_condition",
+      "eq_literal",
+      "like_literal"
+    ],
+    "drug.storage_conditions": [
+      "case_condition",
+      "eq_literal"
+    ],
+    "drug.unsuitable_population": [
+      "case_condition",
+      "eq_literal"
+    ],
+    "institution.funding_sources": [
+      "case_condition"
+    ],
+    "institution.id": [
+      "unclassified"
+    ],
+    "institution.institution_country": [
+      "case_condition",
+      "eq_literal",
+      "like_literal"
+    ],
+    "institution.institution_type": [
+      "case_condition",
+      "eq_literal",
+      "like_literal"
+    ],
+    "institution.international_collaboration": [
+      "case_condition"
+    ],
+    "institution.key_technologies": [
+      "case_condition"
+    ],
+    "institution.research_diseases": [
+      "equijoin",
+      "var_compare"
+    ],
+    "institution.research_fields": [
+      "case_condition",
+      "eq_literal"
+    ]
+  },
+  "gate_vocab": {
+    "disease_type": "signature_eligible",
+    "research_fields": "signature_eligible",
+    "prescription_status": "signature_eligible",
+    "institution_type": "signature_eligible",
+    "administration_route": "signature_eligible",
+    "pharmaceutical_form": "signature_eligible"
+  },
+  "gate_pass": true,
+  "step1": {
+    "n_predicates_q": 55,
+    "n_predicates_train": 50,
+    "raw_eligible_occurrences": 551,
+    "dedup_ratio_unique_over_raw": 0.0998185117967332,
+    "reuse_1_minus_unique_over_raw": 0.9001814882032668,
+    "per_attribute": {
+      "disease.diagnostic_methods": {
+        "unique_predicates": 4,
+        "raw_occurrences": 16,
+        "dedup_ratio": 0.25
+      },
+      "disease.disease_type": {
+        "unique_predicates": 5,
+        "raw_occurrences": 120,
+        "dedup_ratio": 0.041666666666666664
+      },
+      "disease.pathogenesis": {
+        "unique_predicates": 5,
+        "raw_occurrences": 11,
+        "dedup_ratio": 0.45454545454545453
+      },
+      "disease.preventive_measures": {
+        "unique_predicates": 2,
+        "raw_occurrences": 5,
+        "dedup_ratio": 0.4
+      },
+      "disease.prognosis": {
+        "unique_predicates": 3,
+        "raw_occurrences": 17,
+        "dedup_ratio": 0.17647058823529413
+      },
+      "disease.quality_of_life_impact": {
+        "unique_predicates": 2,
+        "raw_occurrences": 4,
+        "dedup_ratio": 0.5
+      },
+      "disease.treatments": {
+        "unique_predicates": 4,
+        "raw_occurrences": 30,
+        "dedup_ratio": 0.13333333333333333
+      },
+      "drug.administration_route": {
+        "unique_predicates": 4,
+        "raw_occurrences": 51,
+        "dedup_ratio": 0.0784313725490196
+      },
+      "drug.manufacturer": {
+        "unique_predicates": 1,
+        "raw_occurrences": 6,
+        "dedup_ratio": 0.16666666666666666
+      },
+      "drug.mechanism_of_action": {
+        "unique_predicates": 1,
+        "raw_occurrences": 1,
+        "dedup_ratio": 1.0
+      },
+      "drug.pharmaceutical_form": {
+        "unique_predicates": 4,
+        "raw_occurrences": 66,
+        "dedup_ratio": 0.06060606060606061
+      },
+      "drug.prescription_status": {
+        "unique_predicates": 2,
+        "raw_occurrences": 15,
+        "dedup_ratio": 0.13333333333333333
+      },
+      "drug.storage_conditions": {
+        "unique_predicates": 2,
+        "raw_occurrences": 3,
+        "dedup_ratio": 0.6666666666666666
+      },
+      "drug.unsuitable_population": {
+        "unique_predicates": 2,
+        "raw_occurrences": 3,
+        "dedup_ratio": 0.6666666666666666
+      },
+      "institution.funding_sources": {
+        "unique_predicates": 1,
+        "raw_occurrences": 3,
+        "dedup_ratio": 0.3333333333333333
+      },
+      "institution.institution_country": {
+        "unique_predicates": 2,
+        "raw_occurrences": 50,
+        "dedup_ratio": 0.04
+      },
+      "institution.institution_type": {
+        "unique_predicates": 3,
+        "raw_occurrences": 55,
+        "dedup_ratio": 0.05454545454545454
+      },
+      "institution.international_collaboration": {
+        "unique_predicates": 1,
+        "raw_occurrences": 3,
+        "dedup_ratio": 0.3333333333333333
+      },
+      "institution.key_technologies": {
+        "unique_predicates": 1,
+        "raw_occurrences": 1,
+        "dedup_ratio": 1.0
+      },
+      "institution.research_fields": {
+        "unique_predicates": 6,
+        "raw_occurrences": 91,
+        "dedup_ratio": 0.06593406593406594
+      }
+    },
+    "predicates": [
+      {
+        "pred_id": "8f6088ef6933",
+        "sig_name": "sig_8f6088ef6933",
+        "attribute": "disease.diagnostic_methods",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 6,
+        "raw_occurrences": 9,
+        "bare_condition_sql": "diagnostic_methods <> ''"
+      },
+      {
+        "pred_id": "c49a6db77232",
+        "sig_name": "sig_c49a6db77232",
+        "attribute": "disease.diagnostic_methods",
+        "operator": "LIKE",
+        "literal": "%clinical_evaluation%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 5,
+        "raw_occurrences": 5,
+        "bare_condition_sql": "LOWER(diagnostic_methods) LIKE '%clinical_evaluation%'"
+      },
+      {
+        "pred_id": "210ae60cbab3",
+        "sig_name": "sig_210ae60cbab3",
+        "attribute": "disease.diagnostic_methods",
+        "operator": "LIKE",
+        "literal": "%imaging%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(diagnostic_methods) LIKE '%imaging%'"
+      },
+      {
+        "pred_id": "fec3f723b4e1",
+        "sig_name": "sig_fec3f723b4e1",
+        "attribute": "disease.diagnostic_methods",
+        "operator": "LIKE",
+        "literal": "%laboratory_test%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(diagnostic_methods) LIKE '%laboratory_test%'"
+      },
+      {
+        "pred_id": "3092e90e517f",
+        "sig_name": "sig_3092e90e517f",
+        "attribute": "disease.disease_type",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 19,
+        "raw_occurrences": 38,
+        "bare_condition_sql": "disease_type <> ''"
+      },
+      {
+        "pred_id": "b28ac76e087d",
+        "sig_name": "sig_b28ac76e087d",
+        "attribute": "disease.disease_type",
+        "operator": "LIKE",
+        "literal": "%infectious%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 24,
+        "raw_occurrences": 24,
+        "bare_condition_sql": "LOWER(disease_type) LIKE '%infectious%'"
+      },
+      {
+        "pred_id": "287157291272",
+        "sig_name": "sig_287157291272",
+        "attribute": "disease.disease_type",
+        "operator": "LIKE",
+        "literal": "%inflammatory%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 19,
+        "raw_occurrences": 19,
+        "bare_condition_sql": "LOWER(disease_type) LIKE '%inflammatory%'"
+      },
+      {
+        "pred_id": "e5712afe1b87",
+        "sig_name": "sig_e5712afe1b87",
+        "attribute": "disease.disease_type",
+        "operator": "LIKE",
+        "literal": "%neoplastic%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 20,
+        "raw_occurrences": 20,
+        "bare_condition_sql": "LOWER(disease_type) LIKE '%neoplastic%'"
+      },
+      {
+        "pred_id": "9b426785d07a",
+        "sig_name": "sig_9b426785d07a",
+        "attribute": "disease.disease_type",
+        "operator": "LIKE",
+        "literal": "%psychiatric%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 19,
+        "raw_occurrences": 19,
+        "bare_condition_sql": "LOWER(disease_type) LIKE '%psychiatric%'"
+      },
+      {
+        "pred_id": "3d2b950bfe02",
+        "sig_name": "sig_3d2b950bfe02",
+        "attribute": "disease.pathogenesis",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 3,
+        "raw_occurrences": 6,
+        "bare_condition_sql": "pathogenesis <> ''"
+      },
+      {
+        "pred_id": "c3b34b383475",
+        "sig_name": "sig_c3b34b383475",
+        "attribute": "disease.pathogenesis",
+        "operator": "LIKE",
+        "literal": "%bacterial%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(pathogenesis) LIKE '%bacterial%'"
+      },
+      {
+        "pred_id": "cc4954de6a01",
+        "sig_name": "sig_cc4954de6a01",
+        "attribute": "disease.pathogenesis",
+        "operator": "LIKE",
+        "literal": "%infectious%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 2,
+        "raw_occurrences": 2,
+        "bare_condition_sql": "LOWER(pathogenesis) LIKE '%infectious%'"
+      },
+      {
+        "pred_id": "3669a404526c",
+        "sig_name": "sig_3669a404526c",
+        "attribute": "disease.pathogenesis",
+        "operator": "LIKE",
+        "literal": "%inflammatory%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(pathogenesis) LIKE '%inflammatory%'"
+      },
+      {
+        "pred_id": "32543ffa7fda",
+        "sig_name": "sig_32543ffa7fda",
+        "attribute": "disease.pathogenesis",
+        "operator": "LIKE",
+        "literal": "%viral%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(pathogenesis) LIKE '%viral%'"
+      },
+      {
+        "pred_id": "dd2acd0d7a8f",
+        "sig_name": "sig_dd2acd0d7a8f",
+        "attribute": "disease.preventive_measures",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 2,
+        "raw_occurrences": 3,
+        "bare_condition_sql": "preventive_measures <> ''"
+      },
+      {
+        "pred_id": "34c31417b01e",
+        "sig_name": "sig_34c31417b01e",
+        "attribute": "disease.preventive_measures",
+        "operator": "LIKE",
+        "literal": "%screening%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 2,
+        "raw_occurrences": 2,
+        "bare_condition_sql": "LOWER(preventive_measures) LIKE '%screening%'"
+      },
+      {
+        "pred_id": "1ea3591105f3",
+        "sig_name": "sig_1ea3591105f3",
+        "attribute": "disease.prognosis",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 7,
+        "raw_occurrences": 10,
+        "bare_condition_sql": "prognosis <> ''"
+      },
+      {
+        "pred_id": "178df0b3b0b0",
+        "sig_name": "sig_178df0b3b0b0",
+        "attribute": "disease.prognosis",
+        "operator": "LIKE",
+        "literal": "%chronic%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 3,
+        "raw_occurrences": 3,
+        "bare_condition_sql": "LOWER(prognosis) LIKE '%chronic%'"
+      },
+      {
+        "pred_id": "509ec6b6bb75",
+        "sig_name": "sig_509ec6b6bb75",
+        "attribute": "disease.prognosis",
+        "operator": "LIKE",
+        "literal": "%high_mortality%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 4,
+        "raw_occurrences": 4,
+        "bare_condition_sql": "LOWER(prognosis) LIKE '%high_mortality%'"
+      },
+      {
+        "pred_id": "671eb3a1829a",
+        "sig_name": "sig_671eb3a1829a",
+        "attribute": "disease.quality_of_life_impact",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 2,
+        "raw_occurrences": 3,
+        "bare_condition_sql": "quality_of_life_impact <> ''"
+      },
+      {
+        "pred_id": "532022ea8210",
+        "sig_name": "sig_532022ea8210",
+        "attribute": "disease.quality_of_life_impact",
+        "operator": "LIKE",
+        "literal": "%quality_of_life_decline%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(quality_of_life_impact) LIKE '%quality_of_life_decline%'"
+      },
+      {
+        "pred_id": "4eee3fff55d5",
+        "sig_name": "sig_4eee3fff55d5",
+        "attribute": "disease.treatments",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 9,
+        "raw_occurrences": 11,
+        "bare_condition_sql": "treatments <> ''"
+      },
+      {
+        "pred_id": "3d1b0ae2f063",
+        "sig_name": "sig_3d1b0ae2f063",
+        "attribute": "disease.treatments",
+        "operator": "LIKE",
+        "literal": "%injection%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 3,
+        "raw_occurrences": 3,
+        "bare_condition_sql": "LOWER(treatments) LIKE '%injection%'"
+      },
+      {
+        "pred_id": "b8765cbbbe31",
+        "sig_name": "sig_b8765cbbbe31",
+        "attribute": "disease.treatments",
+        "operator": "LIKE",
+        "literal": "%oral_medication%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 15,
+        "raw_occurrences": 15,
+        "bare_condition_sql": "LOWER(treatments) LIKE '%oral_medication%'"
+      },
+      {
+        "pred_id": "ff15bb2d7635",
+        "sig_name": "sig_ff15bb2d7635",
+        "attribute": "disease.treatments",
+        "operator": "LIKE",
+        "literal": "%surgery%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(treatments) LIKE '%surgery%'"
+      },
+      {
+        "pred_id": "f3544394e3ce",
+        "sig_name": "sig_f3544394e3ce",
+        "attribute": "drug.administration_route",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 14,
+        "raw_occurrences": 28,
+        "bare_condition_sql": "administration_route <> ''"
+      },
+      {
+        "pred_id": "e0118bdd3969",
+        "sig_name": "sig_e0118bdd3969",
+        "attribute": "drug.administration_route",
+        "operator": "LIKE",
+        "literal": "%intravenous%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(administration_route) LIKE '%intravenous%'"
+      },
+      {
+        "pred_id": "82b496f01918",
+        "sig_name": "sig_82b496f01918",
+        "attribute": "drug.administration_route",
+        "operator": "LIKE",
+        "literal": "%oral%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 21,
+        "raw_occurrences": 21,
+        "bare_condition_sql": "LOWER(administration_route) LIKE '%oral%'"
+      },
+      {
+        "pred_id": "f1a7e74af468",
+        "sig_name": "sig_f1a7e74af468",
+        "attribute": "drug.administration_route",
+        "operator": "LIKE",
+        "literal": "%subcutaneous%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(administration_route) LIKE '%subcutaneous%'"
+      },
+      {
+        "pred_id": "6ff679973fdd",
+        "sig_name": "sig_6ff679973fdd",
+        "attribute": "drug.manufacturer",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 6,
+        "raw_occurrences": 6,
+        "bare_condition_sql": "manufacturer <> ''"
+      },
+      {
+        "pred_id": "660b3095778d",
+        "sig_name": "sig_660b3095778d",
+        "attribute": "drug.mechanism_of_action",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "mechanism_of_action <> ''"
+      },
+      {
+        "pred_id": "4073d2d81e57",
+        "sig_name": "sig_4073d2d81e57",
+        "attribute": "drug.pharmaceutical_form",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 13,
+        "raw_occurrences": 25,
+        "bare_condition_sql": "pharmaceutical_form <> ''"
+      },
+      {
+        "pred_id": "2f8164f5e0d4",
+        "sig_name": "sig_2f8164f5e0d4",
+        "attribute": "drug.pharmaceutical_form",
+        "operator": "LIKE",
+        "literal": "%capsule%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 12,
+        "raw_occurrences": 12,
+        "bare_condition_sql": "LOWER(pharmaceutical_form) LIKE '%capsule%'"
+      },
+      {
+        "pred_id": "81b0b9ce26dc",
+        "sig_name": "sig_81b0b9ce26dc",
+        "attribute": "drug.pharmaceutical_form",
+        "operator": "LIKE",
+        "literal": "%injection%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 12,
+        "raw_occurrences": 12,
+        "bare_condition_sql": "LOWER(pharmaceutical_form) LIKE '%injection%'"
+      },
+      {
+        "pred_id": "0f82e0d57341",
+        "sig_name": "sig_0f82e0d57341",
+        "attribute": "drug.pharmaceutical_form",
+        "operator": "LIKE",
+        "literal": "%tablet%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 17,
+        "raw_occurrences": 17,
+        "bare_condition_sql": "LOWER(pharmaceutical_form) LIKE '%tablet%'"
+      },
+      {
+        "pred_id": "08244f7aa9a2",
+        "sig_name": "sig_08244f7aa9a2",
+        "attribute": "drug.prescription_status",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 4,
+        "raw_occurrences": 6,
+        "bare_condition_sql": "prescription_status <> ''"
+      },
+      {
+        "pred_id": "f1cf95689a2b",
+        "sig_name": "sig_f1cf95689a2b",
+        "attribute": "drug.prescription_status",
+        "operator": "LIKE",
+        "literal": "%prescription_only%",
+        "transforms": [],
+        "n_queries": 9,
+        "raw_occurrences": 9,
+        "bare_condition_sql": "prescription_status LIKE '%prescription_only%'"
+      },
+      {
+        "pred_id": "ed7e21bd8de7",
+        "sig_name": "sig_ed7e21bd8de7",
+        "attribute": "drug.storage_conditions",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "storage_conditions <> ''"
+      },
+      {
+        "pred_id": "51256958ae75",
+        "sig_name": "sig_51256958ae75",
+        "attribute": "drug.storage_conditions",
+        "operator": "LIKE",
+        "literal": "%room temperature%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 2,
+        "raw_occurrences": 2,
+        "bare_condition_sql": "LOWER(storage_conditions) LIKE '%room temperature%'"
+      },
+      {
+        "pred_id": "c6cf446faee0",
+        "sig_name": "sig_c6cf446faee0",
+        "attribute": "drug.unsuitable_population",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 1,
+        "raw_occurrences": 2,
+        "bare_condition_sql": "unsuitable_population <> ''"
+      },
+      {
+        "pred_id": "5827646062f8",
+        "sig_name": "sig_5827646062f8",
+        "attribute": "drug.unsuitable_population",
+        "operator": "LIKE",
+        "literal": "%pregnant%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "LOWER(unsuitable_population) LIKE '%pregnant%'"
+      },
+      {
+        "pred_id": "7d09d1bfc636",
+        "sig_name": "sig_7d09d1bfc636",
+        "attribute": "institution.funding_sources",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 3,
+        "raw_occurrences": 3,
+        "bare_condition_sql": "funding_sources <> ''"
+      },
+      {
+        "pred_id": "18618d1b0602",
+        "sig_name": "sig_18618d1b0602",
+        "attribute": "institution.institution_country",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 14,
+        "raw_occurrences": 28,
+        "bare_condition_sql": "institution_country <> ''"
+      },
+      {
+        "pred_id": "0ffcf3058ea2",
+        "sig_name": "sig_0ffcf3058ea2",
+        "attribute": "institution.institution_country",
+        "operator": "LIKE",
+        "literal": "%USA%",
+        "transforms": [],
+        "n_queries": 22,
+        "raw_occurrences": 22,
+        "bare_condition_sql": "institution_country LIKE '%USA%'"
+      },
+      {
+        "pred_id": "48a86d8f41ed",
+        "sig_name": "sig_48a86d8f41ed",
+        "attribute": "institution.institution_type",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 13,
+        "raw_occurrences": 26,
+        "bare_condition_sql": "institution_type <> ''"
+      },
+      {
+        "pred_id": "e0fa586172a5",
+        "sig_name": "sig_e0fa586172a5",
+        "attribute": "institution.institution_type",
+        "operator": "LIKE",
+        "literal": "%public%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 13,
+        "raw_occurrences": 13,
+        "bare_condition_sql": "LOWER(institution_type) LIKE '%public%'"
+      },
+      {
+        "pred_id": "a6df4bdc67f4",
+        "sig_name": "sig_a6df4bdc67f4",
+        "attribute": "institution.institution_type",
+        "operator": "LIKE",
+        "literal": "%university%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 16,
+        "raw_occurrences": 16,
+        "bare_condition_sql": "LOWER(institution_type) LIKE '%university%'"
+      },
+      {
+        "pred_id": "3b657dc355b0",
+        "sig_name": "sig_3b657dc355b0",
+        "attribute": "institution.international_collaboration",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 3,
+        "raw_occurrences": 3,
+        "bare_condition_sql": "international_collaboration <> ''"
+      },
+      {
+        "pred_id": "1164960c748c",
+        "sig_name": "sig_1164960c748c",
+        "attribute": "institution.key_technologies",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 1,
+        "raw_occurrences": 1,
+        "bare_condition_sql": "key_technologies <> ''"
+      },
+      {
+        "pred_id": "7b008d5de014",
+        "sig_name": "sig_7b008d5de014",
+        "attribute": "institution.research_fields",
+        "operator": "!=",
+        "literal": "",
+        "transforms": [],
+        "n_queries": 13,
+        "raw_occurrences": 26,
+        "bare_condition_sql": "research_fields <> ''"
+      },
+      {
+        "pred_id": "12fe12398cb8",
+        "sig_name": "sig_12fe12398cb8",
+        "attribute": "institution.research_fields",
+        "operator": "LIKE",
+        "literal": "%clinical_research%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 13,
+        "raw_occurrences": 13,
+        "bare_condition_sql": "LOWER(research_fields) LIKE '%clinical_research%'"
+      },
+      {
+        "pred_id": "6846b7b1974f",
+        "sig_name": "sig_6846b7b1974f",
+        "attribute": "institution.research_fields",
+        "operator": "LIKE",
+        "literal": "%immunology%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 13,
+        "raw_occurrences": 13,
+        "bare_condition_sql": "LOWER(research_fields) LIKE '%immunology%'"
+      },
+      {
+        "pred_id": "7bb9be5afcaf",
+        "sig_name": "sig_7bb9be5afcaf",
+        "attribute": "institution.research_fields",
+        "operator": "LIKE",
+        "literal": "%microbiology%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 13,
+        "raw_occurrences": 13,
+        "bare_condition_sql": "LOWER(research_fields) LIKE '%microbiology%'"
+      },
+      {
+        "pred_id": "0b6fa5842a9f",
+        "sig_name": "sig_0b6fa5842a9f",
+        "attribute": "institution.research_fields",
+        "operator": "LIKE",
+        "literal": "%neuroscience%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 13,
+        "raw_occurrences": 13,
+        "bare_condition_sql": "LOWER(research_fields) LIKE '%neuroscience%'"
+      },
+      {
+        "pred_id": "af02093e994d",
+        "sig_name": "sig_af02093e994d",
+        "attribute": "institution.research_fields",
+        "operator": "LIKE",
+        "literal": "%oncology%",
+        "transforms": [
+          "lower"
+        ],
+        "n_queries": 13,
+        "raw_occurrences": 13,
+        "bare_condition_sql": "LOWER(research_fields) LIKE '%oncology%'"
+      }
+    ]
+  }
+}

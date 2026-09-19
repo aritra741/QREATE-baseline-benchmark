@@ -12,14 +12,18 @@ from quwarts.core.query_residual import (
     EntityDecision,
     apply_addition,
     decision_list,
+    excluded_candidates,
     normalize_group,
+    probe_edge_additivity,
     propose_direct,
     proposed_union,
     query_bags,
     query_conditions,
     run_residual_arm,
     validate_addition,
+    write_gate_fixture,
 )
+from quwarts.core.join_block import block_join_pairs
 from quwarts.core.query_witness import compile_witness_spec
 from quwarts.core.signature_views import (
     add_edge,
@@ -221,8 +225,95 @@ def test_join_edge_is_query_observable(tmp_path: Path) -> None:
     from quwarts.core.pipeline import official_sql
 
     n = conn.execute(official_sql(sql, db, [])).fetchone()[0]
-    assert n >= 2
+    assert n == 2
     conn.close()
+
+
+def test_empty_edges_do_not_remove_on_support(tmp_path: Path) -> None:
+    db = tmp_path / "e.db"
+    write_gate_fixture(db)
+    sql = "SELECT COUNT(*) AS n FROM item i JOIN extra e ON i.doc_id = e.doc_id"
+    from quwarts.core.pipeline import official_sql
+
+    conn = sqlite3.connect(db)
+    assert conn.execute(sql).fetchone()[0] == 1
+    assert conn.execute(official_sql(sql, db, [])).fetchone()[0] == 1
+    conn.close()
+
+
+def test_matching_edge_does_not_duplicate(tmp_path: Path) -> None:
+    db = tmp_path / "d.db"
+    write_gate_fixture(db)
+    sql = "SELECT COUNT(*) AS n FROM item i JOIN extra e ON i.doc_id = e.doc_id"
+    spec = compile_witness_spec("q0", sql)
+    conn = sqlite3.connect(db)
+    add_edge(conn, spec.joins[0].join_id, 1, 1, provenance="q0")
+    conn.commit()
+    from quwarts.core.pipeline import official_sql
+
+    assert conn.execute(official_sql(sql, db, [])).fetchone()[0] == 1
+    conn.close()
+
+
+def test_self_join_rowids_use_aliases(tmp_path: Path) -> None:
+    db = tmp_path / "s.db"
+    write_gate_fixture(db)
+    sql = "SELECT COUNT(*) AS n FROM item a JOIN item b ON a.doc_id = b.form"
+    spec = compile_witness_spec("q0", sql)
+    assert spec.joins[0].left_alias == "a"
+    assert spec.joins[0].right_alias == "b"
+    conn = sqlite3.connect(db)
+    before = conn.execute(sql).fetchone()[0]
+    add_edge(conn, spec.joins[0].join_id, 1, 2, provenance="q0")
+    conn.commit()
+    from quwarts.core.pipeline import official_sql
+
+    after = conn.execute(official_sql(sql, db, [])).fetchone()[0]
+    assert after == before + 1
+    conn.close()
+
+
+def test_edge_gates_on_fixture(tmp_path: Path) -> None:
+    db = write_gate_fixture(tmp_path / "g.db")
+    result = probe_edge_additivity(db, [])
+    assert result["ok"], result
+
+
+def test_join_blocking_is_not_cartesian() -> None:
+    sql = (
+        "SELECT COUNT(*) FROM item i JOIN extra e ON LOWER(TRIM(i.form)) = LOWER(TRIM(e.doc_id)) "
+        "OR '|' || i.form || '|' LIKE '%|' || e.doc_id || '|%'"
+    )
+    spec = compile_witness_spec("q0", sql)
+    left = [
+        {"rowid": 1, "table": "item", "cells": {"form": "alpha || beta"}, "label": "a", "document": ""},
+        {"rowid": 2, "table": "item", "cells": {"form": ""}, "label": "gamma", "document": "mentions gamma"},
+    ]
+    right = [
+        {"rowid": 1, "table": "extra", "cells": {"doc_id": "beta"}, "label": "b", "document": ""},
+        {"rowid": 2, "table": "extra", "cells": {"doc_id": "gamma"}, "label": "g", "document": ""},
+        {"rowid": 3, "table": "extra", "cells": {"doc_id": "zzz"}, "label": "z", "document": ""},
+    ]
+    pairs, reason, signal = block_join_pairs(left, right, spec.joins[0], per_left=2, per_query=4)
+    assert reason == ""
+    assert signal
+    assert len(pairs) < len(left) * len(right)
+    assert all(right_row["cells"]["doc_id"] != "zzz" for _l, right_row, _s in pairs)
+
+
+def test_no_blocking_signal_skips(tmp_path: Path) -> None:
+    db = _db(tmp_path)
+    sql = "SELECT COUNT(*) AS n FROM item"
+    spec = compile_witness_spec("q0", sql)
+    support = []
+    found = excluded_candidates(db, spec, support, {})
+    assert found.stats is not None
+    assert found.stats.skip_reason == "" or not spec.joins
+    sql = "SELECT COUNT(*) AS n FROM item i JOIN item j ON 1 = 1"
+    spec = compile_witness_spec("q1", sql)
+    found = excluded_candidates(db, spec, support, {})
+    assert found.rows == []
+    assert found.stats and found.stats.skip_reason == "no useful blocking signal"
 
 
 def test_group_signature_does_not_write_base_column(tmp_path: Path) -> None:
@@ -291,4 +382,72 @@ def test_ineffective_addition_rolls_back(tmp_path: Path) -> None:
     assert apply_addition(conn, db, {"entity_id": "c", "rowid": 3, "rowids": {"item": 3}}, decision, shape, preds, {1, 2}) is False
     after = conn.execute("SELECT form FROM item WHERE doc_id = 'c'").fetchone()[0]
     assert after == before
+    conn.close()
+
+
+def test_join_ids_include_aliases_and_on_ast() -> None:
+    from quwarts.core.query_witness import join_signature_id
+
+    self_ab = join_signature_id("item", "item", "a", "b", "a.doc_id = b.form")
+    self_ba = join_signature_id("item", "item", "b", "a", "b.doc_id = a.form")
+    assert self_ab != self_ba
+    left = join_signature_id("item", "extra", "i", "e", "i.doc_id = e.doc_id")
+    again = join_signature_id("item", "extra", "i", "e", "i.doc_id = e.doc_id")
+    other_alias = join_signature_id("item", "extra", "x", "y", "x.doc_id = y.doc_id")
+    other_on = join_signature_id("item", "extra", "i", "e", "i.form = e.doc_id")
+    assert left == again
+    assert left != other_alias
+    assert left != other_on
+    first = compile_witness_spec(
+        "q0",
+        "SELECT COUNT(*) FROM item i JOIN extra e ON i.doc_id = e.doc_id "
+        "JOIN extra e2 ON i.form = e2.doc_id",
+    )
+    assert len(first.joins) == 2
+    assert first.joins[0].join_id != first.joins[1].join_id
+
+
+def test_multi_relation_group_fail_closed(tmp_path: Path) -> None:
+    from quwarts.core.query_witness import group_owner_table, group_sig_names
+    from quwarts.core.signature_views import rewrite_group_sql
+
+    db = tmp_path / "m.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE item (doc_id TEXT, form TEXT)")
+    conn.execute("CREATE TABLE extra (doc_id TEXT)")
+    conn.execute("INSERT INTO item VALUES ('a', 'tablet')")
+    conn.execute("INSERT INTO extra VALUES ('a')")
+    conn.commit()
+    sql = (
+        "SELECT CASE WHEN i.form != '' THEN e.doc_id ELSE i.doc_id END AS g, "
+        "COUNT(*) AS n FROM item i JOIN extra e ON i.doc_id = e.doc_id GROUP BY g"
+    )
+    spec = compile_witness_spec("q0", sql)
+    assert group_owner_table(spec.group_sql[0], spec) is None
+    added = ensure_group_columns(conn, [spec])
+    assert added == []
+    sig, resolved = group_sig_names(spec.group_sql[0])
+    item_cols = {row[1] for row in conn.execute("PRAGMA table_info(item)")}
+    extra_cols = {row[1] for row in conn.execute("PRAGMA table_info(extra)")}
+    assert sig not in item_cols and resolved not in item_cols
+    assert sig not in extra_cols and resolved not in extra_cols
+    assert rewrite_group_sql(sql, db) == sql
+    shape = query_shape("q0", sql)
+    decision = EntityDecision("pair", 1, "true", "g1", source="validated")
+    reasons: list[str] = []
+    assert (
+        apply_addition(
+            conn,
+            db,
+            {"entity_id": "pair", "rowid": 1, "rowids": {"item": 1, "extra": 1}},
+            decision,
+            shape,
+            [],
+            set(),
+            spec=spec,
+            reasons=reasons,
+        )
+        is False
+    )
+    assert any("multi-relation group fail-closed" in item for item in reasons)
     conn.close()

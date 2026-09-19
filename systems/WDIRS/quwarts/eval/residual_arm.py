@@ -18,11 +18,19 @@ if str(ROOT) not in sys.path:
 from quwarts.core.ledger import TokenLedger
 from quwarts.core.llm.openrouter import DEFAULT_MODEL, load_env_file, make_caller
 from quwarts.core.pipeline import official_sql
-from quwarts.core.query_residual import run_residual_arm
+from quwarts.core.query_residual import (
+    compare_bags,
+    probe_edge_additivity,
+    probe_live_join,
+    run_residual_arm,
+    write_gate_fixture,
+)
+from quwarts.core.query_witness import compile_witness_spec
 from quwarts.core.schema_columns import assert_queries_execute, ensure_referenced_columns
 from quwarts.core.signature import audit_workload, enumerate_predicates
 from quwarts.core.signature_populate import ensure_signature_columns
 from quwarts.core.signature_realize import live_predicates
+from quwarts.core.signature_views import ensure_edge_table, ensure_group_columns
 from quwarts.experiments.player_case80 import execute, split_80_20
 from quwarts.experiments.repair_art import mean_cell_f1_20, mean_per_query_product
 from quwarts.experiments.synthesize_case80 import (
@@ -101,7 +109,14 @@ def _diag(test, gold, predicates, incumbent_db, residual_db, pred_report, meta):
                 "n_validated": extra.get("n_validated"),
                 "n_materialized": extra.get("n_materialized"),
                 "n_sql_visible": extra.get("n_sql_visible"),
+                "n_cartesian": extra.get("n_cartesian"),
+                "n_blocked": extra.get("n_blocked") or extra.get("excluded_universe") or extra.get("n_excluded"),
                 "n_excluded": extra.get("excluded_universe") or extra.get("n_excluded"),
+                "block_signal": extra.get("block_signal"),
+                "skip_reason": extra.get("skip_reason"),
+                "tokens_executor": extra.get("tokens_executor"),
+                "tokens_refiner": extra.get("tokens_refiner"),
+                "tokens_validator": extra.get("tokens_validator"),
                 "n_existing_groups": extra.get("n_existing_groups"),
                 "n_new_groups": extra.get("n_new_groups"),
                 "join_edges_added": extra.get("join_edges_added"),
@@ -146,15 +161,41 @@ def main() -> int:
     if dest.exists():
         dest.unlink()
     shutil.copy2(agent_db, dest)
+    specs = [compile_witness_spec(row["query_id"], row["sql"]) for row in queries]
     conn = sqlite3.connect(str(dest))
     try:
         added_cols = ensure_referenced_columns(conn, statements)
         ensure_signature_columns(conn, predicates)
+        ensure_edge_table(conn)
+        ensure_group_columns(conn, specs)
         conn.commit()
         rewritten = _official_rewrites(queries, dest, predicates)
         assert_queries_execute(conn, rewritten)
     finally:
         conn.close()
+    bags = compare_bags(agent_db, dest, statements, predicates)
+    print(f"pre-spend bags {bags['matched']}/{bags['total']} ok={bags['ok']}", flush=True)
+    if not bags["ok"]:
+        raise SystemExit(f"empty infrastructure changed bags: {bags['mismatched'][:8]}")
+    from diagnostics.run_config_grid import load_ground_truth
+
+    gold = load_ground_truth(gold_name("Med"))
+    pre_score = _score(test, dest, gold, _official_rewrites(test, dest, predicates))
+    f2 = round(pre_score["mean_structure_f2"], 3)
+    f1 = round(pre_score["mean_cell_f1_at_0.20"], 3)
+    prod = round(pre_score["mean_per_query_product"], 3)
+    print(f"pre-spend score F2={f2} F1={f1} product={prod}", flush=True)
+    if (f2, f1, prod) != (0.484, 0.178, 0.124):
+        raise SystemExit(f"incumbent score not preserved: {(f2, f1, prod)}")
+    fixture = OUT / "artifacts" / "edge_gate.db"
+    if fixture.exists():
+        fixture.unlink()
+    write_gate_fixture(fixture)
+    edge_gates = probe_edge_additivity(fixture, [])
+    live_gates = probe_live_join(dest, statements, predicates)
+    print(f"pre-spend edge_gates ok={edge_gates['ok']} live_ok={live_gates['ok']}", flush=True)
+    if not edge_gates["ok"] or not live_gates["ok"]:
+        raise SystemExit(f"edge gates failed: {edge_gates} {live_gates}")
     print(
         f"residual start incumbent=agent spent={agent_spent} remaining={BUDGET - agent_spent} "
         f"added_columns={added_cols}",
@@ -163,10 +204,10 @@ def main() -> int:
     ledger = TokenLedger(theta=BUDGET, seed=42)
     ledger.spent = agent_spent
     caller = make_caller(ledger, model=DEFAULT_MODEL, temperature=0.1, max_tokens=280)
-    ckpt = OUT / "residual_witness_ckpt.json"
-    stale = OUT / "residual_ckpt.json"
-    if stale.is_file():
-        stale.unlink()
+    ckpt = OUT / "residual_additive_ckpt.json"
+    for stale in (OUT / "residual_ckpt.json", OUT / "residual_witness_ckpt.json"):
+        if stale.is_file():
+            stale.unlink()
     arm = run_residual_arm(
         dest,
         test,
@@ -177,9 +218,6 @@ def main() -> int:
         checkpoint=ckpt,
     )
     print(f"residual frozen spent={ledger.spent} added={arm.n_added}", flush=True)
-    from diagnostics.run_config_grid import load_ground_truth
-
-    gold = load_ground_truth(gold_name("Med"))
     residual = _score(test, dest, gold, _official_rewrites(test, dest, predicates))
     aprime = _score(test, APRIME, gold, _official_rewrites(test, APRIME, predicates))
     agent = _score(test, agent_db, gold, _official_rewrites(test, agent_db, predicates))
@@ -208,6 +246,25 @@ def main() -> int:
         "n_unknown": arm.n_unknown,
         "n_new_groups": arm.n_new_groups,
         "n_existing_groups": arm.n_existing_groups,
+        "n_validated": arm.n_validated,
+        "n_materialized": arm.n_materialized,
+        "n_sql_visible": arm.n_sql_visible,
+        "n_base_row": arm.n_base_row,
+        "n_join_edge": arm.n_join_edge,
+        "n_distinct": arm.n_distinct,
+        "rollbacks": arm.rollbacks,
+        "skipped": arm.skipped,
+        "blocking": arm.blocking,
+        "gates": {
+            "bags": bags,
+            "pre_score": {
+                "mean_structure_f2": pre_score["mean_structure_f2"],
+                "mean_cell_f1_at_0.20": pre_score["mean_cell_f1_at_0.20"],
+                "mean_per_query_product": pre_score["mean_per_query_product"],
+            },
+            "edge": edge_gates,
+            "live_join": live_gates,
+        },
         "cache_hits": arm.cache_hits,
         "cache_misses": arm.cache_misses,
         "residual": residual,

@@ -1,0 +1,332 @@
+{
+  "canonical_reach": {
+    "canonical_columns_in_db": [
+      "disease.disease_name",
+      "disease_name",
+      "drug.disease_name",
+      "institution.research_diseases",
+      "research_diseases"
+    ],
+    "n_join_plans": 44,
+    "n_join_plans_with_canonical": 44,
+    "rewriter_inserts_canonical": true,
+    "example_on": " ON (LOWER(TRIM(dr.disease_name__canonical)) = LOWER(TRIM(d.disease_name__canonical)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name__canonical), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name__canonical)) || '|%') WHERE dr.manufacturer <> '' AND dr.phar",
+    "er_same_id_pairs": 4,
+    "db_same_id_among_er_pairs": 2,
+    "stamp_reaches_both_sides": false
+  },
+  "blocking": {
+    "n_left": 72,
+    "n_right": 68,
+    "possible_pairs": 4896,
+    "admitted_pairs": 35,
+    "admission_rate": 0.007148692810457516,
+    "pairs_above_threshold": 4,
+    "high_admitted": 4,
+    "high_blocked": 0,
+    "prefix": 3,
+    "threshold": 0.92,
+    "edge": {
+      "left": "drug.disease_name",
+      "right": "disease.disease_name"
+    }
+  },
+  "before": {
+    "mean_structure_f2": 0.4744553691922113,
+    "mean_cell_f1_at_0.20": 0.12567460317460316,
+    "mean_per_query_product": 0.1081697298802562,
+    "tokens_spent": 1566452,
+    "train_empty": 24,
+    "test_empty": 5,
+    "cell_f1_by_attribute": {
+      "disease.disease_type": 0.037037037037037035,
+      "disease.id": 0.0,
+      "disease.pathogenesis": 0.0,
+      "disease.prognosis": 0.0,
+      "disease.treatments": 0.16666666666666666,
+      "drug.administration_route": 0.17063492063492064,
+      "drug.id": 0.015873015873015872,
+      "drug.manufacturer": 0.21726190476190477,
+      "drug.pharmaceutical_form": 0.27380952380952384,
+      "drug.prescription_status": 0.0,
+      "drug.unsuitable_population": 0.0,
+      "institution.id": 0.0,
+      "institution.institution_country": 0.05555555555555555,
+      "institution.institution_type": 0.06666666666666667,
+      "institution.international_collaboration": 0.2,
+      "institution.research_fields": 0.0
+    }
+  },
+  "after": {
+    "mean_structure_f2": 0.4648399845768266,
+    "mean_cell_f1_at_0.20": 0.12567460317460316,
+    "mean_per_query_product": 0.1081697298802562,
+    "tokens_spent": 7083748,
+    "train_empty": 23,
+    "test_empty": 5,
+    "cell_f1_by_attribute": {
+      "disease.disease_type": 0.037037037037037035,
+      "disease.id": 0.0,
+      "disease.pathogenesis": 0.0,
+      "disease.prognosis": 0.0,
+      "disease.treatments": 0.16666666666666666,
+      "drug.administration_route": 0.17063492063492064,
+      "drug.id": 0.015873015873015872,
+      "drug.manufacturer": 0.21726190476190477,
+      "drug.pharmaceutical_form": 0.27380952380952384,
+      "drug.prescription_status": 0.0,
+      "drug.unsuitable_population": 0.0,
+      "institution.id": 0.0,
+      "institution.institution_country": 0.05555555555555555,
+      "institution.institution_type": 0.06666666666666667,
+      "institution.international_collaboration": 0.2,
+      "institution.research_fields": 0.0
+    }
+  },
+  "cell_f1_moved": {
+    "disease.disease_type": {
+      "before": 0.037037037037037035,
+      "after": 0.037037037037037035
+    },
+    "disease.id": {
+      "before": 0.0,
+      "after": 0.0
+    },
+    "disease.pathogenesis": {
+      "before": 0.0,
+      "after": 0.0
+    },
+    "disease.prognosis": {
+      "before": 0.0,
+      "after": 0.0
+    },
+    "disease.treatments": {
+      "before": 0.16666666666666666,
+      "after": 0.16666666666666666
+    },
+    "drug.administration_route": {
+      "before": 0.17063492063492064,
+      "after": 0.17063492063492064
+    },
+    "drug.id": {
+      "before": 0.015873015873015872,
+      "after": 0.015873015873015872
+    },
+    "drug.manufacturer": {
+      "before": 0.21726190476190477,
+      "after": 0.21726190476190477
+    },
+    "drug.pharmaceutical_form": {
+      "before": 0.27380952380952384,
+      "after": 0.27380952380952384
+    },
+    "drug.prescription_status": {
+      "before": 0.0,
+      "after": 0.0
+    },
+    "drug.unsuitable_population": {
+      "before": 0.0,
+      "after": 0.0
+    },
+    "institution.id": {
+      "before": 0.0,
+      "after": 0.0
+    },
+    "institution.institution_country": {
+      "before": 0.05555555555555555,
+      "after": 0.05555555555555555
+    },
+    "institution.institution_type": {
+      "before": 0.06666666666666667,
+      "after": 0.06666666666666667
+    },
+    "institution.international_collaboration": {
+      "before": 0.2,
+      "after": 0.2
+    },
+    "institution.research_fields": {
+      "before": 0.0,
+      "after": 0.0
+    }
+  },
+  "vote": {
+    "attributes": [
+      "disease.disease_type",
+      "institution.institution_country",
+      "drug.administration_route",
+      "disease.treatments",
+      "drug.id",
+      "drug.pharmaceutical_form",
+      "institution.research_fields",
+      "institution.institution_type",
+      "drug.prescription_status",
+      "disease.diagnostic_methods",
+      "institution.id",
+      "disease.prognosis",
+      "disease.id",
+      "institution.funding_sources",
+      "institution.international_collaboration",
+      "drug.storage_conditions",
+      "disease.quality_of_life_impact",
+      "disease.preventive_measures",
+      "disease.pathogenesis",
+      "drug.mechanism_of_action",
+      "drug.manufacturer",
+      "institution.key_technologies"
+    ],
+    "n_agreed": 72,
+    "n_disagreed": 1020,
+    "n_escalated": 959,
+    "n_grounded": 823,
+    "n_ungrounded": 269,
+    "per_attribute": {
+      "disease.disease_type": {
+        "agreed": 20,
+        "disagreed": 126,
+        "grounded": 128,
+        "ungrounded": 18
+      },
+      "institution.institution_country": {
+        "agreed": 23,
+        "disagreed": 68,
+        "grounded": 71,
+        "ungrounded": 20
+      },
+      "drug.administration_route": {
+        "agreed": 8,
+        "disagreed": 31,
+        "grounded": 33,
+        "ungrounded": 6
+      },
+      "disease.treatments": {
+        "agreed": 0,
+        "disagreed": 140,
+        "grounded": 121,
+        "ungrounded": 19
+      },
+      "drug.id": {
+        "agreed": 0,
+        "disagreed": 0,
+        "grounded": 0,
+        "ungrounded": 0
+      },
+      "drug.pharmaceutical_form": {
+        "agreed": 3,
+        "disagreed": 46,
+        "grounded": 43,
+        "ungrounded": 6
+      },
+      "institution.research_fields": {
+        "agreed": 1,
+        "disagreed": 142,
+        "grounded": 116,
+        "ungrounded": 27
+      },
+      "institution.institution_type": {
+        "agreed": 10,
+        "disagreed": 129,
+        "grounded": 99,
+        "ungrounded": 40
+      },
+      "drug.prescription_status": {
+        "agreed": 1,
+        "disagreed": 51,
+        "grounded": 38,
+        "ungrounded": 14
+      },
+      "disease.diagnostic_methods": {
+        "agreed": 1,
+        "disagreed": 72,
+        "grounded": 54,
+        "ungrounded": 19
+      },
+      "institution.id": {
+        "agreed": 0,
+        "disagreed": 23,
+        "grounded": 21,
+        "ungrounded": 2
+      },
+      "disease.prognosis": {
+        "agreed": 0,
+        "disagreed": 58,
+        "grounded": 23,
+        "ungrounded": 35
+      },
+      "disease.id": {
+        "agreed": 0,
+        "disagreed": 13,
+        "grounded": 12,
+        "ungrounded": 1
+      },
+      "institution.funding_sources": {
+        "agreed": 3,
+        "disagreed": 33,
+        "grounded": 31,
+        "ungrounded": 5
+      },
+      "institution.international_collaboration": {
+        "agreed": 0,
+        "disagreed": 22,
+        "grounded": 10,
+        "ungrounded": 12
+      },
+      "drug.storage_conditions": {
+        "agreed": 2,
+        "disagreed": 5,
+        "grounded": 4,
+        "ungrounded": 3
+      },
+      "disease.quality_of_life_impact": {
+        "agreed": 0,
+        "disagreed": 61,
+        "grounded": 19,
+        "ungrounded": 42
+      }
+    },
+    "tokens": 5517296
+  },
+  "join_yield_after": [
+    {
+      "left": "drug.disease_name",
+      "right": "disease.disease_name",
+      "exact_yield": 0.041666666666666664,
+      "canonical_yield": 0.04225352112676056
+    },
+    {
+      "left": "institution.research_diseases",
+      "right": "disease.disease_name",
+      "exact_yield": 0.06779661016949153,
+      "canonical_yield": 0.0847457627118644
+    }
+  ],
+  "tokens_spent": 7083748,
+  "theta": 7859201,
+  "reserve": 785920,
+  "after_raw_rematerialize": {
+    "mean_structure_f2": 0.34911154205271855,
+    "mean_cell_f1_at_0.20": 0.07638888888888888,
+    "mean_per_query_product": 0.045291663674016616,
+    "tokens_spent": 7083748,
+    "train_empty": 27,
+    "test_empty": 6,
+    "cell_f1_by_attribute": {
+      "disease.disease_type": 0.037037037037037035,
+      "disease.id": 0.0,
+      "disease.pathogenesis": 0.0,
+      "disease.prognosis": 0.0,
+      "disease.treatments": 0.16666666666666666,
+      "drug.administration_route": 0.10634920634920635,
+      "drug.id": 0.015873015873015872,
+      "drug.manufacturer": 0.08333333333333334,
+      "drug.pharmaceutical_form": 0.06666666666666668,
+      "drug.prescription_status": 0.0,
+      "drug.unsuitable_population": 0.0,
+      "institution.id": 0.0,
+      "institution.institution_country": 0.05555555555555555,
+      "institution.institution_type": 0.08333333333333333,
+      "institution.international_collaboration": 0.25,
+      "institution.research_fields": 0.0
+    }
+  },
+  "note": "after is vote + rematerialize with LIKE keys carried. after_raw_rematerialize dropped LIKE columns."
+}

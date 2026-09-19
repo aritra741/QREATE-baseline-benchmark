@@ -27,6 +27,7 @@ from quwarts.core.query_witness import (
     WitnessSpec,
     compile_witness_spec,
     grain_sql_for,
+    group_owner_table,
     group_token,
     make_witness_key,
     occupancy_key,
@@ -38,6 +39,14 @@ from quwarts.core.signature import AtomicPredicate
 from quwarts.core.signature_cache import CachedCaller, ResponseCache
 from quwarts.core.signature_populate import ensure_signature_columns, resolve_table
 from quwarts.core.signature_realize import is_membership, is_presence
+from quwarts.core.join_block import (
+    PER_LEFT_CAP,
+    PER_QUERY_CAP,
+    BlockStats,
+    CandidateSet,
+    block_join_pairs,
+    pair_candidate,
+)
 from quwarts.core.signature_views import (
     add_edge,
     ensure_edge_table,
@@ -49,6 +58,8 @@ from quwarts.core.signature_views import (
 
 STRATEGIES = ("direct", "decompose", "gleaning")
 BATCH = 6
+CANDIDATE_BATCH = 6
+EST_TOKENS_PER_CALL = 350
 
 INCLUDE_PROMPT = """For each listed witness, decide whether it should be ADDED to the
 existing count support. Do not list or replace a support set. Do not drop witnesses
@@ -123,8 +134,18 @@ class ResidualReport:
     n_unknown: int = 0
     n_new_groups: int = 0
     n_existing_groups: int = 0
+    n_validated: int = 0
+    n_materialized: int = 0
+    n_sql_visible: int = 0
+    n_base_row: int = 0
+    n_join_edge: int = 0
+    n_distinct: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
+    rollbacks: list[dict[str, Any]] = field(default_factory=list)
+    skipped: list[dict[str, Any]] = field(default_factory=list)
+    blocking: list[dict[str, Any]] = field(default_factory=list)
+    gates: dict[str, Any] = field(default_factory=dict)
     per_query: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -317,7 +338,7 @@ def _batch_decisions(
                 plan=plan,
             )
         except BudgetExhausted:
-            raise
+            return found
         except Exception:
             text = ""
         seen: set[str] = set()
@@ -418,9 +439,12 @@ def propose_decompose(
     pred_by_id = {pred.pred_id: pred for pred in predicates}
     required = required_ids(conditions)
     out: dict[str, EntityDecision] = {}
+    def _key(entity: dict[str, Any]) -> str:
+        return str(entity.get("witness_id") or entity["entity_id"])
+
     unknown = [
         entity for entity in entities
-        if prior is None or (prior.get(entity["entity_id"]) or _empty_decision(entity, "")).include == "unknown"
+        if prior is None or (prior.get(_key(entity)) or _empty_decision(entity, "")).include == "unknown"
     ]
     if refine and unknown:
         prompt = GLEANING_PROMPT + shape.sql + "\nCONDITIONS:\n" + _condition_block(conditions) + "\nENTITIES:\n"
@@ -428,16 +452,17 @@ def propose_decompose(
     else:
         refined = {}
     for entity in entities:
-        if refine and entity["entity_id"] in refined and refined[entity["entity_id"]].include != "unknown":
-            out[entity["entity_id"]] = refined[entity["entity_id"]]
+        key = _key(entity)
+        if refine and key in refined and refined[key].include != "unknown":
+            out[key] = refined[key]
             continue
         if refine and prior is not None:
-            previous = prior.get(entity["entity_id"]) or _empty_decision(entity, "decompose")
+            previous = prior.get(key) or _empty_decision(entity, "decompose")
             if previous.include != "unknown":
                 previous.source = "gleaning"
-                out[entity["entity_id"]] = previous
+                out[key] = previous
                 continue
-            out[entity["entity_id"]] = refined.get(entity["entity_id"]) or previous
+            out[key] = refined.get(key) or previous
             continue
         decisions: list[ConditionDecision] = []
         group_value: Any = "unknown"
@@ -446,20 +471,23 @@ def propose_decompose(
             try:
                 decision = _apply_one_condition(cache, caller, entity, item, pred)
             except BudgetExhausted:
-                raise
+                return out
             except Exception:
                 decision = ConditionDecision(item["condition_id"], "unknown", "", item["kind"])
             decisions.append(decision)
             if item["kind"] == "group" and decision.evidence not in (None, "", "unknown"):
                 group_value = decision.evidence
         include = include_from_conditions(decisions, required)
-        out[entity["entity_id"]] = EntityDecision(
+        out[key] = EntityDecision(
             entity_id=entity["entity_id"],
             rowid=int(entity["rowid"]),
             include=include,
             group=group_value,
             conditions=decisions,
             source="gleaning" if refine else "decompose",
+            witness_id=key,
+            witness_key=tuple(entity.get("witness_key") or ()),
+            rowids=dict(entity.get("rowids") or {}),
         )
     return out
 
@@ -723,7 +751,10 @@ def excluded_candidates(
     spec: WitnessSpec,
     support: list[SupportRow],
     documents: dict[str, str] | None,
-) -> list[dict[str, Any]]:
+    *,
+    per_left: int = PER_LEFT_CAP,
+    per_query: int = PER_QUERY_CAP,
+) -> CandidateSet:
     kept = {
         occupancy_key(row.rowids or {spec.primary: row.rowid}, row.distinct_value, row.entity_id)
         for row in support
@@ -731,55 +762,56 @@ def excluded_candidates(
     }
     incumbent_primary = {row.rowid for row in support if row.included == "true"}
     primary_rows = _table_rows(sqlite_path, spec.primary, documents)
-    out: list[dict[str, Any]] = []
     if spec.joins:
         join = spec.joins[0]
         left_rows = _table_rows(sqlite_path, join.left_table, documents)
         right_rows = _table_rows(sqlite_path, join.right_table, documents)
-        for left in left_rows:
-            for right in right_rows:
-                rowids = {join.left_table: left["rowid"], join.right_table: right["rowid"]}
-                primary = left if spec.primary == join.left_table else right
-                other = right if primary is left else left
-                key = make_witness_key(
-                    spec,
-                    rowids,
-                    distinct_value=primary.get("entity_id"),
-                    group_key={},
-                )
-                if occupancy_key(rowids, primary.get("entity_id")) in kept:
-                    continue
-                witness_id = f"{primary['entity_id']}|{other['entity_id']}|{left['rowid']}|{right['rowid']}"
-                cells = dict(primary.get("cells") or {})
-                cells.update({f"{other['table']}.{k}": v for k, v in (other.get("cells") or {}).items()})
-                out.append(
-                    {
-                        "witness_id": witness_id,
-                        "witness_key": key,
-                        "entity_id": primary["entity_id"],
-                        "rowid": primary["rowid"],
-                        "rowids": rowids,
-                        "label": f"{primary.get('label') or ''} / {other.get('label') or ''}",
-                        "table": spec.primary,
-                        "cells": cells,
-                        "document": (primary.get("document") or "") + "\n" + (other.get("document") or ""),
-                        "priority": 0 if primary["rowid"] not in incumbent_primary else 1,
-                    }
-                )
-    else:
-        for item in primary_rows:
-            rowids = {spec.primary: item["rowid"]}
-            key = make_witness_key(spec, rowids, distinct_value=item.get("entity_id"), group_key={})
-            if occupancy_key(rowids, item.get("entity_id")) in kept:
-                continue
-            row = dict(item)
-            row["witness_id"] = item["entity_id"]
-            row["witness_key"] = key
-            row["rowids"] = rowids
-            row["priority"] = 0
-            out.append(row)
+        cartesian = len(left_rows) * len(right_rows)
+        pairs, skip_reason, signal = block_join_pairs(
+            left_rows, right_rows, join, per_left=per_left, per_query=per_query,
+        )
+        out: list[dict[str, Any]] = []
+        for left, right, _source in pairs:
+            row = pair_candidate(spec, join, left, right, kept, incumbent_primary)
+            if row is not None:
+                out.append(row)
+        out.sort(key=lambda item: (item.get("priority") or 0, str(item.get("witness_id"))))
+        return CandidateSet(
+            rows=out,
+            stats=BlockStats(
+                query_id=spec.query_id,
+                cartesian=cartesian,
+                blocked=len(out),
+                skip_reason=skip_reason,
+                per_left_cap=per_left,
+                per_query_cap=per_query,
+                signal=signal,
+            ),
+        )
+    out = []
+    for item in primary_rows:
+        rowids = {spec.primary: item["rowid"]}
+        key = make_witness_key(spec, rowids, distinct_value=item.get("entity_id"), group_key={})
+        if occupancy_key(rowids, item.get("entity_id")) in kept:
+            continue
+        row = dict(item)
+        row["witness_id"] = item["entity_id"]
+        row["witness_key"] = key
+        row["rowids"] = rowids
+        row["priority"] = 0
+        out.append(row)
     out.sort(key=lambda item: (item.get("priority") or 0, str(item.get("witness_id"))))
-    return out
+    if len(out) > per_query:
+        out = out[:per_query]
+    return CandidateSet(
+        rows=out,
+        stats=BlockStats(
+            query_id=spec.query_id,
+            cartesian=len(primary_rows),
+            blocked=len(out),
+            signal="row",
+        ),
+    )
 
 
 def apply_addition(
@@ -791,11 +823,10 @@ def apply_addition(
     predicates: list[AtomicPredicate],
     incumbent_rowids: set[int],
     spec: WitnessSpec | None = None,
+    reasons: list[str] | None = None,
 ) -> bool:
     spec = spec or compile_witness_spec(shape.query_id, shape.sql, shape)
     if decision.include != "true":
-        return False
-    if decision.rowid in incumbent_rowids:
         return False
     names = {
         row[0].lower(): row[0]
@@ -808,13 +839,31 @@ def apply_addition(
     accepted = {item.condition_id for item in decision.conditions if item.truth == "true" and item.kind == "filter"}
     before = current_support(sqlite_path, spec, predicates, conn=conn)
     before_keys = {witness_key_of(row) for row in before}
+    occupied = {
+        occupancy_key(row.rowids or {spec.primary: row.rowid}, row.distinct_value, row.entity_id)
+        for row in before
+        if row.included == "true"
+    }
+    intended_occ = occupancy_key(
+        decision.rowids or entity.get("rowids") or {spec.primary: decision.rowid},
+        entity.get("entity_id"),
+    )
+    if intended_occ in occupied and not spec.joins:
+        return False
+    if not spec.joins and decision.rowid in incumbent_rowids:
+        return False
     before_groups = {row.rowid: dict(row.group_key) for row in before}
     before_edges = snapshot_edges(conn)
     conn.execute("SAVEPOINT residual_add")
     try:
         _write_true_flags(conn, table, decision.rowid, predicates, accepted, incumbent_rowids)
-        if spec.group_sql:
-            write_group(conn, table, decision.rowid, spec.group_sql[0], decision.group, incumbent_rowids)
+        if spec.group_sql and decision.group not in (None, "", "unknown"):
+            owner = group_owner_table(spec.group_sql[0], spec)
+            if owner is None:
+                raise sqlite3.Error("multi-relation group fail-closed")
+            owner_table = names.get(owner.lower()) or owner
+            owner_rid = int((decision.rowids or entity.get("rowids") or {}).get(owner) or decision.rowid)
+            write_group(conn, owner_table, owner_rid, spec.group_sql[0], decision.group, incumbent_rowids)
         for join in spec.joins:
             rowids = decision.rowids or entity.get("rowids") or {}
             left_rid = int(rowids.get(join.left_table) or 0)
@@ -844,7 +893,9 @@ def apply_addition(
             raise sqlite3.Error("addition did not appear")
         conn.execute("RELEASE residual_add")
         return True
-    except sqlite3.Error:
+    except sqlite3.Error as exc:
+        if reasons is not None:
+            reasons.append(str(exc))
         conn.execute("ROLLBACK TO residual_add")
         conn.execute("RELEASE residual_add")
         return False
@@ -855,12 +906,22 @@ def is_related(query_id: str, sql: str, predicates: list[AtomicPredicate], updat
     return bool(related_canonicals(spec, predicates) & updated)
 
 
+def estimate_batch_tokens(n_entities: int, n_conditions: int) -> int:
+    if n_entities <= 0:
+        return 0
+    direct = 1
+    decompose = max(1, n_conditions) * n_entities
+    gleaning = 1
+    validate = n_entities * (n_conditions + 2)
+    return (direct + decompose + gleaning + validate) * EST_TOKENS_PER_CALL
+
+
 def prioritize_queries(
     queries: list[dict[str, str]],
     sqlite_path: str | Path,
     predicates: list[AtomicPredicate],
     documents: dict[str, str] | None,
-) -> list[tuple[dict[str, str], QueryShape, WitnessSpec, list[SupportRow], list[dict[str, Any]]]]:
+) -> list[tuple[dict[str, str], QueryShape, WitnessSpec, list[SupportRow], CandidateSet]]:
     ranked = []
     for row in queries:
         shape = query_shape(row["query_id"], row["sql"])
@@ -871,7 +932,8 @@ def prioritize_queries(
         rid_map = {item["rowid"]: item["entity_id"] for item in entities}
         support = aprime_support(sqlite_path, shape, predicates, rid_map)
         excluded = excluded_candidates(sqlite_path, spec, support, documents)
-        ranked.append((0 if support else 1, len(excluded), row, shape, spec, support, excluded))
+        n = len(excluded.rows)
+        ranked.append((0 if support else 1, n, row, shape, spec, support, excluded))
     ranked.sort(key=lambda item: (-item[0], -item[1], item[2]["query_id"]))
     return [(row, shape, spec, support, excluded) for _e, _n, row, shape, spec, support, excluded in ranked]
 
@@ -911,166 +973,316 @@ def run_residual_arm(
     bound = CachedCaller(caller, cache_store, plan="residual")
     ranked = prioritize_queries(queries, path, live, documents)
     bags = query_bags(path, all_statements, live)
-    done: set[str] = set()
     ckpt = Path(checkpoint) if checkpoint else None
+    done_chunks: set[str] = set()
     if ckpt and ckpt.is_file():
         saved = json.loads(ckpt.read_text())
-        report.per_query.extend(saved.get("per_query") or [])
+        report.per_query = list(saved.get("per_query") or [])
+        report.skipped = list(saved.get("skipped") or [])
+        report.blocking = list(saved.get("blocking") or [])
+        report.rollbacks = list(saved.get("rollbacks") or [])
         report.n_queries = int(saved.get("n_queries") or 0)
         report.n_added = int(saved.get("n_added") or 0)
         report.n_proposed = int(saved.get("n_proposed") or 0)
-        done = {item["query_id"] for item in report.per_query}
-        print(f"resume {len(done)} residual queries from {ckpt}", flush=True)
+        report.n_validated = int(saved.get("n_validated") or 0)
+        report.n_materialized = int(saved.get("n_materialized") or 0)
+        report.n_sql_visible = int(saved.get("n_sql_visible") or 0)
+        report.n_base_row = int(saved.get("n_base_row") or 0)
+        report.n_join_edge = int(saved.get("n_join_edge") or 0)
+        report.n_distinct = int(saved.get("n_distinct") or 0)
+        report.n_new_groups = int(saved.get("n_new_groups") or 0)
+        report.n_existing_groups = int(saved.get("n_existing_groups") or 0)
+        done_chunks = set(saved.get("done_chunks") or [])
+        print(f"resume {len(done_chunks)} residual batches from {ckpt}", flush=True)
+    states: list[dict[str, Any]] = []
+    by_qid = {item["query_id"]: item for item in report.per_query}
     for row, shape, spec, support, excluded in ranked:
-        if shape.query_id in done:
-            continue
-        if caller.ledger.remaining() <= 0:
-            break
-        spent_before = caller.ledger.spent
-        mass_before = count_mass(path, shape.sql, live)
-        print(
-            f"residual {shape.query_id} kind={spec.kind} excluded={len(excluded)} remaining={caller.ledger.remaining()}",
-            flush=True,
-        )
-        report.n_queries += 1
-        conditions = query_conditions(shape, live)
-        incumbent_rowids = {item.rowid for item in support if item.included == "true"}
-        incumbent_groups = {group_token(item, spec) for item in support if item.included == "true"}
-        by_id = {item.get("witness_id") or item["entity_id"]: item for item in excluded}
-        by_id.update({item["entity_id"]: item for item in excluded})
-        added = 0
-        proposed = 0
-        unknown = 0
-        new_groups = 0
-        existing_groups = 0
-        materialized = 0
-        sql_visible = 0
-        ineffective = 0
-        edges_added = 0
-        groups_added = 0
-        updated: set[str] = set()
-        try:
-            plans = {
-                "direct": propose_direct(bound, shape, excluded, conditions),
-                "decompose": propose_decompose(bound, shape, excluded, conditions, live, cond_cache),
-            }
-            plans["gleaning"] = propose_decompose(
-                bound, shape, excluded, conditions, live, cond_cache, refine=True, prior=plans["decompose"],
+        stats = excluded.stats
+        if stats is not None:
+            report.blocking.append(stats.__dict__)
+        if spec.joins and (not excluded.rows) and stats and stats.skip_reason:
+            report.skipped.append(
+                {"query_id": shape.query_id, "reason": stats.skip_reason, "cartesian": stats.cartesian}
             )
-            union = proposed_union(plans)
-            proposed = len(union)
-            conn = sqlite3.connect(str(path))
-            try:
-                conn.execute("SAVEPOINT residual_cohort")
-                for entity_id, proposals in union.items():
-                    entity = by_id.get(entity_id)
-                    if entity is None:
-                        continue
-                    try:
-                        accepted = validate_addition(
-                            bound, entity, shape, conditions, live, proposals, incumbent_groups,
-                        )
-                    except BudgetExhausted:
-                        raise
-                    except Exception:
-                        accepted = None
-                    if accepted is None:
-                        unknown += 1
-                        continue
-                    token = normalize_group(accepted.group) if spec.group_aliases else ""
-                    is_new = bool(spec.group_aliases) and token not in incumbent_groups and token != "unknown"
-                    ok = apply_addition(
-                        conn, path, entity, accepted, shape, live, incumbent_rowids, spec=spec,
-                    )
-                    if not ok:
-                        ineffective += 1
-                        print(f"  ineffective {entity_id}", flush=True)
-                        continue
-                    added += 1
-                    materialized += 1
-                    sql_visible += 1
-                    if spec.joins:
-                        edges_added += 1
-                    if spec.group_sql:
-                        groups_added += 1
-                    if is_new:
-                        new_groups += 1
-                        incumbent_groups.add(token)
-                    else:
-                        existing_groups += 1
-                    updated |= related_canonicals(spec, live)
-                after_bags = query_bags(path, all_statements, live, conn=conn)
-                interference = []
-                for qid, before in bags.items():
-                    if after_bags.get(qid) == before:
-                        continue
-                    sql = all_statements[qid]
-                    if not is_related(qid, sql, live, updated):
-                        interference.append(qid)
-                if interference:
-                    conn.execute("ROLLBACK TO residual_cohort")
-                    print(f"  rolled back cohort; unrelated bags moved: {interference}", flush=True)
-                    added = materialized = sql_visible = new_groups = existing_groups = edges_added = groups_added = 0
-                else:
-                    conn.execute("RELEASE residual_cohort")
-                    bags = after_bags
-                conn.commit()
-            finally:
-                conn.close()
-        except BudgetExhausted:
-            print(f"  budget exhausted at {shape.query_id}", flush=True)
-        except Exception as exc:
-            print(f"  residual error {shape.query_id}: {exc}", flush=True)
-        mass_after = count_mass(path, shape.sql, live)
-        report.n_proposed += proposed
-        report.n_added += added
-        report.n_unknown += unknown
-        report.n_new_groups += new_groups
-        report.n_existing_groups += existing_groups
-        report.per_query.append(
-            {
+            print(f"skip {shape.query_id} {stats.skip_reason} cartesian={stats.cartesian}", flush=True)
+            continue
+        chunks = [
+            excluded.rows[i : i + CANDIDATE_BATCH]
+            for i in range(0, len(excluded.rows), CANDIDATE_BATCH)
+        ]
+        if shape.query_id not in by_qid:
+            by_qid[shape.query_id] = {
                 "query_id": shape.query_id,
                 "witness_type": spec.kind,
                 "incumbent_witnesses": len(support),
-                "excluded_universe": len(excluded),
-                "n_proposed": proposed,
-                "n_validated": proposed - unknown,
-                "n_materialized": materialized,
-                "n_sql_visible": sql_visible,
-                "n_ineffective": ineffective,
-                "n_added": added,
-                "n_unknown": unknown,
-                "n_new_groups": new_groups,
-                "n_existing_groups": existing_groups,
-                "join_edges_added": edges_added,
-                "groups_added": groups_added,
-                "count_mass_before": mass_before,
-                "count_mass_after": mass_after,
-                "tokens": caller.ledger.spent - spent_before,
-                "incumbent_n": len(incumbent_rowids),
+                "excluded_universe": len(excluded.rows),
+                "n_cartesian": stats.cartesian if stats else len(excluded.rows),
+                "n_blocked": stats.blocked if stats else len(excluded.rows),
+                "skip_reason": (stats.skip_reason if stats else "") or "",
+                "block_signal": (stats.signal if stats else "") or "",
+                "n_proposed": 0,
+                "n_validated": 0,
+                "n_materialized": 0,
+                "n_sql_visible": 0,
+                "n_ineffective": 0,
+                "n_added": 0,
+                "n_unknown": 0,
+                "n_base_row": 0,
+                "n_join_edge": 0,
+                "n_distinct": 0,
+                "n_new_groups": 0,
+                "n_existing_groups": 0,
+                "join_edges_added": 0,
+                "groups_added": 0,
+                "count_mass_before": count_mass(path, shape.sql, live),
+                "count_mass_after": 0,
+                "tokens": 0,
+                "tokens_executor": 0,
+                "tokens_refiner": 0,
+                "tokens_validator": 0,
+                "incumbent_n": len({item.rowid for item in support if item.included == "true"}),
+            }
+            report.per_query.append(by_qid[shape.query_id])
+            report.n_queries += 1
+        states.append(
+            {
+                "row": row,
+                "shape": shape,
+                "spec": spec,
+                "support": support,
+                "chunks": chunks,
+                "cursor": 0,
+                "meta": by_qid[shape.query_id],
+                "incumbent_rowids": {item.rowid for item in support if item.included == "true"},
+                "incumbent_groups": {group_token(item, spec) for item in support if item.included == "true"},
+                "conditions": query_conditions(shape, live),
             }
         )
-        print(f"  proposed={proposed} added={added} ineffective={ineffective}", flush=True)
-        if ckpt:
-            ckpt.parent.mkdir(parents=True, exist_ok=True)
-            ckpt.write_text(
-                json.dumps(
-                    {
-                        "per_query": report.per_query,
-                        "n_queries": report.n_queries,
-                        "n_added": report.n_added,
-                        "n_proposed": report.n_proposed,
-                    },
-                    default=str,
+    active = True
+    while active and caller.ledger.remaining() > 0:
+        active = False
+        remaining_batches = sum(
+            1
+            for state in states
+            for index, _chunk in enumerate(state["chunks"])
+            if f"{state['shape'].query_id}:{index}" not in done_chunks
+        )
+        for state in states:
+            if caller.ledger.remaining() <= 0:
+                break
+            shape = state["shape"]
+            spec = state["spec"]
+            meta = state["meta"]
+            while state["cursor"] < len(state["chunks"]):
+                chunk_id = f"{shape.query_id}:{state['cursor']}"
+                if chunk_id in done_chunks:
+                    state["cursor"] += 1
+                    continue
+                chunk = state["chunks"][state["cursor"]]
+                if not chunk:
+                    done_chunks.add(chunk_id)
+                    state["cursor"] += 1
+                    continue
+                est = estimate_batch_tokens(len(chunk), len(state["conditions"]))
+                quota = max(1, caller.ledger.remaining() // max(1, remaining_batches))
+                if est > caller.ledger.remaining():
+                    if len(chunk) > 1:
+                        chunk = chunk[:1]
+                        est = estimate_batch_tokens(1, len(state["conditions"]))
+                    if est > caller.ledger.remaining():
+                        print(f"  hold {shape.query_id} est={est} remaining={caller.ledger.remaining()}", flush=True)
+                        break
+                elif est > quota and len(chunk) > 1:
+                    keep = max(1, len(chunk) * quota // est)
+                    chunk = chunk[:keep]
+                active = True
+                spent_before = caller.ledger.spent
+                exec_before = _purpose_tokens(caller, "sig_executor")
+                ref_before = _purpose_tokens(caller, "sig_refiner")
+                val_before = _purpose_tokens(caller, "sig_validator")
+                print(
+                    f"residual {shape.query_id} batch={state['cursor']} n={len(chunk)} "
+                    f"est={est} quota={quota} remaining={caller.ledger.remaining()}",
+                    flush=True,
                 )
-            )
+                by_id = {item.get("witness_id") or item["entity_id"]: item for item in chunk}
+                by_id.update({item["entity_id"]: item for item in chunk})
+                plans = {
+                    "direct": propose_direct(bound, shape, chunk, state["conditions"]),
+                    "decompose": propose_decompose(
+                        bound, shape, chunk, state["conditions"], live, cond_cache,
+                    ),
+                }
+                plans["gleaning"] = propose_decompose(
+                    bound, shape, chunk, state["conditions"], live, cond_cache,
+                    refine=True, prior=plans["decompose"],
+                )
+                union = proposed_union(plans)
+                added = proposed = unknown = validated = 0
+                materialized = sql_visible = ineffective = 0
+                new_groups = existing_groups = edges_added = groups_added = 0
+                n_base = n_join = n_dist = 0
+                updated: set[str] = set()
+                proposed = len(union)
+                conn = sqlite3.connect(str(path))
+                try:
+                    conn.execute("SAVEPOINT residual_cohort")
+                    for entity_id, proposals in union.items():
+                        entity = by_id.get(entity_id)
+                        if entity is None:
+                            continue
+                        try:
+                            accepted = validate_addition(
+                                bound, entity, shape, state["conditions"], live, proposals, state["incumbent_groups"],
+                            )
+                        except BudgetExhausted:
+                            break
+                        except Exception:
+                            accepted = None
+                        if accepted is None:
+                            unknown += 1
+                            continue
+                        validated += 1
+                        token = normalize_group(accepted.group) if spec.group_aliases else ""
+                        is_new = bool(spec.group_aliases) and token not in state["incumbent_groups"] and token != "unknown"
+                        reasons: list[str] = []
+                        ok = apply_addition(
+                            conn, path, entity, accepted, shape, live, state["incumbent_rowids"],
+                            spec=spec, reasons=reasons,
+                        )
+                        if not ok:
+                            ineffective += 1
+                            cause = reasons[0] if reasons else "rejected"
+                            report.rollbacks.append(
+                                {
+                                    "query_id": shape.query_id,
+                                    "stage": "addition",
+                                    "entity_id": entity_id,
+                                    "reason": cause,
+                                }
+                            )
+                            print(f"  ineffective {entity_id} reason={cause}", flush=True)
+                            continue
+                        added += 1
+                        materialized += 1
+                        sql_visible += 1
+                        if spec.joins:
+                            edges_added += 1
+                            n_join += 1
+                        if spec.distinct_sql:
+                            n_dist += 1
+                        if not spec.joins and not spec.distinct_sql:
+                            n_base += 1
+                        if spec.group_sql:
+                            groups_added += 1
+                        if is_new:
+                            new_groups += 1
+                            state["incumbent_groups"].add(token)
+                        elif spec.group_aliases:
+                            existing_groups += 1
+                        updated |= related_canonicals(spec, live)
+                    after_bags = query_bags(path, all_statements, live, conn=conn)
+                    interference = []
+                    for qid, before in bags.items():
+                        if after_bags.get(qid) == before:
+                            continue
+                        sql = all_statements[qid]
+                        if not is_related(qid, sql, live, updated):
+                            interference.append(qid)
+                    if interference:
+                        conn.execute("ROLLBACK TO residual_cohort")
+                        print(f"  rolled back batch; unrelated bags moved: {interference}", flush=True)
+                        report.rollbacks.append(
+                            {
+                                "query_id": shape.query_id,
+                                "stage": "cohort",
+                                "reason": "unrelated bags",
+                                "queries": interference,
+                            }
+                        )
+                        added = materialized = sql_visible = new_groups = existing_groups = 0
+                        edges_added = groups_added = n_base = n_join = n_dist = 0
+                    else:
+                        conn.execute("RELEASE residual_cohort")
+                        bags = after_bags
+                    conn.commit()
+                finally:
+                    conn.close()
+                used = caller.ledger.spent - spent_before
+                meta["n_proposed"] += proposed
+                meta["n_validated"] += validated
+                meta["n_materialized"] += materialized
+                meta["n_sql_visible"] += sql_visible
+                meta["n_ineffective"] += ineffective
+                meta["n_added"] += added
+                meta["n_unknown"] += unknown
+                meta["n_base_row"] += n_base
+                meta["n_join_edge"] += n_join
+                meta["n_distinct"] += n_dist
+                meta["n_new_groups"] += new_groups
+                meta["n_existing_groups"] += existing_groups
+                meta["join_edges_added"] += edges_added
+                meta["groups_added"] += groups_added
+                meta["tokens"] += used
+                meta["tokens_executor"] += _purpose_tokens(caller, "sig_executor") - exec_before
+                meta["tokens_refiner"] += _purpose_tokens(caller, "sig_refiner") - ref_before
+                meta["tokens_validator"] += _purpose_tokens(caller, "sig_validator") - val_before
+                meta["count_mass_after"] = count_mass(path, shape.sql, live)
+                report.n_proposed += proposed
+                report.n_added += added
+                report.n_unknown += unknown
+                report.n_validated += validated
+                report.n_materialized += materialized
+                report.n_sql_visible += sql_visible
+                report.n_base_row += n_base
+                report.n_join_edge += n_join
+                report.n_distinct += n_dist
+                report.n_new_groups += new_groups
+                report.n_existing_groups += existing_groups
+                done_chunks.add(chunk_id)
+                remaining_batches = max(0, remaining_batches - 1)
+                state["cursor"] += 1
+                print(
+                    f"  {shape.query_id} proposed={proposed} added={added} ineffective={ineffective} tokens={used}",
+                    flush=True,
+                )
+                if ckpt:
+                    ckpt.parent.mkdir(parents=True, exist_ok=True)
+                    ckpt.write_text(
+                        json.dumps(
+                            {
+                                "per_query": report.per_query,
+                                "skipped": report.skipped,
+                                "blocking": report.blocking,
+                                "n_queries": report.n_queries,
+                                "n_added": report.n_added,
+                                "n_proposed": report.n_proposed,
+                                "n_validated": report.n_validated,
+                                "n_materialized": report.n_materialized,
+                                "n_sql_visible": report.n_sql_visible,
+                                "n_base_row": report.n_base_row,
+                                "n_join_edge": report.n_join_edge,
+                                "n_distinct": report.n_distinct,
+                                "n_new_groups": report.n_new_groups,
+                                "n_existing_groups": report.n_existing_groups,
+                                "rollbacks": report.rollbacks,
+                                "done_chunks": sorted(done_chunks),
+                            },
+                            default=str,
+                        )
+                    )
+                break
     report.tokens_spent = caller.ledger.spent
-    report.tokens_executor = sum(rec.tokens for rec in caller.ledger.records if rec.purpose == "sig_executor")
-    report.tokens_refiner = sum(rec.tokens for rec in caller.ledger.records if rec.purpose == "sig_refiner")
-    report.tokens_validator = sum(rec.tokens for rec in caller.ledger.records if rec.purpose == "sig_validator")
+    report.tokens_executor = _purpose_tokens(caller, "sig_executor")
+    report.tokens_refiner = _purpose_tokens(caller, "sig_refiner")
+    report.tokens_validator = _purpose_tokens(caller, "sig_validator")
     report.cache_hits = cache_store.hits
     report.cache_misses = cache_store.misses
     return report
+
+
+def _purpose_tokens(caller: BudgetedCaller, purpose: str) -> int:
+    return sum(rec.tokens for rec in caller.ledger.records if rec.purpose == purpose)
 
 
 def residual_counts(
@@ -1079,3 +1291,204 @@ def residual_counts(
     predicates: Iterable[AtomicPredicate] | None = None,
 ) -> list[dict[str, Any]]:
     return aprime_counts(sqlite_path, sql, predicates)
+
+
+def compare_bags(
+    left_path: str | Path,
+    right_path: str | Path,
+    statements: dict[str, str],
+    predicates: list[AtomicPredicate],
+) -> dict[str, Any]:
+    left = query_bags(left_path, statements, predicates)
+    right = query_bags(right_path, statements, predicates)
+    mismatched = [qid for qid in statements if left.get(qid) != right.get(qid)]
+    return {
+        "ok": not mismatched,
+        "matched": len(statements) - len(mismatched),
+        "total": len(statements),
+        "mismatched": mismatched,
+    }
+
+
+def _count_sql(conn: sqlite3.Connection, sql: str, sqlite_path: str | Path, predicates: list[AtomicPredicate]) -> int:
+    cur = conn.execute(official_sql(sql, sqlite_path, predicates))
+    cols = [item[0] for item in cur.description] if cur.description else []
+    total = 0
+    for row in cur.fetchall():
+        record = dict(zip(cols, row))
+        for key, value in record.items():
+            if str(key).lower().endswith("count") and value not in (None, ""):
+                try:
+                    total += int(value)
+                except (TypeError, ValueError):
+                    continue
+        if not any(str(key).lower().endswith("count") for key in record):
+            if row:
+                try:
+                    total += int(row[0] or 0)
+                except (TypeError, ValueError):
+                    continue
+    return total
+
+
+def write_gate_fixture(sqlite_path: str | Path) -> Path:
+    path = Path(sqlite_path)
+    if path.exists():
+        path.unlink()
+    conn = sqlite3.connect(str(path))
+    conn.execute("CREATE TABLE item (doc_id TEXT, form TEXT)")
+    conn.execute("CREATE TABLE extra (doc_id TEXT)")
+    conn.execute("INSERT INTO item VALUES ('a', 'tablet')")
+    conn.execute("INSERT INTO item VALUES ('b', 'capsule')")
+    conn.execute("INSERT INTO extra VALUES ('a')")
+    conn.execute("INSERT INTO extra VALUES ('z')")
+    ensure_edge_table(conn)
+    conn.commit()
+    conn.close()
+    return path
+
+
+def probe_live_join(
+    sqlite_path: str | Path,
+    statements: dict[str, str],
+    predicates: list[AtomicPredicate],
+) -> dict[str, Any]:
+    path = Path(sqlite_path)
+    live = list(predicates)
+    conn = sqlite3.connect(str(path))
+    out: dict[str, Any] = {"ok": True, "checks": []}
+    try:
+        ensure_edge_table(conn)
+        for qid, sql in statements.items():
+            spec = compile_witness_spec(qid, sql)
+            if not spec.joins:
+                continue
+            join = spec.joins[0]
+            left = f'"{join.left_alias}"'
+            right = f'"{join.right_alias}"'
+            try:
+                miss = conn.execute(
+                    f'SELECT {left}.rowid, {right}.rowid FROM "{join.left_table}" AS {left}, '
+                    f'"{join.right_table}" AS {right} WHERE NOT ({join.on_sql}) LIMIT 1'
+                ).fetchone()
+                hit = conn.execute(
+                    f'SELECT {left}.rowid, {right}.rowid FROM "{join.left_table}" AS {left} '
+                    f'JOIN "{join.right_table}" AS {right} ON {join.on_sql} LIMIT 1'
+                ).fetchone()
+            except sqlite3.Error as exc:
+                out["checks"].append({"name": "live_pair", "query_id": qid, "ok": False, "error": str(exc)})
+                out["ok"] = False
+                break
+            before = _count_sql(conn, sql, path, live)
+            if miss:
+                conn.execute("SAVEPOINT gate_live_add")
+                add_edge(conn, join.join_id, int(miss[0]), int(miss[1]), provenance="gate")
+                after = _count_sql(conn, sql, path, live)
+                conn.execute("ROLLBACK TO gate_live_add")
+                conn.execute("RELEASE gate_live_add")
+                ok = before <= after <= before + 1
+                out["checks"].append(
+                    {
+                        "name": "live_positive_edge",
+                        "query_id": qid,
+                        "before": before,
+                        "after": after,
+                        "ok": ok,
+                    }
+                )
+                out["ok"] = out["ok"] and ok
+            if hit:
+                conn.execute("SAVEPOINT gate_live_dup")
+                add_edge(conn, join.join_id, int(hit[0]), int(hit[1]), provenance="gate")
+                after = _count_sql(conn, sql, path, live)
+                conn.execute("ROLLBACK TO gate_live_dup")
+                conn.execute("RELEASE gate_live_dup")
+                ok = after == before
+                out["checks"].append(
+                    {
+                        "name": "live_no_duplicate",
+                        "query_id": qid,
+                        "before": before,
+                        "after": after,
+                        "ok": ok,
+                    }
+                )
+                out["ok"] = out["ok"] and ok
+            break
+    finally:
+        conn.close()
+    return out
+
+
+def probe_edge_additivity(sqlite_path: str | Path, predicates: list[AtomicPredicate] | None = None) -> dict[str, Any]:
+    path = Path(sqlite_path)
+    live = list(predicates or [])
+    conn = sqlite3.connect(str(path))
+    ensure_edge_table(conn)
+    conn.commit()
+    findings: dict[str, Any] = {"ok": True, "checks": []}
+    try:
+        sql = "SELECT COUNT(*) AS n FROM item i JOIN extra e ON i.doc_id = e.doc_id"
+        try:
+            spec = compile_witness_spec("gate_join", sql)
+            before = _count_sql(conn, sql, path, live)
+            findings["checks"].append({"name": "empty_edge_keeps_on", "before": before, "ok": True})
+            join = spec.joins[0]
+            extra = conn.execute("SELECT rowid FROM extra WHERE doc_id != (SELECT doc_id FROM item LIMIT 1) LIMIT 1").fetchone()
+            item = conn.execute("SELECT rowid FROM item LIMIT 1").fetchone()
+            if extra and item:
+                conn.execute("SAVEPOINT gate_add")
+                add_edge(conn, join.join_id, int(item[0]), int(extra[0]), provenance="gate")
+                after = _count_sql(conn, sql, path, live)
+                conn.execute("ROLLBACK TO gate_add")
+                conn.execute("RELEASE gate_add")
+                ok = after == before + 1
+                findings["checks"].append({"name": "positive_edge_adds_one", "before": before, "after": after, "ok": ok})
+                findings["ok"] = findings["ok"] and ok
+                conn.execute("SAVEPOINT gate_dup")
+                match = conn.execute(
+                    "SELECT i.rowid, e.rowid FROM item i JOIN extra e ON i.doc_id = e.doc_id LIMIT 1"
+                ).fetchone()
+                if match:
+                    add_edge(conn, join.join_id, int(match[0]), int(match[1]), provenance="gate")
+                    dup = _count_sql(conn, sql, path, live)
+                    ok_dup = dup == before
+                    findings["checks"].append({"name": "exists_no_duplicate", "before": before, "after": dup, "ok": ok_dup})
+                    findings["ok"] = findings["ok"] and ok_dup
+                conn.execute("ROLLBACK TO gate_dup")
+                conn.execute("RELEASE gate_dup")
+        except sqlite3.Error as exc:
+            findings["ok"] = False
+            findings["checks"].append({"name": "join_probe", "ok": False, "error": str(exc)})
+        self_sql = "SELECT COUNT(*) AS n FROM item a JOIN item b ON a.doc_id = b.form"
+        try:
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE name='item'").fetchone():
+                spec = compile_witness_spec("gate_self", self_sql)
+                before = _count_sql(conn, self_sql, path, live)
+                join = spec.joins[0]
+                left = conn.execute("SELECT rowid FROM item LIMIT 1").fetchone()
+                right = conn.execute("SELECT rowid FROM item LIMIT 1 OFFSET 1").fetchone()
+                if left and right and spec.joins:
+                    conn.execute("SAVEPOINT gate_self")
+                    add_edge(conn, join.join_id, int(left[0]), int(right[0]), provenance="gate")
+                    after = _count_sql(conn, self_sql, path, live)
+                    conn.execute("ROLLBACK TO gate_self")
+                    conn.execute("RELEASE gate_self")
+                    ok = before <= after <= before + 1
+                    findings["checks"].append(
+                        {
+                            "name": "self_join_aliases",
+                            "before": before,
+                            "after": after,
+                            "ok": ok,
+                            "left_alias": join.left_alias,
+                            "right_alias": join.right_alias,
+                        }
+                    )
+                    findings["ok"] = findings["ok"] and ok
+        except sqlite3.Error as exc:
+            findings["checks"].append({"name": "self_join_aliases", "ok": False, "error": str(exc)})
+            findings["ok"] = False
+    finally:
+        conn.close()
+    return findings

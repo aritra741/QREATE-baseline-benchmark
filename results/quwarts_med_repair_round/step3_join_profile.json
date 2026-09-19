@@ -1,0 +1,815 @@
+[
+  {
+    "left": "drug.disease_name",
+    "right": "disease.disease_name",
+    "predicates": [
+      "(LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%')",
+      "(LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%')"
+    ],
+    "functions": [
+      "LOWER",
+      "TRIM"
+    ],
+    "query_ids": [
+      "med_filterjoin20:q12",
+      "med_filterjoin20:q13",
+      "med_filterjoin20:q14",
+      "med_filterjoin20:q15",
+      "med_filterjoin20:q17",
+      "med_filterjoin20:q19",
+      "med_filterjoin20:q6",
+      "med_filterjoin20:q7",
+      "med_filterjoin20:q8",
+      "med_groupby20:q10",
+      "med_groupby20:q16",
+      "med_groupby20:q17",
+      "med_join20:q0",
+      "med_join20:q1",
+      "med_join20:q10",
+      "med_join20:q11",
+      "med_join20:q14",
+      "med_join20:q16",
+      "med_join20:q17",
+      "med_join20:q18",
+      "med_join20:q19",
+      "med_join20:q2",
+      "med_join20:q3",
+      "med_join20:q4",
+      "med_multiagg20:q13",
+      "med_multiagg20:q14",
+      "med_multiagg20:q18",
+      "med_multiagg20:q19",
+      "med_multiagg20:q9"
+    ],
+    "empty_query_ids": [
+      "med_filterjoin20:q12",
+      "med_filterjoin20:q13",
+      "med_filterjoin20:q14",
+      "med_filterjoin20:q15",
+      "med_filterjoin20:q17",
+      "med_filterjoin20:q19",
+      "med_filterjoin20:q6",
+      "med_filterjoin20:q7",
+      "med_filterjoin20:q8",
+      "med_groupby20:q10",
+      "med_groupby20:q16",
+      "med_groupby20:q17",
+      "med_join20:q1",
+      "med_join20:q10",
+      "med_join20:q11",
+      "med_join20:q16",
+      "med_join20:q18",
+      "med_join20:q2",
+      "med_multiagg20:q18",
+      "med_multiagg20:q9"
+    ],
+    "n_left": 72,
+    "n_right": 68,
+    "exact_yield": 0.041666666666666664,
+    "canonical_yield": 0.04225352112676056,
+    "n_empty": 20,
+    "unmatched_sample": [
+      {
+        "left": "cardiovascular disease",
+        "nearest": [
+          {
+            "value": "cardiovascular diseases",
+            "ratio": 0.978
+          },
+          {
+            "value": "cardio-respiratory diseases",
+            "ratio": 0.653
+          },
+          {
+            "value": "coronary heart disease, cerebrovascular disease",
+            "ratio": 0.638
+          }
+        ]
+      },
+      {
+        "left": "Schizoaffective disorder",
+        "nearest": [
+          {
+            "value": "anxiety disorders",
+            "ratio": 0.585
+          },
+          {
+            "value": "adjustment disorders",
+            "ratio": 0.545
+          },
+          {
+            "value": "infectious diseases",
+            "ratio": 0.512
+          }
+        ]
+      },
+      {
+        "left": "anxiety",
+        "nearest": [
+          {
+            "value": "anxiety disorders",
+            "ratio": 0.583
+          },
+          {
+            "value": "acne",
+            "ratio": 0.545
+          },
+          {
+            "value": "cancer",
+            "ratio": 0.462
+          }
+        ]
+      },
+      {
+        "left": "Sternal Infection Post-Cardiac Surgery, Metastatic Renal Cell Carcinoma (mRCC), Non-clear cell renal cell carcinoma (nccRCC)",
+        "nearest": [
+          {
+            "value": "irritable bowel syndrome (IBS), functional bowel disorders, constipation, diarrhea, organic gastrointestinal disease",
+            "ratio": 0.292
+          },
+          {
+            "value": "anaphylaxis, HIV, NAFLD, liver disease, hepatitis C, cervical cancer",
+            "ratio": 0.281
+          },
+          {
+            "value": "Chronic Fatigue Syndrome, Myalgic Encephalomyelitis",
+            "ratio": 0.274
+          }
+        ]
+      },
+      {
+        "left": "autism",
+        "nearest": [
+          {
+            "value": "uveitis",
+            "ratio": 0.615
+          },
+          {
+            "value": "asthma",
+            "ratio": 0.5
+          },
+          {
+            "value": "menopause",
+            "ratio": 0.4
+          }
+        ]
+      },
+      {
+        "left": "Allergic rhinitis, hay fever, urination problems, digestive obstruction, stomach ulcers, glaucoma, sleep apnea, bone marrow disorder, seizure disorder, cardiovascular disease, blood pressure, liver disease",
+        "nearest": [
+          {
+            "value": "pain, anxiety, depression, schizophrenia, acne, heart disease, multiple sclerosis, rheumatoid arthritis, epilepsy, Alzheimer's disease, Parkinson's disease",
+            "ratio": 0.356
+          },
+          {
+            "value": "irritable bowel syndrome (IBS), functional bowel disorders, constipation, diarrhea, organic gastrointestinal disease",
+            "ratio": 0.336
+          },
+          {
+            "value": "coronary heart disease, cerebrovascular disease",
+            "ratio": 0.278
+          }
+        ]
+      },
+      {
+        "left": "depressive and anxiety disorders, hypertension",
+        "nearest": [
+          {
+            "value": "major depressive disorder, pulmonary arterial hypertension",
+            "ratio": 0.635
+          },
+          {
+            "value": "anxiety disorders",
+            "ratio": 0.54
+          },
+          {
+            "value": "sleep disorders, dementia",
+            "ratio": 0.507
+          }
+        ]
+      },
+      {
+        "left": "Vitiligo, Chronic Regional Pain, Dilated Cardiomyopathy",
+        "nearest": [
+          {
+            "value": "constipation, opioid-induced constipation",
+            "ratio": 0.375
+          },
+          {
+            "value": "benign prostatic hypertrophy",
+            "ratio": 0.361
+          },
+          {
+            "value": "Chronic Fatigue Syndrome, Myalgic Encephalomyelitis",
+            "ratio": 0.358
+          }
+        ]
+      },
+      {
+        "left": "rare, genetic condition, hypercholesterolaemia, mixed dyslipidaemia, moderate to severe hypercholesterolemia, myocardial infarction, unstable angina pectoris, hyperlipidemia",
+        "nearest": [
+          {
+            "value": "muscle wasting, low back pain, severe mood swings, manic episodes, inflammation of the pancreas (pancreatitis), heart disease",
+            "ratio": 0.329
+          },
+          {
+            "value": "depressive disorder, anxiety disorders, autism, bipolar disorders, schizophrenia, idiopathic developmental intellectual disability",
+            "ratio": 0.304
+          },
+          {
+            "value": "pain, anxiety, depression, schizophrenia, acne, heart disease, multiple sclerosis, rheumatoid arthritis, epilepsy, Alzheimer's disease, Parkinson's disease",
+            "ratio": 0.299
+          }
+        ]
+      },
+      {
+        "left": "chronic obstructive pulmonary disease (COPD)",
+        "nearest": [
+          {
+            "value": "cardiovascular diseases",
+            "ratio": 0.478
+          },
+          {
+            "value": "Crohn's disease, Obesity",
+            "ratio": 0.441
+          },
+          {
+            "value": "cardio-respiratory diseases",
+            "ratio": 0.423
+          }
+        ]
+      },
+      {
+        "left": "atherosclerotic cardiovascular disease",
+        "nearest": [
+          {
+            "value": "cardiovascular diseases",
+            "ratio": 0.721
+          },
+          {
+            "value": "coronary heart disease, cerebrovascular disease",
+            "ratio": 0.612
+          },
+          {
+            "value": "cardio-respiratory diseases",
+            "ratio": 0.492
+          }
+        ]
+      },
+      {
+        "left": "chronic pancreatitis",
+        "nearest": [
+          {
+            "value": "chronic pain",
+            "ratio": 0.688
+          },
+          {
+            "value": "Colon Cancer",
+            "ratio": 0.5
+          },
+          {
+            "value": "Secondary peritonitis",
+            "ratio": 0.488
+          }
+        ]
+      },
+      {
+        "left": "Diabetes",
+        "nearest": [
+          {
+            "value": "Diabetes Mellitus",
+            "ratio": 0.64
+          },
+          {
+            "value": "death",
+            "ratio": 0.462
+          },
+          {
+            "value": "uveitis",
+            "ratio": 0.4
+          }
+        ]
+      },
+      {
+        "left": "type 2 diabetes mellitus",
+        "nearest": [
+          {
+            "value": "Diabetes Mellitus",
+            "ratio": 0.829
+          },
+          {
+            "value": "plaque psoriasis",
+            "ratio": 0.4
+          },
+          {
+            "value": "Crohn's disease, Obesity",
+            "ratio": 0.375
+          }
+        ]
+      },
+      {
+        "left": "obesity, alcoholism, hepatitis",
+        "nearest": [
+          {
+            "value": "cardio-respiratory diseases",
+            "ratio": 0.421
+          },
+          {
+            "value": "Chronic Fatigue Syndrome, Myalgic Encephalomyelitis",
+            "ratio": 0.42
+          },
+          {
+            "value": "anaphylaxis, HIV, NAFLD, liver disease, hepatitis C, cervical cancer",
+            "ratio": 0.388
+          }
+        ]
+      },
+      {
+        "left": "renal calculus",
+        "nearest": [
+          {
+            "value": "trigeminal neuralgia",
+            "ratio": 0.471
+          },
+          {
+            "value": "menopause",
+            "ratio": 0.435
+          },
+          {
+            "value": "periodontal disease",
+            "ratio": 0.424
+          }
+        ]
+      },
+      {
+        "left": "osteoporosis",
+        "nearest": [
+          {
+            "value": "leptospirosis",
+            "ratio": 0.64
+          },
+          {
+            "value": "Tuberculosis",
+            "ratio": 0.583
+          },
+          {
+            "value": "Cystic Fibrosis",
+            "ratio": 0.519
+          }
+        ]
+      },
+      {
+        "left": "relapsing forms of multiple sclerosis, inflammatory phase of secondary progressive MS, demyelination, loss of myelin, oligodendrocytes destruction, fast-spreading 501Y.V2 variant",
+        "nearest": [
+          {
+            "value": "muscle wasting, low back pain, severe mood swings, manic episodes, inflammation of the pancreas (pancreatitis), heart disease",
+            "ratio": 0.317
+          },
+          {
+            "value": "pain, anxiety, depression, schizophrenia, acne, heart disease, multiple sclerosis, rheumatoid arthritis, epilepsy, Alzheimer's disease, Parkinson's disease",
+            "ratio": 0.312
+          },
+          {
+            "value": "flu, Alzheimer's disease, cancer, heart disease, degenerative diseases, diabetes, inflammatory diseases, leaky gut, arthritis, liver damage, autoimmune conditions, neurological diseases",
+            "ratio": 0.281
+          }
+        ]
+      },
+      {
+        "left": "Parkinson's disease, cancer, congenital Parkinson's disease, idiopathic Parkinson's disease",
+        "nearest": [
+          {
+            "value": "depressive disorder, anxiety disorders, autism, bipolar disorders, schizophrenia, idiopathic developmental intellectual disability",
+            "ratio": 0.398
+          },
+          {
+            "value": "coronary heart disease, cerebrovascular disease",
+            "ratio": 0.391
+          },
+          {
+            "value": "flu, Alzheimer's disease, cancer, heart disease, degenerative diseases, diabetes, inflammatory diseases, leaky gut, arthritis, liver damage, autoimmune conditions, neurological diseases",
+            "ratio": 0.341
+          }
+        ]
+      },
+      {
+        "left": "stress, chronic disease, tissue damage, pain, sepsis",
+        "nearest": [
+          {
+            "value": "Crohn's disease, Obesity",
+            "ratio": 0.447
+          },
+          {
+            "value": "pain, anxiety, depression, schizophrenia, acne, heart disease, multiple sclerosis, rheumatoid arthritis, epilepsy, Alzheimer's disease, Parkinson's disease",
+            "ratio": 0.406
+          },
+          {
+            "value": "coronary heart disease, cerebrovascular disease",
+            "ratio": 0.404
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "left": "institution.research_diseases",
+    "right": "disease.disease_name",
+    "predicates": [
+      "(LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%')",
+      "(LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%')"
+    ],
+    "functions": [
+      "LOWER",
+      "TRIM"
+    ],
+    "query_ids": [
+      "med_filterjoin20:q11",
+      "med_filterjoin20:q14",
+      "med_filterjoin20:q15",
+      "med_filterjoin20:q17",
+      "med_filterjoin20:q19",
+      "med_filterjoin20:q9",
+      "med_groupby20:q12",
+      "med_groupby20:q13",
+      "med_groupby20:q14",
+      "med_groupby20:q16",
+      "med_groupby20:q17",
+      "med_groupby20:q19",
+      "med_join20:q13",
+      "med_join20:q14",
+      "med_join20:q16",
+      "med_join20:q17",
+      "med_join20:q18",
+      "med_join20:q19",
+      "med_join20:q5",
+      "med_join20:q6",
+      "med_join20:q7",
+      "med_join20:q8",
+      "med_join20:q9",
+      "med_multiagg20:q10",
+      "med_multiagg20:q11",
+      "med_multiagg20:q12",
+      "med_multiagg20:q13",
+      "med_multiagg20:q14",
+      "med_multiagg20:q19"
+    ],
+    "empty_query_ids": [
+      "med_filterjoin20:q14",
+      "med_filterjoin20:q15",
+      "med_filterjoin20:q17",
+      "med_filterjoin20:q19",
+      "med_filterjoin20:q9",
+      "med_groupby20:q16",
+      "med_groupby20:q17",
+      "med_join20:q16",
+      "med_join20:q18"
+    ],
+    "n_left": 59,
+    "n_right": 68,
+    "exact_yield": 0.06779661016949153,
+    "canonical_yield": 0.0847457627118644,
+    "n_empty": 9,
+    "unmatched_sample": [
+      {
+        "left": "paramyloidosis - CCUL",
+        "nearest": [
+          {
+            "value": "hair loss",
+            "ratio": 0.4
+          },
+          {
+            "value": "Prostate Cancer",
+            "ratio": 0.389
+          },
+          {
+            "value": "plaque psoriasis",
+            "ratio": 0.378
+          }
+        ]
+      },
+      {
+        "left": "benign prostatic hyperplasia",
+        "nearest": [
+          {
+            "value": "benign prostatic hypertrophy",
+            "ratio": 0.821
+          },
+          {
+            "value": "Prostate Cancer",
+            "ratio": 0.465
+          },
+          {
+            "value": "preeclampsia",
+            "ratio": 0.4
+          }
+        ]
+      },
+      {
+        "left": "Polycystic ovary syndrome",
+        "nearest": [
+          {
+            "value": "Vohwinkel syndrome",
+            "ratio": 0.512
+          },
+          {
+            "value": "Cystic Fibrosis",
+            "ratio": 0.45
+          },
+          {
+            "value": "poison oak rash",
+            "ratio": 0.4
+          }
+        ]
+      },
+      {
+        "left": "immune system",
+        "nearest": [
+          {
+            "value": "Vohwinkel syndrome",
+            "ratio": 0.452
+          },
+          {
+            "value": "Opioid use disorder, Osteosarcoma",
+            "ratio": 0.391
+          },
+          {
+            "value": "hair loss",
+            "ratio": 0.364
+          }
+        ]
+      },
+      {
+        "left": "Chronic Granulomatous Disease",
+        "nearest": [
+          {
+            "value": "cardiovascular diseases",
+            "ratio": 0.577
+          },
+          {
+            "value": "cardio-respiratory diseases",
+            "ratio": 0.571
+          },
+          {
+            "value": "periodontal disease",
+            "ratio": 0.542
+          }
+        ]
+      },
+      {
+        "left": "chronic kidney disease (CKD)",
+        "nearest": [
+          {
+            "value": "Celiac disease",
+            "ratio": 0.524
+          },
+          {
+            "value": "chronic pain",
+            "ratio": 0.5
+          },
+          {
+            "value": "Crohn's disease, Obesity",
+            "ratio": 0.5
+          }
+        ]
+      },
+      {
+        "left": "cancer, cardiovascular diseases, neurology, many others domains of medicine",
+        "nearest": [
+          {
+            "value": "cardiovascular diseases",
+            "ratio": 0.469
+          },
+          {
+            "value": "coronary heart disease, cerebrovascular disease",
+            "ratio": 0.377
+          },
+          {
+            "value": "Substance abuse and addiction",
+            "ratio": 0.365
+          }
+        ]
+      },
+      {
+        "left": "immune thrombocytopenia",
+        "nearest": [
+          {
+            "value": "mesothelioma",
+            "ratio": 0.4
+          },
+          {
+            "value": "fibromyalgia",
+            "ratio": 0.4
+          },
+          {
+            "value": "Vohwinkel syndrome",
+            "ratio": 0.39
+          }
+        ]
+      },
+      {
+        "left": "Peripheral arterial disease",
+        "nearest": [
+          {
+            "value": "periodontal disease",
+            "ratio": 0.652
+          },
+          {
+            "value": "Celiac disease",
+            "ratio": 0.585
+          },
+          {
+            "value": "cardio-respiratory diseases",
+            "ratio": 0.481
+          }
+        ]
+      },
+      {
+        "left": "Hemodialysis",
+        "nearest": [
+          {
+            "value": "plaque psoriasis",
+            "ratio": 0.5
+          },
+          {
+            "value": "leptospirosis",
+            "ratio": 0.48
+          },
+          {
+            "value": "periodontal disease",
+            "ratio": 0.452
+          }
+        ]
+      },
+      {
+        "left": "equine laminitis and other musculoskeletal diseases",
+        "nearest": [
+          {
+            "value": "infectious diseases",
+            "ratio": 0.486
+          },
+          {
+            "value": "acute graft-vs-host disease",
+            "ratio": 0.462
+          },
+          {
+            "value": "cardiovascular diseases",
+            "ratio": 0.432
+          }
+        ]
+      },
+      {
+        "left": "murine breast cancer, specific proteins, inflammatory diseases, metabolic disorders",
+        "nearest": [
+          {
+            "value": "flu, Alzheimer's disease, cancer, heart disease, degenerative diseases, diabetes, inflammatory diseases, leaky gut, arthritis, liver damage, autoimmune conditions, neurological diseases",
+            "ratio": 0.455
+          },
+          {
+            "value": "muscle wasting, low back pain, severe mood swings, manic episodes, inflammation of the pancreas (pancreatitis), heart disease",
+            "ratio": 0.423
+          },
+          {
+            "value": "cardio-respiratory diseases",
+            "ratio": 0.4
+          }
+        ]
+      },
+      {
+        "left": "Factor X Deficiency",
+        "nearest": [
+          {
+            "value": "Opiate dependency",
+            "ratio": 0.5
+          },
+          {
+            "value": "infectious diseases",
+            "ratio": 0.421
+          },
+          {
+            "value": "chronic pain",
+            "ratio": 0.387
+          }
+        ]
+      },
+      {
+        "left": "cardiovascular disease",
+        "nearest": [
+          {
+            "value": "cardiovascular diseases",
+            "ratio": 0.978
+          },
+          {
+            "value": "cardio-respiratory diseases",
+            "ratio": 0.653
+          },
+          {
+            "value": "coronary heart disease, cerebrovascular disease",
+            "ratio": 0.638
+          }
+        ]
+      },
+      {
+        "left": "environmental systems under global change and globalisation",
+        "nearest": [
+          {
+            "value": "Substance abuse and addiction",
+            "ratio": 0.364
+          },
+          {
+            "value": "Chronic Fatigue Syndrome, Myalgic Encephalomyelitis",
+            "ratio": 0.345
+          },
+          {
+            "value": "pyoderma gangrenosum",
+            "ratio": 0.329
+          }
+        ]
+      },
+      {
+        "left": "Dry Eye Disease",
+        "nearest": [
+          {
+            "value": "Celiac disease",
+            "ratio": 0.621
+          },
+          {
+            "value": "periodontal disease",
+            "ratio": 0.529
+          },
+          {
+            "value": "infectious diseases",
+            "ratio": 0.529
+          }
+        ]
+      },
+      {
+        "left": "pancreatic neuroendocrine cancer, pancreatic adenocarcinoma, ovarian cancer",
+        "nearest": [
+          {
+            "value": "Opioid use disorder, Osteosarcoma",
+            "ratio": 0.333
+          },
+          {
+            "value": "major depressive disorder, pulmonary arterial hypertension",
+            "ratio": 0.331
+          },
+          {
+            "value": "parasitic infections",
+            "ratio": 0.316
+          }
+        ]
+      },
+      {
+        "left": "type 1 diabetes (T1D), Kilham rat virus (KRV)-induced islet destruction, beta cell infection and intra-islet immune activation",
+        "nearest": [
+          {
+            "value": "depressive disorder, anxiety disorders, autism, bipolar disorders, schizophrenia, idiopathic developmental intellectual disability",
+            "ratio": 0.32
+          },
+          {
+            "value": "constipation, opioid-induced constipation",
+            "ratio": 0.287
+          },
+          {
+            "value": "muscle wasting, low back pain, severe mood swings, manic episodes, inflammation of the pancreas (pancreatitis), heart disease",
+            "ratio": 0.287
+          }
+        ]
+      },
+      {
+        "left": "chronic migraine",
+        "nearest": [
+          {
+            "value": "chronic pain",
+            "ratio": 0.786
+          },
+          {
+            "value": "Celiac disease",
+            "ratio": 0.467
+          },
+          {
+            "value": "Cystic Fibrosis",
+            "ratio": 0.452
+          }
+        ]
+      },
+      {
+        "left": "Multiple Sclerosis",
+        "nearest": [
+          {
+            "value": "plaque psoriasis",
+            "ratio": 0.529
+          },
+          {
+            "value": "leptospirosis",
+            "ratio": 0.516
+          },
+          {
+            "value": "Cystic Fibrosis",
+            "ratio": 0.485
+          }
+        ]
+      }
+    ]
+  }
+]
