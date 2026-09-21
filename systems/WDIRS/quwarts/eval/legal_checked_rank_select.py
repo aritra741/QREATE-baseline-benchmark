@@ -390,9 +390,11 @@ def main() -> int:
     amp_attrs = set()
     for name, rec in records.items():
         sql_blob = "\n".join(statements[qid] for qid in rec.queries)
-        if rec.roles.get("HAVING") or rec.roles.get("aggregate input") or re.search(rf"\b{name}\b\s+IS\s+NOT\s+NULL", sql_blob, re.I):
+        if any(rec.roles.get(role) for role in ("WHERE", "GROUP BY", "HAVING", "aggregate input")):
             amp_attrs.add(name)
-        if re.search(rf"\b(COUNT|AVG)\s*\([^)]*\b{name}\b", sql_blob, re.I):
+        if re.search(rf"\b{name}\b\s+IS\s+NOT\s+NULL", sql_blob, re.I) or re.search(rf"\b{name}\b\s*(!=|<>)\s*''", sql_blob, re.I):
+            amp_attrs.add(name)
+        if re.search(rf"\b(COUNT|AVG|SUM|MAX|MIN)\s*\([^)]*\b{name}\b", sql_blob, re.I):
             amp_attrs.add(name)
     prompts = {"scan": SCAN_PROMPT, "match": MATCH_PROMPT, "absence": ABSENCE_PROMPT, "verify": VERIFY_PROMPT, "adjudicate": ADJ_PROMPT}
     design = {
@@ -497,10 +499,11 @@ def main() -> int:
         cut = max(1, int(round(len(rows) * (N_TRAIN / max(N_SAMPLE, 1))))) if len(rows) > 1 else 1
         train.extend(rows[:cut])
         held.extend(rows[cut:])
-    while len(train) > int(round(len(sampled) * N_TRAIN / N_SAMPLE)):
+    target_train = min(max(int(round(len(sampled) * N_TRAIN / N_SAMPLE)), 1), max(len(sampled) - 1, 1))
+    while len(train) > target_train:
         held.append(train.pop())
-    while len(held) < max(1, int(round(len(sampled) * N_VAL / N_SAMPLE))) and train:
-        held.append(train.pop())
+    while len(train) < target_train and held:
+        train.append(held.pop())
     train_ids = {row["entity_id"] for row in train}
     held_ids = {row["entity_id"] for row in held}
     sample_payload = {"train": train, "heldout": held, "estimate_tokens": estimate(sampled), "n": len(sampled)}
