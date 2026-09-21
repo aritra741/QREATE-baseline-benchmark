@@ -110,6 +110,7 @@ def main() -> int:
         return exact, obs
 
     checked_n = exact_n = obs_n = false_abs = gold_pos = covered = 0
+    cand_n = cand_obs = decided_n = decided_obs = 0
     by_attr = defaultdict(lambda: Counter())
     split_acc = {"train": Counter(), "heldout": Counter()}
     for (eid, name), label in cells.items():
@@ -135,6 +136,14 @@ def main() -> int:
         checked_n += 1
         exact_n += int(exact)
         obs_n += int(obs)
+        if label.get("decision") == UNCERTAIN:
+            pass
+        else:
+            decided_n += 1
+            decided_obs += int(obs)
+            if label.get("decision") != KEEP:
+                cand_n += 1
+                cand_obs += int(obs)
         if gold_present:
             gold_pos += 1
             cands = det_items(by_ent.get((eid, name)) or {})
@@ -174,16 +183,18 @@ def main() -> int:
     official = score_db(OUT / "databases" / "official.db", statements, predicates, query_ids, gold)
     product = official["mean_per_query_product"]
     checked_obs_rate = obs_n / max(checked_n, 1)
+    cand_rate = cand_obs / max(cand_n, 1)
+    decided_rate = decided_obs / max(decided_n, 1)
     coverage_rate = covered / max(gold_pos, 1)
     false_abs_rate = false_abs / max(gold_pos, 1)
     val_vs_checked = split_acc["heldout"]["vs_checked"] / max(split_acc["heldout"]["n"], 1)
     if product > DOCETL_PRODUCT:
         decision = "candidate-aligned checked extraction beats DocETL"
-    elif checked_obs_rate >= 0.55 and (val_vs_checked < 0.55 or product <= DOCETL_PRODUCT):
+    elif cand_rate >= 0.55 and (val_vs_checked < 0.55 or product <= DOCETL_PRODUCT):
         decision = "checked references are accurate but deterministic ranking fails"
     elif coverage_rate < 0.40:
         decision = "deterministic candidates lack source-supported coverage"
-    elif checked_obs_rate < 0.55:
+    elif cand_rate < 0.55 or decided_rate < 0.55:
         decision = "checked extraction remains too inaccurate for supervision"
     else:
         decision = "run invalid"
@@ -198,6 +209,9 @@ def main() -> int:
         "decision": decision,
         "checked_obs_rate": checked_obs_rate,
         "checked_exact_rate": exact_n / max(checked_n, 1),
+        "candidate_reference_obs": cand_rate,
+        "decided_reference_obs": decided_rate,
+        "candidate_labels": cand_n,
         "false_absence_rate": false_abs_rate,
         "candidate_coverage": coverage_rate,
         "split": {k: dict(v) for k, v in split_acc.items()},
@@ -220,9 +234,11 @@ def main() -> int:
         "",
         "## Checked labels",
         "",
-        f"Cells {checked_n}. Exact {exact_n / max(checked_n, 1):.4f}. Observational {checked_obs_rate:.4f}. False absence {false_abs_rate:.4f} on {gold_pos} gold-positive cells. Candidate coverage {coverage_rate:.4f}. Incomplete scans {pre.get('coverage_incomplete')}.",
+        f"Cells {checked_n}. Exact {exact_n / max(checked_n, 1):.4f}. Observational including UNCERTAIN {checked_obs_rate:.4f}. Committed candidate observational accuracy {cand_rate:.4f} on {cand_n} labels. Decided-label observational accuracy {decided_rate:.4f}. False absence {false_abs_rate:.4f} on {gold_pos} gold-positive cells. Candidate coverage {coverage_rate:.4f}. Incomplete scans {pre.get('coverage_incomplete')}.",
         "",
-        f"Label counts: {json.dumps(pre.get('checked'))}.",
+        f"Label counts: {json.dumps(pre.get('checked'))}. Candidate rate {pre.get('checked', {}).get('candidate', 0) / max(checked_n, 1):.4f}. KEEP rate {(pre.get('checked', {}).get('KEEP_PLUMBING', 0)) / 960:.4f}. UNCERTAIN rate {pre.get('checked', {}).get('UNCERTAIN', 0) / max(checked_n, 1):.4f} of extracted cells.",
+        "",
+        f"Evidence coverage: incomplete {pre.get('coverage_incomplete')}. Ledger {json.dumps(pre.get('tokens_by_purpose'))}. Causal spend {pre.get('causal_spent')}.",
         "",
         "## Ranker",
         "",
