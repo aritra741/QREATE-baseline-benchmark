@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "791f44c292693d08e349d1e4dd81c6bf09b208860d99b1a75ecc09afc9fee252",
+    "entity_identity": "a4cac6b4eaf47dbbd5416b00fed4f1c6ee5e7340c689b3f7f2f53380dadc3000",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e77e062a8354de1068ea99edd7258472e1c3f5404575fbcc8ab74947285d704f",
+      "dc0a37d2d1415b7b9f854f9e69536ec2efcb2be6464eb8a01c39b3079702d325",
+      "322e3d1de927be2df4a8c9b19104ba3548e65762afc629bbdbd7d044a9d496b9",
+      "d6b393db9fbe52fe2447e3a256d25c114701c0b126b4b8beef176f054ba685aa"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"a4cac6b4eaf47dbbd5416b00fed4f1c6ee5e7340c689b3f7f2f53380dadc3000\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"66 The evidence given by Messrs Denison, P Turner and M Turner in their affidavits concerning the disclosures was not seriously challenged.\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"196.txt:c66\",\n          \"exact_span\": \"66 The evidence given by Messrs Denison, P Turner and M Turner in their affidavits concerning the disclosures was not seriously challenged.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "66 The evidence given by Messrs Denison, P Turner and M Turner in their affidavits concerning the disclosures was not seriously challenged.",
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "196.txt:c66",
+              "exact_span": "66 The evidence given by Messrs Denison, P Turner and M Turner in their affidavits concerning the disclosures was not seriously challenged."
+            }
+          ],
+          "errors": [
+            "dtype_coercion",
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": "dtype_coercion"
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "a4cac6b4eaf47dbbd5416b00fed4f1c6ee5e7340c689b3f7f2f53380dadc3000"
+    }
+  }
+}

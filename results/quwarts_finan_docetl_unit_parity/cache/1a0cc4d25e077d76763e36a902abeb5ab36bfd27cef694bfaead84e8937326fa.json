@@ -1,0 +1,91 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+    "entity_identity": "finan_multiagg20:q11:10:map",
+    "attribute_bundle": [
+      "cash_reserves",
+      "net_assets",
+      "principal_activities",
+      "total_debt"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+      "b20e1b20aec20de468930c8478233b491a6c508b653d2cb50a77ac6ce63a2c20",
+      "639efbcc18ca83a5633b4b5859b736e1ae057766e8b77b839399ec99c8122d37",
+      "8521fcf2e924c2be61973081d66b63c92b49df0bc9b1e895ae94a03883f82754",
+      "a104bf66db97ab59dab79042e6697c9b7d037bdb1e73b512812ab6df1e233deb",
+      "b398a93a5b91fb509bc3c98792d90cdf01e7d5cfe5bde0d758f0158dee19b4e5",
+      "5a76accd8d82cc67de01f9b21c87a08ec1ac3780ab953ee9f67d9fbd64553349",
+      "a97dda601cbcba574607b11cdc8ea1886f95304022a60bb0400243278935ac9b",
+      "7ea29098d5c0ab421717247870a1a7da1d1d8e182cc8f84fb626810806735a20"
+    ],
+    "schema_hash": "9c2d30c04ad187e5381cdbe09bb9d033b9c4496ff242d5385693320b0b20a32b",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"cash_reserves\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"net_assets\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"principal_activities\": {\n        \"value\": \"Finance\",\n        \"status\": \"found\",\n        \"evidence\": \"manage interest rate and liquidity risks are nothing new to banking.\"\n    },\n    \"total_debt\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "cash_reserves": {
+          "attribute": "cash_reserves",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "net_assets": {
+          "attribute": "net_assets",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "Finance",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "manage interest rate and liquidity risks are nothing new to banking.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "total_debt": {
+          "attribute": "total_debt",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:principal_activities"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 3,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

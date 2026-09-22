@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "58003303b414ad3c8258cd07c6810be30e4d04dcf801c99a5b5e663ae60a0f2e",
+    "entity_identity": "e9d3a846921221e04956c90aeea839025b07219a0ed4e51a06534d263711b714",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "ee3a272b25242814f31209edfb10b8e1e04fa84e99ab749358ba0bd2ffb280ff",
+      "39fdc88da4bd6f5a875bb701eed47f80d8eeef6906738a45a559b804e42a47cf",
+      "d7511b0150815d041ea6c76f63df87ce452f2daf6b62ce5570a9aa63c3ae0d6d",
+      "c527795ab52b357f3bb9ae70f5f1e71b04144bc06d96fdb327b0e926682c3bdb"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e9d3a846921221e04956c90aeea839025b07219a0ed4e51a06534d263711b714\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"NASDAQ Global Market\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"24.txt:c222\",\n          \"exact_span\": \"The common stock of the Company is listed on the NASDAQ Global Market and trades under the symbol 'BCBP'.\"\n        },\n        {\n          \"source_id\": \"24.txt:c1\",\n          \"exact_span\": \"The NASDAQ Stock Market, LLC\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "NASDAQ Global Market",
+          "normalized_value": "NASDAQ Global Market",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "24.txt:c222",
+              "exact_span": "The common stock of the Company is listed on the NASDAQ Global Market and trades under the symbol 'BCBP'."
+            },
+            {
+              "source_id": "24.txt:c1",
+              "exact_span": "The NASDAQ Stock Market, LLC"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "e9d3a846921221e04956c90aeea839025b07219a0ed4e51a06534d263711b714"
+    }
+  }
+}

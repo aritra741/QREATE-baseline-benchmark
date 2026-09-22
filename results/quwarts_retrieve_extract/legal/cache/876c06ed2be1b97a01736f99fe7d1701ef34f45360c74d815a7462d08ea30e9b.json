@@ -1,0 +1,90 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "06656f3a410b62b15ca4901fd2e9e5b3dfbc237c458f99cb1724bd329ed4dae4",
+    "entity_identity": "0d3174b50659714aeb9c4297e465e0930574fea1cc8dd6fda4d987ce49dbcbf2",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.case_number",
+      "legal.case_type"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e4891e611df8f93e40ec8bd04ca04d43a64bcc01540e88aace341d8cae0868f5",
+      "603cd1eed9f1be8268661e624157120e8de9d48e8b2ce45cb41685a467a334f2",
+      "63128880974fcc80f7b403648cc7af1aec7b876e18b940c6ddd0006b90c46c50",
+      "ac0f1796f932c80b7cbf29646e06cef4c992f8cf43480d62513278aa1d230f3a",
+      "42b390f8049cf63dbb3d3ae71bf530e6ad279a8c15825861ad57823785a23899"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"0d3174b50659714aeb9c4297e465e0930574fea1cc8dd6fda4d987ce49dbcbf2\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Criminal Case\",\n      \"normalized_value\": \"Criminal Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"347.txt:c8\",\n          \"exact_span\": \"Appearing on her own behalf, the appellant referred to one case in support of her argument.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Criminal Case",
+          "normalized_value": "Criminal Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "347.txt:c8",
+              "exact_span": "Appearing on her own behalf, the appellant referred to one case in support of her argument."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "0d3174b50659714aeb9c4297e465e0930574fea1cc8dd6fda4d987ce49dbcbf2"
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "0df3cf4ccb7e85fb2646d1eb0eca5ae455b22becc2bcd059493a30344369779b",
+    "entity_identity": "83e32b365712d8ab73f370101028f1d6928612bc693aef09ca51504d6bd3feb4",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "f1782c397e67d5bb97e88663e7530e23b8a4da04510fc9e784902cbed1d5171f",
+      "e7052ea72ef521ca9181131bf493dbcd549365567fa4e70224c5fd18ada51bfb",
+      "b3f1667960ec8a44c568aca8a487ed69e3ea6eb763b73e9b4f76d6e23f8b8fa8",
+      "d80bc21af681b9ced8074fd45ae2b3aa1f66e25ef23bc2fb7f73c5bf43bbb500"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"83e32b365712d8ab73f370101028f1d6928612bc693aef09ca51504d6bd3feb4\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Criminal Case\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"379.txt:c15\",\n          \"exact_span\": \"The appellant attended a hearing before the first Tribunal on 5 January 2005.\"\n        },\n        {\n          \"source_id\": \"379.txt:c33\",\n          \"exact_span\": \"The second Tribunal then considered the appellant's claims of mistreatment.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice French\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"379.txt:c43\",\n          \"exact_span\": \"I certify that the preceding eighty (80) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice French.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Criminal Case",
+          "normalized_value": "Criminal Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "379.txt:c15",
+              "exact_span": "The appellant attended a hearing before the first Tribunal on 5 January 2005."
+            },
+            {
+              "source_id": "379.txt:c33",
+              "exact_span": "The second Tribunal then considered the appellant's claims of mistreatment."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Justice French",
+          "normalized_value": "Justice French",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "379.txt:c43",
+              "exact_span": "I certify that the preceding eighty (80) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice French."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "83e32b365712d8ab73f370101028f1d6928612bc693aef09ca51504d6bd3feb4"
+    }
+  }
+}

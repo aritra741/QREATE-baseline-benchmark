@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "10af73814bbc46e81c7f8acf779fc08f84c62c86729c1460c378e954ef3db302",
+    "entity_identity": "c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a",
+    "attribute_bundle": [
+      "legal.case_number",
+      "legal.case_type"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "1f6276aa90caf6d6ac37a050cd4e11aae12d4407ebd13d051f0ecf8289deb692",
+      "c97d3bf7ccd8f18616edf0c5e9d527874be13d102de989e9e58d7203fe271ade",
+      "e85e412f4f89531f4b6cfc7be9f783618ce3a23903bc61a65ac58d9959d03a60",
+      "a8eb0a58f46c14da5bcce650e0fface9e89f812efc54291041c7cf518ab42208"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"247.txt:c31\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Civil Case\",\n      \"normalized_value\": \"Civil Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"247.txt:c3\",\n          \"exact_span\": \"The applicants in the proceedings were successful and a number of orders were made by Lander J on 16 July 2004 and 30 July 2004 respectively.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "247.txt:c31",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Civil Case",
+          "normalized_value": "Civil Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "247.txt:c3",
+              "exact_span": "The applicants in the proceedings were successful and a number of orders were made by Lander J on 16 July 2004 and 30 July 2004 respectively."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a"
+    }
+  }
+}

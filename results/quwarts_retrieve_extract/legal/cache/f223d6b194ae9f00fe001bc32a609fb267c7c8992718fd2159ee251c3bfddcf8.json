@@ -1,0 +1,100 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "35f23d7ce4da9ac6972a87a8ca1b7eeca4e47dc5b39f6e99fb2039b78e65a1ab",
+    "entity_identity": "b80ce21249f1a2758d5b52ab1b7baa5115bbd1a6d86431909c159d23442ce2d7",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.case_number",
+      "legal.case_type"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "0dda56544b95a43cf9ed3527ff2a916cb3ad54a375aa0663671e61d46dc2a2e4",
+      "c2f1aff437f0f6cf3d9455ea2e314ec980fc2427197625e46bd1d9cce1cdeca6",
+      "08e0817d23c14b90697ccc0b60ebed46c6c5f7b6dac8da5ddf3348c90462753c",
+      "73a1dda6c2b60b4a40e2f7ce16e5327ddab386e097f0cc071b8dab43a5b74ba7",
+      "de09ea3a139fff89c450e3258333163f4be8b51a19ee5c6dd71b844e9ec30708"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"b80ce21249f1a2758d5b52ab1b7baa5115bbd1a6d86431909c159d23442ce2d7\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Criminal Case\",\n      \"normalized_value\": \"Criminal Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"88.txt:c10\",\n          \"exact_span\": \"The Court dismisses the applicant's application.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Criminal Case",
+          "normalized_value": "Criminal Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "88.txt:c10",
+              "exact_span": "The Court dismisses the applicant's application."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "b80ce21249f1a2758d5b52ab1b7baa5115bbd1a6d86431909c159d23442ce2d7"
+    }
+  }
+}

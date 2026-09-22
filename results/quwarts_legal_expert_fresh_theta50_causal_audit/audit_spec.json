@@ -1,0 +1,85 @@
+{
+  "name": "fresh-legal-theta50-causal-audit",
+  "model_calls": 0,
+  "frozen_inputs_only": true,
+  "gold_and_stage_a_values_read_only_after_this_spec_is_hashed": true,
+  "schedule_sha256": "ac8c43797d845d270a4a43e3ae694e396d6c6bd12260036def5a643bca01794d",
+  "routing_sha256": "90cf224fa3bac73f4fc28bf6925af06b647b795beee472db21a92f0dbd6ec2db",
+  "reproduction_targets": {
+    "fresh_theta25_same_attribute": 0.04208752074497511,
+    "fresh_theta50_same_attribute": 0.07420320131953051,
+    "fresh_theta50_conservative": 0.04208752074497511,
+    "stage_a_theta50_optimistic": "0.13250247787203",
+    "docetl": 0.12350932750098194
+  },
+  "normalization": {
+    "number_sentinel": -1,
+    "string_sentinel": "",
+    "sentinel_becomes": null,
+    "bool_is_invalid_number": true
+  },
+  "salvage_rules": {
+    "targets": "terminal or malformed stored raw_arguments only",
+    "parse": "json.loads of the raw string, after removing one surrounding ``` or ```json fence if the interior is the entire payload",
+    "no_invented_braces": true,
+    "no_invented_field_names": true,
+    "no_invented_values": true,
+    "accept_field_when": [
+      "object key equals a requested field name exactly",
+      "the fresh normalizer accepts exactly one type-valid value",
+      "every stored attempt that parses agrees on that normalized value"
+    ],
+    "reject_when": [
+      "JSON does not parse",
+      "the value is not an object",
+      "a present requested field fails the normalizer",
+      "two attempts normalize the same field to different values",
+      "a key is only a case variant or alias of a field name"
+    ],
+    "empty_object_recovers_nothing": true,
+    "provider_error_without_raw_recovers_nothing": true,
+    "successful_responses_are_not_salvage_targets": true
+  },
+  "replays": {
+    "R_fresh_recovery": {
+      "diagnostic_only": false,
+      "uses_stage_a_or_gold": false,
+      "steps": [
+        "copy the fresh theta50 same-attribute databases",
+        "write salvaged fields for terminal requests; direct NULL is written; shared NULL is not",
+        "for a still-missing document and attribute, use the earliest other completed fresh expert with a non-NULL value of the same type",
+        "a successful own-expert NULL stays missing-from-others and is not replaced",
+        "never overwrite an existing non-NULL from the target expert",
+        "never share across document or entity ids"
+      ]
+    },
+    "D1_terminal_failure_substitution": {
+      "diagnostic_only": true,
+      "uses_stage_a_values": true,
+      "rule": "On fresh terminal failures only, write the fresh-normalized Stage A value for the same expert, document, and field. Successful fresh values stay unchanged."
+    },
+    "D2_successful_call_semantic_substitution": {
+      "diagnostic_only": true,
+      "uses_stage_a_values": true,
+      "rule": "Where both fresh and Stage A completed the same expert, document, and field, replace the fresh cell with the fresh-normalized Stage A value, including NULL. Do not fill terminal failures."
+    },
+    "D3_full_stage_a_substitution": {
+      "diagnostic_only": true,
+      "uses_stage_a_values": true,
+      "rule": "Start from the Stage A optimistic theta50 databases. Where Stage A has no row, fill from a fresh success using fresh normalization. This is the coverage-limited Stage A replay."
+    },
+    "D4_fresh_perfect_coverage": {
+      "diagnostic_only": true,
+      "uses_stage_a_values": false,
+      "rule": "For each terminal failure field, if every other completed fresh expert that emitted a non-NULL value agrees on one normalized value of the same type, write it. Conflicts are left unchanged. Expert precedence is ignored."
+    }
+  },
+  "sql_visible": "A substituted cell is SQL-visible when restoring its pre-substitution value changes an official bag of a query whose SQL references that attribute.",
+  "gold_cell_study": "After replay manifests are frozen, compare normalized extracted values to the official Legal ground-truth table by document stem. Gold does not choose a replay.",
+  "decision_order": [
+    "execution failures explain the missing win",
+    "historical completions would restore the win, but fresh semantics do not",
+    "fresh query experts remain below DocETL even with recoverable coverage",
+    "audit invalid"
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+    "entity_identity": "finan_multiagg20:q18:10:map",
+    "attribute_bundle": [
+      "auditor",
+      "exchange_code",
+      "net_profit_or_loss",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+      "b20e1b20aec20de468930c8478233b491a6c508b653d2cb50a77ac6ce63a2c20",
+      "639efbcc18ca83a5633b4b5859b736e1ae057766e8b77b839399ec99c8122d37",
+      "48e99575401c3f5fccb1ae3946aacc5021d260f947f95f55501b76c17c6b9045",
+      "854b5148e51820447479fdef86a4c5864d8ac522b60eed2e617dcc08dfe64c91",
+      "8521fcf2e924c2be61973081d66b63c92b49df0bc9b1e895ae94a03883f82754",
+      "a104bf66db97ab59dab79042e6697c9b7d037bdb1e73b512812ab6df1e233deb",
+      "af2c9aa1887e7690c994fae5f6f519d859199301e5c2540614128a7f98146362",
+      "b450d4d5251b8ebc753bf23b6187fe1858c7d9ffaffccde47838d56bef1d1168"
+    ],
+    "schema_hash": "ec462b608e1c52023113548b20860431023a313364ec6ad645a31b5f686196a4",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"auditor\": {\"value\": \"Whitley Penn\", \"status\": \"found\", \"evidence\": \"Whitley Penn\\n8343 Douglas Avenue\\nSuite 400\\nDallas, Texas 75225\"}\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "Whitley Penn",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Whitley Penn\n8343 Douglas Avenue\nSuite 400\nDallas, Texas 75225",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "exchange_code": {
+          "attribute": "exchange_code",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        },
+        "net_profit_or_loss": {
+          "attribute": "net_profit_or_loss",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        }
+      },
+      "errors": [
+        "grounding_failure:auditor",
+        "omitted:exchange_code",
+        "omitted:net_profit_or_loss",
+        "omitted:revenue"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 3,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

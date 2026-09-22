@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "90cbc8539693cb492638f7f6e51cae736b22e7aa9ce93cdd86e9d47c5126897d",
+    "entity_identity": "36a0a9ede2463a1a2b657926817af278d40a9320b785bc24c1b92a611ae62165",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "c001b24254626f2fa24319f9d25ff5623aeb61516c8e4d74fde7df878b1cf7db",
+      "75a890c44fff49e4df72d1731f7552c891d4c6e438677cfeecf90a1a333b69ab",
+      "e7d013230c2cb90f79441d77bd52e44da1812e353279762ccb3f5dc1cd72dff1",
+      "b5a355f13cf9aecea2406027372e11b51699e483e5269b9cfa1cbc477d58ce99"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"36a0a9ede2463a1a2b657926817af278d40a9320b785bc24c1b92a611ae62165\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"leave to appeal the judgment delivered 27 March 2009. The application and the notice of motion filed on 11 August 2009 be dismissed.\",\n      \"normalized_value\": \"Granted leave to appeal, dismissed application and notice of motion\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"471.txt:c36\",\n          \"exact_span\": \"I will therefore order that: Channel be granted leave to appeal the judgment delivered 27 March 2009. The application and the notice of motion filed on 11 August 2009 be dismissed.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "leave to appeal the judgment delivered 27 March 2009. The application and the notice of motion filed on 11 August 2009 be dismissed.",
+          "normalized_value": "leave to appeal the judgment delivered 27 March 2009. The application and the notice of motion filed on 11 August 2009 be dismissed.",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "471.txt:c36",
+              "exact_span": "I will therefore order that: Channel be granted leave to appeal the judgment delivered 27 March 2009. The application and the notice of motion filed on 11 August 2009 be dismissed."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "36a0a9ede2463a1a2b657926817af278d40a9320b785bc24c1b92a611ae62165"
+    }
+  }
+}

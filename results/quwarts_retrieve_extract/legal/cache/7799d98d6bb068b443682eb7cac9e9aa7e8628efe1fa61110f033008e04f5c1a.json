@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "26a76c99fc993ef04da64e146848fb127b3e25e408c95bef76f703dd08ab854b",
+    "entity_identity": "e934c1352c06943d7e4eecd6d9b72d93b788537eab1480876b3966029ec6c580",
+    "attribute_bundle": [
+      "legal.judgment_year",
+      "legal.hearing_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "80b0c92b3f001c508fb4db81d10598cbc896b0741fc46c672cc17373147f0404",
+      "c268170294c5f4e2bf3c2d590b21e0fe8412792469d0d477edd8451beb7c1161",
+      "6f953690e679bdddddd085a20b331ec0d210e32da4e877efa692458448aa355e",
+      "904a8fd5810c5dd17b9b1f279b969f777bc5de3d8a48e18599bfebf3f1fc8315"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e934c1352c06943d7e4eecd6d9b72d93b788537eab1480876b3966029ec6c580\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"535.txt:c7\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2005\",\n      \"normalized_value\": 2005,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"535.txt:c6\",\n          \"exact_span\": \"The appointed time for the hearing was 1.30 pm on Thursday 2 June 2005.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "535.txt:c7",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "found",
+          "raw_value": "2005",
+          "normalized_value": 2005,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "535.txt:c6",
+              "exact_span": "The appointed time for the hearing was 1.30 pm on Thursday 2 June 2005."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "e934c1352c06943d7e4eecd6d9b72d93b788537eab1480876b3966029ec6c580"
+    }
+  }
+}

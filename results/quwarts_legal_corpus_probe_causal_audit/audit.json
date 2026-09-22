@@ -1,0 +1,2876 @@
+{
+  "decision": "silver reference is inaccurate",
+  "recommendation": "Replace silver labels with a checked extractor before any program search; the current references do not match gold often enough to supervise a selector.",
+  "loss_mass": {
+    "silver_correct_rate": 0.2838541666666667,
+    "exact_rate_gold_positive": 0.15629322268326418,
+    "mapper_miss_among_silver_correct_with_candidate": 0.24050632911392406,
+    "candidate_ceiling_embedded_product": 0.03740079365079365,
+    "correct_silver_mapping_ceiling_embedded_product": 0.02344796893116221,
+    "restricted_sample_sql_note": "Scoring a 96-row database against full-corpus gold collapses F2 to 0. Embedded products apply sample fills on the 570-row plumbing database.",
+    "best_program_family_product": 0.04460751960751961,
+    "selected_config_gold_product": 0.03756624217150533,
+    "official_product": 0.03756624217150533,
+    "docetl": 0.12350932750098194,
+    "gap_docetl_minus_family": 0.07890180789346232,
+    "gap_family_minus_selected": 0.007041277436014279,
+    "gap_selected_minus_official_same_config": 0.0
+  },
+  "silver_overall": {
+    "n": 768,
+    "class_counts": {
+      "incorrect_value": 171,
+      "typed_only": 71,
+      "incorrect_NOT_PRESENT": 266,
+      "exact": 113,
+      "observational_only": 96,
+      "null_presence_agreement": 34,
+      "incorrect_value_on_null_gold": 11,
+      "unresolved": 6
+    },
+    "exact": {
+      "n": 768,
+      "k": 113,
+      "rate": 0.14713541666666666
+    },
+    "typed": {
+      "n": 768,
+      "k": 184,
+      "rate": 0.23958333333333334
+    },
+    "observational": {
+      "n": 768,
+      "k": 301,
+      "rate": 0.3919270833333333
+    },
+    "presence_agreement": {
+      "n": 768,
+      "k": 485,
+      "rate": 0.6315104166666666
+    },
+    "silver_correct": {
+      "n": 768,
+      "k": 218,
+      "rate": 0.2838541666666667
+    },
+    "breakdowns": {
+      "attribute": {
+        "case_number": {
+          "n": 96,
+          "exact": 0.052083333333333336,
+          "typed": 0.052083333333333336,
+          "observational": 0.0625,
+          "presence_agreement": 0.6770833333333334,
+          "incorrect_value": 0.6145833333333334,
+          "incorrect_NOT_PRESENT": 0.3229166666666667,
+          "unresolved": 0.0,
+          "silver_correct": 0.0625,
+          "class_counts": {
+            "incorrect_value": 59,
+            "exact": 5,
+            "incorrect_NOT_PRESENT": 31,
+            "null_presence_agreement": 1
+          }
+        },
+        "case_type": {
+          "n": 96,
+          "exact": 0.020833333333333332,
+          "typed": 0.2708333333333333,
+          "observational": 0.6770833333333334,
+          "presence_agreement": 0.9375,
+          "incorrect_value": 0.17708333333333334,
+          "incorrect_NOT_PRESENT": 0.020833333333333332,
+          "unresolved": 0.041666666666666664,
+          "silver_correct": 0.2708333333333333,
+          "class_counts": {
+            "typed_only": 24,
+            "observational_only": 47,
+            "incorrect_value": 17,
+            "unresolved": 4,
+            "incorrect_NOT_PRESENT": 2,
+            "exact": 2
+          }
+        },
+        "defendant_current_status": {
+          "n": 96,
+          "exact": 0.0,
+          "typed": 0.0,
+          "observational": 0.052083333333333336,
+          "presence_agreement": 0.17708333333333334,
+          "incorrect_value": 0.14583333333333334,
+          "incorrect_NOT_PRESENT": 0.8020833333333334,
+          "unresolved": 0.0,
+          "silver_correct": 0.041666666666666664,
+          "class_counts": {
+            "incorrect_NOT_PRESENT": 77,
+            "incorrect_value_on_null_gold": 2,
+            "incorrect_value": 12,
+            "null_presence_agreement": 4,
+            "observational_only": 1
+          }
+        },
+        "first_judge": {
+          "n": 96,
+          "exact": 0.14583333333333334,
+          "typed": 0.14583333333333334,
+          "observational": 0.14583333333333334,
+          "presence_agreement": 0.3958333333333333,
+          "incorrect_value": 0.25,
+          "incorrect_NOT_PRESENT": 0.59375,
+          "unresolved": 0.010416666666666666,
+          "silver_correct": 0.14583333333333334,
+          "class_counts": {
+            "incorrect_NOT_PRESENT": 57,
+            "exact": 14,
+            "incorrect_value": 24,
+            "unresolved": 1
+          }
+        },
+        "hearing_year": {
+          "n": 96,
+          "exact": 0.5729166666666666,
+          "typed": 0.5729166666666666,
+          "observational": 0.5729166666666666,
+          "presence_agreement": 0.8333333333333334,
+          "incorrect_value": 0.2708333333333333,
+          "incorrect_NOT_PRESENT": 0.15625,
+          "unresolved": 0.0,
+          "silver_correct": 0.5729166666666666,
+          "class_counts": {
+            "exact": 55,
+            "incorrect_NOT_PRESENT": 15,
+            "incorrect_value_on_null_gold": 1,
+            "incorrect_value": 25
+          }
+        },
+        "legal_basis_num": {
+          "n": 96,
+          "exact": 0.3854166666666667,
+          "typed": 0.3854166666666667,
+          "observational": 0.4895833333333333,
+          "presence_agreement": 0.7291666666666666,
+          "incorrect_value": 0.23958333333333334,
+          "incorrect_NOT_PRESENT": 0.2708333333333333,
+          "unresolved": 0.0,
+          "silver_correct": 0.3854166666666667,
+          "class_counts": {
+            "incorrect_NOT_PRESENT": 26,
+            "exact": 37,
+            "incorrect_value": 23,
+            "observational_only": 10
+          }
+        },
+        "plaintiff_current_status": {
+          "n": 96,
+          "exact": 0.0,
+          "typed": 0.07291666666666667,
+          "observational": 0.40625,
+          "presence_agreement": 0.46875,
+          "incorrect_value": 0.13541666666666666,
+          "incorrect_NOT_PRESENT": 0.4375,
+          "unresolved": 0.010416666666666666,
+          "silver_correct": 0.375,
+          "class_counts": {
+            "incorrect_NOT_PRESENT": 42,
+            "null_presence_agreement": 29,
+            "incorrect_value_on_null_gold": 8,
+            "typed_only": 7,
+            "incorrect_value": 5,
+            "observational_only": 4,
+            "unresolved": 1
+          }
+        },
+        "verdict": {
+          "n": 96,
+          "exact": 0.0,
+          "typed": 0.4166666666666667,
+          "observational": 0.7291666666666666,
+          "presence_agreement": 0.8333333333333334,
+          "incorrect_value": 0.0625,
+          "incorrect_NOT_PRESENT": 0.16666666666666666,
+          "unresolved": 0.0,
+          "silver_correct": 0.4166666666666667,
+          "class_counts": {
+            "typed_only": 40,
+            "observational_only": 34,
+            "incorrect_value": 6,
+            "incorrect_NOT_PRESENT": 16
+          }
+        }
+      },
+      "split": {
+        "heldout": {
+          "n": 256,
+          "exact": 0.15234375,
+          "typed": 0.2421875,
+          "observational": 0.390625,
+          "presence_agreement": 0.65234375,
+          "incorrect_value": 0.26171875,
+          "incorrect_NOT_PRESENT": 0.328125,
+          "unresolved": 0.0078125,
+          "silver_correct": 0.26953125,
+          "class_counts": {
+            "incorrect_value": 64,
+            "typed_only": 23,
+            "incorrect_NOT_PRESENT": 84,
+            "exact": 39,
+            "observational_only": 34,
+            "null_presence_agreement": 7,
+            "incorrect_value_on_null_gold": 3,
+            "unresolved": 2
+          }
+        },
+        "train": {
+          "n": 512,
+          "exact": 0.14453125,
+          "typed": 0.23828125,
+          "observational": 0.392578125,
+          "presence_agreement": 0.62109375,
+          "incorrect_value": 0.224609375,
+          "incorrect_NOT_PRESENT": 0.35546875,
+          "unresolved": 0.0078125,
+          "silver_correct": 0.291015625,
+          "class_counts": {
+            "incorrect_value": 107,
+            "typed_only": 48,
+            "incorrect_NOT_PRESENT": 182,
+            "exact": 74,
+            "observational_only": 62,
+            "null_presence_agreement": 27,
+            "incorrect_value_on_null_gold": 8,
+            "unresolved": 4
+          }
+        }
+      },
+      "mode": {
+        "exhaustive_chunk_reduce": {
+          "n": 128,
+          "exact": 0.1328125,
+          "typed": 0.15625,
+          "observational": 0.3515625,
+          "presence_agreement": 0.625,
+          "incorrect_value": 0.2734375,
+          "incorrect_NOT_PRESENT": 0.3671875,
+          "unresolved": 0.0,
+          "silver_correct": 0.2109375,
+          "class_counts": {
+            "incorrect_value": 34,
+            "observational_only": 19,
+            "incorrect_NOT_PRESENT": 47,
+            "exact": 17,
+            "null_presence_agreement": 7,
+            "typed_only": 3,
+            "incorrect_value_on_null_gold": 1
+          }
+        },
+        "whole_document": {
+          "n": 640,
+          "exact": 0.15,
+          "typed": 0.25625,
+          "observational": 0.4,
+          "presence_agreement": 0.6328125,
+          "incorrect_value": 0.2296875,
+          "incorrect_NOT_PRESENT": 0.3421875,
+          "unresolved": 0.009375,
+          "silver_correct": 0.2984375,
+          "class_counts": {
+            "incorrect_value": 137,
+            "typed_only": 68,
+            "incorrect_NOT_PRESENT": 219,
+            "exact": 96,
+            "observational_only": 77,
+            "null_presence_agreement": 27,
+            "incorrect_value_on_null_gold": 10,
+            "unresolved": 6
+          }
+        }
+      },
+      "status": {
+        "NOT_PRESENT": {
+          "n": 300,
+          "exact": 0.0,
+          "typed": 0.0,
+          "observational": 0.11333333333333333,
+          "presence_agreement": 0.11333333333333333,
+          "incorrect_value": 0.0,
+          "incorrect_NOT_PRESENT": 0.8866666666666667,
+          "unresolved": 0.0,
+          "silver_correct": 0.11333333333333333,
+          "class_counts": {
+            "incorrect_NOT_PRESENT": 266,
+            "null_presence_agreement": 34
+          }
+        },
+        "unresolved": {
+          "n": 6,
+          "exact": 0.0,
+          "typed": 0.0,
+          "observational": 0.0,
+          "presence_agreement": 0.0,
+          "incorrect_value": 0.0,
+          "incorrect_NOT_PRESENT": 0.0,
+          "unresolved": 1.0,
+          "silver_correct": 0.0,
+          "class_counts": {
+            "unresolved": 6
+          }
+        },
+        "value": {
+          "n": 462,
+          "exact": 0.24458874458874458,
+          "typed": 0.39826839826839827,
+          "observational": 0.577922077922078,
+          "presence_agreement": 0.9761904761904762,
+          "incorrect_value": 0.3939393939393939,
+          "incorrect_NOT_PRESENT": 0.0,
+          "unresolved": 0.0,
+          "silver_correct": 0.39826839826839827,
+          "class_counts": {
+            "incorrect_value": 171,
+            "typed_only": 71,
+            "exact": 113,
+            "observational_only": 96,
+            "incorrect_value_on_null_gold": 11
+          }
+        }
+      },
+      "probe_agreement": {
+        "True": {
+          "n": 527,
+          "exact": 0.1347248576850095,
+          "silver_correct": 0.27514231499051234,
+          "class_counts": {
+            "incorrect_NOT_PRESENT": 220,
+            "exact": 71,
+            "null_presence_agreement": 30,
+            "typed_only": 44,
+            "incorrect_value": 108,
+            "observational_only": 50,
+            "incorrect_value_on_null_gold": 4
+          }
+        },
+        "False": {
+          "n": 241,
+          "exact": 0.17427385892116182,
+          "silver_correct": 0.3029045643153527,
+          "class_counts": {
+            "incorrect_value": 63,
+            "typed_only": 27,
+            "exact": 42,
+            "observational_only": 46,
+            "incorrect_value_on_null_gold": 7,
+            "incorrect_NOT_PRESENT": 46,
+            "unresolved": 6,
+            "null_presence_agreement": 4
+          }
+        }
+      },
+      "adjudicated": {
+        "True": {
+          "n": 202,
+          "exact": 0.2079207920792079,
+          "silver_correct": 0.3415841584158416,
+          "class_counts": {
+            "incorrect_value": 63,
+            "typed_only": 27,
+            "exact": 42,
+            "observational_only": 46,
+            "incorrect_value_on_null_gold": 7,
+            "incorrect_NOT_PRESENT": 11,
+            "unresolved": 6
+          }
+        },
+        "False": {
+          "n": 566,
+          "exact": 0.1254416961130742,
+          "silver_correct": 0.26325088339222613,
+          "class_counts": {
+            "incorrect_NOT_PRESENT": 255,
+            "exact": 71,
+            "null_presence_agreement": 34,
+            "typed_only": 44,
+            "incorrect_value": 108,
+            "observational_only": 50,
+            "incorrect_value_on_null_gold": 4
+          }
+        }
+      },
+      "span": {
+        "True": {
+          "n": 525,
+          "exact": 0.21523809523809523,
+          "silver_correct": 0.35428571428571426,
+          "class_counts": {
+            "incorrect_value": 171,
+            "typed_only": 71,
+            "exact": 113,
+            "observational_only": 96,
+            "incorrect_NOT_PRESENT": 55,
+            "incorrect_value_on_null_gold": 11,
+            "unresolved": 6,
+            "null_presence_agreement": 2
+          }
+        },
+        "False": {
+          "n": 243,
+          "exact": 0.0,
+          "silver_correct": 0.13168724279835392,
+          "class_counts": {
+            "incorrect_NOT_PRESENT": 211,
+            "null_presence_agreement": 32
+          }
+        }
+      }
+    }
+  },
+  "mapping": {
+    "funnel": {
+      "5_alias_or_span": 30,
+      "1_exact_candidate_value": 116,
+      "not_present_no_map": 300,
+      "7_silver_correct_no_candidate": 105,
+      "4_observational_candidate": 54,
+      "8_silver_wrong": 155,
+      "6_gold_candidate_not_silver": 2,
+      "unresolved_no_map": 6
+    },
+    "cross_tab": [
+      {
+        "silver_correct": false,
+        "gold_equivalent_candidate": false,
+        "silver_equivalent_candidate": false,
+        "mapper_selected_it": false,
+        "count": 155
+      },
+      {
+        "silver_correct": true,
+        "gold_equivalent_candidate": false,
+        "silver_equivalent_candidate": false,
+        "mapper_selected_it": false,
+        "count": 105
+      },
+      {
+        "silver_correct": true,
+        "gold_equivalent_candidate": true,
+        "silver_equivalent_candidate": true,
+        "mapper_selected_it": true,
+        "count": 60
+      },
+      {
+        "silver_correct": false,
+        "gold_equivalent_candidate": true,
+        "silver_equivalent_candidate": true,
+        "mapper_selected_it": false,
+        "count": 36
+      },
+      {
+        "silver_correct": false,
+        "gold_equivalent_candidate": false,
+        "silver_equivalent_candidate": true,
+        "mapper_selected_it": false,
+        "count": 29
+      },
+      {
+        "silver_correct": false,
+        "gold_equivalent_candidate": false,
+        "silver_equivalent_candidate": true,
+        "mapper_selected_it": true,
+        "count": 29
+      },
+      {
+        "silver_correct": false,
+        "gold_equivalent_candidate": true,
+        "silver_equivalent_candidate": true,
+        "mapper_selected_it": true,
+        "count": 27
+      },
+      {
+        "silver_correct": true,
+        "gold_equivalent_candidate": true,
+        "silver_equivalent_candidate": true,
+        "mapper_selected_it": false,
+        "count": 11
+      },
+      {
+        "silver_correct": true,
+        "gold_equivalent_candidate": false,
+        "silver_equivalent_candidate": true,
+        "mapper_selected_it": false,
+        "count": 8
+      },
+      {
+        "silver_correct": false,
+        "gold_equivalent_candidate": true,
+        "silver_equivalent_candidate": false,
+        "mapper_selected_it": false,
+        "count": 2
+      }
+    ],
+    "rates": {
+      "mapped_over_768": {
+        "k": 116,
+        "n": 768,
+        "rate": 0.15104166666666666
+      },
+      "mapped_over_silver_value": {
+        "k": 116,
+        "n": 462,
+        "rate": 0.2510822510822511
+      },
+      "gold_equivalent_candidate_over_gold_positive": {
+        "k": 227,
+        "n": 723,
+        "rate": 0.313969571230982
+      },
+      "correctly_mapped_over_silver_correct_positive": {
+        "k": 60,
+        "n": 184,
+        "rate": 0.32608695652173914
+      },
+      "observationally_mappable_over_silver_correct_positive": {
+        "k": 71,
+        "n": 184,
+        "rate": 0.3858695652173913
+      }
+    },
+    "fail_reasons": {
+      "no_equivalent_deterministic_candidate": 105,
+      "frozen_mapper_returned_none": 19
+    },
+    "fail_examples": [
+      {
+        "entity_id": "3f31679faa0380d3d66bdf4c830281bf827f20aedba65870908a083dadd29c7a",
+        "attribute": "verdict",
+        "value": "Approved",
+        "gold": "Approved",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "7e475289bb828d6e8bea10a63eaebb86bf9f9deac5d669db2146b772d09f0b0f",
+        "attribute": "plaintiff_current_status",
+        "value": "musician",
+        "gold": "Musician",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "7be4d34169165d3aab0f02955b1ba27c928e09002c4f21086fb93b78a54062c0",
+        "attribute": "legal_basis_num",
+        "value": "2",
+        "gold": "2",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C2",
+          "C5",
+          "C8",
+          "C1",
+          "C3"
+        ]
+      },
+      {
+        "entity_id": "fe701e437753d697223423f08327c9dd69fb73dbad811609dd1532e67f726406",
+        "attribute": "plaintiff_current_status",
+        "value": "monk",
+        "gold": "Monk",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "d8b2348bbb0cd828366a7d9a1595272e0a2b3659e566ee7e76431eba47324ff2",
+        "attribute": "legal_basis_num",
+        "value": "2",
+        "gold": "2",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C2",
+          "C3",
+          "C7",
+          "X9c19941242b56e47",
+          "X665d81c7e98a3d91"
+        ]
+      },
+      {
+        "entity_id": "c29ff684ec3e7353a623f6e7e924e1b25a76336fa406fe22ca5e4dfa3fee55d6",
+        "attribute": "legal_basis_num",
+        "value": "2",
+        "gold": "2",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C4",
+          "C5",
+          "C6",
+          "X1c775b106d9d7de5",
+          "X13c5c30c996a575b"
+        ]
+      },
+      {
+        "entity_id": "c6d1168adb9ab004012ff564d595bd4b4b7d57373b7a93ba6f51e01cd2686c00",
+        "attribute": "first_judge",
+        "value": "1",
+        "gold": "1",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C5",
+          "Xbdb7c95a186cb5d0"
+        ]
+      },
+      {
+        "entity_id": "c6d1168adb9ab004012ff564d595bd4b4b7d57373b7a93ba6f51e01cd2686c00",
+        "attribute": "plaintiff_current_status",
+        "value": "production manager",
+        "gold": "Production Manager",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "903049478b8dd393718fefc32b885a7ee1c6b2ff2a704378ef262bd92e1e1ddf",
+        "attribute": "plaintiff_current_status",
+        "value": "journalist",
+        "gold": "Journalist",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "8c22dde155d9f7ec19ba9f00bbf7690356e15b01e40edb7a28c029cca1a8ebec",
+        "attribute": "legal_basis_num",
+        "value": 4,
+        "gold": "4",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "f2e1deaf7ab32805338c5f77c7450464713009560e6469cfdfd4da4a9ce7c3d5",
+        "attribute": "verdict",
+        "value": "dismissed",
+        "gold": "Dismissed",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "3d910dacb7529e3dc6f64e27648390b1d34e041e9651c6cb78b0020e5abd72a5",
+        "attribute": "case_type",
+        "value": "commercial case",
+        "gold": "Commercial Case",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "e3b233a215585424980eec569a57f22d4afcb1c11364415fd56addbfd6157fda",
+        "attribute": "plaintiff_current_status",
+        "value": "organization",
+        "gold": "Organization",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "4c70d3824f13d36320c606a03d2d33b606b2b598f60cf4e5099f1a19593a8326",
+        "attribute": "plaintiff_current_status",
+        "value": "employee",
+        "gold": "Employee",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "0772dd71b12e4ae21d5854133e6a452e0792505717a7afef75e65ee97d0afb75",
+        "attribute": "legal_basis_num",
+        "value": "2",
+        "gold": "2",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C4",
+          "C5",
+          "C6",
+          "X5748a7771a2aa4c7"
+        ]
+      },
+      {
+        "entity_id": "0772dd71b12e4ae21d5854133e6a452e0792505717a7afef75e65ee97d0afb75",
+        "attribute": "plaintiff_current_status",
+        "value": "australian building and construction inspector",
+        "gold": "Australian Building And Construction Inspector",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "011c1b578b912120a646cc82eb6f7bd99e770ea3f4062316b4d20c6074608afe",
+        "attribute": "case_type",
+        "value": "civil case",
+        "gold": "Civil Case",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      {
+        "entity_id": "1f7e2a51b652229827fdc063fa58746c82efdd51acca661ce1222ad74d8e167d",
+        "attribute": "legal_basis_num",
+        "value": "2",
+        "gold": "2",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C4",
+          "C7",
+          "X69e4c8e4b6545c68"
+        ]
+      },
+      {
+        "entity_id": "96da1be1112f723fced19bf3e9f60851f314a75433f682dd195d57e5de037346",
+        "attribute": "legal_basis_num",
+        "value": "2",
+        "gold": "2",
+        "reason": "frozen_mapper_returned_none",
+        "candidate_ids": [
+          "C1",
+          "C5",
+          "C8",
+          "Xddc59122d265a7f2",
+          "Xbfb43e8ca756e114"
+        ]
+      }
+    ]
+  },
+  "ceilings": {
+    "A_candidate_sample": {
+      "f2": 0.0,
+      "f1": 0.0,
+      "product": 0.0,
+      "accepted": 226,
+      "per_query": [
+        {
+          "query_id": "legal_multiagg20:q4",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q9",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q7",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_multiagg20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_multiagg20:q18",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q4",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_groupby20:q14",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_multiagg20:q9",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q13",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q17",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q8",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q15",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q3",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q14",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        }
+      ]
+    },
+    "B_correct_silver_mapping_sample": {
+      "f2": 0.0,
+      "f1": 0.1875,
+      "product": 0.0,
+      "accepted": 70,
+      "per_query": [
+        {
+          "query_id": "legal_multiagg20:q4",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q9",
+          "structure_f2": 0.0,
+          "cell_f1_20": 1.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q7",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_multiagg20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_multiagg20:q18",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q4",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_groupby20:q14",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_multiagg20:q9",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q13",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q17",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q8",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 1.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q15",
+          "structure_f2": 0.0,
+          "cell_f1_20": 1.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q3",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q14",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        }
+      ]
+    },
+    "C_per_attribute": {
+      "case_number": {
+        "program": "case_number:0",
+        "f2": 0.20543217286914767,
+        "f1": 0.02820512820512821,
+        "product": 0.016503524486717765,
+        "accepted": 66,
+        "blocked": null,
+        "per_query": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "structure_f2": 0.7142857142857142,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128,
+            "product": 0.0052328623757195184
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2,
+            "product": 0.05882352941176471
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004,
+            "product": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          }
+        ]
+      },
+      "case_type": {
+        "program": "case_type:0",
+        "f2": 0.26489762571695347,
+        "f1": 0.035402097902097904,
+        "product": 0.023649564720993294,
+        "accepted": 54,
+        "blocked": null,
+        "per_query": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "structure_f2": 0.7142857142857142,
+            "cell_f1_20": 0.13333333333333333,
+            "product": 0.09523809523809522
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128,
+            "product": 0.0052328623757195184
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "structure_f2": 0.42857142857142855,
+            "cell_f1_20": 0.18181818181818182,
+            "product": 0.07792207792207792
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004,
+            "product": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          }
+        ]
+      },
+      "defendant_current_status": {
+        "program": "defendant_current_status:0",
+        "f2": 0.24015439509136988,
+        "f1": 0.03653846153846154,
+        "product": 0.022455905439098717,
+        "accepted": 321,
+        "blocked": null,
+        "per_query": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "structure_f2": 0.7142857142857142,
+            "cell_f1_20": 0.13333333333333333,
+            "product": 0.09523809523809522
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128,
+            "product": 0.0052328623757195184
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2,
+            "product": 0.05882352941176471
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004,
+            "product": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          }
+        ]
+      },
+      "first_judge": {
+        "program": "first_judge:0",
+        "f2": 0.21148705705847293,
+        "f1": 0.03653846153846154,
+        "product": 0.022455905439098717,
+        "accepted": 185,
+        "blocked": null,
+        "per_query": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "structure_f2": 0.06666666666666667,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "structure_f2": 0.7142857142857142,
+            "cell_f1_20": 0.13333333333333333,
+            "product": 0.09523809523809522
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128,
+            "product": 0.0052328623757195184
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "structure_f2": 0.015105740181268883,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2,
+            "product": 0.05882352941176471
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004,
+            "product": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "structure_f2": 0.015105740181268883,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          }
+        ]
+      },
+      "hearing_year": {
+        "program": "hearing_year:0",
+        "f2": 0.20543217286914767,
+        "f1": 0.03653846153846154,
+        "product": 0.022455905439098717,
+        "accepted": 13,
+        "blocked": null,
+        "per_query": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "structure_f2": 0.7142857142857142,
+            "cell_f1_20": 0.13333333333333333,
+            "product": 0.09523809523809522
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128,
+            "product": 0.0052328623757195184
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2,
+            "product": 0.05882352941176471
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004,
+            "product": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          }
+        ]
+      },
+      "legal_basis_num": {
+        "program": "legal_basis_num:2",
+        "f2": 0.22328931572629052,
+        "f1": 0.03514957264957265,
+        "product": 0.02344796893116221,
+        "accepted": 44,
+        "blocked": null,
+        "per_query": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.1111111111111111,
+            "product": 0.1111111111111111
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128,
+            "product": 0.0052328623757195184
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2,
+            "product": 0.05882352941176471
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004,
+            "product": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          }
+        ]
+      },
+      "plaintiff_current_status": {
+        "program": "plaintiff_current_status:0",
+        "f2": 0.22177204215019342,
+        "f1": 0.057371794871794876,
+        "product": 0.03402997951317279,
+        "accepted": 154,
+        "blocked": null,
+        "per_query": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "structure_f2": 0.7142857142857142,
+            "cell_f1_20": 0.13333333333333333,
+            "product": 0.09523809523809522
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128,
+            "product": 0.0052328623757195184
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2,
+            "product": 0.05882352941176471
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.3333333333333333,
+            "product": 0.18518518518518517
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004,
+            "product": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          }
+        ]
+      },
+      "verdict": {
+        "program": "verdict:0",
+        "f2": 0.20543217286914767,
+        "f1": 0.03653846153846154,
+        "product": 0.022455905439098717,
+        "accepted": 43,
+        "blocked": null,
+        "per_query": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "structure_f2": 0.7142857142857142,
+            "cell_f1_20": 0.13333333333333333,
+            "product": 0.09523809523809522
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128,
+            "product": 0.0052328623757195184
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2,
+            "product": 0.05882352941176471
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004,
+            "product": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0,
+            "product": 0.0
+          }
+        ]
+      }
+    },
+    "D_program_family": {
+      "f2": 0.4320078759511406,
+      "f1": 0.062484737484737485,
+      "product": 0.04460751960751961,
+      "per_query": [
+        {
+          "query_id": "legal_multiagg20:q4",
+          "structure_f2": 0.045454545454545456,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q9",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q7",
+          "structure_f2": 0.29411764705882354,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_multiagg20:q11",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.1111111111111111,
+          "product": 0.1111111111111111
+        },
+        {
+          "query_id": "legal_multiagg20:q18",
+          "structure_f2": 0.19999999999999996,
+          "cell_f1_20": 0.04761904761904762,
+          "product": 0.009523809523809523
+        },
+        {
+          "query_id": "legal_agg20:q4",
+          "structure_f2": 0.015105740181268883,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_groupby20:q14",
+          "structure_f2": 0.6756756756756757,
+          "cell_f1_20": 0.3076923076923077,
+          "product": 0.2079002079002079
+        },
+        {
+          "query_id": "legal_agg20:q11",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.3333333333333333,
+          "product": 0.18518518518518517
+        },
+        {
+          "query_id": "legal_multiagg20:q9",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q13",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q17",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q8",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q11",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_filter20:q15",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        },
+        {
+          "query_id": "legal_agg20:q3",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.20000000000000004,
+          "product": 0.20000000000000004
+        },
+        {
+          "query_id": "legal_agg20:q14",
+          "structure_f2": 0.015105740181268883,
+          "cell_f1_20": 0.0,
+          "product": 0.0
+        }
+      ],
+      "accepted": 1007,
+      "programs": {
+        "case_number": "case_number:0",
+        "case_type": "case_type:0",
+        "defendant_current_status": "defendant_current_status:0",
+        "first_judge": "first_judge:0",
+        "hearing_year": "hearing_year:0",
+        "legal_basis_num": "legal_basis_num:0",
+        "plaintiff_current_status": "plaintiff_current_status:0",
+        "verdict": "verdict:0"
+      },
+      "exact_configurations": 81,
+      "collapsed_from": "5^8 representatives after identical-fill collapse",
+      "beats_docetl": false,
+      "n_beating_docetl": 0
+    }
+  },
+  "calibration": {
+    "n_compared": 33,
+    "spearman_heldout_vs_gold": 0.6554970344941643,
+    "kendall_heldout_vs_gold": 0.6827586206896552,
+    "top1_gold_regret": 0.0,
+    "top1_is_gold_best_of_compared": true,
+    "selected_gold": 0.03756624217150533,
+    "best_compared_gold": 0.03756624217150533,
+    "best_family_gold": 0.04460751960751961,
+    "regret_vs_best_frozen_family": 0.007041277436014279,
+    "heldout_silver_winner": 0.2800602865796831,
+    "official_product": 0.03756624217150533,
+    "absolute_gap_heldout_minus_official": 0.2424940444081778,
+    "rank_note": "Rank correlation is over the compared held-out configurations only. Absolute scores compare a 32-row silver database with the 570-row gold database, so 0.2801 and 0.0376 are not the same estimand."
+  },
+  "considered": [
+    {
+      "label": "swap_plaintiff_current_status_4",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:4",
+        "plaintiff_current_status": "plaintiff_current_status:4",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.724609375,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.03756624217150533,
+      "gold_f2": 0.45578644140443514,
+      "gold_f1": 0.056351981351981356,
+      "selected": true
+    },
+    {
+      "label": "swap_plaintiff_current_status_3",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:4",
+        "plaintiff_current_status": "plaintiff_current_status:3",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.72265625,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.03756624217150533,
+      "gold_f2": 0.45578644140443514,
+      "gold_f1": 0.056351981351981356,
+      "selected": false
+    },
+    {
+      "label": "swap_plaintiff_current_status_1",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:4",
+        "plaintiff_current_status": "plaintiff_current_status:1",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.724609375,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.03756624217150533,
+      "gold_f2": 0.45578644140443514,
+      "gold_f1": 0.056351981351981356,
+      "selected": false
+    },
+    {
+      "label": "swap_plaintiff_current_status_0",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:4",
+        "plaintiff_current_status": "plaintiff_current_status:0",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.724609375,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.03756624217150533,
+      "gold_f2": 0.45578644140443514,
+      "gold_f1": 0.056351981351981356,
+      "selected": false
+    },
+    {
+      "label": "swap_verdict_3",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:4",
+        "plaintiff_current_status": "plaintiff_current_status:4",
+        "verdict": "verdict:3"
+      },
+      "train_silver_cell_agreement": 0.724609375,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.03756624217150533,
+      "gold_f2": 0.45578644140443514,
+      "gold_f1": 0.056351981351981356,
+      "selected": false
+    },
+    {
+      "label": "swap_verdict_2",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:4",
+        "plaintiff_current_status": "plaintiff_current_status:4",
+        "verdict": "verdict:2"
+      },
+      "train_silver_cell_agreement": 0.724609375,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.03756624217150533,
+      "gold_f2": 0.45578644140443514,
+      "gold_f1": 0.056351981351981356,
+      "selected": false
+    },
+    {
+      "label": "swap_verdict_1",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:4",
+        "plaintiff_current_status": "plaintiff_current_status:4",
+        "verdict": "verdict:1"
+      },
+      "train_silver_cell_agreement": 0.724609375,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.03756624217150533,
+      "gold_f2": 0.45578644140443514,
+      "gold_f1": 0.056351981351981356,
+      "selected": false
+    },
+    {
+      "label": "swap_verdict_0",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:4",
+        "plaintiff_current_status": "plaintiff_current_status:4",
+        "verdict": "verdict:0"
+      },
+      "train_silver_cell_agreement": 0.724609375,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.03756624217150533,
+      "gold_f2": 0.45578644140443514,
+      "gold_f1": 0.056351981351981356,
+      "selected": false
+    },
+    {
+      "label": "swap_legal_basis_num_4",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:4",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.705078125,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.025992168097431257,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.03551864801864802,
+      "selected": false
+    },
+    {
+      "label": "swap_legal_basis_num_2",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:2",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.705078125,
+      "heldout_silver_product": 0.2800602865796831,
+      "heldout_lcb": 0.13899988350419384,
+      "gold_product": 0.025992168097431257,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.03551864801864802,
+      "selected": false
+    },
+    {
+      "label": "swap_defendant_current_status_3",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_defendant_current_status_1",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:1",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_first_judge_3",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:3",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_first_judge_2",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:2",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_first_judge_1",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:1",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_first_judge_0",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:0",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_hearing_year_3",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:3",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_hearing_year_2",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:2",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_hearing_year_1",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:1",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_hearing_year_0",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:0",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_legal_basis_num_1",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:1",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_legal_basis_num_0",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:3",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:0",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4394465721233894,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_case_number_3",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:4",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.685546875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4672243499011671,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_case_number_1",
+      "config": {
+        "case_number": "case_number:1",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:4",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.685546875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4672243499011671,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_case_type_3",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:3",
+        "defendant_current_status": "defendant_current_status:4",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.685546875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4672243499011671,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_case_type_2",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:2",
+        "defendant_current_status": "defendant_current_status:4",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.685546875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4672243499011671,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_case_type_1",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:1",
+        "defendant_current_status": "defendant_current_status:4",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.685546875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4672243499011671,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_case_type_0",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:0",
+        "defendant_current_status": "defendant_current_status:4",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.685546875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4672243499011671,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_defendant_current_status_2",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:2",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.685546875,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4672243499011671,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "swap_defendant_current_status_0",
+      "config": {
+        "case_number": "case_number:3",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:0",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.68359375,
+      "heldout_silver_product": 0.2663065942362817,
+      "heldout_lcb": 0.13020833333333334,
+      "gold_product": 0.0329366125418757,
+      "gold_f2": 0.4672243499011671,
+      "gold_f1": 0.04246309246309247,
+      "selected": false
+    },
+    {
+      "label": "beam0",
+      "config": {
+        "case_number": "case_number:2",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:4",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.19700013528138527,
+      "heldout_lcb": 0.08645833333333333,
+      "gold_product": 0.03243820743820744,
+      "gold_f2": 0.4156680066700948,
+      "gold_f1": 0.03867521367521368,
+      "selected": false
+    },
+    {
+      "label": "swap_case_number_4",
+      "config": {
+        "case_number": "case_number:4",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:4",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.19314851814851813,
+      "heldout_lcb": 0.08522727272727272,
+      "gold_product": 0.03243820743820744,
+      "gold_f2": 0.4156680066700948,
+      "gold_f1": 0.03867521367521368,
+      "selected": false
+    },
+    {
+      "label": "swap_case_number_0",
+      "config": {
+        "case_number": "case_number:0",
+        "case_type": "case_type:4",
+        "defendant_current_status": "defendant_current_status:4",
+        "first_judge": "first_judge:4",
+        "hearing_year": "hearing_year:4",
+        "legal_basis_num": "legal_basis_num:3",
+        "plaintiff_current_status": "plaintiff_current_status:2",
+        "verdict": "verdict:4"
+      },
+      "train_silver_cell_agreement": 0.701171875,
+      "heldout_silver_product": 0.19314851814851813,
+      "heldout_lcb": 0.08522727272727272,
+      "gold_product": 0.03243820743820744,
+      "gold_f2": 0.4156680066700948,
+      "gold_f1": 0.03867521367521368,
+      "selected": false
+    }
+  ],
+  "extrapolation": {
+    "case_number": {
+      "program": "case_number:3",
+      "positive_mapped_train": 14,
+      "negative_or_keep_train": 50,
+      "full_corpus_writes": 155,
+      "extrapolation_ratio": 11.071428571428571,
+      "train_channels": {
+        "surface": 14
+      },
+      "write_channels": {
+        "surface": 80,
+        "normalized": 75
+      },
+      "unseen_channels": [
+        "normalized"
+      ],
+      "write_exact_precision": 0.03870967741935484,
+      "outside_train_channel_support": true
+    },
+    "case_type": {
+      "program": "case_type:4",
+      "positive_mapped_train": 4,
+      "negative_or_keep_train": 60,
+      "full_corpus_writes": 54,
+      "extrapolation_ratio": 13.5,
+      "train_channels": {
+        "workload_label": 4
+      },
+      "write_channels": {
+        "surface": 15,
+        "workload_label": 38,
+        "normalized": 1
+      },
+      "unseen_channels": [
+        "normalized",
+        "surface"
+      ],
+      "write_exact_precision": 0.2222222222222222,
+      "outside_train_channel_support": true
+    },
+    "defendant_current_status": {
+      "program": "defendant_current_status:3",
+      "positive_mapped_train": 0,
+      "negative_or_keep_train": 64,
+      "full_corpus_writes": 252,
+      "extrapolation_ratio": 252.0,
+      "train_channels": {},
+      "write_channels": {
+        "surface": 121,
+        "normalized": 12,
+        "workload_label": 119
+      },
+      "unseen_channels": [
+        "normalized",
+        "surface",
+        "workload_label"
+      ],
+      "write_exact_precision": 0.23015873015873015,
+      "outside_train_channel_support": true
+    },
+    "first_judge": {
+      "program": "first_judge:4",
+      "positive_mapped_train": 2,
+      "negative_or_keep_train": 62,
+      "full_corpus_writes": 185,
+      "extrapolation_ratio": 92.5,
+      "train_channels": {
+        "normalized": 2
+      },
+      "write_channels": {
+        "surface": 179,
+        "normalized": 6
+      },
+      "unseen_channels": [
+        "surface"
+      ],
+      "write_exact_precision": 0.0,
+      "outside_train_channel_support": true
+    },
+    "hearing_year": {
+      "program": "hearing_year:4",
+      "positive_mapped_train": 19,
+      "negative_or_keep_train": 45,
+      "full_corpus_writes": 13,
+      "extrapolation_ratio": 0.6842105263157895,
+      "train_channels": {
+        "surface": 12,
+        "workload_label": 7
+      },
+      "write_channels": {
+        "workload_label": 8,
+        "surface": 5
+      },
+      "unseen_channels": [],
+      "write_exact_precision": 0.15384615384615385,
+      "outside_train_channel_support": false
+    },
+    "legal_basis_num": {
+      "program": "legal_basis_num:4",
+      "positive_mapped_train": 32,
+      "negative_or_keep_train": 32,
+      "full_corpus_writes": 37,
+      "extrapolation_ratio": 1.15625,
+      "train_channels": {
+        "surface": 25,
+        "workload_label": 7
+      },
+      "write_channels": {
+        "workload_label": 25,
+        "surface": 12
+      },
+      "unseen_channels": [],
+      "write_exact_precision": 0.43243243243243246,
+      "outside_train_channel_support": false
+    },
+    "plaintiff_current_status": {
+      "program": "plaintiff_current_status:4",
+      "positive_mapped_train": 0,
+      "negative_or_keep_train": 64,
+      "full_corpus_writes": 154,
+      "extrapolation_ratio": 154.0,
+      "train_channels": {},
+      "write_channels": {
+        "surface": 152,
+        "workload_label": 2
+      },
+      "unseen_channels": [
+        "surface",
+        "workload_label"
+      ],
+      "write_exact_precision": 0.0,
+      "outside_train_channel_support": true
+    },
+    "verdict": {
+      "program": "verdict:4",
+      "positive_mapped_train": 5,
+      "negative_or_keep_train": 59,
+      "full_corpus_writes": 43,
+      "extrapolation_ratio": 8.6,
+      "train_channels": {
+        "workload_label": 5
+      },
+      "write_channels": {
+        "workload_label": 13,
+        "surface": 10,
+        "normalized": 20
+      },
+      "unseen_channels": [
+        "normalized",
+        "surface"
+      ],
+      "write_exact_precision": 0.0,
+      "outside_train_channel_support": true
+    }
+  },
+  "regressions": {
+    "loo": {
+      "legal_multiagg20:q11": {
+        "plumbing": 0.09523809523809522,
+        "official": 0.0,
+        "loo_product": {
+          "case_number": 0.1111111111111111,
+          "case_type": 0.0,
+          "defendant_current_status": 0.0,
+          "first_judge": 0.0,
+          "hearing_year": 0.0,
+          "legal_basis_num": 0.0,
+          "plaintiff_current_status": 0.0,
+          "verdict": 0.0
+        },
+        "most_restorative": "case_number"
+      },
+      "legal_multiagg20:q18": {
+        "plumbing": 0.0052328623757195184,
+        "official": 0.0,
+        "loo_product": {
+          "case_number": 0.009523809523809523,
+          "defendant_current_status": 0.0052328623757195184,
+          "plaintiff_current_status": 0.0052328623757195184,
+          "case_type": 0.0,
+          "first_judge": 0.0,
+          "hearing_year": 0.0,
+          "legal_basis_num": 0.0,
+          "verdict": 0.0
+        },
+        "most_restorative": "case_number"
+      }
+    },
+    "write_traces": {
+      "legal_multiagg20:q11": {
+        "attribute": "case_number",
+        "n_writes": 485,
+        "n_harmful_single_writes": 0,
+        "examples": [],
+        "class": "aggregate-value corruption",
+        "sql_note": "SELECT CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END AS statute_band, COUNT(*) AS case_count, AVG(case_number) AS avg_precedents, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count FROM legal WHERE case_number IS NOT NULL GROUP BY statute_band"
+      },
+      "legal_multiagg20:q18": {
+        "attribute": "case_number",
+        "n_writes": 485,
+        "n_harmful_single_writes": 0,
+        "examples": [],
+        "class": "filter support removed indirectly",
+        "sql_note": "SELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status != '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE plaintiff_current_status != '' AND defendant_current_status != '' AND case_number IS NOT NULL GROUP BY plaintiff_family, defendant_family HAVING COUNT(*) >= 3"
+      }
+    }
+  },
+  "hashes": {
+    "silver_journal": "8fcb48291166d936d5f6170cc0d9796f73daaa219db8879fc3c2d9b4c98d2edb",
+    "programs": "4cdcd21f899d61b65243af5e92ad1efd1ac2054a4df5478dfe2a2d06690af06a",
+    "sample_split": "2e4a6b9da598c9e2d90cd0c55c502d76422aa3145fe5ca4f058733ba5cb5d8f3",
+    "assignment": "c7193f165eeaf8f7232993b1a3a00489606cb412fd2e500f666866db45492c4c",
+    "official_db": "57184bfc669b43e473bc7cebe51bec1f641984bb8da29f970d48135817381f24",
+    "inventory": "42ef0a8c8247d78a96387898810eef929205d5c78a87d72abed8cf90658cb815",
+    "generation_frozen": "689f956b3206706545af4a67dfd0cabd8a3a7ed41e2b4231d309ae94638b389e"
+  },
+  "qwen_calls": 0
+}

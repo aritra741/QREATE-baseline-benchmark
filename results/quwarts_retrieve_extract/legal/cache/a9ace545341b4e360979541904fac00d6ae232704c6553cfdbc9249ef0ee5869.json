@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "8517a0cdd5bc73ac3a32f4103be899ee8a49aeb439506f74c3dba2a42356b879",
+    "entity_identity": "4ff8275ab8a5029a562bc46ec8550d003fadb27c65e97316bebc35d202402bf1",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.defendant_current_status",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "05a96179bf84b8c7702afaa8be1cfe1801e3d4c6484bcc0e656600e3666f1d22",
+      "0a411a8898b016fa65249e6b57b1efff073cc5a398ec1262ff886e4a64e0e431",
+      "1fef13843017df975e09e785eb4e954c47d9c5bb7e0d1af2e5f38961c4f4f8ec",
+      "d29fdfa92ecfaf9f312b74962a1315cdd8c56b34d26fd54238ec3957b76c70a3"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"4ff8275ab8a5029a562bc46ec8550d003fadb27c65e97316bebc35d202402bf1\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"510.txt:c3\",\n          \"exact_span\": \"a diagonal line with the words ' N/A ' was submitted, and similarly in a document ' MODR --- Real estate details' . information in order for a proper assessment of the claim to be carried out.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "510.txt:c3",
+              "exact_span": "a diagonal line with the words ' N/A ' was submitted, and similarly in a document ' MODR --- Real estate details' . information in order for a proper assessment of the claim to be carried out."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "4ff8275ab8a5029a562bc46ec8550d003fadb27c65e97316bebc35d202402bf1"
+    }
+  }
+}

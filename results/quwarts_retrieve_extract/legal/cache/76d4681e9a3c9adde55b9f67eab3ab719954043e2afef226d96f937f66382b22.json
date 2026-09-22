@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "6fa6f6037335730607055917ddba9e1a61ac91405e00285d5004ba2360f5e1dc",
+    "entity_identity": "2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.evidence",
+      "legal.defendant_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "5a5f5fe681af9a9c34ed29c1c301faa051b494b3a79cbc202ecec4fa69123f67",
+      "f71c5feef01b6971d2b34c88044bbd5d8d5eed44b82410db348e08c1932dc6d5",
+      "a10d1aa7bd22b2960d6b502f2960306116daa7722cfc81d6f140cf83e4bd25c1",
+      "850468d0c4d82c6281454db1a7670c4fae20b94baf947e5ad36640accfbcf3f4"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Criminal Case\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"536.txt:c21\",\n          \"exact_span\": \"52 The same reasoning informs the Tribunal's conclusion that the first appellant's practice of Falun Gong in Australia 'did not happen' prior to the initial application.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Criminal Case",
+          "normalized_value": "Criminal Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "536.txt:c21",
+              "exact_span": "52 The same reasoning informs the Tribunal's conclusion that the first appellant's practice of Falun Gong in Australia 'did not happen' prior to the initial application."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258"
+    }
+  }
+}

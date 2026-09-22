@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "d9def827c68e687ea7d739b92b4e00221974acee001a04ae520672bd1f82e92f",
+    "entity_identity": "065c9be8a736a0f89d4b85332aa87372f1fd714ab5f87f1bb58884a2c371c7ce",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "a8a0204810af34174457740cab47dc6a3fcab09e69b6c57875d41a6cf76ca5d6",
+      "5b09a996d1a4f8ffa044e81c80184ca11ced3bee4c2964cdc2315aec276ec5e1",
+      "a83985b7c3b25046268bfc78f5458832ab3ffc1153aac574ddea8976d6ed9ff8",
+      "6fa731e728f62654019c81c1b1561b4d8ef5831565c718de2d93901a9a438c06"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"065c9be8a736a0f89d4b85332aa87372f1fd714ab5f87f1bb58884a2c371c7ce\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"293.txt:c48\",\n          \"exact_span\": \"I have as I have foreshadowed, concluded that the proceedings should be summarily dismissed.\"\n        },\n        {\n          \"source_id\": \"293.txt:c62\",\n          \"exact_span\": \"I will order under s 31A of the Federal Court of Australia Act that the application be dismissed.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "293.txt:c48",
+              "exact_span": "I have as I have foreshadowed, concluded that the proceedings should be summarily dismissed."
+            },
+            {
+              "source_id": "293.txt:c62",
+              "exact_span": "I will order under s 31A of the Federal Court of Australia Act that the application be dismissed."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "065c9be8a736a0f89d4b85332aa87372f1fd714ab5f87f1bb58884a2c371c7ce"
+    }
+  }
+}

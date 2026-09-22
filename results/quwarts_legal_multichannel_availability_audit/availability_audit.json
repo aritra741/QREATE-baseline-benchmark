@@ -1,0 +1,1796 @@
+{
+  "decision": "availability remains unresolved because an exact upper bound could not be computed",
+  "oracle_class": "forced-fill counterfactual",
+  "model_calls": 0,
+  "frozen_artifacts_unaltered": true,
+  "docetl_product": 0.12350932750098194,
+  "why_surface_hurts": {
+    "all_expanded": 0.08095780690555911,
+    "loo_surface": 0.09195087560925672,
+    "first_divergent_cell": {
+      "document_id": "10",
+      "attribute": "first_judge",
+      "all_expanded": "Dated: 28 May 2008 Counsel for the Appellant: The Appellant appeared in person Solicitor for the First Respondent: A Nanson (Australian Government Solicitor) Date of Hearing: 21 Ma",
+      "loo_surface": "2008",
+      "gold": "0",
+      "surface_forced_span": "Dated: 28 May 2008 Counsel for the Appellant: The Appellant appeared in person Solicitor for the First Respondent: A Nanson (Australian Government Solicitor) Date of Hearing: 21 Ma",
+      "substring_gold_match": true
+    },
+    "n_divergent_cells": 493,
+    "divergent_attributes": {
+      "first_judge": 238,
+      "legal_basis_num": 45,
+      "case_number": 102,
+      "plaintiff_current_status": 49,
+      "defendant_current_status": 54,
+      "hearing_year": 5
+    },
+    "mechanism": "Forced-fill writes the first inventory gold_match and cannot keep plumbing. gold_match treats string containment as a hit, so a surface span can match a short gold label or digit without being the gold value. Surface is concatenated first, so it wins collisions. Leave-surface-out can then write a later-channel value (or write nothing) that scores higher. A true ceiling could ignore those surface candidates."
+  },
+  "reproductions": {
+    "surface": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "surface"
+      ],
+      "exclude": null,
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 899,
+      "materialized_writes": 899,
+      "sql_visible_writes": 899,
+      "db_sha256": "ea3125ea3be0b914f1d025135b3fe3940ed5c3f6e9aa4aaef73a4b332ce1a09a",
+      "bag_sha256": "4679abe7e7c4ee4b7dd604e5d4094b0104b299785543b53e0b3bc4f2d57d7304",
+      "frozen_db_sha256": "ea3125ea3be0b914f1d025135b3fe3940ed5c3f6e9aa4aaef73a4b332ce1a09a",
+      "product": 0.03678324476643804,
+      "reported_product": 0.03678324476643804
+    },
+    "surface_normalized": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "normalized",
+        "surface"
+      ],
+      "exclude": null,
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 906,
+      "materialized_writes": 906,
+      "sql_visible_writes": 906,
+      "db_sha256": "cdc26e3ec440935af6ee320cb926d4794e6a1a5113dd9570c8646f15d8480754",
+      "bag_sha256": "9d7e725861aa2edf83a37785a998cdd814afdea6c8bf5cc59fae3b61ffc922d4",
+      "frozen_db_sha256": "cdc26e3ec440935af6ee320cb926d4794e6a1a5113dd9570c8646f15d8480754",
+      "product": 0.03678324476643804,
+      "reported_product": 0.03678324476643804
+    },
+    "workload_label": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "workload_label"
+      ],
+      "exclude": null,
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 1015,
+      "materialized_writes": 1015,
+      "sql_visible_writes": 1015,
+      "db_sha256": "2741ca30c85b4ebb0a1dae0c4e2c4f4ea9af44b1dacd5cf88950ef68b098eb03",
+      "bag_sha256": "a7ba683b589298bf8d4a370cc936aec81f948fa2d31effc002a6fd97d4e7efde",
+      "frozen_db_sha256": "2741ca30c85b4ebb0a1dae0c4e2c4f4ea9af44b1dacd5cf88950ef68b098eb03",
+      "product": 0.042490050694385065,
+      "reported_product": 0.042490050694385065
+    },
+    "semantic": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "semantic"
+      ],
+      "exclude": null,
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 151,
+      "materialized_writes": 151,
+      "sql_visible_writes": 151,
+      "db_sha256": "5f7a872de26021fedbfddfb712d4234db0872fe6d7a673409b3778d1456ec9b5",
+      "bag_sha256": "f117a6ef24f3f478657639df6c358212f744784381b8f2793aa97f0b5b101c50",
+      "frozen_db_sha256": "5f7a872de26021fedbfddfb712d4234db0872fe6d7a673409b3778d1456ec9b5",
+      "product": 0.022455905439098717,
+      "reported_product": 0.022455905439098717
+    },
+    "composed": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "composed"
+      ],
+      "exclude": null,
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 3,
+      "materialized_writes": 3,
+      "sql_visible_writes": 3,
+      "db_sha256": "ef0fadf620ec7313ad1528e35fab06cb03a4435a9fdf99f5c9d93e3e40572771",
+      "bag_sha256": "0bde268931a06ed8f25b70dac6439eed24bac1e5a81e3feae15f15a95053c6ae",
+      "frozen_db_sha256": "ef0fadf620ec7313ad1528e35fab06cb03a4435a9fdf99f5c9d93e3e40572771",
+      "product": 0.022455905439098717,
+      "reported_product": 0.022455905439098717
+    },
+    "all_expanded": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "exclude": null,
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 1485,
+      "materialized_writes": 1485,
+      "sql_visible_writes": 1485,
+      "db_sha256": "58c911901c2893b1e70e03a92e769ba092e51c3a9d3ab409d36b3b2e258005ae",
+      "bag_sha256": "ae512a6081c589320a8d6ec776d88223a1e4e8330f1a39a6e6b7e35d8d8b9ddb",
+      "frozen_db_sha256": "58c911901c2893b1e70e03a92e769ba092e51c3a9d3ab409d36b3b2e258005ae",
+      "product": 0.08095780690555911,
+      "reported_product": 0.08095780690555911
+    },
+    "loo_surface": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "exclude": "surface",
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 1333,
+      "materialized_writes": 1333,
+      "sql_visible_writes": 1333,
+      "db_sha256": "bc5a7ae9f8f33249e227dd1b3656b61c3b96aa3c81efe539ef765b660d37c2b4",
+      "bag_sha256": "6a3811ff0fcd465d6de855af0c15aa1920ecfa293e8b4dcdc9bc820cbcc661db",
+      "frozen_db_sha256": "bc5a7ae9f8f33249e227dd1b3656b61c3b96aa3c81efe539ef765b660d37c2b4",
+      "product": 0.09195087560925672,
+      "reported_product": 0.09195087560925672
+    },
+    "loo_normalized": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "exclude": "normalized",
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 1482,
+      "materialized_writes": 1482,
+      "sql_visible_writes": 1482,
+      "db_sha256": "8a2917e2d2b1360e23897b4e4bbc2037c869528fa0e0f506a62f9bc3bbb72964",
+      "bag_sha256": "369325bbfe738d61021658dfb8e502360cab8ea595c5fa3b307a6f2b48779d61",
+      "frozen_db_sha256": "8a2917e2d2b1360e23897b4e4bbc2037c869528fa0e0f506a62f9bc3bbb72964",
+      "product": 0.08095787025937383,
+      "reported_product": 0.08095787025937383
+    },
+    "loo_workload_label": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "exclude": "workload_label",
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 961,
+      "materialized_writes": 961,
+      "sql_visible_writes": 961,
+      "db_sha256": "1fbb8d5c134d3f5944c3c10c0a5d9dfa4058c9a2f78083540199103558548881",
+      "bag_sha256": "8bedb5fb5c2ce28cd615a0704c6a5cb81ad1c5f5fe9f9771d3ca6b868e19aca9",
+      "frozen_db_sha256": "1fbb8d5c134d3f5944c3c10c0a5d9dfa4058c9a2f78083540199103558548881",
+      "product": 0.044921348492777055,
+      "reported_product": 0.044921348492777055
+    },
+    "loo_semantic": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "exclude": "semantic",
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 1437,
+      "materialized_writes": 1437,
+      "sql_visible_writes": 1437,
+      "db_sha256": "d1b5c9942cc273da022b56a599db9f8e34ce37c8e71d12cba396e41601364ffc",
+      "bag_sha256": "e5f8c304773b070c239f2290d3db71851f139259b70b53d29f30c9aa52ac61b0",
+      "frozen_db_sha256": "d1b5c9942cc273da022b56a599db9f8e34ce37c8e71d12cba396e41601364ffc",
+      "product": 0.06640814412195992,
+      "reported_product": 0.06640814412195992
+    },
+    "loo_composed": {
+      "class": "forced-fill counterfactual",
+      "eligible_channels": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "exclude": "composed",
+      "obligatory_gold_matching_write": true,
+      "plumbing_retainable": false,
+      "collision_rule": "first gold_match in inventory concatenation order; one write per cell",
+      "one_candidate_per_cell": true,
+      "priority_order": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed",
+        "semantic"
+      ],
+      "later_channel_overwrites_earlier": false,
+      "attempted_writes": 1485,
+      "materialized_writes": 1485,
+      "sql_visible_writes": 1485,
+      "db_sha256": "58c911901c2893b1e70e03a92e769ba092e51c3a9d3ab409d36b3b2e258005ae",
+      "bag_sha256": "ae512a6081c589320a8d6ec776d88223a1e4e8330f1a39a6e6b7e35d8d8b9ddb",
+      "frozen_db_sha256": "58c911901c2893b1e70e03a92e769ba092e51c3a9d3ab409d36b3b2e258005ae",
+      "product": 0.08095780690555911,
+      "reported_product": 0.08095780690555911
+    }
+  },
+  "recall": {
+    "exact_gold": {
+      "n": 2978,
+      "present": 1112
+    },
+    "exact_gold_by_attribute": {
+      "case_number": {
+        "n": 485,
+        "present": 95
+      },
+      "defendant_current_status": {
+        "n": 509,
+        "present": 274
+      },
+      "legal_basis_num": {
+        "n": 538,
+        "present": 310
+      },
+      "plaintiff_current_status": {
+        "n": 528,
+        "present": 79
+      },
+      "hearing_year": {
+        "n": 280,
+        "present": 235
+      },
+      "case_type": {
+        "n": 153,
+        "present": 52
+      },
+      "first_judge": {
+        "n": 277,
+        "present": 67
+      },
+      "verdict": {
+        "n": 208
+      }
+    },
+    "workload_observational": {
+      "n": 2978,
+      "present": 1713
+    },
+    "workload_observational_by_attribute": {
+      "case_number": {
+        "n": 485,
+        "present": 95
+      },
+      "defendant_current_status": {
+        "n": 509,
+        "present": 309
+      },
+      "legal_basis_num": {
+        "n": 538,
+        "present": 437
+      },
+      "plaintiff_current_status": {
+        "n": 528,
+        "present": 214
+      },
+      "hearing_year": {
+        "n": 280,
+        "present": 235
+      },
+      "case_type": {
+        "n": 153,
+        "present": 151
+      },
+      "first_judge": {
+        "n": 277,
+        "present": 67
+      },
+      "verdict": {
+        "n": 208,
+        "present": 205
+      }
+    }
+  },
+  "fixtures": {
+    "adding_candidate_cannot_remove_assignment": true,
+    "keep_plumbing_always_available": true,
+    "larger_set_contains_smaller": true,
+    "duplicate_ids_do_not_change_priority": true,
+    "channel_order_does_not_change_reachable_domain": true,
+    "query_local_sidecars_isolated": true,
+    "null_empty_false_unknown_absent_distinct": {
+      "under_equality_filter": false,
+      "under_is_not_null": true,
+      "note": "Probe query verdict='Approved' maps NULL, empty, 0, unknown, and absent to the same excluded bag. IS NOT NULL distinguishes NULL from empty. The operators remain distinct; the probe query did not exercise all of them."
+    },
+    "first_divergence_all_vs_loo_surface": {
+      "document_id": "10",
+      "attribute": "first_judge",
+      "all_expanded": "Dated: 28 May 2008 Counsel for the Appellant: The Appellant appeared in person Solicitor for the First Respondent: A Nanson (Australian Government Solicitor) Date of Hearing: 21 Ma",
+      "loo_surface": "2008",
+      "gold": "0",
+      "surface_forced_span": "Dated: 28 May 2008 Counsel for the Appellant: The Appellant appeared in person Solicitor for the First Respondent: A Nanson (Australian Government Solicitor) Date of Hearing: 21 Ma",
+      "substring_gold_match": true
+    },
+    "n_divergent_forced_cells": 493
+  },
+  "subset_table": [
+    {
+      "channels": [
+        "none"
+      ],
+      "forced_fill_product": 0.022455905439098717,
+      "optional_write_product": 0.022455905439098717,
+      "forced_writes": 0,
+      "optional_writes": 0,
+      "queries_changed": []
+    },
+    {
+      "channels": [
+        "surface"
+      ],
+      "forced_fill_product": 0.03678324476643804,
+      "optional_write_product": 0.035947968931162214,
+      "forced_writes": 899,
+      "optional_writes": 484,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "normalized"
+      ],
+      "forced_fill_product": 0.047455905439098715,
+      "optional_write_product": 0.03495590543909872,
+      "forced_writes": 555,
+      "optional_writes": 348,
+      "queries_changed": [
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "normalized"
+      ],
+      "forced_fill_product": 0.03678324476643804,
+      "optional_write_product": 0.035947968931162214,
+      "forced_writes": 906,
+      "optional_writes": 530,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "workload_label"
+      ],
+      "forced_fill_product": 0.042490050694385065,
+      "optional_write_product": 0.06956311232627023,
+      "forced_writes": 1015,
+      "optional_writes": 805,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "workload_label"
+      ],
+      "forced_fill_product": 0.06640814412195992,
+      "optional_write_product": 0.08105635159728729,
+      "forced_writes": 1434,
+      "optional_writes": 1034,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "normalized",
+        "workload_label"
+      ],
+      "forced_fill_product": 0.0665615061996641,
+      "optional_write_product": 0.0699694767951347,
+      "forced_writes": 1274,
+      "optional_writes": 999,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_filter20:q15",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "normalized",
+        "workload_label"
+      ],
+      "forced_fill_product": 0.06640814412195992,
+      "optional_write_product": 0.08105635159728729,
+      "forced_writes": 1437,
+      "optional_writes": 1079,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "semantic"
+      ],
+      "forced_fill_product": 0.022455905439098717,
+      "optional_write_product": 0.022455905439098717,
+      "forced_writes": 151,
+      "optional_writes": 114,
+      "queries_changed": []
+    },
+    {
+      "channels": [
+        "surface",
+        "semantic"
+      ],
+      "forced_fill_product": 0.044921348492777055,
+      "optional_write_product": 0.035947968931162214,
+      "forced_writes": 955,
+      "optional_writes": 554,
+      "queries_changed": [
+        "legal_groupby20:q14",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "normalized",
+        "semantic"
+      ],
+      "forced_fill_product": 0.047455905439098715,
+      "optional_write_product": 0.03495590543909872,
+      "forced_writes": 625,
+      "optional_writes": 418,
+      "queries_changed": [
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "normalized",
+        "semantic"
+      ],
+      "forced_fill_product": 0.044921348492777055,
+      "optional_write_product": 0.035947968931162214,
+      "forced_writes": 961,
+      "optional_writes": 594,
+      "queries_changed": [
+        "legal_groupby20:q14",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "workload_label",
+        "semantic"
+      ],
+      "forced_fill_product": 0.068386853729346,
+      "optional_write_product": 0.06956311232627023,
+      "forced_writes": 1112,
+      "optional_writes": 887,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "workload_label",
+        "semantic"
+      ],
+      "forced_fill_product": 0.08095787025937383,
+      "optional_write_product": 0.08105635159728729,
+      "forced_writes": 1482,
+      "optional_writes": 1091,
+      "queries_changed": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_filter20:q15",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "normalized",
+        "workload_label",
+        "semantic"
+      ],
+      "forced_fill_product": 0.09195087560925672,
+      "optional_write_product": 0.0699694767951347,
+      "forced_writes": 1333,
+      "optional_writes": 1055,
+      "queries_changed": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_filter20:q15",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "semantic"
+      ],
+      "forced_fill_product": 0.08095780690555911,
+      "optional_write_product": 0.08105635159728729,
+      "forced_writes": 1485,
+      "optional_writes": 1130,
+      "queries_changed": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_filter20:q15",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "composed"
+      ],
+      "forced_fill_product": 0.022455905439098717,
+      "optional_write_product": 0.022455905439098717,
+      "forced_writes": 3,
+      "optional_writes": 3,
+      "queries_changed": []
+    },
+    {
+      "channels": [
+        "surface",
+        "composed"
+      ],
+      "forced_fill_product": 0.03678324476643804,
+      "optional_write_product": 0.035947968931162214,
+      "forced_writes": 899,
+      "optional_writes": 487,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "normalized",
+        "composed"
+      ],
+      "forced_fill_product": 0.047455905439098715,
+      "optional_write_product": 0.03495590543909872,
+      "forced_writes": 555,
+      "optional_writes": 348,
+      "queries_changed": [
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "normalized",
+        "composed"
+      ],
+      "forced_fill_product": 0.03678324476643804,
+      "optional_write_product": 0.035947968931162214,
+      "forced_writes": 906,
+      "optional_writes": 530,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "workload_label",
+        "composed"
+      ],
+      "forced_fill_product": 0.042490050694385065,
+      "optional_write_product": 0.06956311232627023,
+      "forced_writes": 1018,
+      "optional_writes": 808,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "workload_label",
+        "composed"
+      ],
+      "forced_fill_product": 0.06640814412195992,
+      "optional_write_product": 0.08105635159728729,
+      "forced_writes": 1434,
+      "optional_writes": 1037,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "normalized",
+        "workload_label",
+        "composed"
+      ],
+      "forced_fill_product": 0.0665615061996641,
+      "optional_write_product": 0.0699694767951347,
+      "forced_writes": 1274,
+      "optional_writes": 999,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_filter20:q15",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "composed"
+      ],
+      "forced_fill_product": 0.06640814412195992,
+      "optional_write_product": 0.08105635159728729,
+      "forced_writes": 1437,
+      "optional_writes": 1079,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "semantic",
+        "composed"
+      ],
+      "forced_fill_product": 0.022455905439098717,
+      "optional_write_product": 0.022455905439098717,
+      "forced_writes": 153,
+      "optional_writes": 116,
+      "queries_changed": []
+    },
+    {
+      "channels": [
+        "surface",
+        "semantic",
+        "composed"
+      ],
+      "forced_fill_product": 0.044921348492777055,
+      "optional_write_product": 0.035947968931162214,
+      "forced_writes": 955,
+      "optional_writes": 556,
+      "queries_changed": [
+        "legal_groupby20:q14",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "normalized",
+        "semantic",
+        "composed"
+      ],
+      "forced_fill_product": 0.047455905439098715,
+      "optional_write_product": 0.03495590543909872,
+      "forced_writes": 625,
+      "optional_writes": 418,
+      "queries_changed": [
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "normalized",
+        "semantic",
+        "composed"
+      ],
+      "forced_fill_product": 0.044921348492777055,
+      "optional_write_product": 0.035947968931162214,
+      "forced_writes": 961,
+      "optional_writes": 594,
+      "queries_changed": [
+        "legal_groupby20:q14",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "forced_fill_product": 0.068386853729346,
+      "optional_write_product": 0.06956311232627023,
+      "forced_writes": 1114,
+      "optional_writes": 889,
+      "queries_changed": [
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "forced_fill_product": 0.08095787025937383,
+      "optional_write_product": 0.08105635159728729,
+      "forced_writes": 1482,
+      "optional_writes": 1093,
+      "queries_changed": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_filter20:q15",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "normalized",
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "forced_fill_product": 0.09195087560925672,
+      "optional_write_product": 0.0699694767951347,
+      "forced_writes": 1333,
+      "optional_writes": 1055,
+      "queries_changed": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_filter20:q15",
+        "legal_agg20:q3"
+      ]
+    },
+    {
+      "channels": [
+        "surface",
+        "normalized",
+        "workload_label",
+        "semantic",
+        "composed"
+      ],
+      "forced_fill_product": 0.08095780690555911,
+      "optional_write_product": 0.08105635159728729,
+      "forced_writes": 1485,
+      "optional_writes": 1130,
+      "queries_changed": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_filter20:q11",
+        "legal_filter20:q15",
+        "legal_agg20:q3"
+      ]
+    }
+  ],
+  "best_forced_subset": {
+    "product": 0.09195087560925672,
+    "channels": [
+      "normalized",
+      "workload_label",
+      "semantic"
+    ],
+    "writes": 1333
+  },
+  "best_optional_subset": {
+    "product": 0.08105635159728729,
+    "channels": [
+      "surface",
+      "workload_label"
+    ],
+    "writes": 1034
+  },
+  "query_bounds": [
+    {
+      "query_id": "legal_multiagg20:q4",
+      "plumbing": 0.0,
+      "forced_all": 0.00010818764064393285,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.37037037037037035,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "optimistic_bag_drops_unreachable_gold_keys_or_hull_miss",
+      "unsupported_feature": "joint AVG/MAX/HAVING cell match across shared groups",
+      "reachable_gold_keys": 1,
+      "missing_gold_keys": 1
+    },
+    {
+      "query_id": "legal_filter20:q9",
+      "plumbing": 0.0,
+      "forced_all": 0.0,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.0,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "count_optimistic_clipped_to_forced_and_capacity",
+      "unsupported_feature": "insufficient capacity or frozen plumbing overfill",
+      "reachable_gold_keys": 1,
+      "missing_gold_keys": 3
+    },
+    {
+      "query_id": "legal_filter20:q7",
+      "plumbing": 0.0,
+      "forced_all": 0.0,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.6766917293233082,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "optimistic_bag_drops_unreachable_gold_keys_or_hull_miss",
+      "unsupported_feature": "joint AVG/MAX/HAVING cell match across shared groups",
+      "reachable_gold_keys": 3,
+      "missing_gold_keys": 1
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "plumbing": 0.09523809523809522,
+      "forced_all": 0.0,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.09523809523809522,
+      "docetl": 0.1111111111111111,
+      "exact": false,
+      "note": "all_gold_keys_looked_reachable_but_AVG_hull_not_certified; upper=best_constructed_or_plumbing",
+      "unsupported_feature": "exact subset selection for AVG/MAX/HAVING not solved",
+      "reachable_gold_keys": 3,
+      "missing_gold_keys": 0
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "plumbing": 0.0052328623757195184,
+      "forced_all": 0.04807692307692307,
+      "best_reachable": 0.0052328623757195184,
+      "certified_upper_bound": 0.04807692307692307,
+      "docetl": 0.18808777429467086,
+      "exact": false,
+      "note": "optimistic_bag_drops_unreachable_gold_keys_or_hull_miss",
+      "unsupported_feature": "joint AVG/MAX/HAVING cell match across shared groups",
+      "reachable_gold_keys": 0,
+      "missing_gold_keys": 12
+    },
+    {
+      "query_id": "legal_agg20:q4",
+      "plumbing": 0.0,
+      "forced_all": 0.0,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.0,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "count_optimistic_clipped_to_forced_and_capacity",
+      "unsupported_feature": "insufficient capacity or frozen plumbing overfill",
+      "reachable_gold_keys": 1,
+      "missing_gold_keys": 1
+    },
+    {
+      "query_id": "legal_groupby20:q14",
+      "plumbing": 0.05882352941176471,
+      "forced_all": 0.22556390977443613,
+      "best_reachable": 0.05882352941176471,
+      "certified_upper_bound": 0.22556390977443613,
+      "docetl": 0.25,
+      "exact": false,
+      "note": "count_optimistic_clipped_to_forced_and_capacity",
+      "unsupported_feature": "insufficient capacity or frozen plumbing overfill",
+      "reachable_gold_keys": 2,
+      "missing_gold_keys": 6
+    },
+    {
+      "query_id": "legal_agg20:q11",
+      "plumbing": 0.0,
+      "forced_all": 0.22556390977443613,
+      "best_reachable": 0.45112781954887227,
+      "certified_upper_bound": 0.45112781954887227,
+      "docetl": 1.0,
+      "exact": false,
+      "note": "count_optimistic_clipped_to_forced_and_capacity",
+      "unsupported_feature": "insufficient capacity or frozen plumbing overfill",
+      "reachable_gold_keys": 3,
+      "missing_gold_keys": 1
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "plumbing": 0.0,
+      "forced_all": 0.028490028490028487,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.028490028490028487,
+      "docetl": 0.22695035460992907,
+      "exact": false,
+      "note": "optimistic_bag_drops_unreachable_gold_keys_or_hull_miss",
+      "unsupported_feature": "joint AVG/MAX/HAVING cell match across shared groups",
+      "reachable_gold_keys": 0,
+      "missing_gold_keys": 9
+    },
+    {
+      "query_id": "legal_agg20:q13",
+      "plumbing": 0.0,
+      "forced_all": 0.0,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.11764705882352942,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "optimistic_bag_drops_unreachable_gold_keys_or_hull_miss",
+      "unsupported_feature": "joint AVG/MAX/HAVING cell match across shared groups",
+      "reachable_gold_keys": 1,
+      "missing_gold_keys": 3
+    },
+    {
+      "query_id": "legal_agg20:q17",
+      "plumbing": 0.0,
+      "forced_all": 0.0,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.0,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "all_gold_keys_looked_reachable_but_AVG_hull_not_certified; upper=best_constructed_or_plumbing",
+      "unsupported_feature": "exact subset selection for AVG/MAX/HAVING not solved",
+      "reachable_gold_keys": 4,
+      "missing_gold_keys": 0
+    },
+    {
+      "query_id": "legal_filter20:q8",
+      "plumbing": 0.0,
+      "forced_all": 0.0,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.0,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "count_optimistic_clipped_to_forced_and_capacity",
+      "unsupported_feature": "insufficient capacity or frozen plumbing overfill",
+      "reachable_gold_keys": 0,
+      "missing_gold_keys": 2
+    },
+    {
+      "query_id": "legal_filter20:q11",
+      "plumbing": 0.0,
+      "forced_all": 0.22556390977443613,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.22556390977443613,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "optimistic_bag_drops_unreachable_gold_keys_or_hull_miss",
+      "unsupported_feature": "joint AVG/MAX/HAVING cell match across shared groups",
+      "reachable_gold_keys": 1,
+      "missing_gold_keys": 3
+    },
+    {
+      "query_id": "legal_filter20:q15",
+      "plumbing": 0.0,
+      "forced_all": 0.1923076923076923,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.1923076923076923,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "count_optimistic_clipped_to_forced_and_capacity",
+      "unsupported_feature": "insufficient capacity or frozen plumbing overfill",
+      "reachable_gold_keys": 0,
+      "missing_gold_keys": 3
+    },
+    {
+      "query_id": "legal_agg20:q3",
+      "plumbing": 0.20000000000000004,
+      "forced_all": 0.3496503496503496,
+      "best_reachable": 0.6,
+      "certified_upper_bound": 0.8000000000000002,
+      "docetl": 0.20000000000000004,
+      "exact": false,
+      "note": "count_optimistic_clipped_to_forced_and_capacity",
+      "unsupported_feature": "insufficient capacity or frozen plumbing overfill",
+      "reachable_gold_keys": 5,
+      "missing_gold_keys": 0
+    },
+    {
+      "query_id": "legal_agg20:q14",
+      "plumbing": 0.0,
+      "forced_all": 0.0,
+      "best_reachable": 0.0,
+      "certified_upper_bound": 0.37037037037037035,
+      "docetl": 0.0,
+      "exact": false,
+      "note": "optimistic_bag_drops_unreachable_gold_keys_or_hull_miss",
+      "unsupported_feature": "joint AVG/MAX/HAVING cell match across shared groups",
+      "reachable_gold_keys": 1,
+      "missing_gold_keys": 1
+    }
+  ],
+  "certified_mean_upper": 0.2250904941936289,
+  "mixed_mean_exact_or_certified": 0.2250904941936289,
+  "all_query_local_exact": false,
+  "best_feasible_shared_product": {
+    "product": 0.09272779486595277,
+    "start": "all_expanded",
+    "writes": 881,
+    "trace": [
+      {
+        "start": "plumbing",
+        "product": 0.022455905439098717,
+        "writes": 0,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.09523809523809522,
+          "legal_multiagg20:q18": 0.0052328623757195184,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.05882352941176471,
+          "legal_agg20:q11": 0.0,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.20000000000000004,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "case_number:surface",
+        "on": true,
+        "product": 0.02344796893116221,
+        "writes": 66,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.0052328623757195184,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.05882352941176471,
+          "legal_agg20:q11": 0.0,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.20000000000000004,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "case_type:workload_label",
+        "on": true,
+        "product": 0.024641628213056786,
+        "writes": 67,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.0052328623757195184,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.0,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.20000000000000004,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "hearing_year:surface",
+        "on": true,
+        "product": 0.03714162821305679,
+        "writes": 192,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.0052328623757195184,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.0,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.4000000000000001,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "hearing_year:workload_label",
+        "on": true,
+        "product": 0.06214162821305679,
+        "writes": 295,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.0052328623757195184,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.0,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.8000000000000002,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "plaintiff_current_status:workload_label",
+        "on": true,
+        "product": 0.07623937257395905,
+        "writes": 372,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.0052328623757195184,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.22556390977443613,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.8000000000000002,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "defendant_current_status:workload_label",
+        "on": true,
+        "product": 0.07754630560358115,
+        "writes": 664,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.0261437908496732,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.22556390977443613,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.8000000000000002,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "case_number:workload_label",
+        "on": true,
+        "product": 0.07891712636778428,
+        "writes": 693,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.04807692307692307,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.22556390977443613,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.8000000000000002,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "start": "all_expanded",
+        "product": 0.08105635159728729,
+        "writes": 1130,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.0823045267489712,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.22556390977443613,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.8000000000000002,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "defendant_current_status:workload_label",
+        "on": false,
+        "product": 0.09272779486595277,
+        "writes": 881,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.019047619047619046,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.22556390977443613,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.25,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.8000000000000002,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "start": "leave_surface_out",
+        "product": 0.0699694767951347,
+        "writes": 1055,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.0,
+          "legal_multiagg20:q18": 0.016025641025641024,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.22556390977443613,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.8000000000000002,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "case_number:surface",
+        "on": true,
+        "product": 0.08105635159728729,
+        "writes": 1112,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.0823045267489712,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.22556390977443613,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.0,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.8000000000000002,
+          "legal_agg20:q14": 0.0
+        }
+      },
+      {
+        "toggle": "defendant_current_status:workload_label",
+        "on": false,
+        "product": 0.09272779486595277,
+        "writes": 863,
+        "per_query": {
+          "legal_multiagg20:q4": 0.0,
+          "legal_filter20:q9": 0.0,
+          "legal_filter20:q7": 0.0,
+          "legal_multiagg20:q11": 0.1111111111111111,
+          "legal_multiagg20:q18": 0.019047619047619046,
+          "legal_agg20:q4": 0.0,
+          "legal_groupby20:q14": 0.07792207792207792,
+          "legal_agg20:q11": 0.22556390977443613,
+          "legal_multiagg20:q9": 0.0,
+          "legal_agg20:q13": 0.0,
+          "legal_agg20:q17": 0.25,
+          "legal_filter20:q8": 0.0,
+          "legal_filter20:q11": 0.0,
+          "legal_filter20:q15": 0.0,
+          "legal_agg20:q3": 0.8000000000000002,
+          "legal_agg20:q14": 0.0
+        }
+      }
+    ],
+    "per_query": {
+      "legal_multiagg20:q4": 0.0,
+      "legal_filter20:q9": 0.0,
+      "legal_filter20:q7": 0.0,
+      "legal_multiagg20:q11": 0.1111111111111111,
+      "legal_multiagg20:q18": 0.019047619047619046,
+      "legal_agg20:q4": 0.0,
+      "legal_groupby20:q14": 0.07792207792207792,
+      "legal_agg20:q11": 0.22556390977443613,
+      "legal_multiagg20:q9": 0.0,
+      "legal_agg20:q13": 0.0,
+      "legal_agg20:q17": 0.25,
+      "legal_filter20:q8": 0.0,
+      "legal_filter20:q11": 0.0,
+      "legal_filter20:q15": 0.0,
+      "legal_agg20:q3": 0.8000000000000002,
+      "legal_agg20:q14": 0.0
+    },
+    "n_active_cohorts": 39
+  },
+  "funnel": {
+    "eligible_null_cells": 2978,
+    "scheduled": 785,
+    "unscheduled": 2193,
+    "unscheduled_reason": "All 2,978 NULL cells were job-eligible (every routed attribute includes semantic). Proposal calls stopped after 785 cells because generation spend reached 12,263,034 of cap 12,264,554; remaining budget was reserved for the unchanged 345,457-token selector. Job order is generic (occurrence \u00d7 query count \u00d7 unresolved / estimated cost), not Legal-specific.",
+    "proposal_calls": 785,
+    "malformed_proposals": 46,
+    "candidates_emitted": 1635,
+    "candidates_emitted_per_call": {
+      "n": 785,
+      "min": 0.0,
+      "p50": 2.0,
+      "p90": 4.0,
+      "max": 4.0,
+      "mean": 2.082802547770701
+    },
+    "tokens_per_scheduled_cell": {
+      "n": 785,
+      "min": 1142.0,
+      "p50": 5290.0,
+      "p90": 9075.0,
+      "max": 11658.0,
+      "mean": 5638.070063694267
+    },
+    "context_token_distribution": {
+      "n": 785,
+      "min": 376.0,
+      "p50": 4001.0,
+      "p90": 7913.0,
+      "max": 10017.0,
+      "mean": 4317.443312101911
+    },
+    "prompt_completion_note": "Frozen proposal journal stores ledger `actual` and packed `context_tokens` only; prompt/completion splits were not persisted.",
+    "verification_tokens": {
+      "n": 1635,
+      "min": 0.0,
+      "p50": 4602.0,
+      "p90": 7886.0,
+      "max": 10707.0,
+      "mean": 4789.892966360856
+    },
+    "verification_verdicts": {
+      "uncertain": 732,
+      "supported": 519,
+      "unsupported": 384
+    },
+    "by_attribute": {
+      "case_number": {
+        "n": 485,
+        "scheduled": 98,
+        "emitted": 92,
+        "exact": 95,
+        "observational": 95
+      },
+      "defendant_current_status": {
+        "n": 509,
+        "scheduled": 99,
+        "emitted": 91,
+        "exact": 274,
+        "observational": 309
+      },
+      "legal_basis_num": {
+        "n": 538,
+        "scheduled": 98,
+        "emitted": 87,
+        "exact": 310,
+        "observational": 437
+      },
+      "plaintiff_current_status": {
+        "n": 528,
+        "scheduled": 98,
+        "emitted": 73,
+        "exact": 79,
+        "observational": 214
+      },
+      "hearing_year": {
+        "n": 280,
+        "scheduled": 98,
+        "emitted": 92,
+        "exact": 235,
+        "observational": 235
+      },
+      "case_type": {
+        "n": 153,
+        "scheduled": 98,
+        "emitted": 85,
+        "exact": 52,
+        "observational": 151
+      },
+      "first_judge": {
+        "n": 277,
+        "scheduled": 98,
+        "emitted": 67,
+        "exact": 67,
+        "observational": 67
+      },
+      "verdict": {
+        "n": 208,
+        "scheduled": 98,
+        "emitted": 88,
+        "exact": 0,
+        "observational": 205
+      }
+    },
+    "by_channel": {
+      "surface": {
+        "cells_with_channel": 2849,
+        "candidates": 21387
+      },
+      "normalized": {
+        "cells_with_channel": 2712,
+        "candidates": 12148
+      },
+      "workload_label": {
+        "cells_with_channel": 2511,
+        "candidates": 5868
+      },
+      "semantic": {
+        "cells_with_channel": 405,
+        "candidates": 765
+      },
+      "composed": {
+        "cells_with_channel": 10,
+        "candidates": 11
+      }
+    },
+    "by_derivation": {
+      "surface": 21387,
+      "normalized": 12148,
+      "workload_label": 5868,
+      "semantic": 765,
+      "composed": 11
+    },
+    "by_verification_status": {
+      "verified": 39072,
+      "uncertain": 1107
+    },
+    "context_modes": {
+      "whole_document": {
+        "calls": 641,
+        "emitted": 1298,
+        "mean_tokens": 5698.014040561622,
+        "mean_context_tokens": 4388.580343213728,
+        "mean_emitted": 2.0249609984399375
+      },
+      "retrieved_pack": {
+        "calls": 144,
+        "emitted": 337,
+        "mean_tokens": 5371.236111111111,
+        "mean_context_tokens": 4000.784722222222,
+        "mean_emitted": 2.3402777777777777
+      }
+    },
+    "budget_whole_vs_retrieved": {
+      "whole_document_calls": 641,
+      "retrieved_pack_calls": 144,
+      "whole_document_mean_tokens": 5698.014040561622,
+      "retrieved_pack_mean_tokens": 5371.236111111111
+    },
+    "long_whole_document_reduced_yield": true
+  },
+  "semantic_audit": {
+    "proposed": 765,
+    "unique_non_null_values": 167,
+    "status_counts": {
+      "verified": 218,
+      "uncertain": 547
+    },
+    "exact_gold_matches": 121,
+    "observational_matches": 148,
+    "isolated_forced_writes": 151,
+    "isolated_forced_product": 0.022455905439098717,
+    "queries_that_could_change": [
+      "legal_agg20:q11",
+      "legal_agg20:q13",
+      "legal_agg20:q14",
+      "legal_agg20:q17",
+      "legal_agg20:q3",
+      "legal_agg20:q4",
+      "legal_filter20:q11",
+      "legal_filter20:q15",
+      "legal_filter20:q7",
+      "legal_filter20:q8",
+      "legal_filter20:q9",
+      "legal_groupby20:q14",
+      "legal_multiagg20:q11",
+      "legal_multiagg20:q18",
+      "legal_multiagg20:q4",
+      "legal_multiagg20:q9"
+    ],
+    "why_product_stayed_plumbing": "Isolated semantic forced-fill product 0.0225 equals plumbing 0.0225. Writes that occurred were substring/forced matches that did not raise any per-query product; structure movement, if any, sat on queries whose cell F1 remained zero."
+  },
+  "composed_audit": {
+    "proposed": 11,
+    "unique_non_null_values": 6,
+    "status_counts": {
+      "uncertain": 7,
+      "verified": 4
+    },
+    "exact_gold_matches": 3,
+    "observational_matches": 0,
+    "isolated_forced_writes": 3,
+    "isolated_forced_product": 0.022455905439098717,
+    "queries_that_could_change": [
+      "legal_agg20:q14",
+      "legal_agg20:q4",
+      "legal_multiagg20:q4"
+    ],
+    "why_product_stayed_plumbing": "Isolated composed forced-fill product 0.0225 equals plumbing 0.0225. Writes that occurred were substring/forced matches that did not raise any per-query product; structure movement, if any, sat on queries whose cell F1 remained zero."
+  },
+  "missing_value_classes": {
+    "case_number": {
+      "present_verbatim_in_source_but_generator_missed": 389,
+      "serialization_or_ontology_mismatch": 1
+    },
+    "defendant_current_status": {
+      "expressible_by_a_workload_visible_label": 148,
+      "serialization_or_ontology_mismatch": 12,
+      "present_verbatim_in_source_but_generator_missed": 22,
+      "semantically_inferable_from_cited_evidence": 1
+    },
+    "plaintiff_current_status": {
+      "present_verbatim_in_source_but_generator_missed": 82,
+      "expressible_by_a_workload_visible_label": 71,
+      "serialization_or_ontology_mismatch": 45,
+      "semantically_inferable_from_cited_evidence": 8
+    },
+    "case_type": {
+      "expressible_by_a_workload_visible_label": 99,
+      "serialization_or_ontology_mismatch": 2
+    },
+    "legal_basis_num": {
+      "present_verbatim_in_source_but_generator_missed": 228
+    },
+    "first_judge": {
+      "present_verbatim_in_source_but_generator_missed": 210
+    },
+    "verdict": {
+      "present_verbatim_in_source_but_generator_missed": 123,
+      "expressible_by_a_workload_visible_label": 82,
+      "serialization_or_ontology_mismatch": 3
+    },
+    "hearing_year": {
+      "present_verbatim_in_source_but_generator_missed": 42
+    }
+  },
+  "frozen_hashes": {
+    "query_manifest": "47fec3938805fd1b5339747921ce0ab940103db8f5d1533a0968a5780dd4fdf7",
+    "plumbing": "9117d3ffbc0f47f11556d751302d539ac26e7a029d543bb15b41c154fe4d7267",
+    "routing": "59dc38bf99fd6518fb1d822efa91cf01d634cd117c46c1b81400edf46d8ea84d",
+    "router_prompt": "f5bbe6af376c73250493c95d2610cc0ab5a94e756d383638b5c2749c5f4b64f5",
+    "policy": "bca2f8e78aa79e129f85d7e77b8cca53dde24eb122c13857e1b0e46ea38b4480",
+    "inventory": "6a4936b84f6875bbefc1b04da3266b771c3104dddb017017a9a9993448bc9685",
+    "generation_ledger": "96973856b00468c21b054f5d87633a58ab653de7aa3ac7ed44b1cc46d884fe6c"
+  },
+  "upper_bound_correction": "Removed two invalid 1.0 gold-vs-gold AVG uppers (q11 multiagg, q17). Decision unchanged: certified mean still exceeds DocETL but no query is exact."
+}

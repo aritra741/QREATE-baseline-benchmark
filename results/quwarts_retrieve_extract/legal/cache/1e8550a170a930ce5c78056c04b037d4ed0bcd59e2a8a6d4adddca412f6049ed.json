@@ -1,0 +1,85 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "218e74d4c79a823050986ffc3e0149fa074d8533f98235ef6de499b8cbc1eb9f",
+    "entity_identity": "cbccaa1e8a9e126f609c6a6a20fcb78b02d21926e4d34cd43bfe8f7adefb722d",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "4bc8db7a3bab40e9f9af3944081370a6f877e9ee0c29ac71051f79889d09f883",
+      "45db4322966ba6aaecc5cafbd74ffbfc38e03c2c4efc03ab57e15969f4137ddb",
+      "aef4fe31955b4bf7421e14cf357c0fa67ae5b4232b30a3da1e74ccb35bf6d491",
+      "734ed9d6b44bc33a4afca234edc9270886a493660a34e7156e34b515a9ac5caf",
+      "491e1a7b88c0349c310d3a13e62c0fecdbbf16554243da202841eb8a049779ff"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"cbccaa1e8a9e126f609c6a6a20fcb78b02d21926e4d34cd43bfe8f7adefb722d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Criminal Case\",\n      \"normalized_value\": \"Criminal Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"235.txt:c0\",\n          \"exact_span\": \"The applicant has established its entitlement to certain orders and declaratory relief in respect of the sending by the respondents of unsolicited commercial electronic messages (CEMs) and the use of harvested electronic addresses.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"Guilty\",\n      \"normalized_value\": \"Guilty\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"235.txt:c0\",\n          \"exact_span\": \"The applicant has established its entitlement to certain orders and declaratory relief in respect of the sending by the respondents of unsolicited commercial electronic messages (CEMs) and the use of harvested electronic addresses.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Criminal Case",
+          "normalized_value": "Criminal Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "235.txt:c0",
+              "exact_span": "The applicant has established its entitlement to certain orders and declaratory relief in respect of the sending by the respondents of unsolicited commercial electronic messages (CEMs) and the use of harvested electronic addresses."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "Guilty",
+          "normalized_value": "Guilty",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "235.txt:c0",
+              "exact_span": "The applicant has established its entitlement to certain orders and declaratory relief in respect of the sending by the respondents of unsolicited commercial electronic messages (CEMs) and the use of harvested electronic addresses."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type",
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 2,
+      "counts": {
+        "found": 2,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 2
+      },
+      "entity_id": "cbccaa1e8a9e126f609c6a6a20fcb78b02d21926e4d34cd43bfe8f7adefb722d"
+    }
+  }
+}

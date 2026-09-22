@@ -1,0 +1,169 @@
+{
+  "official_product_reported": 0.05336474867724868,
+  "acceptance_native_product_reported": 0.04913807257557258,
+  "same_call_prefix": false,
+  "same_completed_query_definition": true,
+  "same_retry_winner": true,
+  "same_unknown_encoding": false,
+  "same_sql": true,
+  "same_query_manifest": true,
+  "same_incomplete_handling": false,
+  "same_scorer_inputs": false,
+  "canonical_definition": "DocETL pipeline_output \u2192 keep schema columns \u2192 numeric coerce \u2192 to_sql. Complete = query finished all documents in the live run.",
+  "per_query_first_diff": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "first_differing_artifact": "retry_winner_or_parse_at_doc=9: cash_reserves: type int vs str",
+      "all_reasons": [
+        "retry_winner_or_parse_at_doc=9: cash_reserves: type int vs str",
+        "unknown_encoding: official/DocETL kept -1/''; acceptance coerced them to SQL NULL",
+        "bag_diff: [0].avg_cash: type float vs NoneType"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 2,
+      "acceptance_pred_rows": 2,
+      "canonical_pred_rows": 2
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "first_differing_artifact": "row_count official_extracted=5 acceptance_all_calls=7 (retries inserted as extra rows)",
+      "all_reasons": [
+        "row_count official_extracted=5 acceptance_all_calls=7 (retries inserted as extra rows)",
+        "retry_winner_or_parse_at_doc=9: remuneration_policy: 'Mixed' vs 'Not found'",
+        "unknown_encoding: official/DocETL kept -1/''; acceptance coerced them to SQL NULL",
+        "bag_diff: : length 1 vs 2"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 1,
+      "acceptance_pred_rows": 2,
+      "canonical_pred_rows": 1
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "first_differing_artifact": "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+      "all_reasons": [
+        "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+        "retry_winner_or_parse_at_doc=9: dividend_per_share: type float vs NoneType"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 1,
+      "acceptance_pred_rows": 1,
+      "canonical_pred_rows": 1
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "first_differing_artifact": "unknown_encoding: official/DocETL kept -1/''; acceptance coerced them to SQL NULL",
+      "all_reasons": [
+        "unknown_encoding: official/DocETL kept -1/''; acceptance coerced them to SQL NULL",
+        "bag_diff: : length 4 vs 2"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 4,
+      "acceptance_pred_rows": 2,
+      "canonical_pred_rows": 4
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "first_differing_artifact": "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+      "all_reasons": [
+        "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+        "retry_winner_or_parse_at_doc=9: auditor: 'EY' vs ''"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 0,
+      "acceptance_pred_rows": 0,
+      "canonical_pred_rows": 0
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "first_differing_artifact": "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+      "all_reasons": [
+        "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+        "retry_winner_or_parse_at_doc=9: business_segments_num: type int vs NoneType"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 4,
+      "acceptance_pred_rows": 4,
+      "canonical_pred_rows": 4
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "first_differing_artifact": "retry_winner_or_parse_at_doc=9: business_segments_num: type int vs NoneType",
+      "all_reasons": [
+        "retry_winner_or_parse_at_doc=9: business_segments_num: type int vs NoneType"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 3,
+      "acceptance_pred_rows": 3,
+      "canonical_pred_rows": 3
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "first_differing_artifact": "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+      "all_reasons": [
+        "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+        "retry_winner_or_parse_at_doc=9: auditor: '' vs 'Not found'",
+        "unknown_encoding: official/DocETL kept -1/''; acceptance coerced them to SQL NULL",
+        "bag_diff: [2].avg_eps: 51.5 vs 25.75"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 4,
+      "acceptance_pred_rows": 4,
+      "canonical_pred_rows": 4
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "first_differing_artifact": "row_count official_extracted=4 acceptance_all_calls=16 (retries inserted as extra rows)",
+      "all_reasons": [
+        "row_count official_extracted=4 acceptance_all_calls=16 (retries inserted as extra rows)",
+        "retry_winner_or_parse_at_doc=10: major_equity_changes: type float vs NoneType",
+        "unknown_encoding: official/DocETL kept -1/''; acceptance coerced them to SQL NULL",
+        "bag_diff: : length 0 vs 1"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 0,
+      "acceptance_pred_rows": 1,
+      "canonical_pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "first_differing_artifact": "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+      "all_reasons": [
+        "row_count official_extracted=6 acceptance_all_calls=7 (retries inserted as extra rows)",
+        "retry_winner_or_parse_at_doc=9: exchange_code: '' vs 'Not found'",
+        "unknown_encoding: official/DocETL kept -1/''; acceptance coerced them to SQL NULL",
+        "bag_diff: : length 1 vs 2"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 1,
+      "acceptance_pred_rows": 2,
+      "canonical_pred_rows": 1
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "first_differing_artifact": "unknown_encoding: official/DocETL kept -1/''; acceptance coerced them to SQL NULL",
+      "all_reasons": [
+        "unknown_encoding: official/DocETL kept -1/''; acceptance coerced them to SQL NULL",
+        "bag_diff: [0].company_count: 4 vs 1"
+      ],
+      "official_complete": true,
+      "official_pred_rows": 2,
+      "acceptance_pred_rows": 2,
+      "canonical_pred_rows": 2
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "first_differing_artifact": "row_count official_extracted=0 acceptance_all_calls=4 (retries inserted as extra rows)",
+      "all_reasons": [
+        "row_count official_extracted=0 acceptance_all_calls=4 (retries inserted as extra rows)",
+        "incomplete_query_handling: official scored empty; acceptance rematerialized a partial table",
+        "bag_diff: : length 0 vs 1"
+      ],
+      "official_complete": false,
+      "official_pred_rows": 0,
+      "acceptance_pred_rows": 1,
+      "canonical_pred_rows": 0
+    }
+  ],
+  "unavailable_frozen_raw_docetl_baseline": "N/A"
+}

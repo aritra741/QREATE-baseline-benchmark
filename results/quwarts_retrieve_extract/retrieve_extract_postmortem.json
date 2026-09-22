@@ -1,0 +1,3333 @@
+{
+  "replay_rule_sha256": "4f96b1079a17276209f0321ce1f91c82da51337abf0b82509864a21af9b86def",
+  "qwen_calls": 0,
+  "corpora": {
+    "Finan": {
+      "router_audit": {
+        "n_decisions": 4170,
+        "n_router_calls": 558,
+        "router_tokens": 159563,
+        "unassigned_router_tokens": [],
+        "decision_classes": {
+          "genuinely_borderline": 1323,
+          "deterministic_section_map": 1785,
+          "deterministic_retrieval": 1062
+        },
+        "router_call_classes": {
+          "genuinely_borderline": 365,
+          "deterministic_retrieval": 193
+        },
+        "router_tokens_by_class": {
+          "genuinely_borderline": 104074,
+          "deterministic_retrieval": 55489
+        },
+        "deterministic_simulation": {
+          "mode_counts": {
+            "section_map": 3108,
+            "retrieved_chunks": 1062
+          },
+          "agrees_with_selected": 3805,
+          "disagrees": 365,
+          "tokens_recovered": 159563,
+          "mean_first_pass_cost": 1641.3103448275863,
+          "mean_repair_or_refine_cost": 1752.9473684210527,
+          "additional_extractor_calls": 97,
+          "current_first_pass_jobs": 87,
+          "current_attribute_coverage": [
+            "finance.auditor",
+            "finance.exchange_code",
+            "finance.net_profit_or_loss",
+            "finance.principal_activities"
+          ],
+          "current_entity_coverage": 86,
+          "current_pair_coverage": 90,
+          "workload_critical_attributes": [
+            "finance.auditor",
+            "finance.business_segments_num",
+            "finance.cash_reserves",
+            "finance.dividend_per_share",
+            "finance.earnings_per_share",
+            "finance.exchange_code",
+            "finance.major_equity_changes",
+            "finance.net_assets",
+            "finance.net_profit_or_loss",
+            "finance.principal_activities",
+            "finance.remuneration_policy",
+            "finance.revenue",
+            "finance.the_highest_ownership_stake",
+            "finance.total_assets",
+            "finance.total_debt"
+          ],
+          "finan_every_critical_attribute": true,
+          "could_cover_every_critical_attribute": true
+        },
+        "sample_reconstructed": [
+          {
+            "document_tokens": 45368,
+            "prompt_schema_tokens": 203,
+            "completion_reserve": 320,
+            "hard_context_limit": 32768,
+            "effective_input_limit": 6144,
+            "remaining_budget": 343361,
+            "bundle_size": 1,
+            "retrieval_concentration": {
+              "n_hits": 8,
+              "unique_sections": 8,
+              "top2_share": 0.36317278878536835,
+              "diffuse": true,
+              "max_score": 11.776666119016056
+            },
+            "selected_mode": "section_map",
+            "class": "genuinely_borderline",
+            "reason": "long_or_unfit_and_diffuse_retrieval"
+          },
+          {
+            "document_tokens": 45368,
+            "prompt_schema_tokens": 259,
+            "completion_reserve": 320,
+            "hard_context_limit": 32768,
+            "effective_input_limit": 6144,
+            "remaining_budget": 343361,
+            "bundle_size": 1,
+            "retrieval_concentration": {
+              "n_hits": 8,
+              "unique_sections": 8,
+              "top2_share": 0.29352524575501354,
+              "diffuse": true,
+              "max_score": 17.6711152736885
+            },
+            "selected_mode": "section_map",
+            "class": "deterministic_section_map",
+            "reason": "long_or_unfit_and_diffuse_retrieval"
+          },
+          {
+            "document_tokens": 45368,
+            "prompt_schema_tokens": 225,
+            "completion_reserve": 320,
+            "hard_context_limit": 32768,
+            "effective_input_limit": 6144,
+            "remaining_budget": 343361,
+            "bundle_size": 1,
+            "retrieval_concentration": {
+              "n_hits": 8,
+              "unique_sections": 8,
+              "top2_share": 0.3156339742973274,
+              "diffuse": true,
+              "max_score": 21.460900893110875
+            },
+            "selected_mode": "section_map",
+            "class": "deterministic_section_map",
+            "reason": "long_or_unfit_and_diffuse_retrieval"
+          }
+        ]
+      },
+      "value_flow": {
+        "relation": "finance",
+        "entities_aligned": 100,
+        "totals": {
+          "plumbing_value_lost": 218,
+          "both_NULL": 1242,
+          "fresh_fill_into_plumbing_NULL": 35,
+          "conflicting_grounded_values": 4,
+          "retained_unchanged": 1
+        },
+        "by_attribute": {
+          "finance.auditor": {
+            "plumbing_value_lost": 41,
+            "both_NULL": 59
+          },
+          "finance.business_segments_num": {
+            "both_NULL": 83,
+            "plumbing_value_lost": 17
+          },
+          "finance.cash_reserves": {
+            "both_NULL": 88,
+            "plumbing_value_lost": 12
+          },
+          "finance.dividend_per_share": {
+            "both_NULL": 88,
+            "plumbing_value_lost": 12
+          },
+          "finance.earnings_per_share": {
+            "plumbing_value_lost": 15,
+            "both_NULL": 85
+          },
+          "finance.exchange_code": {
+            "both_NULL": 52,
+            "fresh_fill_into_plumbing_NULL": 35,
+            "plumbing_value_lost": 8,
+            "conflicting_grounded_values": 4,
+            "retained_unchanged": 1
+          },
+          "finance.major_equity_changes": {
+            "both_NULL": 93,
+            "plumbing_value_lost": 7
+          },
+          "finance.net_assets": {
+            "both_NULL": 100
+          },
+          "finance.net_profit_or_loss": {
+            "plumbing_value_lost": 18,
+            "both_NULL": 82
+          },
+          "finance.principal_activities": {
+            "both_NULL": 53,
+            "plumbing_value_lost": 47
+          },
+          "finance.remuneration_policy": {
+            "both_NULL": 89,
+            "plumbing_value_lost": 11
+          },
+          "finance.revenue": {
+            "plumbing_value_lost": 16,
+            "both_NULL": 84
+          },
+          "finance.the_highest_ownership_stake": {
+            "both_NULL": 95,
+            "plumbing_value_lost": 5
+          },
+          "finance.total_assets": {
+            "both_NULL": 95,
+            "plumbing_value_lost": 5
+          },
+          "finance.total_debt": {
+            "both_NULL": 96,
+            "plumbing_value_lost": 4
+          }
+        },
+        "by_ast_role": {
+          "WHERE": {
+            "plumbing_value_lost": 218,
+            "both_NULL": 1242,
+            "fresh_fill_into_plumbing_NULL": 35,
+            "conflicting_grounded_values": 4,
+            "retained_unchanged": 1
+          },
+          "GROUP BY / CASE": {
+            "plumbing_value_lost": 213,
+            "both_NULL": 1047,
+            "fresh_fill_into_plumbing_NULL": 35,
+            "conflicting_grounded_values": 4,
+            "retained_unchanged": 1
+          },
+          "COUNT or aggregate input": {
+            "both_NULL": 896,
+            "plumbing_value_lost": 104
+          }
+        },
+        "fresh_grounding": {
+          "finance.exchange_code": {
+            "not_found": 41,
+            "found": 45,
+            "grounded": 40
+          },
+          "finance.auditor": {
+            "found": 1,
+            "not_found": 1
+          },
+          "finance.net_profit_or_loss": {
+            "not_found": 2
+          },
+          "finance.principal_activities": {
+            "not_found": 2
+          },
+          "finance.revenue": {
+            "not_found": 1
+          }
+        }
+      },
+      "value_flow_gold": {
+        "by_attribute": {
+          "finance.exchange_code": {
+            "fresh_n": 40,
+            "fresh_tp": 15,
+            "plumb_n": 13,
+            "plumb_tp": 3,
+            "gold_n": 97,
+            "kind": "semantic",
+            "fresh_precision": 0.375,
+            "fresh_recall": 0.15463917525773196,
+            "plumbing_precision": 0.23076923076923078,
+            "plumbing_recall": 0.030927835051546393
+          },
+          "finance.principal_activities": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 47,
+            "plumb_tp": 0,
+            "gold_n": 100,
+            "kind": "semantic",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.0,
+            "plumbing_recall": 0.0
+          },
+          "finance.auditor": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 40,
+            "plumb_tp": 18,
+            "gold_n": 98,
+            "kind": "semantic",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.45,
+            "plumbing_recall": 0.1836734693877551
+          },
+          "finance.major_equity_changes": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 7,
+            "plumb_tp": 0,
+            "gold_n": 99,
+            "kind": "semantic",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.0,
+            "plumbing_recall": 0.0
+          },
+          "finance.remuneration_policy": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 11,
+            "plumb_tp": 0,
+            "gold_n": 99,
+            "kind": "semantic",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.0,
+            "plumbing_recall": 0.0
+          },
+          "finance.revenue": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 16,
+            "plumb_tp": 7,
+            "gold_n": 95,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.4375,
+            "plumbing_recall": 0.07368421052631578
+          },
+          "finance.net_profit_or_loss": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 18,
+            "plumb_tp": 4,
+            "gold_n": 99,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.2222222222222222,
+            "plumbing_recall": 0.04040404040404041
+          },
+          "finance.total_assets": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 5,
+            "plumb_tp": 2,
+            "gold_n": 97,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.4,
+            "plumbing_recall": 0.020618556701030927
+          },
+          "finance.business_segments_num": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 17,
+            "plumb_tp": 11,
+            "gold_n": 97,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.6470588235294118,
+            "plumbing_recall": 0.1134020618556701
+          },
+          "finance.dividend_per_share": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 12,
+            "plumb_tp": 7,
+            "gold_n": 87,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.5833333333333334,
+            "plumbing_recall": 0.08045977011494253
+          },
+          "finance.earnings_per_share": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 14,
+            "plumb_tp": 7,
+            "gold_n": 92,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.5,
+            "plumbing_recall": 0.07608695652173914
+          },
+          "finance.cash_reserves": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 12,
+            "plumb_tp": 4,
+            "gold_n": 99,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.3333333333333333,
+            "plumbing_recall": 0.04040404040404041
+          },
+          "finance.the_highest_ownership_stake": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 4,
+            "plumb_tp": 2,
+            "gold_n": 59,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.5,
+            "plumbing_recall": 0.03389830508474576
+          },
+          "finance.total_debt": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 4,
+            "plumb_tp": 1,
+            "gold_n": 88,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.25,
+            "plumbing_recall": 0.011363636363636364
+          },
+          "finance.net_assets": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 0,
+            "plumb_tp": 0,
+            "gold_n": 97,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.0,
+            "plumbing_recall": 0.0
+          }
+        },
+        "by_ast_role": {
+          "WHERE": {
+            "fresh_n": 40,
+            "fresh_tp": 15,
+            "plumb_n": 220,
+            "plumb_tp": 66,
+            "fresh_precision": 0.375,
+            "plumbing_precision": 0.3
+          },
+          "GROUP BY / CASE": {
+            "fresh_n": 40,
+            "fresh_tp": 15,
+            "plumb_n": 215,
+            "plumb_tp": 64,
+            "fresh_precision": 0.375,
+            "plumbing_precision": 0.29767441860465116
+          },
+          "COUNT or aggregate input": {
+            "fresh_n": 0,
+            "fresh_tp": 0,
+            "plumb_n": 102,
+            "plumb_tp": 45,
+            "fresh_precision": 0.0,
+            "plumbing_precision": 0.4411764705882353
+          }
+        }
+      },
+      "empty_bag_trace": {
+        "n_empty_test": 15,
+        "empty_ids": [
+          "finan_agg20:q3",
+          "finan_agg20:q4",
+          "finan_agg20:q11",
+          "finan_agg20:q13",
+          "finan_agg20:q17",
+          "finan_filter20:q7",
+          "finan_filter20:q8",
+          "finan_filter20:q9",
+          "finan_filter20:q11",
+          "finan_filter20:q15",
+          "finan_groupby20:q14",
+          "finan_multiagg20:q4",
+          "finan_multiagg20:q9",
+          "finan_multiagg20:q11",
+          "finan_multiagg20:q18"
+        ],
+        "failures": {
+          "missing source value": 15
+        },
+        "traces": [
+          {
+            "query_id": "finan_agg20:q3",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": 0,
+              "full": 0
+            },
+            "errors": {},
+            "referenced_attributes": [
+              "major_equity_changes"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_agg20:q4",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: pay_policy"
+            },
+            "referenced_attributes": [
+              "sig_bc20fcc800f4",
+              "remuneration_policy",
+              "sig_bc20fcc800f4_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_agg20:q11",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: activity_family"
+            },
+            "referenced_attributes": [
+              "sig_aa41e4ad673e",
+              "principal_activities",
+              "business_segments_num",
+              "sig_aa41e4ad673e_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_agg20:q13",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: auditor_family"
+            },
+            "referenced_attributes": [
+              "sig_a39a969ae053",
+              "auditor",
+              "earnings_per_share",
+              "sig_a39a969ae053_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_agg20:q17",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": 0,
+              "full": 0
+            },
+            "errors": {},
+            "referenced_attributes": [
+              "major_equity_changes",
+              "the_highest_ownership_stake"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_filter20:q7",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: dividend_status"
+            },
+            "referenced_attributes": [
+              "sig_dad93073d134",
+              "principal_activities",
+              "dividend_per_share",
+              "sig_dad93073d134_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_filter20:q8",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: exchange_family"
+            },
+            "referenced_attributes": [
+              "net_profit_or_loss",
+              "sig_d362efcb9195",
+              "exchange_code",
+              "total_debt",
+              "sig_d362efcb9195_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_filter20:q9",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: pay_policy"
+            },
+            "referenced_attributes": [
+              "revenue",
+              "sig_bc20fcc800f4",
+              "remuneration_policy",
+              "sig_bc20fcc800f4_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_filter20:q11",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: auditor_family"
+            },
+            "referenced_attributes": [
+              "net_assets",
+              "net_profit_or_loss",
+              "sig_a39a969ae053",
+              "auditor",
+              "sig_a39a969ae053_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_filter20:q15",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": 0,
+              "full": 0
+            },
+            "errors": {},
+            "referenced_attributes": [
+              "sig_afd1c3584683",
+              "auditor",
+              "sig_e709f967b919",
+              "sig_afd1c3584683_r",
+              "sig_eed91a553653",
+              "sig_51bf51ea3e8f",
+              "sig_e709f967b919_r",
+              "sig_eed91a553653_r",
+              "sig_51bf51ea3e8f_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_groupby20:q14",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: activity_family"
+            },
+            "referenced_attributes": [
+              "sig_aa41e4ad673e",
+              "principal_activities",
+              "business_segments_num",
+              "sig_aa41e4ad673e_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_multiagg20:q4",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: profit_status"
+            },
+            "referenced_attributes": [
+              "revenue",
+              "net_profit_or_loss"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_multiagg20:q9",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: pay_policy"
+            },
+            "referenced_attributes": [
+              "revenue",
+              "earnings_per_share",
+              "sig_bc20fcc800f4",
+              "remuneration_policy",
+              "sig_bc20fcc800f4_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_multiagg20:q11",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: activity_family"
+            },
+            "referenced_attributes": [
+              "net_assets",
+              "cash_reserves",
+              "sig_aa41e4ad673e",
+              "principal_activities",
+              "total_debt",
+              "sig_aa41e4ad673e_r"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "finan_multiagg20:q18",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 100,
+              "join": 100,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: auditor_family"
+            },
+            "referenced_attributes": [
+              "revenue",
+              "net_profit_or_loss",
+              "sig_a39a969ae053",
+              "auditor",
+              "sig_d362efcb9195",
+              "exchange_code",
+              "sig_a39a969ae053_r",
+              "sig_d362efcb9195_r"
+            ],
+            "reason": "missing source value"
+          }
+        ]
+      },
+      "empty_bag_trace_plumbing": {
+        "n_empty_test": 6,
+        "failures": {
+          "wrong extracted value": 3,
+          "missing source value": 3
+        }
+      },
+      "replays": {
+        "official": {
+          "candidates": 93,
+          "accepted": 34,
+          "rejected": 59,
+          "sql_visible_fills": 34,
+          "overwrites_blocked": 0,
+          "row_count_before": 100,
+          "row_count_after": 100,
+          "changed_columns": [
+            "exchange_code"
+          ],
+          "unrelated_columns_changed": [],
+          "empty_bags_after": 18,
+          "empty_bag_ids": [
+            "finan_agg20:q3",
+            "finan_agg20:q17",
+            "finan_filter20:q3",
+            "finan_filter20:q5",
+            "finan_filter20:q7",
+            "finan_filter20:q8",
+            "finan_filter20:q10",
+            "finan_filter20:q11",
+            "finan_filter20:q13",
+            "finan_filter20:q18",
+            "finan_groupby20:q1",
+            "finan_groupby20:q8",
+            "finan_groupby20:q16",
+            "finan_multiagg20:q3",
+            "finan_multiagg20:q8",
+            "finan_multiagg20:q11",
+            "finan_multiagg20:q14",
+            "finan_multiagg20:q17"
+          ],
+          "db_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_retrieve_extract/replay/finan/finan_official.db",
+          "db_sha256": "59ab4aa937dbd4029c210ab843a951ba871ad03effc8639788c63a4884dc8622",
+          "output_bag_sha256": "7d8adfe764c24f5968f231b409f674ca985d41502f179d5eb6c042229973bd24",
+          "accepted_by_attribute": {
+            "finance.exchange_code": 34
+          },
+          "accepted_by_role": {
+            "WHERE": 34,
+            "GROUP BY / CASE": 34
+          },
+          "gates": {
+            "plumbing_rows_preserved": true,
+            "no_nonnull_overwrite": true,
+            "unrelated_columns_unchanged": true,
+            "accepted_have_hashes": true,
+            "zero_model_calls": true
+          }
+        },
+        "critical_fills": {
+          "candidates": 93,
+          "accepted": 34,
+          "rejected": 59,
+          "sql_visible_fills": 34,
+          "overwrites_blocked": 0,
+          "row_count_before": 100,
+          "row_count_after": 100,
+          "changed_columns": [
+            "exchange_code"
+          ],
+          "unrelated_columns_changed": [],
+          "empty_bags_after": 18,
+          "empty_bag_ids": [
+            "finan_agg20:q3",
+            "finan_agg20:q17",
+            "finan_filter20:q3",
+            "finan_filter20:q5",
+            "finan_filter20:q7",
+            "finan_filter20:q8",
+            "finan_filter20:q10",
+            "finan_filter20:q11",
+            "finan_filter20:q13",
+            "finan_filter20:q18",
+            "finan_groupby20:q1",
+            "finan_groupby20:q8",
+            "finan_groupby20:q16",
+            "finan_multiagg20:q3",
+            "finan_multiagg20:q8",
+            "finan_multiagg20:q11",
+            "finan_multiagg20:q14",
+            "finan_multiagg20:q17"
+          ],
+          "db_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_retrieve_extract/replay/finan/finan_critical_fills.db",
+          "db_sha256": "696c47953945d8e3fd00ac2e89be5a943d908a95dcdbb85c7864c94d0e0f71fd",
+          "output_bag_sha256": "7d8adfe764c24f5968f231b409f674ca985d41502f179d5eb6c042229973bd24",
+          "accepted_by_attribute": {
+            "finance.exchange_code": 34
+          },
+          "accepted_by_role": {
+            "WHERE": 34,
+            "GROUP BY / CASE": 34
+          },
+          "gates": {
+            "plumbing_rows_preserved": true,
+            "no_nonnull_overwrite": true,
+            "unrelated_columns_unchanged": true,
+            "accepted_have_hashes": true,
+            "zero_model_calls": true
+          }
+        },
+        "literal_fills": {
+          "candidates": 93,
+          "accepted": 0,
+          "rejected": 59,
+          "sql_visible_fills": 0,
+          "overwrites_blocked": 0,
+          "row_count_before": 100,
+          "row_count_after": 100,
+          "changed_columns": [],
+          "unrelated_columns_changed": [],
+          "empty_bags_after": 20,
+          "empty_bag_ids": [
+            "finan_agg20:q3",
+            "finan_agg20:q17",
+            "finan_filter20:q3",
+            "finan_filter20:q5",
+            "finan_filter20:q7",
+            "finan_filter20:q8",
+            "finan_filter20:q10",
+            "finan_filter20:q11",
+            "finan_filter20:q13",
+            "finan_filter20:q17",
+            "finan_filter20:q18",
+            "finan_groupby20:q1",
+            "finan_groupby20:q8",
+            "finan_groupby20:q16",
+            "finan_multiagg20:q3",
+            "finan_multiagg20:q8",
+            "finan_multiagg20:q10",
+            "finan_multiagg20:q11",
+            "finan_multiagg20:q14",
+            "finan_multiagg20:q17"
+          ],
+          "db_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_retrieve_extract/replay/finan/finan_literal_fills.db",
+          "db_sha256": "1532a32449bf9de153182c29c7e3cf9b59f4b8fd43eb0174d4eed8306270bfcd",
+          "output_bag_sha256": "98e539f846124aa3b918adca1bfac44bc2fa9bf12fd9c1f8848f8b1a81c54653",
+          "accepted_by_attribute": {},
+          "accepted_by_role": {},
+          "gates": {
+            "plumbing_rows_preserved": true,
+            "no_nonnull_overwrite": true,
+            "unrelated_columns_unchanged": true,
+            "accepted_have_hashes": true,
+            "zero_model_calls": true
+          }
+        },
+        "fresh_original": {
+          "candidates": 0,
+          "accepted": 0,
+          "rejected": 0,
+          "sql_visible_fills": 0,
+          "empty_bags_after": 79,
+          "empty_bag_ids": [
+            "finan_agg20:q1",
+            "finan_agg20:q2",
+            "finan_agg20:q3",
+            "finan_agg20:q4",
+            "finan_agg20:q5",
+            "finan_agg20:q6",
+            "finan_agg20:q7",
+            "finan_agg20:q8",
+            "finan_agg20:q9",
+            "finan_agg20:q10",
+            "finan_agg20:q11",
+            "finan_agg20:q12",
+            "finan_agg20:q13",
+            "finan_agg20:q14",
+            "finan_agg20:q15",
+            "finan_agg20:q16",
+            "finan_agg20:q17",
+            "finan_agg20:q18",
+            "finan_agg20:q19",
+            "finan_filter20:q0",
+            "finan_filter20:q1",
+            "finan_filter20:q2",
+            "finan_filter20:q3",
+            "finan_filter20:q4",
+            "finan_filter20:q5",
+            "finan_filter20:q6",
+            "finan_filter20:q7",
+            "finan_filter20:q8",
+            "finan_filter20:q9",
+            "finan_filter20:q10",
+            "finan_filter20:q11",
+            "finan_filter20:q12",
+            "finan_filter20:q13",
+            "finan_filter20:q14",
+            "finan_filter20:q15",
+            "finan_filter20:q16",
+            "finan_filter20:q17",
+            "finan_filter20:q18",
+            "finan_filter20:q19",
+            "finan_groupby20:q0",
+            "finan_groupby20:q1",
+            "finan_groupby20:q2",
+            "finan_groupby20:q3",
+            "finan_groupby20:q4",
+            "finan_groupby20:q5",
+            "finan_groupby20:q6",
+            "finan_groupby20:q7",
+            "finan_groupby20:q8",
+            "finan_groupby20:q9",
+            "finan_groupby20:q10",
+            "finan_groupby20:q11",
+            "finan_groupby20:q12",
+            "finan_groupby20:q13",
+            "finan_groupby20:q14",
+            "finan_groupby20:q15",
+            "finan_groupby20:q16",
+            "finan_groupby20:q17",
+            "finan_groupby20:q18",
+            "finan_groupby20:q19",
+            "finan_multiagg20:q0",
+            "finan_multiagg20:q1",
+            "finan_multiagg20:q2",
+            "finan_multiagg20:q3",
+            "finan_multiagg20:q4",
+            "finan_multiagg20:q5",
+            "finan_multiagg20:q6",
+            "finan_multiagg20:q7",
+            "finan_multiagg20:q8",
+            "finan_multiagg20:q9",
+            "finan_multiagg20:q10",
+            "finan_multiagg20:q11",
+            "finan_multiagg20:q12",
+            "finan_multiagg20:q13",
+            "finan_multiagg20:q14",
+            "finan_multiagg20:q15",
+            "finan_multiagg20:q16",
+            "finan_multiagg20:q17",
+            "finan_multiagg20:q18",
+            "finan_multiagg20:q19"
+          ],
+          "db_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_retrieve_extract/replay/finan/finan_fresh_original.db",
+          "db_sha256": "841210c2618accb36943ab583d02390fbbaf8a522d553e1425ffbfe6a8dbfcca",
+          "output_bag_sha256": "bede0e6fc02a3fd645dba268afcbfa1938c4c4bd07760fb1f1bb95f7b9a7064f",
+          "gates": {
+            "reproduced_locked_fresh": true
+          }
+        }
+      },
+      "scores": {
+        "plumbing_only": {
+          "product": 0.01685238629683074,
+          "f2": 0.29248809938465115,
+          "f1": 0.027592592592592592
+        },
+        "locked_fresh": {
+          "product": 0.0,
+          "f2": 0.0,
+          "f1": 0.0
+        },
+        "docetl": {
+          "product": 0.08410358973968853,
+          "f2": 0.537,
+          "f1": 0.114
+        },
+        "official": {
+          "mean_structure_f2": 0.29248809938465115,
+          "mean_cell_f1_at_0.20": 0.027592592592592592,
+          "mean_per_query_product": 0.01685238629683074,
+          "empty_bags_before_fresh": 15,
+          "empty_bags_after": 18,
+          "queries_changed_vs_fresh_empty": 21,
+          "accepted_fill_precision": {
+            "grounded_literal_accuracy": 0.35294117647058826,
+            "normalized_numeric_accuracy": 0.0,
+            "semantic_value_accuracy": 0.35294117647058826,
+            "literal": {
+              "tp": 12,
+              "n": 34
+            },
+            "numeric": {
+              "tp": 0,
+              "n": 0
+            },
+            "semantic": {
+              "tp": 12,
+              "n": 34
+            },
+            "by_attribute": {
+              "finance.exchange_code": {
+                "n": 34,
+                "tp": 12,
+                "precision": 0.35294117647058826
+              }
+            },
+            "by_ast_role": {
+              "WHERE": {
+                "n": 34,
+                "tp": 12,
+                "precision": 0.35294117647058826
+              },
+              "GROUP BY / CASE": {
+                "n": 34,
+                "tp": 12,
+                "precision": 0.35294117647058826
+              }
+            }
+          },
+          "n_test": 15
+        },
+        "critical_fills": {
+          "mean_structure_f2": 0.29248809938465115,
+          "mean_cell_f1_at_0.20": 0.027592592592592592,
+          "mean_per_query_product": 0.01685238629683074,
+          "empty_bags_before_fresh": 15,
+          "empty_bags_after": 18,
+          "queries_changed_vs_fresh_empty": 21,
+          "accepted_fill_precision": {
+            "grounded_literal_accuracy": 0.35294117647058826,
+            "normalized_numeric_accuracy": 0.0,
+            "semantic_value_accuracy": 0.35294117647058826,
+            "literal": {
+              "tp": 12,
+              "n": 34
+            },
+            "numeric": {
+              "tp": 0,
+              "n": 0
+            },
+            "semantic": {
+              "tp": 12,
+              "n": 34
+            },
+            "by_attribute": {
+              "finance.exchange_code": {
+                "n": 34,
+                "tp": 12,
+                "precision": 0.35294117647058826
+              }
+            },
+            "by_ast_role": {
+              "WHERE": {
+                "n": 34,
+                "tp": 12,
+                "precision": 0.35294117647058826
+              },
+              "GROUP BY / CASE": {
+                "n": 34,
+                "tp": 12,
+                "precision": 0.35294117647058826
+              }
+            }
+          },
+          "n_test": 15
+        },
+        "literal_fills": {
+          "mean_structure_f2": 0.29248809938465115,
+          "mean_cell_f1_at_0.20": 0.027592592592592592,
+          "mean_per_query_product": 0.01685238629683074,
+          "empty_bags_before_fresh": 15,
+          "empty_bags_after": 20,
+          "queries_changed_vs_fresh_empty": 23,
+          "accepted_fill_precision": {
+            "grounded_literal_accuracy": 0.0,
+            "normalized_numeric_accuracy": 0.0,
+            "semantic_value_accuracy": 0.0
+          },
+          "n_test": 15
+        },
+        "fresh_original": {
+          "mean_structure_f2": 0.0,
+          "mean_cell_f1_at_0.20": 0.0,
+          "mean_per_query_product": 0.0,
+          "empty_bags_before_fresh": 15,
+          "empty_bags_after": 15,
+          "queries_changed_vs_fresh_empty": 0,
+          "accepted_fill_precision": {
+            "grounded_literal_accuracy": 0.0,
+            "normalized_numeric_accuracy": 0.0,
+            "semantic_value_accuracy": 0.0
+          },
+          "n_test": 15
+        }
+      },
+      "per_query": {
+        "official": [
+          {
+            "query_id": "finan_multiagg20:q4",
+            "product": 0.125,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.125
+          },
+          {
+            "query_id": "finan_filter20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q7",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q18",
+            "product": 0.00432900432900433,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.06493506493506494,
+            "cell_f1_20": 0.06666666666666667
+          },
+          {
+            "query_id": "finan_agg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_groupby20:q14",
+            "product": 0.12345679012345678,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.2222222222222222
+          },
+          {
+            "query_id": "finan_agg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.8620689655172415,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q13",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.23809523809523808,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q17",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q8",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q15",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q3",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          }
+        ],
+        "critical_fills": [
+          {
+            "query_id": "finan_multiagg20:q4",
+            "product": 0.125,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.125
+          },
+          {
+            "query_id": "finan_filter20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q7",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q18",
+            "product": 0.00432900432900433,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.06493506493506494,
+            "cell_f1_20": 0.06666666666666667
+          },
+          {
+            "query_id": "finan_agg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_groupby20:q14",
+            "product": 0.12345679012345678,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.2222222222222222
+          },
+          {
+            "query_id": "finan_agg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.8620689655172415,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q13",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.23809523809523808,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q17",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q8",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q15",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q3",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          }
+        ],
+        "literal_fills": [
+          {
+            "query_id": "finan_multiagg20:q4",
+            "product": 0.125,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.125
+          },
+          {
+            "query_id": "finan_filter20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q7",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q18",
+            "product": 0.00432900432900433,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.06493506493506494,
+            "cell_f1_20": 0.06666666666666667
+          },
+          {
+            "query_id": "finan_agg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_groupby20:q14",
+            "product": 0.12345679012345678,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.2222222222222222
+          },
+          {
+            "query_id": "finan_agg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.8620689655172415,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q13",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.23809523809523808,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q17",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q8",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q15",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q3",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          }
+        ],
+        "fresh_original": [
+          {
+            "query_id": "finan_multiagg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q7",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q18",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_groupby20:q14",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_multiagg20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q13",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q17",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q8",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_filter20:q15",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "finan_agg20:q3",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          }
+        ]
+      },
+      "decision": {
+        "deterministic_routing_worth_another_fresh_run": true,
+        "fresh_extractor_useful_incremental_evidence": false,
+        "remaining_gap_attributes": [
+          "principal_activities",
+          "auditor",
+          "net_profit_or_loss",
+          "revenue",
+          "sig_bc20fcc800f4",
+          "remuneration_policy",
+          "sig_bc20fcc800f4_r",
+          "sig_aa41e4ad673e",
+          "sig_aa41e4ad673e_r",
+          "sig_a39a969ae053",
+          "sig_a39a969ae053_r",
+          "major_equity_changes"
+        ]
+      }
+    },
+    "Legal": {
+      "router_audit": {
+        "n_decisions": 16124,
+        "n_router_calls": 381,
+        "router_tokens": 110128,
+        "unassigned_router_tokens": [],
+        "decision_classes": {
+          "deterministic_retrieval": 5660,
+          "deterministic_whole": 8179,
+          "genuinely_borderline": 2191,
+          "deterministic_section_map": 94
+        },
+        "router_call_classes": {
+          "deterministic_retrieval": 216,
+          "genuinely_borderline": 105,
+          "deterministic_whole": 60
+        },
+        "router_tokens_by_class": {
+          "deterministic_retrieval": 62296,
+          "genuinely_borderline": 29936,
+          "deterministic_whole": 17896
+        },
+        "deterministic_simulation": {
+          "mode_counts": {
+            "retrieved_chunks": 5660,
+            "whole_document": 10115,
+            "section_map": 349
+          },
+          "agrees_with_selected": 14036,
+          "disagrees": 2088,
+          "tokens_recovered": 110128,
+          "mean_first_pass_cost": 2354.281127129751,
+          "mean_repair_or_refine_cost": 2143.0768509840673,
+          "additional_extractor_calls": 46,
+          "current_first_pass_jobs": 3052,
+          "current_attribute_coverage": [
+            "legal.case_number",
+            "legal.case_type",
+            "legal.defendant_current_status",
+            "legal.evidence",
+            "legal.first_judge",
+            "legal.hearing_year",
+            "legal.judge_name",
+            "legal.judgment_year",
+            "legal.legal_basis_num",
+            "legal.nationality_for_applicant",
+            "legal.plaintiff_current_status",
+            "legal.verdict"
+          ],
+          "current_entity_coverage": 570,
+          "current_pair_coverage": 6840,
+          "workload_critical_attributes": [
+            "legal.case_number",
+            "legal.case_type",
+            "legal.defendant_current_status",
+            "legal.evidence",
+            "legal.first_judge",
+            "legal.hearing_year",
+            "legal.judge_name",
+            "legal.judgment_year",
+            "legal.legal_basis_num",
+            "legal.nationality_for_applicant",
+            "legal.plaintiff_current_status",
+            "legal.verdict"
+          ],
+          "finan_every_critical_attribute": null,
+          "could_cover_every_critical_attribute": true
+        },
+        "sample_reconstructed": [
+          {
+            "document_tokens": 9183,
+            "prompt_schema_tokens": 225,
+            "completion_reserve": 320,
+            "hard_context_limit": 32768,
+            "effective_input_limit": 6144,
+            "remaining_budget": 12608415,
+            "bundle_size": 1,
+            "retrieval_concentration": {
+              "n_hits": 8,
+              "unique_sections": 1,
+              "top2_share": 1.0,
+              "diffuse": false,
+              "max_score": 18.349137794637084
+            },
+            "selected_mode": "retrieved_chunks",
+            "class": "deterministic_retrieval",
+            "reason": "document_too_long_or_disproportionate"
+          },
+          {
+            "document_tokens": 9183,
+            "prompt_schema_tokens": 232,
+            "completion_reserve": 320,
+            "hard_context_limit": 32768,
+            "effective_input_limit": 6144,
+            "remaining_budget": 12608415,
+            "bundle_size": 1,
+            "retrieval_concentration": {
+              "n_hits": 8,
+              "unique_sections": 1,
+              "top2_share": 1.0,
+              "diffuse": false,
+              "max_score": 10.525278407684166
+            },
+            "selected_mode": "retrieved_chunks",
+            "class": "deterministic_retrieval",
+            "reason": "document_too_long_or_disproportionate"
+          },
+          {
+            "document_tokens": 9183,
+            "prompt_schema_tokens": 212,
+            "completion_reserve": 320,
+            "hard_context_limit": 32768,
+            "effective_input_limit": 6144,
+            "remaining_budget": 12608415,
+            "bundle_size": 1,
+            "retrieval_concentration": {
+              "n_hits": 8,
+              "unique_sections": 1,
+              "top2_share": 1.0,
+              "diffuse": false,
+              "max_score": 5.079441541679836
+            },
+            "selected_mode": "retrieved_chunks",
+            "class": "deterministic_retrieval",
+            "reason": "document_too_long_or_disproportionate"
+          }
+        ]
+      },
+      "value_flow": {
+        "relation": "legal",
+        "entities_aligned": 570,
+        "totals": {
+          "both_NULL": 3694,
+          "plumbing_value_lost": 2387,
+          "fresh_fill_into_plumbing_NULL": 339,
+          "conflicting_grounded_values": 239,
+          "retained_unchanged": 181
+        },
+        "by_attribute": {
+          "legal.case_number": {
+            "both_NULL": 482,
+            "plumbing_value_lost": 85,
+            "fresh_fill_into_plumbing_NULL": 3
+          },
+          "legal.case_type": {
+            "plumbing_value_lost": 410,
+            "both_NULL": 151,
+            "fresh_fill_into_plumbing_NULL": 2,
+            "conflicting_grounded_values": 7
+          },
+          "legal.defendant_current_status": {
+            "both_NULL": 508,
+            "plumbing_value_lost": 61,
+            "fresh_fill_into_plumbing_NULL": 1
+          },
+          "legal.evidence": {
+            "plumbing_value_lost": 319,
+            "both_NULL": 178,
+            "conflicting_grounded_values": 49,
+            "fresh_fill_into_plumbing_NULL": 24
+          },
+          "legal.first_judge": {
+            "plumbing_value_lost": 292,
+            "both_NULL": 277,
+            "conflicting_grounded_values": 1
+          },
+          "legal.hearing_year": {
+            "plumbing_value_lost": 187,
+            "fresh_fill_into_plumbing_NULL": 115,
+            "both_NULL": 165,
+            "retained_unchanged": 75,
+            "conflicting_grounded_values": 28
+          },
+          "legal.judge_name": {
+            "both_NULL": 157,
+            "conflicting_grounded_values": 45,
+            "plumbing_value_lost": 301,
+            "fresh_fill_into_plumbing_NULL": 39,
+            "retained_unchanged": 28
+          },
+          "legal.judgment_year": {
+            "plumbing_value_lost": 221,
+            "both_NULL": 200,
+            "fresh_fill_into_plumbing_NULL": 88,
+            "retained_unchanged": 53,
+            "conflicting_grounded_values": 8
+          },
+          "legal.legal_basis_num": {
+            "both_NULL": 526,
+            "plumbing_value_lost": 32,
+            "fresh_fill_into_plumbing_NULL": 12
+          },
+          "legal.nationality_for_applicant": {
+            "both_NULL": 363,
+            "plumbing_value_lost": 155,
+            "conflicting_grounded_values": 32,
+            "fresh_fill_into_plumbing_NULL": 6,
+            "retained_unchanged": 14
+          },
+          "legal.plaintiff_current_status": {
+            "both_NULL": 515,
+            "plumbing_value_lost": 41,
+            "fresh_fill_into_plumbing_NULL": 13,
+            "conflicting_grounded_values": 1
+          },
+          "legal.verdict": {
+            "plumbing_value_lost": 283,
+            "conflicting_grounded_values": 68,
+            "both_NULL": 172,
+            "fresh_fill_into_plumbing_NULL": 36,
+            "retained_unchanged": 11
+          }
+        },
+        "by_ast_role": {
+          "WHERE": {
+            "both_NULL": 3694,
+            "plumbing_value_lost": 2387,
+            "fresh_fill_into_plumbing_NULL": 339,
+            "conflicting_grounded_values": 239,
+            "retained_unchanged": 181
+          },
+          "GROUP BY / CASE": {
+            "both_NULL": 3694,
+            "plumbing_value_lost": 2387,
+            "fresh_fill_into_plumbing_NULL": 339,
+            "conflicting_grounded_values": 239,
+            "retained_unchanged": 181
+          },
+          "COUNT or aggregate input": {
+            "both_NULL": 1635,
+            "plumbing_value_lost": 1011,
+            "conflicting_grounded_values": 118,
+            "fresh_fill_into_plumbing_NULL": 75,
+            "retained_unchanged": 11
+          }
+        },
+        "fresh_grounding": {
+          "legal.case_number": {
+            "malformed": 413,
+            "found": 6,
+            "not_found": 151,
+            "grounded": 3,
+            "norm_error": 1
+          },
+          "legal.case_type": {
+            "malformed": 343,
+            "not_found": 147,
+            "found": 79,
+            "grounded": 9,
+            "uncertain": 1
+          },
+          "legal.defendant_current_status": {
+            "malformed": 302,
+            "not_found": 265,
+            "found": 3,
+            "grounded": 1
+          },
+          "legal.evidence": {
+            "malformed": 301,
+            "found": 162,
+            "grounded": 73,
+            "not_found": 107,
+            "norm_error": 31
+          },
+          "legal.first_judge": {
+            "malformed": 274,
+            "not_found": 292,
+            "found": 4,
+            "grounded": 1
+          },
+          "legal.hearing_year": {
+            "malformed": 249,
+            "found": 226,
+            "grounded": 218,
+            "not_found": 95,
+            "norm_error": 1
+          },
+          "legal.judge_name": {
+            "malformed": 242,
+            "found": 140,
+            "grounded": 112,
+            "not_found": 188
+          },
+          "legal.judgment_year": {
+            "malformed": 344,
+            "found": 153,
+            "grounded": 149,
+            "norm_error": 3,
+            "not_found": 72,
+            "uncertain": 1
+          },
+          "legal.legal_basis_num": {
+            "malformed": 389,
+            "not_found": 161,
+            "found": 20,
+            "grounded": 12
+          },
+          "legal.nationality_for_applicant": {
+            "malformed": 247,
+            "not_found": 269,
+            "found": 54,
+            "grounded": 52
+          },
+          "legal.plaintiff_current_status": {
+            "malformed": 271,
+            "not_found": 280,
+            "found": 19,
+            "grounded": 14
+          },
+          "legal.verdict": {
+            "malformed": 314,
+            "found": 151,
+            "grounded": 115,
+            "not_found": 105
+          }
+        }
+      },
+      "value_flow_gold": {
+        "by_attribute": {
+          "legal.case_type": {
+            "fresh_n": 9,
+            "fresh_tp": 1,
+            "plumb_n": 417,
+            "plumb_tp": 0,
+            "gold_n": 570,
+            "kind": "semantic",
+            "fresh_precision": 0.1111111111111111,
+            "fresh_recall": 0.0017543859649122807,
+            "plumbing_precision": 0.0,
+            "plumbing_recall": 0.0
+          },
+          "legal.verdict": {
+            "fresh_n": 115,
+            "fresh_tp": 47,
+            "plumb_n": 362,
+            "plumb_tp": 62,
+            "gold_n": 570,
+            "kind": "semantic",
+            "fresh_precision": 0.40869565217391307,
+            "fresh_recall": 0.0824561403508772,
+            "plumbing_precision": 0.1712707182320442,
+            "plumbing_recall": 0.10877192982456141
+          },
+          "legal.judgment_year": {
+            "fresh_n": 149,
+            "fresh_tp": 135,
+            "plumb_n": 281,
+            "plumb_tp": 240,
+            "gold_n": 568,
+            "kind": "semantic",
+            "fresh_precision": 0.9060402684563759,
+            "fresh_recall": 0.23767605633802816,
+            "plumbing_precision": 0.8540925266903915,
+            "plumbing_recall": 0.4225352112676056
+          },
+          "legal.hearing_year": {
+            "fresh_n": 218,
+            "fresh_tp": 169,
+            "plumb_n": 288,
+            "plumb_tp": 214,
+            "gold_n": 565,
+            "kind": "semantic",
+            "fresh_precision": 0.7752293577981652,
+            "fresh_recall": 0.2991150442477876,
+            "plumbing_precision": 0.7430555555555556,
+            "plumbing_recall": 0.3787610619469027
+          },
+          "legal.first_judge": {
+            "fresh_n": 1,
+            "fresh_tp": 1,
+            "plumb_n": 293,
+            "plumb_tp": 0,
+            "gold_n": 570,
+            "kind": "semantic",
+            "fresh_precision": 1.0,
+            "fresh_recall": 0.0017543859649122807,
+            "plumbing_precision": 0.0,
+            "plumbing_recall": 0.0
+          },
+          "legal.evidence": {
+            "fresh_n": 73,
+            "fresh_tp": 38,
+            "plumb_n": 368,
+            "plumb_tp": 1,
+            "gold_n": 570,
+            "kind": "numeric",
+            "fresh_precision": 0.5205479452054794,
+            "fresh_recall": 0.06666666666666667,
+            "plumbing_precision": 0.002717391304347826,
+            "plumbing_recall": 0.0017543859649122807
+          },
+          "legal.nationality_for_applicant": {
+            "fresh_n": 47,
+            "fresh_tp": 35,
+            "plumb_n": 193,
+            "plumb_tp": 52,
+            "gold_n": 303,
+            "kind": "semantic",
+            "fresh_precision": 0.7446808510638298,
+            "fresh_recall": 0.11551155115511551,
+            "plumbing_precision": 0.2694300518134715,
+            "plumbing_recall": 0.1716171617161716
+          },
+          "legal.defendant_current_status": {
+            "fresh_n": 1,
+            "fresh_tp": 0,
+            "plumb_n": 55,
+            "plumb_tp": 0,
+            "gold_n": 512,
+            "kind": "semantic",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.0,
+            "plumbing_recall": 0.0
+          },
+          "legal.legal_basis_num": {
+            "fresh_n": 12,
+            "fresh_tp": 6,
+            "plumb_n": 32,
+            "plumb_tp": 0,
+            "gold_n": 570,
+            "kind": "numeric",
+            "fresh_precision": 0.5,
+            "fresh_recall": 0.010526315789473684,
+            "plumbing_precision": 0.0,
+            "plumbing_recall": 0.0
+          },
+          "legal.case_number": {
+            "fresh_n": 3,
+            "fresh_tp": 0,
+            "plumb_n": 84,
+            "plumb_tp": 2,
+            "gold_n": 569,
+            "kind": "numeric",
+            "fresh_precision": 0.0,
+            "fresh_recall": 0.0,
+            "plumbing_precision": 0.023809523809523808,
+            "plumbing_recall": 0.0035149384885764497
+          },
+          "legal.plaintiff_current_status": {
+            "fresh_n": 11,
+            "fresh_tp": 2,
+            "plumb_n": 29,
+            "plumb_tp": 0,
+            "gold_n": 314,
+            "kind": "literal",
+            "fresh_precision": 0.18181818181818182,
+            "fresh_recall": 0.006369426751592357,
+            "plumbing_precision": 0.0,
+            "plumbing_recall": 0.0
+          },
+          "legal.judge_name": {
+            "fresh_n": 112,
+            "fresh_tp": 16,
+            "plumb_n": 374,
+            "plumb_tp": 1,
+            "gold_n": 570,
+            "kind": "literal",
+            "fresh_precision": 0.14285714285714285,
+            "fresh_recall": 0.028070175438596492,
+            "plumbing_precision": 0.00267379679144385,
+            "plumbing_recall": 0.0017543859649122807
+          }
+        },
+        "by_ast_role": {
+          "WHERE": {
+            "fresh_n": 751,
+            "fresh_tp": 450,
+            "plumb_n": 2776,
+            "plumb_tp": 572,
+            "fresh_precision": 0.5992010652463382,
+            "plumbing_precision": 0.20605187319884727
+          },
+          "GROUP BY / CASE": {
+            "fresh_n": 751,
+            "fresh_tp": 450,
+            "plumb_n": 2776,
+            "plumb_tp": 572,
+            "fresh_precision": 0.5992010652463382,
+            "plumbing_precision": 0.20605187319884727
+          },
+          "COUNT or aggregate input": {
+            "fresh_n": 204,
+            "fresh_tp": 92,
+            "plumb_n": 1139,
+            "plumb_tp": 65,
+            "fresh_precision": 0.45098039215686275,
+            "plumbing_precision": 0.05706760316066725
+          }
+        }
+      },
+      "empty_bag_trace": {
+        "n_empty_test": 8,
+        "empty_ids": [
+          "legal_filter20:q7",
+          "legal_filter20:q8",
+          "legal_filter20:q9",
+          "legal_filter20:q11",
+          "legal_filter20:q15",
+          "legal_multiagg20:q4",
+          "legal_multiagg20:q9",
+          "legal_multiagg20:q18"
+        ],
+        "failures": {
+          "wrong extracted value": 3,
+          "missing source value": 4,
+          "group-key mismatch": 1
+        },
+        "traces": [
+          {
+            "query_id": "legal_filter20:q7",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 570,
+              "join": 570,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: verdict_family"
+            },
+            "referenced_attributes": [
+              "hearing_year",
+              "case_number"
+            ],
+            "reason": "wrong extracted value"
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 570,
+              "join": 570,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: precedent_band"
+            },
+            "referenced_attributes": [
+              "case_type",
+              "case_number"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 570,
+              "join": 570,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: plaintiff_family"
+            },
+            "referenced_attributes": [
+              "verdict",
+              "plaintiff_current_status"
+            ],
+            "reason": "wrong extracted value"
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 570,
+              "join": 570,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: case_family"
+            },
+            "referenced_attributes": [
+              "defendant_current_status"
+            ],
+            "reason": "wrong extracted value"
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 570,
+              "join": 570,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: verdict_family"
+            },
+            "referenced_attributes": [
+              "plaintiff_current_status",
+              "defendant_current_status"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "legal_multiagg20:q4",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 570,
+              "join": 570,
+              "where": 0,
+              "group": 0,
+              "full": 0
+            },
+            "errors": {},
+            "referenced_attributes": [
+              "first_judge",
+              "case_number"
+            ],
+            "reason": "missing source value"
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "first_failing_stage": "group",
+            "counts": {
+              "base": 570,
+              "join": 570,
+              "where": 3,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: case_family"
+            },
+            "referenced_attributes": [
+              "case_number"
+            ],
+            "reason": "group-key mismatch"
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "first_failing_stage": "where",
+            "counts": {
+              "base": 570,
+              "join": 570,
+              "where": 0,
+              "group": null,
+              "full": 0
+            },
+            "errors": {
+              "group": "no such column: plaintiff_family"
+            },
+            "referenced_attributes": [
+              "plaintiff_current_status",
+              "defendant_current_status",
+              "case_number"
+            ],
+            "reason": "missing source value"
+          }
+        ]
+      },
+      "empty_bag_trace_plumbing": {
+        "n_empty_test": 4,
+        "failures": {
+          "wrong extracted value": 4
+        }
+      },
+      "replays": {
+        "official": {
+          "candidates": 6840,
+          "accepted": 323,
+          "rejected": 6517,
+          "sql_visible_fills": 323,
+          "overwrites_blocked": 0,
+          "row_count_before": 570,
+          "row_count_after": 570,
+          "changed_columns": [
+            "case_number",
+            "case_type",
+            "defendant_current_status",
+            "evidence",
+            "hearing_year",
+            "judge_name",
+            "judgment_year",
+            "legal_basis_num",
+            "nationality_for_applicant",
+            "plaintiff_current_status",
+            "verdict"
+          ],
+          "unrelated_columns_changed": [],
+          "empty_bags_after": 18,
+          "empty_bag_ids": [
+            "legal_filter20:q0",
+            "legal_filter20:q1",
+            "legal_filter20:q3",
+            "legal_filter20:q4",
+            "legal_filter20:q6",
+            "legal_filter20:q8",
+            "legal_filter20:q9",
+            "legal_filter20:q10",
+            "legal_filter20:q11",
+            "legal_filter20:q13",
+            "legal_filter20:q14",
+            "legal_filter20:q15",
+            "legal_filter20:q17",
+            "legal_filter20:q18",
+            "legal_filter20:q19",
+            "legal_groupby20:q4",
+            "legal_multiagg20:q6",
+            "legal_multiagg20:q17"
+          ],
+          "db_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_retrieve_extract/replay/legal/legal_official.db",
+          "db_sha256": "5389134592e52441acb7ea3f120e9f79e4a2cc3e021163280b4d31e2f66355e7",
+          "output_bag_sha256": "e936e70b03c407c97e773e063e2c6abdaf4d91a1ca58d134a3957751bff83b21",
+          "accepted_by_attribute": {
+            "legal.hearing_year": 114,
+            "legal.judgment_year": 86,
+            "legal.evidence": 12,
+            "legal.judge_name": 39,
+            "legal.plaintiff_current_status": 13,
+            "legal.verdict": 36,
+            "legal.nationality_for_applicant": 6,
+            "legal.legal_basis_num": 12,
+            "legal.case_type": 2,
+            "legal.case_number": 2,
+            "legal.defendant_current_status": 1
+          },
+          "accepted_by_role": {
+            "WHERE": 323,
+            "GROUP BY / CASE": 323,
+            "COUNT or aggregate input": 62
+          },
+          "gates": {
+            "plumbing_rows_preserved": true,
+            "no_nonnull_overwrite": true,
+            "unrelated_columns_unchanged": true,
+            "accepted_have_hashes": true,
+            "zero_model_calls": true
+          }
+        },
+        "critical_fills": {
+          "candidates": 6840,
+          "accepted": 323,
+          "rejected": 6517,
+          "sql_visible_fills": 323,
+          "overwrites_blocked": 0,
+          "row_count_before": 570,
+          "row_count_after": 570,
+          "changed_columns": [
+            "case_number",
+            "case_type",
+            "defendant_current_status",
+            "evidence",
+            "hearing_year",
+            "judge_name",
+            "judgment_year",
+            "legal_basis_num",
+            "nationality_for_applicant",
+            "plaintiff_current_status",
+            "verdict"
+          ],
+          "unrelated_columns_changed": [],
+          "empty_bags_after": 18,
+          "empty_bag_ids": [
+            "legal_filter20:q0",
+            "legal_filter20:q1",
+            "legal_filter20:q3",
+            "legal_filter20:q4",
+            "legal_filter20:q6",
+            "legal_filter20:q8",
+            "legal_filter20:q9",
+            "legal_filter20:q10",
+            "legal_filter20:q11",
+            "legal_filter20:q13",
+            "legal_filter20:q14",
+            "legal_filter20:q15",
+            "legal_filter20:q17",
+            "legal_filter20:q18",
+            "legal_filter20:q19",
+            "legal_groupby20:q4",
+            "legal_multiagg20:q6",
+            "legal_multiagg20:q17"
+          ],
+          "db_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_retrieve_extract/replay/legal/legal_critical_fills.db",
+          "db_sha256": "67a021267ba6041d08cc219ba252a307303829466491be14f39938ba782f3ddd",
+          "output_bag_sha256": "e936e70b03c407c97e773e063e2c6abdaf4d91a1ca58d134a3957751bff83b21",
+          "accepted_by_attribute": {
+            "legal.hearing_year": 114,
+            "legal.judgment_year": 86,
+            "legal.evidence": 12,
+            "legal.judge_name": 39,
+            "legal.plaintiff_current_status": 13,
+            "legal.verdict": 36,
+            "legal.nationality_for_applicant": 6,
+            "legal.legal_basis_num": 12,
+            "legal.case_type": 2,
+            "legal.case_number": 2,
+            "legal.defendant_current_status": 1
+          },
+          "accepted_by_role": {
+            "WHERE": 323,
+            "GROUP BY / CASE": 323,
+            "COUNT or aggregate input": 62
+          },
+          "gates": {
+            "plumbing_rows_preserved": true,
+            "no_nonnull_overwrite": true,
+            "unrelated_columns_unchanged": true,
+            "accepted_have_hashes": true,
+            "zero_model_calls": true
+          }
+        },
+        "literal_fills": {
+          "candidates": 6840,
+          "accepted": 78,
+          "rejected": 6517,
+          "sql_visible_fills": 78,
+          "overwrites_blocked": 0,
+          "row_count_before": 570,
+          "row_count_after": 570,
+          "changed_columns": [
+            "case_number",
+            "evidence",
+            "judge_name",
+            "legal_basis_num",
+            "plaintiff_current_status"
+          ],
+          "unrelated_columns_changed": [],
+          "empty_bags_after": 18,
+          "empty_bag_ids": [
+            "legal_filter20:q0",
+            "legal_filter20:q1",
+            "legal_filter20:q3",
+            "legal_filter20:q4",
+            "legal_filter20:q6",
+            "legal_filter20:q8",
+            "legal_filter20:q9",
+            "legal_filter20:q10",
+            "legal_filter20:q11",
+            "legal_filter20:q13",
+            "legal_filter20:q14",
+            "legal_filter20:q15",
+            "legal_filter20:q17",
+            "legal_filter20:q18",
+            "legal_filter20:q19",
+            "legal_groupby20:q4",
+            "legal_multiagg20:q6",
+            "legal_multiagg20:q17"
+          ],
+          "db_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_retrieve_extract/replay/legal/legal_literal_fills.db",
+          "db_sha256": "824e68e0d2d5c93ba80295ac7022ddfea6aa2f57cf498dfd3876f6b3e03da2db",
+          "output_bag_sha256": "5d62555b6cfc819149974cefe4bc5f6d89165bb5b782c7e41987cedfdfefa3b2",
+          "accepted_by_attribute": {
+            "legal.evidence": 12,
+            "legal.judge_name": 39,
+            "legal.plaintiff_current_status": 13,
+            "legal.legal_basis_num": 12,
+            "legal.case_number": 2
+          },
+          "accepted_by_role": {
+            "WHERE": 78,
+            "GROUP BY / CASE": 78,
+            "COUNT or aggregate input": 26
+          },
+          "gates": {
+            "plumbing_rows_preserved": true,
+            "no_nonnull_overwrite": true,
+            "unrelated_columns_unchanged": true,
+            "accepted_have_hashes": true,
+            "zero_model_calls": true
+          }
+        },
+        "fresh_original": {
+          "candidates": 0,
+          "accepted": 0,
+          "rejected": 0,
+          "sql_visible_fills": 0,
+          "empty_bags_after": 30,
+          "empty_bag_ids": [
+            "legal_agg20:q12",
+            "legal_agg20:q18",
+            "legal_filter20:q0",
+            "legal_filter20:q1",
+            "legal_filter20:q3",
+            "legal_filter20:q4",
+            "legal_filter20:q5",
+            "legal_filter20:q7",
+            "legal_filter20:q8",
+            "legal_filter20:q9",
+            "legal_filter20:q10",
+            "legal_filter20:q11",
+            "legal_filter20:q12",
+            "legal_filter20:q13",
+            "legal_filter20:q14",
+            "legal_filter20:q15",
+            "legal_filter20:q17",
+            "legal_filter20:q18",
+            "legal_filter20:q19",
+            "legal_groupby20:q4",
+            "legal_groupby20:q7",
+            "legal_multiagg20:q4",
+            "legal_multiagg20:q6",
+            "legal_multiagg20:q7",
+            "legal_multiagg20:q8",
+            "legal_multiagg20:q9",
+            "legal_multiagg20:q13",
+            "legal_multiagg20:q14",
+            "legal_multiagg20:q17",
+            "legal_multiagg20:q18"
+          ],
+          "db_path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_retrieve_extract/replay/legal/legal_fresh_original.db",
+          "db_sha256": "64d8c5385d5357a4e60a3affd2f39a435a80384cb23e305617678bf5ca5b8d4d",
+          "output_bag_sha256": "72976c020a3f0a954d3889ab17c54fe4c01815fcd8ed0b0b85f8e660ff8114cb",
+          "gates": {
+            "reproduced_locked_fresh": true
+          }
+        }
+      },
+      "scores": {
+        "plumbing_only": {
+          "product": 0.022455905439098717,
+          "f2": 0.20543217286914767,
+          "f1": 0.03653846153846154
+        },
+        "locked_fresh": {
+          "product": 0.014604377104377106,
+          "f2": 0.22059966177613236,
+          "f1": 0.026388888888888892
+        },
+        "docetl": {
+          "product": 0.12350932750098194,
+          "f2": 0.789,
+          "f1": 0.129
+        },
+        "official": {
+          "mean_structure_f2": 0.22328931572629052,
+          "mean_cell_f1_at_0.20": 0.047649572649572654,
+          "mean_per_query_product": 0.035947968931162214,
+          "empty_bags_before_fresh": 8,
+          "empty_bags_after": 18,
+          "queries_changed_vs_fresh_empty": 18,
+          "accepted_fill_precision": {
+            "grounded_literal_accuracy": 0.34782608695652173,
+            "normalized_numeric_accuracy": 0.9601769911504425,
+            "semantic_value_accuracy": 0.7479338842975206,
+            "literal": {
+              "tp": 32,
+              "n": 92
+            },
+            "numeric": {
+              "tp": 217,
+              "n": 226
+            },
+            "semantic": {
+              "tp": 181,
+              "n": 242
+            },
+            "by_attribute": {
+              "legal.hearing_year": {
+                "n": 114,
+                "tp": 114,
+                "precision": 1.0
+              },
+              "legal.judgment_year": {
+                "n": 86,
+                "tp": 86,
+                "precision": 1.0
+              },
+              "legal.evidence": {
+                "n": 12,
+                "tp": 11,
+                "precision": 0.9166666666666666
+              },
+              "legal.judge_name": {
+                "n": 39,
+                "tp": 11,
+                "precision": 0.28205128205128205
+              },
+              "legal.plaintiff_current_status": {
+                "n": 11,
+                "tp": 5,
+                "precision": 0.45454545454545453
+              },
+              "legal.verdict": {
+                "n": 36,
+                "tp": 15,
+                "precision": 0.4166666666666667
+              },
+              "legal.legal_basis_num": {
+                "n": 12,
+                "tp": 6,
+                "precision": 0.5
+              },
+              "legal.case_type": {
+                "n": 2,
+                "tp": 0,
+                "precision": 0.0
+              },
+              "legal.case_number": {
+                "n": 2,
+                "tp": 0,
+                "precision": 0.0
+              },
+              "legal.nationality_for_applicant": {
+                "n": 3,
+                "tp": 1,
+                "precision": 0.3333333333333333
+              },
+              "legal.defendant_current_status": {
+                "n": 1,
+                "tp": 0,
+                "precision": 0.0
+              }
+            },
+            "by_ast_role": {
+              "WHERE": {
+                "n": 318,
+                "tp": 249,
+                "precision": 0.7830188679245284
+              },
+              "GROUP BY / CASE": {
+                "n": 318,
+                "tp": 249,
+                "precision": 0.7830188679245284
+              },
+              "COUNT or aggregate input": {
+                "n": 62,
+                "tp": 32,
+                "precision": 0.5161290322580645
+              }
+            }
+          },
+          "n_test": 16
+        },
+        "critical_fills": {
+          "mean_structure_f2": 0.22328931572629052,
+          "mean_cell_f1_at_0.20": 0.047649572649572654,
+          "mean_per_query_product": 0.035947968931162214,
+          "empty_bags_before_fresh": 8,
+          "empty_bags_after": 18,
+          "queries_changed_vs_fresh_empty": 18,
+          "accepted_fill_precision": {
+            "grounded_literal_accuracy": 0.34782608695652173,
+            "normalized_numeric_accuracy": 0.9601769911504425,
+            "semantic_value_accuracy": 0.7479338842975206,
+            "literal": {
+              "tp": 32,
+              "n": 92
+            },
+            "numeric": {
+              "tp": 217,
+              "n": 226
+            },
+            "semantic": {
+              "tp": 181,
+              "n": 242
+            },
+            "by_attribute": {
+              "legal.hearing_year": {
+                "n": 114,
+                "tp": 114,
+                "precision": 1.0
+              },
+              "legal.judgment_year": {
+                "n": 86,
+                "tp": 86,
+                "precision": 1.0
+              },
+              "legal.evidence": {
+                "n": 12,
+                "tp": 11,
+                "precision": 0.9166666666666666
+              },
+              "legal.judge_name": {
+                "n": 39,
+                "tp": 11,
+                "precision": 0.28205128205128205
+              },
+              "legal.plaintiff_current_status": {
+                "n": 11,
+                "tp": 5,
+                "precision": 0.45454545454545453
+              },
+              "legal.verdict": {
+                "n": 36,
+                "tp": 15,
+                "precision": 0.4166666666666667
+              },
+              "legal.legal_basis_num": {
+                "n": 12,
+                "tp": 6,
+                "precision": 0.5
+              },
+              "legal.case_type": {
+                "n": 2,
+                "tp": 0,
+                "precision": 0.0
+              },
+              "legal.case_number": {
+                "n": 2,
+                "tp": 0,
+                "precision": 0.0
+              },
+              "legal.nationality_for_applicant": {
+                "n": 3,
+                "tp": 1,
+                "precision": 0.3333333333333333
+              },
+              "legal.defendant_current_status": {
+                "n": 1,
+                "tp": 0,
+                "precision": 0.0
+              }
+            },
+            "by_ast_role": {
+              "WHERE": {
+                "n": 318,
+                "tp": 249,
+                "precision": 0.7830188679245284
+              },
+              "GROUP BY / CASE": {
+                "n": 318,
+                "tp": 249,
+                "precision": 0.7830188679245284
+              },
+              "COUNT or aggregate input": {
+                "n": 62,
+                "tp": 32,
+                "precision": 0.5161290322580645
+              }
+            }
+          },
+          "n_test": 16
+        },
+        "literal_fills": {
+          "mean_structure_f2": 0.22328931572629052,
+          "mean_cell_f1_at_0.20": 0.03514957264957265,
+          "mean_per_query_product": 0.02344796893116221,
+          "empty_bags_before_fresh": 8,
+          "empty_bags_after": 18,
+          "queries_changed_vs_fresh_empty": 18,
+          "accepted_fill_precision": {
+            "grounded_literal_accuracy": 0.32,
+            "normalized_numeric_accuracy": 0.6538461538461539,
+            "semantic_value_accuracy": 0.0,
+            "literal": {
+              "tp": 16,
+              "n": 50
+            },
+            "numeric": {
+              "tp": 17,
+              "n": 26
+            },
+            "semantic": {
+              "tp": 0,
+              "n": 0
+            },
+            "by_attribute": {
+              "legal.evidence": {
+                "n": 12,
+                "tp": 11,
+                "precision": 0.9166666666666666
+              },
+              "legal.judge_name": {
+                "n": 39,
+                "tp": 11,
+                "precision": 0.28205128205128205
+              },
+              "legal.plaintiff_current_status": {
+                "n": 11,
+                "tp": 5,
+                "precision": 0.45454545454545453
+              },
+              "legal.legal_basis_num": {
+                "n": 12,
+                "tp": 6,
+                "precision": 0.5
+              },
+              "legal.case_number": {
+                "n": 2,
+                "tp": 0,
+                "precision": 0.0
+              }
+            },
+            "by_ast_role": {
+              "WHERE": {
+                "n": 76,
+                "tp": 33,
+                "precision": 0.4342105263157895
+              },
+              "GROUP BY / CASE": {
+                "n": 76,
+                "tp": 33,
+                "precision": 0.4342105263157895
+              },
+              "COUNT or aggregate input": {
+                "n": 26,
+                "tp": 17,
+                "precision": 0.6538461538461539
+              }
+            }
+          },
+          "n_test": 16
+        },
+        "fresh_original": {
+          "mean_structure_f2": 0.22059966177613236,
+          "mean_cell_f1_at_0.20": 0.026388888888888892,
+          "mean_per_query_product": 0.014604377104377106,
+          "empty_bags_before_fresh": 8,
+          "empty_bags_after": 8,
+          "queries_changed_vs_fresh_empty": 0,
+          "accepted_fill_precision": {
+            "grounded_literal_accuracy": 0.0,
+            "normalized_numeric_accuracy": 0.0,
+            "semantic_value_accuracy": 0.0
+          },
+          "n_test": 16
+        }
+      },
+      "per_query": {
+        "official": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "product": 0.1111111111111111,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.1111111111111111
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "product": 0.0052328623757195184,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "product": 0.05882352941176471,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "product": 0.4000000000000001,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.4000000000000001
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          }
+        ],
+        "critical_fills": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "product": 0.1111111111111111,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.1111111111111111
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "product": 0.0052328623757195184,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "product": 0.05882352941176471,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "product": 0.4000000000000001,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.4000000000000001
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          }
+        ],
+        "literal_fills": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "product": 0.1111111111111111,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.1111111111111111
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "product": 0.0052328623757195184,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.10204081632653061,
+            "cell_f1_20": 0.05128205128205128
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "product": 0.05882352941176471,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.2
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "product": 0.20000000000000004,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          }
+        ],
+        "fresh_original": [
+          {
+            "query_id": "legal_multiagg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q7",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.3846153846153846,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q18",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q4",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_groupby20:q14",
+            "product": 0.03367003367003367,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.15151515151515152,
+            "cell_f1_20": 0.2222222222222222
+          },
+          {
+            "query_id": "legal_agg20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_multiagg20:q9",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q13",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q17",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.29411764705882354,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q8",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q11",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_filter20:q15",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.0,
+            "cell_f1_20": 0.0
+          },
+          {
+            "query_id": "legal_agg20:q3",
+            "product": 0.20000000000000004,
+            "delta_vs_plumbing": null,
+            "structure_f2": 1.0,
+            "cell_f1_20": 0.20000000000000004
+          },
+          {
+            "query_id": "legal_agg20:q14",
+            "product": 0.0,
+            "delta_vs_plumbing": null,
+            "structure_f2": 0.5555555555555556,
+            "cell_f1_20": 0.0
+          }
+        ]
+      },
+      "decision": {
+        "deterministic_routing_worth_another_fresh_run": false,
+        "fresh_extractor_useful_incremental_evidence": true,
+        "remaining_gap_attributes": [
+          "case_number",
+          "plaintiff_current_status",
+          "defendant_current_status",
+          "hearing_year",
+          "case_type",
+          "verdict",
+          "first_judge",
+          "legal.case_number",
+          "legal.case_type",
+          "legal.defendant_current_status",
+          "legal.evidence",
+          "legal.first_judge"
+        ]
+      }
+    }
+  },
+  "frozen_hashes_before": {
+    "plumbing_Finan": "ad91c2554f32510cb378737009e6479cfcb71299f245c7fe766722057b2b2a3d",
+    "plumbing_Legal": "9117d3ffbc0f47f11556d751302d539ac26e7a029d543bb15b41c154fe4d7267",
+    "fresh_Finan": "841210c2618accb36943ab583d02390fbbaf8a522d553e1425ffbfe6a8dbfcca",
+    "fresh_Legal": "64d8c5385d5357a4e60a3affd2f39a435a80384cb23e305617678bf5ca5b8d4d"
+  },
+  "frozen_hashes_after": {
+    "plumbing_Finan": "ad91c2554f32510cb378737009e6479cfcb71299f245c7fe766722057b2b2a3d",
+    "plumbing_Legal": "9117d3ffbc0f47f11556d751302d539ac26e7a029d543bb15b41c154fe4d7267",
+    "fresh_Finan": "841210c2618accb36943ab583d02390fbbaf8a522d553e1425ffbfe6a8dbfcca",
+    "fresh_Legal": "64d8c5385d5357a4e60a3affd2f39a435a80384cb23e305617678bf5ca5b8d4d"
+  },
+  "frozen_unchanged": true
+}

@@ -1,0 +1,281 @@
+{
+  "decision": "candidate generation is the remaining bottleneck",
+  "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+  "spent": 333114,
+  "compiler_spent": 66700,
+  "critic_calls": 8,
+  "attributes_compiled": 14,
+  "program_selected_cells": 315,
+  "program_abstentions": 864,
+  "residual_calls": 200,
+  "residual_selections": 56,
+  "accepted_cells": 371,
+  "sql_visible_fills": 361,
+  "score_program": {
+    "mean_per_query_product": 0.08724138617230723,
+    "mean_structure_f2": 0.4642267454767455,
+    "mean_cell_f1_at_0.20": 0.14572237886382622
+  },
+  "score_residual": {
+    "mean_per_query_product": 0.09723033979326885,
+    "mean_structure_f2": 0.43212214239200747,
+    "mean_cell_f1_at_0.20": 0.13464912280701755
+  },
+  "score_combined": {
+    "mean_per_query_product": 0.054335999648499646,
+    "mean_structure_f2": 0.5227545703089181,
+    "mean_cell_f1_at_0.20": 0.08782242063492064
+  },
+  "comparators": {
+    "plumbing": 0.0158,
+    "prior_theta25_selector": {
+      "product": 0.0296,
+      "tokens": 344601
+    },
+    "docetl": {
+      "product": 0.084,
+      "tokens": 1381827
+    }
+  },
+  "candidate_set_recall": {
+    "n": 1179,
+    "present": 189
+  },
+  "selector_accuracy_given_present": {
+    "n": 189,
+    "ok": 36
+  },
+  "per_attribute_exactness": {
+    "auditor": {
+      "n": 57,
+      "ok": 4,
+      "exact": 0.07017543859649122
+    },
+    "business_segments_num": {
+      "n": 83,
+      "ok": 11,
+      "exact": 0.13253012048192772
+    },
+    "cash_reserves": {
+      "n": 88,
+      "ok": 0,
+      "exact": 0.0
+    },
+    "dividend_per_share": {
+      "n": 88,
+      "ok": 0,
+      "exact": 0.0
+    },
+    "earnings_per_share": {
+      "n": 85,
+      "ok": 1,
+      "exact": 0.011764705882352941
+    },
+    "exchange_code": {
+      "n": 87,
+      "ok": 16,
+      "exact": 0.1839080459770115
+    },
+    "major_equity_changes": {
+      "n": 92,
+      "ok": 0,
+      "exact": 0.0
+    },
+    "net_assets": {
+      "n": 100,
+      "ok": 1,
+      "exact": 0.01
+    },
+    "net_profit_or_loss": {
+      "n": 82,
+      "ok": 0,
+      "exact": 0.0
+    },
+    "principal_activities": {
+      "n": 53,
+      "ok": 3,
+      "exact": 0.05660377358490566
+    },
+    "remuneration_policy": {
+      "n": 89,
+      "ok": 6,
+      "exact": 0.06741573033707865
+    },
+    "revenue": {
+      "n": 84,
+      "ok": 0,
+      "exact": 0.0
+    },
+    "the_highest_ownership_stake": {
+      "n": 95,
+      "ok": 1,
+      "exact": 0.010526315789473684
+    },
+    "total_debt": {
+      "n": 96,
+      "ok": 0,
+      "exact": 0.0
+    }
+  },
+  "per_query": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.375,
+      "product": 0.375,
+      "plumbing_product": 0.125,
+      "delta": 0.25
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.1282051282051282,
+      "cell_f1_20": 0.15873015873015872,
+      "product": 0.020350020350020346,
+      "plumbing_product": 0.00432900432900433,
+      "delta": 0.016021016021016014
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.7142857142857142,
+      "cell_f1_20": 0.3,
+      "product": 0.21428571428571425,
+      "plumbing_product": 0.12345679012345678,
+      "delta": 0.09082892416225746
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.6521739130434783,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.45454545454545453,
+      "cell_f1_20": 0.28571428571428575,
+      "product": 0.12987012987012989,
+      "plumbing_product": 0.0,
+      "delta": 0.12987012987012989
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.5,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q14",
+      "structure_f2": 0.45454545454545453,
+      "cell_f1_20": 0.28571428571428575,
+      "product": 0.12987012987012989,
+      "plumbing_product": 0.0,
+      "delta": 0.12987012987012989
+    }
+  ],
+  "hashes": {
+    "inventory": "0fc5a8bb1758aab9ce2092814da8e5c15708890503623171f125bb3c2dce7580",
+    "samples": "ceabd5b0ac976976b93db253e31070fccc89976abff97bf871e4da35f4dd7ba7",
+    "specs": "60225252c29a3e981f6b77da50186c1caf12747cfd0a61afdaf46179a61d2d9f",
+    "plumbing": "ad91c2554f32510cb378737009e6479cfcb71299f245c7fe766722057b2b2a3d",
+    "official_schema": "3f88e9f1a5ef0e559280ac4e6470ed5fa536a99fe1c4fc588bba8bdc24bfad1e",
+    "policy": "c0af5ce0e5754586da55523f9a1659ab678395e4eba553f8d4e40b7e9bb265ea",
+    "executor": "4287e9ca0d10bd5d0a8c59bbc531f6b587c5f81143cc285033a1019a7111406b",
+    "validated_specs": "e5fe872fe35ef5228cf9d952aec0ed586a889b8c5a4252ded71a12e7149c0a30",
+    "program_results": "7a7d6853c072157669a85477400fe051c30b9cfc220348c02eb260ce8759e870",
+    "residual_schedule": "8f244ff307c9173e46745e6952d979e91119c830c537216de5b6472e76195c5e",
+    "program_bags": "5c67d7a39058fcc634f9c525145eb697981168dec9567b5287676ec80f4a41c0",
+    "residual_bags": "50021e9dca0481f6a80cf62af7d41be2ba16a2d7e3bb9e245ca032eb7e0c91f1",
+    "combined_bags": "8a744039965c664ff7c295e649df99bcd170349fdeb8d3024bd1bcfc8a2735a8",
+    "ledger": "78edb507c11e1b81af1c71042be347c16287768081f86a51fada0c76995309e0"
+  },
+  "invariants": {
+    "inventory_matches_frozen_generator": true,
+    "executor_has_no_attribute_branches": true,
+    "compiler_output_is_safe_dsl": true,
+    "candidate_ids_cannot_enter_specs": true,
+    "query_literals_absent_from_policy": true,
+    "sampling_deterministic_gold_free": true,
+    "empty_overlay_reproduces_plumbing": true,
+    "null_cells_only": true,
+    "all_100_identities": true,
+    "official_queries_execute": true,
+    "compiler_allocation_at_most_20pct": true,
+    "ledger_cannot_exceed_theta25": true,
+    "gold_and_prior_decisions_inaccessible": true
+  }
+}

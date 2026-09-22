@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "f26a26d2007e3a7678494f0d632313ed06aeed86f5a40f0951cc91e9a88883fa",
+    "entity_identity": "e34c55ed6c167efca0771ccba0f28543b490bde356a103a772f217a971095fc6",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "13baf8d1398205842ea1778b5d749a26b41330bedf032ba7ab8481b1ef7ff468",
+      "359160fd68d8ea17d08e41a8571e0502338335353c8b5ff328946dd285cb1e46",
+      "a32c4c6e36662fcdbe261294d571acbbc7c180ed36bdef34b6111d0b4a0325b7",
+      "ab4aa1482fb5c0a19190baa4550f588410cc47a5ad3714deaf20317611042063"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e34c55ed6c167efca0771ccba0f28543b490bde356a103a772f217a971095fc6\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"49.txt:c7\",\n          \"exact_span\": \"A more precise description was offered by the Minister in his submissions: \\\"The Tribunal relied upon internal inconsistencies and inconsistencies in the oral evidence provided by the [male Appellant] to the differently constituted Tribunals\\\".\"\n        },\n        {\n          \"source_id\": \"49.txt:c22\",\n          \"exact_span\": \"The Applicant's position is that the documents he has provided add weight to the story he has told. The Tribunal finds that they do not.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "49.txt:c7",
+              "exact_span": "A more precise description was offered by the Minister in his submissions: \"The Tribunal relied upon internal inconsistencies and inconsistencies in the oral evidence provided by the [male Appellant] to the differently constituted Tribunals\"."
+            },
+            {
+              "source_id": "49.txt:c22",
+              "exact_span": "The Applicant's position is that the documents he has provided add weight to the story he has told. The Tribunal finds that they do not."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "e34c55ed6c167efca0771ccba0f28543b490bde356a103a772f217a971095fc6"
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "ee425835b60dbb2d2e5d93a1df8a783fa54ce3fdeafa6040bccad45dc5cec5d7",
+    "entity_identity": "deebcdc7aaa2243804620b8ef933d6efb90cf97f82ca0d47f494dfcd8fdf6333",
+    "attribute_bundle": [
+      "legal.judgment_year",
+      "legal.hearing_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "b16950c93aac3fdde62517a3ba57f0ea5a14799ada395d12c3e8270dc892b788",
+      "52488222e056c804aa37165cbe3842762f28f6357555e10287de4eeeb9526243",
+      "6ae1a76f57ec529bf582593ca8dc5e0721c0e846968599895799bca5c112c3f5",
+      "a5e4c22f6661e7c05f9312286ff92fb9a38d66d1b3e5369937a204674d15f3d1"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"deebcdc7aaa2243804620b8ef933d6efb90cf97f82ca0d47f494dfcd8fdf6333\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"388.txt:c56\",\n          \"exact_span\": \"Mr Ell's so-called ' real ' profit is completely illusory.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"1999, 2000\",\n      \"normalized_value\": \"1999, 2000\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"388.txt:c56\",\n          \"exact_span\": \"For the years ended 30 June 1999, 2000 and 2001, the private usage was 14, 10 and 14 out of 365, 366 and 365 days respectively.\"\n        }\n      ]\n    }\n  ]",
+    "parsed": {
+      "ok": false,
+      "malformed": true,
+      "error": "invalid_json:unbalanced_json",
+      "items": {
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        },
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        }
+      },
+      "errors": [
+        "invalid_json:unbalanced_json"
+      ],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 0,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 2,
+        "grounding_failure": 0
+      }
+    }
+  }
+}

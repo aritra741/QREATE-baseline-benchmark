@@ -1,0 +1,79 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+    "entity_identity": "finan_multiagg20:q9:78:map",
+    "attribute_bundle": [
+      "earnings_per_share",
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+      "ea80aa798f1b352167e4eea0fcb225b45f7f49ad957205923f88f6e431508856",
+      "c8b3e0d586e280c4fd95fc5e16b20de9993265ba4533aed6d15f6bb9456206d8",
+      "9280694c5e9606c516a8f543f69d3a8e7f16fea2a7ab1a6927767a82eec51df5",
+      "69ba5bcc647b41def8e0db4ca0be08302a59b7b5970b4cea25070de9593af9fe",
+      "22451baa2495703ecc4d0040bfae7b300d7bb8c60295392d4621fa0502b2a2d1",
+      "d82b3f20d9ddaa54b2dad7e67bbc7cf66b262f87fa5553a0d2fa89d82b5b2e9e",
+      "b4f370b31bb6577ac264087a52acaa8b92e06dab49515a411cddf5587635025a"
+    ],
+    "schema_hash": "cad102bb407a1f8e7ffeeb79be37c614771b9c7543af61213ef858b92955762a",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"earnings_per_share\": {\n    \"value\": 3.93,\n    \"status\": \"found\",\n    \"evidence\": \"At \u20ac275 million, non-controlling interests in income were much higher than in the preceding year (\u20ac111 million), above all due to a rise in income from offshore wind farms in which third parties hold minority interests. This mainly related to Rampion (400 MW), Humber Gateway (219 MW) and Triton Knoll (857 MW) in the United Kingdom. In addition, we have been fully consolidating Rampion since 1 April 2021 and thus stated the share in income attributable to the co-owners that hold a 49.9 % stake for the full reporting period in 2022. The RWE Group's net income amounted to \u20ac2,717 million (previous year: \u20ac721 million). This corresponds to earnings per share of \u20ac3.93 (previous year: \u20ac1.07) which was calculated based on 691.2\"\n  },\n  \"remuneration_policy\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  },\n  \"revenue\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "earnings_per_share": {
+          "attribute": "earnings_per_share",
+          "raw_value": "3.93",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "At \u20ac275 million, non-controlling interests in income were much higher than in the preceding year (\u20ac111 million), above all due to a rise in income from offshore wind farms in which third parties hold minority interests. This mainly related to Rampion (400 MW), Humber Gateway (219 MW) and Triton Knoll (857 MW) in the United Kingdom. In addition, we have been fully consolidating Rampion since 1 April 2021 and thus stated the share in income attributable to the co-owners that hold a 49.9 % stake for the full reporting period in 2022. The RWE Group's net income amounted to \u20ac2,717 million (previous year: \u20ac721 million). This corresponds to earnings per share of \u20ac3.93 (previous year: \u20ac1.07) which was calculated based on 691.2",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:earnings_per_share"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 2,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

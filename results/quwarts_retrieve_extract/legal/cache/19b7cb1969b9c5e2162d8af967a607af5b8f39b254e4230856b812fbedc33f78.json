@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "d713361773e935d3a5e4625fb6918cb9e5a6d4871d392091deb0e7b0b0b30dc7",
+    "entity_identity": "181eba86446a44731d80af0096d55745d431294097159ff81106dd84e8ecb30a",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.case_type",
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "023b1a87b3376a155c250891eabda45c49409d11bc289186a2f71d3c1974354d",
+      "597b791d4d860600458ed7135fac3efbf6a153a4e5788dbeaa33174f99e70905",
+      "9be2f99fb50d4c24c2f91fa8cece70e25c653f12e83855b17e1acb49edd5801f",
+      "a7b7f969d63662c72ba42445f1e5eecec082dfa173fca592cfd5d67412b4e4cd"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"181eba86446a44731d80af0096d55745d431294097159ff81106dd84e8ecb30a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"found\",\n      \"raw_value\": \"4\",\n      \"normalized_value\": 4,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"497.txt:c5\",\n          \"exact_span\": \"The notice attached the penalties for failure to comply, referring to ss 8C , 8D , 8E and 8ZF of the Taxation Administration Act 1953 (Cth).\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "found",
+          "raw_value": "4",
+          "normalized_value": 4,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "497.txt:c5",
+              "exact_span": "The notice attached the penalties for failure to comply, referring to ss 8C , 8D , 8E and 8ZF of the Taxation Administration Act 1953 (Cth)."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.legal_basis_num"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "181eba86446a44731d80af0096d55745d431294097159ff81106dd84e8ecb30a"
+    }
+  }
+}

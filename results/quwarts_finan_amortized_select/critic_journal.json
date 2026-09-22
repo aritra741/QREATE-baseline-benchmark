@@ -1,0 +1,179 @@
+[
+  {
+    "attribute": "auditor",
+    "reserved": 3481,
+    "api_prompt": 3378,
+    "api_completion": 115,
+    "actual": 3493,
+    "critic": {
+      "violations": [
+        "The specification JSON includes a 'preferred_metadata_terms' attribute which conflicts with the official description, as it specifies metadata terms in sections that do not relate to the name of the external audit firm."
+      ],
+      "invalid_terms": [],
+      "predicate_literal_risk": "",
+      "component_vs_total": "",
+      "name_vs_code": "",
+      "period_ambiguity": "",
+      "unit_ambiguity": "",
+      "corpus_leakage": "",
+      "unresolved_contradiction": ""
+    }
+  },
+  {
+    "attribute": "business_segments_num",
+    "reserved": 3803,
+    "api_prompt": 3700,
+    "api_completion": 471,
+    "actual": 4171,
+    "critic": {
+      "violations": [
+        "The specification conflicts with the official description as it requires a number for 'business_segments_num', but the metadata indicates that the number of business segments is not consistently represented as a number across all relevant sections. Specifically, C2 and C3 provide segment counts, while others provide context or descriptions.",
+        "There is a potential for predicate literal selection in C1, C6, C7, and C8, where the metadata suggests a numerical value but the actual content does not explicitly state a number.",
+        "The specification selects components (C2 and C3) where totals are required, which may not accurately reflect the total number of business segments reported across the document.",
+        "C1, C2, C3, C4, C5, C6, C7, and C8 contain abbreviations ('Business', 'ITEM 1. BUSINESS.', etc.) which should be full legal names as per the specification's requirements.",
+        "Period ambiguity exists in C2, C3, C4, C5, C6, and C7, where the period is not clearly defined or consistent across different metadata entries.",
+        "Unit ambiguity is present in C7, where the unit is unspecified and the value is provided as a percentage, conflicting with the requirement to preserve units.",
+        "Corpus leakage is evident in C1, C2, C3, C4, C5, C6, C7, and C8, where the metadata suggests a numerical value but the actual content provides context or descriptions instead of specific numbers."
+      ],
+      "invalid_terms": [],
+      "predicate_literal_risk": "C1, C6, C7, C8",
+      "component_vs_total": "C2, C3",
+      "name_vs_code": "C1, C2, C3, C4, C5, C6, C7, C8",
+      "period_ambiguity": "C2, C3, C4, C5, C6, C7",
+      "unit_ambiguity": "C7",
+      "corpus_leakage": "C1, C2, C3, C4, C5, C6, C7, C8",
+      "unresolved_contradiction": ""
+    }
+  },
+  {
+    "attribute": "cash_reserves",
+    "reserved": 3832,
+    "api_prompt": 3729,
+    "api_completion": 147,
+    "actual": 3876,
+    "critic": {
+      "violations": [
+        "conflict with the official description",
+        "period ambiguity",
+        "unit ambiguity"
+      ],
+      "invalid_terms": [],
+      "predicate_literal_risk": "",
+      "component_vs_total": "",
+      "name_vs_code": "",
+      "period_ambiguity": "The period specified in the official description is 'period-end', but the metadata does not consistently specify this period. Some metadata entries have an unknown period.",
+      "unit_ambiguity": "The unit policy is set to 'preserve', but many of the metadata entries do not specify a unit or have an unspecified unit.",
+      "corpus_leakage": "",
+      "unresolved_contradiction": ""
+    }
+  },
+  {
+    "attribute": "dividend_per_share",
+    "reserved": 3972,
+    "api_prompt": 3869,
+    "api_completion": 255,
+    "actual": 4124,
+    "critic": {
+      "violations": [
+        "Predicate literal risk: The specification prefers the term 'dividend_per_share' over the official description 'dividends paid per share'.",
+        "Period ambiguity: The period is set to 'latest', but the metadata contains specific periods (e.g., 2018, 2022) which could be more relevant.",
+        "Unit ambiguity: The unit policy is set to 'preserve', but the metadata does not specify a unit for dividends paid per share."
+      ],
+      "invalid_terms": [],
+      "predicate_literal_risk": "The specification prefers the term 'dividend_per_share' over the official description 'dividends paid per share'.",
+      "component_vs_total": "",
+      "name_vs_code": "",
+      "period_ambiguity": "The period is set to 'latest', but the metadata contains specific periods (e.g., 2018, 2022) which could be more relevant.",
+      "unit_ambiguity": "The unit policy is set to 'preserve', but the metadata does not specify a unit for dividends paid per share.",
+      "corpus_leakage": "",
+      "unresolved_contradiction": ""
+    }
+  },
+  {
+    "attribute": "earnings_per_share",
+    "reserved": 3693,
+    "api_prompt": 3590,
+    "api_completion": 231,
+    "actual": 3821,
+    "critic": {
+      "violations": [
+        "The attribute 'earnings_per_share' is selected from multiple metadata terms that refer to different concepts such as 'Earnings (loss) per common share', 'Basic and Diluted Net Loss per Share', which may not align with the official description of 'earnings per share'.",
+        "The period for some metadata terms is ambiguous, as indicated by periods like 'unknown', '2020', and '2022' in different contexts.",
+        "Some metadata terms are in a different unit ('RMB' in C6), which conflicts with the requirement to convert to USD."
+      ],
+      "invalid_terms": [],
+      "predicate_literal_risk": "",
+      "component_vs_total": "",
+      "name_vs_code": "",
+      "period_ambiguity": "The periods for the metadata terms are inconsistent or unclear, leading to potential misinterpretation.",
+      "unit_ambiguity": "The units for some metadata terms do not match the required 'USD' unit.",
+      "corpus_leakage": "",
+      "unresolved_contradiction": ""
+    }
+  },
+  {
+    "attribute": "exchange_code",
+    "reserved": 3424,
+    "api_prompt": 3321,
+    "api_completion": 266,
+    "actual": 3587,
+    "critic": {
+      "violations": [
+        "The specification is in conflict with the official description, as it does not specify the exact exchange code (e.g., ASX, SUN) but rather allows for any text.",
+        "There is a potential for corpus leakage as the specification does not explicitly require the full legal name of the stock exchange where the company is listed."
+      ],
+      "invalid_terms": [],
+      "predicate_literal_risk": "The specification does not have an explicit risk of selecting predicate literals as it only specifies 'text' as the value form.",
+      "component_vs_total": "The specification does not indicate whether component or total values are required.",
+      "name_vs_code": "The specification does not specify if the full legal name or the code of the stock exchange should be selected.",
+      "period_ambiguity": "The specification does not specify a clear period policy, which could lead to ambiguity.",
+      "unit_ambiguity": "The specification does not specify a unit policy, which could lead to ambiguity.",
+      "corpus_leakage": "The specification does not explicitly require the full legal name of the stock exchange, allowing for potential corpus leakage.",
+      "unresolved_contradiction": "The specification does not resolve contradictions between the official description and the specification."
+    }
+  },
+  {
+    "attribute": "major_equity_changes",
+    "reserved": 3704,
+    "api_prompt": 3601,
+    "api_completion": 222,
+    "actual": 3823,
+    "critic": {
+      "violations": [
+        "The specification includes text-based values for 'major_equity_changes', which should be limited to 'Yes' or 'No' as per the official description.",
+        "There is a preference for selecting components where totals are required, as evidenced by metadata related to financial segments and periods that do not align with the entity-level scope policy."
+      ],
+      "invalid_terms": [],
+      "predicate_literal_risk": "The specification allows for text-based inputs, which increases the risk of misinterpretation or inconsistency.",
+      "component_vs_total": "The specification selects components such as financial segments and periods instead of totals, which may lead to incomplete or misleading results.",
+      "name_vs_code": [],
+      "period_ambiguity": "Some metadata indicates periods that do not align with the 'any' period policy in the specification.",
+      "unit_ambiguity": "Some metadata indicates units that do not align with the 'any' unit policy in the specification.",
+      "corpus_leakage": [],
+      "unresolved_contradiction": []
+    }
+  },
+  {
+    "attribute": "net_assets",
+    "reserved": 3782,
+    "api_prompt": 3679,
+    "api_completion": 236,
+    "actual": 3915,
+    "critic": {
+      "violations": [
+        "The attribute 'net_assets' does not match the official description of 'net asset value at the end of the reporting period'.",
+        "There is a conflict with the official description as the specification prefers metadata terms related to 'Fair value of franchise assets', which is not aligned with the net asset value.",
+        "Period ambiguity: The period policy is set to 'reporting_period', but the metadata contains periods that are not explicitly tied to the reporting period.",
+        "Unit ambiguity: The unit policy is set to 'preserve', but the metadata includes values without specified units."
+      ],
+      "invalid_terms": [],
+      "predicate_literal_risk": "",
+      "component_vs_total": "",
+      "name_vs_code": "",
+      "period_ambiguity": "The period policy is set to 'reporting_period', but the metadata contains periods that are not explicitly tied to the reporting period.",
+      "unit_ambiguity": "Unit ambiguity: The unit policy is set to 'preserve', but the metadata includes values without specified units.",
+      "corpus_leakage": "",
+      "unresolved_contradiction": ""
+    }
+  }
+]

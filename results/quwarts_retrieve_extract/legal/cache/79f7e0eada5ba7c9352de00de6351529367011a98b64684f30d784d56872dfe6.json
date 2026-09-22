@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "75d8a9471c4b579d44fd9c3cc0a18f482f66671c1e1929e463c51f40152e7dc6",
+    "entity_identity": "3bbbc81fd67a4120bdef0f4a6d02ee88bc3320181052b5b258fa1186bd09793d",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "cf27f2318e9a9feed416203e82ace86f40265eaed27e9668e3c8afa1cf8b48b3",
+      "d2f0e207267cccd05d97d8cbc698ac3faf713124527c5297de06bcbf25bb8c8e",
+      "dbf423805cdb0d9393ffa1dd8f1270889598fd745d9f296f242740d8d0fd0fb1",
+      "60afbb1e006738d5b28457a886c1c8adcd6e203e8fbaa0ac9abafe5a1c6da38b"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"3bbbc81fd67a4120bdef0f4a6d02ee88bc3320181052b5b258fa1186bd09793d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed with costs\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"227.txt:c5\",\n          \"exact_span\": \"Accordingly the application was dismissed with costs.\"\n        },\n        {\n          \"source_id\": \"227.txt:c28\",\n          \"exact_span\": \"The appeal against the decision of Wilcox J was dismissed.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed with costs",
+          "normalized_value": "dismissed with costs",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "227.txt:c5",
+              "exact_span": "Accordingly the application was dismissed with costs."
+            },
+            {
+              "source_id": "227.txt:c28",
+              "exact_span": "The appeal against the decision of Wilcox J was dismissed."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "3bbbc81fd67a4120bdef0f4a6d02ee88bc3320181052b5b258fa1186bd09793d"
+    }
+  }
+}

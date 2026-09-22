@@ -1,0 +1,97 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "6fa6f6037335730607055917ddba9e1a61ac91405e00285d5004ba2360f5e1dc",
+    "entity_identity": "2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.case_number",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "a10d1aa7bd22b2960d6b502f2960306116daa7722cfc81d6f140cf83e4bd25c1",
+      "2e7cd99f60d9556b49538a34ae1358fd8f57c48f0719be3bcaede1cdf6e1e38f",
+      "850468d0c4d82c6281454db1a7670c4fae20b94baf947e5ad36640accfbcf3f4",
+      "276359e121b13b4d4f084033bb0f7d5ea2820f70bae208200ed3decddc9e16c7"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"536.txt:c20\",\n          \"exact_span\": \"(3) For the purposes of the application of this Act and the regulations to a particular person:\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"found\",\n      \"raw_value\": \"2\",\n      \"normalized_value\": 2,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"536.txt:c20\",\n          \"exact_span\": \"(228 CLR 15\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "536.txt:c20",
+              "exact_span": "(3) For the purposes of the application of this Act and the regulations to a particular person:"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "found",
+          "raw_value": "2",
+          "normalized_value": 2,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "536.txt:c20",
+              "exact_span": "(228 CLR 15"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.legal_basis_num",
+        "grounding_failure:legal.case_number"
+      ],
+      "grounding_failures": 2,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 2
+      },
+      "entity_id": "2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258"
+    }
+  }
+}

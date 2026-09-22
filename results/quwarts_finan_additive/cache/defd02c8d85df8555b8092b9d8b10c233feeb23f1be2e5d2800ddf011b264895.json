@@ -1,0 +1,62 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "f78f3a30f38d5410606133e0915265fab6701a9146215031e36c040afc3bf060",
+    "entity_identity": "38b87d01ee8da490bfa71c3ab8ca57775d6606fcefee8f9016afe836002cc8f9",
+    "attribute_bundle": [
+      "finance.dividend_per_share"
+    ],
+    "context_mode": "section_map",
+    "context_hashes": [
+      "c8687dd98af74eaaa3c207d6759d863801c1f933c2974d21fe59f7c35c4f720a",
+      "87d1896e929cd1cdb0b98a34e031c2eecb2d900faa3fd408d07a3348e24ef44d",
+      "3048aff6cfed1de39c6e6ab069d00459b3ce4840fbab261569984e64dbe052cf",
+      "2d0fb82ec377f8fd9264d45bd7d3d1cd1c01871bf0699960c195165323086435",
+      "6bbcd2a621b65f0587e06c854606494628ea554f857c05060c9ad907c5231b96"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "8618065b9994933e17c6553ab9e03b3345ff0d7b46bd8165fca4d7036da6e1e2",
+    "operator": "finan_additive",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"38b87d01ee8da490bfa71c3ab8ca57775d6606fcefee8f9016afe836002cc8f9\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.dividend_per_share\",\n      \"status\": \"found\",\n      \"raw_value\": \"27 cents per share\",\n      \"normalized_value\": 0.27,\n      \"unit\": \"USD\",\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"11.txt:s340\",\n          \"exact_span\": \"dividends payments were increased 190% from 9.3 cents to 27 cents per share\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "finance.dividend_per_share": {
+          "attribute": "finance.dividend_per_share",
+          "status": "found",
+          "raw_value": "27 cents per share",
+          "normalized_value": 0.27,
+          "unit": "USD",
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "11.txt:s340",
+              "exact_span": "dividends payments were increased 190% from 9.3 cents to 27 cents per share"
+            }
+          ],
+          "errors": [
+            "dtype_coercion"
+          ],
+          "grounded": true,
+          "norm_error": "dtype_coercion"
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "38b87d01ee8da490bfa71c3ab8ca57775d6606fcefee8f9016afe836002cc8f9"
+    }
+  }
+}

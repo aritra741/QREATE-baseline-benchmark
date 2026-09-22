@@ -1,0 +1,85 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "59f66bb808a3ff67a923c319162c4de7f65663ae544de99a604cd7a189521101",
+    "entity_identity": "b8e72df01f201762d2aeadd675fd6c1d6fd1bcc664ac708b9b532e20cb171d2a",
+    "attribute_bundle": [
+      "finance.exchange_code",
+      "finance.principal_activities",
+      "finance.net_profit_or_loss"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "49cd9d2db5e44abba87975ed4196f94ec3128dcd64cafc25c4225846e1964df0",
+      "ca7ca1d2b1015b3b0eebf03a512c0497c58b4bd8299440a701150ed9e9689dd4",
+      "0d23a5f1c3d43bdcd0064a61bec3b9f59d972e16a8558446519cf0d73af088e2",
+      "23928240a7ec6f466de1cf7bbfc05aaa5281f26329fc9d1ae7d04f4bf2964f29"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"entity_id\": \"b8e72df01f201762d2aeadd675fd6c1d6fd1bcc664ac708b9b532e20cb171d2a\",\n    \"attributes\": [\n        {\n            \"attribute\": \"finance.exchange_code\",\n            \"status\": \"found\",\n            \"raw_value\": \"NASDAQ Global Market\",\n            \"normalized_value\": null,\n            \"unit\": null,\n            \"period\": null,\n            \"evidence\": [\n                {\n                    \"source_id\": \"39.txt:c1264\",\n                    \"exact_span\": \"Listed: NASDAQ Global Market Symbol: RPD\"\n                }\n            ]\n        },\n        {\n            \"attribute\": \"finance.principal_activities\",\n            \"status\": \"not_found\",\n            \"raw_value\": null,\n            \"normalized_value\": null,\n            \"unit\": null,\n            \"period\": null,\n            \"evidence\": []\n        },\n        {\n            \"attribute\": \"finance.net_profit_or_loss\",\n            \"status\": \"not_found\",\n            \"raw_value\": null,\n            \"normalized_value\": null,\n            \"unit\": null,\n            \"period\": null,\n            \"evidence\": []\n        }\n    ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "NASDAQ Global Market",
+          "normalized_value": "NASDAQ Global Market",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "39.txt:c1264",
+              "exact_span": "Listed: NASDAQ Global Market Symbol: RPD"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "finance.principal_activities": {
+          "attribute": "finance.principal_activities",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "finance.net_profit_or_loss": {
+          "attribute": "finance.net_profit_or_loss",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "b8e72df01f201762d2aeadd675fd6c1d6fd1bcc664ac708b9b532e20cb171d2a"
+    }
+  }
+}

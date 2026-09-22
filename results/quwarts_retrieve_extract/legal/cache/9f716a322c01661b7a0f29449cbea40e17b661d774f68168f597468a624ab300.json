@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "e8c69ad486cd1cf94153d6d3da52f8cbcfdec3166cfd06407a358dcc286e3576",
+    "entity_identity": "1bc61969ed68aab6f49b076281c0c17531fd794cef9d01e49670a43dfb83f55e",
+    "attribute_bundle": [
+      "legal.judgment_year",
+      "legal.nationality_for_applicant"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "9afdf00bd3aad7fb605ab0525c1e7987866033d255569d3c6f886dc6a503f748",
+      "10261b2dbb344c2724eccd4a96b234895318dd1476222f4060e445098aa6b480",
+      "70c24f690c36d4cbb6d93409f36a71fa10706e72df0dd306bb5f912f2e968c15",
+      "6e6b51a1dcf9c3d68c6ec110b24b7668e558d2ad665983d16148e0460fd70c7a"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"1bc61969ed68aab6f49b076281c0c17531fd794cef9d01e49670a43dfb83f55e\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"182.txt:c0\",\n          \"exact_span\": \"\"\n        },\n        {\n          \"source_id\": \"182.txt:c17\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.nationality_for_applicant\",\n      \"status\": \"found\",\n      \"raw_value\": \"People's Republic of China\",\n      \"normalized_value\": \"People's Republic of China\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"182.txt:c0\",\n          \"exact_span\": \"The appellant is a citizen of the People's Republic of China.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "182.txt:c0",
+              "exact_span": ""
+            },
+            {
+              "source_id": "182.txt:c17",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.nationality_for_applicant": {
+          "attribute": "legal.nationality_for_applicant",
+          "status": "found",
+          "raw_value": "People's Republic of China",
+          "normalized_value": "People's Republic of China",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "182.txt:c0",
+              "exact_span": "The appellant is a citizen of the People's Republic of China."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "1bc61969ed68aab6f49b076281c0c17531fd794cef9d01e49670a43dfb83f55e"
+    }
+  }
+}

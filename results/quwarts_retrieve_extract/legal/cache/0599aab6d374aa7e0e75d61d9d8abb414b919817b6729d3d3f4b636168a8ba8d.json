@@ -1,0 +1,80 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "10af73814bbc46e81c7f8acf779fc08f84c62c86729c1460c378e954ef3db302",
+    "entity_identity": "c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "cc5ab774293740055812fb89e9dfe08e43b938ac48dd56aab070563e1bc91ee3",
+      "e85e412f4f89531f4b6cfc7be9f783618ce3a23903bc61a65ac58d9959d03a60",
+      "7c6721ecceed1cd8f0c307ed6d60cb4b401147729dae3c6ea8fd0e589d338eeb",
+      "893d2484bb0c92b3cde12a3adab59310b2e859f7915a9eaa0ef93782f8e4f2f2"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"found\",\n      \"raw_value\": \"2\",\n      \"normalized_value\": 2,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"247.txt:c18\",\n          \"exact_span\": \"Sections 178 and 179 of the Act Bankruptcy Act 1966 provide as follows:\"\n        },\n        {\n          \"source_id\": \"247.txt:c16\",\n          \"exact_span\": \"Sections 178 and 179 of the Act Bankruptcy Act 1966 provide as follows:\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "found",
+          "raw_value": "2",
+          "normalized_value": 2,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "247.txt:c18",
+              "exact_span": "Sections 178 and 179 of the Act Bankruptcy Act 1966 provide as follows:"
+            },
+            {
+              "source_id": "247.txt:c16",
+              "exact_span": "Sections 178 and 179 of the Act Bankruptcy Act 1966 provide as follows:"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.legal_basis_num"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a"
+    }
+  }
+}

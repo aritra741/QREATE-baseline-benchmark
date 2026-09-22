@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "27d67694cbf07a8082f81b6febb18d58dc0cdee015b1189688b781824ba61bfc",
+    "entity_identity": "e88a20beab6206503c8fa5edb5d1f263811c09bc24cb77966c3664927a0b954a",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.nationality_for_applicant"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "86190ec18b7ddcc1ced7013c2f57788e034ffe16834e225d02ca4bfa77118af5",
+      "50f0bf8b4f2fbab825ee94023159afb71bc4a3891c19a19581988f11a05efe06",
+      "a4b5bea48b37786f5254b57b87fde7fac4ca6f63b7e56f7951a694d672f78034",
+      "e6c8561b35a7c954df2b6fd0cac1a1cf1be53f1f74e7767bef4854ed8364e481"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e88a20beab6206503c8fa5edb5d1f263811c09bc24cb77966c3664927a0b954a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"The Appeal is dismissed.\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"562.txt:c28\",\n          \"exact_span\": \"The Appeal is dismissed.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.nationality_for_applicant\",\n      \"status\": \"found\",\n      \"raw_value\": \"Fijian nationals\",\n      \"normalized_value\": \"Fiji\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"562.txt:c0\",\n          \"exact_span\": \"They were born on 18 January 2006 and are Fijian nationals.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "The Appeal is dismissed.",
+          "normalized_value": "The Appeal is dismissed.",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "562.txt:c28",
+              "exact_span": "The Appeal is dismissed."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.nationality_for_applicant": {
+          "attribute": "legal.nationality_for_applicant",
+          "status": "found",
+          "raw_value": "Fijian nationals",
+          "normalized_value": "Fijian nationals",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "562.txt:c0",
+              "exact_span": "They were born on 18 January 2006 and are Fijian nationals."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 2,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "e88a20beab6206503c8fa5edb5d1f263811c09bc24cb77966c3664927a0b954a"
+    }
+  }
+}

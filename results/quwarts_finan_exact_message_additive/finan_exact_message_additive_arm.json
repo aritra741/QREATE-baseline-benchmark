@@ -1,0 +1,307 @@
+{
+  "decision": "exact messages improve QuWARTS but do not beat DocETL",
+  "invalid": false,
+  "invalid_reason": null,
+  "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+  "document_ids": [
+    "9",
+    "10",
+    "18",
+    "69",
+    "70",
+    "78",
+    "93"
+  ],
+  "note": "Controlled seven-document arm; not the generic selection policy.",
+  "completed_25": [
+    "finan_multiagg20:q4",
+    "finan_filter20:q9",
+    "finan_filter20:q7"
+  ],
+  "completed_100": [
+    "finan_multiagg20:q4",
+    "finan_filter20:q9",
+    "finan_filter20:q7",
+    "finan_multiagg20:q11",
+    "finan_multiagg20:q18",
+    "finan_agg20:q4",
+    "finan_groupby20:q14",
+    "finan_agg20:q11",
+    "finan_multiagg20:q9",
+    "finan_agg20:q13",
+    "finan_agg20:q17",
+    "finan_filter20:q8",
+    "finan_filter20:q11",
+    "finan_filter20:q15",
+    "finan_agg20:q3"
+  ],
+  "spent_25": 345960,
+  "spent_100": 1366894,
+  "unused_25": 0,
+  "unused_100": 14933,
+  "calls": 111,
+  "malformed": 0,
+  "accepted_fields": 150,
+  "accepted_fills": 109,
+  "blocked_overwrites": 72,
+  "empty_bags_a1": [
+    "finan_filter20:q8"
+  ],
+  "empty_bags_d0": [
+    "finan_multiagg20:q18",
+    "finan_agg20:q17",
+    "finan_filter20:q8",
+    "finan_agg20:q3",
+    "finan_agg20:q14"
+  ],
+  "score_a1_25": {
+    "score_16": {
+      "mean_structure_f2": 0.3515885455540628,
+      "mean_cell_f1_at_0.20": 0.041493055555555554,
+      "mean_per_query_product": 0.03142411215327882
+    },
+    "score_15": {
+      "mean_structure_f2": 0.3591547660513178,
+      "mean_cell_f1_at_0.20": 0.044259259259259255,
+      "mean_per_query_product": 0.03351905296349741
+    }
+  },
+  "score_a1_100": {
+    "score_16": {
+      "mean_structure_f2": 0.5312422252077424,
+      "mean_cell_f1_at_0.20": 0.06122989766081871,
+      "mean_per_query_product": 0.04398392076571901
+    },
+    "score_15": {
+      "mean_structure_f2": 0.5507853576819095,
+      "mean_cell_f1_at_0.20": 0.06531189083820663,
+      "mean_per_query_product": 0.04691618215010028
+    }
+  },
+  "score_d0_100": {
+    "score_16": {
+      "mean_structure_f2": 0.44893790849673204,
+      "mean_cell_f1_at_0.20": 0.0625,
+      "mean_per_query_product": 0.05246913580246914
+    },
+    "score_15": {
+      "mean_structure_f2": 0.4788671023965142,
+      "mean_cell_f1_at_0.20": 0.06666666666666667,
+      "mean_per_query_product": 0.05596707818930042
+    }
+  },
+  "comparators": {
+    "plumbing": 0.0158,
+    "prior_fresh": 0.0292,
+    "current_snapshot_replay": 0.0534,
+    "diagnostic_m4": 0.0904,
+    "frozen_docetl": 0.084
+  },
+  "per_query_a1": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.375,
+      "product": 0.375,
+      "pred_rows": 2,
+      "plumbing_product": 0.125,
+      "delta": 0.25
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 2,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.2222222222222222,
+      "product": 0.12345679012345678,
+      "pred_rows": 3,
+      "plumbing_product": 0.0,
+      "delta": 0.12345679012345678
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_20": 0.06666666666666667,
+      "product": 0.00432900432900433,
+      "pred_rows": 1,
+      "plumbing_product": 0.00432900432900433,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 2,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.6363636363636365,
+      "cell_f1_20": 0.3157894736842105,
+      "product": 0.20095693779904308,
+      "pred_rows": 7,
+      "plumbing_product": 0.12345679012345678,
+      "delta": 0.0775001476755863
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 0.8620689655172415,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 5,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 2,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 2,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q14",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    }
+  ],
+  "pair_compare_102": {
+    "n_pairs": 102,
+    "raw_tool_agreement": 0.5294117647058824,
+    "normalized_value_agreement_cells": 123,
+    "null_nonnull_agreement_cells": 234,
+    "per_attribute": {
+      "net_profit_or_loss": 17,
+      "revenue": 20,
+      "total_debt": 3,
+      "remuneration_policy": 7,
+      "dividend_per_share": 3,
+      "principal_activities": 9,
+      "net_assets": 7,
+      "auditor": 21,
+      "exchange_code": 4,
+      "business_segments_num": 8,
+      "earnings_per_share": 13,
+      "major_equity_changes": 9,
+      "the_highest_ownership_stake": 2
+    },
+    "d0_bag_agreement": 6,
+    "a1_overlay_bag_agreement": 1
+  },
+  "token_percentiles": {
+    "input_precomputed": {
+      "min": 214,
+      "max": 17320,
+      "mean": 12214.285714285714
+    }
+  },
+  "policy": {
+    "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+    "bypass_cache": true,
+    "qwen_validation_retry": false,
+    "qwen_format_repair": false,
+    "temperature": "omitted",
+    "max_tokens": "omitted",
+    "completion_reservation": 136,
+    "completion_safety": 64,
+    "max_observed_primary_completion": 72,
+    "theta_25": 345457,
+    "theta_100": 1381827,
+    "scheduling": "docetl_manifest_order",
+    "note": "Seven-document set is derived from frozen pipeline_output IDs; not the generic selection policy."
+  },
+  "hashes": {
+    "ordered_query_ids": "7107c8e6f4128aa31d14ffa21c73b1eec87ca70f687a81a8ae7bf5e415bace1d",
+    "ordered_document_ids": "52435d9a2159e8b8c6767bd19e0161a4ce5929437e3351bfaa7d6a494e01b323",
+    "source_contents": "470c8cf1af581e475601db14116fda23a6a71716a3f76ad162132fddbf759e24",
+    "schemas": "6ddc5b7a750f3a4188f350330b77d87aeb05bc008d16e6b420a7a63f5bc894cb",
+    "adapter_source": "96b99788b26d50d0f4532c5e3002ac32bef418a6e6b63fcf00baf04eb7926847",
+    "policy": "859eb3153215c4c1d1ce8f133d55e5c8925ed0617938742f335687786e579f35",
+    "plumbing": "ad91c2554f32510cb378737009e6479cfcb71299f245c7fe766722057b2b2a3d",
+    "requests": "af5a5b73f4962f28eafda175de52226818cdece3f38971b2f8955a67d24b89cc",
+    "equality": "e9cb54beb637b0f80df4f0d5ba614bb15fc9ff139a4a0d6b01b77a592bda3d9b",
+    "request_payloads_file": "55e12b199de82abd049c9b823c0e13eee55a1a70212fedf44f8ac9c4469a4d33"
+  },
+  "prior_unmodified": {
+    "plumbing": true,
+    "replay": true
+  }
+}

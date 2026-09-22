@@ -1,0 +1,68 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+    "entity_identity": "finan_groupby20:q14:9:map",
+    "attribute_bundle": [
+      "business_segments_num",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+      "aad086b286cccb61a1d898274c664d85334717604d1908529d0ec9b8594b7715",
+      "a2b3bb923b401c5b8deb570146b3e839575fde682968b3102be9e708b682bc5a",
+      "0a31090faf1b7042e982dc2c268f92b5d1d01d11e4877f8d5c2cc250a7b82515",
+      "9a54797dc5498e7a94621214030712e62c06b185c3a4b5b210126298ed747c29",
+      "5568da4c63537314435ffb24f89a06687799eda84f1dfbdf012559fd30fa818f",
+      "a6c6d2b435d172350fe64cf07286f3b99aa0da99f6e1a339ee2aa76574dfd701",
+      "76a323b9f04d4069985bbb9ec7bc7827845e29855460a991cd453d20d6ebd591"
+    ],
+    "schema_hash": "37fdc06a7bf66d37869f8a04f8c5713dce4e8c3fc48ed5e4442885e35af5cbb2",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"business_segments_num\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  },\n  \"principal_activities\": {\n    \"value\": \"Technology, Retail\",\n    \"status\": \"found\",\n    \"evidence\": \"Agile Lab: majority stake acquired\\nSourcesense: Takeover bid finalised, giving Poste 70% control\\nOn 24 January 2023, Sourcesense finalised the acquisition of Eco-Mind Ingegneria Informatica Srl and its subsidiary HeadApp Srl, IT companies operating as software factories specialising in the design and development of business, mobile and cloud-native solutions and augmented and virtual reality solutions, for a consideration of \u20ac1.1 million.\\nOn 5 August 2022, Poste Italiane signed a binding agreement to acquire a 70% stake in the Agile Lab group, accompanied by a strategic partnership with the founding partners who will retain the remaining 30%.\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "business_segments_num": {
+          "attribute": "business_segments_num",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "Technology, Retail",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Agile Lab: majority stake acquired\nSourcesense: Takeover bid finalised, giving Poste 70% control\nOn 24 January 2023, Sourcesense finalised the acquisition of Eco-Mind Ingegneria Informatica Srl and its subsidiary HeadApp Srl, IT companies operating as software factories specialising in the design and development of business, mobile and cloud-native solutions and augmented and virtual reality solutions, for a consideration of \u20ac1.1 million.\nOn 5 August 2022, Poste Italiane signed a binding agreement to acquire a 70% stake in the Agile Lab group, accompanied by a strategic partnership with the founding partners who will retain the remaining 30%.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        }
+      },
+      "errors": [
+        "grounding_failure:principal_activities"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "5086d83efa7df003df9f2fd605724ac7e553ad7790e68d7dcc3455e292bba918",
+    "entity_identity": "c93938e59ee10f47de04161afc903327eca43f291b1782ba6588d7975f3dd2b4",
+    "attribute_bundle": [
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "9df31f38761e03942ad218ed45c4766424cc463e2555198b72dca18374e98ee1",
+      "a1de2e41360c330e70fc679a3e4355763ce49c7ce56853e930a21fd0119ee84b",
+      "b3ef43ab4d5756194b73da1c9c28bdd2ca349f246ff3599fc1f2fc8523589f58",
+      "2154d984a06c53681f62b7e90a68fcb40c3823a34ba9c01c2c368c6aaa5e4d9f"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"c93938e59ee10f47de04161afc903327eca43f291b1782ba6588d7975f3dd2b4\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Marshall J.\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"560.txt:c17\",\n          \"exact_span\": \"I certify that the preceding forty-one (41) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Marshall.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Marshall J.",
+          "normalized_value": "Marshall J.",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "560.txt:c17",
+              "exact_span": "I certify that the preceding forty-one (41) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Marshall."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.judge_name"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "c93938e59ee10f47de04161afc903327eca43f291b1782ba6588d7975f3dd2b4"
+    }
+  }
+}

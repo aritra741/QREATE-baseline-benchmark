@@ -1,0 +1,80 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "d713361773e935d3a5e4625fb6918cb9e5a6d4871d392091deb0e7b0b0b30dc7",
+    "entity_identity": "181eba86446a44731d80af0096d55745d431294097159ff81106dd84e8ecb30a",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "6bf0407ed2fde3d0fa86918f72882cf7b3055544e524bb295062c83bb6d7f0ef",
+      "597b791d4d860600458ed7135fac3efbf6a153a4e5788dbeaa33174f99e70905",
+      "cb491a458c66f9fdcf054aaeee88b682a900a66236a38d4b1d6ed891563e5de8",
+      "2550e4638d801774f0caf81999510502e8acbfba5e9e12fda4d494d85eef5852"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"181eba86446a44731d80af0096d55745d431294097159ff81106dd84e8ecb30a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"497.txt:c16\",\n          \"exact_span\": \"264 of the Income Tax Assessment Act.\"\n        },\n        {\n          \"source_id\": \"497.txt:c5\",\n          \"exact_span\": \"The notice itself provided that, pursuant to s 264 of the Income Tax Assessment Act, Mr Krok was required to attend and give evidence on oath or affirmation concerning the income or assessment of himself and a number of nominated entities for the period 1 July 2000 to 30 June 2009.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "497.txt:c16",
+              "exact_span": "264 of the Income Tax Assessment Act."
+            },
+            {
+              "source_id": "497.txt:c5",
+              "exact_span": "The notice itself provided that, pursuant to s 264 of the Income Tax Assessment Act, Mr Krok was required to attend and give evidence on oath or affirmation concerning the income or assessment of himself and a number of nominated entities for the period 1 July 2000 to 30 June 2009."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "181eba86446a44731d80af0096d55745d431294097159ff81106dd84e8ecb30a"
+    }
+  }
+}

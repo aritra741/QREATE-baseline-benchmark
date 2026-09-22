@@ -1,0 +1,64 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "eb88166b3b9d336136f1f5506df21ef31337821571e1fef1e1fff6670c1c6b6c",
+    "entity_identity": "faf8e3ca808fdac64ea14cddc5b4dad0e82d90a5043ca6d842331cbffd145e53",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "19238fff1e977cb87e510045675ccf6d90ee9a3251e49e0135c2a272c94896d1",
+      "472673e9a3375af03b69fe95ac292a1ff0abcede180dbb926937b147a9e9aee7",
+      "66acc5ffcb25d7d33a7f7a030b7fe9bad3ae62f1c57f63587547d75e340e4c02",
+      "11477613aa0126b1e87f5830c87d02f3e6b1611305b60ae76b24f035023c453e"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"faf8e3ca808fdac64ea14cddc5b4dad0e82d90a5043ca6d842331cbffd145e53\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"there was no evidence to the contrary\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"294.txt:c23\",\n          \"exact_span\": \"In husband's assertions that he was not a citizen of FYROM and had no right of residence in FYROM, there was no evidence to the contrary.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "there was no evidence to the contrary",
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "294.txt:c23",
+              "exact_span": "In husband's assertions that he was not a citizen of FYROM and had no right of residence in FYROM, there was no evidence to the contrary."
+            }
+          ],
+          "errors": [
+            "dtype_coercion",
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": "dtype_coercion"
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "faf8e3ca808fdac64ea14cddc5b4dad0e82d90a5043ca6d842331cbffd145e53"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "6fa6f6037335730607055917ddba9e1a61ac91405e00285d5004ba2360f5e1dc",
+    "entity_identity": "2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "9b09d6284df8ac32e38e728389ceccde8acce4fc2266c26b2555734eae19f574",
+      "f462de42a303640aa8e3667348b62b7656c1cd4ae3bb8d5bba4b1e7339f0c3b6",
+      "276359e121b13b4d4f084033bb0f7d5ea2820f70bae208200ed3decddc9e16c7",
+      "f71c5feef01b6971d2b34c88044bbd5d8d5eed44b82410db348e08c1932dc6d5"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed with costs, which I fix in the sum of $4000\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"536.txt:c21\",\n          \"exact_span\": \"55 The appeal should be dismissed with costs, which I fix in the sum of $4000.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed with costs, which I fix in the sum of $4000",
+          "normalized_value": "dismissed with costs, which I fix in the sum of $4000",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "536.txt:c21",
+              "exact_span": "55 The appeal should be dismissed with costs, which I fix in the sum of $4000."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258"
+    }
+  }
+}

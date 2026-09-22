@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "fe9dc2be509189e383b221c710acc5a2ca8748d0e9280717f865065ae530b36a",
+    "entity_identity": "46745d0c99654ff458d7443554665b7133ba141eb212c82eb943eaaeb81d6399",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.hearing_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "9327dee3f19ceeb81bcc32964593f0bd3b62a3ff958fce607a602911c786ffda",
+      "81371eb8c01a385ef0727e58dd632948bd9c3e6953837f6be349aa37077a6953",
+      "8c023ac64e1366a7314c740e3962cc550ac0dd64fb482a3a5145790a32d32a4f",
+      "34cb2215d78f92b33e1399f3226cdc829399da5e04f8ed11f876f117f8bf39cd"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"46745d0c99654ff458d7443554665b7133ba141eb212c82eb943eaaeb81d6399\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"81.txt:c31\",\n          \"exact_span\": \"24 Accordingly, the appropriate order is that application be dismissed.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2007\",\n      \"normalized_value\": 2007,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"81.txt:c31\",\n          \"exact_span\": \"Date of Hearing: 2 May 2007\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "81.txt:c31",
+              "exact_span": "24 Accordingly, the appropriate order is that application be dismissed."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "found",
+          "raw_value": "2007",
+          "normalized_value": 2007,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "81.txt:c31",
+              "exact_span": "Date of Hearing: 2 May 2007"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 2,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "46745d0c99654ff458d7443554665b7133ba141eb212c82eb943eaaeb81d6399"
+    }
+  }
+}

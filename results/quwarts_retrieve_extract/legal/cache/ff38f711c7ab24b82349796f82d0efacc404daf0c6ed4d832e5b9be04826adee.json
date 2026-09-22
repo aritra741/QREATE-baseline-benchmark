@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "e8c69ad486cd1cf94153d6d3da52f8cbcfdec3166cfd06407a358dcc286e3576",
+    "entity_identity": "1bc61969ed68aab6f49b076281c0c17531fd794cef9d01e49670a43dfb83f55e",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.first_judge",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "528768ec46517974b611f8ebf6fceef454d5d86e3a6deda8171adb540175fe09",
+      "1004a6609ca8ea4271fbc43ed585367bed39a507bbc6662b13bd6f9910bb9454",
+      "ba41f3d2e3afa194520e71f9c20333b11918172033ea5d2dbf5eafadd314e575",
+      "26907be8c82c3dd9d86ffea7870021cfbe6c1f9920e36a8ddba099faf434d5aa"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"1bc61969ed68aab6f49b076281c0c17531fd794cef9d01e49670a43dfb83f55e\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Civil Case\",\n      \"normalized_value\": \"Civil Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"182.txt:c25\",\n          \"exact_span\": \"I certify that the preceding sixty-six (66) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Lander.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Civil Case",
+          "normalized_value": "Civil Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "182.txt:c25",
+              "exact_span": "I certify that the preceding sixty-six (66) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Lander."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "1bc61969ed68aab6f49b076281c0c17531fd794cef9d01e49670a43dfb83f55e"
+    }
+  }
+}

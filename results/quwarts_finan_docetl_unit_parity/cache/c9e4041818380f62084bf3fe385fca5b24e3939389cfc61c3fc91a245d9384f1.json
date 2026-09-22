@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+    "entity_identity": "finan_filter20:q11:78:map",
+    "attribute_bundle": [
+      "auditor",
+      "net_assets",
+      "net_profit_or_loss"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+      "d54ac661537b6401bcd61659ac248e226ba62f95502cefe6a40d8ff063a54911",
+      "7620921736bb21e6ba458929dbb9f96c401afc37c419d49b965ce75bd2d03305",
+      "1c952a4a4dc2c16529064075f6f3a437d6f6261ea7e21e5a05b5a4e5e5f63111",
+      "3d7eb71d25447e067895b406e25a54ae823da0e8c69ab8b90cf3833db015f034",
+      "080cf5b2edc94ed1a0efaf253fbeaba62446d9b3844579a1ade1a756b38aa8c1",
+      "3aca2078bd872220ca89173025ba99bf533be49b6ae0544a39f33d7659045b1c",
+      "c14f8f58b49aeea7b99b66720385e658ed3893f003ca9d9b49238bb59fdfbac8",
+      "35a762da4e82e15c7db311e1925399da8096af715d10fd4c7b46e6d7e150178a"
+    ],
+    "schema_hash": "5f9768455c35d3498295b96b0dccabc77b64eb589804a7b342ede0e5ce81dee9",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"auditor\": {\"value\": \"EY\", \"status\": \"found\", \"evidence\": \"At the first one, we debated a request filed by a shareholder to add an item to the Agenda of the Annual General Meeting, seeking to oblige the Executive Board to initiate the spin-off of RWE Power AG from its parent RWE AG. We did not endorse this proposal, as we believe it is not in the interests of RWE or its owners. The topic addressed at the second extraordinary meeting was the issuance of a mandatory convertible bond to Qatar Holding LLC, a subsidiary of the Qatar Investment Authority. Proceeds from the issuance were to be used to finance the acquisition of Con Edison Clean Energy Businesses.\\n\\n- \u00b7 Audit Committee. The Audit Committee convened five times. It carefully reviewed the financial statements of RWE AG and the Group, the combined review of operations, the report on the first half of the year, the quarterly statements, and the Non-financial Statement. It discussed the financial statements with the Executive Board before they were published and received reports on the outcome of the audits and audit-like reviews from the independent auditors. Furthermore, the Audit Committee submitted a recommendation to the Supervisory Board regarding the election of the independent auditors for fiscal 2022, prepared the grant of the audit award to the independent auditors including the fee\"}\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "EY",
+          "normalized_value": "EY",
+          "status": "found",
+          "evidence": "At the first one, we debated a request filed by a shareholder to add an item to the Agenda of the Annual General Meeting, seeking to oblige the Executive Board to initiate the spin-off of RWE Power AG from its parent RWE AG. We did not endorse this proposal, as we believe it is not in the interests of RWE or its owners. The topic addressed at the second extraordinary meeting was the issuance of a mandatory convertible bond to Qatar Holding LLC, a subsidiary of the Qatar Investment Authority. Proceeds from the issuance were to be used to finance the acquisition of Con Edison Clean Energy Businesses.\n\n- \u00b7 Audit Committee. The Audit Committee convened five times. It carefully reviewed the financial statements of RWE AG and the Group, the combined review of operations, the report on the first half of the year, the quarterly statements, and the Non-financial Statement. It discussed the financial statements with the Executive Board before they were published and received reports on the outcome of the audits and audit-like reviews from the independent auditors. Furthermore, the Audit Committee submitted a recommendation to the Supervisory Board regarding the election of the independent auditors for fiscal 2022, prepared the grant of the audit award to the independent auditors including the fee",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "net_assets": {
+          "attribute": "net_assets",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        },
+        "net_profit_or_loss": {
+          "attribute": "net_profit_or_loss",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        }
+      },
+      "errors": [
+        "omitted:net_assets",
+        "omitted:net_profit_or_loss"
+      ],
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

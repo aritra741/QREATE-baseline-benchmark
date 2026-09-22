@@ -1,0 +1,94 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "82efbd38d66a1a2b2f9a0c2fda0d747c01b2d49a536da1f132e89e2a8d8544ee",
+    "entity_identity": "fe5bd4ce2aa8005a143ad1932052000cc6df687d879c0297786d4a6caf4bc4ba",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.judgment_year",
+      "legal.defendant_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "10d98a04650a1a76d5e88c32f6856a1e67e57e82afec9a844a3c4ea6572fd6a9",
+      "0ab4c0c49cac7343a4dd88f62b5d329e5dcf893fddff97dd59f2ae74f806d572",
+      "177433f62b6f4672d047b958cae306167b329573b137224ae1fee5f7450bc133",
+      "30d31f640ef2f6dc84f97d13bc8ac81afadf250df3221bf1cee0113e2b1b68f6"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"fe5bd4ce2aa8005a143ad1932052000cc6df687d879c0297786d4a6caf4bc4ba\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"400.txt:c14\",\n          \"exact_span\": \"His Honour noted that a consequence was the trial had to be vacated.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2008\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"400.txt:c19\",\n          \"exact_span\": \"Dated: 19 June 2008\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "400.txt:c14",
+              "exact_span": "His Honour noted that a consequence was the trial had to be vacated."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "found",
+          "raw_value": "2008",
+          "normalized_value": 2008,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "400.txt:c19",
+              "exact_span": "Dated: 19 June 2008"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "fe5bd4ce2aa8005a143ad1932052000cc6df687d879c0297786d4a6caf4bc4ba"
+    }
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "fea0afa2db38a260f7d84b85517b2201a8b1004ce6f75922fb926541d5b70348",
+    "entity_identity": "ab87e0c4f9a839c50431aa3b0eb5f5d2fbd66dc6c6893e3bc36aff33b0d69005",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.evidence",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "f9b6985961e0440f6cc96b0df0cb94636b3a36924974b5c132e215ee37a04325",
+      "429a1bb39e3b9ad179cddc4970eb25799346b0e506d33230a4cbaebeef97617a",
+      "1a98e2eb6c9fcf1eaf68565d6a02662a0e9a146ea71f49559769a43c8d407095",
+      "b09d4345a64a73f87ea8b6efc26449e5b0f2638660f50e841320e7537388d3ef"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"ab87e0c4f9a839c50431aa3b0eb5f5d2fbd66dc6c6893e3bc36aff33b0d69005\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed with costs\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"137.txt:c9\",\n          \"exact_span\": \"The application for leave to appeal will be dismissed with costs.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2006\",\n      \"normalized_value\": 2006,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"137.txt:c9\",\n          \"exact_span\": \"Dated: 13 November 2006\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed with costs",
+          "normalized_value": "dismissed with costs",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "137.txt:c9",
+              "exact_span": "The application for leave to appeal will be dismissed with costs."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "found",
+          "raw_value": "2006",
+          "normalized_value": 2006,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "137.txt:c9",
+              "exact_span": "Dated: 13 November 2006"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "ab87e0c4f9a839c50431aa3b0eb5f5d2fbd66dc6c6893e3bc36aff33b0d69005"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "probe": "Extract the requested attribute for this entity from the supplied source text only. Do not invent a value that is not supported by a quoted span. If the document does not support a value, set presence to NOT_PRESENT. Return the raw proposed value, a normalized value, exact supporting spans, character offsets if visible, the subject/entity, temporal period if applicable, the role or component represented, confidence, and competing occurrences.",
+  "scan": "Scan this source chunk. For each listed attribute, if the chunk contains supporting evidence, quote the span and name the attribute. If none, say NONE.",
+  "adjudicate": "Adjudicate two independent source readings. Use the raw source and cited spans. Return one supported value with offsets, or mark unresolved. Do not invent.",
+  "classify": "Map the extracted source evidence onto one workload-visible label, or NOT_PRESENT. Do not pick a label without supporting evidence.",
+  "planner": "Compile one reusable candidate-selection program. Output only the DSL object. Do not select cells. Do not emit entity IDs, document IDs, corpus names, or sample constants.",
+  "critique": "Rewrite the program to fix the listed source-grounded training errors. Output only the DSL object.",
+  "pair": "Choose which of X or Y is supported by the source document for the attribute. Identify a concrete source-supported error if one side is wrong. Output X or Y."
+}

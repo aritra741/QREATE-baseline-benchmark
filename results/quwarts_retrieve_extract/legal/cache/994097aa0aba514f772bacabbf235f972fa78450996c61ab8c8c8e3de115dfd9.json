@@ -1,0 +1,73 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "c456cd7fe0b2cfd87c3a5e11c7c202e840dba4e0ad54c176a09b1f675065158f",
+    "entity_identity": "18f565095dd89d01578403ecc8da57b93f7ee2d4d8a804b65117bdec1cfdc42e",
+    "attribute_bundle": [
+      "legal.judgment_year",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "620130b5d75d6d1fe83bb588892be12d394fcd06669a1360115fa825ace7d26c",
+      "67335c1a6588952a48f8967fff86b70826b631e32f184bb7b04326ca4466ab0c",
+      "a7a1162066eeac52d1fdcc6b8e2ffa5970a9917434d68fadbc3e69ff1752ad15",
+      "299470c9e213bafb046d1759bebf7f4d3fef716c016da9eb2e30da4321b812e5",
+      "2d4d3f5149e3cfd2a119ebba7de0537d9b0dede7d6bb3b86df08733bac309c02"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"18f565095dd89d01578403ecc8da57b93f7ee2d4d8a804b65117bdec1cfdc42e\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2008\",\n      \"normalized_value\": 2008,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"534.txt:c21\",\n          \"exact_span\": \"Date of Judgment: 21 July 2008\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "found",
+          "raw_value": "2008",
+          "normalized_value": 2008,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "534.txt:c21",
+              "exact_span": "Date of Judgment: 21 July 2008"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "18f565095dd89d01578403ecc8da57b93f7ee2d4d8a804b65117bdec1cfdc42e"
+    }
+  }
+}

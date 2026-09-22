@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "48d9dc25e4e3304651ca04da32c5c737b722371ca8584d670165a40a5f01ba75",
+    "entity_identity": "8dd687b9caec5c7e10186ab922c21e663b67299f255f94787c423927ec7ad88d",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "2605416c79abfd737a40456998750ee696dc56357c0121120d3ff68612e20a1c",
+      "b246689e800feee09fd614ace0a4b0e00b189ebdd93fcb829a3b6c5bd21b5663",
+      "3afc551707c127e3d03f7309ffb3744ed9411be94fbc840403fa578ef3fe5dda",
+      "39e04854c0b9700f7acc1b830c741600745441ff7dbf108b30ace5eb9d234ea2"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"8dd687b9caec5c7e10186ab922c21e663b67299f255f94787c423927ec7ad88d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"OCGN\",\n      \"normalized_value\": \"OCGN\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"75.txt:c421\",\n          \"exact_span\": \"Our common stock is traded on the Nasdaq Capital Market under the symbol \\\"OCGN.\\\"\"\n        },\n        {\n          \"source_id\": \"75.txt:c1\",\n          \"exact_span\": \"Securities registered pursuant to Section 12(b) of the Act:\\nTitle of each class\\nTrading symbol(s)\\nName of each exchange on which registered\\nCommon Stock\\nOCGN\\nThe Nasdaq Stock Market LLC (The Nasdaq Capital Market)\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "OCGN",
+          "normalized_value": "OCGN",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "75.txt:c421",
+              "exact_span": "Our common stock is traded on the Nasdaq Capital Market under the symbol \"OCGN.\""
+            },
+            {
+              "source_id": "75.txt:c1",
+              "exact_span": "Securities registered pursuant to Section 12(b) of the Act:\nTitle of each class\nTrading symbol(s)\nName of each exchange on which registered\nCommon Stock\nOCGN\nThe Nasdaq Stock Market LLC (The Nasdaq Capital Market)"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "8dd687b9caec5c7e10186ab922c21e663b67299f255f94787c423927ec7ad88d"
+    }
+  }
+}

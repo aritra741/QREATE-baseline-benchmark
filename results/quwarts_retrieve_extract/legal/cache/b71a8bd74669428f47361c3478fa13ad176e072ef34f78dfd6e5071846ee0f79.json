@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "122762c24275222b971798cc1da5a16207389c73e99181fde624247c1b599fcf",
+    "entity_identity": "24fb850448e12d558dc9853c1366ef8433c480c305406387fd8b12ac1a7a9221",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "21baa8fad8ef54769da1eac1cf33902abc57bfdc44ebafacaf46fdb3ee3b270f",
+      "b0f8b0409d53120140e3c3c13b7e2a745cfc48c8d672f30aee851d9d7a7856cf",
+      "4abf6b65475f9f1b2753f0fa2ed6af5b33437e53c5a78f42374227385aa1019f",
+      "88663c533c4ea5afeb32b098cd2baf8326f8c53bd46a4bfa4a30890b80aef171"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"24fb850448e12d558dc9853c1366ef8433c480c305406387fd8b12ac1a7a9221\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"Guilty\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"17.txt:c7\",\n          \"exact_span\": \"I am satisfied, which justifies the assessment of damages in the sum of $90,000 is for the capital loss, and that in my view, is sufficient compensation for the [appellant] in this application.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "Guilty",
+          "normalized_value": "Guilty",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "17.txt:c7",
+              "exact_span": "I am satisfied, which justifies the assessment of damages in the sum of $90,000 is for the capital loss, and that in my view, is sufficient compensation for the [appellant] in this application."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "24fb850448e12d558dc9853c1366ef8433c480c305406387fd8b12ac1a7a9221"
+    }
+  }
+}

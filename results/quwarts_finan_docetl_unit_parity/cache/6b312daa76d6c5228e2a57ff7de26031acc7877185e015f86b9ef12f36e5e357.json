@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+    "entity_identity": "finan_filter20:q9:10:map",
+    "attribute_bundle": [
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+      "b20e1b20aec20de468930c8478233b491a6c508b653d2cb50a77ac6ce63a2c20",
+      "639efbcc18ca83a5633b4b5859b736e1ae057766e8b77b839399ec99c8122d37",
+      "b450d4d5251b8ebc753bf23b6187fe1858c7d9ffaffccde47838d56bef1d1168",
+      "a02c2f86635c1adae8f879a46cd339d0518779ab062ab61fa423c8ee3fdec55b",
+      "8521fcf2e924c2be61973081d66b63c92b49df0bc9b1e895ae94a03883f82754",
+      "a104bf66db97ab59dab79042e6697c9b7d037bdb1e73b512812ab6df1e233deb",
+      "af2c9aa1887e7690c994fae5f6f519d859199301e5c2540614128a7f98146362",
+      "b398a93a5b91fb509bc3c98792d90cdf01e7d5cfe5bde0d758f0158dee19b4e5"
+    ],
+    "schema_hash": "4a64de35aba7336cf8b343ab512aa9e46d57c44935a77a2afe4bf77cf2a45b54",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"remuneration_policy\": {\n        \"value\": \"Mixed\",\n        \"status\": \"found\",\n        \"evidence\": \"loan loss reserves of $1.7 million. I'm pleased to say we achieved this goal.\"\n    },\n    \"revenue\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": "Mixed",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "loan loss reserves of $1.7 million. I'm pleased to say we achieved this goal.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:remuneration_policy"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

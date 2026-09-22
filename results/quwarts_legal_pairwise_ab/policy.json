@@ -1,0 +1,16 @@
+{
+  "theta_25": 12610011,
+  "frozen_A": 3468542,
+  "frozen_B_cumulative": 7491088,
+  "headroom": 5118923,
+  "resolution": "if A==B use A; else if J1 and J2 map to the same frozen ID use it; elif both KEEP use KEEP; else A",
+  "weights": {
+    "A_cand_B_cand": 3,
+    "A_cand_B_keep": 2,
+    "A_keep_B_cand": 2
+  },
+  "schedule": "occurrence * sql_amplification * disagreement_weight / reserved_pair; round-robin attributes",
+  "no_repair_calls": true,
+  "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+  "seed": 42
+}

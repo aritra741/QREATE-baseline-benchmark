@@ -1,0 +1,68 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+    "entity_identity": "finan_filter20:q9:18:map",
+    "attribute_bundle": [
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+      "d48b6baebca3a417159feaa8bdb03cf403666d01680d15febd2c967f46f7d77b",
+      "4f83a6df61d834a96618756771f36b70a5186968db04ecb40929246b9215787b",
+      "ca3eff1bdeb5e36695aee40f35d3b3bb240b1ceaad4858cb5aa8ab19e383e49c",
+      "e8dd32bf13fe14cd1a3dfe48ba54367484950ebd2cfe7bb8cab16f88b699ec46",
+      "2058ca2a2c228eb486f190da187cbae2dd36cc980796a9a8834850a8e3c8f918",
+      "2b8c7c9d8ec9db69e55bdcb1e16507d2b727e567f480752feeaae22f6bdc9757",
+      "a62e6da0438d290ad4eb1c52721093403f3856fd7db79847273afe75ac290565"
+    ],
+    "schema_hash": "4a64de35aba7336cf8b343ab512aa9e46d57c44935a77a2afe4bf77cf2a45b54",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"remuneration_policy\": {\"value\": \"Mixed\", \"status\": \"found\", \"evidence\": \"Pension contributions for existing Executive Directors  will be as follows: Pension, Share ownership guidelines, Non-executive Directors, Benefits, Annual bonus, salary\"},\n    \"revenue\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": "Mixed",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Pension contributions for existing Executive Directors  will be as follows: Pension, Share ownership guidelines, Non-executive Directors, Benefits, Annual bonus, salary",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:remuneration_policy"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

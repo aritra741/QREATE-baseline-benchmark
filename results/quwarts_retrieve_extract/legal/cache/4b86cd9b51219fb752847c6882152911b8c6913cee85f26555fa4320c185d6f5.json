@@ -1,0 +1,72 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "21b4a85760fc940fe4794d407ad5f2600d12ba431847731b4828678cc438f0c7",
+    "entity_identity": "4c70d3824f13d36320c606a03d2d33b606b2b598f60cf4e5099f1a19593a8326",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "4a1651320d444a1d15dac20dda11c856bc684305c8d956e192acd448df62064f",
+      "1754537ccd8f9a167b955db5cf9325c0ab5ae22a0a9eab06ad58217953f8a4c2",
+      "adff6ecbbd976b8531d98e9f4736c9bdde9f436c5c07fa183ccf3e8ae7b4d0c7",
+      "518894596b6a45580bf1c5d7dd4fb7cba3f3d75fd59cc414dbc06cca0aaa5877"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"4c70d3824f13d36320c606a03d2d33b606b2b598f60cf4e5099f1a19593a8326\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed with costs\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"332.txt:c30\",\n          \"exact_span\": \"60 For these reasons the appeal will be dismissed with costs.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed with costs",
+          "normalized_value": "dismissed with costs",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "332.txt:c30",
+              "exact_span": "60 For these reasons the appeal will be dismissed with costs."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "4c70d3824f13d36320c606a03d2d33b606b2b598f60cf4e5099f1a19593a8326"
+    }
+  }
+}

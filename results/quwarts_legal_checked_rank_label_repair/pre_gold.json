@@ -1,0 +1,152 @@
+{
+  "labels": {
+    "train_groups": 60,
+    "validation_groups": 32,
+    "positive_rows": 184,
+    "negative_rows": 1014,
+    "train_positive_rows": 125,
+    "train_negative_rows": 657,
+    "validation_positive_rows": 59,
+    "validation_negative_rows": 357,
+    "multi_value_identical_groups": 52,
+    "all_positive_groups": 0,
+    "extracted_keep": 2,
+    "uncertain": 443,
+    "incumbent_non_null": 423,
+    "train_do_not_write": 0,
+    "old_query_equivalence": {
+      "train": {
+        "groups": 60,
+        "positive_rows": 525,
+        "negative_rows": 257,
+        "all_positive_groups": 24
+      },
+      "validation": {
+        "groups": 32,
+        "positive_rows": 290,
+        "negative_rows": 126,
+        "all_positive_groups": 14
+      }
+    }
+  },
+  "selected_policy": {
+    "policy": "ranker_only",
+    "candidate_accuracy": 0.25,
+    "candidate_accuracy_n": [
+      8,
+      32
+    ],
+    "committed_precision": 0.7272727272727273,
+    "committed_precision_n": [
+      8,
+      11
+    ],
+    "uncertain_incorrect_rate": 0.07894736842105263,
+    "uncertain_incorrect_n": [
+      12,
+      152
+    ],
+    "keep_preservation": 1.0,
+    "keep_preservation_n": [
+      2,
+      2
+    ],
+    "writes": 23,
+    "objective": [
+      0.25,
+      0.7272727272727273,
+      -0.07894736842105263,
+      1.0,
+      -23
+    ]
+  },
+  "gates": [
+    {
+      "kind": "one_class_svm",
+      "committed_recall": 0.59375,
+      "keep_preservation": 1.0,
+      "uncertain_write_rate": 0.5789473684210527,
+      "objective": [
+        1.0,
+        -0.5789473684210527,
+        0.59375
+      ]
+    },
+    {
+      "kind": "isolation_forest",
+      "committed_recall": 0.9375,
+      "keep_preservation": 0.5,
+      "uncertain_write_rate": 0.881578947368421,
+      "objective": [
+        0.5,
+        -0.881578947368421,
+        0.9375
+      ]
+    }
+  ],
+  "overfit": {
+    "writeability_recall_on_committed_train": [
+      51,
+      60
+    ],
+    "top1_value_class": [
+      38,
+      60
+    ],
+    "positive_set_recall": [
+      73,
+      125
+    ]
+  },
+  "baselines": {
+    "always_abstain": {
+      "candidate_accuracy": 0.0,
+      "writes": 0,
+      "candidate_accuracy_n": [
+        0,
+        32
+      ]
+    },
+    "highest_priority_channel": {
+      "candidate_accuracy": 0.59375,
+      "candidate_accuracy_n": [
+        19,
+        32
+      ]
+    },
+    "source_supported_channel": {
+      "candidate_accuracy": 0.59375,
+      "candidate_accuracy_n": [
+        19,
+        32
+      ]
+    },
+    "repaired_ranker": {
+      "policy": "ranker_only",
+      "candidate_accuracy": 0.25,
+      "candidate_accuracy_n": [
+        8,
+        32
+      ]
+    }
+  },
+  "writes": 219,
+  "accepted": 219,
+  "writes_by_attribute": {
+    "hearing_year": 124,
+    "case_type": 32,
+    "defendant_current_status": 59,
+    "plaintiff_current_status": 4
+  },
+  "writes_by_channel": {
+    "workload_label": 37,
+    "surface": 181,
+    "normalized": 1
+  },
+  "causal_spent": 3626478,
+  "new_model_spend": 0,
+  "empty_overlay_writes": 0,
+  "rebuild_match": true,
+  "distance_threshold": 1.0000000002676086,
+  "selected_gate": "one_class_svm"
+}

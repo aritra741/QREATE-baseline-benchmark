@@ -1,0 +1,68 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "077ada8abee5fdbf51165267370925ca766169a9002e1dbdaceee7a578bc8964",
+    "entity_identity": "finan_groupby20:q14:93:map",
+    "attribute_bundle": [
+      "business_segments_num",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "077ada8abee5fdbf51165267370925ca766169a9002e1dbdaceee7a578bc8964",
+      "5d4bb3893e140a7227ab7652dc9dd70d70c924099fd27783e4be59c8e9821208",
+      "f926a21d4f65ce92bfe5c590a61c109eee21822a902537e5d7c9f03cb4b70bd9",
+      "0c6fb12f340ab890dbd65d5f423bec81768bec66af1640fb0a9318c42cc2e268",
+      "6c1f54b557ab75d89599766e1f40b245984449f18b69fd1030fdb1e02169b5c5",
+      "074ab60029d2c2722a49e7bc692b54af8dfde6defc1214d0a69e7f3e838fa58d",
+      "54658c0d7c2ac18ed6391d5a6ab8fa428dab750c5e2a75035c0333410a976cac",
+      "bf07a2270d896d96c266e0f0ad0e694600998ead2a37467208f0aa7913292fe0"
+    ],
+    "schema_hash": "37fdc06a7bf66d37869f8a04f8c5713dce4e8c3fc48ed5e4442885e35af5cbb2",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"business_segments_num\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  },\n  \"principal_activities\": {\n    \"value\": \"Other\",\n    \"status\": \"found\",\n    \"evidence\": \"SIG is a leading supplier of specialist insulation, roofing materials, and sustainable building products to customers across Europe, known for our expertise, quality service, and reliability.\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "business_segments_num": {
+          "attribute": "business_segments_num",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "Other",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "SIG is a leading supplier of specialist insulation, roofing materials, and sustainable building products to customers across Europe, known for our expertise, quality service, and reliability.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        }
+      },
+      "errors": [
+        "grounding_failure:principal_activities"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

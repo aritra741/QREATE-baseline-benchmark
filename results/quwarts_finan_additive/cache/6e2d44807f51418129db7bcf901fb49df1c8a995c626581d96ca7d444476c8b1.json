@@ -1,0 +1,57 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "f78f3a30f38d5410606133e0915265fab6701a9146215031e36c040afc3bf060",
+    "entity_identity": "38b87d01ee8da490bfa71c3ab8ca57775d6606fcefee8f9016afe836002cc8f9",
+    "attribute_bundle": [
+      "finance.net_assets"
+    ],
+    "context_mode": "section_map",
+    "context_hashes": [
+      "9d65624e9003ea340e2692311a4e599de05f0cea6982f97a081e977be72acf62",
+      "328261a30782c303a02755b527aa471610e68dc0972380779fc3123cb89c5688"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "8618065b9994933e17c6553ab9e03b3345ff0d7b46bd8165fca4d7036da6e1e2",
+    "operator": "finan_additive",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"38b87d01ee8da490bfa71c3ab8ca57775d6606fcefee8f9016afe836002cc8f9\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.net_assets\",\n      \"status\": \"found\",\n      \"raw_value\": \"5,368.6\",\n      \"normalized_value\": null,\n      \"unit\": \"$mill\",\n      \"period\": \"For the year ended 30 September 2022\",\n      \"evidence\": [\n        {\n          \"source_id\": \"11.txt:s492\",\n          \"exact_span\": \"Net assets                                       |       |                          |                |                   |                |            |                    |                      | 5,368.6                    \"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "finance.net_assets": {
+          "attribute": "finance.net_assets",
+          "status": "found",
+          "raw_value": "5,368.6",
+          "normalized_value": 5368.6,
+          "unit": "$mill",
+          "period": "For the year ended 30 September 2022",
+          "evidence": [
+            {
+              "source_id": "11.txt:s492",
+              "exact_span": "Net assets                                       |       |                          |                |                   |                |            |                    |                      | 5,368.6                    "
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "38b87d01ee8da490bfa71c3ab8ca57775d6606fcefee8f9016afe836002cc8f9"
+    }
+  }
+}

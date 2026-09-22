@@ -1,0 +1,93 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+    "entity_identity": "finan_multiagg20:q18:70:map",
+    "attribute_bundle": [
+      "auditor",
+      "exchange_code",
+      "net_profit_or_loss",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+      "3a3f74fedb858d405fe0011c06f6f3b8ae384c32f6378595ab5c2b55b6a14656",
+      "a58dc10cbdd7fefb76f87c035a12aa03c7b98e0550e12ce419f1f64ee362c987",
+      "f67f34d4d75298ea1e9afda89b7479356d8e02262e0c4210e2b985428f85ebec",
+      "4000b80bc5d5da3c84cc241dd8aecb5e4bcb645cdb19b69f8c109cd1df82a333",
+      "41df6dd6d07c5b3b40ca81428dac5f3a5687af453aeb1e84893a8a82afeaca0b",
+      "4ca23e74384135343c4e1a9528d647520b244bf7c29d70703e0c51c79758e467",
+      "9a80099d62904e5432ba98b286312a7fde255409024851b9a29235ec6e225f66"
+    ],
+    "schema_hash": "ec462b608e1c52023113548b20860431023a313364ec6ad645a31b5f686196a4",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"auditor\": {\"value\": \"KPMG\", \"status\": \"found\", \"evidence\": \"The Audit Committee dealt at length with the financial statements at its meeting on 17 March 2023. At the meeting on 22 March 2023, the Supervisory Board examined the parent company and Group financial statements of Commerzbank Aktiengesellschaft as well as the management reports of the parent company and the Group. Representatives of the auditor attended the meeting of the Audit Committee on 17 March 2023 and the meeting of the Supervisory Board on 22 March 2023, reported on the main results of their audit and answered supplementary questions from the members of the Supervisory Board.\"}\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "KPMG",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "The Audit Committee dealt at length with the financial statements at its meeting on 17 March 2023. At the meeting on 22 March 2023, the Supervisory Board examined the parent company and Group financial statements of Commerzbank Aktiengesellschaft as well as the management reports of the parent company and the Group. Representatives of the auditor attended the meeting of the Audit Committee on 17 March 2023 and the meeting of the Supervisory Board on 22 March 2023, reported on the main results of their audit and answered supplementary questions from the members of the Supervisory Board.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "exchange_code": {
+          "attribute": "exchange_code",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        },
+        "net_profit_or_loss": {
+          "attribute": "net_profit_or_loss",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        }
+      },
+      "errors": [
+        "grounding_failure:auditor",
+        "omitted:exchange_code",
+        "omitted:net_profit_or_loss",
+        "omitted:revenue"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 3,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

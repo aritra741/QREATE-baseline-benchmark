@@ -1,0 +1,362 @@
+[
+  {
+    "id": "year_fy_vs_baseline",
+    "class": "year",
+    "attr": "fiscal_year",
+    "dtype": "numeric/INTEGER",
+    "desc": "The fiscal year of the report being described.",
+    "entity": "Helios Labs annual report H-17",
+    "supported": {
+      "Value": "2022",
+      "Meaning": "report fiscal year",
+      "Evidence": "Helios Labs Annual Report for Fiscal Year 2022",
+      "Heading": "Fiscal Year 2022",
+      "Period": "2022",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "2018",
+      "Meaning": "comparison baseline year",
+      "Evidence": "compared with the 2018 baseline",
+      "Heading": "Historical comparison",
+      "Period": "2018",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "year_filing_vs_incorporation",
+    "class": "year",
+    "attr": "filing_year",
+    "dtype": "numeric/INTEGER",
+    "desc": "The year this filing was submitted.",
+    "entity": "Orion Packing Form 10-K, document O-4",
+    "supported": {
+      "Value": "2021",
+      "Meaning": "filing year on the cover",
+      "Evidence": "Filed with the commission on 12 March 2021",
+      "Heading": "Cover page",
+      "Period": "2021",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "1996",
+      "Meaning": "year the company was incorporated",
+      "Evidence": "Orion Packing was incorporated in 1996",
+      "Heading": "Corporate history",
+      "Period": "1996",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "entity_helios_vs_orion",
+    "class": "entity",
+    "attr": "chief_executive",
+    "dtype": "text/TEXT",
+    "desc": "Name of the chief executive of the entity described by this document.",
+    "entity": "Helios Labs, document H-17",
+    "supported": {
+      "Value": "Mara Chen",
+      "Meaning": "CEO of Helios Labs",
+      "Evidence": "Mara Chen, Chief Executive Officer of Helios Labs, signed the report",
+      "Heading": "Signatures",
+      "Period": "",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "Jon Hale",
+      "Meaning": "CEO of a different company",
+      "Evidence": "Jon Hale, Chief Executive Officer of Orion Packing",
+      "Heading": "Industry peers",
+      "Period": "",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "entity_parent_vs_subsidiary",
+    "class": "entity",
+    "attr": "employee_count",
+    "dtype": "numeric/INTEGER",
+    "desc": "Headcount of the reporting parent entity.",
+    "entity": "Northwind Mills parent company, document N-2",
+    "supported": {
+      "Value": "4100",
+      "Meaning": "parent company employees",
+      "Evidence": "Northwind Mills employed 4,100 people at year end",
+      "Heading": "Employees",
+      "Period": "",
+      "Unit": "people",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "180",
+      "Meaning": "subsidiary headcount",
+      "Evidence": "the Cedar Ridge mill, a subsidiary, employed 180 people",
+      "Heading": "Subsidiary operations",
+      "Period": "",
+      "Unit": "people",
+      "Component": "Cedar Ridge mill",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "total_revenue_vs_segment",
+    "class": "total_vs_component",
+    "attr": "total_revenue",
+    "dtype": "numeric/REAL",
+    "desc": "Consolidated total revenue for the reporting period, not a segment.",
+    "entity": "Helios Labs, document H-17",
+    "supported": {
+      "Value": "1280000000",
+      "Meaning": "consolidated total revenue",
+      "Evidence": "Total revenue $1,280 million",
+      "Heading": "Consolidated statements",
+      "Period": "2022",
+      "Unit": "USD",
+      "Component": "total",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "210000000",
+      "Meaning": "one product segment",
+      "Evidence": "Optics segment revenue $210 million",
+      "Heading": "Segment results",
+      "Period": "2022",
+      "Unit": "USD",
+      "Component": "optics",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "total_headcount_vs_department",
+    "class": "total_vs_component",
+    "attr": "staff_total",
+    "dtype": "numeric/INTEGER",
+    "desc": "Total staff of the entity, not a single department.",
+    "entity": "Orion Packing, document O-4",
+    "supported": {
+      "Value": "960",
+      "Meaning": "company-wide staff",
+      "Evidence": "Total staff 960",
+      "Heading": "Workforce",
+      "Period": "2021",
+      "Unit": "people",
+      "Component": "total",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "40",
+      "Meaning": "warehouse department only",
+      "Evidence": "Warehouse department: 40 staff",
+      "Heading": "Department table",
+      "Period": "2021",
+      "Unit": "people",
+      "Component": "warehouse",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "current_status_vs_former",
+    "class": "current_vs_historical",
+    "attr": "operating_status",
+    "dtype": "text/TEXT",
+    "desc": "Current operating status of the entity, not a past status.",
+    "entity": "Cedar Ridge mill, document N-2",
+    "supported": {
+      "Value": "operating",
+      "Meaning": "current status",
+      "Evidence": "The Cedar Ridge mill is currently operating at full capacity",
+      "Heading": "Current operations",
+      "Period": "2022",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "idled",
+      "Meaning": "historical status",
+      "Evidence": "The mill was idled during 2015 maintenance",
+      "Heading": "History",
+      "Period": "2015",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "current_ceo_vs_retired",
+    "class": "current_vs_historical",
+    "attr": "current_chair",
+    "dtype": "text/TEXT",
+    "desc": "The person who currently chairs the board.",
+    "entity": "Helios Labs, document H-17",
+    "supported": {
+      "Value": "Ruth Okoye",
+      "Meaning": "current board chair",
+      "Evidence": "Ruth Okoye currently serves as Chair of the Board",
+      "Heading": "Board of directors",
+      "Period": "2022",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "Paul Nye",
+      "Meaning": "retired former chair",
+      "Evidence": "Paul Nye retired as chair in 2019",
+      "Heading": "Former officers",
+      "Period": "2019",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "table_cell_vs_page_number",
+    "class": "table_vs_heading",
+    "attr": "net_income",
+    "dtype": "numeric/REAL",
+    "desc": "Net income from the financial table, not a page number or heading numeral.",
+    "entity": "Orion Packing, document O-4",
+    "supported": {
+      "Value": "47000000",
+      "Meaning": "net income table cell",
+      "Evidence": "Net income 47,000,000",
+      "Heading": "Income statement / Net income",
+      "Period": "2021",
+      "Unit": "USD",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "47",
+      "Meaning": "page number",
+      "Evidence": "\u2014 47 \u2014",
+      "Heading": "Page footer",
+      "Period": "",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "table_amount_vs_section_heading",
+    "class": "table_vs_heading",
+    "attr": "store_count",
+    "dtype": "numeric/INTEGER",
+    "desc": "Number of stores from the operations table, not a section number.",
+    "entity": "Northwind Mills, document N-2",
+    "supported": {
+      "Value": "86",
+      "Meaning": "store count in the table",
+      "Evidence": "Retail stores 86",
+      "Heading": "Store footprint table",
+      "Period": "2022",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "12",
+      "Meaning": "section heading number",
+      "Evidence": "12 Retail footprint",
+      "Heading": "Section 12",
+      "Period": "",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    }
+  },
+  {
+    "id": "supported_amount_vs_null",
+    "class": "supported_vs_null",
+    "attr": "cash_balance",
+    "dtype": "numeric/REAL",
+    "desc": "Cash and cash equivalents at period end.",
+    "entity": "Helios Labs, document H-17",
+    "supported": {
+      "Value": "88000000",
+      "Meaning": "cash balance stated in the table",
+      "Evidence": "Cash and cash equivalents $88 million",
+      "Heading": "Balance sheet",
+      "Period": "2022",
+      "Unit": "USD",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "NULL / no value written",
+      "Meaning": "the document does not support assigning a value to this attribute",
+      "Evidence": "",
+      "Heading": "",
+      "Period": "",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "plumbing"
+    }
+  },
+  {
+    "id": "supported_name_vs_null",
+    "class": "supported_vs_null",
+    "attr": "auditor_name",
+    "dtype": "text/TEXT",
+    "desc": "Name of the independent auditor who signed the opinion.",
+    "entity": "Orion Packing, document O-4",
+    "supported": {
+      "Value": "Pine & Co",
+      "Meaning": "auditor named in the opinion",
+      "Evidence": "Pine & Co, independent auditor, signed the opinion",
+      "Heading": "Auditor's report",
+      "Period": "2021",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "surface"
+    },
+    "foil": {
+      "Value": "NULL / no value written",
+      "Meaning": "the document does not support assigning a value to this attribute",
+      "Evidence": "",
+      "Heading": "",
+      "Period": "",
+      "Unit": "",
+      "Component": "",
+      "Normalization": "",
+      "Channel": "plumbing"
+    }
+  }
+]

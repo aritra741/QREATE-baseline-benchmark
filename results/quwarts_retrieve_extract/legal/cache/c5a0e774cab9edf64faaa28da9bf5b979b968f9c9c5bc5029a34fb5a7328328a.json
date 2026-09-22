@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "6750bda1e8bc11e6dfa21c2bea6195002cce57e5fc416d21620e48452b823c3a",
+    "entity_identity": "1c4b9edd4b158fda7fcbda741347d55f417121659375488fb964542e418348e0",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.evidence",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "560d6765e9a378d3314f177397e87b68b008fa7e1f30efd61a52d7d3ae2a20a7",
+      "c738307a7c3216ab376223b0eceb1ba41252ea53af72a73754cdb25862a3344f",
+      "152a17667bd83188676a6d9e35b62bfeef2af4f7fbc6708a6769ea4adf7c7b4b",
+      "a0173ee3850e690ba81cac969fec4b5fcbc8c0f3a51d26ad06f822b99e20c6a3"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"1c4b9edd4b158fda7fcbda741347d55f417121659375488fb964542e418348e0\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"483.txt:c44\",\n          \"exact_span\": \"it is right to order that these proceedings by Lynne Maree Rogers against each of the respondents be dismissed\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "483.txt:c44",
+              "exact_span": "it is right to order that these proceedings by Lynne Maree Rogers against each of the respondents be dismissed"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "1c4b9edd4b158fda7fcbda741347d55f417121659375488fb964542e418348e0"
+    }
+  }
+}

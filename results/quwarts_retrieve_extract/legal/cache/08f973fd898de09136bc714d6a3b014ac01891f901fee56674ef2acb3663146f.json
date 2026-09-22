@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "dae89bcabd2d0627f63b6d9a8d8192fe3d3702f84aa47fba26b653bb4fc10e65",
+    "entity_identity": "89fca07cf84c6de2f314e5c0a4f3b88e50ed5557057c20177921e9ac380c676d",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e9ff3a7fe40c099ba9a769ebaa0dd50785cd9fa99bae7c411918077319e8d482",
+      "263e3b63bcc5d72b47777c5c82eb222f3c2596d41ec1a1acf82e5c5f67387d7b",
+      "2330632d1aaca0e9f5a13ed68d8d98e5c5bfb27533d159232e4b553fb596af8a",
+      "b254ee30356e92601d7c4c494f2f272b559860a0037cfef58188d49ad9a306a5"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"89fca07cf84c6de2f314e5c0a4f3b88e50ed5557057c20177921e9ac380c676d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"524.txt:c17\",\n          \"exact_span\": \"Counsel for the appellant referred to the evidence of Mr Ferraro that it was not usual commercial practice to delete a former employee's email mailbox if that employee had played an important role in the organisation.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "524.txt:c17",
+              "exact_span": "Counsel for the appellant referred to the evidence of Mr Ferraro that it was not usual commercial practice to delete a former employee's email mailbox if that employee had played an important role in the organisation."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "89fca07cf84c6de2f314e5c0a4f3b88e50ed5557057c20177921e9ac380c676d"
+    }
+  }
+}

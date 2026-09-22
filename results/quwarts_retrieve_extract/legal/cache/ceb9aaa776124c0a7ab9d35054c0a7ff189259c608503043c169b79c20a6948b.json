@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "65afb7df8d92f9e3dd3cf3691ff278b29705f1d328a4eea5aea39116c7e175c2",
+    "entity_identity": "06a12234f17ec943906148b6ff0554d2dce39c513cc45c305d2bb6c648af7e3d",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e4230e6a9f6f425b8f6d64fc8c33278fc15a6fb6d7cf9fde79aad15c608e0fd3",
+      "7bd46eb07d9d4df0dc60a448193a9c7fff9c9e63a3a664e9ee996ce0b20382d5",
+      "706656b2d231ff63d259ef40b8e0937238bf52588c0f35bcf2301b2e589bd383",
+      "2805225c898a94804bc86263d6af003ec2bc9ce03958c271390b6df2c9ea089e"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"06a12234f17ec943906148b6ff0554d2dce39c513cc45c305d2bb6c648af7e3d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"440.txt:c0\",\n          \"exact_span\": \"The evidence before the Court on the hearing of the motions took the form of two affidavits sworn 27 August 2008 by the husband, one affidavit being filed in his application and the other in his wife's application. In addition, certain documents were tendered which became exhibits A, B, C and 1, all of which were admitted into evidence without objection.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "440.txt:c0",
+              "exact_span": "The evidence before the Court on the hearing of the motions took the form of two affidavits sworn 27 August 2008 by the husband, one affidavit being filed in his application and the other in his wife's application. In addition, certain documents were tendered which became exhibits A, B, C and 1, all of which were admitted into evidence without objection."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "06a12234f17ec943906148b6ff0554d2dce39c513cc45c305d2bb6c648af7e3d"
+    }
+  }
+}

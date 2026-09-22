@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "d76ae228371b97e94006ef5496841afd4cff27bf37733646c560d9d27eed6771",
+    "entity_identity": "f7d4daa5e9feb929f545760b4bccc55f69562bed172012d87bff75e3d0afd5ea",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "1248762c3097e70358ff573ee8eb62510773a80af1d3685043515a02042fd816",
+      "c1bfaa78599019cd0d62ebd483e946a9f57acaa90903a48305806beb6c136c55",
+      "c70194f23e9b4281db1894dca85b93cffdeb4972c18f66deb0029ab2155ee63a",
+      "b0034c0f82fa0248c7cffb1a3d3dec5e5b36b9737fc5f8bafe6f0a6a0ea20bdf"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"f7d4daa5e9feb929f545760b4bccc55f69562bed172012d87bff75e3d0afd5ea\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"288.txt:c14\",\n          \"exact_span\": \"I am not persuaded that this is necessarily the case.\"\n        },\n        {\n          \"source_id\": \"288.txt:c15\",\n          \"exact_span\": \"I am not persuaded that this is necessarily the case.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "288.txt:c14",
+              "exact_span": "I am not persuaded that this is necessarily the case."
+            },
+            {
+              "source_id": "288.txt:c15",
+              "exact_span": "I am not persuaded that this is necessarily the case."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "f7d4daa5e9feb929f545760b4bccc55f69562bed172012d87bff75e3d0afd5ea"
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+    "entity_identity": "finan_filter20:q7:69:map",
+    "attribute_bundle": [
+      "dividend_per_share",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+      "b050805b8edb565963b15db9c7fc0982fa5fbe1c8c50781859abd44ec7e5e118",
+      "d78f02f69350d973cf3323aac9473b07843839d0733260e99ca741ffef0a6ceb",
+      "5c90945ddf1d6f2e2cb9b4b78de9f989703f0070eac23d4ba2a41e4632a4a37f",
+      "e79406cdf14153f2fcf1d2ab137f18fb3479ceaa2588bdfa7f132de0d5953813",
+      "c7dd488663f6dba005f984f89d6bccd337be4727f9b4dd6b8ed285f51f9080a8",
+      "ea172b74b27371b377297d98c220082d6dc12e987bf172c66ee3dfd3cb6202fd",
+      "697392820e591a83ac96d208aaf5470ec4038d4e18881711b28d730aa357c233"
+    ],
+    "schema_hash": "765a804b13d6eb43b3b37c903185cf34a879c9fa65b6cc5f0c0abac2b62a435d",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"dividend_per_share\": {\"value\": 2.90, \"status\": \"found\", \"evidence\": \"| Total | $2.90            | $2.80            | $2.80            | 4,486     | 3,882     | 3,669     |\"}\n    ,\n    \"principal_activities\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "dividend_per_share": {
+          "attribute": "dividend_per_share",
+          "raw_value": "2.9",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "| Total | $2.90            | $2.80            | $2.80            | 4,486     | 3,882     | 3,669     |",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:dividend_per_share"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

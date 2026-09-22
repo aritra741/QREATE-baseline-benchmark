@@ -1,0 +1,78 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "077ada8abee5fdbf51165267370925ca766169a9002e1dbdaceee7a578bc8964",
+    "entity_identity": "finan_filter20:q11:93:map",
+    "attribute_bundle": [
+      "auditor",
+      "net_assets",
+      "net_profit_or_loss"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "077ada8abee5fdbf51165267370925ca766169a9002e1dbdaceee7a578bc8964",
+      "86fd9688b155977cf52e689a239af2729d2c995076ff4023640c8f3214f04716",
+      "6f1e59450c954d7113f619088c306065e30df749c537cd3dc143d80419b644d3",
+      "762f127c7f424c8a5b990bf4c4a459f5d2ba803a84da5d459a7453b662ae15a5",
+      "dab0e0ef92b38b9d60642a470c5ba8348257905f93e5c518a1ac769f5fe06007",
+      "8c9d756eedf71cec77a27daed8079d09a56239ab8d72fb6c4b27defcb0c84385",
+      "c25ab8e6d7006094be744ff1200f9329ae5bcf3928638832d94aa985a8c11e56",
+      "832d0199223250c492ff9f74ac6b5f61d45fcafa9f80f963528c36d5125c7fef",
+      "b8709b6289db901e9d2e8ed9e32287d78b41bbfd8a073fdcca7c964bd49f1b53"
+    ],
+    "schema_hash": "5f9768455c35d3498295b96b0dccabc77b64eb589804a7b342ede0e5ce81dee9",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"auditor\": {\"value\": \"Ernst & Young LLP\", \"status\": \"found\", \"evidence\": \"Ernst & Young LLP were appointed as the Group's external Auditor in July 2018 following a tender.\"},\n  \"net_assets\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"},\n  \"net_profit_or_loss\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "Ernst & Young LLP",
+          "normalized_value": "Ernst & Young LLP",
+          "status": "found",
+          "evidence": "Ernst & Young LLP were appointed as the Group's external Auditor in July 2018 following a tender.",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "net_assets": {
+          "attribute": "net_assets",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "net_profit_or_loss": {
+          "attribute": "net_profit_or_loss",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [],
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

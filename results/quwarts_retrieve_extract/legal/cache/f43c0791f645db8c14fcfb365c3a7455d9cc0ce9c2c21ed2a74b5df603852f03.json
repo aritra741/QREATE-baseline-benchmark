@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "a003da5e29f989d136b8ac11c5dbf7e6adbb019dbfa4e94b906a4bd42306de9b",
+    "entity_identity": "6cc99b9759fb5b6631f44d28eea957afea3b53d5393bb38df1e46ae9efd48a28",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "c131b3320ae96db37fda5cef48a3ff02c804df53917d983f61a431ade12a22fa",
+      "4429ff6168852f3a4bf0c4c33db37006de5b83fd3e711635256ceccadf1a47fd",
+      "d2646b7806ca4a784aa0ebbc93e2155d2a874287f4c806dfd95fd7547cca522b",
+      "29ef40345687c81ff5b7b584c13df5608b0d311a363511cd69e745e7a677c0bc"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"6cc99b9759fb5b6631f44d28eea957afea3b53d5393bb38df1e46ae9efd48a28\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"513.txt:c33\",\n          \"exact_span\": \"an order pursuant to s 206(4) can only be made if the Court finds that an irregularity has happened. 55 It follows that the application for an inquiry into the elections must be dismissed;\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "513.txt:c33",
+              "exact_span": "an order pursuant to s 206(4) can only be made if the Court finds that an irregularity has happened. 55 It follows that the application for an inquiry into the elections must be dismissed;"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "6cc99b9759fb5b6631f44d28eea957afea3b53d5393bb38df1e46ae9efd48a28"
+    }
+  }
+}

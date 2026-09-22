@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "10af73814bbc46e81c7f8acf779fc08f84c62c86729c1460c378e954ef3db302",
+    "entity_identity": "c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "c076a155100e449598c1480113e85c18da2d011cd8510f9eec373a205e2780b4",
+      "ac98a9751dc44959748811e6ff15437c19c218ee40e98647e3505e82f3f6369a",
+      "360f40d34483fcd3e701d9d0c105a17c81a52fce0d3c4f5478b097e132383daf",
+      "818eb777133e958ef7f93ba4d53cda4d73494f0eb015f066a3c2f963159a38ad"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"247.txt:c25\",\n          \"exact_span\": \"\"\n        },\n        {\n          \"source_id\": \"247.txt:c30\",\n          \"exact_span\": \"\"\n        },\n        {\n          \"source_id\": \"247.txt:c26\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2020\",\n      \"normalized_value\": 2020,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"247.txt:c26\",\n          \"exact_span\": \"2. The proceedings transferred to this Court by order of a Federal Magistrate made on 13 June 20\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "247.txt:c25",
+              "exact_span": ""
+            },
+            {
+              "source_id": "247.txt:c30",
+              "exact_span": ""
+            },
+            {
+              "source_id": "247.txt:c26",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "found",
+          "raw_value": "2020",
+          "normalized_value": 2020,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "247.txt:c26",
+              "exact_span": "2. The proceedings transferred to this Court by order of a Federal Magistrate made on 13 June 20"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.judgment_year"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a"
+    }
+  }
+}

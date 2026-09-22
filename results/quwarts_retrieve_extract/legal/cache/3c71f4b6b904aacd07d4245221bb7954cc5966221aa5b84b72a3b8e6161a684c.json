@@ -1,0 +1,84 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "8fb4c5388ce29b08cbdab2f4364f9619e947ee9d2462123b714d13b35e904edc",
+    "entity_identity": "51ff5cdf4dd852d120d9a6ae0922e1d5ef798134c6a05e0ec24c7eaa6989ff5c",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "2bf0a4d8dc3d5df646041c87176fd6694ec5db7fa875922f97c3a800c4941e15",
+      "dcb17c9f3bd4a681b681dea19281749f3f353bee90d62c88f12be9fa9969f0a2",
+      "b72ce50c127cd706720773ce6a0cb0681da261d393ee5697914f429e978ac656",
+      "8e2b562195b89b8e3f5430f45dba2d567c64457e89fc20e1e090e87d423f1659"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"51ff5cdf4dd852d120d9a6ae0922e1d5ef798134c6a05e0ec24c7eaa6989ff5c\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"154.txt:c27\",\n          \"exact_span\": \"APRA filed a large number of affidavits in support of its application.\"\n        },\n        {\n          \"source_id\": \"154.txt:c24\",\n          \"exact_span\": \"APRA filed a large number of affidavits in support of its application.\"\n        },\n        {\n          \"source_id\": \"154.txt:c25\",\n          \"exact_span\": \"APRA filed a large number of affidavits in support of its application.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "154.txt:c27",
+              "exact_span": "APRA filed a large number of affidavits in support of its application."
+            },
+            {
+              "source_id": "154.txt:c24",
+              "exact_span": "APRA filed a large number of affidavits in support of its application."
+            },
+            {
+              "source_id": "154.txt:c25",
+              "exact_span": "APRA filed a large number of affidavits in support of its application."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "51ff5cdf4dd852d120d9a6ae0922e1d5ef798134c6a05e0ec24c7eaa6989ff5c"
+    }
+  }
+}

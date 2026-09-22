@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "2ab51dba839b7e7563100d63a1cd9aaae119d819014070fed6e4e4702c17ed86",
+    "entity_identity": "1a635674ee9a36cccda61c9a7dd15d5f7fecf26d3b98f2b05a0a89abb06f66b2",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.plaintiff_current_status",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "848c11585ee2db83507583647f9e88eb276f13b30b4e7593cc007b2693f2bc3e",
+      "eca13a0bd83fb775864cc67bb1ba4d01f0af197f86b4397b07d02dc10d8c7547",
+      "bf2d6a54ece846ebfc33dfe87c4ebe0e98b5d9201ed18efc2715675eb14a9a80",
+      "f2be416580af0e83425bfcd053515b02b1f09bcd7157cedb0d019b5b18702cb4"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"1a635674ee9a36cccda61c9a7dd15d5f7fecf26d3b98f2b05a0a89abb06f66b2\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"198.txt:c15\",\n          \"exact_span\": \"Additionally, its recent accounts show it earned some $35,000 of income from that activity.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "198.txt:c15",
+              "exact_span": "Additionally, its recent accounts show it earned some $35,000 of income from that activity."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "1a635674ee9a36cccda61c9a7dd15d5f7fecf26d3b98f2b05a0a89abb06f66b2"
+    }
+  }
+}

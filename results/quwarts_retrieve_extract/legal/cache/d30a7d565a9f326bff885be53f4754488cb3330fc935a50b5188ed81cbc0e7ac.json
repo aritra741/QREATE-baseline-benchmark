@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "141eb6673e8b702232c000e1abf0965fa4e434c722e1ba37dc933858ab92272e",
+    "entity_identity": "e6f7ab05b5a34e92832e78e4f6128232d6d9e390b7c1aeb9ba860f900640f6fb",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "69f92fcdfdd8c4fc8546e92fe815b3f7701b8d52048d3f317d08dc8d5bd0965c",
+      "8daaf41529868f9b29d5a215b8c1993081bc236a45ccb9f8373cc52707b69f60",
+      "ff5609aee533649263c504eed3fdedc1b49ebe0c3929a8ff0b312ee6409a07a9",
+      "1f9d3080e8fe747081b493150956e88252df0d71ae74ae086b9a748c3bc2196d"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e6f7ab05b5a34e92832e78e4f6128232d6d9e390b7c1aeb9ba860f900640f6fb\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"58.txt:c20\",\n          \"exact_span\": \"I am satisfied that they were created for the dominant purpose of obtaining legal assistance or for use in litigation which was reasonably anticipated.\\n35 All of the documents for which privilege is claimed by the respondent are privileged. The application for production is dismissed and, because the respondent has succeeded in substance, the applicant is to pay the respondent's costs of the application for production.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "58.txt:c20",
+              "exact_span": "I am satisfied that they were created for the dominant purpose of obtaining legal assistance or for use in litigation which was reasonably anticipated.\n35 All of the documents for which privilege is claimed by the respondent are privileged. The application for production is dismissed and, because the respondent has succeeded in substance, the applicant is to pay the respondent's costs of the application for production."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "e6f7ab05b5a34e92832e78e4f6128232d6d9e390b7c1aeb9ba860f900640f6fb"
+    }
+  }
+}

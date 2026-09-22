@@ -1,0 +1,22 @@
+{
+  "targets": "terminal or malformed stored raw_arguments only",
+  "parse": "json.loads of the raw string, after removing one surrounding ``` or ```json fence if the interior is the entire payload",
+  "no_invented_braces": true,
+  "no_invented_field_names": true,
+  "no_invented_values": true,
+  "accept_field_when": [
+    "object key equals a requested field name exactly",
+    "the fresh normalizer accepts exactly one type-valid value",
+    "every stored attempt that parses agrees on that normalized value"
+  ],
+  "reject_when": [
+    "JSON does not parse",
+    "the value is not an object",
+    "a present requested field fails the normalizer",
+    "two attempts normalize the same field to different values",
+    "a key is only a case variant or alias of a field name"
+  ],
+  "empty_object_recovers_nothing": true,
+  "provider_error_without_raw_recovers_nothing": true,
+  "successful_responses_are_not_salvage_targets": true
+}

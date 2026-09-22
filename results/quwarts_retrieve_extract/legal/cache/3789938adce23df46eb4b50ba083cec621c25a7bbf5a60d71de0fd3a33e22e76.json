@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "264b31f19898a77891471b2a73ec2a991b8619b2e589652107ed6dd66e38f635",
+    "entity_identity": "625700cd2a80d2310febca6ef73ce7b99cd419b2077fddac91609baaa342649d",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.defendant_current_status",
+      "legal.nationality_for_applicant"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "17e4a690609c38144beac957b3f0e1305ac4a544ecec1b5a3fff76c2891f2549",
+      "02a6b413bf0b9b07541e884f146751cf9abe2abfe3e79f5a28ff829ed88a07db",
+      "af2b45a88aede50cbcb63743e279447a71cab75d5615eda215629369d22c5941",
+      "088f094ee6167432fba9c8c0e58fd21efac96c2a6df03a7a04f2bee3810c7e53"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"625700cd2a80d2310febca6ef73ce7b99cd419b2077fddac91609baaa342649d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"356.txt:c5\",\n          \"exact_span\": \"The first appellant also claimed the police started 'to give him trouble' following the loss of the election in 2002, and the swearing in of Mr Samara as 'Cabinet Minister' in the new Government.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.nationality_for_applicant\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "356.txt:c5",
+              "exact_span": "The first appellant also claimed the police started 'to give him trouble' following the loss of the election in 2002, and the swearing in of Mr Samara as 'Cabinet Minister' in the new Government."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.nationality_for_applicant": {
+          "attribute": "legal.nationality_for_applicant",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "625700cd2a80d2310febca6ef73ce7b99cd419b2077fddac91609baaa342649d"
+    }
+  }
+}

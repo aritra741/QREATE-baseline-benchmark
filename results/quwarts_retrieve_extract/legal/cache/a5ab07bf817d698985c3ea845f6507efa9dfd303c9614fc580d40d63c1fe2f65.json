@@ -1,0 +1,80 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "7c57f83f006f70aa81e10afeb7c8b0575dbd9e284130fffe5af666d9bfd396c3",
+    "entity_identity": "d2bb094d2178f06f0bcb74a7b7556c74e4a7330d1f0fa811c53f7ab95571ef38",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "12be0cbead4ecb5078c32d02993967befcc626749df07ca1ad4935d0c0884418",
+      "d4abd03e6b6a5b752b8732e90f7fe934cf5d8ca1724b1f1c5c8cbe69b5fea8b1",
+      "5afa8b5ee0e767262f61f8a3ad450be4e92033349c35be9f07cf407b21f60dad",
+      "78f27a0fc7a6c8767ba3e0124b0c556106a01284e2400112071a335a13ad9ce1"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"d2bb094d2178f06f0bcb74a7b7556c74e4a7330d1f0fa811c53f7ab95571ef38\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"100.txt:c15\",\n          \"exact_span\": \"'the Tribunal had evidence consistent with my claims, but did not inform me of the evidence'.\"\n        },\n        {\n          \"source_id\": \"100.txt:c16\",\n          \"exact_span\": \"'the Tribunal is relying on in this paragraph is the [letter of] 11 August 2004'.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "100.txt:c15",
+              "exact_span": "'the Tribunal had evidence consistent with my claims, but did not inform me of the evidence'."
+            },
+            {
+              "source_id": "100.txt:c16",
+              "exact_span": "'the Tribunal is relying on in this paragraph is the [letter of] 11 August 2004'."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "d2bb094d2178f06f0bcb74a7b7556c74e4a7330d1f0fa811c53f7ab95571ef38"
+    }
+  }
+}

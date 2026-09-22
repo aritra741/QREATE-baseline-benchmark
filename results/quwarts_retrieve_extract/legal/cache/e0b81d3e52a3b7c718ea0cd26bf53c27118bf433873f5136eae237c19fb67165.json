@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "1c0b7f57c0eca08a689727347348574ba86e924c98e1b13eac3f8dad61213166",
+    "entity_identity": "773803f83712ab493c2864e5ba8b6ad64620bfab6d43fb9779496c32807a536c",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "7043e349d85d33ed38a2adc6e7d012ec668de704a1cf7b424828fd25d5525695",
+      "b1ef2a1d152302f314436d3c5a6b352bd615f986d73d1807c5e1a2e70f645c2b",
+      "d98f53f4f2d596fb6c86f9ecea6bfe331e51597aceaa5094879607e7cf4d9ef6",
+      "4ba5315bcf0decabded6de2738abe92902d0824d02424190a6ec8503ebb5dc5d"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"773803f83712ab493c2864e5ba8b6ad64620bfab6d43fb9779496c32807a536c\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"552.txt:c36\",\n          \"exact_span\": \"The tenants of the Housing Associations will be significantly affected by the proposed decision so that the Minister is obliged to observe the principles of natural justice or procedural fairness and ensure that the tenants are made aware of the manner in which their rights will be affected by the notice and are given an opportunity to make submissions to the Minister as to whether or not she should give a notice before she finally makes a decision.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "552.txt:c36",
+              "exact_span": "The tenants of the Housing Associations will be significantly affected by the proposed decision so that the Minister is obliged to observe the principles of natural justice or procedural fairness and ensure that the tenants are made aware of the manner in which their rights will be affected by the notice and are given an opportunity to make submissions to the Minister as to whether or not she should give a notice before she finally makes a decision."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "773803f83712ab493c2864e5ba8b6ad64620bfab6d43fb9779496c32807a536c"
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "f3c4eba7a5dfaa7f0a0f08851a9fdee47e2e112e492600ef96c4a07c34542a16",
+    "entity_identity": "b3583061209f6d61c8acc3a80880f928d7d8c0af1a2668163b7d8aae44feff2b",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "section_map",
+    "context_hashes": [
+      "a34be56a502b7fd3de1cd0e28b33db7e1c86dd9849a7e85d6d84ad5ac278d674"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "8618065b9994933e17c6553ab9e03b3345ff0d7b46bd8165fca4d7036da6e1e2",
+    "operator": "finan_additive",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"b3583061209f6d61c8acc3a80880f928d7d8c0af1a2668163b7d8aae44feff2b\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"New York Stock Exchange\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"57.txt:s9\",\n          \"exact_span\": \"Securities Registered Pursuant to Section 12(b) of the Act:\\n\\nTitle of Each Class Common Stock, $0.01 Par Value\\nTrading Symbol(s) HCA\\nName of Each Exchange on Which Registered New York Stock Exchange\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "New York Stock Exchange",
+          "normalized_value": "New York Stock Exchange",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "57.txt:s9",
+              "exact_span": "Securities Registered Pursuant to Section 12(b) of the Act:\n\nTitle of Each Class Common Stock, $0.01 Par Value\nTrading Symbol(s) HCA\nName of Each Exchange on Which Registered New York Stock Exchange"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.exchange_code"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "b3583061209f6d61c8acc3a80880f928d7d8c0af1a2668163b7d8aae44feff2b"
+    }
+  }
+}

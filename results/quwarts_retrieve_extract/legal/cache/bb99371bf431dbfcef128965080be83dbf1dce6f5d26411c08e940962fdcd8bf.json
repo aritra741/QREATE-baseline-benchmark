@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "9353093c4bf725780443abc5132e9fd050b648f4ce38d927dfd78ca349c6ea5a",
+    "entity_identity": "9678b250d8bbbeabfd2bbe047a705ece8360f10848f18d6136310b9c503ae202",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge",
+      "legal.nationality_for_applicant"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "69064f3390501a0fcb6761d0fe500553fe850465adc9a3f6bad6b447dd83eb55",
+      "b44ed465f39d93d46fbcbe5da6180d8ca78ea3a3776ffc96391b411e1625f633",
+      "b3f0cd3430a8009a8068994c3c10bc93b20c3f08f7fb2b2fa16f37d641b49a06",
+      "d5f5f2570735e4e8a14a8ce0d7e61c943a4c6b88087f86deb6b6445555236daf"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"9678b250d8bbbeabfd2bbe047a705ece8360f10848f18d6136310b9c503ae202\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"144.txt:c0\",\n          \"exact_span\": \"Today I have heard evidence from the respondent both on affidavit and in the witness box relating to the circumstances in which the contempts occurred and his current attitude in relation to the subject matter of those charges.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.nationality_for_applicant\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "144.txt:c0",
+              "exact_span": "Today I have heard evidence from the respondent both on affidavit and in the witness box relating to the circumstances in which the contempts occurred and his current attitude in relation to the subject matter of those charges."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.nationality_for_applicant": {
+          "attribute": "legal.nationality_for_applicant",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "9678b250d8bbbeabfd2bbe047a705ece8360f10848f18d6136310b9c503ae202"
+    }
+  }
+}

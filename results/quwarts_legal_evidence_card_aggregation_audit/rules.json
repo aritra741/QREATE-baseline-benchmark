@@ -1,0 +1,279 @@
+{
+  "definitions": {
+    "A": {
+      "family": "single",
+      "sources": [
+        "A"
+      ],
+      "text": "Use stored Pass A if valid, else KEEP_PLUMBING."
+    },
+    "B": {
+      "family": "single",
+      "sources": [
+        "B"
+      ],
+      "text": "Use stored Pass B if valid, else KEEP_PLUMBING."
+    },
+    "C": {
+      "family": "single",
+      "sources": [
+        "C"
+      ],
+      "text": "Use stored Pass C if valid, else KEEP_PLUMBING."
+    },
+    "J_only": {
+      "family": "single",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "Use stored adjudicator J if the cell was adjudicated and J is a valid candidate; otherwise KEEP_PLUMBING."
+    },
+    "majority_original": {
+      "family": "original",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "Among present A/B/C votes (KEEP counts as a vote; missing is abstention), accept an identifier with at least two votes; otherwise KEEP_PLUMBING."
+    },
+    "official_original": {
+      "family": "original",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "If the cell was originally adjudicated, use valid J else KEEP. Otherwise use majority_original."
+    },
+    "A_backbone": {
+      "family": "a_backbone",
+      "sources": [
+        "A"
+      ],
+      "text": "Use A exactly (valid candidate or KEEP). Invalid A becomes KEEP."
+    },
+    "A_fill_BC": {
+      "family": "a_backbone",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "If A is a candidate, use A. Else if B == C and that value is a non-KEEP candidate, use B. Else KEEP."
+    },
+    "A_fill_J": {
+      "family": "a_backbone",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "If A is a candidate, use A. Else if J is a candidate, use J. Else KEEP."
+    },
+    "A_fill_BC_then_J": {
+      "family": "a_backbone",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "If A is a candidate, use A. Else if B == C and non-KEEP candidate, use B. Else if J is a candidate, use J. Else KEEP."
+    },
+    "A_replace_BC": {
+      "family": "a_backbone",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "If B == C and non-KEEP candidate, use B. Else use A (or KEEP if A invalid)."
+    },
+    "A_replace_J": {
+      "family": "a_backbone",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "If J is a candidate, use J. Else use A."
+    },
+    "A_replace_BC_then_J": {
+      "family": "a_backbone",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "If B == C and non-KEEP candidate, use B. Else if J is a candidate, use J. Else use A."
+    },
+    "A_veto_double_keep": {
+      "family": "a_backbone",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "If B == KEEP and C == KEEP, KEEP. Else use A."
+    },
+    "nonkeep_plurality": {
+      "family": "consensus",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "Ignore KEEP votes. If a candidate has at least two of the remaining votes, use it. Else KEEP."
+    },
+    "nonkeep_plurality_A_tiebreak": {
+      "family": "consensus",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "Ignore KEEP votes. Choose the unique candidate with strictly most votes. On a candidate tie, use A if A is among the tied candidates. Else KEEP."
+    },
+    "any_two_then_A": {
+      "family": "consensus",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "If any candidate (KEEP ignored) has two votes, use it. Else use A."
+    },
+    "J_on_three_way_only": {
+      "family": "consensus",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "If a candidate has two A/B/C votes, use it. Else if A, B, and C are three distinct present outcomes and J is a candidate, use J. Else use A."
+    },
+    "prio_A_J_C_B": {
+      "family": "priority",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "First non-KEEP valid candidate in order A, J, C, B, else KEEP."
+    },
+    "prio_A_C_B_J": {
+      "family": "priority",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "First non-KEEP valid candidate in order A, C, B, J, else KEEP."
+    },
+    "prio_J_A_C_B": {
+      "family": "priority",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "First non-KEEP valid candidate in order J, A, C, B, else KEEP."
+    },
+    "prio_C_A_B_J": {
+      "family": "priority",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "First non-KEEP valid candidate in order C, A, B, J, else KEEP."
+    },
+    "unanimous_candidate_else_A": {
+      "family": "conservative",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "If A, B, and C are the same non-KEEP candidate, use it. Else use A."
+    },
+    "unanimous_or_two_candidate_else_A": {
+      "family": "conservative",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "If a non-KEEP candidate has two or three A/B/C votes, use it. Else use A."
+    },
+    "A_only_when_another_pass_agrees": {
+      "family": "conservative",
+      "sources": [
+        "A",
+        "B",
+        "C"
+      ],
+      "text": "If A is a candidate and A equals B or A equals C, use A. Else KEEP."
+    },
+    "A_or_J_only_when_supported_by_another_pass": {
+      "family": "conservative",
+      "sources": [
+        "A",
+        "B",
+        "C",
+        "J"
+      ],
+      "text": "If A is a candidate and A equals B, C, or J, use A. Else if J is a candidate and J equals B or C, use J. Else KEEP."
+    }
+  },
+  "rule_order": [
+    "A",
+    "B",
+    "C",
+    "J_only",
+    "majority_original",
+    "official_original",
+    "A_backbone",
+    "A_fill_BC",
+    "A_fill_J",
+    "A_fill_BC_then_J",
+    "A_replace_BC",
+    "A_replace_J",
+    "A_replace_BC_then_J",
+    "A_veto_double_keep",
+    "nonkeep_plurality",
+    "nonkeep_plurality_A_tiebreak",
+    "any_two_then_A",
+    "J_on_three_way_only",
+    "prio_A_J_C_B",
+    "prio_A_C_B_J",
+    "prio_J_A_C_B",
+    "prio_C_A_B_J",
+    "unanimous_candidate_else_A",
+    "unanimous_or_two_candidate_else_A",
+    "A_only_when_another_pass_agrees",
+    "A_or_J_only_when_supported_by_another_pass"
+  ],
+  "cost_policy": {
+    "A_only": "Pass A ledger including repairs",
+    "A_plus_B": "Pass A + Pass B, because B is generated only after A",
+    "A_plus_B_plus_C": "Pass A + B + C",
+    "any_J": "Pass A + B + C + adjudication, because J exists only after all three passes",
+    "salvage": "no extra tokens; derived from stored raw"
+  },
+  "no_post_hoc_rules": true,
+  "hash": "19eaa5864e9276e97d63ff802ff7499fff921c064f00ccb28eed8be0ed1ec3a7"
+}

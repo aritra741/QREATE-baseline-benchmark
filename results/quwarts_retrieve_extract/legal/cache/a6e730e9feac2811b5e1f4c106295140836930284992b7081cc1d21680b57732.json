@@ -1,0 +1,97 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "fe9dc2be509189e383b221c710acc5a2ca8748d0e9280717f865065ae530b36a",
+    "entity_identity": "46745d0c99654ff458d7443554665b7133ba141eb212c82eb943eaaeb81d6399",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "81371eb8c01a385ef0727e58dd632948bd9c3e6953837f6be349aa37077a6953",
+      "4174219e092cd601079269dbab3d0d862886347636b710109c6a377c92b4eb72",
+      "8b681bedfcc39d0f8dcc30e00c41014eab4c1b8486838d34ee33891d67713668",
+      "a5fe90fbf7f736eb451891eed85243b2e46351c2e141bf16b46bde0d4c4eefdb"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"46745d0c99654ff458d7443554665b7133ba141eb212c82eb943eaaeb81d6399\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": null,\n      \"normalized_value\": \"Criminal Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"81.txt:c31\",\n          \"exact_span\": \"The application be dismissed.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": null,\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"81.txt:c31\",\n          \"exact_span\": \"I find that this finding of fact by the Tribunal was supported by the evidence\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": null,
+          "normalized_value": "Criminal Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "81.txt:c31",
+              "exact_span": "The application be dismissed."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": null,
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "81.txt:c31",
+              "exact_span": "I find that this finding of fact by the Tribunal was supported by the evidence"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type",
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 2,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 2
+      },
+      "entity_id": "46745d0c99654ff458d7443554665b7133ba141eb212c82eb943eaaeb81d6399"
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+    "entity_identity": "finan_filter20:q11:69:map",
+    "attribute_bundle": [
+      "auditor",
+      "net_assets",
+      "net_profit_or_loss"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+      "10d335944e331a3bdf0491443659f556f5683aa1bc448c00866eb7ca2e73cc81",
+      "76d963f39f5e96f8d29f92e70586fbf1e6d3e4576b2002635079a851a31fc7ed",
+      "70d4d15f9eb4815a708f0ae0abc2f1d2c41169e9c33a8a68f3496db2df58b3fb",
+      "2f41675dbcc0bb7e1fb91734fe78810fb1da44c566299820801634b171f8ed66",
+      "f687a5169bc2c651807fbdaea4097e7cc45c9a9584e5c202ab8c0f805cd549a3",
+      "41b5c9451e2265330df6b8bf0c10d915867ddfb38feb8031d2a06bf441192e87",
+      "8c95fb6e6a3f1f23ee639db06f304b26f7374da8ff1f0eae10e6bb9e2bc3c34d"
+    ],
+    "schema_hash": "5f9768455c35d3498295b96b0dccabc77b64eb589804a7b342ede0e5ce81dee9",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"auditor\": {\"value\": \"PwC\", \"status\": \"found\", \"evidence\": \"Based on our procedures, we noted no exceptions and considered the directors' judgement in determining the profits available for distribution, and the related disclosures, to be appropriate.\"}\n},\n{\n  \"net_assets\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n},\n{\n  \"net_profit_or_loss\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "PwC",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Based on our procedures, we noted no exceptions and considered the directors' judgement in determining the profits available for distribution, and the related disclosures, to be appropriate.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "net_assets": {
+          "attribute": "net_assets",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        },
+        "net_profit_or_loss": {
+          "attribute": "net_profit_or_loss",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        }
+      },
+      "errors": [
+        "grounding_failure:auditor",
+        "omitted:net_assets",
+        "omitted:net_profit_or_loss"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 2,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

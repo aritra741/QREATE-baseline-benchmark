@@ -1,0 +1,554 @@
+{
+  "auditor": {
+    "name": "auditor",
+    "sql_type": "TEXT",
+    "dtype": "string",
+    "occurrence_count": 28,
+    "n_queries": 4,
+    "queries": [
+      "finan_agg20:q13",
+      "finan_filter20:q11",
+      "finan_filter20:q15",
+      "finan_multiagg20:q18"
+    ],
+    "roles": {
+      "CASE": 21,
+      "WHERE": 7
+    },
+    "predicate_literals": [
+      "%Deloitte%",
+      "%Ernst & Young%",
+      "%KPMG%",
+      "%Pricewaterhouse%",
+      "%PwC%",
+      "EY%"
+    ],
+    "numeric_comparisons": [],
+    "categorical_literals": [
+      "%Deloitte%",
+      "%Ernst & Young%",
+      "%KPMG%",
+      "%Pricewaterhouse%",
+      "%PwC%",
+      "EY%"
+    ],
+    "cooccurring": [
+      "earnings_per_share",
+      "exchange_code",
+      "major_equity_changes",
+      "net_assets",
+      "net_profit_or_loss",
+      "revenue"
+    ],
+    "expressions": [
+      "CASE WHEN auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%' THEN 'EY' WHEN auditor LIKE '%KPMG%' THEN 'KPMG' WHEN auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%' THEN 'PwC' WHEN auditor LIKE '%Deloitte%' THEN 'Deloitte' WHEN auditor <> '' THEN 'Other' END",
+      "auditor <> ''",
+      "auditor LIKE '%Deloitte%'",
+      "auditor LIKE '%Ernst & Young%'",
+      "auditor LIKE '%KPMG%'",
+      "auditor LIKE '%Pricewaterhouse%'"
+    ],
+    "plumbing_null_count": 59,
+    "expression_change_entities": 59,
+    "impact_unit": 112
+  },
+  "business_segments_num": {
+    "name": "business_segments_num",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "occurrence_count": 4,
+    "n_queries": 2,
+    "queries": [
+      "finan_agg20:q11",
+      "finan_groupby20:q14"
+    ],
+    "roles": {
+      "CASE": 1,
+      "WHERE": 2,
+      "aggregate input": 1
+    },
+    "predicate_literals": [
+      "3"
+    ],
+    "numeric_comparisons": [
+      {
+        "operator": ">=",
+        "literals": "3"
+      }
+    ],
+    "categorical_literals": [],
+    "cooccurring": [
+      "principal_activities"
+    ],
+    "expressions": [
+      "AVG(business_segments_num)",
+      "CASE WHEN business_segments_num >= 3 THEN 'three_or_more' ELSE 'one_or_two' END",
+      "business_segments_num IS NULL"
+    ],
+    "plumbing_null_count": 83,
+    "expression_change_entities": 83,
+    "impact_unit": 8
+  },
+  "cash_reserves": {
+    "name": "cash_reserves",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "occurrence_count": 5,
+    "n_queries": 3,
+    "queries": [
+      "finan_agg20:q14",
+      "finan_multiagg20:q11",
+      "finan_multiagg20:q4"
+    ],
+    "roles": {
+      "WHERE": 2,
+      "aggregate input": 3
+    },
+    "predicate_literals": [],
+    "numeric_comparisons": [],
+    "categorical_literals": [],
+    "cooccurring": [
+      "exchange_code",
+      "net_assets",
+      "net_profit_or_loss",
+      "principal_activities",
+      "revenue",
+      "total_debt"
+    ],
+    "expressions": [
+      "AVG(cash_reserves)",
+      "SUM(cash_reserves)",
+      "cash_reserves IS NULL"
+    ],
+    "plumbing_null_count": 88,
+    "expression_change_entities": 88,
+    "impact_unit": 15
+  },
+  "dividend_per_share": {
+    "name": "dividend_per_share",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "occurrence_count": 2,
+    "n_queries": 1,
+    "queries": [
+      "finan_filter20:q7"
+    ],
+    "roles": {
+      "CASE": 1,
+      "WHERE": 1
+    },
+    "predicate_literals": [
+      "0"
+    ],
+    "numeric_comparisons": [
+      {
+        "operator": ">",
+        "literals": "0"
+      }
+    ],
+    "categorical_literals": [],
+    "cooccurring": [
+      "principal_activities"
+    ],
+    "expressions": [
+      "CASE WHEN dividend_per_share > 0 THEN 'pays_dividend' ELSE 'no_dividend' END",
+      "dividend_per_share IS NULL"
+    ],
+    "plumbing_null_count": 88,
+    "expression_change_entities": 88,
+    "impact_unit": 2
+  },
+  "earnings_per_share": {
+    "name": "earnings_per_share",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "occurrence_count": 4,
+    "n_queries": 2,
+    "queries": [
+      "finan_agg20:q13",
+      "finan_multiagg20:q9"
+    ],
+    "roles": {
+      "WHERE": 2,
+      "aggregate input": 2
+    },
+    "predicate_literals": [],
+    "numeric_comparisons": [],
+    "categorical_literals": [],
+    "cooccurring": [
+      "auditor",
+      "remuneration_policy",
+      "revenue"
+    ],
+    "expressions": [
+      "AVG(earnings_per_share)",
+      "earnings_per_share IS NULL"
+    ],
+    "plumbing_null_count": 85,
+    "expression_change_entities": 85,
+    "impact_unit": 8
+  },
+  "exchange_code": {
+    "name": "exchange_code",
+    "sql_type": "TEXT",
+    "dtype": "string",
+    "occurrence_count": 21,
+    "n_queries": 3,
+    "queries": [
+      "finan_agg20:q14",
+      "finan_filter20:q8",
+      "finan_multiagg20:q18"
+    ],
+    "roles": {
+      "CASE": 18,
+      "WHERE": 3
+    },
+    "predicate_literals": [
+      "%AIM%",
+      "%ASX%",
+      "%LSE%",
+      "%NASDAQ%",
+      "%NYSE%"
+    ],
+    "numeric_comparisons": [],
+    "categorical_literals": [
+      "%AIM%",
+      "%ASX%",
+      "%LSE%",
+      "%NASDAQ%",
+      "%NYSE%"
+    ],
+    "cooccurring": [
+      "auditor",
+      "cash_reserves",
+      "net_profit_or_loss",
+      "revenue",
+      "total_debt"
+    ],
+    "expressions": [
+      "CASE WHEN exchange_code LIKE '%NASDAQ%' THEN 'NASDAQ' WHEN exchange_code LIKE '%NYSE%' THEN 'NYSE' WHEN exchange_code LIKE '%ASX%' THEN 'ASX' WHEN exchange_code LIKE '%LSE%' OR exchange_code LIKE '%AIM%' THEN 'London' WHEN exchange_code <> '' THEN 'Other' END",
+      "exchange_code <> ''"
+    ],
+    "plumbing_null_count": 87,
+    "expression_change_entities": 87,
+    "impact_unit": 63
+  },
+  "major_equity_changes": {
+    "name": "major_equity_changes",
+    "sql_type": "TEXT",
+    "dtype": "string",
+    "occurrence_count": 8,
+    "n_queries": 3,
+    "queries": [
+      "finan_agg20:q17",
+      "finan_agg20:q3",
+      "finan_filter20:q15"
+    ],
+    "roles": {
+      "GROUP BY": 3,
+      "WHERE": 2,
+      "projection": 3
+    },
+    "predicate_literals": [
+      "No",
+      "Yes"
+    ],
+    "numeric_comparisons": [],
+    "categorical_literals": [
+      "No",
+      "Yes"
+    ],
+    "cooccurring": [
+      "auditor",
+      "the_highest_ownership_stake"
+    ],
+    "expressions": [
+      "GROUP BY major_equity_changes",
+      "SELECT major_equity_changes, AVG(the_highest_ownership_stake) AS avg_top_stake FROM finance WHERE major_equity_changes IN ('Yes', 'No') AND NOT the_highest_ownership_stake IS NULL GROUP BY major_equity_changes",
+      "SELECT major_equity_changes, COUNT(*) AS company_count FROM finance WHERE auditor LIKE '%KPMG%' OR auditor LIKE '%Ernst & Young%' OR auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%Deloitte%' GROUP BY major_equity_changes",
+      "SELECT major_equity_changes, COUNT(*) AS company_count FROM finance WHERE major_equity_changes IN ('Yes', 'No') GROUP BY major_equity_changes",
+      "major_equity_changes IN ('Yes', 'No')"
+    ],
+    "plumbing_null_count": 93,
+    "expression_change_entities": 93,
+    "impact_unit": 24
+  },
+  "net_assets": {
+    "name": "net_assets",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "occurrence_count": 3,
+    "n_queries": 2,
+    "queries": [
+      "finan_filter20:q11",
+      "finan_multiagg20:q11"
+    ],
+    "roles": {
+      "WHERE": 2,
+      "aggregate input": 1
+    },
+    "predicate_literals": [
+      "0"
+    ],
+    "numeric_comparisons": [
+      {
+        "operator": ">",
+        "literals": "0"
+      }
+    ],
+    "categorical_literals": [],
+    "cooccurring": [
+      "auditor",
+      "cash_reserves",
+      "net_profit_or_loss",
+      "principal_activities",
+      "total_debt"
+    ],
+    "expressions": [
+      "AVG(net_assets)",
+      "net_assets > 0",
+      "net_assets IS NULL"
+    ],
+    "plumbing_null_count": 100,
+    "expression_change_entities": 100,
+    "impact_unit": 6
+  },
+  "net_profit_or_loss": {
+    "name": "net_profit_or_loss",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "occurrence_count": 7,
+    "n_queries": 4,
+    "queries": [
+      "finan_filter20:q11",
+      "finan_filter20:q8",
+      "finan_multiagg20:q18",
+      "finan_multiagg20:q4"
+    ],
+    "roles": {
+      "CASE": 1,
+      "WHERE": 5,
+      "aggregate input": 1
+    },
+    "predicate_literals": [
+      "0"
+    ],
+    "numeric_comparisons": [
+      {
+        "operator": ">",
+        "literals": "0"
+      }
+    ],
+    "categorical_literals": [],
+    "cooccurring": [
+      "auditor",
+      "cash_reserves",
+      "exchange_code",
+      "net_assets",
+      "revenue",
+      "total_debt"
+    ],
+    "expressions": [
+      "AVG(net_profit_or_loss)",
+      "CASE WHEN net_profit_or_loss > 0 THEN 'profitable' ELSE 'loss_making' END",
+      "net_profit_or_loss <> 0",
+      "net_profit_or_loss > 0",
+      "net_profit_or_loss IS NULL"
+    ],
+    "plumbing_null_count": 82,
+    "expression_change_entities": 82,
+    "impact_unit": 28
+  },
+  "principal_activities": {
+    "name": "principal_activities",
+    "sql_type": "TEXT",
+    "dtype": "string",
+    "occurrence_count": 22,
+    "n_queries": 4,
+    "queries": [
+      "finan_agg20:q11",
+      "finan_filter20:q7",
+      "finan_groupby20:q14",
+      "finan_multiagg20:q11"
+    ],
+    "roles": {
+      "CASE": 18,
+      "WHERE": 4
+    },
+    "predicate_literals": [
+      "%Finance%",
+      "%Healthcare%",
+      "%Mining%",
+      "%Retail%",
+      "%Technology%"
+    ],
+    "numeric_comparisons": [],
+    "categorical_literals": [
+      "%Finance%",
+      "%Healthcare%",
+      "%Mining%",
+      "%Retail%",
+      "%Technology%"
+    ],
+    "cooccurring": [
+      "business_segments_num",
+      "cash_reserves",
+      "dividend_per_share",
+      "net_assets",
+      "total_debt"
+    ],
+    "expressions": [
+      "CASE WHEN principal_activities LIKE '%Finance%' THEN 'Finance' WHEN principal_activities LIKE '%Healthcare%' THEN 'Healthcare' WHEN principal_activities LIKE '%Technology%' THEN 'Technology' WHEN principal_activities LIKE '%Retail%' THEN 'Retail' WHEN principal_activities LIKE '%Mining%' THEN 'Mining' WHEN principal_activities <> '' THEN 'Other' END",
+      "principal_activities <> ''",
+      "principal_activities LIKE '%Finance%'"
+    ],
+    "plumbing_null_count": 53,
+    "expression_change_entities": 53,
+    "impact_unit": 88
+  },
+  "remuneration_policy": {
+    "name": "remuneration_policy",
+    "sql_type": "TEXT",
+    "dtype": "string",
+    "occurrence_count": 7,
+    "n_queries": 3,
+    "queries": [
+      "finan_agg20:q4",
+      "finan_filter20:q9",
+      "finan_multiagg20:q9"
+    ],
+    "roles": {
+      "CASE": 4,
+      "WHERE": 3
+    },
+    "predicate_literals": [
+      "%Mixed%"
+    ],
+    "numeric_comparisons": [],
+    "categorical_literals": [
+      "%Mixed%"
+    ],
+    "cooccurring": [
+      "earnings_per_share",
+      "revenue"
+    ],
+    "expressions": [
+      "CASE WHEN remuneration_policy LIKE '%Mixed%' THEN 'Mixed' ELSE 'Other' END",
+      "CASE WHEN remuneration_policy LIKE '%Mixed%' THEN 'Mixed' WHEN remuneration_policy <> '' THEN 'Other' END",
+      "remuneration_policy <> ''"
+    ],
+    "plumbing_null_count": 89,
+    "expression_change_entities": 89,
+    "impact_unit": 21
+  },
+  "revenue": {
+    "name": "revenue",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "occurrence_count": 7,
+    "n_queries": 4,
+    "queries": [
+      "finan_filter20:q9",
+      "finan_multiagg20:q18",
+      "finan_multiagg20:q4",
+      "finan_multiagg20:q9"
+    ],
+    "roles": {
+      "WHERE": 4,
+      "aggregate input": 3
+    },
+    "predicate_literals": [
+      "0",
+      "100000000"
+    ],
+    "numeric_comparisons": [
+      {
+        "operator": ">",
+        "literals": "0"
+      },
+      {
+        "operator": ">=",
+        "literals": "100000000"
+      }
+    ],
+    "categorical_literals": [],
+    "cooccurring": [
+      "auditor",
+      "cash_reserves",
+      "earnings_per_share",
+      "exchange_code",
+      "net_profit_or_loss",
+      "remuneration_policy",
+      "total_debt"
+    ],
+    "expressions": [
+      "AVG(revenue)",
+      "revenue > 0",
+      "revenue >= 100000000"
+    ],
+    "plumbing_null_count": 84,
+    "expression_change_entities": 84,
+    "impact_unit": 28
+  },
+  "the_highest_ownership_stake": {
+    "name": "the_highest_ownership_stake",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "occurrence_count": 2,
+    "n_queries": 1,
+    "queries": [
+      "finan_agg20:q17"
+    ],
+    "roles": {
+      "WHERE": 1,
+      "aggregate input": 1
+    },
+    "predicate_literals": [],
+    "numeric_comparisons": [],
+    "categorical_literals": [],
+    "cooccurring": [
+      "major_equity_changes"
+    ],
+    "expressions": [
+      "AVG(the_highest_ownership_stake)",
+      "the_highest_ownership_stake IS NULL"
+    ],
+    "plumbing_null_count": 95,
+    "expression_change_entities": 95,
+    "impact_unit": 2
+  },
+  "total_debt": {
+    "name": "total_debt",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "occurrence_count": 5,
+    "n_queries": 3,
+    "queries": [
+      "finan_filter20:q8",
+      "finan_multiagg20:q11",
+      "finan_multiagg20:q4"
+    ],
+    "roles": {
+      "WHERE": 2,
+      "aggregate input": 3
+    },
+    "predicate_literals": [],
+    "numeric_comparisons": [],
+    "categorical_literals": [],
+    "cooccurring": [
+      "cash_reserves",
+      "exchange_code",
+      "net_assets",
+      "net_profit_or_loss",
+      "principal_activities",
+      "revenue"
+    ],
+    "expressions": [
+      "AVG(total_debt)",
+      "total_debt IS NULL"
+    ],
+    "plumbing_null_count": 96,
+    "expression_change_entities": 96,
+    "impact_unit": 15
+  }
+}

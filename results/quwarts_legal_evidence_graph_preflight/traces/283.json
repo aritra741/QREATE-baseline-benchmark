@@ -1,0 +1,490 @@
+[
+  {
+    "attribute": "case_number",
+    "available_facts": [],
+    "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+    "fact_ids": [],
+    "kind": "group",
+    "observable_id": "044afbcb75138d4d",
+    "query_ids": [
+      "legal_groupby20:q14"
+    ],
+    "raw_occurrences": 1,
+    "reason": "unresolved",
+    "role": "case_branch",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "case_number",
+    "available_facts": [],
+    "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+    "fact_ids": [],
+    "kind": "group",
+    "observable_id": "500350946f705705",
+    "query_ids": [
+      "legal_filter20:q8"
+    ],
+    "raw_occurrences": 1,
+    "reason": "unresolved",
+    "role": "case_branch",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "case_type",
+    "available_facts": [
+      "c2_02"
+    ],
+    "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+    "fact_ids": [
+      "c2_02"
+    ],
+    "kind": "group",
+    "observable_id": "f6774a1a18b929bd",
+    "query_ids": [
+      "legal_groupby20:q14",
+      "legal_multiagg20:q9",
+      "legal_agg20:q13",
+      "legal_filter20:q11"
+    ],
+    "raw_occurrences": 4,
+    "reason": "case_type_branch",
+    "role": "case_branch",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": "Civil Case"
+  },
+  {
+    "attribute": "defendant_current_status",
+    "available_facts": [
+      "c2_04"
+    ],
+    "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+    "fact_ids": [
+      "c2_04"
+    ],
+    "kind": "group",
+    "observable_id": "c7b283366e96778d",
+    "query_ids": [
+      "legal_multiagg20:q18",
+      "legal_agg20:q17"
+    ],
+    "raw_occurrences": 2,
+    "reason": "status_branch",
+    "role": "case_branch",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": "Company"
+  },
+  {
+    "attribute": "legal_basis_num",
+    "available_facts": [],
+    "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+    "fact_ids": [],
+    "kind": "group",
+    "observable_id": "019c7d6a1edfd18f",
+    "query_ids": [
+      "legal_multiagg20:q11"
+    ],
+    "raw_occurrences": 1,
+    "reason": "unresolved",
+    "role": "case_branch",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "plaintiff_current_status",
+    "available_facts": [
+      "c2_03"
+    ],
+    "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+    "fact_ids": [
+      "c2_03"
+    ],
+    "kind": "group",
+    "observable_id": "d2389e40abc66bdf",
+    "query_ids": [
+      "legal_filter20:q9",
+      "legal_multiagg20:q18",
+      "legal_agg20:q11"
+    ],
+    "raw_occurrences": 3,
+    "reason": "status_in_filter",
+    "role": "case_branch",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": true
+  },
+  {
+    "attribute": "verdict",
+    "available_facts": [
+      "c2_01"
+    ],
+    "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+    "fact_ids": [
+      "c2_01"
+    ],
+    "kind": "group",
+    "observable_id": "fba9d98f1979bdb7",
+    "query_ids": [
+      "legal_filter20:q7",
+      "legal_multiagg20:q9",
+      "legal_filter20:q15"
+    ],
+    "raw_occurrences": 3,
+    "reason": "verdict_branch",
+    "role": "case_branch",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": "Dismissed"
+  },
+  {
+    "attribute": "first_judge",
+    "available_facts": [],
+    "expression": "first_judge",
+    "fact_ids": [],
+    "kind": "group",
+    "observable_id": "9e6df65a145893ed",
+    "query_ids": [
+      "legal_multiagg20:q4",
+      "legal_agg20:q4",
+      "legal_agg20:q14"
+    ],
+    "raw_occurrences": 6,
+    "reason": "unresolved",
+    "role": "group_key",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "hearing_year",
+    "available_facts": [],
+    "expression": "hearing_year",
+    "fact_ids": [],
+    "kind": "group",
+    "observable_id": "b5614de6b3ff5cc7",
+    "query_ids": [
+      "legal_agg20:q3"
+    ],
+    "raw_occurrences": 2,
+    "reason": "unresolved",
+    "role": "group_key",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "case_number",
+    "available_facts": [],
+    "expression": "AVG(case_number)",
+    "fact_ids": [],
+    "kind": "numeric",
+    "observable_id": "bdb0b7642ca14916",
+    "query_ids": [
+      "legal_multiagg20:q4",
+      "legal_filter20:q7",
+      "legal_multiagg20:q11",
+      "legal_multiagg20:q18",
+      "legal_multiagg20:q9"
+    ],
+    "raw_occurrences": 5,
+    "reason": "unresolved",
+    "role": "numeric_avg",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "legal_basis_num",
+    "available_facts": [],
+    "expression": "AVG(legal_basis_num)",
+    "fact_ids": [],
+    "kind": "numeric",
+    "observable_id": "2e18bb3bb06d3bb0",
+    "query_ids": [
+      "legal_multiagg20:q4",
+      "legal_multiagg20:q18",
+      "legal_multiagg20:q9",
+      "legal_agg20:q17",
+      "legal_filter20:q11",
+      "legal_agg20:q14"
+    ],
+    "raw_occurrences": 6,
+    "reason": "unresolved",
+    "role": "numeric_avg",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "case_number",
+    "available_facts": [],
+    "expression": "MAX(case_number)",
+    "fact_ids": [],
+    "kind": "numeric",
+    "observable_id": "e1262e1fdb4c64da",
+    "query_ids": [
+      "legal_agg20:q13"
+    ],
+    "raw_occurrences": 1,
+    "reason": "unresolved",
+    "role": "numeric_max",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "verdict",
+    "available_facts": [
+      "c2_01"
+    ],
+    "expression": "verdict = 'Dismissed'",
+    "fact_ids": [
+      "c2_01"
+    ],
+    "kind": "predicate",
+    "observable_id": "b15dbfdd9b406fd5",
+    "query_ids": [
+      "legal_multiagg20:q4",
+      "legal_multiagg20:q11"
+    ],
+    "raw_occurrences": 2,
+    "reason": "verdict_dismissed",
+    "role": "aggregate_indicator",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": true
+  },
+  {
+    "attribute": "case_type",
+    "available_facts": [
+      "c2_02"
+    ],
+    "expression": "case_type = 'Civil Case'",
+    "fact_ids": [
+      "c2_02"
+    ],
+    "kind": "predicate",
+    "observable_id": "ee1d3edb895cdf41",
+    "query_ids": [
+      "legal_filter20:q8"
+    ],
+    "raw_occurrences": 1,
+    "reason": "case_type_filter",
+    "role": "filter",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": true
+  },
+  {
+    "attribute": "defendant_current_status",
+    "available_facts": [
+      "c2_04"
+    ],
+    "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+    "fact_ids": [
+      "c2_04"
+    ],
+    "kind": "predicate",
+    "observable_id": "eeac08f93d774f6e",
+    "query_ids": [
+      "legal_filter20:q15"
+    ],
+    "raw_occurrences": 1,
+    "reason": "status_in_filter",
+    "role": "filter",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": true
+  },
+  {
+    "attribute": "defendant_current_status",
+    "available_facts": [
+      "c2_04"
+    ],
+    "expression": "defendant_current_status = 'Government'",
+    "fact_ids": [
+      "c2_04"
+    ],
+    "kind": "predicate",
+    "observable_id": "fc11f4cf61a4afb2",
+    "query_ids": [
+      "legal_filter20:q11"
+    ],
+    "raw_occurrences": 1,
+    "reason": "status_eq_filter",
+    "role": "filter",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": false
+  },
+  {
+    "attribute": "hearing_year",
+    "available_facts": [],
+    "expression": "hearing_year BETWEEN 2006 AND 2008",
+    "fact_ids": [],
+    "kind": "predicate",
+    "observable_id": "274df2a0883a3970",
+    "query_ids": [
+      "legal_filter20:q7"
+    ],
+    "raw_occurrences": 1,
+    "reason": "unresolved",
+    "role": "filter",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "hearing_year",
+    "available_facts": [],
+    "expression": "hearing_year BETWEEN 2005 AND 2009",
+    "fact_ids": [],
+    "kind": "predicate",
+    "observable_id": "ed5f55060b85a804",
+    "query_ids": [
+      "legal_agg20:q3"
+    ],
+    "raw_occurrences": 1,
+    "reason": "unresolved",
+    "role": "filter",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "plaintiff_current_status",
+    "available_facts": [
+      "c2_03"
+    ],
+    "expression": "plaintiff_current_status = 'Company'",
+    "fact_ids": [
+      "c2_03"
+    ],
+    "kind": "predicate",
+    "observable_id": "8497e4ef83ec9679",
+    "query_ids": [
+      "legal_filter20:q15"
+    ],
+    "raw_occurrences": 1,
+    "reason": "status_eq_filter",
+    "role": "filter",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": true
+  },
+  {
+    "attribute": "verdict",
+    "available_facts": [
+      "c2_01"
+    ],
+    "expression": "verdict = 'Approved'",
+    "fact_ids": [
+      "c2_01"
+    ],
+    "kind": "predicate",
+    "observable_id": "d0f55532806b22c4",
+    "query_ids": [
+      "legal_filter20:q9"
+    ],
+    "raw_occurrences": 1,
+    "reason": "verdict_approved",
+    "role": "filter",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": false
+  },
+  {
+    "attribute": "case_number",
+    "available_facts": [],
+    "expression": "NOT case_number IS NULL",
+    "fact_ids": [],
+    "kind": "presence",
+    "observable_id": "44b3ea1b26407fe7",
+    "query_ids": [
+      "legal_multiagg20:q4",
+      "legal_filter20:q7",
+      "legal_multiagg20:q11",
+      "legal_multiagg20:q18",
+      "legal_groupby20:q14",
+      "legal_multiagg20:q9",
+      "legal_agg20:q13",
+      "legal_filter20:q8"
+    ],
+    "raw_occurrences": 8,
+    "reason": "no_not_found_facts",
+    "role": "is_not_null",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "first_judge",
+    "available_facts": [],
+    "expression": "NOT first_judge IS NULL",
+    "fact_ids": [],
+    "kind": "presence",
+    "observable_id": "64de220c6bec8f33",
+    "query_ids": [
+      "legal_multiagg20:q4",
+      "legal_agg20:q4",
+      "legal_agg20:q14"
+    ],
+    "raw_occurrences": 3,
+    "reason": "no_not_found_facts",
+    "role": "is_not_null",
+    "sql_null": false,
+    "state": "UNRESOLVED",
+    "value": null
+  },
+  {
+    "attribute": "defendant_current_status",
+    "available_facts": [
+      "c2_04"
+    ],
+    "expression": "defendant_current_status <> ''",
+    "fact_ids": [
+      "c2_04"
+    ],
+    "kind": "presence",
+    "observable_id": "7a2a9da9d422f4b6",
+    "query_ids": [
+      "legal_multiagg20:q18",
+      "legal_agg20:q17"
+    ],
+    "raw_occurrences": 2,
+    "reason": "nonempty_status",
+    "role": "nonempty",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": true
+  },
+  {
+    "attribute": "plaintiff_current_status",
+    "available_facts": [
+      "c2_03"
+    ],
+    "expression": "plaintiff_current_status <> ''",
+    "fact_ids": [
+      "c2_03"
+    ],
+    "kind": "presence",
+    "observable_id": "cef932ff54135808",
+    "query_ids": [
+      "legal_filter20:q9",
+      "legal_multiagg20:q18",
+      "legal_agg20:q11"
+    ],
+    "raw_occurrences": 3,
+    "reason": "nonempty_status",
+    "role": "nonempty",
+    "sql_null": false,
+    "state": "RESOLVED",
+    "value": true
+  }
+]

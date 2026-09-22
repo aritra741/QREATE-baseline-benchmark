@@ -1,0 +1,64 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "d2a47a77c58172597085b3ac017f345756dcb0c5664baa4bf8fa784d89edbe0f",
+    "entity_identity": "47fb28ec6bc2e3d3ed02cd8c4ea798bc830ee67e37d4e97cad0c88f84f142c5a",
+    "attribute_bundle": [
+      "finance.auditor"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "b20e1b20aec20de468930c8478233b491a6c508b653d2cb50a77ac6ce63a2c20",
+      "639efbcc18ca83a5633b4b5859b736e1ae057766e8b77b839399ec99c8122d37",
+      "d56163232eaf2ed1e6b7ed5b14d2e163c67a6aac021fa8769dfbbba2627d4860",
+      "6f000d767e39e2d9a5234e321bf39823b6775ef6d65ffca12768ed7fb6c39672",
+      "a104bf66db97ab59dab79042e6697c9b7d037bdb1e73b512812ab6df1e233deb"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "8618065b9994933e17c6553ab9e03b3345ff0d7b46bd8165fca4d7036da6e1e2",
+    "operator": "finan_additive",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"47fb28ec6bc2e3d3ed02cd8c4ea798bc830ee67e37d4e97cad0c88f84f142c5a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.auditor\",\n      \"status\": \"found\",\n      \"raw_value\": \"Whitley Penn\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"10.txt:c30\",\n          \"exact_span\": \".## INDEPENDENT AUDITORS\\nWhitley Penn\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.auditor": {
+          "attribute": "finance.auditor",
+          "status": "found",
+          "raw_value": "Whitley Penn",
+          "normalized_value": "Whitley Penn",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "10.txt:c30",
+              "exact_span": ".## INDEPENDENT AUDITORS\nWhitley Penn"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.auditor"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "47fb28ec6bc2e3d3ed02cd8c4ea798bc830ee67e37d4e97cad0c88f84f142c5a"
+    }
+  }
+}

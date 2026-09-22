@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "f7309bd31f03ac7cfd790143f3c73688db8a7d1a0f1348073bc3406464948253",
+    "entity_identity": "de4371fbbd0eaecb409cb51c8848688a1bdc0fb26ebe3c48fe3fd5b6fbef01ef",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "93b7840b30fb95e534ef60cbbc96755a532cc5a11b04b8a0213a185ade625881",
+      "50e87289d96589f1f26729493a9a8e4e1c58cec9ee1addd076eee8e58505e614",
+      "c2c408de5f6235769b32ed426829097ffc1ba4c0512050be0a398b41a98b64fc",
+      "df69dc25d01ce209c3746a64ee21356659c3aec87eb3013642387735bb54b697"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"de4371fbbd0eaecb409cb51c8848688a1bdc0fb26ebe3c48fe3fd5b6fbef01ef\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"157.txt:c110\",\n          \"exact_span\": \"111 In each appeal, there will be orders that the appeal be dismissed and that the applicant pay the respondents' costs.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "157.txt:c110",
+              "exact_span": "111 In each appeal, there will be orders that the appeal be dismissed and that the applicant pay the respondents' costs."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "de4371fbbd0eaecb409cb51c8848688a1bdc0fb26ebe3c48fe3fd5b6fbef01ef"
+    }
+  }
+}

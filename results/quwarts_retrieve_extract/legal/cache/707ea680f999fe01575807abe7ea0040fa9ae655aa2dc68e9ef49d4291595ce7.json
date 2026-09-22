@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "f6a1d5d262ba89e0b8454808f585f7cc49c8891166b5e7b987763e1804f31e7e",
+    "entity_identity": "67695f1115de731c3b9e184bb349d253b9a06c8a9f1db7ec24da7a034d0477a5",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "dd99f1728db08d0f491175170e802a8ccea6aaca9224406a5030848beaf6705b",
+      "953c21362e29a1a066e7fa82d40c8609850f3861bb8d6664876814240708009e",
+      "4cf3329067a1b2911a95f73c4d0f213b1483e6dea000c7e8b649457042d76729",
+      "d94ae6bc3eb21d6c358ae9d6faccadd51ffe49162476995cbdaf91cb0279bca6",
+      "404099067ea369293b6024ed573b9660ecfdec3ba2d3ba69cae172fae9feaf1c"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"67695f1115de731c3b9e184bb349d253b9a06c8a9f1db7ec24da7a034d0477a5\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"566.txt:c20\",\n          \"exact_span\": \"No question arises, so the Appellant contends, for the Court to review those materials and for the Court to form any view as to whether in its opinion the newly formulated claim emerged from the materials.\"\n        },\n        {\n          \"source_id\": \"566.txt:c22\",\n          \"exact_span\": \"The Tribunal provided findings and reasons, being those set forth under the heading 'Findings and Reasons'; it also referred to the evidence, being that set out under the heading 'Claims and Evidence'.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "566.txt:c20",
+              "exact_span": "No question arises, so the Appellant contends, for the Court to review those materials and for the Court to form any view as to whether in its opinion the newly formulated claim emerged from the materials."
+            },
+            {
+              "source_id": "566.txt:c22",
+              "exact_span": "The Tribunal provided findings and reasons, being those set forth under the heading 'Findings and Reasons'; it also referred to the evidence, being that set out under the heading 'Claims and Evidence'."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "67695f1115de731c3b9e184bb349d253b9a06c8a9f1db7ec24da7a034d0477a5"
+    }
+  }
+}

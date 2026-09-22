@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "e19dd91be18b36db496dec90651deb148f3359a0143bac34ca4ed459facf219d",
+    "entity_identity": "705190b82b32e7d881ddbcf165cf652981e6ac77cda40f87f38d98f854def581",
+    "attribute_bundle": [
+      "legal.case_type"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "5d0cc1ba9c4850592183b5333d8482b06b00008445f2ea0f60214293d3fed57b",
+      "1fa08465c6164ecd0804c6eb9372e88b91db8579b9f1ae326565e60bdb71642d",
+      "a8f9c1be6b14d403fb4ff9b8320cbe96c95a29be6ef1dc3dd33ef05405b229f7",
+      "842cdb080940d9ced3b12abff21de98b00fabcd523100a646ef36746d8675bf2"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"705190b82b32e7d881ddbcf165cf652981e6ac77cda40f87f38d98f854def581\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Civil Case\",\n      \"normalized_value\": \"Civil Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"161.txt:c18\",\n          \"exact_span\": \"Applications for such relief are often, as in this case, made ex parte.\"\n        },\n        {\n          \"source_id\": \"161.txt:c17\",\n          \"exact_span\": \"Applications for such relief are often, as in this case, made ex parte.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Civil Case",
+          "normalized_value": "Civil Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "161.txt:c18",
+              "exact_span": "Applications for such relief are often, as in this case, made ex parte."
+            },
+            {
+              "source_id": "161.txt:c17",
+              "exact_span": "Applications for such relief are often, as in this case, made ex parte."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "705190b82b32e7d881ddbcf165cf652981e6ac77cda40f87f38d98f854def581"
+    }
+  }
+}

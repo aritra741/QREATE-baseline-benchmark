@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "a9f317d209f37636cd405655dc0976a33e1aca445d2c53652614e4320f892917",
+    "entity_identity": "a5c070754dd623390df7544bdb793cb8df8ea1372b494f7f1c8f58281b077a00",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "2dbb9a9fddd1f001b5c3da091b6e16a6a6e8cffd086249746a715cda55533a96",
+      "b7c12913c9f736e3cf7b107bcc168de2f3adbae806e1f9326999e0c51698a521",
+      "c74a91af3466b6a606b52c59eb2e227fbb709e63edd087bd0673cdff896708cc",
+      "0016cbf3e6e7b810136eb25d6d7ec7803b25294221bffaa34eebffbd39fa1486"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"a5c070754dd623390df7544bdb793cb8ea1372b494f7f1c8f58281b077a00\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"543.txt:c8\",\n          \"exact_span\": \"The tribunal confirmed that evidence directly by contacting the Local Church.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "543.txt:c8",
+              "exact_span": "The tribunal confirmed that evidence directly by contacting the Local Church."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "a5c070754dd623390df7544bdb793cb8ea1372b494f7f1c8f58281b077a00"
+    }
+  }
+}

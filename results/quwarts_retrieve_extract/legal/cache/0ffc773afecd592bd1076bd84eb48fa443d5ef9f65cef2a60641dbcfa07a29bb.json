@@ -1,0 +1,62 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "5c6873dce7f65c0239ba33479096767a0150a45c38bac5bdf076434be25caeca",
+    "entity_identity": "455849595f768023c0332a1a3f0adb8aa12c87894fdf18feddaf120308186b57",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "section_map",
+    "context_hashes": [
+      "1a35b67ce7ab9b4dbbf504769d1313ed3ddd9889bdb5ada273801fa577bf4312",
+      "edc9298660b48125fdbf119a80aa7ddb59d9ee1dff7ac20f7e2aa2c87ba46303",
+      "d75b7f3369d9d594d79951babf983113edc4163809df0abf067440718fabf546"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"455849595f768023c0332a1a3f0adb8aa12c87894fdf18feddaf120308186b57\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"16.txt:s4\",\n          \"exact_span\": \"The Director's report was an attachment to the adjudicative referral.\"\n        },\n        {\n          \"source_id\": \"16.txt:s5\",\n          \"exact_span\": \"By a letter dated 13 September 2001, the Committee advised Dr Saint that it would hold a hearing on 1 November and 2 November 2001 at which Dr Saint would be required to give evidence.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "16.txt:s4",
+              "exact_span": "The Director's report was an attachment to the adjudicative referral."
+            },
+            {
+              "source_id": "16.txt:s5",
+              "exact_span": "By a letter dated 13 September 2001, the Committee advised Dr Saint that it would hold a hearing on 1 November and 2 November 2001 at which Dr Saint would be required to give evidence."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "455849595f768023c0332a1a3f0adb8aa12c87894fdf18feddaf120308186b57"
+    }
+  }
+}

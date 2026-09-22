@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+    "entity_identity": "finan_filter20:q7:70:map",
+    "attribute_bundle": [
+      "dividend_per_share",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+      "34555ccbc3181af76140497659120ecbf43c26855841a8059d9e5dc7b2cee7d3",
+      "e6d75eaa465ab1acf1542d895b98bce5da54feb3c71fcff5a8524e92af07e412",
+      "afdd9d49d6347626acdf890a736a2750daea786e2bce77dca90f49e6d2177772",
+      "bba36da4bd0cdf20b013daeed8c4e9631fc33fbedf647e4e64ad293f8823769f",
+      "ebdd9de98409b66ac813a785b323d7a40fabaf6ed238b4fa17df66b5d1c1ccc9",
+      "7e92d2b28bbeb53ba6716ec3140c0abf739f694be950d3d23f2ef511e4d70fd8",
+      "982da561693c208ec6c22705995aa326a549b0aacfabba7d4e50eea419295142",
+      "2e8aa7e19131a3768ab08142e14879fef5bfa58d4197fe40741e332742c66571"
+    ],
+    "schema_hash": "765a804b13d6eb43b3b37c903185cf34a879c9fa65b6cc5f0c0abac2b62a435d",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"dividend_per_share\": {\"value\": 0.2, \"status\": \"found\", \"evidence\": \"In line with this and as communicated previously, we will propose a dividend of \u20ac0.20 per share to the Annual General Meeting on\"}\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "dividend_per_share": {
+          "attribute": "dividend_per_share",
+          "raw_value": "0.2",
+          "normalized_value": 0.2,
+          "status": "found",
+          "evidence": "In line with this and as communicated previously, we will propose a dividend of \u20ac0.20 per share to the Annual General Meeting on",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        }
+      },
+      "errors": [
+        "omitted:principal_activities"
+      ],
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,352 @@
+{
+  "auditor": {
+    "name": "auditor",
+    "official_description": "name of the external audit firm.",
+    "sql_type": "TEXT",
+    "dtype": "string",
+    "usage": "categorical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "CASE": 21,
+      "WHERE": 7
+    },
+    "n_expressions": 6,
+    "n_queries": 4,
+    "allows_sum": false,
+    "requires_usd": false,
+    "target_currency": null,
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": []
+  },
+  "business_segments_num": {
+    "name": "business_segments_num",
+    "official_description": "number of business segments reported. Enter a number.",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "usage": "numerical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "CASE": 1,
+      "WHERE": 2,
+      "aggregate input": 1
+    },
+    "n_expressions": 3,
+    "n_queries": 2,
+    "allows_sum": false,
+    "requires_usd": false,
+    "target_currency": null,
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": [
+      "numeric"
+    ]
+  },
+  "cash_reserves": {
+    "name": "cash_reserves",
+    "official_description": "total cash and cash equivalents held at period-end. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "usage": "numerical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "WHERE": 2,
+      "aggregate input": 3
+    },
+    "n_expressions": 3,
+    "n_queries": 3,
+    "allows_sum": false,
+    "requires_usd": true,
+    "target_currency": "usd",
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": [
+      "numeric",
+      "fx_if_rate_available"
+    ]
+  },
+  "dividend_per_share": {
+    "name": "dividend_per_share",
+    "official_description": "dividends paid per share for the period. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "usage": "numerical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "CASE": 1,
+      "WHERE": 1
+    },
+    "n_expressions": 2,
+    "n_queries": 1,
+    "allows_sum": false,
+    "requires_usd": true,
+    "target_currency": "usd",
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": [
+      "numeric",
+      "fx_if_rate_available"
+    ]
+  },
+  "earnings_per_share": {
+    "name": "earnings_per_share",
+    "official_description": "earnings per share (EPS) for the reporting period. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "usage": "numerical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "WHERE": 2,
+      "aggregate input": 2
+    },
+    "n_expressions": 2,
+    "n_queries": 2,
+    "allows_sum": false,
+    "requires_usd": true,
+    "target_currency": "usd",
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": [
+      "numeric",
+      "fx_if_rate_available"
+    ]
+  },
+  "exchange_code": {
+    "name": "exchange_code",
+    "official_description": "The code of the stock exchange where the company is listed (e.g., ASX, SUN).",
+    "sql_type": "TEXT",
+    "dtype": "string",
+    "usage": "categorical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "CASE": 18,
+      "WHERE": 3
+    },
+    "n_expressions": 2,
+    "n_queries": 3,
+    "allows_sum": false,
+    "requires_usd": false,
+    "target_currency": null,
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": []
+  },
+  "major_equity_changes": {
+    "name": "major_equity_changes",
+    "official_description": "whether there were major equity changes during the period; choose one from ['Yes', 'No'].",
+    "sql_type": "TEXT",
+    "dtype": "numeric",
+    "usage": "categorical",
+    "is_fixed": true,
+    "schema_domain": [
+      "Yes",
+      "No"
+    ],
+    "roles": {
+      "GROUP BY": 3,
+      "WHERE": 2,
+      "projection": 3
+    },
+    "n_expressions": 5,
+    "n_queries": 3,
+    "allows_sum": false,
+    "requires_usd": false,
+    "target_currency": null,
+    "unit_percent": false,
+    "task_class": "classification",
+    "normalization": []
+  },
+  "net_assets": {
+    "name": "net_assets",
+    "official_description": "net asset value at the end of the reporting period. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "usage": "numerical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "WHERE": 2,
+      "aggregate input": 1
+    },
+    "n_expressions": 3,
+    "n_queries": 2,
+    "allows_sum": false,
+    "requires_usd": true,
+    "target_currency": "usd",
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": [
+      "numeric",
+      "fx_if_rate_available"
+    ]
+  },
+  "net_profit_or_loss": {
+    "name": "net_profit_or_loss",
+    "official_description": "net profit or loss amount for the reporting period (enter a negative number for loss). Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "usage": "numerical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "CASE": 1,
+      "WHERE": 5,
+      "aggregate input": 1
+    },
+    "n_expressions": 5,
+    "n_queries": 4,
+    "allows_sum": false,
+    "requires_usd": true,
+    "target_currency": "usd",
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": [
+      "numeric",
+      "fx_if_rate_available",
+      "signed_loss"
+    ]
+  },
+  "principal_activities": {
+    "name": "principal_activities",
+    "official_description": "main business activities or industry classification; choose one or more from ['Mining', 'finance', 'Healthcare', 'Manufacturing', 'Technology', 'Retail', 'Energy', 'Utilities', 'Real Estate', 'Transportation', 'Agriculture', 'Telecommunications', 'Media', 'Other'], seperated by `||` (e.g. Mining || finance).",
+    "sql_type": "TEXT",
+    "dtype": "string",
+    "usage": "general",
+    "is_fixed": true,
+    "schema_domain": [
+      "Mining",
+      "finance",
+      "Healthcare",
+      "Manufacturing",
+      "Technology",
+      "Retail",
+      "Energy",
+      "Utilities",
+      "Real Estate",
+      "Transportation",
+      "Agriculture",
+      "Telecommunications",
+      "Media",
+      "Other"
+    ],
+    "roles": {
+      "CASE": 18,
+      "WHERE": 4
+    },
+    "n_expressions": 3,
+    "n_queries": 4,
+    "allows_sum": false,
+    "requires_usd": false,
+    "target_currency": null,
+    "unit_percent": false,
+    "task_class": "classification",
+    "normalization": [
+      "multi_value_join"
+    ]
+  },
+  "remuneration_policy": {
+    "name": "remuneration_policy",
+    "official_description": "executive remuneration policy type; choose only one from ['Fixed', 'Performance-based', 'Stock Option', 'Mixed', 'Not Disclosed'].",
+    "sql_type": "TEXT",
+    "dtype": "string",
+    "usage": "categorical",
+    "is_fixed": true,
+    "schema_domain": [
+      "Fixed",
+      "Performance-based",
+      "Stock Option",
+      "Mixed",
+      "Not Disclosed"
+    ],
+    "roles": {
+      "CASE": 4,
+      "WHERE": 3
+    },
+    "n_expressions": 3,
+    "n_queries": 3,
+    "allows_sum": false,
+    "requires_usd": false,
+    "target_currency": null,
+    "unit_percent": false,
+    "task_class": "classification",
+    "normalization": []
+  },
+  "revenue": {
+    "name": "revenue",
+    "official_description": "total operating revenue recognized during the reporting period. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "usage": "numerical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "WHERE": 4,
+      "aggregate input": 3
+    },
+    "n_expressions": 3,
+    "n_queries": 4,
+    "allows_sum": false,
+    "requires_usd": true,
+    "target_currency": "usd",
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": [
+      "numeric",
+      "fx_if_rate_available"
+    ]
+  },
+  "the_highest_ownership_stake": {
+    "name": "the_highest_ownership_stake",
+    "official_description": "the highest percentage of ownership held by a single shareholder. Enter a number, unit: percent (%).",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "usage": "numerical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "WHERE": 1,
+      "aggregate input": 1
+    },
+    "n_expressions": 2,
+    "n_queries": 1,
+    "allows_sum": false,
+    "requires_usd": false,
+    "target_currency": null,
+    "unit_percent": true,
+    "task_class": "extractive",
+    "normalization": [
+      "numeric",
+      "percent"
+    ]
+  },
+  "total_debt": {
+    "name": "total_debt",
+    "official_description": "total debt outstanding at the end of the reporting period. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+    "sql_type": "REAL",
+    "dtype": "numeric",
+    "usage": "numerical",
+    "is_fixed": false,
+    "schema_domain": [],
+    "roles": {
+      "WHERE": 2,
+      "aggregate input": 3
+    },
+    "n_expressions": 2,
+    "n_queries": 3,
+    "allows_sum": false,
+    "requires_usd": true,
+    "target_currency": "usd",
+    "unit_percent": false,
+    "task_class": "extractive",
+    "normalization": [
+      "numeric",
+      "fx_if_rate_available"
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "570c08ad6edd02029a90637579b2184231e2987850b36645f5c19e5d7bca8556",
+    "entity_identity": "58b4b1ab1d574fc06bbdbeaaada848782f78ab7734de83d421ba68ce1791cc8b",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "1111ece8332d27cf27c609dc9fb3b33ede2034eb3f4cf4abdd408697a130f5e3",
+      "a16e8be1266234cddf78a1ba678d0b03658d217bca21e7192c5787d63cfc208d",
+      "046c1fbff1a1418ee972252f5caef278ea7bcff87068d9b48424ff0ee6dee29a",
+      "cfa7542a1d7647232bd74f035f71e93a24b51d5a430400d222e4000a7e31bdd7"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"58b4b1ab1d574fc06bbdbeaaada848782f78ab7734de83d421ba68ce1791cc8b\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"NYSE\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"26.txt:c316\",\n          \"exact_span\": \"Our common shares are listed on the NYSE under the symbol 'NAT.'\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "NYSE",
+          "normalized_value": "NYSE",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "26.txt:c316",
+              "exact_span": "Our common shares are listed on the NYSE under the symbol 'NAT.'"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.exchange_code"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "58b4b1ab1d574fc06bbdbeaaada848782f78ab7734de83d421ba68ce1791cc8b"
+    }
+  }
+}

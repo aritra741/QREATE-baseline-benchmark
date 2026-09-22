@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "7f20a372ca89fe24badedd7cd1299e92c095c66a3937d7a3a7d298af1ee04580",
+    "entity_identity": "04e92a5400b315b0e1b0bd035eb7df61d4e3c7fab4a4ddcad2f233fc7cda3312",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "79aa449ac7b528d3cf66c82ebe4aac0924ffb92b5e425fad9e28d7c69bb0520f",
+      "ebf66fae501eac088bc93191de193070d01a543f6976867755b3062bb5e0e9f5",
+      "030722dd3ce60b4f5f457132af146539f75579e488733407dbc77e6156f52a60",
+      "5bfe2385a1f439cf07464d0b3c6a9c1790871f5ac69fbb345dc4d63ba48465c1"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"04e92a5400b315b0e1b0bd035eb7df61d4e3c7fab4a4ddcad2f233fc7cda3312\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"291.txt:c39\",\n          \"exact_span\": \"1 NSWR 565. 46 In my view, this is not an appropriate case for declaratory relief.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "291.txt:c39",
+              "exact_span": "1 NSWR 565. 46 In my view, this is not an appropriate case for declaratory relief."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "04e92a5400b315b0e1b0bd035eb7df61d4e3c7fab4a4ddcad2f233fc7cda3312"
+    }
+  }
+}

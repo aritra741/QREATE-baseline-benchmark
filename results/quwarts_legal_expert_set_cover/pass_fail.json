@@ -1,0 +1,166 @@
+{
+  "conclusion": "no four-expert cover exists",
+  "gates": {
+    "all_24_compatible": false,
+    "at_most_four_experts": false,
+    "no_resolver": true,
+    "tokens_within_theta": false,
+    "all_documents_rendered": true,
+    "semantics_explicit_in_selected_schemas": false,
+    "role_separated_sidecars": true,
+    "no_gold_or_answers": true
+  },
+  "best": {
+    "experts": [
+      "legal_filter20:q9",
+      "legal_agg20:q4",
+      "legal_filter20:q8",
+      "legal_filter20:q15"
+    ],
+    "size": 4,
+    "covered": 7,
+    "uncovered": [
+      "044afbcb75138d4d",
+      "500350946f705705",
+      "f6774a1a18b929bd",
+      "c7b283366e96778d",
+      "019c7d6a1edfd18f",
+      "d2389e40abc66bdf",
+      "fba9d98f1979bdb7",
+      "9e6df65a145893ed",
+      "b5614de6b3ff5cc7",
+      "bdb0b7642ca14916",
+      "2e18bb3bb06d3bb0",
+      "e1262e1fdb4c64da",
+      "b15dbfdd9b406fd5",
+      "fc11f4cf61a4afb2",
+      "274df2a0883a3970",
+      "ed5f55060b85a804",
+      "7a2a9da9d422f4b6"
+    ],
+    "duplicate_observables": 0,
+    "same_role_reuse": 0,
+    "semantic_role_conflicts": [
+      {
+        "attribute": "plaintiff_current_status",
+        "roles": [
+          "predicate/filter",
+          "presence/nonempty"
+        ]
+      }
+    ],
+    "conflict_count": 1,
+    "calls_per_document": 4,
+    "projected_input_tokens": 14464950,
+    "projected_completion_tokens": 0,
+    "projected_total_tokens": 14464950,
+    "resolver_calls": 0
+  },
+  "uncovered_by_all_16": [
+    {
+      "observable_id": "044afbcb75138d4d",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "case_number",
+      "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END"
+    },
+    {
+      "observable_id": "500350946f705705",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "case_number",
+      "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END"
+    },
+    {
+      "observable_id": "f6774a1a18b929bd",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "case_type",
+      "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+    },
+    {
+      "observable_id": "c7b283366e96778d",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "defendant_current_status",
+      "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END"
+    },
+    {
+      "observable_id": "019c7d6a1edfd18f",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "legal_basis_num",
+      "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END"
+    },
+    {
+      "observable_id": "d2389e40abc66bdf",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "plaintiff_current_status",
+      "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+    },
+    {
+      "observable_id": "fba9d98f1979bdb7",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "verdict",
+      "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+    },
+    {
+      "observable_id": "9e6df65a145893ed",
+      "kind": "group",
+      "role": "group_key",
+      "attribute": "first_judge",
+      "expression": "first_judge"
+    },
+    {
+      "observable_id": "b5614de6b3ff5cc7",
+      "kind": "group",
+      "role": "group_key",
+      "attribute": "hearing_year",
+      "expression": "hearing_year"
+    },
+    {
+      "observable_id": "bdb0b7642ca14916",
+      "kind": "numeric",
+      "role": "numeric_avg",
+      "attribute": "case_number",
+      "expression": "AVG(case_number)"
+    },
+    {
+      "observable_id": "2e18bb3bb06d3bb0",
+      "kind": "numeric",
+      "role": "numeric_avg",
+      "attribute": "legal_basis_num",
+      "expression": "AVG(legal_basis_num)"
+    },
+    {
+      "observable_id": "e1262e1fdb4c64da",
+      "kind": "numeric",
+      "role": "numeric_max",
+      "attribute": "case_number",
+      "expression": "MAX(case_number)"
+    },
+    {
+      "observable_id": "b15dbfdd9b406fd5",
+      "kind": "predicate",
+      "role": "aggregate_indicator",
+      "attribute": "verdict",
+      "expression": "verdict = 'Dismissed'"
+    },
+    {
+      "observable_id": "274df2a0883a3970",
+      "kind": "predicate",
+      "role": "filter",
+      "attribute": "hearing_year",
+      "expression": "hearing_year BETWEEN 2006 AND 2008"
+    },
+    {
+      "observable_id": "ed5f55060b85a804",
+      "kind": "predicate",
+      "role": "filter",
+      "attribute": "hearing_year",
+      "expression": "hearing_year BETWEEN 2005 AND 2009"
+    }
+  ]
+}

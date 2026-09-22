@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "0fad61abade7bf6b2815610392ce95dfdfde73b1eacec17f0095f866bbd6e484",
+    "entity_identity": "f643033124f4dcb6ba4db295de075e1876fb2646d38f29cd66a91e96890af427",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "625c0ea6af65d40d39cd056f5f753eff54ad88b75f5aa13d87af865f4c6c0c9f",
+      "8113ae46d4ae0a385cf20cc1d413eb9264cf9ce85915ea07e05fe9c02b115546",
+      "8d78ebd31f4a6b18b11b9a4f29a68731ae57c6b314f39ae9164cc7db050bca50",
+      "451d115d8520218273c286acd62ff0ce1c5ee12ad948b86bfa4f9a6102bcbe78"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"f643033124f4dcb6ba4db295de075e1876fb2646d38f29cd66a91e96890af427\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"228.txt:c28\",\n          \"exact_span\": \"Mr Gamogab's motion should be dismissed.\\nThere will be no order for the costs of the motion.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "228.txt:c28",
+              "exact_span": "Mr Gamogab's motion should be dismissed.\nThere will be no order for the costs of the motion."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "f643033124f4dcb6ba4db295de075e1876fb2646d38f29cd66a91e96890af427"
+    }
+  }
+}

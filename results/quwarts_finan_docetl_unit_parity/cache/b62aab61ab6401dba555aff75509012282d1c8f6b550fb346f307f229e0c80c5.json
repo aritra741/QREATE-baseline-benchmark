@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+    "entity_identity": "finan_groupby20:q14:10:map",
+    "attribute_bundle": [
+      "business_segments_num",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+      "5a76accd8d82cc67de01f9b21c87a08ec1ac3780ab953ee9f67d9fbd64553349",
+      "e1102593db94ebc3c52cac779a089a06a223199944b0c7745371687706d59154",
+      "d56163232eaf2ed1e6b7ed5b14d2e163c67a6aac021fa8769dfbbba2627d4860",
+      "6f000d767e39e2d9a5234e321bf39823b6775ef6d65ffca12768ed7fb6c39672",
+      "b20e1b20aec20de468930c8478233b491a6c508b653d2cb50a77ac6ce63a2c20",
+      "639efbcc18ca83a5633b4b5859b736e1ae057766e8b77b839399ec99c8122d37",
+      "a97dda601cbcba574607b11cdc8ea1886f95304022a60bb0400243278935ac9b",
+      "7ea29098d5c0ab421717247870a1a7da1d1d8e182cc8f84fb626810806735a20"
+    ],
+    "schema_hash": "37fdc06a7bf66d37869f8a04f8c5713dce4e8c3fc48ed5e4442885e35af5cbb2",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"business_segments_num\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"principal_activities\": {\n        \"value\": \"Finance\",\n        \"status\": \"found\",\n        \"evidence\": \"We achieved a record $40.4 million in earnings in 2022 , up from $39.8 million in 2021.\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "business_segments_num": {
+          "attribute": "business_segments_num",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "Finance",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "We achieved a record $40.4 million in earnings in 2022 , up from $39.8 million in 2021.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        }
+      },
+      "errors": [
+        "grounding_failure:principal_activities"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,1061 @@
+{
+  "base_hash": "ffdd6625ccab49814a6b6aee4fdf8025553327918ff94fd8102d620c21d58da4",
+  "bundles": [
+    {
+      "amplification": 2,
+      "attribute": "case_number",
+      "bundle_id": "b9d600ba7a69",
+      "frequency": 2,
+      "obs_class": "group",
+      "observables": [
+        {
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "kind": "group",
+          "legal_labels": [
+            "precedent_heavy",
+            "precedent_light"
+          ],
+          "match_sql": "case when case_number >= 8 then 'precedent_heavy' else 'precedent_light' end",
+          "observable_id": "044afbcb75138d4d",
+          "query_ids": [
+            "legal_groupby20:q14"
+          ],
+          "raw_occurrences": 1,
+          "role": "case_branch"
+        },
+        {
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "kind": "group",
+          "legal_labels": [
+            "many_precedents",
+            "fewer_precedents"
+          ],
+          "match_sql": "case when case_number >= 10 then 'many_precedents' else 'fewer_precedents' end",
+          "observable_id": "500350946f705705",
+          "query_ids": [
+            "legal_filter20:q8"
+          ],
+          "raw_occurrences": 1,
+          "role": "case_branch"
+        }
+      ],
+      "reuse": 2,
+      "score": 1.52
+    },
+    {
+      "amplification": 6,
+      "attribute": "case_number",
+      "bundle_id": "f1ea3bb34ce4",
+      "frequency": 6,
+      "obs_class": "numeric",
+      "observables": [
+        {
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "kind": "numeric",
+          "legal_labels": [],
+          "match_sql": "avg(case_number)",
+          "observable_id": "bdb0b7642ca14916",
+          "query_ids": [
+            "legal_multiagg20:q4",
+            "legal_filter20:q7",
+            "legal_multiagg20:q11",
+            "legal_multiagg20:q18",
+            "legal_multiagg20:q9"
+          ],
+          "raw_occurrences": 5,
+          "role": "numeric_avg"
+        },
+        {
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "kind": "numeric",
+          "legal_labels": [],
+          "match_sql": "max(case_number)",
+          "observable_id": "e1262e1fdb4c64da",
+          "query_ids": [
+            "legal_agg20:q13"
+          ],
+          "raw_occurrences": 1,
+          "role": "numeric_max"
+        }
+      ],
+      "reuse": 6,
+      "score": 41.04
+    },
+    {
+      "amplification": 8,
+      "attribute": "case_number",
+      "bundle_id": "b931e39c1a9d",
+      "frequency": 8,
+      "obs_class": "presence",
+      "observables": [
+        {
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "kind": "presence",
+          "legal_labels": [],
+          "match_sql": "not case_number is null",
+          "observable_id": "44b3ea1b26407fe7",
+          "query_ids": [
+            "legal_multiagg20:q4",
+            "legal_filter20:q7",
+            "legal_multiagg20:q11",
+            "legal_multiagg20:q18",
+            "legal_groupby20:q14",
+            "legal_multiagg20:q9",
+            "legal_agg20:q13",
+            "legal_filter20:q8"
+          ],
+          "raw_occurrences": 8,
+          "role": "is_not_null"
+        }
+      ],
+      "reuse": 8,
+      "score": 97.28
+    },
+    {
+      "amplification": 4,
+      "attribute": "case_type",
+      "bundle_id": "cf82d6dd7c51",
+      "frequency": 4,
+      "obs_class": "group",
+      "observables": [
+        {
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "kind": "group",
+          "legal_labels": [
+            "Administrative Case",
+            "Civil Case",
+            "Commercial Case",
+            "Other"
+          ],
+          "match_sql": "case when case_type in ('administrative case', 'civil case', 'commercial case') then case_type else 'other' end",
+          "observable_id": "f6774a1a18b929bd",
+          "query_ids": [
+            "legal_groupby20:q14",
+            "legal_multiagg20:q9",
+            "legal_agg20:q13",
+            "legal_filter20:q11"
+          ],
+          "raw_occurrences": 4,
+          "role": "case_branch"
+        }
+      ],
+      "reuse": 4,
+      "score": 12.16
+    },
+    {
+      "amplification": 1,
+      "attribute": "case_type",
+      "bundle_id": "a2fe5be808e1",
+      "frequency": 1,
+      "obs_class": "predicate",
+      "observables": [
+        {
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "kind": "predicate",
+          "legal_labels": [],
+          "match_sql": "case_type = 'civil case'",
+          "observable_id": "ee1d3edb895cdf41",
+          "query_ids": [
+            "legal_filter20:q8"
+          ],
+          "raw_occurrences": 1,
+          "role": "filter"
+        }
+      ],
+      "reuse": 1,
+      "score": 0.19
+    },
+    {
+      "amplification": 2,
+      "attribute": "defendant_current_status",
+      "bundle_id": "cae88c795174",
+      "frequency": 2,
+      "obs_class": "group",
+      "observables": [
+        {
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "kind": "group",
+          "legal_labels": [
+            "Government",
+            "Company",
+            "Organization",
+            "Other"
+          ],
+          "match_sql": "case when defendant_current_status in ('government', 'company', 'organization') then defendant_current_status when defendant_current_status <> '' then 'other' end",
+          "observable_id": "c7b283366e96778d",
+          "query_ids": [
+            "legal_multiagg20:q18",
+            "legal_agg20:q17"
+          ],
+          "raw_occurrences": 2,
+          "role": "case_branch"
+        }
+      ],
+      "reuse": 2,
+      "score": 1.52
+    },
+    {
+      "amplification": 2,
+      "attribute": "defendant_current_status",
+      "bundle_id": "c90326b90332",
+      "frequency": 2,
+      "obs_class": "predicate",
+      "observables": [
+        {
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "kind": "predicate",
+          "legal_labels": [],
+          "match_sql": "defendant_current_status in ('company', 'organization', 'government')",
+          "observable_id": "eeac08f93d774f6e",
+          "query_ids": [
+            "legal_filter20:q15"
+          ],
+          "raw_occurrences": 1,
+          "role": "filter"
+        },
+        {
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "kind": "predicate",
+          "legal_labels": [],
+          "match_sql": "defendant_current_status = 'government'",
+          "observable_id": "fc11f4cf61a4afb2",
+          "query_ids": [
+            "legal_filter20:q11"
+          ],
+          "raw_occurrences": 1,
+          "role": "filter"
+        }
+      ],
+      "reuse": 2,
+      "score": 1.52
+    },
+    {
+      "amplification": 2,
+      "attribute": "defendant_current_status",
+      "bundle_id": "7ede43ff6bcd",
+      "frequency": 2,
+      "obs_class": "presence",
+      "observables": [
+        {
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "kind": "presence",
+          "legal_labels": [],
+          "match_sql": "defendant_current_status <> ''",
+          "observable_id": "7a2a9da9d422f4b6",
+          "query_ids": [
+            "legal_multiagg20:q18",
+            "legal_agg20:q17"
+          ],
+          "raw_occurrences": 2,
+          "role": "nonempty"
+        }
+      ],
+      "reuse": 2,
+      "score": 1.52
+    },
+    {
+      "amplification": 6,
+      "attribute": "first_judge",
+      "bundle_id": "951e069665b1",
+      "frequency": 3,
+      "obs_class": "group",
+      "observables": [
+        {
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "kind": "group",
+          "legal_labels": [],
+          "match_sql": "first_judge",
+          "observable_id": "9e6df65a145893ed",
+          "query_ids": [
+            "legal_multiagg20:q4",
+            "legal_agg20:q4",
+            "legal_agg20:q14"
+          ],
+          "raw_occurrences": 6,
+          "role": "group_key"
+        }
+      ],
+      "reuse": 6,
+      "score": 20.52
+    },
+    {
+      "amplification": 3,
+      "attribute": "first_judge",
+      "bundle_id": "8d21fa34732b",
+      "frequency": 3,
+      "obs_class": "presence",
+      "observables": [
+        {
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "kind": "presence",
+          "legal_labels": [],
+          "match_sql": "not first_judge is null",
+          "observable_id": "64de220c6bec8f33",
+          "query_ids": [
+            "legal_multiagg20:q4",
+            "legal_agg20:q4",
+            "legal_agg20:q14"
+          ],
+          "raw_occurrences": 3,
+          "role": "is_not_null"
+        }
+      ],
+      "reuse": 3,
+      "score": 5.13
+    },
+    {
+      "amplification": 2,
+      "attribute": "hearing_year",
+      "bundle_id": "39d9cce387ef",
+      "frequency": 1,
+      "obs_class": "group",
+      "observables": [
+        {
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "kind": "group",
+          "legal_labels": [],
+          "match_sql": "hearing_year",
+          "observable_id": "b5614de6b3ff5cc7",
+          "query_ids": [
+            "legal_agg20:q3"
+          ],
+          "raw_occurrences": 2,
+          "role": "group_key"
+        }
+      ],
+      "reuse": 2,
+      "score": 0.76
+    },
+    {
+      "amplification": 2,
+      "attribute": "hearing_year",
+      "bundle_id": "9523d676e1bf",
+      "frequency": 2,
+      "obs_class": "predicate",
+      "observables": [
+        {
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "kind": "predicate",
+          "legal_labels": [],
+          "match_sql": "hearing_year between 2006 and 2008",
+          "observable_id": "274df2a0883a3970",
+          "query_ids": [
+            "legal_filter20:q7"
+          ],
+          "raw_occurrences": 1,
+          "role": "filter"
+        },
+        {
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "kind": "predicate",
+          "legal_labels": [],
+          "match_sql": "hearing_year between 2005 and 2009",
+          "observable_id": "ed5f55060b85a804",
+          "query_ids": [
+            "legal_agg20:q3"
+          ],
+          "raw_occurrences": 1,
+          "role": "filter"
+        }
+      ],
+      "reuse": 2,
+      "score": 1.52
+    },
+    {
+      "amplification": 1,
+      "attribute": "legal_basis_num",
+      "bundle_id": "3bb8e0e3f79d",
+      "frequency": 1,
+      "obs_class": "group",
+      "observables": [
+        {
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "kind": "group",
+          "legal_labels": [
+            "0_or_1",
+            "2_or_3",
+            "4_or_more"
+          ],
+          "match_sql": "case when legal_basis_num <= 1 then '0_or_1' when legal_basis_num <= 3 then '2_or_3' else '4_or_more' end",
+          "observable_id": "019c7d6a1edfd18f",
+          "query_ids": [
+            "legal_multiagg20:q11"
+          ],
+          "raw_occurrences": 1,
+          "role": "case_branch"
+        }
+      ],
+      "reuse": 1,
+      "score": 0.19
+    },
+    {
+      "amplification": 6,
+      "attribute": "legal_basis_num",
+      "bundle_id": "1308c61355e0",
+      "frequency": 6,
+      "obs_class": "numeric",
+      "observables": [
+        {
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "kind": "numeric",
+          "legal_labels": [],
+          "match_sql": "avg(legal_basis_num)",
+          "observable_id": "2e18bb3bb06d3bb0",
+          "query_ids": [
+            "legal_multiagg20:q4",
+            "legal_multiagg20:q18",
+            "legal_multiagg20:q9",
+            "legal_agg20:q17",
+            "legal_filter20:q11",
+            "legal_agg20:q14"
+          ],
+          "raw_occurrences": 6,
+          "role": "numeric_avg"
+        }
+      ],
+      "reuse": 6,
+      "score": 41.04
+    },
+    {
+      "amplification": 3,
+      "attribute": "plaintiff_current_status",
+      "bundle_id": "dc963e60fcfd",
+      "frequency": 3,
+      "obs_class": "group",
+      "observables": [
+        {
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "kind": "group",
+          "legal_labels": [
+            "Company",
+            "Organization",
+            "Government",
+            "Individual_or_other"
+          ],
+          "match_sql": "case when plaintiff_current_status in ('company', 'organization', 'government') then plaintiff_current_status when plaintiff_current_status <> '' then 'individual_or_other' end",
+          "observable_id": "d2389e40abc66bdf",
+          "query_ids": [
+            "legal_filter20:q9",
+            "legal_multiagg20:q18",
+            "legal_agg20:q11"
+          ],
+          "raw_occurrences": 3,
+          "role": "case_branch"
+        }
+      ],
+      "reuse": 3,
+      "score": 5.13
+    },
+    {
+      "amplification": 1,
+      "attribute": "plaintiff_current_status",
+      "bundle_id": "a20123f3f68e",
+      "frequency": 1,
+      "obs_class": "predicate",
+      "observables": [
+        {
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "kind": "predicate",
+          "legal_labels": [],
+          "match_sql": "plaintiff_current_status = 'company'",
+          "observable_id": "8497e4ef83ec9679",
+          "query_ids": [
+            "legal_filter20:q15"
+          ],
+          "raw_occurrences": 1,
+          "role": "filter"
+        }
+      ],
+      "reuse": 1,
+      "score": 0.19
+    },
+    {
+      "amplification": 3,
+      "attribute": "plaintiff_current_status",
+      "bundle_id": "27b88a5f8a99",
+      "frequency": 3,
+      "obs_class": "presence",
+      "observables": [
+        {
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "kind": "presence",
+          "legal_labels": [],
+          "match_sql": "plaintiff_current_status <> ''",
+          "observable_id": "cef932ff54135808",
+          "query_ids": [
+            "legal_filter20:q9",
+            "legal_multiagg20:q18",
+            "legal_agg20:q11"
+          ],
+          "raw_occurrences": 3,
+          "role": "nonempty"
+        }
+      ],
+      "reuse": 3,
+      "score": 5.13
+    },
+    {
+      "amplification": 3,
+      "attribute": "verdict",
+      "bundle_id": "7511de801267",
+      "frequency": 3,
+      "obs_class": "group",
+      "observables": [
+        {
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "kind": "group",
+          "legal_labels": [
+            "Dismissed",
+            "Approved",
+            "Others",
+            "Other"
+          ],
+          "match_sql": "case when verdict in ('dismissed', 'approved', 'others') then verdict else 'other' end",
+          "observable_id": "fba9d98f1979bdb7",
+          "query_ids": [
+            "legal_filter20:q7",
+            "legal_multiagg20:q9",
+            "legal_filter20:q15"
+          ],
+          "raw_occurrences": 3,
+          "role": "case_branch"
+        }
+      ],
+      "reuse": 3,
+      "score": 5.13
+    },
+    {
+      "amplification": 3,
+      "attribute": "verdict",
+      "bundle_id": "069a4a1ecf58",
+      "frequency": 3,
+      "obs_class": "predicate",
+      "observables": [
+        {
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "kind": "predicate",
+          "legal_labels": [
+            "TRUE",
+            "FALSE"
+          ],
+          "match_sql": "verdict = 'dismissed'",
+          "observable_id": "b15dbfdd9b406fd5",
+          "query_ids": [
+            "legal_multiagg20:q4",
+            "legal_multiagg20:q11"
+          ],
+          "raw_occurrences": 2,
+          "role": "aggregate_indicator"
+        },
+        {
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "kind": "predicate",
+          "legal_labels": [],
+          "match_sql": "verdict = 'approved'",
+          "observable_id": "d0f55532806b22c4",
+          "query_ids": [
+            "legal_filter20:q9"
+          ],
+          "raw_occurrences": 1,
+          "role": "filter"
+        }
+      ],
+      "reuse": 3,
+      "score": 5.13
+    }
+  ],
+  "canonical": 24,
+  "derived": [
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_multiagg20:q4"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_filter20:q9"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_multiagg20:q11"
+    },
+    {
+      "expression": "COUNT(*) >= 3",
+      "kind": "having",
+      "query_id": "legal_multiagg20:q18"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_multiagg20:q18"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_multiagg20:q18"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_agg20:q4"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_groupby20:q14"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_agg20:q11"
+    },
+    {
+      "expression": "COUNT(*) >= 5",
+      "kind": "having",
+      "query_id": "legal_multiagg20:q9"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_multiagg20:q9"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_multiagg20:q9"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_filter20:q8"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_filter20:q15"
+    },
+    {
+      "expression": "COUNT(*)",
+      "kind": "count_star",
+      "query_id": "legal_agg20:q3"
+    }
+  ],
+  "edge_count": 0,
+  "empty_bag_match": true,
+  "fixtures": {
+    "empty_count_zero": true,
+    "numeric_does_not_satisfy_presence": true,
+    "presence_does_not_change_avg": true,
+    "rewrite_unused": true,
+    "unresolved_matches_empty": true
+  },
+  "identity_hash": "d2bf32ccd77ca0ed5614307195ae8a592e13060508cf4c8afabf80da6262f71f",
+  "joins": 0,
+  "observables": [
+    {
+      "attribute": "case_number",
+      "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+      "kind": "group",
+      "legal_labels": [
+        "precedent_heavy",
+        "precedent_light"
+      ],
+      "match_sql": "case when case_number >= 8 then 'precedent_heavy' else 'precedent_light' end",
+      "observable_id": "044afbcb75138d4d",
+      "query_ids": [
+        "legal_groupby20:q14"
+      ],
+      "raw_occurrences": 1,
+      "role": "case_branch"
+    },
+    {
+      "attribute": "case_number",
+      "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+      "kind": "group",
+      "legal_labels": [
+        "many_precedents",
+        "fewer_precedents"
+      ],
+      "match_sql": "case when case_number >= 10 then 'many_precedents' else 'fewer_precedents' end",
+      "observable_id": "500350946f705705",
+      "query_ids": [
+        "legal_filter20:q8"
+      ],
+      "raw_occurrences": 1,
+      "role": "case_branch"
+    },
+    {
+      "attribute": "case_type",
+      "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+      "kind": "group",
+      "legal_labels": [
+        "Administrative Case",
+        "Civil Case",
+        "Commercial Case",
+        "Other"
+      ],
+      "match_sql": "case when case_type in ('administrative case', 'civil case', 'commercial case') then case_type else 'other' end",
+      "observable_id": "f6774a1a18b929bd",
+      "query_ids": [
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_agg20:q13",
+        "legal_filter20:q11"
+      ],
+      "raw_occurrences": 4,
+      "role": "case_branch"
+    },
+    {
+      "attribute": "defendant_current_status",
+      "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+      "kind": "group",
+      "legal_labels": [
+        "Government",
+        "Company",
+        "Organization",
+        "Other"
+      ],
+      "match_sql": "case when defendant_current_status in ('government', 'company', 'organization') then defendant_current_status when defendant_current_status <> '' then 'other' end",
+      "observable_id": "c7b283366e96778d",
+      "query_ids": [
+        "legal_multiagg20:q18",
+        "legal_agg20:q17"
+      ],
+      "raw_occurrences": 2,
+      "role": "case_branch"
+    },
+    {
+      "attribute": "legal_basis_num",
+      "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+      "kind": "group",
+      "legal_labels": [
+        "0_or_1",
+        "2_or_3",
+        "4_or_more"
+      ],
+      "match_sql": "case when legal_basis_num <= 1 then '0_or_1' when legal_basis_num <= 3 then '2_or_3' else '4_or_more' end",
+      "observable_id": "019c7d6a1edfd18f",
+      "query_ids": [
+        "legal_multiagg20:q11"
+      ],
+      "raw_occurrences": 1,
+      "role": "case_branch"
+    },
+    {
+      "attribute": "plaintiff_current_status",
+      "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+      "kind": "group",
+      "legal_labels": [
+        "Company",
+        "Organization",
+        "Government",
+        "Individual_or_other"
+      ],
+      "match_sql": "case when plaintiff_current_status in ('company', 'organization', 'government') then plaintiff_current_status when plaintiff_current_status <> '' then 'individual_or_other' end",
+      "observable_id": "d2389e40abc66bdf",
+      "query_ids": [
+        "legal_filter20:q9",
+        "legal_multiagg20:q18",
+        "legal_agg20:q11"
+      ],
+      "raw_occurrences": 3,
+      "role": "case_branch"
+    },
+    {
+      "attribute": "verdict",
+      "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+      "kind": "group",
+      "legal_labels": [
+        "Dismissed",
+        "Approved",
+        "Others",
+        "Other"
+      ],
+      "match_sql": "case when verdict in ('dismissed', 'approved', 'others') then verdict else 'other' end",
+      "observable_id": "fba9d98f1979bdb7",
+      "query_ids": [
+        "legal_filter20:q7",
+        "legal_multiagg20:q9",
+        "legal_filter20:q15"
+      ],
+      "raw_occurrences": 3,
+      "role": "case_branch"
+    },
+    {
+      "attribute": "first_judge",
+      "expression": "first_judge",
+      "kind": "group",
+      "legal_labels": [],
+      "match_sql": "first_judge",
+      "observable_id": "9e6df65a145893ed",
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_agg20:q4",
+        "legal_agg20:q14"
+      ],
+      "raw_occurrences": 6,
+      "role": "group_key"
+    },
+    {
+      "attribute": "hearing_year",
+      "expression": "hearing_year",
+      "kind": "group",
+      "legal_labels": [],
+      "match_sql": "hearing_year",
+      "observable_id": "b5614de6b3ff5cc7",
+      "query_ids": [
+        "legal_agg20:q3"
+      ],
+      "raw_occurrences": 2,
+      "role": "group_key"
+    },
+    {
+      "attribute": "case_number",
+      "expression": "AVG(case_number)",
+      "kind": "numeric",
+      "legal_labels": [],
+      "match_sql": "avg(case_number)",
+      "observable_id": "bdb0b7642ca14916",
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_filter20:q7",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_multiagg20:q9"
+      ],
+      "raw_occurrences": 5,
+      "role": "numeric_avg"
+    },
+    {
+      "attribute": "legal_basis_num",
+      "expression": "AVG(legal_basis_num)",
+      "kind": "numeric",
+      "legal_labels": [],
+      "match_sql": "avg(legal_basis_num)",
+      "observable_id": "2e18bb3bb06d3bb0",
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q18",
+        "legal_multiagg20:q9",
+        "legal_agg20:q17",
+        "legal_filter20:q11",
+        "legal_agg20:q14"
+      ],
+      "raw_occurrences": 6,
+      "role": "numeric_avg"
+    },
+    {
+      "attribute": "case_number",
+      "expression": "MAX(case_number)",
+      "kind": "numeric",
+      "legal_labels": [],
+      "match_sql": "max(case_number)",
+      "observable_id": "e1262e1fdb4c64da",
+      "query_ids": [
+        "legal_agg20:q13"
+      ],
+      "raw_occurrences": 1,
+      "role": "numeric_max"
+    },
+    {
+      "attribute": "verdict",
+      "expression": "verdict = 'Dismissed'",
+      "kind": "predicate",
+      "legal_labels": [
+        "TRUE",
+        "FALSE"
+      ],
+      "match_sql": "verdict = 'dismissed'",
+      "observable_id": "b15dbfdd9b406fd5",
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q11"
+      ],
+      "raw_occurrences": 2,
+      "role": "aggregate_indicator"
+    },
+    {
+      "attribute": "case_type",
+      "expression": "case_type = 'Civil Case'",
+      "kind": "predicate",
+      "legal_labels": [],
+      "match_sql": "case_type = 'civil case'",
+      "observable_id": "ee1d3edb895cdf41",
+      "query_ids": [
+        "legal_filter20:q8"
+      ],
+      "raw_occurrences": 1,
+      "role": "filter"
+    },
+    {
+      "attribute": "defendant_current_status",
+      "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+      "kind": "predicate",
+      "legal_labels": [],
+      "match_sql": "defendant_current_status in ('company', 'organization', 'government')",
+      "observable_id": "eeac08f93d774f6e",
+      "query_ids": [
+        "legal_filter20:q15"
+      ],
+      "raw_occurrences": 1,
+      "role": "filter"
+    },
+    {
+      "attribute": "defendant_current_status",
+      "expression": "defendant_current_status = 'Government'",
+      "kind": "predicate",
+      "legal_labels": [],
+      "match_sql": "defendant_current_status = 'government'",
+      "observable_id": "fc11f4cf61a4afb2",
+      "query_ids": [
+        "legal_filter20:q11"
+      ],
+      "raw_occurrences": 1,
+      "role": "filter"
+    },
+    {
+      "attribute": "hearing_year",
+      "expression": "hearing_year BETWEEN 2006 AND 2008",
+      "kind": "predicate",
+      "legal_labels": [],
+      "match_sql": "hearing_year between 2006 and 2008",
+      "observable_id": "274df2a0883a3970",
+      "query_ids": [
+        "legal_filter20:q7"
+      ],
+      "raw_occurrences": 1,
+      "role": "filter"
+    },
+    {
+      "attribute": "hearing_year",
+      "expression": "hearing_year BETWEEN 2005 AND 2009",
+      "kind": "predicate",
+      "legal_labels": [],
+      "match_sql": "hearing_year between 2005 and 2009",
+      "observable_id": "ed5f55060b85a804",
+      "query_ids": [
+        "legal_agg20:q3"
+      ],
+      "raw_occurrences": 1,
+      "role": "filter"
+    },
+    {
+      "attribute": "plaintiff_current_status",
+      "expression": "plaintiff_current_status = 'Company'",
+      "kind": "predicate",
+      "legal_labels": [],
+      "match_sql": "plaintiff_current_status = 'company'",
+      "observable_id": "8497e4ef83ec9679",
+      "query_ids": [
+        "legal_filter20:q15"
+      ],
+      "raw_occurrences": 1,
+      "role": "filter"
+    },
+    {
+      "attribute": "verdict",
+      "expression": "verdict = 'Approved'",
+      "kind": "predicate",
+      "legal_labels": [],
+      "match_sql": "verdict = 'approved'",
+      "observable_id": "d0f55532806b22c4",
+      "query_ids": [
+        "legal_filter20:q9"
+      ],
+      "raw_occurrences": 1,
+      "role": "filter"
+    },
+    {
+      "attribute": "case_number",
+      "expression": "NOT case_number IS NULL",
+      "kind": "presence",
+      "legal_labels": [],
+      "match_sql": "not case_number is null",
+      "observable_id": "44b3ea1b26407fe7",
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_filter20:q7",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_agg20:q13",
+        "legal_filter20:q8"
+      ],
+      "raw_occurrences": 8,
+      "role": "is_not_null"
+    },
+    {
+      "attribute": "first_judge",
+      "expression": "NOT first_judge IS NULL",
+      "kind": "presence",
+      "legal_labels": [],
+      "match_sql": "not first_judge is null",
+      "observable_id": "64de220c6bec8f33",
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_agg20:q4",
+        "legal_agg20:q14"
+      ],
+      "raw_occurrences": 3,
+      "role": "is_not_null"
+    },
+    {
+      "attribute": "defendant_current_status",
+      "expression": "defendant_current_status <> ''",
+      "kind": "presence",
+      "legal_labels": [],
+      "match_sql": "defendant_current_status <> ''",
+      "observable_id": "7a2a9da9d422f4b6",
+      "query_ids": [
+        "legal_multiagg20:q18",
+        "legal_agg20:q17"
+      ],
+      "raw_occurrences": 2,
+      "role": "nonempty"
+    },
+    {
+      "attribute": "plaintiff_current_status",
+      "expression": "plaintiff_current_status <> ''",
+      "kind": "presence",
+      "legal_labels": [],
+      "match_sql": "plaintiff_current_status <> ''",
+      "observable_id": "cef932ff54135808",
+      "query_ids": [
+        "legal_filter20:q9",
+        "legal_multiagg20:q18",
+        "legal_agg20:q11"
+      ],
+      "raw_occurrences": 3,
+      "role": "nonempty"
+    }
+  ],
+  "raw_occurrences": 60,
+  "reuse_ratio": 0.6
+}

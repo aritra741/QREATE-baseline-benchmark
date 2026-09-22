@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "920bda2cbb17cafb3d0adc819ad7e313cb0db886fff854353e834e9f47d6073a",
+    "entity_identity": "6dfca6eebf2aca1c5ed577de97f8b425d0b4513123cdb7fd7a6c2d1df0e21756",
+    "attribute_bundle": [
+      "legal.defendant_current_status",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "6830b1131297498fd025be54a7973ed615f3202c97e9568d0b277a02b5eede47",
+      "4af593e0338728972032389359011c5661ca141be3d50712676f161b1bf6a47a",
+      "a7d4e339ad84c2da00e198723721ebf733a597ce159c8fea665b968ae80795dd",
+      "a8059897414a814ba949686d6f0544ba5c3898c8164bf70d892d111873c97d37"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"6dfca6eebf2aca1c5ed577de97f8b425d0b4513123cdb7fd7a6c2d1df0e21756\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"284.txt:c103\",\n          \"exact_span\": \"CAO had no obligation to remunerate the applicants for anything;\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"found\",\n      \"raw_value\": \"Coal &amp; Allied Operations Pty Limited (the Company)\",\n      \"normalized_value\": \"company\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"284.txt:c126\",\n          \"exact_span\": \"Coal &amp; Allied Operations Pty Limited (the Company)\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "284.txt:c103",
+              "exact_span": "CAO had no obligation to remunerate the applicants for anything;"
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "found",
+          "raw_value": "Coal &amp; Allied Operations Pty Limited (the Company)",
+          "normalized_value": "Coal &amp; Allied Operations Pty Limited (the Company)",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "284.txt:c126",
+              "exact_span": "Coal &amp; Allied Operations Pty Limited (the Company)"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "6dfca6eebf2aca1c5ed577de97f8b425d0b4513123cdb7fd7a6c2d1df0e21756"
+    }
+  }
+}

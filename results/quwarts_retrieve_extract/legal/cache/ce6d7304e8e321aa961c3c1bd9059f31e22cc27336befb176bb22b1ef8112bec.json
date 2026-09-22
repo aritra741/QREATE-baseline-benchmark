@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "be8e43b310080e83e1c841ed3086f4568715a23ea159f62fe932dda9902417eb",
+    "entity_identity": "4cdcc6f65be1ad928ad895f9325206205fd8047937bea18e5910750b613f7397",
+    "attribute_bundle": [
+      "legal.judgment_year",
+      "legal.hearing_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "39e077b4a36f2ddc99edbea57a1fce62d8c251c165f13c5572c89b50ec4541b9",
+      "7c697eae2dcd997da0c13447525d4f66d0d6ba576a9e3f8f457674eeec12c94b",
+      "84cb50acf15bd44847ac73502b7c8b94c65576366d7b6189dfc5e47c83908d7b",
+      "ad3361d7331ffbada766b72140450c2b2c8327ffc35881af23165e4cbb1ef7e0"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"4cdcc6f65be1ad928ad895f9325206205fd8047937bea18e5910750b613f7397\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"2.txt:c20\",\n          \"exact_span\": \"\"\n        },\n        {\n          \"source_id\": \"2.txt:c24\",\n          \"exact_span\": \"\"\n        },\n        {\n          \"source_id\": \"2.txt:c2\",\n          \"exact_span\": \"\"\n        },\n        {\n          \"source_id\": \"2.txt:c33\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2007\",\n      \"normalized_value\": 2007,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"2.txt:c24\",\n          \"exact_span\": \"TS 8 Feb 2007 p 118 ll 17-35)\"\n        }\n      ]",
+    "parsed": {
+      "ok": false,
+      "malformed": true,
+      "error": "invalid_json:unbalanced_json",
+      "items": {
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        },
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        }
+      },
+      "errors": [
+        "invalid_json:unbalanced_json"
+      ],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 0,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 2,
+        "grounding_failure": 0
+      }
+    }
+  }
+}

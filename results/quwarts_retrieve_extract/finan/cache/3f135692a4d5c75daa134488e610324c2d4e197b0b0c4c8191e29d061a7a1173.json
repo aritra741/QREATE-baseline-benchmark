@@ -1,0 +1,66 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "c11582cbe9116b2799a5ca565ad0ab8dd0ab4b25625cbac0c88ebba7855a7dc5",
+    "entity_identity": "09cb4f363936ccd88a3238886d7e8d918646d6295b2bec274c4fdf95d18fafd4",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "section_map",
+    "context_hashes": [
+      "e00c247212b5206499331745602e0eae6de79e759734ebc578ed092c350b8371",
+      "8f64598cea5bfea23d96d431108b713cd16d63ac5c66f7268dd9088e28c2ab8b",
+      "0f632050f8b5b9f242eea0f427a7c16e7de34bc64c054e8706fd4898ffef8d13"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"09cb4f363936ccd88a3238886d7e8d918646d6295b2bec274c4fdf95d18fafd4\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"The Nasdaq Capital Market\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"35.txt:s6\",\n          \"exact_span\": \"Trading Symbol(s)\\n\\nName of each exchange on which registered\\nCommon Stock, $0.0001 par value\\nNN\\nThe Nasdaq Capital Market\"\n        },\n        {\n          \"source_id\": \"35.txt:s6\",\n          \"exact_span\": \"Warrants, each to purchase one share of Common Stock\\nNNAVW\\nThe Nasdaq Capital Market\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "The Nasdaq Capital Market",
+          "normalized_value": "The Nasdaq Capital Market",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "35.txt:s6",
+              "exact_span": "Trading Symbol(s)\n\nName of each exchange on which registered\nCommon Stock, $0.0001 par value\nNN\nThe Nasdaq Capital Market"
+            },
+            {
+              "source_id": "35.txt:s6",
+              "exact_span": "Warrants, each to purchase one share of Common Stock\nNNAVW\nThe Nasdaq Capital Market"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.exchange_code"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "09cb4f363936ccd88a3238886d7e8d918646d6295b2bec274c4fdf95d18fafd4"
+    }
+  }
+}

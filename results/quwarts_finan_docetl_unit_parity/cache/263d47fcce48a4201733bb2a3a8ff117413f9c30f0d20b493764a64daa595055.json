@@ -1,0 +1,90 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+    "entity_identity": "finan_multiagg20:q4:70:map",
+    "attribute_bundle": [
+      "cash_reserves",
+      "net_profit_or_loss",
+      "revenue",
+      "total_debt"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+      "b7bd786bf006c93dfec92f61c8bb3dbfb8cf10da64710a39ccfb49222d95d460",
+      "22eee40467307b35abb93effb896d21018d8c910eabb70fa89ff16092c66c8c8",
+      "760b64b9f110eeb7e40c589265126756079074d9dd4b83907ec8d71b75315d7d",
+      "b38353a70aa491a741ca6287580a52125475ea1746ff39abe7935fbd3c52e1f4",
+      "8aa7d6af206ee7d58ad640079d92d344941e570848820c353a9bcb81d521e67f",
+      "4c07b340bdb489fcc06b449a58a682ed64988beb97e57adf2234b5242c6c5c82",
+      "7305b34a3f71579172a463b8354a8d9006a656adb0b58fb3335d67ebf5b47b26"
+    ],
+    "schema_hash": "91d774739081203fe39b2d2396bd317f54e3caa8c9a3310abe2bc434d449ad95",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"cash_reserves\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  },\n  \"net_profit_or_loss\": {\n    \"value\": -612,\n    \"status\": \"found\",\n    \"evidence\": \"Taxes on income | (21) | 612 | - 248 | .\"\n  },\n  \"revenue\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  },\n  \"total_debt\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "cash_reserves": {
+          "attribute": "cash_reserves",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "net_profit_or_loss": {
+          "attribute": "net_profit_or_loss",
+          "raw_value": "-612",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Taxes on income | (21) | 612 | - 248 | .",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "total_debt": {
+          "attribute": "total_debt",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:net_profit_or_loss"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 3,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

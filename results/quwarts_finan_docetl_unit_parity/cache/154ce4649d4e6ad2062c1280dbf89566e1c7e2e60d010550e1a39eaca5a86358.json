@@ -1,0 +1,68 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+    "entity_identity": "finan_agg20:q11:69:map",
+    "attribute_bundle": [
+      "business_segments_num",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+      "77e2d15eafeb72c636b888a59bfd63f863707950a88c39b8536b3ad305ddb61e",
+      "6843a82822729555205d3e086d074dfd107e74133972ba2e962cc08b398c8fc7",
+      "196b7e837a1cf8d939aa65e720e63b0d3e456443f29d067cd0439cc969817a2e",
+      "5dc61eea581e183f6c1f9efb775a5df5f27790d5b319b11779a6271a2747bb63",
+      "0da28e7637ff8057f724e5bc533d5bc50e44b65c50a48712861231070a84a352",
+      "a34a65c042c01f4a5c3b2838b972c6b5a4171e993501b62224655f131d1d571e",
+      "82c7b3c29e7532e906f9a7fb0beff65dbc71cd9d9857eef13c42164c518a1853"
+    ],
+    "schema_hash": "37fdc06a7bf66d37869f8a04f8c5713dce4e8c3fc48ed5e4442885e35af5cbb2",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"business_segments_num\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"principal_activities\": {\n        \"value\": \"Healthcare, Technology\",\n        \"status\": \"found\",\n        \"evidence\": \"Branches and countries in which the Group conducts business\\nIn accordance with the Companies Act 2006, we disclose below countries of our representative, scientific or branch offices outside of the UK established through various subsidiaries of the Company:\\nAlgeria, Angola, Costa Rica, Cuba, Denmark, Egypt, Georgia, Ghana, Jordan, Kazakhstan, Lebanon, Norway, Portugal, Romania, Russia, Saudi Arabia, Serbia, Slovakia, Slovenia, Syria, Ukraine, United Arab Emirates, United States, Vietnam and Yemen.\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "business_segments_num": {
+          "attribute": "business_segments_num",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "Healthcare, Technology",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Branches and countries in which the Group conducts business\nIn accordance with the Companies Act 2006, we disclose below countries of our representative, scientific or branch offices outside of the UK established through various subsidiaries of the Company:\nAlgeria, Angola, Costa Rica, Cuba, Denmark, Egypt, Georgia, Ghana, Jordan, Kazakhstan, Lebanon, Norway, Portugal, Romania, Russia, Saudi Arabia, Serbia, Slovakia, Slovenia, Syria, Ukraine, United Arab Emirates, United States, Vietnam and Yemen.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        }
+      },
+      "errors": [
+        "grounding_failure:principal_activities"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

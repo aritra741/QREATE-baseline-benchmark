@@ -1,0 +1,94 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "a03556857a1783ffe0b6e2f97ab8725e5bd80a4fa6da0a21ebde5bba36436eb2",
+    "entity_identity": "b645fddaf1d5f9a2ee26c674b6ce0ef73dab89cc62a1f7176950616116a90a9b",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.case_number",
+      "legal.case_type"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "12e9b473e105bc95f606ac001767f5c301350d25f04bf263b531accd5a14e02b",
+      "c6e60d64a5d9bf03e6ed9a1a021219cd31a25326ba212fa7b79351d4ebcc1c6e",
+      "0ec4999a0793287afbade8c09677f63e3cbae12cf1faaa21a78dfd91405e679e",
+      "a1aa105556eb4dd2c550929c9f5658e91343b2a306c961387e3e487612150a3b"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"b645fddaf1d5f9a2ee26c674b6ce0ef73dab89cc62a1f717695061616a90a9b\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"10.txt:c6\",\n          \"exact_span\": \"14 The first Ground of Appeal is therefore rejected.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Civil Case\",\n      \"normalized_value\": \"Civil Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"10.txt:c5\",\n          \"exact_span\": \"The Appellant now appeals to this Court.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "10.txt:c6",
+              "exact_span": "14 The first Ground of Appeal is therefore rejected."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Civil Case",
+          "normalized_value": "Civil Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "10.txt:c5",
+              "exact_span": "The Appellant now appeals to this Court."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "b645fddaf1d5f9a2ee26c674b6ce0ef73dab89cc62a1f717695061616a90a9b"
+    }
+  }
+}

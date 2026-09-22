@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+    "entity_identity": "finan_agg20:q13:78:map",
+    "attribute_bundle": [
+      "auditor",
+      "earnings_per_share"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+      "d54ac661537b6401bcd61659ac248e226ba62f95502cefe6a40d8ff063a54911",
+      "7620921736bb21e6ba458929dbb9f96c401afc37c419d49b965ce75bd2d03305",
+      "e0378ece001477918d2771257bc399c0734df76fd0f82884cb8a8fabb81ccf7c",
+      "ecbc696699dbe657b01f4bc08d6ccc750afa6bd4c5a4dfa838bcb1796dbefa8c",
+      "1c952a4a4dc2c16529064075f6f3a437d6f6261ea7e21e5a05b5a4e5e5f63111",
+      "3d7eb71d25447e067895b406e25a54ae823da0e8c69ab8b90cf3833db015f034",
+      "c894f04283a702ac54a8806dc8ae87aa47b4ce8e3f760af28a548a608cfd57e2",
+      "9a91a36cb00ad502c60dfe78c0d2fb6d2206337db658b1b516d8eeae1fe04c86"
+    ],
+    "schema_hash": "ece76726b1973bda1560563fbf445b5422af10aa3db566587ba7f4ee23df463d",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"auditor\": {\n        \"value\": \"Other\",\n        \"status\": \"found\",\n        \"evidence\": \"Independent auditor's report\"\n    },\n    \"earnings_per_share\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "Other",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Independent auditor's report",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "earnings_per_share": {
+          "attribute": "earnings_per_share",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:auditor"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

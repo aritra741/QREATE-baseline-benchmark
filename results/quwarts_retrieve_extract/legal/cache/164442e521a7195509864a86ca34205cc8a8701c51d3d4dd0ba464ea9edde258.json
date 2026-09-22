@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "e7ac60aa9e15d82f87c3c1a51212b36819ac1eca965229d82650c22c4b92d4c0",
+    "entity_identity": "cbdcc9745d974e783923372ccf9eaebdb73712c0ab1a9fe6363d2d2f906f603c",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "8182f417aed72d549e19f128dd291a6d6cb18e5426bfe483e74b569dd93b5e29",
+      "41ba12bf4a3e8d37225d6915d77699b424da3543a965086ae709d65e2065d610",
+      "59ea792df7f2a06a4480660ffc335dfc46bdbc5fe9dbde8e3bb06ab04ee4b816",
+      "d73e0cd339be42ef6195b6fcd70ffd82efca277ff60b50c4ed86596f83dc8ec5"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"cbdcc9745d974e783923372ccf9eaebdb73712c0ab1a9fe6363d2d2f906f603c\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"212.txt:c25\",\n          \"exact_span\": \"An annexure to the letter specifically asked for details of the purpose, commercial or otherwise, for the transfer of the 9 Wills Brands by the Taxpayer to Rothmans prior to their disposal to Imperial. The ATO specifically asked for provision of 'the reason why this additional step was undertaken'.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "212.txt:c25",
+              "exact_span": "An annexure to the letter specifically asked for details of the purpose, commercial or otherwise, for the transfer of the 9 Wills Brands by the Taxpayer to Rothmans prior to their disposal to Imperial. The ATO specifically asked for provision of 'the reason why this additional step was undertaken'."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "cbdcc9745d974e783923372ccf9eaebdb73712c0ab1a9fe6363d2d2f906f603c"
+    }
+  }
+}

@@ -1,0 +1,253 @@
+{
+  "attributes": {
+    "case_number": {
+      "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+      "must_preserve": [
+        "case_branch",
+        "case_branch",
+        "numeric_avg",
+        "numeric_max",
+        "is_not_null"
+      ],
+      "observables": [
+        {
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "kind": "group",
+          "observable_id": "044afbcb75138d4d",
+          "role": "case_branch"
+        },
+        {
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "kind": "group",
+          "observable_id": "500350946f705705",
+          "role": "case_branch"
+        },
+        {
+          "expression": "AVG(case_number)",
+          "kind": "numeric",
+          "observable_id": "bdb0b7642ca14916",
+          "role": "numeric_avg"
+        },
+        {
+          "expression": "MAX(case_number)",
+          "kind": "numeric",
+          "observable_id": "e1262e1fdb4c64da",
+          "role": "numeric_max"
+        },
+        {
+          "expression": "NOT case_number IS NULL",
+          "kind": "presence",
+          "observable_id": "44b3ea1b26407fe7",
+          "role": "is_not_null"
+        }
+      ]
+    },
+    "case_type": {
+      "description": "type of the case, choose one from [Criminal Case, Civil Case, Commercial Case, Administrative Case]; (e.g., Criminal Case)",
+      "must_preserve": [
+        "case_branch",
+        "filter"
+      ],
+      "observables": [
+        {
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "kind": "group",
+          "observable_id": "f6774a1a18b929bd",
+          "role": "case_branch"
+        },
+        {
+          "expression": "case_type = 'Civil Case'",
+          "kind": "predicate",
+          "observable_id": "ee1d3edb895cdf41",
+          "role": "filter"
+        }
+      ]
+    },
+    "defendant_current_status": {
+      "description": "current occupation or type of the defendant (rules same as for plaintiff; e.g., government)",
+      "must_preserve": [
+        "case_branch",
+        "filter",
+        "filter",
+        "nonempty"
+      ],
+      "observables": [
+        {
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "kind": "group",
+          "observable_id": "c7b283366e96778d",
+          "role": "case_branch"
+        },
+        {
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "kind": "predicate",
+          "observable_id": "eeac08f93d774f6e",
+          "role": "filter"
+        },
+        {
+          "expression": "defendant_current_status = 'Government'",
+          "kind": "predicate",
+          "observable_id": "fc11f4cf61a4afb2",
+          "role": "filter"
+        },
+        {
+          "expression": "defendant_current_status <> ''",
+          "kind": "presence",
+          "observable_id": "7a2a9da9d422f4b6",
+          "role": "nonempty"
+        }
+      ]
+    },
+    "first_judge": {
+      "description": "whether it was the first judgment (1 if yes, 0 if none; e.g., 1)",
+      "must_preserve": [
+        "group_key",
+        "is_not_null"
+      ],
+      "observables": [
+        {
+          "expression": "first_judge",
+          "kind": "group",
+          "observable_id": "9e6df65a145893ed",
+          "role": "group_key"
+        },
+        {
+          "expression": "NOT first_judge IS NULL",
+          "kind": "presence",
+          "observable_id": "64de220c6bec8f33",
+          "role": "is_not_null"
+        }
+      ]
+    },
+    "hearing_year": {
+      "description": "year when the hearing began; use format YYYY (e.g., 2009)",
+      "must_preserve": [
+        "group_key",
+        "filter",
+        "filter"
+      ],
+      "observables": [
+        {
+          "expression": "hearing_year",
+          "kind": "group",
+          "observable_id": "b5614de6b3ff5cc7",
+          "role": "group_key"
+        },
+        {
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "kind": "predicate",
+          "observable_id": "274df2a0883a3970",
+          "role": "filter"
+        },
+        {
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "kind": "predicate",
+          "observable_id": "ed5f55060b85a804",
+          "role": "filter"
+        }
+      ]
+    },
+    "legal_basis_num": {
+      "description": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+      "must_preserve": [
+        "case_branch",
+        "numeric_avg"
+      ],
+      "observables": [
+        {
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "kind": "group",
+          "observable_id": "019c7d6a1edfd18f",
+          "role": "case_branch"
+        },
+        {
+          "expression": "AVG(legal_basis_num)",
+          "kind": "numeric",
+          "observable_id": "2e18bb3bb06d3bb0",
+          "role": "numeric_avg"
+        }
+      ]
+    },
+    "plaintiff_current_status": {
+      "description": "current occupation or type of the plaintiff (if an individual, write occupation; if multiple people, use the first individual's occupation; if an organization, write 'organization'; if a company, write 'company'; if a government body, write 'government'; leave empty if unknown; e.g., company)",
+      "must_preserve": [
+        "case_branch",
+        "filter",
+        "nonempty"
+      ],
+      "observables": [
+        {
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "kind": "group",
+          "observable_id": "d2389e40abc66bdf",
+          "role": "case_branch"
+        },
+        {
+          "expression": "plaintiff_current_status = 'Company'",
+          "kind": "predicate",
+          "observable_id": "8497e4ef83ec9679",
+          "role": "filter"
+        },
+        {
+          "expression": "plaintiff_current_status <> ''",
+          "kind": "presence",
+          "observable_id": "cef932ff54135808",
+          "role": "nonempty"
+        }
+      ]
+    },
+    "verdict": {
+      "description": "court's decision, choose one from: [Guilty, Not Guilty, Others, Dismissed, Approved]; (e.g., Guilty)",
+      "must_preserve": [
+        "case_branch",
+        "aggregate_indicator",
+        "filter"
+      ],
+      "observables": [
+        {
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "kind": "group",
+          "observable_id": "fba9d98f1979bdb7",
+          "role": "case_branch"
+        },
+        {
+          "expression": "verdict = 'Dismissed'",
+          "kind": "predicate",
+          "observable_id": "b15dbfdd9b406fd5",
+          "role": "aggregate_indicator"
+        },
+        {
+          "expression": "verdict = 'Approved'",
+          "kind": "predicate",
+          "observable_id": "d0f55532806b22c4",
+          "role": "filter"
+        }
+      ]
+    }
+  },
+  "node_schema": {
+    "attribute_candidates": [],
+    "component_role": "",
+    "confidence": 0.0,
+    "entity_role": "",
+    "fact_id": "",
+    "heading": "",
+    "normalized_value": null,
+    "raw_value": "",
+    "source_end": 0,
+    "source_quote": "",
+    "source_start": 0,
+    "stated_or_inferred": "stated | inferred",
+    "temporal_role": "",
+    "value_type": "string | integer | decimal | year | label | entity"
+  },
+  "rules": [
+    "one fact may serve multiple observables",
+    "presence is not a numeric value",
+    "hearing year cannot be replaced by another document year",
+    "cited provisions cannot become case numbers",
+    "numbered-list digits cannot become judge identities",
+    "uncertainty preserves original-SQL fallback",
+    "do not emit NOT_FOUND"
+  ]
+}

@@ -1,0 +1,924 @@
+{
+  "existing_validation": {
+    "program_only": {
+      "independently_frozen_before_gold": true,
+      "claimable_as_official_existing_win": true,
+      "materialization_rule_fixed_before_gold": true,
+      "database_and_bags_hashed_before_gold": true,
+      "token_cost": 66700,
+      "token_cost_includes_all_compiler_and_critic": true,
+      "score_16": {
+        "mean_per_query_product": 0.08724138617230723,
+        "mean_structure_f2": 0.4642267454767455,
+        "mean_cell_f1_at_0.20": 0.14572237886382622
+      },
+      "hashes": {
+        "bags": "5c67d7a39058fcc634f9c525145eb697981168dec9567b5287676ec80f4a41c0",
+        "policy": "c0af5ce0e5754586da55523f9a1659ab678395e4eba553f8d4e40b7e9bb265ea",
+        "specs": "e5fe872fe35ef5228cf9d952aec0ed586a889b8c5a4252ded71a12e7149c0a30",
+        "program_results": "7a7d6853c072157669a85477400fe051c30b9cfc220348c02eb260ce8759e870",
+        "inventory": "0fc5a8bb1758aab9ce2092814da8e5c15708890503623171f125bb3c2dce7580",
+        "samples": "ceabd5b0ac976976b93db253e31070fccc89976abff97bf871e4da35f4dd7ba7",
+        "ledger": "78edb507c11e1b81af1c71042be347c16287768081f86a51fada0c76995309e0",
+        "db": "b26581fbe054ac2523fc4b3c0eea7277a39b6b5795dfdbc167fe1aa3f38cc4f5"
+      }
+    },
+    "residual_only": {
+      "independently_frozen_before_gold": true,
+      "materialization_rule_fixed_before_gold": true,
+      "database_and_bags_hashed_before_gold": true,
+      "sidecar_fill_tokens": 266414,
+      "requires_compiled_programs": true,
+      "causal_token_cost": 333114,
+      "causal_cost_reason": "Residual prompts, filters, and schedule depend on compiled specifications and program executor outputs. Residual-only fills cannot be produced without the 66,700 compiler/critic tokens.",
+      "score_16": {
+        "mean_per_query_product": 0.09723033979326885,
+        "mean_structure_f2": 0.43212214239200747,
+        "mean_cell_f1_at_0.20": 0.13464912280701755
+      },
+      "hashes": {
+        "bags": "50021e9dca0481f6a80cf62af7d41be2ba16a2d7e3bb9e245ca032eb7e0c91f1",
+        "residual_schedule": "8f244ff307c9173e46745e6952d979e91119c830c537216de5b6472e76195c5e",
+        "ledger": "78edb507c11e1b81af1c71042be347c16287768081f86a51fada0c76995309e0",
+        "db": "c6e7576ec0bf0cfc39ea6191f1ba8dcc4864c5825af7b3c02df6d7f9f23c6e41"
+      }
+    },
+    "combined": {
+      "token_cost": 333114,
+      "score_16": {
+        "mean_per_query_product": 0.054335999648499646,
+        "mean_structure_f2": 0.5227545703089181,
+        "mean_cell_f1_at_0.20": 0.08782242063492064
+      },
+      "hashes": {
+        "bags": "8a744039965c664ff7c295e649df99bcd170349fdeb8d3024bd1bcfc8a2735a8",
+        "db": "bba706784ca38460f33fa2f10565ec1687687b8eda4938c055fa7ce25ad0332e"
+      }
+    },
+    "checks": {
+      "materialization_fixed_in_code_before_gold": true,
+      "program_bags_hashed_in_frozen_json_before_gold": true,
+      "residual_bags_hashed_in_frozen_json_before_gold": true,
+      "combined_bags_hashed_in_frozen_json_before_gold": true,
+      "program_db_present": true,
+      "residual_db_present": true,
+      "compiler_ledger_sum": 66700,
+      "residual_ledger_sum": 266414,
+      "reported_compiler_spent": 66700,
+      "compiler_matches_reported": true,
+      "total_spent": 333114
+    },
+    "existing_0.0872_is_diagnostic_only": false
+  },
+  "interference": {
+    "counts": {
+      "two_individually_useful_selections_interacted_through_a_filter": 10,
+      "no_combined_regression": 2,
+      "increased_false_positive_support": 4
+    },
+    "overwrite_cells": []
+  },
+  "agreement_before_gold": {
+    "all_three_same_candidate": 183,
+    "exactly_two_same_candidate": 66,
+    "conflicting_selections": 11,
+    "one_selection_plus_abstentions": 120,
+    "all_abstain": 799,
+    "pairwise_specification_agreement": {
+      "1-2": {
+        "attributes_equal": 8,
+        "n": 14
+      },
+      "1-3": {
+        "attributes_equal": 7,
+        "n": 14
+      },
+      "2-3": {
+        "attributes_equal": 8,
+        "n": 14
+      }
+    },
+    "pairwise_cell_selection_agreement": {
+      "1-2": {
+        "cells_equal": 1028,
+        "n": 1179
+      },
+      "1-3": {
+        "cells_equal": 895,
+        "n": 1179
+      },
+      "2-3": {
+        "cells_equal": 976,
+        "n": 1179
+      }
+    },
+    "reason_counts": {
+      "single_selection_abstain": 120,
+      "all_abstain": 799,
+      "unanimous_3": 183,
+      "majority_2": 66,
+      "conflict_no_majority": 11
+    }
+  },
+  "spent": 198433,
+  "replica_spends": [
+    65879,
+    66628,
+    65926
+  ],
+  "arms": {
+    "plumbing": {
+      "tokens": 0,
+      "mean_structure_f2": 0.2890885455540628,
+      "mean_cell_f1_at_0.20": 0.025868055555555554,
+      "mean_per_query_product": 0.01579911215327882,
+      "accepted_cells": 0,
+      "sql_visible_fills": 0,
+      "empty_bags": [
+        "finan_filter20:q7",
+        "finan_multiagg20:q11",
+        "finan_agg20:q17",
+        "finan_filter20:q8",
+        "finan_filter20:q11",
+        "finan_agg20:q3"
+      ],
+      "n_empty_bags": 6,
+      "per_query": [
+        {
+          "query_id": "finan_multiagg20:q4",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.125,
+          "product": 0.125,
+          "plumbing_product": 0.125,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q7",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q18",
+          "structure_f2": 0.06493506493506494,
+          "cell_f1_20": 0.06666666666666667,
+          "product": 0.00432900432900433,
+          "plumbing_product": 0.00432900432900433,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q4",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_groupby20:q14",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.2222222222222222,
+          "product": 0.12345679012345678,
+          "plumbing_product": 0.12345679012345678,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q11",
+          "structure_f2": 0.8620689655172415,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q13",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q17",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q8",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q15",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q3",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q14",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        }
+      ]
+    },
+    "replica_1": {
+      "tokens": 65879,
+      "mean_structure_f2": 0.4183351370851371,
+      "mean_cell_f1_at_0.20": 0.1240953947368421,
+      "mean_per_query_product": 0.07837756480848586,
+      "accepted_cells": 253,
+      "sql_visible_fills": 247,
+      "empty_bags": [
+        "finan_filter20:q7",
+        "finan_multiagg20:q11",
+        "finan_filter20:q8"
+      ],
+      "n_empty_bags": 3,
+      "per_query": [
+        {
+          "query_id": "finan_multiagg20:q4",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.375,
+          "product": 0.375,
+          "plumbing_product": 0.125,
+          "delta": 0.25
+        },
+        {
+          "query_id": "finan_filter20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.6666666666666666,
+          "product": 0.37037037037037035,
+          "plumbing_product": 0.0,
+          "delta": 0.37037037037037035
+        },
+        {
+          "query_id": "finan_filter20:q7",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q18",
+          "structure_f2": 0.06493506493506494,
+          "cell_f1_20": 0.06666666666666667,
+          "product": 0.00432900432900433,
+          "plumbing_product": 0.00432900432900433,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q4",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.6666666666666666,
+          "product": 0.37037037037037035,
+          "plumbing_product": 0.0,
+          "delta": 0.37037037037037035
+        },
+        {
+          "query_id": "finan_groupby20:q14",
+          "structure_f2": 0.6363636363636365,
+          "cell_f1_20": 0.2105263157894737,
+          "product": 0.13397129186602874,
+          "plumbing_product": 0.12345679012345678,
+          "delta": 0.010514501742571958
+        },
+        {
+          "query_id": "finan_agg20:q11",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q13",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q17",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q8",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q11",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q15",
+          "structure_f2": 0.5,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q3",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q14",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        }
+      ]
+    },
+    "replica_2": {
+      "tokens": 66628,
+      "mean_structure_f2": 0.4183351370851371,
+      "mean_cell_f1_at_0.20": 0.1240953947368421,
+      "mean_per_query_product": 0.07837756480848586,
+      "accepted_cells": 260,
+      "sql_visible_fills": 247,
+      "empty_bags": [
+        "finan_filter20:q7",
+        "finan_multiagg20:q11",
+        "finan_filter20:q8"
+      ],
+      "n_empty_bags": 3,
+      "per_query": [
+        {
+          "query_id": "finan_multiagg20:q4",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.375,
+          "product": 0.375,
+          "plumbing_product": 0.125,
+          "delta": 0.25
+        },
+        {
+          "query_id": "finan_filter20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.6666666666666666,
+          "product": 0.37037037037037035,
+          "plumbing_product": 0.0,
+          "delta": 0.37037037037037035
+        },
+        {
+          "query_id": "finan_filter20:q7",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q18",
+          "structure_f2": 0.06493506493506494,
+          "cell_f1_20": 0.06666666666666667,
+          "product": 0.00432900432900433,
+          "plumbing_product": 0.00432900432900433,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q4",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.6666666666666666,
+          "product": 0.37037037037037035,
+          "plumbing_product": 0.0,
+          "delta": 0.37037037037037035
+        },
+        {
+          "query_id": "finan_groupby20:q14",
+          "structure_f2": 0.6363636363636365,
+          "cell_f1_20": 0.2105263157894737,
+          "product": 0.13397129186602874,
+          "plumbing_product": 0.12345679012345678,
+          "delta": 0.010514501742571958
+        },
+        {
+          "query_id": "finan_agg20:q11",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q13",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q17",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q8",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q11",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q15",
+          "structure_f2": 0.5,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q3",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q14",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        }
+      ]
+    },
+    "replica_3": {
+      "tokens": 65926,
+      "mean_structure_f2": 0.46290732942719454,
+      "mean_cell_f1_at_0.20": 0.15203373015873015,
+      "mean_per_query_product": 0.09103528147912206,
+      "accepted_cells": 339,
+      "sql_visible_fills": 326,
+      "empty_bags": [
+        "finan_filter20:q7",
+        "finan_multiagg20:q11"
+      ],
+      "n_empty_bags": 2,
+      "per_query": [
+        {
+          "query_id": "finan_multiagg20:q4",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.25,
+          "product": 0.25,
+          "plumbing_product": 0.125,
+          "delta": 0.125
+        },
+        {
+          "query_id": "finan_filter20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.6666666666666666,
+          "product": 0.37037037037037035,
+          "plumbing_product": 0.0,
+          "delta": 0.37037037037037035
+        },
+        {
+          "query_id": "finan_filter20:q7",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q18",
+          "structure_f2": 0.1282051282051282,
+          "cell_f1_20": 0.12698412698412698,
+          "product": 0.01628001628001628,
+          "plumbing_product": 0.00432900432900433,
+          "delta": 0.011951011951011949
+        },
+        {
+          "query_id": "finan_agg20:q4",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.6666666666666666,
+          "product": 0.37037037037037035,
+          "plumbing_product": 0.0,
+          "delta": 0.37037037037037035
+        },
+        {
+          "query_id": "finan_groupby20:q14",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.2222222222222222,
+          "product": 0.12345679012345678,
+          "plumbing_product": 0.12345679012345678,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q11",
+          "structure_f2": 0.8620689655172415,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q13",
+          "structure_f2": 0.45454545454545453,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q17",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q8",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q11",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q15",
+          "structure_f2": 0.5,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q3",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q14",
+          "structure_f2": 0.6521739130434783,
+          "cell_f1_20": 0.5,
+          "product": 0.32608695652173914,
+          "plumbing_product": 0.0,
+          "delta": 0.32608695652173914
+        }
+      ]
+    },
+    "consensus": {
+      "tokens": 198433,
+      "mean_structure_f2": 0.4183351370851371,
+      "mean_cell_f1_at_0.20": 0.1240953947368421,
+      "mean_per_query_product": 0.07837756480848586,
+      "accepted_cells": 249,
+      "sql_visible_fills": 236,
+      "empty_bags": [
+        "finan_filter20:q7",
+        "finan_multiagg20:q11",
+        "finan_filter20:q8"
+      ],
+      "n_empty_bags": 3,
+      "per_query": [
+        {
+          "query_id": "finan_multiagg20:q4",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.375,
+          "product": 0.375,
+          "plumbing_product": 0.125,
+          "delta": 0.25
+        },
+        {
+          "query_id": "finan_filter20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.6666666666666666,
+          "product": 0.37037037037037035,
+          "plumbing_product": 0.0,
+          "delta": 0.37037037037037035
+        },
+        {
+          "query_id": "finan_filter20:q7",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q11",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q18",
+          "structure_f2": 0.06493506493506494,
+          "cell_f1_20": 0.06666666666666667,
+          "product": 0.00432900432900433,
+          "plumbing_product": 0.00432900432900433,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q4",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.6666666666666666,
+          "product": 0.37037037037037035,
+          "plumbing_product": 0.0,
+          "delta": 0.37037037037037035
+        },
+        {
+          "query_id": "finan_groupby20:q14",
+          "structure_f2": 0.6363636363636365,
+          "cell_f1_20": 0.2105263157894737,
+          "product": 0.13397129186602874,
+          "plumbing_product": 0.12345679012345678,
+          "delta": 0.010514501742571958
+        },
+        {
+          "query_id": "finan_agg20:q11",
+          "structure_f2": 1.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_multiagg20:q9",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q13",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q17",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q8",
+          "structure_f2": 0.0,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q11",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_filter20:q15",
+          "structure_f2": 0.5,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q3",
+          "structure_f2": 0.5555555555555556,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        },
+        {
+          "query_id": "finan_agg20:q14",
+          "structure_f2": 0.23809523809523808,
+          "cell_f1_20": 0.0,
+          "product": 0.0,
+          "plumbing_product": 0.0,
+          "delta": 0.0
+        }
+      ]
+    },
+    "docetl": {
+      "mean_structure_f2": 0.5366961392904789,
+      "mean_cell_f1_at_0.20": 0.11424778244631187,
+      "mean_per_query_product": 0.08410358973968853,
+      "tokens": 1381827,
+      "source": "frozen_docetl_finan_case80_evaluation.json",
+      "accepted_cells": null,
+      "sql_visible_fills": null,
+      "empty_bags": null
+    }
+  },
+  "diagnostics_after_gold": {
+    "replica_1": {
+      "candidate_set_recall": {
+        "n": 1179,
+        "present": 189
+      },
+      "selector_accuracy_given_present": {
+        "n": 189,
+        "ok": 22
+      }
+    },
+    "replica_2": {
+      "candidate_set_recall": {
+        "n": 1179,
+        "present": 189
+      },
+      "selector_accuracy_given_present": {
+        "n": 189,
+        "ok": 22
+      }
+    },
+    "replica_3": {
+      "candidate_set_recall": {
+        "n": 1179,
+        "present": 189
+      },
+      "selector_accuracy_given_present": {
+        "n": 189,
+        "ok": 21
+      }
+    },
+    "consensus": {
+      "candidate_set_recall": {
+        "n": 1179,
+        "present": 189
+      },
+      "selector_accuracy_given_present": {
+        "n": 189,
+        "ok": 16
+      }
+    }
+  },
+  "hashes": {
+    "inventory": "0fc5a8bb1758aab9ce2092814da8e5c15708890503623171f125bb3c2dce7580",
+    "samples": "ceabd5b0ac976976b93db253e31070fccc89976abff97bf871e4da35f4dd7ba7",
+    "consensus_policy": "1bbfffe3fc780f1d8cb7b12167a819d5cc823f8f00bf5eebe2dfb1eeaad18316",
+    "ledger": "b60ca5e20b0db7331093b1fbe6ed307e675a8f7d86476a6b7b70a3431eb75d05",
+    "replica_specs": [
+      "902cd28f3da352c292853fbd2f7a6873942292cb7b20bc8dca64772a1c50c8ab",
+      "8cf92f16daed0946a6f6b3177393a1a3d2efcc78380c5769e3eea4fb5576b101",
+      "d852c2a3c1af404413357864ba10a764ea2a1dcd2643074dc6d73a5a32d6bc21"
+    ],
+    "replica_bags": [
+      "c15be151959348d28ff7745b253fe1cb864f51d3effd7ecd26c21e34f4f6419d",
+      "a325cc6457bb954c264f3ac3a95b5f25545e6a6d69fce891b9734d1de31dab43",
+      "613344e2e37602f1f6b0cef906c062359550be18d2bf4f3be6b54ae80b494038"
+    ],
+    "consensus_bags": "ad061cb4bad59668ad8a03a89cac170adab746bd5bcdf9571ed0f74c55eca6f1",
+    "agreement": "029f3388bd9fc7e48a20b26de02e6a9b4d791182ea3b19708117ab434076913c"
+  },
+  "decision": "program-only win is replica-dependent; consensus does not beat DocETL"
+}

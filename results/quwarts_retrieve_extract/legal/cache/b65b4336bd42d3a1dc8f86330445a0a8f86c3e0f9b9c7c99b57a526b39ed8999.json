@@ -1,0 +1,94 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "945172baa9952e6de9c5fc3f4fff09b7048ebdb591f299a0488b3f3195bd9376",
+    "entity_identity": "af2ce5852f13ccb5687846db04285256ef75bd9738419d1fe2675231dee5e63b",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "48d3c125ab7f64207e5921258b798eece3c1a289d74b22c038b2124142d9f859",
+      "3841663d7f8c9ac03fc34e8d6f9c3806992ea455db8038552f12fde43a9298bd",
+      "c0b83ad68a1b6ac02b4c20ad89c0a845b8e69363abd0ac5e05c8c8770b51bb8a",
+      "5488a1ceaba0bbe214eb63407eb078459fb0b7556749d11ad2a8709a9a12668e"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"af2ce5852f13ccb5687846db04285256ef75bd9738419d1fe2675231dee5e63b\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"541.txt:c12\",\n          \"exact_span\": \"although there was medical evidence to suggest that this was\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"found\",\n      \"raw_value\": \"Sri Lankan citizen of Sinhalese ethnicity\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"541.txt:c8\",\n          \"exact_span\": \"The appellant is a Sri Lankan citizen of Sinhalese ethnicity.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "541.txt:c12",
+              "exact_span": "although there was medical evidence to suggest that this was"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "found",
+          "raw_value": "Sri Lankan citizen of Sinhalese ethnicity",
+          "normalized_value": "Sri Lankan citizen of Sinhalese ethnicity",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "541.txt:c8",
+              "exact_span": "The appellant is a Sri Lankan citizen of Sinhalese ethnicity."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "af2ce5852f13ccb5687846db04285256ef75bd9738419d1fe2675231dee5e63b"
+    }
+  }
+}

@@ -1,0 +1,625 @@
+{
+  "model": "qwen/qwen-2.5-7b-instruct",
+  "query_list_sha256": "ff997085c19cd805e6c3cdea111d2b8134db2008586eb3b135356fd7f0cb0373",
+  "schedule_sha256": "0cdc76043a5f7fbdac1a9c979c957dcfbe73e665b4d5662914de827fe0bba500",
+  "policy_sha256": "b770dcbe40339d71a1f97d9663162d1ad51ebe2be472160ca2a66b751be02399",
+  "prompt_sha256": "342feb5925c11a77ef0b34693ed2691a7fb9ced17f84804a41ec504570a636e1",
+  "budgets": {
+    "theta_25": 345457,
+    "theta_100": 1381827
+  },
+  "preflight": {
+    "unique_programs": 16,
+    "unique_conditions": 15,
+    "reuse_ratio": 0.0625,
+    "candidates_before_blocking": 1600,
+    "candidates_after_blocking": 1525,
+    "deduplicated_tasks": 1478,
+    "expected_tokens_per_task": 2020,
+    "coverage_at_theta_25": 171,
+    "coverage_at_theta_100": 684
+  },
+  "schedule": {
+    "n_25": 125,
+    "n_100": 802,
+    "clusters_25": 1,
+    "clusters_100": 8,
+    "complete_programs_25": 2,
+    "complete_programs_100": 8,
+    "complete_queries_25": [
+      "finan_agg20:q11",
+      "finan_groupby20:q14"
+    ],
+    "complete_queries_100": [
+      "finan_agg20:q11",
+      "finan_filter20:q11",
+      "finan_filter20:q8",
+      "finan_groupby20:q14",
+      "finan_multiagg20:q11",
+      "finan_multiagg20:q18",
+      "finan_multiagg20:q4",
+      "finan_multiagg20:q9"
+    ]
+  },
+  "decisions": {
+    "true": 92,
+    "false": 497,
+    "unknown": 331,
+    "attempted": 795,
+    "resolved": 795,
+    "accepted": 92
+  },
+  "visibility": {
+    "theta25": {
+      "row": 32,
+      "bag": 19,
+      "rollback": 0,
+      "kept": 32
+    },
+    "theta100": {
+      "row": 80,
+      "bag": 65,
+      "rollback": 0,
+      "kept": 80
+    }
+  },
+  "empty_bags": {
+    "before": [
+      "finan_filter20:q7",
+      "finan_multiagg20:q11",
+      "finan_agg20:q17",
+      "finan_filter20:q8",
+      "finan_filter20:q11",
+      "finan_agg20:q3"
+    ],
+    "theta25": [
+      "finan_filter20:q7",
+      "finan_multiagg20:q11",
+      "finan_agg20:q17",
+      "finan_filter20:q8",
+      "finan_filter20:q11",
+      "finan_agg20:q3"
+    ],
+    "theta100": [
+      "finan_filter20:q7",
+      "finan_agg20:q17",
+      "finan_filter20:q8",
+      "finan_agg20:q3"
+    ],
+    "filled_25": [],
+    "filled_100": [
+      "finan_filter20:q11",
+      "finan_multiagg20:q11"
+    ]
+  },
+  "accuracy_after_freeze": {
+    "accepted": 92,
+    "labels": {
+      "correct gold support witness": 52,
+      "correct support but wrong group": 34,
+      "false-positive support": 6
+    },
+    "support_condition_accuracy": 0.9347826086956522,
+    "direct_group_label_accuracy": 0.5652173913043478,
+    "group_accuracy_among_support": 0.6046511627906976
+  },
+  "score": {
+    "plumbing_16": {
+      "tokens": 0,
+      "mean_structure_f2": 0.2890885455540628,
+      "mean_cell_f1_at_0.20": 0.025868055555555554,
+      "mean_per_query_product": 0.01579911215327882
+    },
+    "plumbing_15": {
+      "tokens": 0,
+      "mean_structure_f2": 0.29248809938465115,
+      "mean_cell_f1_at_0.20": 0.027592592592592592,
+      "mean_per_query_product": 0.01685238629683074
+    },
+    "parity_25_16": {
+      "tokens": 211629,
+      "mean_structure_f2": 0.2947666740039621,
+      "mean_cell_f1_at_0.20": 0.02284873188405797,
+      "mean_per_query_product": 0.01360996033872784
+    },
+    "parity_25_15": {
+      "tokens": 211629,
+      "mean_structure_f2": 0.2985447697312104,
+      "mean_cell_f1_at_0.20": 0.0243719806763285,
+      "mean_per_query_product": 0.014517291027976362
+    },
+    "parity_100_16": {
+      "tokens": 1381136,
+      "mean_structure_f2": 0.3876108769025129,
+      "mean_cell_f1_at_0.20": 0.03934178743961352,
+      "mean_per_query_product": 0.02349614861033278
+    },
+    "parity_100_15": {
+      "tokens": 1381136,
+      "mean_structure_f2": 0.3975785861563312,
+      "mean_cell_f1_at_0.20": 0.04196457326892109,
+      "mean_per_query_product": 0.025062558517688297
+    },
+    "docetl_16": {
+      "f2": 0.537,
+      "f1": 0.114,
+      "product": 0.084,
+      "tokens": 1381827
+    }
+  },
+  "per_query_25_16": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.125,
+      "product": 0.125,
+      "pred_rows": 2
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_20": 0.06666666666666667,
+      "product": 0.00432900432900433,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.5084745762711864,
+      "cell_f1_20": 0.17391304347826086,
+      "product": 0.08843036109064112,
+      "pred_rows": 11
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 6
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_agg20:q14",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    }
+  ],
+  "per_query_100_16": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.125,
+      "product": 0.125,
+      "pred_rows": 2
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.8333333333333334,
+      "cell_f1_20": 0.041666666666666664,
+      "product": 0.034722222222222224,
+      "pred_rows": 6
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_20": 0.06666666666666667,
+      "product": 0.00432900432900433,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.5084745762711864,
+      "cell_f1_20": 0.17391304347826086,
+      "product": 0.08843036109064112,
+      "pred_rows": 11
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 6
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.2222222222222222,
+      "product": 0.12345679012345678,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.6521739130434783,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 3
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_agg20:q14",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    }
+  ],
+  "per_query_25_15": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.125,
+      "product": 0.125,
+      "pred_rows": 2
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_20": 0.06666666666666667,
+      "product": 0.00432900432900433,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.5084745762711864,
+      "cell_f1_20": 0.17391304347826086,
+      "product": 0.08843036109064112,
+      "pred_rows": 11
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 6
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    }
+  ],
+  "per_query_100_15": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.125,
+      "product": 0.125,
+      "pred_rows": 2
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.8333333333333334,
+      "cell_f1_20": 0.041666666666666664,
+      "product": 0.034722222222222224,
+      "pred_rows": 6
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_20": 0.06666666666666667,
+      "product": 0.00432900432900433,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.5084745762711864,
+      "cell_f1_20": 0.17391304347826086,
+      "product": 0.08843036109064112,
+      "pred_rows": 11
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 6
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.2222222222222222,
+      "product": 0.12345679012345678,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.6521739130434783,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 3
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0
+    }
+  ],
+  "hashes": {
+    "query_list": "ff997085c19cd805e6c3cdea111d2b8134db2008586eb3b135356fd7f0cb0373",
+    "schedule": "0cdc76043a5f7fbdac1a9c979c957dcfbe73e665b4d5662914de827fe0bba500",
+    "policy": "b770dcbe40339d71a1f97d9663162d1ad51ebe2be472160ca2a66b751be02399",
+    "prompt": "342feb5925c11a77ef0b34693ed2691a7fb9ced17f84804a41ec504570a636e1",
+    "theta25_db": "76c9d3a7f1871f64b03fbf4acf96aa17c7925946b0b41393a15e40910368538d",
+    "theta100_db": "f03482ab2a1a3479f3fe8a6e8b9cb8df1eaf83587ddeba1840e2c0e1c5b3bb74",
+    "theta25_journal": "4e8ac56503b6ec865d3932f6ebb145b81fa28fb62ce10ef78c18ca2097614da9",
+    "theta100_journal": "6368c7993bf6011053c7a8f6628513615558057850a7a7c068fdc547cf6f17d2",
+    "theta25_ledger": "9a39c38f33febf69374e707dd1aff1be1d4fcb8517a287509c85e6d18aa7bee1",
+    "theta100_ledger": "745b472df642f5b3c3250cc57899e0887f09d635277122c1796faf20b41a4243",
+    "theta25_sidecar": "d87308d3f097381ce1e71a7c3cad6a10cdc66bab9e149667829cfb83e79c5ca6",
+    "theta100_sidecar": "8bdde079bce69881c6e2322c29a9581fd12b1cfc635f3d859c2faf07718731a2",
+    "theta25_bags": "ee212e03147656d8f192d2b09a805b8be9a1b73f2577f5d15e2e90ba6e2f8d62",
+    "theta100_bags": "c58e57b99ed95a6cbccccbf7fc61e7869ad3a40086976c7318528aa312eb9d88"
+  },
+  "gates": {
+    "exact_16_query_manifest": true,
+    "zero_train_work": true,
+    "all_16_execute": true,
+    "plumbing_rows_preserved": true,
+    "base_columns_unchanged": true,
+    "incumbents_retained": true,
+    "incomplete_plumbing_fallback": true,
+    "theta25_within": true,
+    "theta100_within": true,
+    "prefix_journal": true,
+    "zero_gold_before_freeze": true
+  },
+  "decision": {
+    "closes_gap_at_25": false,
+    "closes_gap_at_100": false
+  }
+}

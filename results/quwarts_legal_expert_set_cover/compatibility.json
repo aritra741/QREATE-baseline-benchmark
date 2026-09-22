@@ -1,0 +1,3935 @@
+{
+  "observables": [
+    {
+      "observable_id": "044afbcb75138d4d",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "case_number",
+      "match_sql": "case when case_number >= 8 then 'precedent_heavy' else 'precedent_light' end",
+      "legal_labels": [
+        "precedent_heavy",
+        "precedent_light"
+      ],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_groupby20:q14"
+      ],
+      "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END"
+    },
+    {
+      "observable_id": "500350946f705705",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "case_number",
+      "match_sql": "case when case_number >= 10 then 'many_precedents' else 'fewer_precedents' end",
+      "legal_labels": [
+        "many_precedents",
+        "fewer_precedents"
+      ],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_filter20:q8"
+      ],
+      "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END"
+    },
+    {
+      "observable_id": "f6774a1a18b929bd",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "case_type",
+      "match_sql": "case when case_type in ('administrative case', 'civil case', 'commercial case') then case_type else 'other' end",
+      "legal_labels": [
+        "Administrative Case",
+        "Civil Case",
+        "Commercial Case",
+        "Other"
+      ],
+      "raw_occurrences": 4,
+      "query_ids": [
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_agg20:q13",
+        "legal_filter20:q11"
+      ],
+      "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+    },
+    {
+      "observable_id": "c7b283366e96778d",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "defendant_current_status",
+      "match_sql": "case when defendant_current_status in ('government', 'company', 'organization') then defendant_current_status when defendant_current_status <> '' then 'other' end",
+      "legal_labels": [
+        "Government",
+        "Company",
+        "Organization",
+        "Other"
+      ],
+      "raw_occurrences": 2,
+      "query_ids": [
+        "legal_multiagg20:q18",
+        "legal_agg20:q17"
+      ],
+      "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END"
+    },
+    {
+      "observable_id": "019c7d6a1edfd18f",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "legal_basis_num",
+      "match_sql": "case when legal_basis_num <= 1 then '0_or_1' when legal_basis_num <= 3 then '2_or_3' else '4_or_more' end",
+      "legal_labels": [
+        "0_or_1",
+        "2_or_3",
+        "4_or_more"
+      ],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_multiagg20:q11"
+      ],
+      "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END"
+    },
+    {
+      "observable_id": "d2389e40abc66bdf",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "plaintiff_current_status",
+      "match_sql": "case when plaintiff_current_status in ('company', 'organization', 'government') then plaintiff_current_status when plaintiff_current_status <> '' then 'individual_or_other' end",
+      "legal_labels": [
+        "Company",
+        "Organization",
+        "Government",
+        "Individual_or_other"
+      ],
+      "raw_occurrences": 3,
+      "query_ids": [
+        "legal_filter20:q9",
+        "legal_multiagg20:q18",
+        "legal_agg20:q11"
+      ],
+      "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+    },
+    {
+      "observable_id": "fba9d98f1979bdb7",
+      "kind": "group",
+      "role": "case_branch",
+      "attribute": "verdict",
+      "match_sql": "case when verdict in ('dismissed', 'approved', 'others') then verdict else 'other' end",
+      "legal_labels": [
+        "Dismissed",
+        "Approved",
+        "Others",
+        "Other"
+      ],
+      "raw_occurrences": 3,
+      "query_ids": [
+        "legal_filter20:q7",
+        "legal_multiagg20:q9",
+        "legal_filter20:q15"
+      ],
+      "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+    },
+    {
+      "observable_id": "9e6df65a145893ed",
+      "kind": "group",
+      "role": "group_key",
+      "attribute": "first_judge",
+      "match_sql": "first_judge",
+      "legal_labels": [],
+      "raw_occurrences": 6,
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_agg20:q4",
+        "legal_agg20:q14"
+      ],
+      "expression": "first_judge"
+    },
+    {
+      "observable_id": "b5614de6b3ff5cc7",
+      "kind": "group",
+      "role": "group_key",
+      "attribute": "hearing_year",
+      "match_sql": "hearing_year",
+      "legal_labels": [],
+      "raw_occurrences": 2,
+      "query_ids": [
+        "legal_agg20:q3"
+      ],
+      "expression": "hearing_year"
+    },
+    {
+      "observable_id": "bdb0b7642ca14916",
+      "kind": "numeric",
+      "role": "numeric_avg",
+      "attribute": "case_number",
+      "match_sql": "avg(case_number)",
+      "legal_labels": [],
+      "raw_occurrences": 5,
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_filter20:q7",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_multiagg20:q9"
+      ],
+      "expression": "AVG(case_number)"
+    },
+    {
+      "observable_id": "2e18bb3bb06d3bb0",
+      "kind": "numeric",
+      "role": "numeric_avg",
+      "attribute": "legal_basis_num",
+      "match_sql": "avg(legal_basis_num)",
+      "legal_labels": [],
+      "raw_occurrences": 6,
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q18",
+        "legal_multiagg20:q9",
+        "legal_agg20:q17",
+        "legal_filter20:q11",
+        "legal_agg20:q14"
+      ],
+      "expression": "AVG(legal_basis_num)"
+    },
+    {
+      "observable_id": "e1262e1fdb4c64da",
+      "kind": "numeric",
+      "role": "numeric_max",
+      "attribute": "case_number",
+      "match_sql": "max(case_number)",
+      "legal_labels": [],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_agg20:q13"
+      ],
+      "expression": "MAX(case_number)"
+    },
+    {
+      "observable_id": "b15dbfdd9b406fd5",
+      "kind": "predicate",
+      "role": "aggregate_indicator",
+      "attribute": "verdict",
+      "match_sql": "verdict = 'dismissed'",
+      "legal_labels": [
+        "TRUE",
+        "FALSE"
+      ],
+      "raw_occurrences": 2,
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q11"
+      ],
+      "expression": "verdict = 'Dismissed'"
+    },
+    {
+      "observable_id": "ee1d3edb895cdf41",
+      "kind": "predicate",
+      "role": "filter",
+      "attribute": "case_type",
+      "match_sql": "case_type = 'civil case'",
+      "legal_labels": [],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_filter20:q8"
+      ],
+      "expression": "case_type = 'Civil Case'"
+    },
+    {
+      "observable_id": "eeac08f93d774f6e",
+      "kind": "predicate",
+      "role": "filter",
+      "attribute": "defendant_current_status",
+      "match_sql": "defendant_current_status in ('company', 'organization', 'government')",
+      "legal_labels": [],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_filter20:q15"
+      ],
+      "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')"
+    },
+    {
+      "observable_id": "fc11f4cf61a4afb2",
+      "kind": "predicate",
+      "role": "filter",
+      "attribute": "defendant_current_status",
+      "match_sql": "defendant_current_status = 'government'",
+      "legal_labels": [],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_filter20:q11"
+      ],
+      "expression": "defendant_current_status = 'Government'"
+    },
+    {
+      "observable_id": "274df2a0883a3970",
+      "kind": "predicate",
+      "role": "filter",
+      "attribute": "hearing_year",
+      "match_sql": "hearing_year between 2006 and 2008",
+      "legal_labels": [],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_filter20:q7"
+      ],
+      "expression": "hearing_year BETWEEN 2006 AND 2008"
+    },
+    {
+      "observable_id": "ed5f55060b85a804",
+      "kind": "predicate",
+      "role": "filter",
+      "attribute": "hearing_year",
+      "match_sql": "hearing_year between 2005 and 2009",
+      "legal_labels": [],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_agg20:q3"
+      ],
+      "expression": "hearing_year BETWEEN 2005 AND 2009"
+    },
+    {
+      "observable_id": "8497e4ef83ec9679",
+      "kind": "predicate",
+      "role": "filter",
+      "attribute": "plaintiff_current_status",
+      "match_sql": "plaintiff_current_status = 'company'",
+      "legal_labels": [],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_filter20:q15"
+      ],
+      "expression": "plaintiff_current_status = 'Company'"
+    },
+    {
+      "observable_id": "d0f55532806b22c4",
+      "kind": "predicate",
+      "role": "filter",
+      "attribute": "verdict",
+      "match_sql": "verdict = 'approved'",
+      "legal_labels": [],
+      "raw_occurrences": 1,
+      "query_ids": [
+        "legal_filter20:q9"
+      ],
+      "expression": "verdict = 'Approved'"
+    },
+    {
+      "observable_id": "44b3ea1b26407fe7",
+      "kind": "presence",
+      "role": "is_not_null",
+      "attribute": "case_number",
+      "match_sql": "not case_number is null",
+      "legal_labels": [],
+      "raw_occurrences": 8,
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_filter20:q7",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9",
+        "legal_agg20:q13",
+        "legal_filter20:q8"
+      ],
+      "expression": "NOT case_number IS NULL"
+    },
+    {
+      "observable_id": "64de220c6bec8f33",
+      "kind": "presence",
+      "role": "is_not_null",
+      "attribute": "first_judge",
+      "match_sql": "not first_judge is null",
+      "legal_labels": [],
+      "raw_occurrences": 3,
+      "query_ids": [
+        "legal_multiagg20:q4",
+        "legal_agg20:q4",
+        "legal_agg20:q14"
+      ],
+      "expression": "NOT first_judge IS NULL"
+    },
+    {
+      "observable_id": "7a2a9da9d422f4b6",
+      "kind": "presence",
+      "role": "nonempty",
+      "attribute": "defendant_current_status",
+      "match_sql": "defendant_current_status <> ''",
+      "legal_labels": [],
+      "raw_occurrences": 2,
+      "query_ids": [
+        "legal_multiagg20:q18",
+        "legal_agg20:q17"
+      ],
+      "expression": "defendant_current_status <> ''"
+    },
+    {
+      "observable_id": "cef932ff54135808",
+      "kind": "presence",
+      "role": "nonempty",
+      "attribute": "plaintiff_current_status",
+      "match_sql": "plaintiff_current_status <> ''",
+      "legal_labels": [],
+      "raw_occurrences": 3,
+      "query_ids": [
+        "legal_filter20:q9",
+        "legal_multiagg20:q18",
+        "legal_agg20:q11"
+      ],
+      "expression": "plaintiff_current_status <> ''"
+    }
+  ],
+  "matrix": [
+    {
+      "query_id": "legal_multiagg20:q4",
+      "expert_hash": "73a8da498313a526784a157d73e80ce86d31458255f30488319557b5486a8f7d",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "schema requests first_judge, not judge identity; attribute configuration is a 1/0 indicator and is not sent"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "CASE indicator needs outcome labels in the output schema; tool schema is an unconstrained string"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_filter20:q9",
+      "expert_hash": "106f3c89e8c5e1f4269415dd146a5853e5941315869a28aa099d530481d43bf4",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "CASE indicator needs outcome labels in the output schema; tool schema is an unconstrained string"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": true,
+          "reason": "supplied query contains this predicate and the field is requested"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": true,
+          "reason": "query conditions extraction on a nonempty status field"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_filter20:q7",
+      "expert_hash": "73cef73cd12fafb85a5eb6665222a901c00ee09ab647aa4d4bf9e73a6fb32251",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "schema names hearing_year but does not distinguish it from judgment, citation, or publication year"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "CASE indicator needs outcome labels in the output schema; tool schema is an unconstrained string"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "schema names hearing_year but does not distinguish it from judgment, citation, or publication year"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "schema names hearing_year but does not distinguish it from judgment, citation, or publication year"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "expert_hash": "45a08a7a6e022ba87f00d3baa2e291a2d2c0c0f87a4570769dc6d944757315e5",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "CASE indicator needs outcome labels in the output schema; tool schema is an unconstrained string"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "expert_hash": "43ea1f37859ff1fade0b6fd05c18b3137a2a5416ed5506241aab9398fba7d605",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": true,
+          "reason": "query conditions extraction on a nonempty status field"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": true,
+          "reason": "query conditions extraction on a nonempty status field"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_agg20:q4",
+      "expert_hash": "6357413ec6cbaa7c8eb2677fb1f18511027b4eda3b97732cbee21bdba7e88ffb",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "schema requests first_judge, not judge identity; attribute configuration is a 1/0 indicator and is not sent"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_groupby20:q14",
+      "expert_hash": "45c234d0737b1828f1a5b291eff199fb9d9920ecd6c7effdbd939f295910fe69",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_agg20:q11",
+      "expert_hash": "a8bef82daf50b668c13b507956922c8967fcbbc8f9a3c7990f8b4bd149b2d039",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": true,
+          "reason": "query conditions extraction on a nonempty status field"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "expert_hash": "0ea8a461b70cb581dedd2af363948bd0cde13b647f3a1a153df4101816a1d939",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "CASE indicator needs outcome labels in the output schema; tool schema is an unconstrained string"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_agg20:q13",
+      "expert_hash": "d267201be03bd5c7b93795a16242ff30c05ff95e8b9b1bda69985f10e339bdae",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_agg20:q17",
+      "expert_hash": "cc5a52941058d51b3139152ae2759b57ff555643a35be4685fbdd58c601432d3",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": true,
+          "reason": "query conditions extraction on a nonempty status field"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_filter20:q8",
+      "expert_hash": "4fd3f8d8e3e5ad9c755e09c68dede909b68ea5eb3bc6d38ee84be6ac85069535",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": true,
+          "reason": "supplied query contains this predicate and the field is requested"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_filter20:q11",
+      "expert_hash": "418442946b216bd2798063083a8e293ecddfddcadc6754508f08dae38937ecef",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": true,
+          "reason": "supplied query contains this predicate and the field is requested"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "nonempty presence is not in the supplied query"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_filter20:q15",
+      "expert_hash": "c3794a7997e12213edd87dc72aab24519a1faec05873f98121b59fc4087c1e7f",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "CASE indicator needs outcome labels in the output schema; tool schema is an unconstrained string"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": true,
+          "reason": "supplied query contains this predicate and the field is requested"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": true,
+          "reason": "supplied query contains this predicate and the field is requested"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "predicate is not in the supplied query"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "nonempty presence is not in the supplied query"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "nonempty presence is not in the supplied query"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_agg20:q3",
+      "expert_hash": "86ecd27cf0701b319062d51d7f2a766a98bebc604f9d7d8c640832664174ed0d",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "schema names hearing_year but does not distinguish it from judgment, citation, or publication year"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "legal_basis_num is not in this expert's output schema"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "schema names hearing_year but does not distinguish it from judgment, citation, or publication year"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "schema names hearing_year but does not distinguish it from judgment, citation, or publication year"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": false,
+          "reason": "first_judge is not in this expert's output schema"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    },
+    {
+      "query_id": "legal_agg20:q14",
+      "expert_hash": "87b19aa0377b561fc453ab3fc2621c3ba5bf3a333fe431124c0729bc935047c6",
+      "cells": [
+        {
+          "observable_id": "044afbcb75138d4d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "500350946f705705",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_number",
+          "expression": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "f6774a1a18b929bd",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "case_type",
+          "expression": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "c7b283366e96778d",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "defendant_current_status",
+          "expression": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "019c7d6a1edfd18f",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "legal_basis_num",
+          "expression": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END",
+          "compatible": false,
+          "reason": "CASE branch labels are not distinguished by the output schema or field description"
+        },
+        {
+          "observable_id": "d2389e40abc66bdf",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "plaintiff_current_status",
+          "expression": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fba9d98f1979bdb7",
+          "kind": "group",
+          "role": "case_branch",
+          "attribute": "verdict",
+          "expression": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "9e6df65a145893ed",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "first_judge",
+          "expression": "first_judge",
+          "compatible": false,
+          "reason": "schema requests first_judge, not judge identity; attribute configuration is a 1/0 indicator and is not sent"
+        },
+        {
+          "observable_id": "b5614de6b3ff5cc7",
+          "kind": "group",
+          "role": "group_key",
+          "attribute": "hearing_year",
+          "expression": "hearing_year",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "bdb0b7642ca14916",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "case_number",
+          "expression": "AVG(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "2e18bb3bb06d3bb0",
+          "kind": "numeric",
+          "role": "numeric_avg",
+          "attribute": "legal_basis_num",
+          "expression": "AVG(legal_basis_num)",
+          "compatible": false,
+          "reason": "numeric schema does not state precedent-count or statute-count component semantics"
+        },
+        {
+          "observable_id": "e1262e1fdb4c64da",
+          "kind": "numeric",
+          "role": "numeric_max",
+          "attribute": "case_number",
+          "expression": "MAX(case_number)",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "b15dbfdd9b406fd5",
+          "kind": "predicate",
+          "role": "aggregate_indicator",
+          "attribute": "verdict",
+          "expression": "verdict = 'Dismissed'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ee1d3edb895cdf41",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "case_type",
+          "expression": "case_type = 'Civil Case'",
+          "compatible": false,
+          "reason": "case_type is not in this expert's output schema"
+        },
+        {
+          "observable_id": "eeac08f93d774f6e",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status IN ('Company', 'Organization', 'Government')",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "fc11f4cf61a4afb2",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status = 'Government'",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "274df2a0883a3970",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2006 AND 2008",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "ed5f55060b85a804",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "hearing_year",
+          "expression": "hearing_year BETWEEN 2005 AND 2009",
+          "compatible": false,
+          "reason": "hearing_year is not in this expert's output schema"
+        },
+        {
+          "observable_id": "8497e4ef83ec9679",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status = 'Company'",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "d0f55532806b22c4",
+          "kind": "predicate",
+          "role": "filter",
+          "attribute": "verdict",
+          "expression": "verdict = 'Approved'",
+          "compatible": false,
+          "reason": "verdict is not in this expert's output schema"
+        },
+        {
+          "observable_id": "44b3ea1b26407fe7",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "case_number",
+          "expression": "NOT case_number IS NULL",
+          "compatible": false,
+          "reason": "case_number is not in this expert's output schema"
+        },
+        {
+          "observable_id": "64de220c6bec8f33",
+          "kind": "presence",
+          "role": "is_not_null",
+          "attribute": "first_judge",
+          "expression": "NOT first_judge IS NULL",
+          "compatible": true,
+          "reason": "query conditions extraction on IS NOT NULL and the field is requested"
+        },
+        {
+          "observable_id": "7a2a9da9d422f4b6",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "defendant_current_status",
+          "expression": "defendant_current_status <> ''",
+          "compatible": false,
+          "reason": "defendant_current_status is not in this expert's output schema"
+        },
+        {
+          "observable_id": "cef932ff54135808",
+          "kind": "presence",
+          "role": "nonempty",
+          "attribute": "plaintiff_current_status",
+          "expression": "plaintiff_current_status <> ''",
+          "compatible": false,
+          "reason": "plaintiff_current_status is not in this expert's output schema"
+        }
+      ]
+    }
+  ]
+}

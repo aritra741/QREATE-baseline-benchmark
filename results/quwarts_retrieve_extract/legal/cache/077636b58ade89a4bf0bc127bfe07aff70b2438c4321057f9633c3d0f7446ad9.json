@@ -1,0 +1,59 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "4ea0b87a8f5c1a5b54a403059a91eabf43dbf758b7962b14e5436f779f2c50b4",
+    "entity_identity": "4615c8b04060b95e9a5472c1697cbc984a00f77d729635a4a0680a1555ba7add",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "57bdb3a727de94ee1fe02ec6dd6ee08b8ebe797849c43abb053f17320ed8dcb1",
+      "0186338e2e37ab5d31504e3c8fd30cb5998d9defe0cb88a2efd8bc82aa21dd8e",
+      "f2b90791058a65dbeb6e8ac08306e5547eea166e6811a43dc8eeeee8084346d9",
+      "69f233dbe96c4690b2824c4429bf0ff2a71b46fbaa92176b28d2ae2f4dd83a7e"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"4615c8b04060b95e9a5472c1697cbc984a00f77d729635a4a0680a1555ba7add\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"171.txt:c56\",\n          \"exact_span\": \"I am not satisfied that this has occurred, or is likely to occur.\\n122 There will be an order that the application be dismissed.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "171.txt:c56",
+              "exact_span": "I am not satisfied that this has occurred, or is likely to occur.\n122 There will be an order that the application be dismissed."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "4615c8b04060b95e9a5472c1697cbc984a00f77d729635a4a0680a1555ba7add"
+    }
+  }
+}

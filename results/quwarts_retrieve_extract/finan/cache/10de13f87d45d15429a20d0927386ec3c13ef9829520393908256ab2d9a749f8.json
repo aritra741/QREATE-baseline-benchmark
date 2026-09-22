@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "acfa76aae8c2c99880e0e32f1c7bad7b6966f5ba8060b9eb9ae2bdfb2abfa24b",
+    "entity_identity": "bc84e3a4b3ad494ead045c5113e66edd280ea9edccd98e42d0410eab49749404",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "5044b1f1e1ddf2f98c519dba0c1df48513d0d283487e286e609d3ac2622e1417",
+      "18663c1288cb8829b30cb09107f8baaca169f5cf855254e696478795aca7de5e",
+      "fba92100958271a2960b677c3e104c326ad389db2a4806537f15e547315af3ac",
+      "5fc42cc6d6a481c173b3f545019a798bc0c3908bf508fede1f4d76f05fd595de"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"bc84e3a4b3ad494ead045c5113e66edd280ea9edccd98e42d0410eab49749404\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"NYSE American\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"16.txt:c1\",\n          \"exact_span\": \"Our common stock is listed on the Nasdaq Capital Market under the symbol 'WWR.'\\n\\nCommon Stock, par value $0.001 per share\\nWWR\\nNYSE American\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "NYSE American",
+          "normalized_value": "NYSE American",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "16.txt:c1",
+              "exact_span": "Our common stock is listed on the Nasdaq Capital Market under the symbol 'WWR.'\n\nCommon Stock, par value $0.001 per share\nWWR\nNYSE American"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.exchange_code"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "bc84e3a4b3ad494ead045c5113e66edd280ea9edccd98e42d0410eab49749404"
+    }
+  }
+}

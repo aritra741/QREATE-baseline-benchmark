@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+    "entity_identity": "finan_multiagg20:q9:70:map",
+    "attribute_bundle": [
+      "earnings_per_share",
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+      "d5fe0b25273a834dd80b3851c04acc004884fc0abc808e7a9d55c435bd0f361f",
+      "ad573448efd0413172d46808ab5dd5f6ed8a847e8528d7377ae61edf334383ab",
+      "b08a347d402d57cc44b60eba55583c41105e04dd177c07069e904cfa89c5f99d",
+      "0dc966a7a49c1e371af83a5c5193ef335168ebb6d9b8ea7170ff28db6bd7842b",
+      "1262d73b5ee1e7cea4c942eefe9631a3f89b03c383ab5b641d9ee60f7cef101f",
+      "de01c24da68bc6bf18fc67ca76118c012dbfa4aabebfed863c7dce54fe1b3003",
+      "f8c7b4d46bcd83911441f72de66f7a1a023b2e5eeace854f5f72ae92981fa117"
+    ],
+    "schema_hash": "cad102bb407a1f8e7ffeeb79be37c614771b9c7543af61213ef858b92955762a",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"earnings_per_share\": {\n        \"value\": 0.99,\n        \"status\": \"found\",\n        \"evidence\": \"| Operating profit per share (\u20ac)                                                                                           | 1.68          | 0.94          | 77.5          |\\n| Earnings per share (\u20ac)                                                                                                   | 0.99          | 0.23          | .             |\"\n    },\n    \"remuneration_policy\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"revenue\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "earnings_per_share": {
+          "attribute": "earnings_per_share",
+          "raw_value": "0.99",
+          "normalized_value": 0.99,
+          "status": "found",
+          "evidence": "| Operating profit per share (\u20ac)                                                                                           | 1.68          | 0.94          | 77.5          |\n| Earnings per share (\u20ac)                                                                                                   | 0.99          | 0.23          | .             |",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [],
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

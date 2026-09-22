@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "b6e1723982cbc8f9879f3421281a84a61a13585dd79e450ce27769628dc2df57",
+    "entity_identity": "a8985efbc604e8f8d1d6e16dee90c63b45d514079ca1cd368fadba38bfaddf44",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "b311de0fb4b121acaa707561f087f27c6bc649703fdd0421073a2f96e09a62db",
+      "8c16dadaaeb3996c7ec6bb2899d4a793e8c8397cd60e5bb4d8366f1cfdf71de9",
+      "666b1136f07453f60c8f729dbafc6f36f8b91381d099fba02fe63905c258438a",
+      "16b7e61404219c9cafebeaf48cbad298d0de64b1b5c648377d07b2ca8e21d8a9"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"a8985efbc604e8f8d1d6e16dee90c63b45d514079ca1cd368fadba38bfaddf44\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"275.txt:c27\",\n          \"exact_span\": \"52 In my view, the requisite connection exists between the outgoing claimed (legal expenses) and the incurrence of assessable income. the costs incurred in doing so are deductible under s 8-1(1) of the ITAA.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "275.txt:c27",
+              "exact_span": "52 In my view, the requisite connection exists between the outgoing claimed (legal expenses) and the incurrence of assessable income. the costs incurred in doing so are deductible under s 8-1(1) of the ITAA."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "a8985efbc604e8f8d1d6e16dee90c63b45d514079ca1cd368fadba38bfaddf44"
+    }
+  }
+}

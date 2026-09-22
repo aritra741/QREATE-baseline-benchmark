@@ -1,0 +1,85 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "7b6ba912098e2167ced9f406df89254774c2b91b57ab00e0d6736d69153ee1e2",
+    "entity_identity": "9b5431bbed314f79faf4b637adc63258a39eea609bbbfa2e99459373e4681505",
+    "attribute_bundle": [
+      "legal.judgment_year",
+      "legal.hearing_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "a30004e104909366fecb0192aa9835819b1b8396c286bca3ac99dd4ba2b3b869",
+      "2fad48110cb4c64cfe710593a6817eef9f5d31cfb540c46ffa7927fba3ae292a",
+      "d31790a785ed4988876b0ff7cebcaf554c97e31f5faacf4c947f083cbcc821bd",
+      "f8492cb0369ab6d569b68613d56129a8aaeb0b2453fff0cb043e9a8f09ec6233"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"9b5431bbed314f79faf4b637adc63258a39eea609bbbfa2e99459373e4681505\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"271.txt:c47\",\n          \"exact_span\": \"\"\n        },\n        {\n          \"source_id\": \"271.txt:c45\",\n          \"exact_span\": \"\"\n        },\n        {\n          \"source_id\": \"271.txt:c46\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2007\",\n      \"normalized_value\": 2007,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"271.txt:c17\",\n          \"exact_span\": \"21 May 2007\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "271.txt:c47",
+              "exact_span": ""
+            },
+            {
+              "source_id": "271.txt:c45",
+              "exact_span": ""
+            },
+            {
+              "source_id": "271.txt:c46",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "found",
+          "raw_value": "2007",
+          "normalized_value": 2007,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "271.txt:c17",
+              "exact_span": "21 May 2007"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "9b5431bbed314f79faf4b637adc63258a39eea609bbbfa2e99459373e4681505"
+    }
+  }
+}

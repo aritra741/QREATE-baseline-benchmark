@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "7f7cda9e8302d9d9b591ef367323b51aa4b1859942efb46a2573912eedbb49f3",
+    "entity_identity": "8e83336977a6edbdf2f52c82d45aacdfef6e631a295c3fc03bfe0611d3f7afbb",
+    "attribute_bundle": [
+      "legal.defendant_current_status",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "bdaf03315cd0d2469b52cfea19c9f43f74309434014abfe7565ab4f82643b558",
+      "abcdec04efea5fca0aeb76de40affe5bebdb5840fdd3159fee69a3fabf76f2cf",
+      "8bac483d5921d3af32ec0ddedb778812098322b070d0dc20765c7700700b3672",
+      "4ca1b100d1baf73e610518e761327e74c1ac6f23d46a79b00c33b69227a9eedf"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"8e83336977a6edbdf2f52c82d45aacdfef6e631a295c3fc03bfe0611d3f7afbb\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"31.txt:c26\",\n          \"exact_span\": \"Esselte will not allow this sort of behaviour to occur again and is currently considering the filing of applications for an injunction in the Supreme Court of New South Wales.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"found\",\n      \"raw_value\": \"warehouse employees\",\n      \"normalized_value\": \"warehouse employees\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"31.txt:c7\",\n          \"exact_span\": \"We also include an Information Memorandum from the Office of the Employment Advocate, for your consideration.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "31.txt:c26",
+              "exact_span": "Esselte will not allow this sort of behaviour to occur again and is currently considering the filing of applications for an injunction in the Supreme Court of New South Wales."
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "found",
+          "raw_value": "warehouse employees",
+          "normalized_value": "warehouse employees",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "31.txt:c7",
+              "exact_span": "We also include an Information Memorandum from the Office of the Employment Advocate, for your consideration."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.plaintiff_current_status"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "8e83336977a6edbdf2f52c82d45aacdfef6e631a295c3fc03bfe0611d3f7afbb"
+    }
+  }
+}

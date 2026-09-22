@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+    "entity_identity": "finan_groupby20:q14:78:map",
+    "attribute_bundle": [
+      "business_segments_num",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+      "037a0092a44f3d1b2a094880d6a04c06b2cc7ed154a2c3de2b4a645becb53170",
+      "3e003e77d010453ed8f3896ce3e33e92f6eedf985a25b83f122aa9e1df96695c",
+      "019b079d602189529147db5e44e51b0ef44542bdc0419e199a50bf7514701aa5",
+      "56e174cecf8de20b0e085825530c151a0dcacacb62bf40a87ad6cc187767199c",
+      "e95a3e1865281d41dcbb414e0d00a5b5813115ec5192ed52902285b5ac35f4c9",
+      "1727e30424e2be62936693e5dd5bbc4224f403e680289d5841501cf2ef5b9611",
+      "1d73694afe92877d489a91814345fcc4a6dba73cbb2f8089a43ae4a6e4217f4a",
+      "7dd3b5c7a9fcab87b8bd365f989b0e21a70b59046ccbfd01e6794179b3308e9a"
+    ],
+    "schema_hash": "37fdc06a7bf66d37869f8a04f8c5713dce4e8c3fc48ed5e4442885e35af5cbb2",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"business_segments_num\": {\n    \"value\": null,\n    \"status\": \"uncertain\",\n    \"evidence\": \"\"\n  },\n  \"principal_activities\": {\n    \"value\": \"Other\",\n    \"status\": \"found\",\n    \"evidence\": \"Our core activities also include electricity and gas storage, the hydrogen business, trading in energy commodities and offering innovative energy solutions to industrial customers.\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "business_segments_num": {
+          "attribute": "business_segments_num",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "Other",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Our core activities also include electricity and gas storage, the hydrogen business, trading in energy commodities and offering innovative energy solutions to industrial customers.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        }
+      },
+      "errors": [
+        "grounding_failure:principal_activities"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 0,
+        "uncertain": 2,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

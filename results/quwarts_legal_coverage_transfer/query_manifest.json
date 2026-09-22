@@ -1,0 +1,39 @@
+{
+  "query_ids": [
+    "legal_multiagg20:q4",
+    "legal_filter20:q9",
+    "legal_filter20:q7",
+    "legal_multiagg20:q11",
+    "legal_multiagg20:q18",
+    "legal_agg20:q4",
+    "legal_groupby20:q14",
+    "legal_agg20:q11",
+    "legal_multiagg20:q9",
+    "legal_agg20:q13",
+    "legal_agg20:q17",
+    "legal_filter20:q8",
+    "legal_filter20:q11",
+    "legal_filter20:q15",
+    "legal_agg20:q3",
+    "legal_agg20:q14"
+  ],
+  "hash": "47fec3938805fd1b5339747921ce0ab940103db8f5d1533a0968a5780dd4fdf7",
+  "statements": {
+    "legal_multiagg20:q4": "SELECT first_judge, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count FROM legal WHERE first_judge IS NOT NULL AND case_number IS NOT NULL GROUP BY first_judge",
+    "legal_filter20:q9": "SELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, COUNT(*) AS case_count FROM legal WHERE verdict = 'Approved' AND plaintiff_current_status != '' GROUP BY plaintiff_family",
+    "legal_filter20:q7": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(case_number) AS avg_precedents FROM legal WHERE hearing_year BETWEEN 2006 AND 2008 AND case_number IS NOT NULL GROUP BY verdict_family",
+    "legal_multiagg20:q11": "SELECT CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END AS statute_band, COUNT(*) AS case_count, AVG(case_number) AS avg_precedents, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count FROM legal WHERE case_number IS NOT NULL GROUP BY statute_band",
+    "legal_multiagg20:q18": "SELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status != '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE plaintiff_current_status != '' AND defendant_current_status != '' AND case_number IS NOT NULL GROUP BY plaintiff_family, defendant_family HAVING COUNT(*) >= 3",
+    "legal_agg20:q4": "SELECT first_judge, COUNT(*) AS case_count FROM legal WHERE first_judge IS NOT NULL GROUP BY first_judge",
+    "legal_groupby20:q14": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END AS precedent_band, COUNT(*) AS case_count FROM legal WHERE case_number IS NOT NULL GROUP BY case_family, precedent_band",
+    "legal_agg20:q11": "SELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, COUNT(*) AS case_count FROM legal WHERE plaintiff_current_status != '' GROUP BY plaintiff_family",
+    "legal_multiagg20:q9": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family, verdict_family HAVING COUNT(*) >= 5",
+    "legal_agg20:q13": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, MAX(case_number) AS max_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family",
+    "legal_agg20:q17": "SELECT CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status != '' THEN 'Other' END AS defendant_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE defendant_current_status != '' GROUP BY defendant_family",
+    "legal_filter20:q8": "SELECT CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END AS precedent_band, COUNT(*) AS case_count FROM legal WHERE case_type = 'Civil Case' AND case_number IS NOT NULL GROUP BY precedent_band",
+    "legal_filter20:q11": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE defendant_current_status = 'Government' GROUP BY case_family",
+    "legal_filter20:q15": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE plaintiff_current_status = 'Company' AND defendant_current_status IN ('Company', 'Organization', 'Government') GROUP BY verdict_family",
+    "legal_agg20:q3": "SELECT hearing_year, COUNT(*) AS case_count FROM legal WHERE hearing_year BETWEEN 2005 AND 2009 GROUP BY hearing_year",
+    "legal_agg20:q14": "SELECT first_judge, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE first_judge IS NOT NULL GROUP BY first_judge"
+  }
+}

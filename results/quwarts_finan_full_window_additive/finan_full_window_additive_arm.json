@@ -1,0 +1,267 @@
+{
+  "model": "qwen/qwen-2.5-7b-instruct",
+  "decision": "diagnostic M4 did not reproduce under fresh sampling",
+  "input_cap": 11719,
+  "document_ids": [
+    "9",
+    "10",
+    "18",
+    "69",
+    "70",
+    "78",
+    "93"
+  ],
+  "note": "Controlled seven-document arm derived from frozen pipeline_output IDs; not the generic selection policy.",
+  "completed_queries_25": [
+    "finan_multiagg20:q4",
+    "finan_filter20:q9",
+    "finan_filter20:q7",
+    "finan_multiagg20:q11"
+  ],
+  "completed_queries_100": [
+    "finan_multiagg20:q4",
+    "finan_filter20:q9",
+    "finan_filter20:q7",
+    "finan_multiagg20:q11",
+    "finan_multiagg20:q18",
+    "finan_agg20:q4",
+    "finan_groupby20:q14",
+    "finan_agg20:q11",
+    "finan_multiagg20:q9",
+    "finan_agg20:q13",
+    "finan_agg20:q17",
+    "finan_filter20:q8",
+    "finan_filter20:q11",
+    "finan_filter20:q15",
+    "finan_agg20:q3",
+    "finan_agg20:q14"
+  ],
+  "spent_25": 314401,
+  "spent_100": 1256801,
+  "unused_25": 31056,
+  "unused_100": 125026,
+  "calls": 112,
+  "malformed": 0,
+  "deterministic_salvages": 0,
+  "counts": {
+    "attempted": 112,
+    "tokens": 1256801,
+    "missing_marker": 141,
+    "accepted_fields": 132,
+    "completed_queries": 16
+  },
+  "token_percentiles": {
+    "input_after_mean": 11176.705357142857,
+    "input_after_min": 7860,
+    "input_after_max": 11719
+  },
+  "accepted_fills": 73,
+  "blocked_overwrites": 59,
+  "score_25": {
+    "score_16": {
+      "mean_structure_f2": 0.32381076777628504,
+      "mean_cell_f1_at_0.20": 0.033680555555555554,
+      "mean_per_query_product": 0.02361161215327882
+    },
+    "score_15": {
+      "mean_structure_f2": 0.3295251364216882,
+      "mean_cell_f1_at_0.20": 0.035925925925925924,
+      "mean_per_query_product": 0.025185719630164076
+    }
+  },
+  "score_100": {
+    "score_16": {
+      "mean_structure_f2": 0.4346513161168334,
+      "mean_cell_f1_at_0.20": 0.053782894736842106,
+      "mean_per_query_product": 0.029229085972507028
+    },
+    "score_15": {
+      "mean_structure_f2": 0.4477550546516064,
+      "mean_cell_f1_at_0.20": 0.05736842105263158,
+      "mean_per_query_product": 0.031177691704007495
+    }
+  },
+  "comparators": {
+    "plumbing": 0.0158,
+    "diagnostic_m4": 0.0904,
+    "frozen_docetl": 0.084
+  },
+  "per_query_100": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.25,
+      "product": 0.25,
+      "pred_rows": 2,
+      "plumbing_product": 0.125,
+      "delta": 0.125
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_20": 0.06666666666666667,
+      "product": 0.00432900432900433,
+      "pred_rows": 1,
+      "plumbing_product": 0.00432900432900433,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 2,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.6363636363636365,
+      "cell_f1_20": 0.2105263157894737,
+      "product": 0.13397129186602874,
+      "pred_rows": 7,
+      "plumbing_product": 0.12345679012345678,
+      "delta": 0.010514501742571958
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 0.8620689655172415,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 5,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.33333333333333337,
+      "product": 0.07936507936507937,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.07936507936507937
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.45454545454545453,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 2,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q14",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    }
+  ],
+  "empty_bags_100": [
+    "finan_multiagg20:q11",
+    "finan_agg20:q17"
+  ],
+  "replay_compare": {
+    "note": "compared after both arms frozen",
+    "normalized_value_agreement": 0.2271062271062271,
+    "null_nonnull_agreement": 0.7545787545787546,
+    "candidate_overlap": 62,
+    "n_field_cells": 273,
+    "overlay_bag_agreement": 2
+  },
+  "hashes": {
+    "ordered_query_ids": "7107c8e6f4128aa31d14ffa21c73b1eec87ca70f687a81a8ae7bf5e415bace1d",
+    "ordered_document_ids": "52435d9a2159e8b8c6767bd19e0161a4ce5929437e3351bfaa7d6a494e01b323",
+    "source_contents": "470c8cf1af581e475601db14116fda23a6a71716a3f76ad162132fddbf759e24",
+    "mapping": "7c28808e5929a373bdf4ef5b36de9d5e8bf850daaad3ebdd63a16f243c7c3056",
+    "schemas": "6ddc5b7a750f3a4188f350330b77d87aeb05bc008d16e6b420a7a63f5bc894cb",
+    "prompt_template": "9c47e11449155384cfaf56a1d6dda1699ee6604970f5d62447d233a51fd5ffda",
+    "policy": "310020fa7442cb75d5d4db2f6990df2e4657766a775bd4a6a47ed85106aa8450",
+    "input_cap": "5feebf37afe234422c169b669b0cc5cfd63402404da2756bc3c564b1bfff1363",
+    "rendered_prompts": "cb91474d45b2258c66df1a8ff58650073e9e012e495ad88279f483c781087b5e",
+    "plumbing": "ad91c2554f32510cb378737009e6479cfcb71299f245c7fe766722057b2b2a3d"
+  },
+  "prior_frozen_unmodified": {
+    "plumbing": true,
+    "docetl_manifest": true
+  },
+  "paths": {
+    "report": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_finan_full_window_additive/finan_full_window_additive_arm.json",
+    "frozen": "/Users/aritramazumder/Documents/UDA-Bench-main/results/quwarts_finan_full_window_additive/frozen.json"
+  }
+}

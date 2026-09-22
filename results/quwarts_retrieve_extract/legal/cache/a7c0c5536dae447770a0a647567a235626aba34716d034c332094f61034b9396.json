@@ -1,0 +1,90 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "72f40aa4e06d390702efe8db21a25c051c0d6519f7990e51adcce82ea86ee6b3",
+    "entity_identity": "5d0806b333fe04f1287ea19a9f363d7584625df4c23c48bf98f485a0aa6952a9",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.first_judge",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "ca46c04767a9cc905222dd36c30dd0daa72708b6be5a61966347b50c9bb6e4c7",
+      "1b0a1ad1b7aeff923d315daf5e6f4acdbcae55e6e3a7b7b34f3ffc70e1dc9052",
+      "d40b854c6bd0521d63a3ebbf3ec5ccace7161e8fc7ec334bd3f54e478d09a1bb",
+      "23ba91a420804fc63d0299093107939eaa30383042d57139511c12e98c9b05a5"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"5d0806b333fe04f1287ea19a9f363d7584625df4c23c48bf98f485a0aa6952a9\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"363.txt:c18\",\n          \"exact_span\": \"14 The appeal must be dismissed.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"found\",\n      \"raw_value\": \"citizen of India\",\n      \"normalized_value\": \"Citizen of India\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"363.txt:c1\",\n          \"exact_span\": \"2 The appellant is a citizen of India.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "363.txt:c18",
+              "exact_span": "14 The appeal must be dismissed."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "found",
+          "raw_value": "citizen of India",
+          "normalized_value": "citizen of India",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "363.txt:c1",
+              "exact_span": "2 The appellant is a citizen of India."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "5d0806b333fe04f1287ea19a9f363d7584625df4c23c48bf98f485a0aa6952a9"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "b6ccd69b69a0fe26395d61b32cb3136511c583508453b4e17872b4e2839c61fc",
+    "entity_identity": "54d858ab40dce2ddfd4f6c9f01fe3e30f51967709c7bfb0751af0a1c25a0c2e3",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "258de57410b4fe9e2b46c1c7ccefbeec60a1dbb825c5cffb7495081e263a800a",
+      "924cd785e7de4040cc6c0017b842513a658a523e85df3828147207ad67e75dc6",
+      "40b412910b9eec4c5ca4f9e793355e4fba935f1f4d0e2f9a76fd230b18b8bcba",
+      "678e49157f936990f91b503baee7dbdaa6252356690339dd6f0a0c65141623f8"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"54d858ab40dce2ddfd4f6c9f01fe3e30f51967709c7bfb0751af0a1c25a0c2e3\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"402.txt:c10\",\n          \"exact_span\": \"He applied a 60 per cent recovery figure to that sum to produce a 'taxed amount' of approximately $14,734.80.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "402.txt:c10",
+              "exact_span": "He applied a 60 per cent recovery figure to that sum to produce a 'taxed amount' of approximately $14,734.80."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "54d858ab40dce2ddfd4f6c9f01fe3e30f51967709c7bfb0751af0a1c25a0c2e3"
+    }
+  }
+}

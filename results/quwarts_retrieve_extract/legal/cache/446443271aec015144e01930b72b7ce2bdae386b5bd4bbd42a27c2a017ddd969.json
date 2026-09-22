@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "fc7130d432bdaa0db6573d9f569fce7234dd75b26f922fcf289dee49884c6f09",
+    "entity_identity": "fc3b7eff5dbeeaf975b083759b2144f12951e50c24b8b07023d3982d72723059",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "a4919b02de6c612fdca6a09ec02cd65bac91895e382631b075dfd401cfbeb4c5",
+      "5992794fdd376fd5ab76dfbdcc4699d0c8583bd12f3102d066927db21c11dc6b",
+      "adf7ae5a1ca014527038474e480e7a4dd28a34a01366fe2bd884a1425bafa031",
+      "8b8c0099eaf330418cb742bffc494cd63d523931dff3e0275672e02b69ab67e1"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"fc3b7eff5dbeeaf975b083759b2144f12951e50c23b8b07023d3982d72723059\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"361.txt:c37\",\n          \"exact_span\": null\n        },\n        {\n          \"source_id\": \"361.txt:c53\",\n          \"exact_span\": null\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice BUCHANAN J\",\n      \"normalized_value\": \"Justice BUCHANAN J\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"361.txt:c53\",\n          \"exact_span\": \"The Honourable Justice BUCHANAN J\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "361.txt:c37",
+              "exact_span": ""
+            },
+            {
+              "source_id": "361.txt:c53",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Justice BUCHANAN J",
+          "normalized_value": "Justice BUCHANAN J",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "361.txt:c53",
+              "exact_span": "The Honourable Justice BUCHANAN J"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "fc3b7eff5dbeeaf975b083759b2144f12951e50c23b8b07023d3982d72723059"
+    }
+  }
+}

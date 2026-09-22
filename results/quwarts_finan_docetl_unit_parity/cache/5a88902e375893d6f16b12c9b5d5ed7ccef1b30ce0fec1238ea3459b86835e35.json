@@ -1,0 +1,68 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "077ada8abee5fdbf51165267370925ca766169a9002e1dbdaceee7a578bc8964",
+    "entity_identity": "finan_filter20:q9:93:map",
+    "attribute_bundle": [
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "077ada8abee5fdbf51165267370925ca766169a9002e1dbdaceee7a578bc8964",
+      "93daee92d5c6d8080e362c87c7e5d4d019588cd90bfdf55e0c43bdce7b1c40bb",
+      "72aa9928f523f2eab316af4f6e5e2aacef5a7602a8108919bbced25804fb14a5",
+      "f2e638ef05e80aa40104ec41822cd04c2e153322006514473f0050c71f45885a",
+      "f6afb06308b5beb26f6409774f10471e9f0bcb4544b96d6b1f9b85ef9f640622",
+      "f399a19e7fec46b3d926e2e401edb3efdb8e7dc69299e19e4faeb0216ca9b411",
+      "b2e676795511fe27b3e133fb3c4f405963daada35c0b8b54ae0ce1282b463106",
+      "0028441aaa18fcf6ca32f061d3db06de09c6a2b245d5d84bc5f9833589fa8ae1"
+    ],
+    "schema_hash": "4a64de35aba7336cf8b343ab512aa9e46d57c44935a77a2afe4bf77cf2a45b54",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"remuneration_policy\": {\n    \"value\": \"Mixed, %Mixed%\",\n    \"status\": \"found\",\n    \"evidence\": \"The Company's principle is that the remuneration of any new recruit will be assessed in line with the same principles as for the Executive Directors, as set out in the remuneration policy table. The Committee is mindful that it wishes to av\"\n  },\n  \"revenue\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": "Mixed, %Mixed%",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "The Company's principle is that the remuneration of any new recruit will be assessed in line with the same principles as for the Executive Directors, as set out in the remuneration policy table. The Committee is mindful that it wishes to av",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:remuneration_policy"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

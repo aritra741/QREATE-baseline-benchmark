@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+    "entity_identity": "finan_filter20:q11:18:map",
+    "attribute_bundle": [
+      "auditor",
+      "net_assets",
+      "net_profit_or_loss"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+      "4a42e6ae113cea994bda50c0b3541086d82e2e2975bc301788d26d3b62c35275",
+      "e56469d8c16fed6a27ed8ee595a635702317a444ddd2697414afbd165aaee812",
+      "1db0f6b419ae7420b3e4c75e8cee6bffe9d9cc2a1865a3c7e76965a8afd03b96",
+      "bb37be9697a601c482b0d385a6473043c78fec71f128cf392d24c20053f91c3c",
+      "4b37cd9cde09b10a9db865bd2cf41acae94b616ef8dec2ef178440ebeb4f960c",
+      "3c978ae2f775b77897663d1013a08948751f66c9c7580cafa5dbf9e2e5c99b5a",
+      "3d6c9573392dea83213e2b6a9e8a876153452561c065dd1bb481d6c9ba839602"
+    ],
+    "schema_hash": "5f9768455c35d3498295b96b0dccabc77b64eb589804a7b342ede0e5ce81dee9",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"auditor\": {\"value\": \"PricewaterhouseCoopers\", \"status\": \"found\", \"evidence\": \"Prior to being appointed CEO, Mor worked in a variety of roles, including as an auditor and financial consultant for PricewaterhouseCoopers and a system analyst for Tadiran Electronic Systems Limited, an Israeli company that designs electronic warfare systems.\"}\n}, \n{\n    \"net_assets\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n}, \n{\n    \"net_profit_or_loss\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "PricewaterhouseCoopers",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Prior to being appointed CEO, Mor worked in a variety of roles, including as an auditor and financial consultant for PricewaterhouseCoopers and a system analyst for Tadiran Electronic Systems Limited, an Israeli company that designs electronic warfare systems.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "net_assets": {
+          "attribute": "net_assets",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        },
+        "net_profit_or_loss": {
+          "attribute": "net_profit_or_loss",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "missing",
+          "kind": "stated",
+          "failure": "omitted"
+        }
+      },
+      "errors": [
+        "grounding_failure:auditor",
+        "omitted:net_assets",
+        "omitted:net_profit_or_loss"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 2,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

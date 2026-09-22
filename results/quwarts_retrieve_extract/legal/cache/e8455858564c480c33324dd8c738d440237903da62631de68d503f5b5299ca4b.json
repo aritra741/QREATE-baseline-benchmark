@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "27d67694cbf07a8082f81b6febb18d58dc0cdee015b1189688b781824ba61bfc",
+    "entity_identity": "e88a20beab6206503c8fa5edb5d1f263811c09bc24cb77966c3664927a0b954a",
+    "attribute_bundle": [
+      "legal.defendant_current_status",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e6c8561b35a7c954df2b6fd0cac1a1cf1be53f1f74e7767bef4854ed8364e481",
+      "bdde17d1b404c2bafafb148a4908712a16d5959a073f1f53d840930443230bef",
+      "e577a82e69bf4fde5cddc5a684598f8dc75aa39b50c8e51c8351ed55c6a516a2",
+      "31d76a41faeeab9a767ef43f122e61209cee0868fc26c7f2ce82da4c1e2c892b"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e88a20beab6206503c8fa5edb5d1f263811c09bc24cb77966c3664927a0b954a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"562.txt:c28\",\n          \"exact_span\": null\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice Flick\",\n      \"normalized_value\": \"Justice Flick\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"562.txt:c28\",\n          \"exact_span\": \"The Orders of the Court are: Pursuant to Order 43 r (2)(1) of the Federal Court Rules , the Appellants' father is appointed their tutor for the purposes of the present Appeal . I certify that the preceding fifty-seven (57) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Flick.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "562.txt:c28",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Justice Flick",
+          "normalized_value": "Justice Flick",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "562.txt:c28",
+              "exact_span": "The Orders of the Court are: Pursuant to Order 43 r (2)(1) of the Federal Court Rules , the Appellants' father is appointed their tutor for the purposes of the present Appeal . I certify that the preceding fifty-seven (57) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Flick."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.judge_name"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "e88a20beab6206503c8fa5edb5d1f263811c09bc24cb77966c3664927a0b954a"
+    }
+  }
+}

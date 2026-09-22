@@ -70,7 +70,7 @@ def _signature_predicates(statements: dict[str, str]):
     return live_predicates(enumerate_predicates(report.occurrences, report.signature_eligible))
 
 
-def _rewrite_with_signatures(sql: str, sqlite_path: str, predicates) -> str:
+def _rewrite_with_signatures(sql: str, sqlite_path: str, predicates, query_id: str | None = None) -> str:
     from quwarts.core.query_witness import compile_witness_spec
     from quwarts.core.signature_views import rewrite_edge_sql, rewrite_group_sql
 
@@ -85,14 +85,19 @@ def _rewrite_with_signatures(sql: str, sqlite_path: str, predicates) -> str:
     sql = _join_aware_sql(sql, sqlite_path)
     sql = rewrite_edge_sql(sql, sqlite_path, joins=joins)
     from quwarts.core.query_filter import rewrite_filter_sql
+    from quwarts.core.query_witness_acq.sidecar import rewrite_witness_sql
 
-    return rewrite_filter_sql(sql, sqlite_path, original_sql=original)
+    sql = rewrite_filter_sql(sql, sqlite_path, original_sql=original)
+    sql = rewrite_witness_sql(sql, sqlite_path, original_sql=original, query_id=query_id)
+    from quwarts.core.observable_sidecar import rewrite_observable_sql
+
+    return rewrite_observable_sql(sql, sqlite_path)
 
 
-def official_sql(sql: str, sqlite_path: str | Path, predicates=None) -> str:
+def official_sql(sql: str, sqlite_path: str | Path, predicates=None, query_id: str | None = None) -> str:
     """Join-aware fallback rewrite. All-unresolved matches stored A' bags and scores."""
 
-    return _rewrite_with_signatures(sql, str(sqlite_path), predicates)
+    return _rewrite_with_signatures(sql, str(sqlite_path), predicates, query_id=query_id)
 
 
 def load_documents(root: Path) -> list[SourceDocument]:

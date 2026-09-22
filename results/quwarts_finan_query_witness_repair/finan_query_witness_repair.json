@@ -1,0 +1,705 @@
+{
+  "root_cause": "visibility_checker_false_negative: grain_sql(official) projected nested query_witness_additions qa.rowid; SQLite raised 'no such column: qa.rowid'; _fetch swallowed the error; every accepted addition was rolled back. EXISTS rewrite and sidecar lookup were already correct.",
+  "fixture": {
+    "ok": true,
+    "checks": [
+      {
+        "name": "empty_sidecar_original_count",
+        "ok": true,
+        "value": 2
+      },
+      {
+        "name": "empty_exists_is_semantic_noop",
+        "ok": true,
+        "sql_has_exists": true
+      },
+      {
+        "name": "positive_sidecar_count_plus_one",
+        "ok": true,
+        "before": 2,
+        "after": 3,
+        "official_has_sidecar": true
+      },
+      {
+        "name": "positive_survives_commit_via_official_sql",
+        "ok": true,
+        "grain_error": null,
+        "rids": [
+          1,
+          2,
+          3
+        ],
+        "row_sql": "SELECT company.rowid AS company__rid FROM company WHERE (flag = 'yes') OR (EXISTS(SELECT 1 FROM query_witness_additions AS qa WHERE qa.program_id = 'ae7daea5061502c9' AND qa.witness_key = COALESCE(CAST(\"company\".rowid AS TEXT), 'NULL') AND qa.resolved = 1 AND qa.truth = 1))"
+      },
+      {
+        "name": "removing_sidecar_restores_count",
+        "ok": true,
+        "value": 2
+      },
+      {
+        "name": "grouped_count_admits_excluded",
+        "ok": true,
+        "bag": [
+          {
+            "COALESCE((SELECT qa.group_value FROM query_witness_additions AS qa WHERE qa.program_id = '40063278c4784623' AND qa.witness_key = COALESCE(CAST(\"company\".rowid AS TEXT), 'NULL') AND qa.resolved = 1 AND qa.truth = 1 AND NOT qa.group_value IS NULL LIMIT 1), grp)": "A",
+            "n": 2
+          },
+          {
+            "COALESCE((SELECT qa.group_value FROM query_witness_additions AS qa WHERE qa.program_id = '40063278c4784623' AND qa.witness_key = COALESCE(CAST(\"company\".rowid AS TEXT), 'NULL') AND qa.resolved = 1 AND qa.truth = 1 AND NOT qa.group_value IS NULL LIMIT 1), grp)": "B",
+            "n": 1
+          }
+        ]
+      },
+      {
+        "name": "count_column_plus_one",
+        "ok": true,
+        "value": 2
+      },
+      {
+        "name": "count_distinct_new_name",
+        "ok": true,
+        "before": 2,
+        "after": 3
+      },
+      {
+        "name": "table_alias_count_plus_one",
+        "ok": true,
+        "value": 3
+      },
+      {
+        "name": "join_does_not_invent_edge",
+        "ok": true,
+        "value": 1
+      },
+      {
+        "name": "composite_join_key_incumbent_noop",
+        "ok": true,
+        "value": 1,
+        "key": "2|NULL"
+      },
+      {
+        "name": "null_sentinel_left_join",
+        "ok": true,
+        "value": 3,
+        "key": "2|NULL"
+      },
+      {
+        "name": "reuse_same_condition_distinct_programs",
+        "ok": true,
+        "pid_a": "ae7daea5061502c9",
+        "pid_b": "40063278c4784623"
+      },
+      {
+        "name": "reuse_a_only_sees_own_program",
+        "ok": true,
+        "a": 3,
+        "b": 2
+      },
+      {
+        "name": "reuse_b_unaffected_by_a",
+        "ok": true,
+        "value": 2
+      },
+      {
+        "name": "reuse_b_own_materialization",
+        "ok": true,
+        "value": 3
+      }
+    ]
+  },
+  "accepted": {
+    "theta25": 16,
+    "theta100": 96
+  },
+  "inserted": {
+    "theta25": 16,
+    "theta100": 96
+  },
+  "row_visible": 96,
+  "bag_visible": 86,
+  "before_buckets": {
+    "visibility_checker_false_negative": 96
+  },
+  "after_buckets": {
+    "ok": 86,
+    "having_rejected": 3,
+    "row_visible_bag_unchanged": 6,
+    "condition_true_but_group_missing": 1
+  },
+  "representatives": {
+    "ok": {
+      "task_index": 5,
+      "task_key": "a0182cc41184ac7525b03eb8b5cc08d03bd6ed22c626cbdcebaee194353f311f",
+      "query_id": "finan_multiagg20:q15",
+      "query_ids": [
+        "finan_multiagg20:q15"
+      ],
+      "rowid": 1,
+      "entity_id": "7fb55ee877ddc6e4127e7bb096dd4acc8c85410a31e0ab647a2d49a802886da2",
+      "A_in_from_grain": 1,
+      "B_stored_program_id": "cd46d6932f7b6fd9",
+      "C_runtime_program_id": "cd46d6932f7b6fd9",
+      "D_stored_witness_key": "1",
+      "E_runtime_witness_key": "1",
+      "F_exists_lookup": 1,
+      "F_exists_runtime_ids": 1,
+      "G_original_condition": 0,
+      "H_rewritten_condition": 1,
+      "I_reaches_group": true,
+      "J_counted_value_present": null,
+      "K_distinct_value": null,
+      "K_distinct_duplicate": null,
+      "L_having": null,
+      "L_having_pass": null,
+      "M_bag_visible": true,
+      "row_visible": true,
+      "old_grain_error": "OperationalError: no such column: qa.rowid",
+      "new_grain_error": null,
+      "old_visible": false,
+      "old_checker_false_negative": true,
+      "rewrite_installed": true,
+      "exists_in_where": true,
+      "condition_signature_original": "540df8cfb257fb5b",
+      "condition_signature_runtime": "540df8cfb257fb5b",
+      "kinds": [
+        "row",
+        "grouped"
+      ],
+      "group_sql": [
+        "CASE WHEN revenue < 100000000 THEN 'under_100m' WHEN revenue < 1000000000 THEN '100m_to_1b' ELSE 'over_1b' END"
+      ],
+      "group_value": "over_1b",
+      "bucket": "ok",
+      "official_has_sidecar": true
+    },
+    "having_rejected": {
+      "task_index": 132,
+      "task_key": "182d966302426835748c7a0ef01dac87892b34fd46e33ce3233611e6407fe90d",
+      "query_id": "finan_multiagg20:q13",
+      "query_ids": [
+        "finan_multiagg20:q13"
+      ],
+      "rowid": 3,
+      "entity_id": "5dde8bca6e1156892ef3474b259b5da07b2d473545295b0424a48d12ab9ff2b9",
+      "A_in_from_grain": 1,
+      "B_stored_program_id": "cd1bf0c41a4efac1",
+      "C_runtime_program_id": "cd1bf0c41a4efac1",
+      "D_stored_witness_key": "3",
+      "E_runtime_witness_key": "3",
+      "F_exists_lookup": 1,
+      "F_exists_runtime_ids": 1,
+      "G_original_condition": 0,
+      "H_rewritten_condition": 1,
+      "I_reaches_group": true,
+      "J_counted_value_present": null,
+      "K_distinct_value": null,
+      "K_distinct_duplicate": null,
+      "L_having": "COUNT(*) >= 3",
+      "L_having_pass": true,
+      "M_bag_visible": false,
+      "row_visible": true,
+      "old_grain_error": "OperationalError: no such column: qa.rowid",
+      "new_grain_error": null,
+      "old_visible": false,
+      "old_checker_false_negative": true,
+      "rewrite_installed": true,
+      "exists_in_where": true,
+      "condition_signature_original": "31e7f98e202ff897",
+      "condition_signature_runtime": "31e7f98e202ff897",
+      "kinds": [
+        "row",
+        "grouped"
+      ],
+      "group_sql": [
+        "CASE WHEN auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%' THEN 'EY' WHEN auditor LIKE '%KPMG%' THEN 'KPMG' WHEN auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%' THEN 'PwC' WHEN auditor LIKE '%Deloitte%' THEN 'Deloitte' WHEN auditor <> '' THEN 'Other' END"
+      ],
+      "group_value": "EY",
+      "bucket": "having_rejected",
+      "official_has_sidecar": true
+    },
+    "row_visible_bag_unchanged": {
+      "task_index": 371,
+      "task_key": "4712237d098b6c4b7687f15a1f1a6c359fc589a1a6e40aef42664d36f9b51a16",
+      "query_id": "finan_agg20:q7",
+      "query_ids": [
+        "finan_agg20:q7"
+      ],
+      "rowid": 5,
+      "entity_id": "3f94782f4bbc9f2cb57c34db3529696cc7cb29f9b1280523b8447ed17a54c969",
+      "A_in_from_grain": 1,
+      "B_stored_program_id": "9d987533454c8845",
+      "C_runtime_program_id": "9d987533454c8845",
+      "D_stored_witness_key": "5",
+      "E_runtime_witness_key": "5",
+      "F_exists_lookup": 1,
+      "F_exists_runtime_ids": 1,
+      "G_original_condition": 0,
+      "H_rewritten_condition": 1,
+      "I_reaches_group": true,
+      "J_counted_value_present": null,
+      "K_distinct_value": null,
+      "K_distinct_duplicate": null,
+      "L_having": null,
+      "L_having_pass": null,
+      "M_bag_visible": false,
+      "row_visible": true,
+      "old_grain_error": "OperationalError: no such column: qa.rowid",
+      "new_grain_error": null,
+      "old_visible": false,
+      "old_checker_false_negative": true,
+      "rewrite_installed": true,
+      "exists_in_where": true,
+      "condition_signature_original": "11f5d439524475db",
+      "condition_signature_runtime": "11f5d439524475db",
+      "kinds": [
+        "row",
+        "grouped"
+      ],
+      "group_sql": [
+        "CASE WHEN auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%' THEN 'EY' WHEN auditor LIKE '%KPMG%' THEN 'KPMG' WHEN auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%' THEN 'PwC' WHEN auditor LIKE '%Deloitte%' THEN 'Deloitte' WHEN auditor <> '' THEN 'Other' END"
+      ],
+      "group_value": "Other",
+      "bucket": "row_visible_bag_unchanged",
+      "official_has_sidecar": true
+    },
+    "condition_true_but_group_missing": {
+      "task_index": 446,
+      "task_key": "ad466e968880f1003dbab1ec4c31103d8381e90b5627563e6e307d6e7e0babd8",
+      "query_id": "finan_agg20:q13",
+      "query_ids": [
+        "finan_agg20:q13"
+      ],
+      "rowid": 8,
+      "entity_id": "04772dbdc10e7c33feb8430570d3bb97dd682af4786c6791aa7046b7f708079e",
+      "A_in_from_grain": 1,
+      "B_stored_program_id": "526ddb54f49964fa",
+      "C_runtime_program_id": "526ddb54f49964fa",
+      "D_stored_witness_key": "8",
+      "E_runtime_witness_key": "8",
+      "F_exists_lookup": 1,
+      "F_exists_runtime_ids": 1,
+      "G_original_condition": 0,
+      "H_rewritten_condition": 1,
+      "I_reaches_group": true,
+      "J_counted_value_present": null,
+      "K_distinct_value": null,
+      "K_distinct_duplicate": null,
+      "L_having": null,
+      "L_having_pass": null,
+      "M_bag_visible": false,
+      "row_visible": true,
+      "old_grain_error": "OperationalError: no such column: qa.rowid",
+      "new_grain_error": null,
+      "old_visible": false,
+      "old_checker_false_negative": true,
+      "rewrite_installed": true,
+      "exists_in_where": true,
+      "condition_signature_original": "0279102e6ca96833",
+      "condition_signature_runtime": "0279102e6ca96833",
+      "kinds": [
+        "row",
+        "grouped"
+      ],
+      "group_sql": [
+        "CASE WHEN auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%' THEN 'EY' WHEN auditor LIKE '%KPMG%' THEN 'KPMG' WHEN auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%' THEN 'PwC' WHEN auditor LIKE '%Deloitte%' THEN 'Deloitte' WHEN auditor <> '' THEN 'Other' END"
+      ],
+      "group_value": null,
+      "bucket": "condition_true_but_group_missing",
+      "official_has_sidecar": true
+    }
+  },
+  "changed_queries_25": [
+    "finan_agg20:q1",
+    "finan_agg20:q15",
+    "finan_agg20:q16",
+    "finan_agg20:q2",
+    "finan_agg20:q4",
+    "finan_agg20:q8",
+    "finan_filter20:q12",
+    "finan_filter20:q15",
+    "finan_filter20:q18",
+    "finan_filter20:q5",
+    "finan_groupby20:q18",
+    "finan_groupby20:q19",
+    "finan_groupby20:q4",
+    "finan_groupby20:q7",
+    "finan_multiagg20:q15",
+    "finan_multiagg20:q6"
+  ],
+  "changed_queries_100": [
+    "finan_agg20:q1",
+    "finan_agg20:q10",
+    "finan_agg20:q11",
+    "finan_agg20:q12",
+    "finan_agg20:q13",
+    "finan_agg20:q15",
+    "finan_agg20:q16",
+    "finan_agg20:q19",
+    "finan_agg20:q2",
+    "finan_agg20:q3",
+    "finan_agg20:q4",
+    "finan_agg20:q8",
+    "finan_filter20:q10",
+    "finan_filter20:q12",
+    "finan_filter20:q13",
+    "finan_filter20:q15",
+    "finan_filter20:q18",
+    "finan_filter20:q2",
+    "finan_filter20:q5",
+    "finan_filter20:q7",
+    "finan_groupby20:q1",
+    "finan_groupby20:q10",
+    "finan_groupby20:q11",
+    "finan_groupby20:q13",
+    "finan_groupby20:q14",
+    "finan_groupby20:q15",
+    "finan_groupby20:q18",
+    "finan_groupby20:q19",
+    "finan_groupby20:q4",
+    "finan_groupby20:q5",
+    "finan_groupby20:q6",
+    "finan_groupby20:q7",
+    "finan_groupby20:q8",
+    "finan_multiagg20:q11",
+    "finan_multiagg20:q12",
+    "finan_multiagg20:q13",
+    "finan_multiagg20:q15",
+    "finan_multiagg20:q16",
+    "finan_multiagg20:q19",
+    "finan_multiagg20:q2",
+    "finan_multiagg20:q3",
+    "finan_multiagg20:q4",
+    "finan_multiagg20:q6"
+  ],
+  "empty_bags": {
+    "plumbing": 20,
+    "repaired_25": 18,
+    "repaired_100": 10,
+    "filled_25": [
+      "finan_filter20:q18",
+      "finan_filter20:q5"
+    ],
+    "filled_100": [
+      "finan_agg20:q3",
+      "finan_filter20:q10",
+      "finan_filter20:q13",
+      "finan_filter20:q18",
+      "finan_filter20:q5",
+      "finan_filter20:q7",
+      "finan_groupby20:q1",
+      "finan_groupby20:q8",
+      "finan_multiagg20:q11",
+      "finan_multiagg20:q3"
+    ]
+  },
+  "score": {
+    "plumbing": {
+      "tokens": 0,
+      "mean_structure_f2": 0.29248809938465115,
+      "mean_cell_f1_at_0.20": 0.027592592592592592,
+      "mean_per_query_product": 0.01685238629683074
+    },
+    "repaired_25": {
+      "tokens": 344232,
+      "mean_structure_f2": 0.29248809938465115,
+      "mean_cell_f1_at_0.20": 0.027592592592592592,
+      "mean_per_query_product": 0.01685238629683074
+    },
+    "repaired_100": {
+      "tokens": 1381686,
+      "mean_structure_f2": 0.36368816368816365,
+      "mean_cell_f1_at_0.20": 0.026812865497076024,
+      "mean_per_query_product": 0.01627743601427812
+    },
+    "docetl": {
+      "f2": 0.537,
+      "f1": 0.114,
+      "product": 0.084,
+      "tokens": 1381827
+    }
+  },
+  "per_query_25": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.125,
+      "product": 0.125,
+      "pred_rows": 2,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_20": 0.06666666666666667,
+      "product": 0.00432900432900433,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.2222222222222222,
+      "product": 0.12345679012345678,
+      "pred_rows": 6,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 0.8620689655172415,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 5,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "delta_product_vs_plumbing": 0.0
+    }
+  ],
+  "per_query_100": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.125,
+      "product": 0.125,
+      "pred_rows": 2,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.3846153846153846,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 2,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_20": 0.06666666666666667,
+      "product": 0.00432900432900433,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.5454545454545454,
+      "cell_f1_20": 0.2105263157894737,
+      "product": 0.11483253588516747,
+      "pred_rows": 7,
+      "delta_product_vs_plumbing": -0.008624254238289317
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 6,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.23809523809523808,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "delta_product_vs_plumbing": 0.0
+    }
+  ],
+  "precision": {
+    "accepted_100": 96,
+    "row_visible": 96,
+    "bag_visible": 86,
+    "row_visible_rate": 1.0,
+    "bag_visible_rate": 0.8958333333333334
+  },
+  "unchanged": {
+    "theta25": true,
+    "theta100": true,
+    "prefix": true,
+    "ledgers": {
+      "theta25": true,
+      "theta100": true
+    },
+    "policy": true,
+    "prompts": "342feb5925c11a77ef0b34693ed2691a7fb9ced17f84804a41ec504570a636e1"
+  },
+  "hashes": {
+    "policy": "b770dcbe40339d71a1f97d9663162d1ad51ebe2be472160ca2a66b751be02399",
+    "prompt": "342feb5925c11a77ef0b34693ed2691a7fb9ced17f84804a41ec504570a636e1",
+    "patch": "fca5bb13ab61bf7f201b2d1b21b6d33ac40c17460b0214ae3fceee9587c35f0a",
+    "traces": "93d29bc72ca815bfbc6c2218ba18ffb2dcb91b64f6c063974bb7956e0f4709b4",
+    "theta25_db": "13b93b609a6d4b5bc50721ab978eed30b07dc13d7fdd02de3de8a0a8338e4720",
+    "theta100_db": "11b4ec71de3b11a11914da66a79070a4ac3e27d6da8f344bdbb427e0176a4df7",
+    "theta25_sidecar": "7193042b50c87ecddc87fbeb00e4763120936a1a7458b8cf06a4b6ea0547d1e9",
+    "theta100_sidecar": "dc041c9d25d80454a10a83a404ed8aa811d5b700604c4e73b55fbdefd76f595d",
+    "theta25_bags": "d30b4c2e183178a8bbbd42cadb6bae9c33be1565ba5c590a7c772a735ff3775c",
+    "theta100_bags": "baa2eecb83c09003a1a1ea27762e60579b60d38ab5b5b0ddd5a4246e5b97def1",
+    "theta25_journal_frozen": "7067f7bd898c25682af567b895d07983db096468411365c5c1ff93f38d2bef48",
+    "theta100_journal_frozen": "9bca71491eba7781305060facfbd7c34ca2d69f73db46b4fe72664b832ad5491",
+    "theta25_ledger_frozen": "bdaa6f507c450b1d3a44372fe1108b41937eb9514af688095d0dd015e5ed1e16",
+    "theta100_ledger_frozen": "f79408cc05e86d6f9f7b95f11584f956e94b562a81629a0bab8e442628b6e598"
+  },
+  "decision_rule": {
+    "previous_result_was_materialization": true,
+    "25_beats_docetl": false,
+    "only_100_beats_docetl": false,
+    "100_still_loses": true
+  }
+}

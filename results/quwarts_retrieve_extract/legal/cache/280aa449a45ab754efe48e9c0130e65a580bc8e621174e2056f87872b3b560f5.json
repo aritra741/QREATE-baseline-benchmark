@@ -1,0 +1,90 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "1f588f4cc38f29108cd0ab999970e3a404ea7ad1f30f73dec6b95ab187711f4f",
+    "entity_identity": "d612d8f7ffb06a055966d2794e4fbcee68234d9454b42610bddde7c30385c925",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.evidence",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e2778609c503ccb59fc3e0521552e715da96aefeef651ff46ade03217e1ee20c",
+      "9aff918f3df4683009e1bdf1473d17228bc8bc847fc5475e4c712364a2c74417",
+      "b5cf7f27ea26824047240079e75dff2dcc6b83f6edef6aa6d1cc9ca1b807e7a9",
+      "521ff5a77f29a07e0e0917b3f744dbcc42fd649c67f01fb5de848c3acd90dc58"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"d612d8f7ffb06a055966d2794e4fbcee68234d9454b42610bddde7c30385c925\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Not Guilty\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"355.txt:c8\",\n          \"exact_span\": \"I dismissed the appeal.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2009\",\n      \"normalized_value\": \"2009\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"355.txt:c8\",\n          \"exact_span\": \"Dated: 3 December 2009\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "355.txt:c8",
+              "exact_span": "I dismissed the appeal."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "found",
+          "raw_value": "2009",
+          "normalized_value": 2009,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "355.txt:c8",
+              "exact_span": "Dated: 3 December 2009"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "d612d8f7ffb06a055966d2794e4fbcee68234d9454b42610bddde7c30385c925"
+    }
+  }
+}

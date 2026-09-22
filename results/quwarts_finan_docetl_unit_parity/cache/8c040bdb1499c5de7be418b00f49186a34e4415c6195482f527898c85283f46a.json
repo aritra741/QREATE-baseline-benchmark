@@ -1,0 +1,91 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+    "entity_identity": "finan_multiagg20:q11:18:map",
+    "attribute_bundle": [
+      "cash_reserves",
+      "net_assets",
+      "principal_activities",
+      "total_debt"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+      "5a9f4b7a48cbdf3df51ac71f0fb634d745bbfd877c0fa44ac3fc0f40c6f981dd",
+      "f6b7d27957a0b6388f89908c965dd9e8fd6fa1f3f613572c726f3b19b33218e4",
+      "597a00c186da15b5807c9c503274c4425a55cc4c7694e44ac85e7041d803b3db",
+      "d3eef63cab29537ff27897533e92c84a914166d73aa1b353246d8808e18122c7",
+      "62299d9a96159a1162c94470839dcf0adbf082f6b669369653efe4dd23474f9f",
+      "868d66a69aee36772b309164486961fb2b36743e2f578aa423d1ce450dbe9f8e",
+      "c639d5ff30e13e8ce72ba268aa48baefb4a92ee85afcb3bdec1c30666a54c2db",
+      "bf1d399a3c76233e8f64236dd744df0bd63f5d44be24f240f18584b6f5305d37"
+    ],
+    "schema_hash": "9c2d30c04ad187e5381cdbe09bb9d033b9c4496ff242d5385693320b0b20a32b",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"cash_reserves\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"},\n    \"net_assets\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"},\n    \"principal_activities\": {\"value\": \"Other\", \"status\": \"found\", \"evidence\": \"## Principal activities and business review\\nof an all-cash sale of Finalto to Gopher Investments for an enterprise value of $250 million.\"},\n    \"total_debt\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "cash_reserves": {
+          "attribute": "cash_reserves",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "net_assets": {
+          "attribute": "net_assets",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "Other",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "## Principal activities and business review\nof an all-cash sale of Finalto to Gopher Investments for an enterprise value of $250 million.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "total_debt": {
+          "attribute": "total_debt",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:principal_activities"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 3,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "f46dfff3e166f7e47d0d9120cdc2dca0a37b570279bfd902204021ea26127178",
+    "entity_identity": "ee7a9df415be8212a190720524c2e330ec632eea9aabfbaaf3afce3009ca6055",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "46c234ec283bf0877708c32db60b9ca4feed2ee9b877eec209d3c26647b1e9e2",
+      "d5fab2a50b99c4c7a28bed1cbe2598d9db0f075331ba077f1f0af27c52518336",
+      "f19d4752d6f80a1f1ba13b6456090d1d4ac89884127149c7303c6f247e20a1dd",
+      "cd01f1ac4049b93a884c51fbfecd16a424ae4cab025242fd5b20c6557eab8dea"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"ee7a9df415be8212a190720524c2e330ec632eea9aabfbaaf3afce3009ca6055\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"78.txt:c20\",\n          \"exact_span\": \"The applicant produced the bundle of the evidence , which was not considered by the learned Federal Magistrate.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "78.txt:c20",
+              "exact_span": "The applicant produced the bundle of the evidence , which was not considered by the learned Federal Magistrate."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "ee7a9df415be8212a190720524c2e330ec632eea9aabfbaaf3afce3009ca6055"
+    }
+  }
+}

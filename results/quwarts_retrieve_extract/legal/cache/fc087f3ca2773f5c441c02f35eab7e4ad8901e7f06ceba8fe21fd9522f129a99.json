@@ -1,0 +1,93 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "864e76b2a137121b98d67e1b651976a5ead3243598db5cb0e6661aba2fed89ba",
+    "entity_identity": "b1ff858c2d8cf1130e6ccf8a3b4f3f4ecf465b7d14f40000c6ede71bcfdef4bb",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.judgment_year",
+      "legal.defendant_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "ecc72d4c35f4ab22d6d8d7b2c77ed0d5a5eb60f8a082bb1f4d1b067a0b9d014a",
+      "2e9bdc0e9872513c9f65848babf5d40dc16f97e07d9cff5815ed9e336d4520ba",
+      "8c3697a4e4ad5b7880b166db2d178d645d14a1d514438a5be2d913b0256a7c57",
+      "34d0131cbe96ef4220f9f9a93d2efeff9fae0bf1f1b1d09bf450c64f4a649876"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"b1ff858c2d8cf1130e6ccf8a3b4f3f4ecf465b7d14f40000c6ede71bcfdef4bb\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"547.txt:c17\",\n          \"exact_span\": \"A written submission was made to the Tribunal on behalf of the appellant.\"\n        },\n        {\n          \"source_id\": \"547.txt:c12\",\n          \"exact_span\": \"A written submission was made to the Tribunal on behalf of the appellant.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "547.txt:c17",
+              "exact_span": "A written submission was made to the Tribunal on behalf of the appellant."
+            },
+            {
+              "source_id": "547.txt:c12",
+              "exact_span": "A written submission was made to the Tribunal on behalf of the appellant."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "b1ff858c2d8cf1130e6ccf8a3b4f3f4ecf465b7d14f40000c6ede71bcfdef4bb"
+    }
+  }
+}

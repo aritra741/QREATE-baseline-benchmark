@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "86485a26f3638795407144c792ffb1b521ba96296a5094c49c12068ee2a35e2a",
+    "entity_identity": "e12979426137e3de31fb3f1a02ef25d78c1959c0a07a6fa94418a0614f39d39c",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "7091655960293435e8be5f64bb2b90e10c27559284b080454020e0ccaead4a67",
+      "c96187483753b9f44a76f1e0ba55e81761558a0c93bc285d1a11ecc73c730d4b",
+      "e3be31038fff5d031dfe04d75f506828fc36a91c5aaf7223cf7537c9609a9c91",
+      "4057ca117a0c1cf2c69ee04b0f0f101ca792ac0be9fa39f2f78231e463a51f94"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e12979426137e3de31fb3f1a02ef25d78c1959c0a07a6fa94418a0614f39d39c\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"433.txt:c31\",\n          \"exact_span\": \"61 In the circumstances, the second ground of appeal also fails. Accordingly, the appeal should be dismissed.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "433.txt:c31",
+              "exact_span": "61 In the circumstances, the second ground of appeal also fails. Accordingly, the appeal should be dismissed."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "e12979426137e3de31fb3f1a02ef25d78c1959c0a07a6fa94418a0614f39d39c"
+    }
+  }
+}

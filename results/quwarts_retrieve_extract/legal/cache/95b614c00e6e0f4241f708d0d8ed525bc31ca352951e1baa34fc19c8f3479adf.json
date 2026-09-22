@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "6f61d487d17a4a1adb885f692d611f20ac598c651b058ac7f17a750d9351d288",
+    "entity_identity": "3a2ff4612d8f085e25d8e7599bcaa91f278829f93a01943c8a276f6d05aea08c",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "9dea0d5284aeeda5a07fe9d267b55ae7ab98b9455839bc50f9866d5834a27624",
+      "f2b1726974c357e2cc6e176ceaf660e622bd51011df44cd73368efa175ee9fc0",
+      "8af0f231b218543c9e94bea3ae4c9eb476ab7ebcfb56aa018ae743668ed2d93b",
+      "4d44c29690cbeb88e05f53b106d9028c438646cbaa54543e4decd231a80f795a"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"3a2ff4612d8f085e25d8e7599bcaa91f278829f93a01943c8a276f6d05aea08c\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"319.txt:c41\",\n          \"exact_span\": \"The appellant's appeal must fail. It must be dismissed.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "319.txt:c41",
+              "exact_span": "The appellant's appeal must fail. It must be dismissed."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "3a2ff4612d8f085e25d8e7599bcaa91f278829f93a01943c8a276f6d05aea08c"
+    }
+  }
+}

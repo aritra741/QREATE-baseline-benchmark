@@ -1,0 +1,85 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "eae4d3e5ee8a0eec99ddd65b1d93bb10cefa75228c75e2ba4d3d80686afa6e3c",
+    "entity_identity": "8c795921bb70abb0c1be90a69bda6b952760a7a7ab93bc8e57eee3a6ff09f605",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.evidence",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "256380fc6e6914634057381b9cf9dcf971d27ed03e7d7489c92dfe4f275c400c",
+      "35417014ffdaa1434688498914be98dc10674011d8d47d4062b47e223d93c200",
+      "e185ea195ecad788474e78a7110abf5180ca45d2e56f3b6a0593f782d9f35fa3",
+      "797b8e6b151bedb90cb42c9794582bbf930b0bf9613264c0f1f46a9c73225912"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"8c795921bb70abb0c1be90a69bda6b952760a7a7ab93bc8e57eee3a6ff09f605\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"3.txt:c7\",\n          \"exact_span\": \"Consequently, the application should be dismissed.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"uncertain\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "3.txt:c7",
+              "exact_span": "Consequently, the application should be dismissed."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "uncertain",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "8c795921bb70abb0c1be90a69bda6b952760a7a7ab93bc8e57eee3a6ff09f605"
+    }
+  }
+}

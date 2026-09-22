@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "b860e0e381551e239acd167300b63f334d32fa9a2de732ed6e3d4a06625c2ec3",
+    "entity_identity": "8e399be8d241a93ac05b671d659652e13f4d46b96824e456232718570b7a653a",
+    "attribute_bundle": [
+      "legal.plaintiff_current_status",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "787b8b8e0dd4e9ed5535963e2093149eb4e7c85b89f7db69dce54443e88e89e1",
+      "4b975a0ec90b3a10cc00edf825eb51993c6a47fb2fad445168a2a04682e06326",
+      "3b15307bcb4f2cb7f2ac62b70fd555900073d0ccbbcf7ec570d3a7a7c7a6798c",
+      "c1e6c175adda0a8dbf1a6085c1e0861b69412aabf5f9e34e3b2193a85fec4eb8"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"8e399be8d241a93ac05b671d659652e13f4d46b96824e456232718570b7a653a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"69.txt:c32\",\n          \"exact_span\": \"It was the bankrupt's responsibility to ensure that he filed with the Official Receiver a properly completed statement of affairs.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice Collier\",\n      \"normalized_value\": \"Justice Collier\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"69.txt:c45\",\n          \"exact_span\": \"I certify that the preceding seventy-eight (78) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Collier.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "69.txt:c32",
+              "exact_span": "It was the bankrupt's responsibility to ensure that he filed with the Official Receiver a properly completed statement of affairs."
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Justice Collier",
+          "normalized_value": "Justice Collier",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "69.txt:c45",
+              "exact_span": "I certify that the preceding seventy-eight (78) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Collier."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "8e399be8d241a93ac05b671d659652e13f4d46b96824e456232718570b7a653a"
+    }
+  }
+}

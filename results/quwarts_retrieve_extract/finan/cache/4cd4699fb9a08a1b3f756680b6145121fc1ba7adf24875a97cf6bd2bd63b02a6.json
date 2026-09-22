@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "4a83d1fa473dede233032ced175b97b209de6ad5d9f0dd403f268a502cdd27b1",
+    "entity_identity": "d247b262a74e1210be264b144fa058116a9988fe0e4880ae397857fc95806007",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e7ddfb473cbbda4999112abf154252d96841bf484235db7daaee7d616b85073f",
+      "1845cdf8903bd6acaad6edb0d0d591e751f2e07fdef488e83197ef7feed8dddd",
+      "36ff77cc352a889e4ccfd2036bcd8ceb7ac49581932a582aac5339cff02a1933",
+      "6b3edcf554ea92bbf845bb92d3fe84ed26dc196e44997db39c41e821cd962705"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"d247b262a74e1210be264b144fa058116a9988fe0e4880ae397857fc95806007\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"NASDAQ Global Select Market\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"86.txt:c137\",\n          \"exact_span\": \"Our common stock is quoted on NASDAQ under the symbol 'MFIN.' Our common stock commenced trading on May 23, 1996. f our common stock.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "NASDAQ Global Select Market",
+          "normalized_value": "NASDAQ Global Select Market",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "86.txt:c137",
+              "exact_span": "Our common stock is quoted on NASDAQ under the symbol 'MFIN.' Our common stock commenced trading on May 23, 1996. f our common stock."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.exchange_code"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "d247b262a74e1210be264b144fa058116a9988fe0e4880ae397857fc95806007"
+    }
+  }
+}

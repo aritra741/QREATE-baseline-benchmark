@@ -1,0 +1,22 @@
+{
+  "margin": 0.02,
+  "score_floor": 0.5,
+  "ranker": {
+    "n_estimators": 50,
+    "max_depth": 2,
+    "learning_rate": 0.1,
+    "random_state": 120
+  },
+  "gate_nu": 0.1,
+  "zero_committed_attribute_writes": "forbidden_by_every_policy",
+  "policies": {
+    "ranker_only": "On a null cell whose attribute has a committed training example, score candidates, collapse value-identical IDs, and write iff the best value class clears the score floor and the margin against the best different value class.",
+    "write_gate_then_ranker": "Write only if the novelty gate accepts the cell, then apply ranker_only.",
+    "write_gate_then_highest_priority_channel": "Write only if the gate accepts. Among candidates, pick source support, then verifier hit, then surface over normalized over workload_label, then stable ID.",
+    "write_gate_then_source_supported_channel": "Write only if the gate accepts and at least one candidate has a source span. Restrict the previous rule to spanned candidates.",
+    "committed_pattern_only": "A candidate is eligible when its channel, span bit, period bit, and workload-literal bit occurred on a positive training row for that attribute. Write only when eligible candidates share one canonical value.",
+    "nearest_positive_pattern_then_ranker": "Keep candidates within the training-only median nearest-positive distance for that attribute, then apply the ranker margin rule to that subset."
+  },
+  "distance_threshold": 1.0000000002676086,
+  "selected_gate": "one_class_svm"
+}

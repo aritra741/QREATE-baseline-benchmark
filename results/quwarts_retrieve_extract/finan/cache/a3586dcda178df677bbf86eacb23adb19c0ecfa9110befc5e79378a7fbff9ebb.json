@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "a0dda456fb957ba23ff3d5400ca2a118d194559269cc59d69f340bb76ab1e020",
+    "entity_identity": "a46d02fa2a76caff5195096e0d0b3c1f545a81b8884b98f26d80a41caf928968",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "eebb24a602e6ce8cc70bce1ff7c1240ddc67f09dc3fca5e63d0f5a052e2054fb",
+      "c1120cf7c5dc0003d301c540b867bd6b28233d7dee03f080c1221b1b42a8e959",
+      "ffdd2ebcc07ac208b53e9dc0b962dc62ee4c0ec656e0a866a0ceef8509062706",
+      "11dcf74c7becc2e39f031c752f4216dd71b41ca8ca1cb5cd29d7b44b78f07c73"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"a46d02fa2a76caff5195096e0d0b3c1f545a81b8884b98f26d80a41caf928968\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"NYSEAmerican LLC\",\n      \"normalized_value\": \"NYSE American\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"76.txt:c13\",\n          \"exact_span\": \"NYSE American under the symbol 'TELL.'\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "NYSEAmerican LLC",
+          "normalized_value": "NYSEAmerican LLC",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "76.txt:c13",
+              "exact_span": "NYSE American under the symbol 'TELL.'"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.exchange_code"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "a46d02fa2a76caff5195096e0d0b3c1f545a81b8884b98f26d80a41caf928968"
+    }
+  }
+}

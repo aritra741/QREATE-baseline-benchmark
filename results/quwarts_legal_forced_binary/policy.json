@@ -1,0 +1,17 @@
+{
+  "theta_25": 12610011,
+  "frozen_A": 3468542,
+  "frozen_B_cumulative": 7491088,
+  "headroom": 5118923,
+  "resolution": "if A==B use A; else if both order-reversed calls map to B use B; else A",
+  "weights": {
+    "A_cand_B_cand": 3,
+    "A_cand_B_keep": 2,
+    "A_keep_B_cand": 2
+  },
+  "no_keep_output": true,
+  "no_repair_calls": true,
+  "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+  "seed": 42,
+  "prompt": "Choose which of X or Y is more likely to be the correct value of the requested attribute for this entity, given the supplied evidence. You must choose the better of the two even when evidence is imperfect.\nCompare subject/entity, attribute meaning, period, current versus historical status, total versus component, type, unit, and scale, table row and column, and direct evidential support.\nDo not ask whether either alternative is perfectly proven.\nOutput exactly one of: X, Y."
+}

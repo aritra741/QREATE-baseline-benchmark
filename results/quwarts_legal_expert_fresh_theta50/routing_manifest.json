@@ -1,0 +1,925 @@
+{
+  "official_policy": "same-attribute sharing",
+  "ablation_policy": "conservative role-compatible routing",
+  "precedence": [
+    "target query's own completed expert",
+    "else earliest completed expert in the frozen schedule that emitted the attribute",
+    "else plumbing",
+    "NULL does not replace an earlier non-NULL shared value unless the direct expert emitted it"
+  ],
+  "official": {
+    "theta25": [
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "first_judge",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_filter20:q9",
+        "attribute": "plaintiff_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q9",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q7",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q7",
+        "attribute": "hearing_year",
+        "type": "str",
+        "source_expert": null,
+        "mode": "plumbing"
+      },
+      {
+        "target_query": "legal_filter20:q7",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q11",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q11",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q11",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "defendant_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "plaintiff_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_agg20:q4",
+        "attribute": "first_judge",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_groupby20:q14",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_groupby20:q14",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": null,
+        "mode": "plumbing"
+      },
+      {
+        "target_query": "legal_agg20:q11",
+        "attribute": "plaintiff_current_status",
+        "type": "str",
+        "source_expert": "legal_agg20:q11",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": null,
+        "mode": "plumbing"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_agg20:q13",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_agg20:q13",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": null,
+        "mode": "plumbing"
+      },
+      {
+        "target_query": "legal_agg20:q17",
+        "attribute": "defendant_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_agg20:q17",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q8",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q8",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": null,
+        "mode": "plumbing"
+      },
+      {
+        "target_query": "legal_filter20:q11",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": null,
+        "mode": "plumbing"
+      },
+      {
+        "target_query": "legal_filter20:q11",
+        "attribute": "defendant_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q11",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q15",
+        "attribute": "defendant_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q15",
+        "attribute": "plaintiff_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q15",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_agg20:q3",
+        "attribute": "hearing_year",
+        "type": "str",
+        "source_expert": null,
+        "mode": "plumbing"
+      },
+      {
+        "target_query": "legal_agg20:q14",
+        "attribute": "first_judge",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_agg20:q14",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      }
+    ],
+    "theta50": [
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "first_judge",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_filter20:q9",
+        "attribute": "plaintiff_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q9",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q7",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q7",
+        "attribute": "hearing_year",
+        "type": "str",
+        "source_expert": null,
+        "mode": "plumbing"
+      },
+      {
+        "target_query": "legal_filter20:q7",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q11",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q11",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q11",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "defendant_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "plaintiff_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_agg20:q4",
+        "attribute": "first_judge",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_groupby20:q14",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_groupby20:q14",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": "legal_agg20:q13",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_agg20:q11",
+        "attribute": "plaintiff_current_status",
+        "type": "str",
+        "source_expert": "legal_agg20:q11",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": "legal_agg20:q13",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_agg20:q13",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_agg20:q13",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_agg20:q13",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": "legal_agg20:q13",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_agg20:q17",
+        "attribute": "defendant_current_status",
+        "type": "str",
+        "source_expert": "legal_agg20:q17",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_agg20:q17",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_agg20:q17",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_filter20:q8",
+        "attribute": "case_number",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q8",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": "legal_agg20:q13",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q11",
+        "attribute": "case_type",
+        "type": "str",
+        "source_expert": "legal_agg20:q13",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q11",
+        "attribute": "defendant_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q11",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q15",
+        "attribute": "defendant_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q15",
+        "attribute": "plaintiff_current_status",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_filter20:q15",
+        "attribute": "verdict",
+        "type": "str",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "shared"
+      },
+      {
+        "target_query": "legal_agg20:q3",
+        "attribute": "hearing_year",
+        "type": "str",
+        "source_expert": null,
+        "mode": "plumbing"
+      },
+      {
+        "target_query": "legal_agg20:q14",
+        "attribute": "first_judge",
+        "type": "str",
+        "source_expert": "legal_agg20:q14",
+        "mode": "direct"
+      },
+      {
+        "target_query": "legal_agg20:q14",
+        "attribute": "legal_basis_num",
+        "type": "number",
+        "source_expert": "legal_agg20:q14",
+        "mode": "direct"
+      }
+    ]
+  },
+  "ablation": {
+    "theta25": [
+      {
+        "target_query": "legal_multiagg20:q4",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct",
+        "attributes": [
+          "case_number",
+          "first_judge",
+          "legal_basis_num",
+          "verdict"
+        ]
+      },
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_filter20:q9",
+        "attribute": "plaintiff_current_status",
+        "observable_id": "cef932ff54135808",
+        "kind": "presence",
+        "role": "nonempty",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_filter20:q7",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q11",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct",
+        "attributes": [
+          "case_number",
+          "defendant_current_status",
+          "legal_basis_num",
+          "plaintiff_current_status"
+        ]
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "plaintiff_current_status",
+        "observable_id": "cef932ff54135808",
+        "kind": "presence",
+        "role": "nonempty",
+        "source_expert": "legal_agg20:q11",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q4",
+        "attribute": "first_judge",
+        "observable_id": "64de220c6bec8f33",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_groupby20:q14",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q11",
+        "source_expert": "legal_agg20:q11",
+        "mode": "direct",
+        "attributes": [
+          "plaintiff_current_status"
+        ]
+      },
+      {
+        "target_query": "legal_agg20:q11",
+        "attribute": "plaintiff_current_status",
+        "observable_id": "cef932ff54135808",
+        "kind": "presence",
+        "role": "nonempty",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q13",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q17",
+        "attribute": "defendant_current_status",
+        "observable_id": "7a2a9da9d422f4b6",
+        "kind": "presence",
+        "role": "nonempty",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_filter20:q8",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q14",
+        "attribute": "first_judge",
+        "observable_id": "64de220c6bec8f33",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "role_compatible"
+      }
+    ],
+    "theta50": [
+      {
+        "target_query": "legal_multiagg20:q4",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "direct",
+        "attributes": [
+          "case_number",
+          "first_judge",
+          "legal_basis_num",
+          "verdict"
+        ]
+      },
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q4",
+        "attribute": "first_judge",
+        "observable_id": "64de220c6bec8f33",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_agg20:q14",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_filter20:q9",
+        "attribute": "plaintiff_current_status",
+        "observable_id": "cef932ff54135808",
+        "kind": "presence",
+        "role": "nonempty",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_filter20:q7",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q11",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "direct",
+        "attributes": [
+          "case_number",
+          "defendant_current_status",
+          "legal_basis_num",
+          "plaintiff_current_status"
+        ]
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "plaintiff_current_status",
+        "observable_id": "cef932ff54135808",
+        "kind": "presence",
+        "role": "nonempty",
+        "source_expert": "legal_agg20:q11",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q18",
+        "attribute": "defendant_current_status",
+        "observable_id": "7a2a9da9d422f4b6",
+        "kind": "presence",
+        "role": "nonempty",
+        "source_expert": "legal_agg20:q17",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q4",
+        "attribute": "first_judge",
+        "observable_id": "64de220c6bec8f33",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_groupby20:q14",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q11",
+        "source_expert": "legal_agg20:q11",
+        "mode": "direct",
+        "attributes": [
+          "plaintiff_current_status"
+        ]
+      },
+      {
+        "target_query": "legal_agg20:q11",
+        "attribute": "plaintiff_current_status",
+        "observable_id": "cef932ff54135808",
+        "kind": "presence",
+        "role": "nonempty",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_multiagg20:q9",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q13",
+        "source_expert": "legal_agg20:q13",
+        "mode": "direct",
+        "attributes": [
+          "case_number",
+          "case_type"
+        ]
+      },
+      {
+        "target_query": "legal_agg20:q13",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q17",
+        "source_expert": "legal_agg20:q17",
+        "mode": "direct",
+        "attributes": [
+          "defendant_current_status",
+          "legal_basis_num"
+        ]
+      },
+      {
+        "target_query": "legal_agg20:q17",
+        "attribute": "defendant_current_status",
+        "observable_id": "7a2a9da9d422f4b6",
+        "kind": "presence",
+        "role": "nonempty",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_filter20:q8",
+        "attribute": "case_number",
+        "observable_id": "44b3ea1b26407fe7",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q18",
+        "mode": "role_compatible"
+      },
+      {
+        "target_query": "legal_agg20:q14",
+        "source_expert": "legal_agg20:q14",
+        "mode": "direct",
+        "attributes": [
+          "first_judge",
+          "legal_basis_num"
+        ]
+      },
+      {
+        "target_query": "legal_agg20:q14",
+        "attribute": "first_judge",
+        "observable_id": "64de220c6bec8f33",
+        "kind": "presence",
+        "role": "is_not_null",
+        "source_expert": "legal_multiagg20:q4",
+        "mode": "role_compatible"
+      }
+    ]
+  }
+}

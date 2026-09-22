@@ -1,0 +1,85 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "9b7b4c3fe64138281173f82ac3d15a367bb096ea032936d1a005b3e875d50ef7",
+    "entity_identity": "5795cae8e79610bdc5a383b68af2ac055333e77f9224aa0405d2e35874114e99",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.defendant_current_status",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "89fa5362cb1e2f27bf989e927a189414a329af0d0168412519439a304615cd9f",
+      "c3020a0c99343fb44a6940e8526892020accb2457f339d7aa9aae9537a640390",
+      "b829e1da6054da552204e2b325c52bd65e1f7b51c5369fa3bf53c1132279dddb",
+      "10abdc29ac9453ec55723ffc47dd5041e5901e5cf7f369b6a5d94fa891efb355"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"5795cae8e79610bdc5a383b68af2ac055333e77f9224aa0405d2e35874114e99\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"The Full Court of the Supreme Court of Queensland found the restraint to be valid.\",\n      \"normalized_value\": \"Guilty\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"386.txt:c27\",\n          \"exact_span\": \"The Full Court of the Supreme Court of Queensland found the restraint to be valid.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "The Full Court of the Supreme Court of Queensland found the restraint to be valid.",
+          "normalized_value": "The Full Court of the Supreme Court of Queensland found the restraint to be valid.",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "386.txt:c27",
+              "exact_span": "The Full Court of the Supreme Court of Queensland found the restraint to be valid."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "5795cae8e79610bdc5a383b68af2ac055333e77f9224aa0405d2e35874114e99"
+    }
+  }
+}

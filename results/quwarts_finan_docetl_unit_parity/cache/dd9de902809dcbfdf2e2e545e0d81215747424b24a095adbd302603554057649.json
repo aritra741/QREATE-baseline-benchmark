@@ -1,0 +1,68 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+    "entity_identity": "finan_filter20:q9:78:map",
+    "attribute_bundle": [
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+      "9280694c5e9606c516a8f543f69d3a8e7f16fea2a7ab1a6927767a82eec51df5",
+      "69ba5bcc647b41def8e0db4ca0be08302a59b7b5970b4cea25070de9593af9fe",
+      "3dcfdf70c8f9a0f7f8ca68f8e5483398fb11e2b123b42da9f1623b2b4e25836e",
+      "9f9e36770b86d05b7700dc5bcf414e9bf7d5700df6dc49fcd624ef7a5450046a",
+      "e0378ece001477918d2771257bc399c0734df76fd0f82884cb8a8fabb81ccf7c",
+      "ecbc696699dbe657b01f4bc08d6ccc750afa6bd4c5a4dfa838bcb1796dbefa8c",
+      "c14f8f58b49aeea7b99b66720385e658ed3893f003ca9d9b49238bb59fdfbac8"
+    ],
+    "schema_hash": "4a64de35aba7336cf8b343ab512aa9e46d57c44935a77a2afe4bf77cf2a45b54",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"remuneration_policy\": {\n    \"value\": \"Mixed\",\n    \"status\": \"found\",\n    \"evidence\": \"[78.txt:c591 page=1 1 Pertains to benefit commitments to employees of the RWE Group in the UK.]\"\n  },\n  \"revenue\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": "Mixed",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "[78.txt:c591 page=1 1 Pertains to benefit commitments to employees of the RWE Group in the UK.]",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:remuneration_policy"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

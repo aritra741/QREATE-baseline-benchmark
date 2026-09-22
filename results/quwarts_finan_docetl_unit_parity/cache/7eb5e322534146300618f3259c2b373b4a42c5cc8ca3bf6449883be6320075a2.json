@@ -1,0 +1,91 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+    "entity_identity": "finan_multiagg20:q11:78:map",
+    "attribute_bundle": [
+      "cash_reserves",
+      "net_assets",
+      "principal_activities",
+      "total_debt"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+      "037a0092a44f3d1b2a094880d6a04c06b2cc7ed154a2c3de2b4a645becb53170",
+      "3e003e77d010453ed8f3896ce3e33e92f6eedf985a25b83f122aa9e1df96695c",
+      "e95a3e1865281d41dcbb414e0d00a5b5813115ec5192ed52902285b5ac35f4c9",
+      "1727e30424e2be62936693e5dd5bbc4224f403e680289d5841501cf2ef5b9611",
+      "1d73694afe92877d489a91814345fcc4a6dba73cbb2f8089a43ae4a6e4217f4a",
+      "7dd3b5c7a9fcab87b8bd365f989b0e21a70b59046ccbfd01e6794179b3308e9a",
+      "0c9e67b078f1f06ec45648c7d2f38d4f2d537cc99b7c8faf8d725fbbb1f91ec0",
+      "a8074cc4b56e335e77bcfdf017361fca743b1a3225b09ca91a75c7e30ff3ca6b"
+    ],
+    "schema_hash": "9c2d30c04ad187e5381cdbe09bb9d033b9c4496ff242d5385693320b0b20a32b",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"cash_reserves\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  },\n  \"net_assets\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  },\n  \"principal_activities\": {\n    \"value\": \"Other\",\n    \"status\": \"found\",\n    \"evidence\": \"%Energy%, %Sustainable%\"\n  },\n  \"total_debt\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "cash_reserves": {
+          "attribute": "cash_reserves",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "net_assets": {
+          "attribute": "net_assets",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "Other",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "%Energy%, %Sustainable%",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "total_debt": {
+          "attribute": "total_debt",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:principal_activities"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 3,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

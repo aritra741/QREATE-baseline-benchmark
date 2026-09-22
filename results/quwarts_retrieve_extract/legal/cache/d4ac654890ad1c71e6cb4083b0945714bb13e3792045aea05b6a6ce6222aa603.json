@@ -1,0 +1,94 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "22e1a5d4c8ec918a7a7391322a551d2bdde8f568594407f5441d52bd494361ff",
+    "entity_identity": "dd31459636f7a50d8d0a16e9de1434ca08ba2326038efe82269bf02784b6dd35",
+    "attribute_bundle": [
+      "legal.hearing_year",
+      "legal.plaintiff_current_status",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "82e8603d7ea5c7af163f20815967b17d106f41b540f111ab8a82021996c5369c",
+      "f630f4a440125faade18a06bf3866f705d1752fa74e248762772281dd0d83d46",
+      "2b9a0c040dae1fbb6b0e73c934db4577869527c8a83aa81f36569c1bb02086cd",
+      "fb63a3b53c442aa34003d6b79ad1c0ed5f6623888904e258d2443ec143dbb698"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"dd31459636f7a50d8d0a16e9de1434ca08ba2326038efe82269bf02784b6dd35\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2004\",\n      \"normalized_value\": 2004,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"499.txt:c10\",\n          \"exact_span\": \"7 December 2004\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice Buchanan\",\n      \"normalized_value\": \"Justice Buchanan\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"499.txt:c11\",\n          \"exact_span\": \"Dated\\nJustice Buchanan\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "found",
+          "raw_value": "2004",
+          "normalized_value": 2004,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "499.txt:c10",
+              "exact_span": "7 December 2004"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Justice Buchanan",
+          "normalized_value": "Justice Buchanan",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "499.txt:c11",
+              "exact_span": "Dated\nJustice Buchanan"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.judge_name"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "dd31459636f7a50d8d0a16e9de1434ca08ba2326038efe82269bf02784b6dd35"
+    }
+  }
+}

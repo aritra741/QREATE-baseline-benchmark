@@ -1,0 +1,68 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+    "entity_identity": "finan_agg20:q13:69:map",
+    "attribute_bundle": [
+      "auditor",
+      "earnings_per_share"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+      "10d335944e331a3bdf0491443659f556f5683aa1bc448c00866eb7ca2e73cc81",
+      "76d963f39f5e96f8d29f92e70586fbf1e6d3e4576b2002635079a851a31fc7ed",
+      "70d4d15f9eb4815a708f0ae0abc2f1d2c41169e9c33a8a68f3496db2df58b3fb",
+      "2f41675dbcc0bb7e1fb91734fe78810fb1da44c566299820801634b171f8ed66",
+      "0f3438449a2b13807508412176b4e2d6fe50699df22c62399063847ee28d5a5a",
+      "28de000fdb5942925c83a9ef5820612a8338c1062547bb3ad7af0d14ea7efeea",
+      "f687a5169bc2c651807fbdaea4097e7cc45c9a9584e5c202ab8c0f805cd549a3"
+    ],
+    "schema_hash": "ece76726b1973bda1560563fbf445b5422af10aa3db566587ba7f4ee23df463d",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"auditor\": {\n    \"value\": \"PwC\",\n    \"status\": \"found\",\n    \"evidence\": \"Audit/audit-related and other assurance services in determining whether to pre-approve such services. Fees for audit-related and other assurance services payable to PwC in 2022 were 6% (2021: 34%) of average audit fees over 2019 to 2021.\"\n  },\n  \"earnings_per_share\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "PwC",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Audit/audit-related and other assurance services in determining whether to pre-approve such services. Fees for audit-related and other assurance services payable to PwC in 2022 were 6% (2021: 34%) of average audit fees over 2019 to 2021.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "earnings_per_share": {
+          "attribute": "earnings_per_share",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:auditor"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "76ad55f2cb7ba344edf7f6dd0d3275e2774baf80ea06da01a32f6d351591a06e",
+    "entity_identity": "ede429c8b24b50a971385ed2daf02fca29ea5e06df326987f27a45895c22db6e",
+    "attribute_bundle": [
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "18a1b0962bb10aa9300d064bfdccad3763eb7cd0b8e1fb12d2af7f1fc7a59f1d",
+      "9d3632b9178052be547de8a880713db025846237947e6c9ce5838a27586705d0",
+      "447b161d646af3073c2b1bd42207b558755aeedd0c58195b67073cff948603d4",
+      "617bd94fc7203b15cb35a86727c387fa33f443faa2e4d95a66abb4132c08935e"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"ede429c8b24b50a971385ed2daf02fca29ea5e06df326987f27a45895c22db6e\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Greenwood J\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"445.txt:c13\",\n          \"exact_span\": \"Dated: 23 December 2007\\nI certify that the preceding sixty-eight (68) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Greenwood.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Greenwood J",
+          "normalized_value": "Greenwood J",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "445.txt:c13",
+              "exact_span": "Dated: 23 December 2007\nI certify that the preceding sixty-eight (68) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Greenwood."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.judge_name"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "ede429c8b24b50a971385ed2daf02fca29ea5e06df326987f27a45895c22db6e"
+    }
+  }
+}

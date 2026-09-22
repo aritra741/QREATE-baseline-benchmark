@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "81a5691f10a0b91bbefba8556a54aa4380604e217cb8811fa4ee2241e7ffabe0",
+    "entity_identity": "e9ed7926d8fa902cb4004b31983fb91ebd7bf7341399e30b3aada0aa5dc91dba",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.nationality_for_applicant"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "179df572c535c9a87533c64883a61726c91feff3aaaa7f02ae6d451bf744813f",
+      "2220ed3b3804ab1eb570bc9bbf10298c80b629a55660772876f60f6f9b86f55a",
+      "a83747c2b5e5a22b885002ee15a3380a903af0ca65618b0149ff4664939b28f0",
+      "475accd5a3ead2d50fc8837a93272687b5841421f2814a84b3a06f0239915634"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e9ed7926d8fa902cb4004b31983fb91ebd7bf7341399e30b3aada0aa5dc91dba\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"189.txt:c18\",\n          \"exact_span\": \"The threshold in this respect is not high.\"\n        },\n        {\n          \"source_id\": \"189.txt:c21\",\n          \"exact_span\": \"The threshold in this respect is not high.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.nationality_for_applicant\",\n      \"status\": \"found\",\n      \"raw_value\": \"Australian company\",\n      \"normalized_value\": \"Australia\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"189.txt:c34\",\n          \"exact_span\": \"Clough is an Australian company;\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "189.txt:c18",
+              "exact_span": "The threshold in this respect is not high."
+            },
+            {
+              "source_id": "189.txt:c21",
+              "exact_span": "The threshold in this respect is not high."
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.nationality_for_applicant": {
+          "attribute": "legal.nationality_for_applicant",
+          "status": "found",
+          "raw_value": "Australian company",
+          "normalized_value": "Australian company",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "189.txt:c34",
+              "exact_span": "Clough is an Australian company;"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "e9ed7926d8fa902cb4004b31983fb91ebd7bf7341399e30b3aada0aa5dc91dba"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "173c967bdafda7358a8b25ec0257eaac103cc377fbbce2e68b4182ca621b33c1",
+    "entity_identity": "437e38f4f2896b2c21147562c1148438e9a13e38c4a80b57c08a4ad88c5ec01e",
+    "attribute_bundle": [
+      "legal.nationality_for_applicant",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "63ae1aa6318e08c01d334bf66cf888e2b965aabad8b58a4a4b52326abdbe597a",
+      "790ad1a17ba65865ebed549ec0d56dfb8924add9a91c9039fa6422944b74a760",
+      "1a770a0a1287435f95191efaca5feafc985fd4b22dda0fd5e606f3a3d04f0007",
+      "1397dc139aed1893e923422f9bd2d63af84871c39c402fe8151b45936cc05c8d"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"437e38f4f2896b2c21147562c1148438e9a13e38c4a80b57c08a4ad88c5ec01e\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.nationality_for_applicant\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice Siopis\",\n      \"normalized_value\": \"Justice Siopis\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"36.txt:c13\",\n          \"exact_span\": \"the Honourable Justice Siopis\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.nationality_for_applicant": {
+          "attribute": "legal.nationality_for_applicant",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Justice Siopis",
+          "normalized_value": "Justice Siopis",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "36.txt:c13",
+              "exact_span": "the Honourable Justice Siopis"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "437e38f4f2896b2c21147562c1148438e9a13e38c4a80b57c08a4ad88c5ec01e"
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "67aa173fd60993b12966737fa91681f4c8617823db54cd198d187a46cf5cde21",
+    "entity_identity": "00eaf2108e095e12ded8a6eafc934c7d2e60e97707138def5e73699a63f3d77d",
+    "attribute_bundle": [
+      "legal.hearing_year",
+      "legal.plaintiff_current_status",
+      "legal.judge_name"
+    ],
+    "context_mode": "whole_document",
+    "context_hashes": [
+      "67aa173fd60993b12966737fa91681f4c8617823db54cd198d187a46cf5cde21"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"00eaf2108e095e12ded8a6eafc934c7d2e60e97707138def5e73699a63f3d77d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2008\",\n      \"normalized_value\": 2008,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"406.txt\",\n          \"exact_span\": \"Dated: 22 April 2008\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Buchanan J\",\n      \"normalized_value\": \"Buchanan J\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"406.txt\",\n          \"exact_span\": \"BUCHANAN J:\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "found",
+          "raw_value": "2008",
+          "normalized_value": 2008,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "406.txt",
+              "exact_span": "Dated: 22 April 2008"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Buchanan J",
+          "normalized_value": "Buchanan J",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "406.txt",
+              "exact_span": "BUCHANAN J:"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "00eaf2108e095e12ded8a6eafc934c7d2e60e97707138def5e73699a63f3d77d"
+    }
+  }
+}

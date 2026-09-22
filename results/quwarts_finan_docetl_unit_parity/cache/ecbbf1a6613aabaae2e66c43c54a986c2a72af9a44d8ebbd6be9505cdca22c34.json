@@ -1,0 +1,79 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+    "entity_identity": "finan_filter20:q8:69:map",
+    "attribute_bundle": [
+      "exchange_code",
+      "net_profit_or_loss",
+      "total_debt"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+      "de764a9e5a4243f1d9f819d62351cb93ff2a85903b06f93bc614badc39ba6fc0",
+      "138a723042b698d95427634eeb39053c4486b6d348926cdad922afe90e2ae139",
+      "ff47df17058c8cda85f17acfb4ef17896d47f0526a709cda29604cdc4b465b84",
+      "3f0fb1924512033081d1c3c6ac8a3ff6547b741e4f862965661db79dc7c90ab4",
+      "fd27cec75d285fab0efbd43680aada78d6fc9acd4c34621b469d39706b791279",
+      "feae9fd6fe3a988995bf4fce9dc323b40f57a768b66bdf8e07d5c8405797a1c1",
+      "d48f752f8e7a2111d86b77ed487c81bd17b9e5979708b54241a950630ed535dc"
+    ],
+    "schema_hash": "1f7b0c5ee6b114db9aed639a164db53d45b6c1f299319e166ed4bba3d9afc221",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"exchange_code\": {\n        \"value\": \"NASDAQ\",\n        \"status\": \"found\",\n        \"evidence\": \"Shares listed on Nasdaq are in the form of American Depositary Shares (ADSs), evidenced by American Depositary Receipts (ADRs) issued by the Company's ADR depositary, Deutsche Bank Trust Company Americas (Deutsche Bank). Two ADSs are equivalent to one Ordinary Share. Before 27 July 2015, the ratio was one ADS per one Ordinary Share. Shares are listed on all three markets under the stock symbol AZN.\"\n    },\n    \"net_profit_or_loss\": {\n        \"value\": 2155,\n        \"status\": \"found\",\n        \"evidence\": \"| Owners of the Parent                                         | 2,155     | 1,335     | 3,196     | 112       | 3,288     |\"\n    },\n    \"total_debt\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "exchange_code": {
+          "attribute": "exchange_code",
+          "raw_value": "NASDAQ",
+          "normalized_value": "NASDAQ",
+          "status": "found",
+          "evidence": "Shares listed on Nasdaq are in the form of American Depositary Shares (ADSs), evidenced by American Depositary Receipts (ADRs) issued by the Company's ADR depositary, Deutsche Bank Trust Company Americas (Deutsche Bank). Two ADSs are equivalent to one Ordinary Share. Before 27 July 2015, the ratio was one ADS per one Ordinary Share. Shares are listed on all three markets under the stock symbol AZN.",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "net_profit_or_loss": {
+          "attribute": "net_profit_or_loss",
+          "raw_value": "2155",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "| Owners of the Parent                                         | 2,155     | 1,335     | 3,196     | 112       | 3,288     |",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "total_debt": {
+          "attribute": "total_debt",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:net_profit_or_loss"
+      ],
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

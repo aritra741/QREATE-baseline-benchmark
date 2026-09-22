@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "fea0afa2db38a260f7d84b85517b2201a8b1004ce6f75922fb926541d5b70348",
+    "entity_identity": "ab87e0c4f9a839c50431aa3b0eb5f5d2fbd66dc6c6893e3bc36aff33b0d69005",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "b09d4345a64a73f87ea8b6efc26449e5b0f2638660f50e841320e7537388d3ef",
+      "a3380ef3cb6e66bba7de32d08d72264cbd6779eedf6bd6c3463c0c63c0d06d3e",
+      "8b7108a4656805f4187f192c115a916dde3f64b92f8d6de621f67eb0419f681f",
+      "1ca1c36b59d9b795ddbe2b1642fd1ce2fd7cfe486a059f3a15de47407df7da64"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"ab87e0c4f9a839c50431aa3b0eb5f5d2fbd66dc6c6893e3bc36aff33b0d69005\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"137.txt:c8\",\n          \"exact_span\": \"The Tribunal in this case, found itself in the unhappy position of having insufficient evidence before it to enable it to form the necessary judgment one way or another. In these circumstances it could not engage in conjecture or surmise.\"\n        },\n        {\n          \"source_id\": \"137.txt:c7\",\n          \"exact_span\": \"The Tribunal did not engage in any such speculation because it lacked the necessary evidentiary foundation to do so.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "137.txt:c8",
+              "exact_span": "The Tribunal in this case, found itself in the unhappy position of having insufficient evidence before it to enable it to form the necessary judgment one way or another. In these circumstances it could not engage in conjecture or surmise."
+            },
+            {
+              "source_id": "137.txt:c7",
+              "exact_span": "The Tribunal did not engage in any such speculation because it lacked the necessary evidentiary foundation to do so."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "ab87e0c4f9a839c50431aa3b0eb5f5d2fbd66dc6c6893e3bc36aff33b0d69005"
+    }
+  }
+}

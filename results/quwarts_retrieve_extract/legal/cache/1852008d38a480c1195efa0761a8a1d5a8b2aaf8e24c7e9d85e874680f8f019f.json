@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "dd4bf1b960a0ba1a19d6aed4a554f9d805a1cc27fa95ba0859a84f56dcae42ea",
+    "entity_identity": "2cab6a66f9b421355629b064c1cdbf14c82c65c57c25721e4b0d94a91445b29f",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.hearing_year",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "b4b3f931f277b60ae85fd8157d9529306c41131636869a4f65332060cebf39dd",
+      "5e39b347924aea31eff9f3c0f27e85b550bdbd240e72f4943eaa78117712df11",
+      "74da2328b3d5d3aa5dc235498ee7b18e61aca40f52a33d6d6c5ebc520473c224",
+      "7373f57595391863be05919be59d87e39a186c7374b286979a629bd9896b1589"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"2cab6a66f9b421355629b064c1cdbf14c82c65c57c25721e4b0d94a91445b29f\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"74.txt:c19\",\n          \"exact_span\": \"The difficulty confronted by the First Appellant is the simple fact that the Tribunal did make findings of fact relevant to the claims being advanced. Contrary to the contention of the First Appellant, the Tribunal did consider the claims being advanced before it.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "74.txt:c19",
+              "exact_span": "The difficulty confronted by the First Appellant is the simple fact that the Tribunal did make findings of fact relevant to the claims being advanced. Contrary to the contention of the First Appellant, the Tribunal did consider the claims being advanced before it."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "2cab6a66f9b421355629b064c1cdbf14c82c65c57c25721e4b0d94a91445b29f"
+    }
+  }
+}

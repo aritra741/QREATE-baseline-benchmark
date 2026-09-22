@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "580a8f02b240ffba0e9d8c78fde314759d3f7e833f72cd91652471a600aa8f12",
+    "entity_identity": "17b154e822c4f0f96f59db05dcc1e29779e3304bf8dac80d0152959cf9d1fbc6",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.case_number",
+      "legal.case_type"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "a028da8314487f53dce4b5488c9b705d6da3820d179e1d3ba1c25618053374b8",
+      "b39a7f49deeb27e621ce584e727f65533452bf4e87ba821b6465d41179b4b0bc",
+      "c6640c2ae4886e88f32c0f6ce5b446d74a2826d911323957d92b0f89ee39f6ec",
+      "51e5ab0c5aea7349b25e2f5334fa628ae0b753232defc9eacedb120073e22e6f"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"17b154e822c4f0f96f59db05dcc1e29779e3304bf8dac80d0152959cf9d1fbc6\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"found\",\n      \"raw_value\": \"5\",\n      \"normalized_value\": 5,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"526.txt:c18\",\n          \"exact_span\": \"This is a case where top-up security has been sought.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"uncertain\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "found",
+          "raw_value": "5",
+          "normalized_value": 5,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "526.txt:c18",
+              "exact_span": "This is a case where top-up security has been sought."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "uncertain",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.legal_basis_num"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "17b154e822c4f0f96f59db05dcc1e29779e3304bf8dac80d0152959cf9d1fbc6"
+    }
+  }
+}

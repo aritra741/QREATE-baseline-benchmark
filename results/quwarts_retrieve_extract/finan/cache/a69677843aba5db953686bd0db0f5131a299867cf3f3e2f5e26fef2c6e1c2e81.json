@@ -1,0 +1,59 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "04e8a81ced840702389ac517f28c9dd5ac856483f3921eea7173445ce485c3c4",
+    "entity_identity": "1a4eebc233f4e11747052ec1f871662ca1edef313fcbf3a11e0c306ad7e3a30e",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "29d090d97bb1b28eccb08bb4d04846446fadbe3e806b4b14e040fd119fedbde0",
+      "5c88ee06b5cd22b7bc7e6fac716e9f37cc03907c4ee4da8fb14517f91961cd1f",
+      "4c80e475e630fc9f28ac2946d8e664ff1df6c29379b7f2d1d1b152932c6cbf6a",
+      "5cfb3acafab85e260bbf26cb76a743276e4446f4029bece385be325a21f7582f"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"1a4eebc233f4e11747052ec1f871662ca1edef3a11e0c306ad7e3a30e\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"ASX\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"4.txt:c93\",\n          \"exact_span\": \"The Company is listed on the NZX Main Board and has a Foreign Exempt Listing on the ASX (both under the ticker code 'NZM').\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "ASX",
+          "normalized_value": "ASX",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "4.txt:c93",
+              "exact_span": "The Company is listed on the NZX Main Board and has a Foreign Exempt Listing on the ASX (both under the ticker code 'NZM')."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "1a4eebc233f4e11747052ec1f871662ca1edef3a11e0c306ad7e3a30e"
+    }
+  }
+}

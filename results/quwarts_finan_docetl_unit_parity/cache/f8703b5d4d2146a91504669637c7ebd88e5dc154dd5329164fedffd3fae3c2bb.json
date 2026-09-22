@@ -1,0 +1,79 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+    "entity_identity": "finan_multiagg20:q9:9:map",
+    "attribute_bundle": [
+      "earnings_per_share",
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+      "6dcae57e6ff391d9707aefbc4aa0fb36144ac0cd99348c83c9d4d772620d1dc5",
+      "ab1c4d882622800b34609217267e0af3ebff50c304b58f37d9d9d0b30472647b",
+      "cd5387380970d105ffc2256198129fda0b73cc5bfdbcbd48b8cba0681ac3d03c",
+      "c0908bfa94f052e504b06f915fc3962cbfce100524d3d63d7d2013225389a1fe",
+      "46f9c365708a2622ecb9dea70b0b2bace919b62093d274ac757a159fc0a64688",
+      "07cabdb3172062259b6d0f2b86a728ad5fee1b665681ae1f715707253d0dbdba",
+      "60e8e87ca3cbe3da02f747a0015de249a740b6b21c0eca146de1b5dbb2b1a6e1"
+    ],
+    "schema_hash": "cad102bb407a1f8e7ffeeb79be37c614771b9c7543af61213ef858b92955762a",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"earnings_per_share\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"remuneration_policy\": {\n        \"value\": \"approved the Report on the policy regarding remuneration for the year 2023 - including the guidelines on the policies of remuneration and incentive plans of BancoPosta's Ring-Fenced Capital, which are attached to\",\n        \"status\": \"found\",\n        \"evidence\": \"## Summary\\n\\n# Summary\\n\\n# Section\\n\\n## 8. Summary of the resolutions of the ordinary Shareholders' Meeting and other information\\n\\n- 4. approved the Report on the policy regarding remuneration for the year 2023 - including the guidelines on the policies of remuneration and incentive plans of BancoPosta's Ring-Fenced Capital, which are attached to\"\n    },\n    \"revenue\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "earnings_per_share": {
+          "attribute": "earnings_per_share",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": "approved the Report on the policy regarding remuneration for the year 2023 - including the guidelines on the policies of remuneration and incentive plans of BancoPosta's Ring-Fenced Capital, which are attached to",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "## Summary\n\n# Summary\n\n# Section\n\n## 8. Summary of the resolutions of the ordinary Shareholders' Meeting and other information\n\n- 4. approved the Report on the policy regarding remuneration for the year 2023 - including the guidelines on the policies of remuneration and incentive plans of BancoPosta's Ring-Fenced Capital, which are attached to",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:remuneration_policy"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 2,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

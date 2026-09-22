@@ -1,0 +1,64 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "f077219ed48f889751a3b338239722af6af6273072b27cb6704b5d491fbe1217",
+    "entity_identity": "975f262170cc6e020dd28fa5a6747e68f33f4ccb814d362ecdbd0eac9e54f01d",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "43beb3d43204d08071137f7beccc7b03c029c4677734c519a6eed4b23aa127cb",
+      "36b028671bda4f745903bf349ec8eac479e8f1a33b94e232e751505b7e1f9457",
+      "2cf125ba9c6156741f7af7157a5335eaa1e3c0f02eab4e78f54a978138fd8060",
+      "263767bfe6f24995622bb861285249079fd362ebe855b9d47c5ac63341771923",
+      "30502015597b78cde1b99f922378992fd6a818f3f0e8030d663a72931ebd6f88"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"975f262170cc6e020dd28fa5a6747e68f33f4ccb814d362ecdbd0eac9e54f01d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"127.txt:c7\",\n          \"exact_span\": \"They would either be separated or she would be required to live in Romania, a country with which she had no real connection.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "127.txt:c7",
+              "exact_span": "They would either be separated or she would be required to live in Romania, a country with which she had no real connection."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "975f262170cc6e020dd28fa5a6747e68f33f4ccb814d362ecdbd0eac9e54f01d"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "max_tokens": 256,
+  "max_attempts": 3,
+  "retryable": [
+    "timeout",
+    "http_5xx",
+    "rate_limit",
+    "connection",
+    "malformed"
+  ],
+  "malformed_policy": "retry the same request when an attempt remains and the retry pool can reserve prompt+256; no separate repair prompt",
+  "missing_usage_charge": "prompt+256",
+  "api_model": "qwen/qwen-2.5-7b-instruct",
+  "route": "openrouter/qwen/qwen-2.5-7b-instruct",
+  "historical_completion_cap": {
+    "valid_rows": 8813,
+    "max_argument_tokens": 191,
+    "max_framed_tokens": 205,
+    "cap": 256,
+    "fits": true
+  },
+  "primary_reservation": "prompt+256",
+  "theta25_terminal_failures_remain_terminal": true
+}

@@ -1,0 +1,79 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+    "entity_identity": "finan_multiagg20:q9:18:map",
+    "attribute_bundle": [
+      "earnings_per_share",
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+      "2058ca2a2c228eb486f190da187cbae2dd36cc980796a9a8834850a8e3c8f918",
+      "d48b6baebca3a417159feaa8bdb03cf403666d01680d15febd2c967f46f7d77b",
+      "4f83a6df61d834a96618756771f36b70a5186968db04ecb40929246b9215787b",
+      "ca3eff1bdeb5e36695aee40f35d3b3bb240b1ceaad4858cb5aa8ab19e383e49c",
+      "e8dd32bf13fe14cd1a3dfe48ba54367484950ebd2cfe7bb8cab16f88b699ec46",
+      "45a64e9310aa42073dbcaea24f593755e7fef12b6feed315e773b148ea4ea9c0",
+      "d781ee1ffa5bd2c2dddf06a290424b4fcc6bc4633054b24f66275557cbdc3f39"
+    ],
+    "schema_hash": "cad102bb407a1f8e7ffeeb79be37c614771b9c7543af61213ef858b92955762a",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"earnings_per_share\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"remuneration_policy\": {\n        \"value\": \"Normally reviewed annually by the Remuneration Committee, with any increases typically effective in January. Takes account of the external market and other relevant factors including internal relativities and individual performance. In reviewing salary levels, the Remuneration Committee may also take into account the effect of any exceptional exchange rate fluctuations in the previous year. Executive Directors decide the currency of payment once every three years (which can be in Pound Sterling, US Dollars or Euros). With annual increases not generally exceeding the average annual salary increase for the wider employee population determined with reference to the country in which the Executive ordinarily works, unless there is a particular reason for any increase, such as a change in the Executive's roles and responsibilities or a change in the size and complexity of the business.\",\n        \"status\": \"found\",\n        \"evidence\": \"## Remuneration Policy for Executive Directors\\n|----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\\n| salary | To attract, retain and motivate high calibre individuals for the role and duties required To provide a market competitive salary relative to the external market To reflect appropriate skills, development and experience over time |\\n| Normally reviewed annually by the Remuneration Committee, with any increases typically effective in January  Takes account of the external market and other relevant factors including internal relativities and individual performance. In reviewing salary levels, the Remuneration Committee may also take into account the effect of any exceptional exchange rate fluctuations in the previous year  Executive Directors decide the currency of payment once every three years (which can be in Pound Sterling, US Dollars or Euros) |\"\n    },\n    \"revenue\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "earnings_per_share": {
+          "attribute": "earnings_per_share",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": "Normally reviewed annually by the Remuneration Committee, with any increases typically effective in January. Takes account of the external market and other relevant factors including internal relativities and individual performance. In reviewing salary levels, the Remuneration Committee may also take into account the effect of any exceptional exchange rate fluctuations in the previous year. Executive Directors decide the currency of payment once every three years (which can be in Pound Sterling, US Dollars or Euros). With annual increases not generally exceeding the average annual salary increase for the wider employee population determined with reference to the country in which the Executive ordinarily works, unless there is a particular reason for any increase, such as a change in the Executive's roles and responsibilities or a change in the size and complexity of the business.",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "## Remuneration Policy for Executive Directors\n|----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| salary | To attract, retain and motivate high calibre individuals for the role and duties required To provide a market competitive salary relative to the external market To reflect appropriate skills, development and experience over time |\n| Normally reviewed annually by the Remuneration Committee, with any increases typically effective in January  Takes account of the external market and other relevant factors including internal relativities and individual performance. In reviewing salary levels, the Remuneration Committee may also take into account the effect of any exceptional exchange rate fluctuations in the previous year  Executive Directors decide the currency of payment once every three years (which can be in Pound Sterling, US Dollars or Euros) |",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:remuneration_policy"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 2,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

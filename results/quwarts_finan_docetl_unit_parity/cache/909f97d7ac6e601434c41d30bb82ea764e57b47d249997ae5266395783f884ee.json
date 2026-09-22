@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+    "entity_identity": "finan_agg20:q14:69:map",
+    "attribute_bundle": [
+      "cash_reserves",
+      "exchange_code"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+      "6f4f8e8f8f493013eb22ef9de3695463be0755a8426cd2e78013520531b92b53",
+      "a32390525f6608082aa5dbc90532dfda48aa38ff925d005796b4263e1afcd56d",
+      "608dff9f29848a852946806726fb379937a723ce16ca37c6ee1116455bd193cf",
+      "359809871b7985d6d614760fd015aab1d3fbc86bf982ee69547a0fbc5cf24331",
+      "ff47df17058c8cda85f17acfb4ef17896d47f0526a709cda29604cdc4b465b84",
+      "3f0fb1924512033081d1c3c6ac8a3ff6547b741e4f862965661db79dc7c90ab4",
+      "de764a9e5a4243f1d9f819d62351cb93ff2a85903b06f93bc614badc39ba6fc0",
+      "138a723042b698d95427634eeb39053c4486b6d348926cdad922afe90e2ae139"
+    ],
+    "schema_hash": "fd4d2de3afa339df07dd7e4a560a293a4a55225875c5cc2ffe3977a76cc05f6c",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"cash_reserves\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"exchange_code\": {\n        \"value\": \"London\",\n        \"status\": \"found\",\n        \"evidence\": \"Leif Johansson was first elected to the Board in April 2012 and was considered to be independent on his appointment as Chair on 1 June 2012. During 2022, it was announced that Mr Johansson would be retiring from the Board at the conclusion of the Company's AGM in 2023, and that Michel Demar\u00e9 had been appointed as the Chair-designate of the Board. Mr Demar\u00e9's appointment will take effect immediately on Mr Johansson's retirement. Further information on the Chair's succession is included in the Nomination and Governance Committee Report, from page\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "cash_reserves": {
+          "attribute": "cash_reserves",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "exchange_code": {
+          "attribute": "exchange_code",
+          "raw_value": "London",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Leif Johansson was first elected to the Board in April 2012 and was considered to be independent on his appointment as Chair on 1 June 2012. During 2022, it was announced that Mr Johansson would be retiring from the Board at the conclusion of the Company's AGM in 2023, and that Michel Demar\u00e9 had been appointed as the Chair-designate of the Board. Mr Demar\u00e9's appointment will take effect immediately on Mr Johansson's retirement. Further information on the Chair's succession is included in the Nomination and Governance Committee Report, from page",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        }
+      },
+      "errors": [
+        "grounding_failure:exchange_code"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

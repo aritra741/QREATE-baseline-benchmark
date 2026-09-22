@@ -1,0 +1,119 @@
+{
+  "note": "diagnostic M4 did not reproduce under a fresh QuWARTS execution",
+  "sampling_isolated": false,
+  "identical_prompt_and_window": 0,
+  "canonical": {
+    "singleton": 14,
+    "repeated": 84,
+    "unanimous_repeated": 16,
+    "conflicting_repeated": 20,
+    "majority_resolved": 28,
+    "missing_only": 34
+  },
+  "canonical_sha256": "59fc3c2f3b29ea9ffc8a73b47c230c302905c90e29a0256f11bf661479c5a25d",
+  "replay_specs": {
+    "rules": {
+      "R0": "Local replay of frozen fresh-arm accepted fills. No sharing.",
+      "R1": "Share unanimous repeated non-missing values into every referencing query-local NULL cell.",
+      "R2": "R1, then abstain every conflicting canonical key back to plumbing.",
+      "R3": "Share a unique strict majority of at least two votes. Ties abstain. Singletons stay local."
+    },
+    "never_overwrite_nonnull": true,
+    "never_write_sentinels": true,
+    "preserve_rows_identities_sql": true,
+    "query_isolation": true,
+    "diagnostic_only": true
+  },
+  "replay_specs_sha256": "a9ecadc4bbfec1c95b68b8539357347e694c43755ffa67485149ae66eb3e09f9",
+  "adapter_gate": {
+    "exact_matches": 102,
+    "denominator": 112,
+    "stored_primaries": 102,
+    "pass": false,
+    "schema_mismatches": 0,
+    "context_window_mismatches": 0,
+    "parameter_mismatches": 0,
+    "missing_stored": 10,
+    "reason_if_failed": "Stored replay journal has only 102 attributed primary (query, document) pairs; q3/q14 were incomplete. Several stored user messages are over-truncated live artifacts (tiktoken vs count_tokens), so generated full-document truncate_messages output need not equal the recorded string. The adapter is therefore not claimed equivalent."
+  },
+  "r0_reproduces_fresh_bags": true,
+  "fill_stats": {
+    "R0": {
+      "shared": 0,
+      "abstained": 0,
+      "local": 132,
+      "changed_cells": 73,
+      "blocked_overwrites": 59,
+      "n_rows_ok": true,
+      "identity_unique": true
+    },
+    "R1": {
+      "shared": 29,
+      "abstained": 0,
+      "local": 138,
+      "changed_cells": 79,
+      "blocked_overwrites": 59,
+      "n_rows_ok": true,
+      "identity_unique": true
+    },
+    "R2": {
+      "shared": 29,
+      "abstained": 63,
+      "local": 75,
+      "changed_cells": 52,
+      "blocked_overwrites": 23,
+      "n_rows_ok": true,
+      "identity_unique": true
+    },
+    "R3": {
+      "shared": 45,
+      "abstained": 0,
+      "local": 140,
+      "changed_cells": 81,
+      "blocked_overwrites": 59,
+      "n_rows_ok": true,
+      "identity_unique": true
+    }
+  },
+  "empty_bags": {
+    "R0": [
+      "finan_multiagg20:q11",
+      "finan_agg20:q17"
+    ],
+    "R1": [
+      "finan_multiagg20:q11",
+      "finan_agg20:q17"
+    ],
+    "R2": [
+      "finan_multiagg20:q11",
+      "finan_agg20:q17",
+      "finan_filter20:q8"
+    ],
+    "R3": [
+      "finan_multiagg20:q11",
+      "finan_agg20:q17"
+    ]
+  },
+  "base_checksums": {
+    "plumbing": "ad91c2554f32510cb378737009e6479cfcb71299f245c7fe766722057b2b2a3d",
+    "replay_frozen": "2c362e9e73e0020cbf0f42289a7ca814f0f675d016be8e025c07910345b7638f",
+    "fresh_frozen": "4b4e6b100a611c69eebcbbe9452c2da99767d474a3137c2332abe0839992384d",
+    "fresh_journal": "13d7ef4b4f0f145b9b9fc6c598fd980a9915c38d1246f7bdfa63ff0e47ddac1c",
+    "replay_journal": "2c6695412daa8a8e62933ef3012b51b298a1fd394a010de28978c07fc6dae4c5"
+  },
+  "prior_unmodified_at_freeze": {
+    "plumbing": true,
+    "replay_frozen": true,
+    "fresh_frozen": true
+  },
+  "isolation_ok": true,
+  "hashes": {
+    "prompt_audit": "9d3c0231ff50be9cb9818793fdd99fb4c1afb06262e66afe7d92d6eb1a1309e5",
+    "adapter_rows": "fe67650db2f2695046277472fb776fd3bdb20e252ef77d2e3479255ba0cc0f28",
+    "r0_bags": "1fd650179dc397c7637a938679dea6ecfe2378b8636c2d62b87d0aefab78e2aa",
+    "r1_bags": "1fd650179dc397c7637a938679dea6ecfe2378b8636c2d62b87d0aefab78e2aa",
+    "r2_bags": "2fb9028835fe90ac89d6d7d8864d43bf769297292e13665eca583afdff756620",
+    "r3_bags": "8d85342af0921e9374ce0dfbd7d78580ac095a1544668eb68bf0a47fd70ce43d",
+    "waterfall_pre_gold": "3bfdc8aa69ee3ee1b94465f605fd1a77c0f8fb93ce34c635d288fd19f93d20b3"
+  }
+}

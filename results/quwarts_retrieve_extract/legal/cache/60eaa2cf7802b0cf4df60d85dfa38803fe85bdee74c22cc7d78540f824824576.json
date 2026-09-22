@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "dae89bcabd2d0627f63b6d9a8d8192fe3d3702f84aa47fba26b653bb4fc10e65",
+    "entity_identity": "89fca07cf84c6de2f314e5c0a4f3b88e50ed5557057c20177921e9ac380c676d",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.defendant_current_status",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "be73fb792955d192d080481a87b22588d045363a00d69ae83c1074275386abf0",
+      "a397f91c1897b8a226fe17e0bb2f9bde402647e4b0728511cf48b90289483a0a",
+      "864c321bb741f53ed033e2cfb009b9ad1989f40d5d2503dc108277be05bb9429",
+      "6fd491f7f75c3aa2d4fe90ee1f889b260d1f7960e3ce6181a39f6a5cdbee4161"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"89fca07cf84c6de2f314e5c0a4f3b88e50ed5557057c20177921e9ac380c676d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"guilty\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"524.txt:c4\",\n          \"exact_span\": \"I see no difficulty with the framing of the third and fourth charges, and I can see no procedural defect that would have justified dismissal of the charges on that account alone.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "guilty",
+          "normalized_value": "guilty",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "524.txt:c4",
+              "exact_span": "I see no difficulty with the framing of the third and fourth charges, and I can see no procedural defect that would have justified dismissal of the charges on that account alone."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "89fca07cf84c6de2f314e5c0a4f3b88e50ed5557057c20177921e9ac380c676d"
+    }
+  }
+}

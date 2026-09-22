@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+    "entity_identity": "finan_filter20:q7:10:map",
+    "attribute_bundle": [
+      "dividend_per_share",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7c881148d4f97aa9e44065780171bad2eb3f97120abc4aa30ac627f0b7473a2d",
+      "b20e1b20aec20de468930c8478233b491a6c508b653d2cb50a77ac6ce63a2c20",
+      "639efbcc18ca83a5633b4b5859b736e1ae057766e8b77b839399ec99c8122d37",
+      "361a44793b1461551c2578b6db21bebc4c600ca5ef98a096624db220adc1366e",
+      "cfdedba6f06e6a54d857de7c2c821332b9f81151e879b527c795b1c31f497d75",
+      "5bd5a3b0e2379418b87773e0e2f240b8b0b2e3861fe783a1b9fa537e5d464eea",
+      "2ac6267cd40f4bdf0f344ff25c88465d5477fb9c65032be9d3be267a155d6b49",
+      "5a76accd8d82cc67de01f9b21c87a08ec1ac3780ab953ee9f67d9fbd64553349",
+      "e1102593db94ebc3c52cac779a089a06a223199944b0c7745371687706d59154"
+    ],
+    "schema_hash": "765a804b13d6eb43b3b37c903185cf34a879c9fa65b6cc5f0c0abac2b62a435d",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"dividend_per_share\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"no_dividend\"\n    },\n    \"principal_activities\": {\n        \"value\": \"grounded ourselves in the principles and experiences that inform how we do business, charted where we go next, and maintained a conservative position in our loan portfolio\",\n        \"status\": \"found\",\n        \"evidence\": \"Throughout our history, we've grounded ourselves in the principles and experiences that inform how we do business - and charted where we go next. The speed of these rate increases over the year created several challenges for managing the balance sheet of a bank and created significant unrealized losses on government securities held in banks. Maintaining a conservative position in our loan portfolio often comes at the expense of lower annual earnings than a more concentrated and less granular portfolio would generate.\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "dividend_per_share": {
+          "attribute": "dividend_per_share",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "no_dividend",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "grounded ourselves in the principles and experiences that inform how we do business, charted where we go next, and maintained a conservative position in our loan portfolio",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Throughout our history, we've grounded ourselves in the principles and experiences that inform how we do business - and charted where we go next. The speed of these rate increases over the year created several challenges for managing the balance sheet of a bank and created significant unrealized losses on government securities held in banks. Maintaining a conservative position in our loan portfolio often comes at the expense of lower annual earnings than a more concentrated and less granular portfolio would generate.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        }
+      },
+      "errors": [
+        "grounding_failure:principal_activities"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "policy": {
+    "model": "qwen/qwen-2.5-7b-instruct",
+    "operator": "query_witness_acq",
+    "corpus": "Finan",
+    "theta_25": 345457,
+    "theta_100": 1381827,
+    "docetl_tokens": 1381827,
+    "four_times_theta_25": 1381828,
+    "budget_authority": "budget_from_docetl / docetl_tokens",
+    "router_llm": false,
+    "query_expansion": false,
+    "group_classification": false,
+    "unknown_else_escape": false,
+    "base_column_writes": false,
+    "replace_incumbent_support": false,
+    "batch_size": 1,
+    "max_malformed_retry": 1,
+    "max_refine": 1,
+    "temperature": 0.1,
+    "max_tokens": 280,
+    "reserved_completion_tokens": 220,
+    "retrieve_context_cap": 1400,
+    "effective_input_limit": 6144,
+    "model_context_limit": 32768,
+    "safety_margin": 256,
+    "workers": 1,
+    "seed": 42,
+    "scheduling": "frequency * amplification * excluded_mass / cost, round-robin programs"
+  },
+  "policy_sha256": "b770dcbe40339d71a1f97d9663162d1ad51ebe2be472160ca2a66b751be02399",
+  "prompt_sha256": "342feb5925c11a77ef0b34693ed2691a7fb9ced17f84804a41ec504570a636e1",
+  "budgets": {
+    "theta_25": 345457,
+    "theta_100": 1381827,
+    "docetl_tokens": 1381827,
+    "four_times_theta_25": 1381828,
+    "theta_100_is_exactly_4x_theta_25": false,
+    "authority": "experiments.synthesize_case80.budget_from_docetl"
+  },
+  "query_list_sha256": "ff997085c19cd805e6c3cdea111d2b8134db2008586eb3b135356fd7f0cb0373"
+}

@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "8ea63462e1e923c5aa5e651198c90ef6d1290e4ec73e87b3eaee3bd09dcc2b70",
+    "entity_identity": "d53953b73b5bf8e2f4a95a260a4b2f035e1a31dcd5bc09194a56aa08ac98977e",
+    "attribute_bundle": [
+      "legal.case_number",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "483cef4306ba93cdf3c5ac2e248ae11246a4d7dd68dd9d1c2ad6a62194d1732f",
+      "4fce8ac232c5b5a66a37a4a834b799d65caeca4c25b1710bb9ad1ec638b277bb",
+      "07bff7d37a62bdb3f2c1186e2fa9c2911fbcb6b67fe66bc9ae5ed41da1d3c012",
+      "c15db1a0cdf61c89c37025ca965f09db62d5e99c43e86fbf6bea7723e21b7e59"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"d53953b73b5bf8e2f4a95a260a4b2f035e1a31dcd5bc09194a56aa08ac98977e\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"107.txt:c23\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice Sundberg\",\n      \"normalized_value\": \"Justice Sundberg\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"107.txt:c23\",\n          \"exact_span\": \"paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Sundberg.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "107.txt:c23",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Justice Sundberg",
+          "normalized_value": "Justice Sundberg",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "107.txt:c23",
+              "exact_span": "paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Sundberg."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "d53953b73b5bf8e2f4a95a260a4b2f035e1a31dcd5bc09194a56aa08ac98977e"
+    }
+  }
+}

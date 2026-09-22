@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "65afb7df8d92f9e3dd3cf3691ff278b29705f1d328a4eea5aea39116c7e175c2",
+    "entity_identity": "06a12234f17ec943906148b6ff0554d2dce39c513cc45c305d2bb6c648af7e3d",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "d2e87fb2fe4e33d669331a9d14f39654523a4edb4e1cc0d95d83c7181d02b79f",
+      "0de9fc923ecf0f290f85bdc9a9d7c43f6b46e863fcbd2b7d70b469b6dc670a45",
+      "ae0d244183841b3cc79b56f09eb96f6f97599cb63a7ce6553e3527a67dcaa424",
+      "6902e916157612ee8a06de292b4a7ca426d237247c63b26950d4894bcc32ff0f"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"06a12234f17ec943906148b6ff0554d2dce39c513cc45c305d2bb6c648af7e3d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"440.txt:c12\",\n          \"exact_span\": \"53 CLR 220 at 224-225). 43 In the affidavits of the husband, to which reference has been made, there is an oblique and imprecise reference to other litigation.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "440.txt:c12",
+              "exact_span": "53 CLR 220 at 224-225). 43 In the affidavits of the husband, to which reference has been made, there is an oblique and imprecise reference to other litigation."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "06a12234f17ec943906148b6ff0554d2dce39c513cc45c305d2bb6c648af7e3d"
+    }
+  }
+}

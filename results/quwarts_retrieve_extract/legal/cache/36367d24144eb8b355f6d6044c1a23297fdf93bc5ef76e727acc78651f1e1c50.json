@@ -1,0 +1,94 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "2e942c2f3a9d56a75d77c4e8fb50225525db54d2310d99ef301705932d7240f6",
+    "entity_identity": "f9602058688a503878f2e65d82d31cc28554f4e8dcffa2bed6d2884d1a9e8976",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.evidence",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "80c231800728e4d10d2928b07366a501e4bbf61128e36208a18520aa15b669c2",
+      "d1ec068136ec844619fce89f84e5084ab7132256baa9307cd2998f4a84fb303d",
+      "184c113d11bf77c37ed8cef772ab12e23fcf137e3ed10ba8923a6028ba58adbc",
+      "f89b4b637dbf2c385d7df4208628984a6231d42a9ecba5f0bb7c36d67dafdc64"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"f9602058688a503878f2e65d82d31cc28554f4e8dcffa2bed6d2884d1a9e8976\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"357.txt:c4\",\n          \"exact_span\": \"the misleading and deceptive conduct provisions in the Trade Practices Act 1974 (Cth)\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"357.txt:c6\",\n          \"exact_span\": \"material submitted\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "357.txt:c4",
+              "exact_span": "the misleading and deceptive conduct provisions in the Trade Practices Act 1974 (Cth)"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "357.txt:c6",
+              "exact_span": "material submitted"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "f9602058688a503878f2e65d82d31cc28554f4e8dcffa2bed6d2884d1a9e8976"
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+    "entity_identity": "finan_filter20:q9:9:map",
+    "attribute_bundle": [
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+      "d7666c2c0ce621c694ce6681eca50c70c995822fb99e0f19e2623003af0e3a97",
+      "e7bd8f9ce49b7720b4376afdf28834da0ee996f3a74d9ee860fa31ce769239c6",
+      "6dcae57e6ff391d9707aefbc4aa0fb36144ac0cd99348c83c9d4d772620d1dc5",
+      "ab1c4d882622800b34609217267e0af3ebff50c304b58f37d9d9d0b30472647b",
+      "b80a05afcfc6d07e7e2b05cc0457dbbfc187ad9ea5262fc23ac46e24bb70ba36",
+      "c70c68849e772a1d4d9da6f4fe342e6c8fa38adf879e64322beb4b36f60ebac4",
+      "fa954090600ac470283d86e32d0571b220b2d05087f7958486d7e67061f46993",
+      "cd5387380970d105ffc2256198129fda0b73cc5bfdbcbd48b8cba0681ac3d03c"
+    ],
+    "schema_hash": "4a64de35aba7336cf8b343ab512aa9e46d57c44935a77a2afe4bf77cf2a45b54",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"remuneration_policy\": {\n    \"value\": \"Report on the policy regarding remuneration for the year 2023\",\n    \"status\": \"found\",\n    \"evidence\": \"setting the related gross annual compensation at euro 60,000 for the Chairwoman and euro 40,000 for the other Directors;\"\n  },\n  \"revenue\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": "Report on the policy regarding remuneration for the year 2023",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "setting the related gross annual compensation at euro 60,000 for the Chairwoman and euro 40,000 for the other Directors;",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:remuneration_policy"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

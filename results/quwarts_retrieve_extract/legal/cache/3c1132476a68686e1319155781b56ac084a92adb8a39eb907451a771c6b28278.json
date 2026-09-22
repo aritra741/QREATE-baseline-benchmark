@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "945172baa9952e6de9c5fc3f4fff09b7048ebdb591f299a0488b3f3195bd9376",
+    "entity_identity": "af2ce5852f13ccb5687846db04285256ef75bd9738419d1fe2675231dee5e63b",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "d6c7462f42f44b334cd1be9616df7af7bdc11a22819b24891bc61d9976a6cdc4",
+      "c0b83ad68a1b6ac02b4c20ad89c0a845b8e69363abd0ac5e05c8c8770b51bb8a",
+      "6e978194e09dc2c375600369f0ef1ada1e1959bebd22a97a4a05fec3fd03ff38",
+      "e5802afa37639f3c95f8aa4b06c82c9e815ecc99627b229d988bb1aa923a72d8"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"af2ce5852f13ccb5687846db04285256ef75bd9738419d1fe2675231dee5e63b\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"541.txt:c7\",\n          \"exact_span\": \"The appellant is a Sri Lankan citizen of Sinhalese ethnicity.\"\n        },\n        {\n          \"source_id\": \"541.txt:c5\",\n          \"exact_span\": \"The appellant is a Sri Lankan citizen of Sinhalese ethnicity.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice Collier\",\n      \"normalized_value\": \"Justice Collier\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"541.txt:c21\",\n          \"exact_span\": \"I certify that the preceding fifty (50) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Collier.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "541.txt:c7",
+              "exact_span": "The appellant is a Sri Lankan citizen of Sinhalese ethnicity."
+            },
+            {
+              "source_id": "541.txt:c5",
+              "exact_span": "The appellant is a Sri Lankan citizen of Sinhalese ethnicity."
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Justice Collier",
+          "normalized_value": "Justice Collier",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "541.txt:c21",
+              "exact_span": "I certify that the preceding fifty (50) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable Justice Collier."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "af2ce5852f13ccb5687846db04285256ef75bd9738419d1fe2675231dee5e63b"
+    }
+  }
+}

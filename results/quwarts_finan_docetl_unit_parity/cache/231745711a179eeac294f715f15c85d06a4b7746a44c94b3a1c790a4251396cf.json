@@ -1,0 +1,91 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+    "entity_identity": "finan_multiagg20:q4:78:map",
+    "attribute_bundle": [
+      "cash_reserves",
+      "net_profit_or_loss",
+      "revenue",
+      "total_debt"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+      "cddb2ed749a476d725799d3dc1d6d7a0d517ba48ddcddb96232ce2baf07ef3f7",
+      "e4fb258cb07b68254e39d9ff537bbc559aafcad048f74886752fc15c0c77dbc0",
+      "580e3db8fd74e3cce19309166ba1f232ebdf287d7c9949012764e2b787004b00",
+      "0899d3cb901d5ff7452f6efe5a06d175e3c3aadfb216dd7d72316ccf896cf417",
+      "1d8f4b8802bfb2d0c6856643c8d3924b17fc9bc61e77429f0fe159ad44ccdf40",
+      "695deb9e92cda339ee90b416f641a81d4d10988436271ca43bd45c41e220fb3f",
+      "21a30953ec6c9e2e0abf4861c53211c79b9c155edb2b676cca65a7914acf3dfc"
+    ],
+    "schema_hash": "91d774739081203fe39b2d2396bd317f54e3caa8c9a3310abe2bc434d449ad95",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"cash_reserves\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"},\n    \"net_profit_or_loss\": {\"value\": -1048, \"status\": \"found\", \"evidence\": \"194,544\"},\n    \"revenue\": {\"value\": 999339, \"status\": \"found\", \"evidence\": \"891,498 + 107,331\"},\n    \"total_debt\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "cash_reserves": {
+          "attribute": "cash_reserves",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "net_profit_or_loss": {
+          "attribute": "net_profit_or_loss",
+          "raw_value": "-1048",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "194,544",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": "999339",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "891,498 + 107,331",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "total_debt": {
+          "attribute": "total_debt",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:net_profit_or_loss",
+        "grounding_failure:revenue"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 2,
+        "uncertain": 2,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

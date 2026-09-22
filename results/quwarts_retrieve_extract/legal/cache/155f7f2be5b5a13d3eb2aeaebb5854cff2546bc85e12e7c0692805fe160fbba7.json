@@ -1,0 +1,82 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "f9715f9110590e26edb02906d542ae8c093dc326dfb29ccd82fc399e7af74553",
+    "entity_identity": "2941eca78340352ed831d7c909774c35b6e785fb4805951b3dad36f225835b80",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.plaintiff_current_status",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "9e6f9b44dcbb25f1585659d5bd028dfcd763aca0bd6815b0cbd8a3e510be758d",
+      "f5752b6700dcf82852c5cfa065b48fc6202b838ff1976777d7c6efbca7b5ad13",
+      "4575e1570e1ad0e6462c35b28bb6dbddd3ef31669c870652cec9c308c568b9a8",
+      "f1aaea7c232db51c96e984f37d3a61a27a3f2c52c8ab39065c4991f790fed1ff"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"2941eca78340352ed831d7c909774c35b6e785fb4805951b3dad36f225835b80\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"282.txt:c18\",\n          \"exact_span\": \"The appeal be dismissed.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice Flick\",\n      \"normalized_value\": \"Justice Flick\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"282.txt:c18\",\n          \"exact_span\": \"I certify that the preceding thirty-five (35) numbered paragraphs are a true copy of the Reasons for Judgment herein of the Honourable",
+    "parsed": {
+      "ok": false,
+      "malformed": true,
+      "error": "invalid_json:unbalanced_json",
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        }
+      },
+      "errors": [
+        "invalid_json:unbalanced_json"
+      ],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 0,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 3,
+        "grounding_failure": 0
+      }
+    }
+  }
+}

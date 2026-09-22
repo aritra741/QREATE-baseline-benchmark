@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "3859b6d9e9167eff0624cc2c0832c508fe7abbb2dc51e97874937eca81de86dd",
+    "entity_identity": "492ef09ed69ba635d006533e6b41e613c27b59f077ce7e3116fdcbfa9b96ddfd",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "739e5b143837707823c5a42e6fdf05349627ed3e587e50e3094fa3e6b2e7aaea",
+      "73c07889189c290139b035e4f86c82d1c530f3bf4229669369fc45e62f55558b",
+      "088ebc3241fb44045e9495443d36e36f16b778cb5019e7af00ed00285f5b9567",
+      "7bacbe26c32fda1637fdffb4a4a31cc8ce469826ac7e7f96672f67033a3e6908"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"492ef09ed69ba635d006533e6b41e613c27b59f077ce7e3116fdcbfa9b96ddfd\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"NASDAQ Capital Market\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"45.txt:c192\",\n          \"exact_span\": \"Name of Each Exchange Where Registered:\\nCommon Stock, par value $.001\\nCLDX\\nNASDAQ Capital Market\"\n        },\n        {\n          \"source_id\": \"45.txt:c1\",\n          \"exact_span\": \"Name of Each Exchange Where Registered:\\nCommon Stock, par value $.001\\nCLDX\\nNASDAQ Capital Market\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "NASDAQ Capital Market",
+          "normalized_value": "NASDAQ Capital Market",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "45.txt:c192",
+              "exact_span": "Name of Each Exchange Where Registered:\nCommon Stock, par value $.001\nCLDX\nNASDAQ Capital Market"
+            },
+            {
+              "source_id": "45.txt:c1",
+              "exact_span": "Name of Each Exchange Where Registered:\nCommon Stock, par value $.001\nCLDX\nNASDAQ Capital Market"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.exchange_code"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "492ef09ed69ba635d006533e6b41e613c27b59f077ce7e3116fdcbfa9b96ddfd"
+    }
+  }
+}

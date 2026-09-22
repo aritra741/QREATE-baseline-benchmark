@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+    "entity_identity": "finan_agg20:q13:18:map",
+    "attribute_bundle": [
+      "auditor",
+      "earnings_per_share"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "c1c08c1ac894fcfae61b493a234bad9985a0e74cc9bfd5ff70a9ecb39b7b8d9e",
+      "5a9f4b7a48cbdf3df51ac71f0fb634d745bbfd877c0fa44ac3fc0f40c6f981dd",
+      "f6b7d27957a0b6388f89908c965dd9e8fd6fa1f3f613572c726f3b19b33218e4",
+      "0ed513c95fcd80fcfc92092b2eb563b3c524c20e6da765559fa8cce346e4c3a8",
+      "2230199a71edd682c560c821dea89dec9ad448ef51e9454685114cce3cb3af48",
+      "95ea51de64dd91f2c3885fd2d641bee3cd044d7721d9a5372f337fbcaa90036d",
+      "de9af3fa038e081f5516b9bec1a18bdaa280941916e68f8ff26a985587325417",
+      "32494689089ce10c5504882279bff3b1989b5ba17ec6cf6dbe96a1932f4b58c3",
+      "5a1722501d745d5b4bb39e6b74381acd7a775b925feb2ed3f7d8f8a212ea9a2b"
+    ],
+    "schema_hash": "ece76726b1973bda1560563fbf445b5422af10aa3db566587ba7f4ee23df463d",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"auditor\": {\n    \"value\": \"BDO\",\n    \"status\": \"found\",\n    \"evidence\": \"The Committee remain satisfied with the manner, robustness and level challenge of BDO's audit processes and believe BDO should remain as auditor for 2023.\"\n  },\n  \"earnings_per_share\": {\n    \"value\": null,\n    \"status\": \"not_found\",\n    \"evidence\": \"\"\n  }\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "BDO",
+          "normalized_value": "BDO",
+          "status": "found",
+          "evidence": "The Committee remain satisfied with the manner, robustness and level challenge of BDO's audit processes and believe BDO should remain as auditor for 2023.",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "earnings_per_share": {
+          "attribute": "earnings_per_share",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [],
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "be3b12f5154e2a11fb183e732a1448e66a7d79c634f2081ea7188df66d85bb4c",
+    "entity_identity": "911e4cd10f786729b6e40d3d3977dc10087e41e54bd33069a54113203c69bbfa",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.hearing_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "a23d6ef36b579f7217baa64ad919f3a433afadcf4a3ae41c1250ee67e159d157",
+      "6a559f43914ebf99318817d518b8341c6eabef8e631abb4d611b8b91b78d5abc",
+      "c94cc85820ff1af69d5b741167dcfb84c9d78dfcf8234c88d8f78661e64f9516",
+      "fe2d5b67343ce2663ea9f4a72d3e2fd1179faa598003e1a220d5f9af15071a8d"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"911e4cd10f786729b6e40d3d3977dc10087e41e54bd33069a54113203c69bbfa\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"568.txt:c14\",\n          \"exact_span\": \"That hearing was rescheduled for 3 October 2008 and on that day the first appellant alone appeared.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2008\",\n      \"normalized_value\": 2008,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"568.txt:c14\",\n          \"exact_span\": \"The appellants arrived in Australia on 4 March 2008 having left India on the previous day.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "568.txt:c14",
+              "exact_span": "That hearing was rescheduled for 3 October 2008 and on that day the first appellant alone appeared."
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "found",
+          "raw_value": "2008",
+          "normalized_value": 2008,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "568.txt:c14",
+              "exact_span": "The appellants arrived in Australia on 4 March 2008 having left India on the previous day."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "911e4cd10f786729b6e40d3d3977dc10087e41e54bd33069a54113203c69bbfa"
+    }
+  }
+}

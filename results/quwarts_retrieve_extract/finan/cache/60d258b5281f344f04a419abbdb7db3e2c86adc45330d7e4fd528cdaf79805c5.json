@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "798010a538438d77a68302811c9d0474dca946926ff85fe449bdbca8ee4e46aa",
+    "entity_identity": "b81d1bd0ad36538c595164b58497556ce62c320e1038aac807ce60a8dbeca707",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "6ea359efe75a83e63f747bc06f37e991b9cd610966da984ec7dcf9a8543df587",
+      "368e9ac9f769fb8e65493c4e35bf56eb98a4a593c10536179269c165883c102b",
+      "b3420272fdc4548e01aea10eaac2058b61dde8b36463ea26a47539173451920e",
+      "4e7780ff39b0176024f1b4a4ae674bb2e6259f922cdf41dae4f5e62c47ed4981"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"b81d1bd0ad36538c595164b58497556ce62c320e1038aac807ce60a8dbeca707\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"The Nasdaq Stock Market LLC\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"19.txt:c460\",\n          \"exact_span\": \"Name of exchange on which registered\\nThe Nasdaq Stock Market LLC\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "The Nasdaq Stock Market LLC",
+          "normalized_value": "The Nasdaq Stock Market LLC",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "19.txt:c460",
+              "exact_span": "Name of exchange on which registered\nThe Nasdaq Stock Market LLC"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.exchange_code"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "b81d1bd0ad36538c595164b58497556ce62c320e1038aac807ce60a8dbeca707"
+    }
+  }
+}

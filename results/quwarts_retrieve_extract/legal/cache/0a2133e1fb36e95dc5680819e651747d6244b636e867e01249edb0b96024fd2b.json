@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "a5172197f20be5b3531007204832ccdff02649f485b9b22d4f306a0d5d6f5db5",
+    "entity_identity": "12b9aaf6c2a5100c878e5ca144f30240414eb3b7d80d5282e5abbe30472d08b8",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "9d5c23f7d44f36da6af5e863397077ea85f3e0e7068bdc8b1bf49b43a4a9bdca",
+      "7209104d3af63f3174e630fc8195409388328e06ed1680536fdc87516843b3c7",
+      "be1c232752dfd6d4985b661d17ad3f0efd56a5427503cd90458b08b0b5361292",
+      "9c11866be6a804e94ca9c8187313c71a210b8235c6a13bd04ad5c2e2df5af12c"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"12b9aaf6c2a5100c878e5ca144f30240414eb3b7d80d5282e5abbe30472d08b8\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"15.txt:c22\",\n          \"exact_span\": \"I accept the submissions of counsel for the first respondent.\"\n        },\n        {\n          \"source_id\": \"15.txt:c20\",\n          \"exact_span\": \"I see no inconsistency in an educational institution saying to a student, whether simultaneously or at different times:\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "15.txt:c22",
+              "exact_span": "I accept the submissions of counsel for the first respondent."
+            },
+            {
+              "source_id": "15.txt:c20",
+              "exact_span": "I see no inconsistency in an educational institution saying to a student, whether simultaneously or at different times:"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "12b9aaf6c2a5100c878e5ca144f30240414eb3b7d80d5282e5abbe30472d08b8"
+    }
+  }
+}

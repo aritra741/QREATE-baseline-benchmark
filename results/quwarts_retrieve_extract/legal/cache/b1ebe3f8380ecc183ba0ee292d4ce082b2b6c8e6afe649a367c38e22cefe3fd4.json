@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "1ac5e8bdd4d6559335f0bf727ce83d7b5f51120becf627adeb16daa7b4be6fbb",
+    "entity_identity": "e101603324e03dc849ed93e1dc046cc0fc005fc9b2e6f69393829366bce66bc1",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge",
+      "legal.nationality_for_applicant"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "0964cf2d5a2cbe305a2223fda79a632e4ec113be448121da9c8096f34a3f7ca9",
+      "5ee3055afe7d6bbd81ea4607d63cdf330243ed3aef7cba8fe28b481f8387d5aa",
+      "6eeaba546653d2b461d3984138f44d27266a184b0f592b8369823d5f40fb3ba0",
+      "a9850d3dda29f2b4f58c76caad02411febc52a63ac8953dfdbb4d92043c46b06"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e101603324e03dc849ed93e1dc046cc0fc005fc9b2e6f69393829366bce66bc1\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"443.txt:c16\",\n          \"exact_span\": \"Alternatively, part of Darrell Lea's costs were incurred in response to Cadbury's late filed evidence --- it should recover those costs on an indemnity basis.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.nationality_for_applicant\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "443.txt:c16",
+              "exact_span": "Alternatively, part of Darrell Lea's costs were incurred in response to Cadbury's late filed evidence --- it should recover those costs on an indemnity basis."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.nationality_for_applicant": {
+          "attribute": "legal.nationality_for_applicant",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "e101603324e03dc849ed93e1dc046cc0fc005fc9b2e6f69393829366bce66bc1"
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "1ac5e8bdd4d6559335f0bf727ce83d7b5f51120becf627adeb16daa7b4be6fbb",
+    "entity_identity": "e101603324e03dc849ed93e1dc046cc0fc005fc9b2e6f69393829366bce66bc1",
+    "attribute_bundle": [
+      "legal.judgment_year",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "c1e78434b5dd21c16c1491cf4b31bad2b15746c0cc24877fd2ea73710d506db6",
+      "0e2889f23e64270bc05a289ce83abd4c25a6cdc7c98b81670dd282ba1d64023b",
+      "4be4abe578da297e76d8d0ea45d16e7678b2970b8b7b6ade469080a6c7480988",
+      "05bec11440f705713ef9f1b68015bf5471ff768395f8602ab901f117daf2f169"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e101603324e03dc849ed93e1dc046cc0fc005fc9b2e6f69393829366bce66bc1\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2006\",\n      \"normalized_value\": 2006,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"443.txt:c6\",\n          \"exact_span\": \"I held that most of this evidence was inadmissible: Cadbury Schweppes Pty Ltd v Darrell Lea Chocolate Shops Pty Ltd [2006] FCA 363.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "found",
+          "raw_value": "2006",
+          "normalized_value": 2006,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "443.txt:c6",
+              "exact_span": "I held that most of this evidence was inadmissible: Cadbury Schweppes Pty Ltd v Darrell Lea Chocolate Shops Pty Ltd [2006] FCA 363."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "e101603324e03dc849ed93e1dc046cc0fc005fc9b2e6f69393829366bce66bc1"
+    }
+  }
+}

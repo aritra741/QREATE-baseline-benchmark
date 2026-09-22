@@ -1,0 +1,78 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "9e15886071d2b00ed52f718fef209b21fe02ea29ada34bd4ec749c53b9b1e6e9",
+    "entity_identity": "8b6231d6e9bd8ba392d9dcb8ca22a5dd6144adbc1945b36de6c2dfc480e68a8d",
+    "attribute_bundle": [
+      "legal.case_number",
+      "legal.case_type"
+    ],
+    "context_mode": "section_map",
+    "context_hashes": [
+      "3ba9e2327a38731d2bbde38c16c7011f68fe2ec25af89d70c0bbef449f935961"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"8b6231d6e9bd8ba392d9dcb8ca22a5dd6144adbc1945b36de6c2dfc480e68a8d\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"487.txt:s1\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Criminal Case\",\n      \"normalized_value\": \"Criminal Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"487.txt:s1\",\n          \"exact_span\": \"They seek the removal of Mr Pascoe as trustee (s 179) and orders setting aside a formal request for documents made by him on 29 November 2006 (s 178).\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "487.txt:s1",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Criminal Case",
+          "normalized_value": "Criminal Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "487.txt:s1",
+              "exact_span": "They seek the removal of Mr Pascoe as trustee (s 179) and orders setting aside a formal request for documents made by him on 29 November 2006 (s 178)."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "8b6231d6e9bd8ba392d9dcb8ca22a5dd6144adbc1945b36de6c2dfc480e68a8d"
+    }
+  }
+}

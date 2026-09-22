@@ -1,0 +1,94 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "513af374a926614bf70794b5d70f48002d1cb78d9c022b5cb1ee90b5803971a3",
+    "entity_identity": "19f540e09b9f3a026b4b19c17c9c1f47fc352ae08fbd8d9457b194737062aaf6",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.evidence",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "cdbf57d095f7507773a7c5b3c9b974eab11723f1a7d79bfbf5894956b01611ac",
+      "8c2be56bdcbda247504def2af187e43b3f0e28bfa898fac91bc1a06a791a57fc",
+      "514c61d83be02e49819188e50796a674d3ea5d34595638abe4e211a98df5d98a",
+      "7e3acd410646049408c5e49b042d74fd0396ba01fc313fb5789fa45e82a81442"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"19f540e09b9f3a026b4b19c17c9c1f47fc352ae08fbd8d9457b194737062aaf6\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed the application\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"423.txt:c5\",\n          \"exact_span\": \"I would nevertheless dismiss the application.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2009\",\n      \"normalized_value\": 2009,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"423.txt:c7\",\n          \"exact_span\": \"Date of Judgment: 22 December 2009\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed the application",
+          "normalized_value": "dismissed the application",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "423.txt:c5",
+              "exact_span": "I would nevertheless dismiss the application."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "found",
+          "raw_value": "2009",
+          "normalized_value": 2009,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "423.txt:c7",
+              "exact_span": "Date of Judgment: 22 December 2009"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "19f540e09b9f3a026b4b19c17c9c1f47fc352ae08fbd8d9457b194737062aaf6"
+    }
+  }
+}

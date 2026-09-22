@@ -1,0 +1,66 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "077ada8abee5fdbf51165267370925ca766169a9002e1dbdaceee7a578bc8964",
+    "entity_identity": "finan_filter20:q15:93:map",
+    "attribute_bundle": [
+      "auditor",
+      "major_equity_changes"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "077ada8abee5fdbf51165267370925ca766169a9002e1dbdaceee7a578bc8964",
+      "af6b7d366ab1e8d3e98e2b2c5a868cc13929d7410728f5f6322b888b7fc73402",
+      "3ab6b291b8df137089c84b50e87a4d3644311de2fc2bb6637b7cbd80552d91a2",
+      "45799512abcd48f01222c6cfe21f76c2001db723ba2c9a73a4772092615594b7",
+      "b46d9f2f2a826ea3332e29b3aa58cc6815834ad2ad5bf07688b9606c70a338db",
+      "6f1e59450c954d7113f619088c306065e30df749c537cd3dc143d80419b644d3",
+      "28e98f277afb7f5f63bac04ff41dbb621e9780e9320671884c9a5fa05160194b",
+      "5b3d3f6f4769448c1dbe53fb6e6483766904e771cb099bea6a385ef8199f9fba"
+    ],
+    "schema_hash": "95a8a1a0814fb4decffa140fb6c8fbe443256ef4c58c9f2b4dc8a3d3025fbe37",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"auditor\": {\n        \"value\": \"Ernst & Young LLP\",\n        \"status\": \"found\",\n        \"evidence\": \"The Committee, having reviewed the performance and effectiveness of the external Auditor, was satisfied with the independence, objectivity, expertise, resources and general effectiveness of Ernst & Young LLP and that the Group is subject to a rigorous audit process.\"\n    },\n    \"major_equity_changes\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "Ernst & Young LLP",
+          "normalized_value": "Ernst & Young LLP",
+          "status": "found",
+          "evidence": "The Committee, having reviewed the performance and effectiveness of the external Auditor, was satisfied with the independence, objectivity, expertise, resources and general effectiveness of Ernst & Young LLP and that the Group is subject to a rigorous audit process.",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "major_equity_changes": {
+          "attribute": "major_equity_changes",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [],
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

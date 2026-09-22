@@ -1,0 +1,95 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "2d35dc3c82df6e1b357f59de67b308f484e2678ce3dbc20a0a3f05ad79835306",
+    "entity_identity": "8ee21a898d8920d55d15fb7426d5c91421e8aeb4b6e028e19d68855cab085ae8",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.case_number",
+      "legal.case_type"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "1a0dfb679af887760d94f8a0dfc7b568ae2072afa1f33faf9df59061e9d0698e",
+      "69b296ff21cd45bcb806535521412a1a83efff9ec3a38a976541575b02a2ffdc",
+      "da4dd089f10a57c8307329f0c987a86cf7b85c558c5718ef350212b4cb48b370",
+      "ba0a1f64300f284f89d73eda6d622e38ba412e469542365ae38238a3cbe1b3cd",
+      "0875791cb11c310f232351b7af4014490f0cee7651b75285b00fa62cadf5992a"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"8ee21a898d8920d55d15fb7426d5c91421e8aeb4b6e028e19d68855cab085ae8\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"52.txt:c4\",\n          \"exact_span\": \"R(3) of the Migration Act 1958 (Cth) ( the Act ).\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Civil Case\",\n      \"normalized_value\": \"Civil Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"52.txt:c19\",\n          \"exact_span\": \"The appeal should be dismissed with costs.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "52.txt:c4",
+              "exact_span": "R(3) of the Migration Act 1958 (Cth) ( the Act )."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Civil Case",
+          "normalized_value": "Civil Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "52.txt:c19",
+              "exact_span": "The appeal should be dismissed with costs."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "8ee21a898d8920d55d15fb7426d5c91421e8aeb4b6e028e19d68855cab085ae8"
+    }
+  }
+}

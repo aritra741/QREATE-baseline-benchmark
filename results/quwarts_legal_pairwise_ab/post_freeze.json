@@ -1,0 +1,164 @@
+{
+  "decision": "A fallback is better than pairwise aggregation",
+  "pre_gold": {
+    "A_eq_B_candidate": 228,
+    "A_eq_B_KEEP": 904,
+    "A_cand_B_cand": 682,
+    "A_cand_B_KEEP": 890,
+    "A_KEEP_B_cand": 274,
+    "scheduled_disagreements": 1846,
+    "completed_pairs": 1846,
+    "unscheduled": 0,
+    "judge_agreement": 1783,
+    "agreed_A": 0,
+    "agreed_B": 0,
+    "agreed_KEEP": 1783,
+    "judge_disagreement_fallback_A": 63,
+    "parse_failures": 4,
+    "tokens_by_purpose": {
+      "frozen_pass_B": 4022546,
+      "frozen_pass_A": 3468542,
+      "pairwise_J2": 950315,
+      "pairwise_J1": 938906
+    },
+    "tokens_by_judge": {
+      "J1": 938906,
+      "J2": 950315
+    },
+    "tokens_by_attribute": {
+      "case_number": 373635,
+      "case_type": 87877,
+      "defendant_current_status": 234575,
+      "first_judge": 147229,
+      "hearing_year": 206480,
+      "legal_basis_num": 440642,
+      "plaintiff_current_status": 254298,
+      "verdict": 144485
+    },
+    "causal_spent": 9380309,
+    "pairwise_spent": 1889221,
+    "official_accepted": 287,
+    "forbidden_inaccessible": true
+  },
+  "table": [
+    {
+      "arm": "plumbing",
+      "tokens": 0,
+      "accepted": 0,
+      "sql_visible": 0,
+      "f2": 0.20543217286914767,
+      "f1": 0.03653846153846154,
+      "product": 0.022455905439098717
+    },
+    {
+      "arm": "A",
+      "tokens": 3468542,
+      "accepted": 1800,
+      "sql_visible": 1800,
+      "f2": 0.6961383816078827,
+      "f1": 0.09580026455026455,
+      "product": 0.08813663898916835
+    },
+    {
+      "arm": "B",
+      "tokens": 7491088,
+      "accepted": 1184,
+      "sql_visible": 1184,
+      "f2": 0.4233812821461714,
+      "f1": 0.08457792207792209,
+      "product": 0.07056561859193439
+    },
+    {
+      "arm": "Judge 1 + A fallback",
+      "tokens": 9380309,
+      "accepted": 288,
+      "sql_visible": 288,
+      "f2": 0.32779298879500723,
+      "f1": 0.06550671550671551,
+      "product": 0.05004571329206447
+    },
+    {
+      "arm": "Judge 2 + A fallback",
+      "tokens": 9380309,
+      "accepted": 230,
+      "sql_visible": 230,
+      "f2": 0.32779298879500723,
+      "f1": 0.05300671550671551,
+      "product": 0.03754571329206447
+    },
+    {
+      "arm": "agreement replacements",
+      "tokens": 9380309,
+      "accepted": 287,
+      "sql_visible": 287,
+      "f2": 0.32779298879500723,
+      "f1": 0.06550671550671551,
+      "product": 0.05004571329206447
+    },
+    {
+      "arm": "agreement additions",
+      "tokens": 9380309,
+      "accepted": 1800,
+      "sql_visible": 1800,
+      "f2": 0.6961383816078827,
+      "f1": 0.09580026455026455,
+      "product": 0.08813663898916835
+    },
+    {
+      "arm": "official pairwise",
+      "tokens": 9380309,
+      "accepted": 287,
+      "sql_visible": 287,
+      "f2": 0.32779298879500723,
+      "f1": 0.06550671550671551,
+      "product": 0.05004571329206447
+    },
+    {
+      "arm": "DocETL",
+      "tokens": 50440043,
+      "accepted": "",
+      "sql_visible": "",
+      "f2": 0.789182868672047,
+      "f1": 0.12938762626262626,
+      "product": 0.12350932750098194
+    }
+  ],
+  "exact_accuracy": 0.02350570852921424,
+  "observational_accuracy": 0.050033579583613166,
+  "pairwise_accuracy_overall": 0.009750812567713976,
+  "by_disagreement": {
+    "A_cand_B_cand": {
+      "n": 682,
+      "exact": 14
+    },
+    "A_cand_B_KEEP": {
+      "n": 890,
+      "exact": 4
+    },
+    "A_KEEP_B_cand": {
+      "n": 274,
+      "exact": 0
+    }
+  },
+  "agree_accuracy": 0.0,
+  "disagree_accuracy": 0.2857142857142857,
+  "transitions": {
+    "A_to_B": 0,
+    "B_to_A": 59,
+    "candidate_to_KEEP": 1513,
+    "KEEP_to_candidate": 0
+  },
+  "diagnostic_AB_0_1301": {
+    "distance": 726,
+    "recovered_ids": 227,
+    "diag_writes": 904,
+    "official_writes": 287
+  },
+  "prefix_products": {
+    "prefix_25": 0.06006841677970979,
+    "prefix_50": 0.05832218376861234,
+    "prefix_75": 0.044294928129514605,
+    "prefix_100": 0.05004571329206447
+  },
+  "official_product": 0.05004571329206447
+}

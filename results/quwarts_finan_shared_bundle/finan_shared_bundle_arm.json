@@ -1,0 +1,636 @@
+{
+  "decision": "bundle extraction reduces per-field quality",
+  "invalid": false,
+  "invalid_reason": null,
+  "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+  "bundles": [
+    {
+      "attributes": [
+        "auditor",
+        "exchange_code",
+        "major_equity_changes"
+      ],
+      "signature": "auditor+exchange_code+major_equity_changes",
+      "size": 3
+    },
+    {
+      "attributes": [
+        "business_segments_num",
+        "principal_activities",
+        "total_debt"
+      ],
+      "signature": "business_segments_num+principal_activities+total_debt",
+      "size": 3
+    },
+    {
+      "attributes": [
+        "cash_reserves",
+        "net_profit_or_loss",
+        "revenue"
+      ],
+      "signature": "cash_reserves+net_profit_or_loss+revenue",
+      "size": 3
+    },
+    {
+      "attributes": [
+        "dividend_per_share"
+      ],
+      "signature": "dividend_per_share",
+      "size": 1
+    },
+    {
+      "attributes": [
+        "earnings_per_share",
+        "remuneration_policy"
+      ],
+      "signature": "earnings_per_share+remuneration_policy",
+      "size": 2
+    },
+    {
+      "attributes": [
+        "net_assets"
+      ],
+      "signature": "net_assets",
+      "size": 1
+    },
+    {
+      "attributes": [
+        "the_highest_ownership_stake"
+      ],
+      "signature": "the_highest_ownership_stake",
+      "size": 1
+    }
+  ],
+  "graph_edges": {
+    "cash_reserves|net_profit_or_loss": 1,
+    "cash_reserves|revenue": 1,
+    "cash_reserves|total_debt": 2,
+    "net_profit_or_loss|revenue": 2,
+    "net_profit_or_loss|total_debt": 2,
+    "revenue|total_debt": 1,
+    "remuneration_policy|revenue": 2,
+    "dividend_per_share|principal_activities": 1,
+    "cash_reserves|net_assets": 1,
+    "cash_reserves|principal_activities": 1,
+    "net_assets|principal_activities": 1,
+    "net_assets|total_debt": 1,
+    "principal_activities|total_debt": 1,
+    "auditor|exchange_code": 1,
+    "auditor|net_profit_or_loss": 2,
+    "auditor|revenue": 1,
+    "exchange_code|net_profit_or_loss": 2,
+    "exchange_code|revenue": 1,
+    "business_segments_num|principal_activities": 2,
+    "earnings_per_share|remuneration_policy": 1,
+    "earnings_per_share|revenue": 1,
+    "auditor|earnings_per_share": 1,
+    "major_equity_changes|the_highest_ownership_stake": 1,
+    "exchange_code|total_debt": 1,
+    "auditor|net_assets": 1,
+    "net_assets|net_profit_or_loss": 1,
+    "auditor|major_equity_changes": 1,
+    "cash_reserves|exchange_code": 1
+  },
+  "potential_tasks": 674,
+  "potential_packages": 100,
+  "scheduled_packages_25": 4,
+  "scheduled_packages_100": 17,
+  "executed_packages_25": 4,
+  "executed_packages_100": 17,
+  "documents_covered_25": 4,
+  "documents_covered_100": 17,
+  "attributes_attempted": [
+    "auditor",
+    "business_segments_num",
+    "cash_reserves",
+    "dividend_per_share",
+    "earnings_per_share",
+    "exchange_code",
+    "major_equity_changes",
+    "net_assets",
+    "net_profit_or_loss",
+    "principal_activities",
+    "remuneration_policy",
+    "revenue",
+    "the_highest_ownership_stake",
+    "total_debt"
+  ],
+  "reserved_25": 305308,
+  "reserved_100": 1373741,
+  "spent_25": 304741,
+  "spent_100": 1371376,
+  "unused_25": 40716,
+  "unused_100": 10451,
+  "calls": 115,
+  "whole_document": 6,
+  "truncated": 668,
+  "accepted_fields": 79,
+  "accepted_by_attribute": {
+    "net_profit_or_loss": 2,
+    "earnings_per_share": 2,
+    "exchange_code": 16,
+    "major_equity_changes": 15,
+    "business_segments_num": 9,
+    "principal_activities": 5,
+    "total_debt": 5,
+    "revenue": 8,
+    "auditor": 15,
+    "remuneration_policy": 1,
+    "the_highest_ownership_stake": 1
+  },
+  "blocked_overwrites": 0,
+  "changed_cells": 79,
+  "malformed": 0,
+  "missing_markers": 151,
+  "typed_rejects": 0,
+  "queries_changed": [
+    "finan_multiagg20:q4",
+    "finan_agg20:q4",
+    "finan_groupby20:q14",
+    "finan_agg20:q11",
+    "finan_agg20:q13",
+    "finan_filter20:q15",
+    "finan_agg20:q3",
+    "finan_agg20:q14"
+  ],
+  "empty_bags": [
+    "finan_filter20:q7",
+    "finan_multiagg20:q11",
+    "finan_agg20:q17",
+    "finan_filter20:q8",
+    "finan_filter20:q11"
+  ],
+  "score_25": {
+    "score_16": {
+      "mean_structure_f2": 0.32381076777628504,
+      "mean_cell_f1_at_0.20": 0.0328125,
+      "mean_per_query_product": 0.019657136844636845
+    },
+    "score_15": {
+      "mean_structure_f2": 0.3295251364216882,
+      "mean_cell_f1_at_0.20": 0.035,
+      "mean_per_query_product": 0.020967612634279303
+    }
+  },
+  "score_100": {
+    "score_16": {
+      "mean_structure_f2": 0.39578823953823955,
+      "mean_cell_f1_at_0.20": 0.0740092418546366,
+      "mean_per_query_product": 0.0410632404875826
+    },
+    "score_15": {
+      "mean_structure_f2": 0.3918710918710919,
+      "mean_cell_f1_at_0.20": 0.05989557226399332,
+      "mean_per_query_product": 0.03514278119541278
+    }
+  },
+  "comparators": {
+    "plumbing": 0.0158,
+    "exact_message_a1": 0.044,
+    "current_snapshot_replay": 0.0534,
+    "frozen_docetl": 0.084,
+    "diagnostic_m4": 0.0904
+  },
+  "per_query": [
+    {
+      "query_id": "finan_multiagg20:q4",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.125,
+      "product": 0.125,
+      "pred_rows": 2,
+      "plumbing_product": 0.125,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q7",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q18",
+      "structure_f2": 0.06493506493506494,
+      "cell_f1_20": 0.06666666666666667,
+      "product": 0.00432900432900433,
+      "pred_rows": 1,
+      "plumbing_product": 0.00432900432900433,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q4",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_groupby20:q14",
+      "structure_f2": 0.6363636363636365,
+      "cell_f1_20": 0.4210526315789474,
+      "product": 0.2679425837320575,
+      "pred_rows": 7,
+      "plumbing_product": 0.12345679012345678,
+      "delta": 0.1444857936086007
+    },
+    {
+      "query_id": "finan_agg20:q11",
+      "structure_f2": 1.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 6,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_multiagg20:q9",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q13",
+      "structure_f2": 0.45454545454545453,
+      "cell_f1_20": 0.28571428571428575,
+      "product": 0.12987012987012989,
+      "pred_rows": 2,
+      "plumbing_product": 0.0,
+      "delta": 0.12987012987012989
+    },
+    {
+      "query_id": "finan_agg20:q17",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q8",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q11",
+      "structure_f2": 0.0,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 0,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_filter20:q15",
+      "structure_f2": 0.5,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 2,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q3",
+      "structure_f2": 0.5555555555555556,
+      "cell_f1_20": 0.0,
+      "product": 0.0,
+      "pred_rows": 1,
+      "plumbing_product": 0.0,
+      "delta": 0.0
+    },
+    {
+      "query_id": "finan_agg20:q14",
+      "structure_f2": 0.45454545454545453,
+      "cell_f1_20": 0.28571428571428575,
+      "product": 0.12987012987012989,
+      "pred_rows": 2,
+      "plumbing_product": 0.0,
+      "delta": 0.12987012987012989
+    }
+  ],
+  "accuracy": {
+    "exact": {
+      "n": 79,
+      "exact": 25,
+      "tol": 25
+    },
+    "by_attribute": {
+      "auditor": {
+        "n": 15,
+        "exact": 0,
+        "tol": 0
+      },
+      "business_segments_num": {
+        "n": 9,
+        "exact": 3,
+        "tol": 3
+      },
+      "earnings_per_share": {
+        "n": 2,
+        "exact": 1,
+        "tol": 1
+      },
+      "exchange_code": {
+        "n": 16,
+        "exact": 12,
+        "tol": 12
+      },
+      "major_equity_changes": {
+        "n": 15,
+        "exact": 5,
+        "tol": 5
+      },
+      "net_profit_or_loss": {
+        "n": 2,
+        "exact": 1,
+        "tol": 1
+      },
+      "principal_activities": {
+        "n": 5,
+        "exact": 2,
+        "tol": 2
+      },
+      "remuneration_policy": {
+        "n": 1,
+        "exact": 0,
+        "tol": 0
+      },
+      "revenue": {
+        "n": 8,
+        "exact": 0,
+        "tol": 0
+      },
+      "the_highest_ownership_stake": {
+        "n": 1,
+        "exact": 1,
+        "tol": 1
+      },
+      "total_debt": {
+        "n": 5,
+        "exact": 0,
+        "tol": 0
+      }
+    },
+    "predicate_truth": {
+      "n": 72,
+      "ok": 43
+    },
+    "group_correctness": {
+      "n": 63,
+      "exact": 23
+    },
+    "sql_visible_fills": 78,
+    "fills_that_changed_scored_cell": 47
+  },
+  "contribution": {
+    "by_document": [
+      {
+        "document_id": "10",
+        "delta": 0.0
+      },
+      {
+        "document_id": "100",
+        "delta": 0.0
+      },
+      {
+        "document_id": "12",
+        "delta": 0.0
+      },
+      {
+        "document_id": "15",
+        "delta": 0.0
+      },
+      {
+        "document_id": "16",
+        "delta": 0.0
+      },
+      {
+        "document_id": "19",
+        "delta": 0.0
+      },
+      {
+        "document_id": "3",
+        "delta": 0.0
+      },
+      {
+        "document_id": "34",
+        "delta": 0.0
+      },
+      {
+        "document_id": "5",
+        "delta": 0.0
+      },
+      {
+        "document_id": "53",
+        "delta": 0.0
+      },
+      {
+        "document_id": "55",
+        "delta": 0.016233766233766236
+      },
+      {
+        "document_id": "6",
+        "delta": 0.0
+      },
+      {
+        "document_id": "73",
+        "delta": 0.0
+      },
+      {
+        "document_id": "75",
+        "delta": 0.0
+      },
+      {
+        "document_id": "76",
+        "delta": 0.0
+      },
+      {
+        "document_id": "83",
+        "delta": 0.0
+      },
+      {
+        "document_id": "90",
+        "delta": 0.0
+      }
+    ],
+    "by_attribute": [
+      {
+        "attribute": "auditor",
+        "delta": 0.00811688311688312,
+        "n": 15
+      },
+      {
+        "attribute": "business_segments_num",
+        "delta": 0.009030362100537544,
+        "n": 9
+      },
+      {
+        "attribute": "earnings_per_share",
+        "delta": 0.0,
+        "n": 2
+      },
+      {
+        "attribute": "exchange_code",
+        "delta": 0.00811688311688312,
+        "n": 16
+      },
+      {
+        "attribute": "major_equity_changes",
+        "delta": 0.0,
+        "n": 15
+      },
+      {
+        "attribute": "net_profit_or_loss",
+        "delta": 0.0,
+        "n": 2
+      },
+      {
+        "attribute": "principal_activities",
+        "delta": 0.009030362100537544,
+        "n": 5
+      },
+      {
+        "attribute": "remuneration_policy",
+        "delta": 0.0,
+        "n": 1
+      },
+      {
+        "attribute": "revenue",
+        "delta": 0.0,
+        "n": 8
+      },
+      {
+        "attribute": "the_highest_ownership_stake",
+        "delta": 0.0,
+        "n": 1
+      },
+      {
+        "attribute": "total_debt",
+        "delta": 0.0,
+        "n": 5
+      }
+    ]
+  },
+  "router": {
+    "input_cap": 12000,
+    "model_context_limit": 32768,
+    "completion_reservation": 142,
+    "ledger_safety_margin": 2048,
+    "max_instruction_tokens": 810,
+    "document_room": 11190,
+    "whole_document": 6,
+    "truncated": 668,
+    "token_before": {
+      "min": 8074,
+      "max": 908044,
+      "mean": 141305.32492581604
+    },
+    "token_after": {
+      "min": 8074,
+      "max": 12000,
+      "mean": 11966.013353115726
+    }
+  },
+  "policy": {
+    "operator": "shared_bundle_full_window",
+    "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+    "theta_25": 345457,
+    "theta_100": 1381827,
+    "max_bundle_size": 3,
+    "model_context_limit": 32768,
+    "target_input_lo": 10000,
+    "target_input_hi": 12000,
+    "ledger_safety_margin": 2048,
+    "completion_safety": 64,
+    "completion_reservation": 142,
+    "max_observed_primary_completion": 78,
+    "input_cap": 12000,
+    "router_llm": false,
+    "qwen_validation_retry": false,
+    "qwen_format_repair": false,
+    "exact_span_required": false,
+    "sentinels_materialized": false,
+    "overwrite_nonnull": false,
+    "shared_extracted_values": true,
+    "temperature": "omitted",
+    "max_tokens": "omitted",
+    "bypass_cache": true,
+    "workers": 1,
+    "seed": 42,
+    "scheduling": "complete_entity_package impact/reserved_cost",
+    "ranking": "total_impact / reserved_package_cost, tie-break __entity_id",
+    "context_router": "whole_document_if_fits else recovered_mid_cut_at_input_cap"
+  },
+  "hashes": {
+    "ordered_query_ids": "7107c8e6f4128aa31d14ffa21c73b1eec87ca70f687a81a8ae7bf5e415bace1d",
+    "document_ids": "e974b37f6fe5f3759590fe115fc4f0d313729ed1321c5f1a12453518397a09fe",
+    "source_contents": "8fbd34f4b3adf8a5daee91dbff4bbd9750e1597c699a8a5797ce0d3eda7e964e",
+    "inventory": "e3510d8ac5f178bbf970d9c13dade9b13027045772885333cce91bb9fec0cdcb",
+    "graph": "747f9542025182f062c2b936c3bd3bb098be84150caa4339aca55c7d26d755d0",
+    "bundles": "4134fe1ec452025282dee650551e5e61ca82689005d187f496f2823366b7861c",
+    "tasks": "9fadcce9a52446472c015f573e11040b7786d4e26e67235c4f8abc650abae56e",
+    "packages": "ff97c501ff34b02ecd43522388f48db8813b9607f6615ce0d4ecb85036df4621",
+    "schedule_25": "887ac271bec5f314eb2f8975261d89acbc946f75c0abd4de72af540acef1c8ac",
+    "schedule_100": "a4facfd18580f9a4fb3616164ffb0d33fd441dd17a3b119dd0dd649e46720ad2",
+    "policy": "848ecc95f6089e04eff54b49560eebfce3f9d9fc7f5fe9e2b5e6461674ad2fb1",
+    "plumbing": "ad91c2554f32510cb378737009e6479cfcb71299f245c7fe766722057b2b2a3d",
+    "router": "b00e4e470750f221da0aba9a60562b070845f3f9210415920cff91c66783b74b",
+    "rendered_prompts": "4454b79ddcae7cce876713ad6587d69baf6767cc40a19f0e45ef16ff9b38955c",
+    "exact_frozen": "2ca732b10253cc8d4fc383bf65935b7360635bc77cfd38672b53ff63532272e4",
+    "replay_frozen": "2c362e9e73e0020cbf0f42289a7ca814f0f675d016be8e025c07910345b7638f",
+    "rendered_prompts_file": "001a82cf3d76f99c63fb7528216ed51f9b0bff8df30f6d0e4df57c24eaf1236b"
+  },
+  "invariants": {
+    "exact_16_queries": true,
+    "union_matches_ast": true,
+    "bundles_size_1_to_3": true,
+    "tasks_have_null": true,
+    "packages_complete": true,
+    "empty_overlay_reproduces_plumbing": true,
+    "fill_only_null": true,
+    "cannot_overwrite_nonnull": true,
+    "one_shared_value": true,
+    "all_100_rows": true,
+    "official_queries_execute": true,
+    "theta25_prefix": true,
+    "no_gold_imported": true,
+    "isolation": true,
+    "input_cap": 12000,
+    "completion_reservation": 142
+  },
+  "prior_unmodified": {
+    "plumbing": true,
+    "exact": true,
+    "replay": true
+  },
+  "isolation_failures": []
+}

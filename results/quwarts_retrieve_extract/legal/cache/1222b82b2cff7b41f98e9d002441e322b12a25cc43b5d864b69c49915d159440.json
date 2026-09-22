@@ -1,0 +1,77 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "5578deb476e38d25b1d7f552ec2762de8ff43cba350e7080cbe036bf7a3fad5f",
+    "entity_identity": "8dffa0e89d8d36c86723028ff3fac57a372a886b163c2a03fd7e818833dac80e",
+    "attribute_bundle": [
+      "legal.legal_basis_num",
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "585cfa64b39717723d2a59c0f340ba7eae06f677204bdd8154e47dda6be8e577",
+      "79232313726e2917bfac84b73f6d37216377336a19143a8e599f8900b5ee9cda",
+      "f6229b547e16ef051ad6ba84b60684fb217d3a673f6577843eddfdeea544ca53",
+      "c8921706d1732056d83bca667db7278ce907c57ebab9676f60fffded67ea4115"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"8dffa0e89d8d36c86723028ff3fac57a372a886b163c2a03fd7e818833dac80e\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.legal_basis_num\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"437.txt:c30\",\n          \"exact_span\": \"\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"437.txt:c30\",\n          \"exact_span\": \"32 It follows therefore that none of the grounds of appeal to this Court have been made out and the appeal must be dismissed with costs.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.legal_basis_num": {
+          "attribute": "legal.legal_basis_num",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "437.txt:c30",
+              "exact_span": ""
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "437.txt:c30",
+              "exact_span": "32 It follows therefore that none of the grounds of appeal to this Court have been made out and the appeal must be dismissed with costs."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "8dffa0e89d8d36c86723028ff3fac57a372a886b163c2a03fd7e818833dac80e"
+    }
+  }
+}

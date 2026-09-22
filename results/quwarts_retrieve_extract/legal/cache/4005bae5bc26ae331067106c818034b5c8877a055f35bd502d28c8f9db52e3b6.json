@@ -1,0 +1,81 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "ebc4901954674f2ffa874f10c13f661dd386cde897c27afdc74604aa1a212dcd",
+    "entity_identity": "96da1be1112f723fced19bf3e9f60851f314a75433f682dd195d57e5de037346",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "d2ebfafc1aa239daade95da680f5966802e9ef9e8795bf26d3e2345fe96fd292",
+      "8910b34392ed261d20f6fc65b9ac0be488016aaaa9d5f19e4a42c221bf976a34",
+      "dcb0b888f9b47577148f1ac2c456b69826d7883f39b9c21f948c8ff6c35143bf",
+      "f51bf0965dc11bfd5d8302c2a7adbf7dc12df9a9d06593da555fc2c15206c08b"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"96da1be1112f723fced19bf3e9f60851f314a75433f682dd195d57e5de037346\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Administrative Case\",\n      \"normalized_value\": \"Administrative Case\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"118.txt:c3\",\n          \"exact_span\": \"IN THE FEDERAL COURT OF AUSTRALIA\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"118.txt:c3\",\n          \"exact_span\": \"The application for review by way of appeal from the decision of the Administrative Appeals Tribunal made on 27 July 2005 be dismissed.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Administrative Case",
+          "normalized_value": "Administrative Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "118.txt:c3",
+              "exact_span": "IN THE FEDERAL COURT OF AUSTRALIA"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed",
+          "normalized_value": "dismissed",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "118.txt:c3",
+              "exact_span": "The application for review by way of appeal from the decision of the Administrative Appeals Tribunal made on 27 July 2005 be dismissed."
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "96da1be1112f723fced19bf3e9f60851f314a75433f682dd195d57e5de037346"
+    }
+  }
+}

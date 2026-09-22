@@ -1,0 +1,1503 @@
+[
+  {
+    "query_id": "legal_multiagg20:q4",
+    "table": "legal",
+    "sql": "SELECT first_judge, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count FROM legal WHERE first_judge IS NOT NULL AND case_number IS NOT NULL GROUP BY first_judge",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT first_judge, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count FROM legal WHERE first_judge IS NOT NULL AND case_number IS NOT NULL GROUP BY first_judge\n\nFrom this legal document, extract exactly one record with these fields:\n- case_number\n- first_judge\n- legal_basis_num\n- verdict\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: case_number, legal_basis_num.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "case_number",
+      "first_judge",
+      "legal_basis_num",
+      "verdict"
+    ],
+    "output_schema": {
+      "case_number": "number",
+      "first_judge": "str",
+      "legal_basis_num": "number",
+      "verdict": "str"
+    },
+    "field_descriptions": {
+      "case_number": {
+        "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "first_judge": {
+        "description": "whether it was the first judgment (1 if yes, 0 if none; e.g., 1)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "legal_basis_num": {
+        "description": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "verdict": {
+        "description": "court's decision, choose one from: [Guilty, Not Guilty, Others, Dismissed, Approved]; (e.g., Guilty)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "case_number": {
+                "type": "number"
+              },
+              "first_judge": {
+                "type": "string"
+              },
+              "legal_basis_num": {
+                "type": "number"
+              },
+              "verdict": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "case_number",
+              "first_judge",
+              "legal_basis_num",
+              "verdict"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "73a8da498313a526784a157d73e80ce86d31458255f30488319557b5486a8f7d"
+  },
+  {
+    "query_id": "legal_filter20:q9",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, COUNT(*) AS case_count FROM legal WHERE verdict = 'Approved' AND plaintiff_current_status != '' GROUP BY plaintiff_family",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, COUNT(*) AS case_count FROM legal WHERE verdict = 'Approved' AND plaintiff_current_status != '' GROUP BY plaintiff_family\n\nFrom this legal document, extract exactly one record with these fields:\n- plaintiff_current_status\n- verdict\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: none.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "plaintiff_current_status",
+      "verdict"
+    ],
+    "output_schema": {
+      "plaintiff_current_status": "str",
+      "verdict": "str"
+    },
+    "field_descriptions": {
+      "plaintiff_current_status": {
+        "description": "current occupation or type of the plaintiff (if an individual, write occupation; if multiple people, use the first individual's occupation; if an organization, write 'organization'; if a company, write 'company'; if a government body, write 'government'; leave empty if unknown; e.g., company)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "verdict": {
+        "description": "court's decision, choose one from: [Guilty, Not Guilty, Others, Dismissed, Approved]; (e.g., Guilty)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "plaintiff_current_status": {
+                "type": "string"
+              },
+              "verdict": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "plaintiff_current_status",
+              "verdict"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "106f3c89e8c5e1f4269415dd146a5853e5941315869a28aa099d530481d43bf4"
+  },
+  {
+    "query_id": "legal_filter20:q7",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(case_number) AS avg_precedents FROM legal WHERE hearing_year BETWEEN 2006 AND 2008 AND case_number IS NOT NULL GROUP BY verdict_family",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(case_number) AS avg_precedents FROM legal WHERE hearing_year BETWEEN 2006 AND 2008 AND case_number IS NOT NULL GROUP BY verdict_family\n\nFrom this legal document, extract exactly one record with these fields:\n- case_number\n- hearing_year\n- verdict\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: case_number.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "case_number",
+      "hearing_year",
+      "verdict"
+    ],
+    "output_schema": {
+      "case_number": "number",
+      "hearing_year": "str",
+      "verdict": "str"
+    },
+    "field_descriptions": {
+      "case_number": {
+        "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "hearing_year": {
+        "description": "year when the hearing began; use format YYYY (e.g., 2009)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "verdict": {
+        "description": "court's decision, choose one from: [Guilty, Not Guilty, Others, Dismissed, Approved]; (e.g., Guilty)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "case_number": {
+                "type": "number"
+              },
+              "hearing_year": {
+                "type": "string"
+              },
+              "verdict": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "case_number",
+              "hearing_year",
+              "verdict"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "73cef73cd12fafb85a5eb6665222a901c00ee09ab647aa4d4bf9e73a6fb32251"
+  },
+  {
+    "query_id": "legal_multiagg20:q11",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END AS statute_band, COUNT(*) AS case_count, AVG(case_number) AS avg_precedents, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count FROM legal WHERE case_number IS NOT NULL GROUP BY statute_band",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END AS statute_band, COUNT(*) AS case_count, AVG(case_number) AS avg_precedents, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count FROM legal WHERE case_number IS NOT NULL GROUP BY statute_band\n\nFrom this legal document, extract exactly one record with these fields:\n- case_number\n- legal_basis_num\n- verdict\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: case_number, legal_basis_num.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "case_number",
+      "legal_basis_num",
+      "verdict"
+    ],
+    "output_schema": {
+      "case_number": "number",
+      "legal_basis_num": "number",
+      "verdict": "str"
+    },
+    "field_descriptions": {
+      "case_number": {
+        "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "legal_basis_num": {
+        "description": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "verdict": {
+        "description": "court's decision, choose one from: [Guilty, Not Guilty, Others, Dismissed, Approved]; (e.g., Guilty)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "case_number": {
+                "type": "number"
+              },
+              "legal_basis_num": {
+                "type": "number"
+              },
+              "verdict": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "case_number",
+              "legal_basis_num",
+              "verdict"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "45a08a7a6e022ba87f00d3baa2e291a2d2c0c0f87a4570769dc6d944757315e5"
+  },
+  {
+    "query_id": "legal_multiagg20:q18",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status != '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE plaintiff_current_status != '' AND defendant_current_status != '' AND case_number IS NOT NULL GROUP BY plaintiff_family, defendant_family HAVING COUNT(*) >= 3",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status != '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE plaintiff_current_status != '' AND defendant_current_status != '' AND case_number IS NOT NULL GROUP BY plaintiff_family, defendant_family HAVING COUNT(*) >= 3\n\nFrom this legal document, extract exactly one record with these fields:\n- case_number\n- defendant_current_status\n- legal_basis_num\n- plaintiff_current_status\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: case_number, legal_basis_num.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "case_number",
+      "defendant_current_status",
+      "legal_basis_num",
+      "plaintiff_current_status"
+    ],
+    "output_schema": {
+      "case_number": "number",
+      "defendant_current_status": "str",
+      "legal_basis_num": "number",
+      "plaintiff_current_status": "str"
+    },
+    "field_descriptions": {
+      "case_number": {
+        "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "defendant_current_status": {
+        "description": "current occupation or type of the defendant (rules same as for plaintiff; e.g., government)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "legal_basis_num": {
+        "description": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "plaintiff_current_status": {
+        "description": "current occupation or type of the plaintiff (if an individual, write occupation; if multiple people, use the first individual's occupation; if an organization, write 'organization'; if a company, write 'company'; if a government body, write 'government'; leave empty if unknown; e.g., company)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "case_number": {
+                "type": "number"
+              },
+              "defendant_current_status": {
+                "type": "string"
+              },
+              "legal_basis_num": {
+                "type": "number"
+              },
+              "plaintiff_current_status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "case_number",
+              "defendant_current_status",
+              "legal_basis_num",
+              "plaintiff_current_status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "43ea1f37859ff1fade0b6fd05c18b3137a2a5416ed5506241aab9398fba7d605"
+  },
+  {
+    "query_id": "legal_agg20:q4",
+    "table": "legal",
+    "sql": "SELECT first_judge, COUNT(*) AS case_count FROM legal WHERE first_judge IS NOT NULL GROUP BY first_judge",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT first_judge, COUNT(*) AS case_count FROM legal WHERE first_judge IS NOT NULL GROUP BY first_judge\n\nFrom this legal document, extract exactly one record with these fields:\n- first_judge\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: none.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "first_judge"
+    ],
+    "output_schema": {
+      "first_judge": "str"
+    },
+    "field_descriptions": {
+      "first_judge": {
+        "description": "whether it was the first judgment (1 if yes, 0 if none; e.g., 1)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "first_judge": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "first_judge"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "6357413ec6cbaa7c8eb2677fb1f18511027b4eda3b97732cbee21bdba7e88ffb"
+  },
+  {
+    "query_id": "legal_groupby20:q14",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END AS precedent_band, COUNT(*) AS case_count FROM legal WHERE case_number IS NOT NULL GROUP BY case_family, precedent_band",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END AS precedent_band, COUNT(*) AS case_count FROM legal WHERE case_number IS NOT NULL GROUP BY case_family, precedent_band\n\nFrom this legal document, extract exactly one record with these fields:\n- case_number\n- case_type\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: case_number.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "case_number",
+      "case_type"
+    ],
+    "output_schema": {
+      "case_number": "number",
+      "case_type": "str"
+    },
+    "field_descriptions": {
+      "case_number": {
+        "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "case_type": {
+        "description": "type of the case, choose one from [Criminal Case, Civil Case, Commercial Case, Administrative Case]; (e.g., Criminal Case)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "case_number": {
+                "type": "number"
+              },
+              "case_type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "case_number",
+              "case_type"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "45c234d0737b1828f1a5b291eff199fb9d9920ecd6c7effdbd939f295910fe69"
+  },
+  {
+    "query_id": "legal_agg20:q11",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, COUNT(*) AS case_count FROM legal WHERE plaintiff_current_status != '' GROUP BY plaintiff_family",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, COUNT(*) AS case_count FROM legal WHERE plaintiff_current_status != '' GROUP BY plaintiff_family\n\nFrom this legal document, extract exactly one record with these fields:\n- plaintiff_current_status\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: none.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "plaintiff_current_status"
+    ],
+    "output_schema": {
+      "plaintiff_current_status": "str"
+    },
+    "field_descriptions": {
+      "plaintiff_current_status": {
+        "description": "current occupation or type of the plaintiff (if an individual, write occupation; if multiple people, use the first individual's occupation; if an organization, write 'organization'; if a company, write 'company'; if a government body, write 'government'; leave empty if unknown; e.g., company)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "plaintiff_current_status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "plaintiff_current_status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "a8bef82daf50b668c13b507956922c8967fcbbc8f9a3c7990f8b4bd149b2d039"
+  },
+  {
+    "query_id": "legal_multiagg20:q9",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family, verdict_family HAVING COUNT(*) >= 5",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family, verdict_family HAVING COUNT(*) >= 5\n\nFrom this legal document, extract exactly one record with these fields:\n- case_number\n- case_type\n- legal_basis_num\n- verdict\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: case_number, legal_basis_num.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "case_number",
+      "case_type",
+      "legal_basis_num",
+      "verdict"
+    ],
+    "output_schema": {
+      "case_number": "number",
+      "case_type": "str",
+      "legal_basis_num": "number",
+      "verdict": "str"
+    },
+    "field_descriptions": {
+      "case_number": {
+        "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "case_type": {
+        "description": "type of the case, choose one from [Criminal Case, Civil Case, Commercial Case, Administrative Case]; (e.g., Criminal Case)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "legal_basis_num": {
+        "description": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "verdict": {
+        "description": "court's decision, choose one from: [Guilty, Not Guilty, Others, Dismissed, Approved]; (e.g., Guilty)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "case_number": {
+                "type": "number"
+              },
+              "case_type": {
+                "type": "string"
+              },
+              "legal_basis_num": {
+                "type": "number"
+              },
+              "verdict": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "case_number",
+              "case_type",
+              "legal_basis_num",
+              "verdict"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "0ea8a461b70cb581dedd2af363948bd0cde13b647f3a1a153df4101816a1d939"
+  },
+  {
+    "query_id": "legal_agg20:q13",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, MAX(case_number) AS max_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, MAX(case_number) AS max_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family\n\nFrom this legal document, extract exactly one record with these fields:\n- case_number\n- case_type\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: case_number.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "case_number",
+      "case_type"
+    ],
+    "output_schema": {
+      "case_number": "number",
+      "case_type": "str"
+    },
+    "field_descriptions": {
+      "case_number": {
+        "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "case_type": {
+        "description": "type of the case, choose one from [Criminal Case, Civil Case, Commercial Case, Administrative Case]; (e.g., Criminal Case)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "case_number": {
+                "type": "number"
+              },
+              "case_type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "case_number",
+              "case_type"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "d267201be03bd5c7b93795a16242ff30c05ff95e8b9b1bda69985f10e339bdae"
+  },
+  {
+    "query_id": "legal_agg20:q17",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status != '' THEN 'Other' END AS defendant_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE defendant_current_status != '' GROUP BY defendant_family",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status != '' THEN 'Other' END AS defendant_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE defendant_current_status != '' GROUP BY defendant_family\n\nFrom this legal document, extract exactly one record with these fields:\n- defendant_current_status\n- legal_basis_num\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: legal_basis_num.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "defendant_current_status",
+      "legal_basis_num"
+    ],
+    "output_schema": {
+      "defendant_current_status": "str",
+      "legal_basis_num": "number"
+    },
+    "field_descriptions": {
+      "defendant_current_status": {
+        "description": "current occupation or type of the defendant (rules same as for plaintiff; e.g., government)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "legal_basis_num": {
+        "description": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "defendant_current_status": {
+                "type": "string"
+              },
+              "legal_basis_num": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "defendant_current_status",
+              "legal_basis_num"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "cc5a52941058d51b3139152ae2759b57ff555643a35be4685fbdd58c601432d3"
+  },
+  {
+    "query_id": "legal_filter20:q8",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END AS precedent_band, COUNT(*) AS case_count FROM legal WHERE case_type = 'Civil Case' AND case_number IS NOT NULL GROUP BY precedent_band",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END AS precedent_band, COUNT(*) AS case_count FROM legal WHERE case_type = 'Civil Case' AND case_number IS NOT NULL GROUP BY precedent_band\n\nFrom this legal document, extract exactly one record with these fields:\n- case_number\n- case_type\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: case_number.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "case_number",
+      "case_type"
+    ],
+    "output_schema": {
+      "case_number": "number",
+      "case_type": "str"
+    },
+    "field_descriptions": {
+      "case_number": {
+        "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      },
+      "case_type": {
+        "description": "type of the case, choose one from [Criminal Case, Civil Case, Commercial Case, Administrative Case]; (e.g., Criminal Case)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "case_number": {
+                "type": "number"
+              },
+              "case_type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "case_number",
+              "case_type"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "4fd3f8d8e3e5ad9c755e09c68dede909b68ea5eb3bc6d38ee84be6ac85069535"
+  },
+  {
+    "query_id": "legal_filter20:q11",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE defendant_current_status = 'Government' GROUP BY case_family",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE defendant_current_status = 'Government' GROUP BY case_family\n\nFrom this legal document, extract exactly one record with these fields:\n- case_type\n- defendant_current_status\n- legal_basis_num\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: legal_basis_num.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "case_type",
+      "defendant_current_status",
+      "legal_basis_num"
+    ],
+    "output_schema": {
+      "case_type": "str",
+      "defendant_current_status": "str",
+      "legal_basis_num": "number"
+    },
+    "field_descriptions": {
+      "case_type": {
+        "description": "type of the case, choose one from [Criminal Case, Civil Case, Commercial Case, Administrative Case]; (e.g., Criminal Case)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "defendant_current_status": {
+        "description": "current occupation or type of the defendant (rules same as for plaintiff; e.g., government)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "legal_basis_num": {
+        "description": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "case_type": {
+                "type": "string"
+              },
+              "defendant_current_status": {
+                "type": "string"
+              },
+              "legal_basis_num": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "case_type",
+              "defendant_current_status",
+              "legal_basis_num"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "418442946b216bd2798063083a8e293ecddfddcadc6754508f08dae38937ecef"
+  },
+  {
+    "query_id": "legal_filter20:q15",
+    "table": "legal",
+    "sql": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE plaintiff_current_status = 'Company' AND defendant_current_status IN ('Company', 'Organization', 'Government') GROUP BY verdict_family",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE plaintiff_current_status = 'Company' AND defendant_current_status IN ('Company', 'Organization', 'Government') GROUP BY verdict_family\n\nFrom this legal document, extract exactly one record with these fields:\n- defendant_current_status\n- plaintiff_current_status\n- verdict\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: none.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "defendant_current_status",
+      "plaintiff_current_status",
+      "verdict"
+    ],
+    "output_schema": {
+      "defendant_current_status": "str",
+      "plaintiff_current_status": "str",
+      "verdict": "str"
+    },
+    "field_descriptions": {
+      "defendant_current_status": {
+        "description": "current occupation or type of the defendant (rules same as for plaintiff; e.g., government)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "plaintiff_current_status": {
+        "description": "current occupation or type of the plaintiff (if an individual, write occupation; if multiple people, use the first individual's occupation; if an organization, write 'organization'; if a company, write 'company'; if a government body, write 'government'; leave empty if unknown; e.g., company)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "verdict": {
+        "description": "court's decision, choose one from: [Guilty, Not Guilty, Others, Dismissed, Approved]; (e.g., Guilty)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "defendant_current_status": {
+                "type": "string"
+              },
+              "plaintiff_current_status": {
+                "type": "string"
+              },
+              "verdict": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "defendant_current_status",
+              "plaintiff_current_status",
+              "verdict"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "c3794a7997e12213edd87dc72aab24519a1faec05873f98121b59fc4087c1e7f"
+  },
+  {
+    "query_id": "legal_agg20:q3",
+    "table": "legal",
+    "sql": "SELECT hearing_year, COUNT(*) AS case_count FROM legal WHERE hearing_year BETWEEN 2005 AND 2009 GROUP BY hearing_year",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT hearing_year, COUNT(*) AS case_count FROM legal WHERE hearing_year BETWEEN 2005 AND 2009 GROUP BY hearing_year\n\nFrom this legal document, extract exactly one record with these fields:\n- hearing_year\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: none.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "hearing_year"
+    ],
+    "output_schema": {
+      "hearing_year": "str"
+    },
+    "field_descriptions": {
+      "hearing_year": {
+        "description": "year when the hearing began; use format YYYY (e.g., 2009)",
+        "value_type": "str",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "hearing_year": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hearing_year"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "86ecd27cf0701b319062d51d7f2a766a98bebc604f9d7d8c640832664174ed0d"
+  },
+  {
+    "query_id": "legal_agg20:q14",
+    "table": "legal",
+    "sql": "SELECT first_judge, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE first_judge IS NOT NULL GROUP BY first_judge",
+    "system_prompt": "You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.",
+    "user_template": "You are building a structured legal table for this natural-language query:\nSELECT first_judge, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE first_judge IS NOT NULL GROUP BY first_judge\n\nFrom this legal document, extract exactly one record with these fields:\n- first_judge\n- legal_basis_num\n\nFor numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: legal_basis_num.\nIf a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.\n\nDocument:\n{{ input.text }}",
+    "fields": [
+      "first_judge",
+      "legal_basis_num"
+    ],
+    "output_schema": {
+      "first_judge": "str",
+      "legal_basis_num": "number"
+    },
+    "field_descriptions": {
+      "first_judge": {
+        "description": "whether it was the first judgment (1 if yes, 0 if none; e.g., 1)",
+        "value_type": "str",
+        "supplied_to_model": false
+      },
+      "legal_basis_num": {
+        "description": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+        "value_type": "int",
+        "supplied_to_model": false
+      }
+    },
+    "missing_value": {
+      "numeric": "If a numeric field is unknown, return -1.",
+      "text": "If a text field is unknown, return empty string."
+    },
+    "tool_schema": [
+      {
+        "type": "function",
+        "function": {
+          "name": "send_output",
+          "description": "Send output back to the user",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "first_judge": {
+                "type": "string"
+              },
+              "legal_basis_num": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "first_judge",
+              "legal_basis_num"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "strict": true
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "send_output"
+      }
+    },
+    "truncation": {
+      "function": "docetl.operations.utils.llm.truncate_messages",
+      "meter": "tiktoken gpt-4o encode of json.dumps(message)",
+      "max_input_tokens": 32768,
+      "limit_source": "litellm.model_cost:openrouter/qwen/qwen-2.5-7b-instruct",
+      "fit_margin": 100,
+      "excess_pad": 200,
+      "cut": "middle of the longest message",
+      "encoder_fallback": "gpt-4o because qwen-2.5-7b-instruct is not a tiktoken model"
+    },
+    "model_parameters": {
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "temperature": null,
+      "max_tokens": null,
+      "completion_reservation": 0,
+      "timeout_seconds": 420,
+      "max_retries_per_timeout": 2,
+      "skip_on_error": true,
+      "bypass_cache": true,
+      "gleaning": false,
+      "resolve": false,
+      "threads": 4,
+      "query_text": "benchmark SQL; the sampled queries have no natural-language descriptions"
+    },
+    "expert_hash": "87b19aa0377b561fc453ab3fc2621c3ba5bf3a333fe431124c0729bc935047c6"
+  }
+]

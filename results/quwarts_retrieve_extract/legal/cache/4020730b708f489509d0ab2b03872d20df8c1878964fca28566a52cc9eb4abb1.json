@@ -1,0 +1,65 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "e166789e284192f84d8e636e61cab94704ab1301c85f8ddb62b2d0bb1168c725",
+    "entity_identity": "66891099e2b1dbede231a75f71dbc04fb5b4b9c299237bda664ea1e08d459e55",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "a242fd253277614b581ff40fb2e016259df033bb8a253880edb06c6506fcfe68",
+      "2fe1898abda989466aa36586f38e2df78dc17853dc70da433e130f9649d62878",
+      "82ff25b726acf9279935cc0009c1121e7e8acb3b65e58a98adbb1ff20e2ae6ca",
+      "cc0a2195c7c03d7f1e7b72367347c7ba82cf2e4532028d43a6b0b5e84f4410d8"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"66891099e2b1dbede231a75f71dbc04fb5b4b9c299237bda664ea1e08d459e55\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"no evidence of fraud in the case\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"129.txt:c10\",\n          \"exact_span\": \"As I have said, the Magistrate said that there was no evidence of fraud in the case.\"\n        },\n        {\n          \"source_id\": \"129.txt:c9\",\n          \"exact_span\": \"As to the evidence of the third party, the Magistrate appears to have accepted that the third party was advised by Mr Han not to attend the Tribunal (although apparently that advice was given for a different reason to that given to the appellant) and that as a result he did not go. He, like the appellant, would have gone if he had been told that his attendance was necessary or useful.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "no evidence of fraud in the case",
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "129.txt:c10",
+              "exact_span": "As I have said, the Magistrate said that there was no evidence of fraud in the case."
+            },
+            {
+              "source_id": "129.txt:c9",
+              "exact_span": "As to the evidence of the third party, the Magistrate appears to have accepted that the third party was advised by Mr Han not to attend the Tribunal (although apparently that advice was given for a different reason to that given to the appellant) and that as a result he did not go. He, like the appellant, would have gone if he had been told that his attendance was necessary or useful."
+            }
+          ],
+          "errors": [
+            "dtype_coercion"
+          ],
+          "grounded": true,
+          "norm_error": "dtype_coercion"
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "66891099e2b1dbede231a75f71dbc04fb5b4b9c299237bda664ea1e08d459e55"
+    }
+  }
+}

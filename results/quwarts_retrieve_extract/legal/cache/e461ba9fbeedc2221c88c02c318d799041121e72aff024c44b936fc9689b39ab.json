@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "afeae70456196eb092a5a717e416748ed27b5cfbaa2f5986e8816cc06c72e197",
+    "entity_identity": "6fe777c55cd1e97d86e07a957df13178cbe7ef9d7835333e814d6ec86855ba50",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "c7e1b8e9486e4e8895e00ce4486ddc0652ccdb5ad51e4f13056c06e05375ab0d",
+      "7dc8eb88be45c8ad05a584464624ae7983a7f6799be268e3a652f7da44aa19b0",
+      "e5ec728fd2ce52507b59bc95d318e77ffc68648569a2db36e47147ea705f1cb6",
+      "13e463b3222192e96e02abeed77a6ec1b76a05f585a278c390b935f315dc05e3"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"6fe777c55cd1e97d86e07a957df13178cbe7ef9d7835333e814d6ec86855ba50\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"166.txt:c73\",\n          \"exact_span\": \"The applicant invites me to infer, on the basis of this affidavit, that Mr Leggatt did not seek specific instructions from Mr Williams in relation to the discovery application.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "166.txt:c73",
+              "exact_span": "The applicant invites me to infer, on the basis of this affidavit, that Mr Leggatt did not seek specific instructions from Mr Williams in relation to the discovery application."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "6fe777c55cd1e97d86e07a957df13178cbe7ef9d7835333e814d6ec86855ba50"
+    }
+  }
+}

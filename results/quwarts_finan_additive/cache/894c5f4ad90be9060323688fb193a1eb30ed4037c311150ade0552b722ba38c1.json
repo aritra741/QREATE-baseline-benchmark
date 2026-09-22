@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "805b61b3beab6ae87b9ceab9f33b99add3a79470e2709efac2cc8d0e3b3c13c9",
+    "entity_identity": "b2029244fe239667779767b0d8535e10f3e38053c768099ce26370740a2516da",
+    "attribute_bundle": [
+      "finance.remuneration_policy"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "32843c1aee1fe8daaa93fbb314e0aea0f66da2393089366782013cf54c611219",
+      "a94e37cf184138aad76b63e0bc7846ae17956ccbe456217cbe198ca1944e68e2",
+      "f695d05db6e802f11acf8697a40e5bd2a344b0978f8d5beefe43094a04fc1cd8",
+      "a3cd09409fbee4d1d304eff09458f5928d16386e8f7be3f253ae09c98990e48a"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "8618065b9994933e17c6553ab9e03b3345ff0d7b46bd8165fca4d7036da6e1e2",
+    "operator": "finan_additive",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"b2029244fe239667779767b0d8535e10f3e38053c768099ce26370740a2516da\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.remuneration_policy\",\n      \"status\": \"found\",\n      \"raw_value\": \"Performance-based\",\n      \"normalized_value\": \"Performance-based\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"20.txt:c360\",\n          \"exact_span\": \"Compensation expense related to awards to employees with performancebased vesting conditions is recognized based on the grant date fair value over the requisite service period using the straight-line method to the extent achievement of the performance condition is probable.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "finance.remuneration_policy": {
+          "attribute": "finance.remuneration_policy",
+          "status": "found",
+          "raw_value": "Performance-based",
+          "normalized_value": "Performance-based",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "20.txt:c360",
+              "exact_span": "Compensation expense related to awards to employees with performancebased vesting conditions is recognized based on the grant date fair value over the requisite service period using the straight-line method to the extent achievement of the performance condition is probable."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:finance.remuneration_policy"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "b2029244fe239667779767b0d8535e10f3e38053c768099ce26370740a2516da"
+    }
+  }
+}

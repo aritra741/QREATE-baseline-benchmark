@@ -1,0 +1,66 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+    "entity_identity": "finan_filter20:q15:78:map",
+    "attribute_bundle": [
+      "auditor",
+      "major_equity_changes"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+      "6ae9b0a3367d89941a9d0fe88a577f0709b953591232cb2ce309ce6b098c829f",
+      "db4384c32cc9a45b07fa3a443691c7eaeb986d4fbc6319890a33a293e84e0c02",
+      "0c9e67b078f1f06ec45648c7d2f38d4f2d537cc99b7c8faf8d725fbbb1f91ec0",
+      "a8074cc4b56e335e77bcfdf017361fca743b1a3225b09ca91a75c7e30ff3ca6b",
+      "4a4d6e27cf339ae9445d495633d404362f35447107b3522d5346394427c33d3f",
+      "29bd2a3109eff105fbc482dea39d85964061644dcba4f07a4e738603dcfbaabf",
+      "d57753ca6611f2c61cde0b3f29ac8aea24ed48deea8cd33fe61841796412e4a0"
+    ],
+    "schema_hash": "95a8a1a0814fb4decffa140fb6c8fbe443256ef4c58c9f2b4dc8a3d3025fbe37",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"auditor\": {\n        \"value\": \"PricewaterhouseCoopers GmbH\",\n        \"status\": \"found\",\n        \"evidence\": \"PricewaterhouseCoopers GmbH Wirtschaftspr\u00fcfungsgesellschaft\"\n    },\n    \"major_equity_changes\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "PricewaterhouseCoopers GmbH",
+          "normalized_value": "PricewaterhouseCoopers GmbH",
+          "status": "found",
+          "evidence": "PricewaterhouseCoopers GmbH Wirtschaftspr\u00fcfungsgesellschaft",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "major_equity_changes": {
+          "attribute": "major_equity_changes",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [],
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

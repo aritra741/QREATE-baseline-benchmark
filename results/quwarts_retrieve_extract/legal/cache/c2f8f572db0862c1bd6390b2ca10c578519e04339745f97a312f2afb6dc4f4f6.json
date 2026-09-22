@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "7b84294983ef9375b94c84809a079f7c06b92ef0c9d6264365f82ae55260bd42",
+    "entity_identity": "ba395cc9c0ef5ee70f49e76e495f78f20034c0610c61fccb5459baf43236052b",
+    "attribute_bundle": [
+      "legal.hearing_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e4e0555bdd33951e29e9cf43829d2dfd13eac6d82818c3865c8bb9a9b1172a0d",
+      "dee6c3dd2963b492f668dcccfc53094bbc892543a512d3f9b05cddfcf4c172d8",
+      "6c3709fce2eb0629385da7e011e4224e46b5cb4bcc209ac11c937b0e61c73a16",
+      "da9df7203975921f6848da56b267e626ab01796235eac4b1df546f669a0f9790"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"ba395cc9c0ef5ee70f49e76e495f78f20034c0610c61fccb5459baf43236052b\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2009\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"159.txt:c2\",\n          \"exact_span\": \"On 15 September 2009, the proceedings were called on for hearing before me.\"\n        },\n        {\n          \"source_id\": \"159.txt:c10\",\n          \"exact_span\": \"The applicant appealed from those orders to the Federal Court. On 11 May 2009 her Honour Stone J dismissed that appeal ( Satchithanantham v NAB Limited [2009] FCA 501).\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "found",
+          "raw_value": "2009",
+          "normalized_value": 2009,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "159.txt:c2",
+              "exact_span": "On 15 September 2009, the proceedings were called on for hearing before me."
+            },
+            {
+              "source_id": "159.txt:c10",
+              "exact_span": "The applicant appealed from those orders to the Federal Court. On 11 May 2009 her Honour Stone J dismissed that appeal ( Satchithanantham v NAB Limited [2009] FCA 501)."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.hearing_year"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "ba395cc9c0ef5ee70f49e76e495f78f20034c0610c61fccb5459baf43236052b"
+    }
+  }
+}

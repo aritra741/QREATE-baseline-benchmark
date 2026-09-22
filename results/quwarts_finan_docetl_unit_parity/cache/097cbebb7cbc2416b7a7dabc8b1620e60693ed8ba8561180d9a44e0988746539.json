@@ -1,0 +1,68 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+    "entity_identity": "finan_filter20:q15:70:map",
+    "attribute_bundle": [
+      "auditor",
+      "major_equity_changes"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "58d8a526f8b4ebe4a6b0606fb5434ed0c734e434de808e342e2dc86261db71b0",
+      "f67f34d4d75298ea1e9afda89b7479356d8e02262e0c4210e2b985428f85ebec",
+      "4000b80bc5d5da3c84cc241dd8aecb5e4bcb645cdb19b69f8c109cd1df82a333",
+      "59ff949d716e8870b286d3bd750d3f787547bb0ada18cd9ca9a66adf1bcd4f3d",
+      "b5d6e36125cb23e9c66eaef6346976b9fb22a01b7ecf50f4eff4f2828043e502",
+      "c2b1d773e6b00a7a7d99926f2541763f4678db927541143f34bf8e45bcd5c5ee",
+      "86910db789ce37bcc55d678f3fb9d8fac55eeeacd54e4d82f925b0ff0c3d70f8",
+      "824020c1a7aadf958d0bb1217fde806d43c9d56506500bd3d942b1485a3fcb5f"
+    ],
+    "schema_hash": "95a8a1a0814fb4decffa140fb6c8fbe443256ef4c58c9f2b4dc8a3d3025fbe37",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"auditor\": {\n        \"value\": \"Deloitte\",\n        \"status\": \"found\",\n        \"evidence\": \"Commerzbank Annual Report 2022: The committee received explanations from the auditor about the results of the audit of the financial statements of Commerzbank's parent company and the Group and the accompanying auditor's reports.\"\n    },\n    \"major_equity_changes\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "Deloitte",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Commerzbank Annual Report 2022: The committee received explanations from the auditor about the results of the audit of the financial statements of Commerzbank's parent company and the Group and the accompanying auditor's reports.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "major_equity_changes": {
+          "attribute": "major_equity_changes",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:auditor"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

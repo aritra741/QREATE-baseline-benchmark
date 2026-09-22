@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "f46dfff3e166f7e47d0d9120cdc2dca0a37b570279bfd902204021ea26127178",
+    "entity_identity": "ee7a9df415be8212a190720524c2e330ec632eea9aabfbaaf3afce3009ca6055",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "99a2ff7c2e1d0ab5a728ed2cf651c2197cd68a7914f6d514741b38533d22c80b",
+      "2627b35614d91e7e5329942bbab5fd8df4452a2bf4f6da617925632baa71cf63",
+      "3e25a389cf65f361c738219431e9677555abb69eac9d13409ff55de4255600d6",
+      "0e98652ffd0ecbfb799422ad89d1aa482d37bbaa04bef44be3faff2a1798a4eb"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"ee7a9df415be8212a190720524c2e330ec632eea9aabfbaaf3afce3009ca6055\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"78.txt:c14\",\n          \"exact_span\": \"it is the practice of some Federal Magistrates to have submissions filed in electronic form, thereby facilitating such quotation in the giving of reasons.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "78.txt:c14",
+              "exact_span": "it is the practice of some Federal Magistrates to have submissions filed in electronic form, thereby facilitating such quotation in the giving of reasons."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "ee7a9df415be8212a190720524c2e330ec632eea9aabfbaaf3afce3009ca6055"
+    }
+  }
+}

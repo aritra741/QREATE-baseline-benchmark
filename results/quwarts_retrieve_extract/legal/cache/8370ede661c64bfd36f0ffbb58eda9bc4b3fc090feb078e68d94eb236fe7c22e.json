@@ -1,0 +1,98 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "67e41f8447558a78652ef399ee51d6a94957e17162bf06d971a7d361ce76c71d",
+    "entity_identity": "724c2477103586073d4d120d76422125dc6fa6ac95c490ee822a6881926d59fa",
+    "attribute_bundle": [
+      "legal.case_number",
+      "legal.verdict",
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "41a68c05d5a16eb6fdc2e8775fb33bfb443ab920a7dada21e8929e2104e0707e",
+      "a80bd4aa8791b8a7ca8b5ed7ff985c29ec191fdc02acfc2ad6c67a0fb5c12548",
+      "2089f6de37356109058f9b3a7355606509062030ccf082baca4eea06bb39deb5",
+      "27d574dc7ec965f666d614e0e198b6739d7ae6817a7ce159a786cd5fdb4c40c0",
+      "84aba1159282b8e6d94e33a02e08a95c5f4dc3573ebb1cb4fe15c72b930005af"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"724c2477103586073d4d120d76422125dc6fa6ac95c490ee822a6881926d59fa\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_number\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"Guilty\",\n      \"normalized_value\": \"Guilty\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"561.txt:c19\",\n          \"exact_span\": \"The appeals must therefore be allowed.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"561.txt:c17\",\n          \"exact_span\": \"Each of the appellants made two separate and distinct claims that were not considered by the Tribunal.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_number": {
+          "attribute": "legal.case_number",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "Guilty",
+          "normalized_value": "Guilty",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "561.txt:c19",
+              "exact_span": "The appeals must therefore be allowed."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "561.txt:c17",
+              "exact_span": "Each of the appellants made two separate and distinct claims that were not considered by the Tribunal."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict",
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 2,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 2
+      },
+      "entity_id": "724c2477103586073d4d120d76422125dc6fa6ac95c490ee822a6881926d59fa"
+    }
+  }
+}

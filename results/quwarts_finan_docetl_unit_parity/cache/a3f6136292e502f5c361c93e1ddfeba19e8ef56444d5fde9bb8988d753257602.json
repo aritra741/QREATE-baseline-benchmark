@@ -1,0 +1,79 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+    "entity_identity": "finan_multiagg20:q9:69:map",
+    "attribute_bundle": [
+      "earnings_per_share",
+      "remuneration_policy",
+      "revenue"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "69277d9a458d002cd7c311dcfaf691ae5a7afbf76ad610ad2616353ebdc39805",
+      "0002799599f95e34e8e8e21a586c44ea51c37d65b293e0e0b6bd184f55e4d15c",
+      "bb1a9f4ff1271e6d63c170d563e6f452593f8277996ae20a4c8747c369166d1d",
+      "a69705a9b4992cf9249adfe7dc38f554c58772d5b658d7683dc83b3445bed8b0",
+      "ac4ab0b018c03322f270a9d50b7a8d11edef48315e662a982b061ac9c853b046",
+      "c3e5076df9462642cb41901adb170283e262d47f3068bd1a58fb488105c72818",
+      "7f6bf930ef7521c519c531068699a1a3527b0f5142f02f369705dc3d886e936c",
+      "a40a374dd9d1fbd7b88ac68dd716d44abb6ac5771a604033f71801d542229791"
+    ],
+    "schema_hash": "cad102bb407a1f8e7ffeeb79be37c614771b9c7543af61213ef858b92955762a",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"earnings_per_share\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"remuneration_policy\": {\n        \"value\": \"pay-for-performance philosophy and market-competitive remuneration\",\n        \"status\": \"found\",\n        \"evidence\": \"Our approach aims to reward sustainable outperformance and hence our 2020 award will vest at the upper end of the possible range. The three-year performance period for Performance Share Plan (PSP) awards granted to our senior leaders in 2020, ended on 31 December 2022. Awards for all participants will vest at 97% of maximum, as shown on page 117 and reflect overachievement in each and every three-year target, as well as delivering a three-year TSR of 58%. We stand by our pay-for-performance philosophy and market-competitive remuneration, and the Committee will continue to engage regularly with shareholders and other stakeholders ahead of the implementation of a new Remuneration Policy in 2024.\"\n    },\n    \"revenue\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "earnings_per_share": {
+          "attribute": "earnings_per_share",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "remuneration_policy": {
+          "attribute": "remuneration_policy",
+          "raw_value": "pay-for-performance philosophy and market-competitive remuneration",
+          "normalized_value": null,
+          "status": "uncertain",
+          "evidence": "Our approach aims to reward sustainable outperformance and hence our 2020 award will vest at the upper end of the possible range. The three-year performance period for Performance Share Plan (PSP) awards granted to our senior leaders in 2020, ended on 31 December 2022. Awards for all participants will vest at 97% of maximum, as shown on page 117 and reflect overachievement in each and every three-year target, as well as delivering a three-year TSR of 58%. We stand by our pay-for-performance philosophy and market-competitive remuneration, and the Committee will continue to engage regularly with shareholders and other stakeholders ahead of the implementation of a new Remuneration Policy in 2024.",
+          "grounding": "rejected",
+          "kind": "stated",
+          "failure": "stated_span_failed"
+        },
+        "revenue": {
+          "attribute": "revenue",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [
+        "grounding_failure:remuneration_policy"
+      ],
+      "counts": {
+        "found": 0,
+        "not_found": 2,
+        "uncertain": 1,
+        "malformed": 0,
+        "grounded_stated": 0,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

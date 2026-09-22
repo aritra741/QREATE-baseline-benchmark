@@ -1,0 +1,54 @@
+--- docetl/finan_multiagg20:q4/9
++++ quwarts/finan_multiagg20:q4/9
+@@ -1,3 +1,50 @@
+-You are a a helpful assistant, helping the user make sense of their data. The dataset description is: a collection of unstructured documents. You will be performing a map operation (one input:one output). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible. The result should be a structured output that you will send back to the user, with the `send_output` function. Do not influence your answers too much based on the `send_output` function parameter names; just use them to send the result back to the user.
++Return one JSON object. Do not explain.
+ ---
+- ... [829287 tokens truncated] ... iane+You are building a structured finance table for this natural-language query:
++SELECT CASE WHEN net_profit_or_loss > 0 THEN 'profitable' ELSE 'loss_making' END AS profit_status, COUNT(*) AS company_count, AVG(revenue) AS avg_revenue, AVG(total_debt) AS avg_debt, AVG(cash_reserves) AS avg_cash FROM finance WHERE net_profit_or_loss IS NOT NULL AND net_profit_or_loss != 0 AND revenue > 0 GROUP BY profit_status
++
++From this finance document, extract exactly one record with these fields:
++- cash_reserves
++- net_profit_or_loss
++- revenue
++- total_debt
++
++For numeric fields, return numbers (not quoted strings). Numeric fields in this extraction: cash_reserves, net_profit_or_loss, revenue, total_debt.
++If a numeric field is unknown, return -1. If a text field is unknown, return empty string. Keep names concise and normalized.
++
++Document:
++# ANNUAL REPORT 2022
++
++
++## FROM OUR PAST I N TO THE COUNTRY'S FUTURE
++
++# ANNUAL REPORT 2022
++
++
++## FROM OUR PAST I N TO THE COUNTRY'S FUTURE
++
++1
++
++
++# REPORT ON OPERATIONS
++
++AT 31 DECEMBER 2022
++
++
++| 1.  Introduction                                                                               |   8 |
++|------------------------------------------------------------------------------------------------|-----|
++| 
++…
++t by
++
++Pillar artwork exhibition curator Renato Fontana
++
++Graphic layout by
++
++Printed by
++
++# Poste Italiane SpA
++
++Registered office: Viale Europa, 190 00144 Rome - Italy www.posteitaliane.it
++
++Posteitaliane

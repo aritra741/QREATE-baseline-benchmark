@@ -1,0 +1,79 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "87b0c566b1205f2ba24ed4276084aca15bbe4600ef2f084c0f188df9b6c4709f",
+    "entity_identity": "09ada8ab512a117a3a330bec97499077969d01a02fad299af0f4ad950e20fce5",
+    "attribute_bundle": [
+      "legal.defendant_current_status",
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "caf633a53031f54d598616443fec496d3b42472c00ce356ef18bc238af59f3a2",
+      "c851d36a6e23215949a5d3fe23f4bcb9662f15300f81238cc09678f6ffeb9177",
+      "2f7ac33c2b7f3c9859b8618922dbe0fe0b1dd1507ff83b4e96fe6c1894c01441",
+      "81ef3ea202ec738cef057f93c5c0a9ceae3def9afb2c12409f2b162e087caf04"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"09ada8ab512a117a3a330bec97499077969d01a02fad299af0f4ad950e20fce5\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"274.txt:c6\",\n          \"exact_span\": \"The respondent is a company incorporated in Australia.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"company\",\n      \"raw_value\": null,\n      \"normalized_value\": \"company\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"274.txt:c6\",\n          \"exact_span\": \"Alcon Australia manufactures and distributes in Australia various products under the direction and with the authority of the applicant.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": true,
+      "items": {
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "274.txt:c6",
+              "exact_span": "The respondent is a company incorporated in Australia."
+            }
+          ],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": "company",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "274.txt:c6",
+              "exact_span": "Alcon Australia manufactures and distributes in Australia various products under the direction and with the authority of the applicant."
+            }
+          ],
+          "errors": [
+            "unknown_status:company"
+          ]
+        }
+      },
+      "errors": [
+        "unknown_status:legal.plaintiff_current_status:company"
+      ],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 0,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 1,
+        "grounding_failure": 0
+      },
+      "entity_id": "09ada8ab512a117a3a330bec97499077969d01a02fad299af0f4ad950e20fce5"
+    }
+  }
+}

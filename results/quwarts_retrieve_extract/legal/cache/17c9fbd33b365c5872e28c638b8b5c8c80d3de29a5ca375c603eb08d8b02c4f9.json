@@ -1,0 +1,95 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "212420302bbf5ff34fb7c8a34715596d40c12cadbd107952f4171eb8d4b52b2a",
+    "entity_identity": "319ab82c9febbada89ef7db659b347519bad55698572e3fc24663e6db10ffbae",
+    "attribute_bundle": [
+      "legal.nationality_for_applicant",
+      "legal.hearing_year",
+      "legal.judge_name"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "ce6c3320a65115df5eacce50739b08501dcf697c658a929539d690d14f79bbd5",
+      "a17ba056a6f33004db2e2eb00809581d103165cd66fa3da594e01cd41b8970de",
+      "8db7d10ebe94feb82f3c4523022ff4eb3ca9b54f569d32c205773f0dd0023efd",
+      "a0266092171e49f1af3820e392abded301ed359850db2ca8ac530e1442213c3f",
+      "b66a40aede57988f7d7bcf01f3fe57f099b81b1348e98d0666494265d6e09787"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"319ab82c9febbada89ef7db659b347519bad55698572e3fc24663e6db10ffbae\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.nationality_for_applicant\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2006\",\n      \"normalized_value\": 2006,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"68.txt:c20\",\n          \"exact_span\": \"Date of Hearing: 1 September 2006\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.judge_name\",\n      \"status\": \"found\",\n      \"raw_value\": \"Justice Rares\",\n      \"normalized_value\": \"Rares J\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"68.txt:c37\",\n          \"exact_span\": \"Certified by the Honourable Justice Rares\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.nationality_for_applicant": {
+          "attribute": "legal.nationality_for_applicant",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "found",
+          "raw_value": "2006",
+          "normalized_value": 2006,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "68.txt:c20",
+              "exact_span": "Date of Hearing: 1 September 2006"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        },
+        "legal.judge_name": {
+          "attribute": "legal.judge_name",
+          "status": "found",
+          "raw_value": "Justice Rares",
+          "normalized_value": "Justice Rares",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "68.txt:c37",
+              "exact_span": "Certified by the Honourable Justice Rares"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.judge_name"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "319ab82c9febbada89ef7db659b347519bad55698572e3fc24663e6db10ffbae"
+    }
+  }
+}

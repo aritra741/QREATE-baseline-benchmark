@@ -1,0 +1,66 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+    "entity_identity": "finan_filter20:q7:78:map",
+    "attribute_bundle": [
+      "dividend_per_share",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "6dc1fff4105c5512c1e0985d6eda4b493a941a903e40573b222fd7ca97fd7024",
+      "21a30953ec6c9e2e0abf4861c53211c79b9c155edb2b676cca65a7914acf3dfc",
+      "6fd1fdaa0233eeebb070fcd34a4397194d8a3ace905dcc0ac11632a641f63fb6",
+      "ecb9d473caaa26ac77fbd67f6a8bcf0bb6e0763b88f44d7b02bf40c9c1351059",
+      "402e7d616dd2f61825191e8230dc02e9ed16ca1cbf2071ddb224bed41774cef7",
+      "2424ad73fcefe40a80a54cd05aa3033c1dfe3259e6caa8b5b3f177d3f8783192",
+      "ea80aa798f1b352167e4eea0fcb225b45f7f49ad957205923f88f6e431508856",
+      "c8b3e0d586e280c4fd95fc5e16b20de9993265ba4533aed6d15f6bb9456206d8"
+    ],
+    "schema_hash": "765a804b13d6eb43b3b37c903185cf34a879c9fa65b6cc5f0c0abac2b62a435d",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"dividend_per_share\": {\"value\": 0.9, \"status\": \"found\", \"evidence\": \"Distribution of a dividend of \u20ac0.90 per share.\"},\n    \"principal_activities\": {\"value\": null, \"status\": \"not_found\", \"evidence\": \"\"}\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "dividend_per_share": {
+          "attribute": "dividend_per_share",
+          "raw_value": "0.9",
+          "normalized_value": 0.9,
+          "status": "found",
+          "evidence": "Distribution of a dividend of \u20ac0.90 per share.",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [],
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "0c71e6607a4902ac91c4c3124fa1dfcd7d2ca4926f48814bbcd4cdd2dccf0f40",
+    "entity_identity": "a9204310563f34c4d0caf824d0911fad55a3779223148a74eb3a8ac2652b24bc",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.evidence",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "a52172cf665159ea6dcad3ffd0df86c0440a99a7f568b40ca8c61f060e04488a",
+      "19e2419b8ecb47ea896cdb3e29aaa3159c32dc6508e1650991c59df063bd71ec",
+      "a2495592a6282ca8e3a4e6eef6d5cfcf6a280544057f9245d3e114cfa4234a68",
+      "f280f2a0196ed8642d711d661fa45d7ccb63cf81cf16a1bca007d07b2781f1e0"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"a9204310563f34c4d0caf824d0911fad55a3779223148a74eb3a8ac2652b24bc\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed with costs\",\n      \"normalized_value\": \"Dismissed\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"504.txt:c17\",\n          \"exact_span\": \"The application for leave to appeal should be dismissed with costs.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2008\",\n      \"normalized_value\": 2008,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"504.txt:c17\",\n          \"exact_span\": \"Dated: 19 December 2008\"\n        }\n      ]\n    }",
+    "parsed": {
+      "ok": false,
+      "malformed": true,
+      "error": "invalid_json:unbalanced_json",
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        }
+      },
+      "errors": [
+        "invalid_json:unbalanced_json"
+      ],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 0,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 3,
+        "grounding_failure": 0
+      }
+    }
+  }
+}

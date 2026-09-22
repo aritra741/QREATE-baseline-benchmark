@@ -1,0 +1,82 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "f26a26d2007e3a7678494f0d632313ed06aeed86f5a40f0951cc91e9a88883fa",
+    "entity_identity": "e34c55ed6c167efca0771ccba0f28543b490bde356a103a772f217a971095fc6",
+    "attribute_bundle": [
+      "legal.judgment_year",
+      "legal.hearing_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e7a7267870c29118713c4fe0c83468b6b79965b15f1856c96ab65196d5619f20",
+      "cf40803de17ae29a0870d6f782e78100ad49a756bc738cc12ea560ba1119ce2a",
+      "ddd266cbcf3de5918e355a63998d8db08a6df8533a234034bfe2174a192e266e",
+      "1061a933cad9e2ff934665ec752d95983d7cd603f4bfa6b50243af35a719b8ca",
+      "1e1a83e658db2d69b21d1a4a931dab3f2e2d52ad39c8b98a98bd91fa8d346176"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"e34c55ed6c167efca0771ccba0f28543b490bde356a103a772f217a971095fc6\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2009\",\n      \"normalized_value\": 2009,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"49.txt:c42\",\n          \"exact_span\": \"Dated: 10 December 2009\\nDate of Judgment: 11 December 2009\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.hearing_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2009\",\n      \"normalized_value\": 2009,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"49.txt:c42\",\n          \"exact_span\": \"Date of Hearing: 18 and 19 August 2009\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "found",
+          "raw_value": "2009",
+          "normalized_value": 2009,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "49.txt:c42",
+              "exact_span": "Dated: 10 December 2009\nDate of Judgment: 11 December 2009"
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.hearing_year": {
+          "attribute": "legal.hearing_year",
+          "status": "found",
+          "raw_value": "2009",
+          "normalized_value": 2009,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "49.txt:c42",
+              "exact_span": "Date of Hearing: 18 and 19 August 2009"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.judgment_year"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 2,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "e34c55ed6c167efca0771ccba0f28543b490bde356a103a772f217a971095fc6"
+    }
+  }
+}

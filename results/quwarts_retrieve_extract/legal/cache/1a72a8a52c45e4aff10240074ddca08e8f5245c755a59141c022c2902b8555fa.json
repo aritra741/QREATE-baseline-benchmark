@@ -1,0 +1,82 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "7162dc3c8684582f515700389f4321ed58842b12313fa899ba2ff3f6d4dfcf96",
+    "entity_identity": "08a8aaa9f0b7199f717c8ab97c714de57d59016fa179015d2a1ce971ecbddf1b",
+    "attribute_bundle": [
+      "legal.verdict",
+      "legal.evidence",
+      "legal.judgment_year"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "372732cc9d88a78d59ac92c9b5f9cf0f683f3bb96839aa7552c916ba05590444",
+      "1ea1920cdefe1d225e6f3903c664098eca913b6dc93cdcd3d913588249fde3ef",
+      "80791cbf364b24aedc37365bd424a0bb70fda09c9530b2893345e6f7a10e61e6",
+      "c841e7355387da9d0575916b4178238c2bbaf94e1bff23ad4fb2e349838cf1a5"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"08a8aaa9f0b7199f717c8ab97c714de57d59016fa179015d2a1ce971ecbddf1b\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"The appeal is upheld.\",\n      \"normalized_value\": \"Guilty\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"324.txt:c15\",\n          \"exact_span\": \"29 Leave to allow the point to be taken here should be granted.\\n30 The appeal is upheld.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.judgment_year\",\n      \"status\": \"found\",\n      \"raw_value\": \"2007\",\n      \"normalized_value\": 2007,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"324.txt:c15\",\n          \"exact_span\": \"30 The appeal is upheld.\\nThe decision of",
+    "parsed": {
+      "ok": false,
+      "malformed": true,
+      "error": "invalid_json:unbalanced_json",
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        },
+        "legal.judgment_year": {
+          "attribute": "legal.judgment_year",
+          "status": "malformed",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [
+            "invalid_json:unbalanced_json"
+          ]
+        }
+      },
+      "errors": [
+        "invalid_json:unbalanced_json"
+      ],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 0,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 3,
+        "grounding_failure": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "543d1476cec64c7a164bee450ada9ff39e6213a4d632d12e7c7c58f48cfabc36",
+    "entity_identity": "34f41265b12357fc25ab7aec5eec35f737ce3c718d375b2c4d9298c05afc44ad",
+    "attribute_bundle": [
+      "finance.exchange_code"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "e5dc75323f98099c1a2d9eab9ea22fb6ce1bd4f0b7479efb07d9e2b2d6e99911",
+      "a963b499d319f7720f2b8a504b1124eb9377ba20ce1428d816bd1ca23ab313bf",
+      "bbaa201f03aff8ca66545bf03389cd22d5dbaa4c85a9c61521883644fc396513",
+      "e537c2e57b6306a2df8a23ba65dbe38c551bd027ca65abe9864873467feba27c"
+    ],
+    "schema_hash": "a0e1756c5d49056ce32ee0a68dc5bc3c671d21496f3db2b47159fb5c4c116606",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"34f41265b12357fc25ab7aec5eec35f737ce3c718d375b2c4d9298c05afc44ad\",\n  \"attributes\": [\n    {\n      \"attribute\": \"finance.exchange_code\",\n      \"status\": \"found\",\n      \"raw_value\": \"NASDAQ\",\n      \"normalized_value\": \"NASDAQ\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"6.txt:c11\",\n          \"exact_span\": \"Our common stock is listed on the NASDAQ Stock Market LLC ('NASDAQ') under the symbol 'CSGS'.\"\n        },\n        {\n          \"source_id\": \"6.txt:c82\",\n          \"exact_span\": \"Our common stock is listed on NASDAQ under the symbol ''CSGS''.\"\n        },\n        {\n          \"source_id\": \"6.txt:c1\",\n          \"exact_span\": \"Securities registered pursuant to Section 12(b) of the Act:\\n\\nTitle of Each Class\\nTrading Symbol\\nName of Each Exchange on Which Registered\\nCommon Stock, Par Value $0.01 Per Share\\nCSGS\\nNASDAQ Stock Market LLC\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "finance.exchange_code": {
+          "attribute": "finance.exchange_code",
+          "status": "found",
+          "raw_value": "NASDAQ",
+          "normalized_value": "NASDAQ",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "6.txt:c11",
+              "exact_span": "Our common stock is listed on the NASDAQ Stock Market LLC ('NASDAQ') under the symbol 'CSGS'."
+            },
+            {
+              "source_id": "6.txt:c82",
+              "exact_span": "Our common stock is listed on NASDAQ under the symbol ''CSGS''."
+            },
+            {
+              "source_id": "6.txt:c1",
+              "exact_span": "Securities registered pursuant to Section 12(b) of the Act:\n\nTitle of Each Class\nTrading Symbol\nName of Each Exchange on Which Registered\nCommon Stock, Par Value $0.01 Per Share\nCSGS\nNASDAQ Stock Market LLC"
+            }
+          ],
+          "errors": [],
+          "grounded": true,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "34f41265b12357fc25ab7aec5eec35f737ce3c718d375b2c4d9298c05afc44ad"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "e372290099c38e01bf658a780481580bbb1da6b74b16ad489e0a9e9c3b3d289a",
+    "entity_identity": "fc688a861c1ee49584f6dcc57643b4cff083b916a74da97072719f7cd0d20700",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "481887e8eaf96a64520ea0dd545368ac656ed5d33279af609b1b84ffe253b466",
+      "250d0989560d69679bc5d51cf83e4d407dbede7c2e0c2bb46c56c6e5c0db96b8",
+      "f181ae6f12cf421eb86f1ddb0950a7ed84905025e3462fd81ab4ceed3b7041f8",
+      "046871c72ddf0ab6b7b7a71c7c4cc533be7ba86fcc90aebe08e30e40a6d7eed3"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"fc688a861c1ee49584f6dcc57643b4cff083b916a74da97072719f7cd0d20700\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"270.txt:c15\",\n          \"exact_span\": \"In these circumstances, I reject the respondents' submission that she is ordinarily resident outside Australia.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "270.txt:c15",
+              "exact_span": "In these circumstances, I reject the respondents' submission that she is ordinarily resident outside Australia."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "fc688a861c1ee49584f6dcc57643b4cff083b916a74da97072719f7cd0d20700"
+    }
+  }
+}

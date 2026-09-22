@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "d9def827c68e687ea7d739b92b4e00221974acee001a04ae520672bd1f82e92f",
+    "entity_identity": "065c9be8a736a0f89d4b85332aa87372f1fd714ab5f87f1bb58884a2c371c7ce",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.nationality_for_applicant"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "ffb21d1fdfd189404e97d88405bb499afb9f57e5cbe19e6bf2c3a98822f237c9",
+      "7fbf5a6d6630c7b9418b610a877ef4ba883e277f0e37af648a7f57024abd11cd",
+      "53c83e3dc4cf678f51176b2bf63f9876722d5a828a281095f89ef946088891d3",
+      "71707227fa7186a6c085ebf267997dd4bfe8926ce67022660a4ecd6579fefce5"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"065c9be8a736a0f89d4b85332aa87372f1fd714ab5f87f1bb58884a2c371c7ce\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"293.txt:c24\",\n          \"exact_span\": \"Since the review hearing has concluded, you have continued to provide prescribed medical certificates that certify you totally unfit for work as a result of a pathologically intense anxiety condition.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.nationality_for_applicant\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "293.txt:c24",
+              "exact_span": "Since the review hearing has concluded, you have continued to provide prescribed medical certificates that certify you totally unfit for work as a result of a pathologically intense anxiety condition."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.nationality_for_applicant": {
+          "attribute": "legal.nationality_for_applicant",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "065c9be8a736a0f89d4b85332aa87372f1fd714ab5f87f1bb58884a2c371c7ce"
+    }
+  }
+}

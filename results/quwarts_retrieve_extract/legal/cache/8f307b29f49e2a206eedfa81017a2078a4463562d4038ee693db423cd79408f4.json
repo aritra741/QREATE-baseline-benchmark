@@ -1,0 +1,64 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "d7b533bd5d37854b30bb9f87d3b582cca02d286753f3afe498c702615fb74b08",
+    "entity_identity": "3c5a9cd5a150f73a3267e6aef3708bf20bc5b3e5302638e5f3a865d0aa79ef21",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "d239ce67eab49c72c2b7db4cf3aaa56f036f5545d3589e844e65c51656e4154c",
+      "76c6f26229730862af8405f1dbbdd71ae611dff9ba18b3fb570fdd7cfeea0434",
+      "3e6bb1aaebd27145275ced4e5810e6c036e2e8399a12d0b5ef4f36cd174b4560",
+      "fdac12e11bd43273b627efb800d306a0f96cb15cb170b55b84d632cf0ef3b2f0"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"3c5a9cd5a150f73a3267e6aef3708bf20bc5b3e5302638e5f3a865d0aa79ef21\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"The implementation of the compliance program has been audited and reviewed each year since 2004 and a copy of each audit report was provided to the ACCC. The ACCC has not raised any concerns about its content or reach.\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"237.txt:c26\",\n          \"exact_span\": \"The implementation of the compliance program has been audited and reviewed each year since 2004 and a copy of each audit report was provided to the ACCC. The ACCC has not raised any concerns about its content or reach.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "The implementation of the compliance program has been audited and reviewed each year since 2004 and a copy of each audit report was provided to the ACCC. The ACCC has not raised any concerns about its content or reach.",
+          "normalized_value": null,
+          "unit": "year",
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "237.txt:c26",
+              "exact_span": "The implementation of the compliance program has been audited and reviewed each year since 2004 and a copy of each audit report was provided to the ACCC. The ACCC has not raised any concerns about its content or reach."
+            }
+          ],
+          "errors": [
+            "dtype_coercion",
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": "dtype_coercion"
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "3c5a9cd5a150f73a3267e6aef3708bf20bc5b3e5302638e5f3a865d0aa79ef21"
+    }
+  }
+}

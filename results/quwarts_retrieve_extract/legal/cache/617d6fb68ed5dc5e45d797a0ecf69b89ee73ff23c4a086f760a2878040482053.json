@@ -1,0 +1,71 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "b1ae5ef999cce8b180536681ae3d8cae9263308ceb451b19de799e309d461a28",
+    "entity_identity": "7be4d34169165d3aab0f02955b1ba27c928e09002c4f21086fb93b78a54062c0",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "a06bcd7e85a521fdb0e57116ef684006ec24381f2a39cbd80f0a1128aacf4400",
+      "132d859e5105618d5e1a331e7a72b53beea180a8d1c0a3581c1673be51fe0e60",
+      "f26a272df7d844aded1ae4b0243d0420635198b3af54f5ffab936525ef650f97",
+      "2124133e18c6fef52f528e2d8094dcbbf8c84b51c7d3edcd6c880964dced2b05"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"7be4d34169165d3aab0f02955b1ba27c928e09002c4f21086fb93b78a54062c0\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"147.txt:c6\",\n          \"exact_span\": \"failure to satisfy either test means there is no jurisdiction, appellate or otherwise, to exercise.\"\n        },\n        {\n          \"source_id\": \"147.txt:c2\",\n          \"exact_span\": \"Mr Christodoulou appealed.\"\n        },\n        {\n          \"source_id\": \"147.txt:c4\",\n          \"exact_span\": \"Mr Christodoulou appealed.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "147.txt:c6",
+              "exact_span": "failure to satisfy either test means there is no jurisdiction, appellate or otherwise, to exercise."
+            },
+            {
+              "source_id": "147.txt:c2",
+              "exact_span": "Mr Christodoulou appealed."
+            },
+            {
+              "source_id": "147.txt:c4",
+              "exact_span": "Mr Christodoulou appealed."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "7be4d34169165d3aab0f02955b1ba27c928e09002c4f21086fb93b78a54062c0"
+    }
+  }
+}

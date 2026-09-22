@@ -1,0 +1,66 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+    "entity_identity": "finan_agg20:q13:9:map",
+    "attribute_bundle": [
+      "auditor",
+      "earnings_per_share"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+      "673860a22f07e241adea9096dd06a21398c015d9bb35ea15488a0b94fd01fed5",
+      "a49968a74e48c005572787082e0885a931acd6a3eab6b345fff1508ee6456391",
+      "b8f73f2d5ca91032319838be24c09ed60e6684c1bfc5af975a0707cc8cc37319",
+      "3d765edd998a102e93782d9590e234b51c5a6d2e6f269090e4220eb5983197b1",
+      "a734fadb61fe18e09d8deb6aed69b49770c9bddf85b6b9381cf868f479c7e0a1",
+      "0650f55a72a73fb3b5c7cda0cd7329c0ba1340e4dbbb3b7c165ce5d3762da028",
+      "625dd49729077a6e2c3443c02212607deb2753d269e06ffc3d2df6d707c31a04"
+    ],
+    "schema_hash": "ece76726b1973bda1560563fbf445b5422af10aa3db566587ba7f4ee23df463d",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"auditor\": {\n        \"value\": \"Deloitte\",\n        \"status\": \"found\",\n        \"evidence\": \"Il nome Deloitte si riferisce a una o pi\u00f9 delle seguenti entit\u00e0: Deloitte Touche Tohmatsu Limited, una societ\u00e0 inglese a responsabilit\u00e0 limitata ('DTTL'), le member firm aderenti al suo network e le entit\u00e0 a esse correlate.\"\n    },\n    \"earnings_per_share\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    }\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "auditor": {
+          "attribute": "auditor",
+          "raw_value": "Deloitte",
+          "normalized_value": "Deloitte",
+          "status": "found",
+          "evidence": "Il nome Deloitte si riferisce a una o pi\u00f9 delle seguenti entit\u00e0: Deloitte Touche Tohmatsu Limited, una societ\u00e0 inglese a responsabilit\u00e0 limitata ('DTTL'), le member firm aderenti al suo network e le entit\u00e0 a esse correlate.",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        },
+        "earnings_per_share": {
+          "attribute": "earnings_per_share",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [],
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

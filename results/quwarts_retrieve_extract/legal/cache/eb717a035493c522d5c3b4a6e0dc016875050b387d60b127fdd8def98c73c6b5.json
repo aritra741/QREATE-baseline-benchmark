@@ -1,0 +1,76 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "e7ac60aa9e15d82f87c3c1a51212b36819ac1eca965229d82650c22c4b92d4c0",
+    "entity_identity": "cbdcc9745d974e783923372ccf9eaebdb73712c0ab1a9fe6363d2d2f906f603c",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "0a04853f372c645cf7da510980b08f83edb61a8e614215ffcd1ceaf6f40ca502",
+      "68a011bafabe5f262db055a08eef51a0031a78e39ed2064b5410df98a33df267",
+      "ed3ff5063d43f925bd4107fc80247d95fcf8c23763a21e9d720582aefe83be08",
+      "a15916cc25adefb3123508a7eb46ec9ea851c6f208aec67a1925d92b0c61e886"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"cbdcc9745d9723372ccf9eaebdb73712c0ab1a9fe6363d2d2f906f603c\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"212.txt:c55\",\n          \"exact_span\": \"He also attaches significance to the evidence given by Mr Hardman as to his reasons for agreeing with the proposal advanced by Mr Kingsley.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "212.txt:c55",
+              "exact_span": "He also attaches significance to the evidence given by Mr Hardman as to his reasons for agreeing with the proposal advanced by Mr Kingsley."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "cbdcc9745d9723372ccf9eaebdb73712c0ab1a9fe6363d2d2f906f603c"
+    }
+  }
+}

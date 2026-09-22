@@ -1,0 +1,107 @@
+{
+  "rows": [
+    {
+      "corpus": "Med",
+      "docetl_f1_at_0_20": 0.19512626262626262,
+      "docetl_f2": 0.8370247316708297,
+      "docetl_product": 0.16564255550190216,
+      "docetl_product_per_million_tokens": 0.014042401693633175,
+      "docetl_tokens": 11795885,
+      "frozen_execution_cap": 1543790,
+      "method": "frozen unknown_else_escape group policy",
+      "model": "qwen/qwen-2.5-7b-instruct",
+      "query_count": 20,
+      "query_set_equal": true,
+      "quwarts_f1_at_0_20": 0.22845238095238093,
+      "quwarts_f2": 0.4840707538075959,
+      "quwarts_product": 0.17439887110939742,
+      "quwarts_product_per_million_tokens": 0.11296931872672741,
+      "quwarts_tokens": 1543772,
+      "selected_component_tokens": 0,
+      "sources": [
+        "results/quwarts_med_signatures/group_policy.json",
+        "results/quwarts_med_signatures/group_case_escape.json",
+        "results/docetl_med_case80/evaluation.json",
+        "results/docetl_med_case80/session_token_cost.json"
+      ],
+      "theta25": 2948971,
+      "token_ratio_vs_docetl": 0.1308737750495194,
+      "win": true
+    },
+    {
+      "corpus": "Finan",
+      "docetl_f1_at_0_20": 0.11424778244631187,
+      "docetl_f2": 0.5366961392904789,
+      "docetl_product": 0.08410358973968853,
+      "docetl_product_per_million_tokens": 0.060864051534445726,
+      "docetl_product_rounded_in_arm_table": 0.0841,
+      "docetl_tokens": 1381827,
+      "method": "coverage-selected program synthesis, replica 4",
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "query_count": 16,
+      "query_set_equal": true,
+      "quwarts_f1_at_0_20": 0.15984623015873015,
+      "quwarts_f2": 0.46290732942719454,
+      "quwarts_product": 0.09884778147912206,
+      "quwarts_product_per_million_tokens": 0.29812579616340146,
+      "quwarts_tokens": 331564,
+      "selected_replica_tokens": 66341,
+      "sources": [
+        "results/quwarts_finan_amortized_coverage_select/finan_amortized_coverage_select.json",
+        "results/quwarts_finan_amortized_coverage_select/policy.json",
+        "results/docetl_finan_case80/evaluation.json",
+        "results/docetl_finan_case80/session_token_cost.json"
+      ],
+      "theta25": 345457,
+      "token_ratio_vs_docetl": 0.2399461003439649,
+      "win": true
+    },
+    {
+      "corpus": "Legal",
+      "docetl_f1_at_0_20": 0.12938762626262626,
+      "docetl_f2": 0.789182868672047,
+      "docetl_product": 0.12350932750098194,
+      "docetl_product_per_million_tokens": 0.002448636443489589,
+      "docetl_tokens": 50440043,
+      "method": "evidence-card official theta25 database",
+      "model": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "query_count": 16,
+      "query_set_equal": true,
+      "quwarts_f1_at_0_20": 0.0733047385620915,
+      "quwarts_f2": 0.6691744149996088,
+      "quwarts_product": 0.06387993538580125,
+      "quwarts_product_per_million_tokens": 0.005298528187634548,
+      "quwarts_tokens": 12056166,
+      "sources": [
+        "results/quwarts_legal_evidence_card_select/post_freeze.json",
+        "results/quwarts_legal_evidence_card_select/policy.json",
+        "results/docetl_legal_case80/evaluation.json",
+        "results/docetl_legal_case80/session_token_cost.json"
+      ],
+      "theta25": 12610011,
+      "token_ratio_vs_docetl": 0.2390197407246461,
+      "win": false
+    }
+  ],
+  "stronger_not_official": [
+    {
+      "corpus": "Med",
+      "f1": 0.22607142857142856,
+      "f2": 0.49576666024034444,
+      "name": "all_else_escape",
+      "note": "Frozen policy marks all_else_escape diagnostic_only. Not promoted.",
+      "product": 0.17641780733885998,
+      "status": "diagnostic_only"
+    },
+    {
+      "corpus": "Legal",
+      "f1": 0.09580026455026455,
+      "f2": 0.6961383816078827,
+      "name": "Pass A",
+      "note": "Strongest single evidence-card selector. The pre-gold rule selected the theta25 official database, not Pass A.",
+      "product": 0.08813663898916835,
+      "status": "component_not_selected",
+      "tokens": 3452863
+    }
+  ]
+}

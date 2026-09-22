@@ -1,0 +1,63 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "72ba8401ed0c245b80a40da8dcb2ce915403eebd40ba950b11227962753e3de5",
+    "entity_identity": "d1ee5f550d63887606d31a610db473ef51776ab30a8d7c5459cbd42a233fec33",
+    "attribute_bundle": [
+      "legal.verdict"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "5f6e4b04c9e358622be00216b2a5d7a228ebe83b28f581e093cfc0106feba309",
+      "8c94fca9fbb9c979c0212706eb0213d4165222c9a0b82688f4d58bc72de64b0f",
+      "bc0385e2204bf8d0ddb009e8d7aecbeee5307941591c16c7a1157cf04ddb4d0c",
+      "cc954b63090741595618edffc5e90939eec159b677476c152641c3ba40a19ae1"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"d1ee5f550d63887606d31a610db473ef51776ab30a8d7c5459cbd42a233fec33\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.verdict\",\n      \"status\": \"found\",\n      \"raw_value\": \"dismissed the action for 'want of proof'.\",\n      \"normalized_value\": \"Not Guilty\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"164.txt:c8\",\n          \"exact_span\": \"Later he made the costs order.\\n10 I will now explain why the Federal Magistrates Court had no jurisdiction to entertain the claim under s 51AB. As a result of her absence the Federal Magistrate exercised the power conferred by O13.3A of the Federal Magistrates Court Rules to 'proceed with the hearing generally'. He did so and dismissed the action for 'want of proof'.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.verdict": {
+          "attribute": "legal.verdict",
+          "status": "found",
+          "raw_value": "dismissed the action for 'want of proof'.",
+          "normalized_value": "dismissed the action for 'want of proof'.",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "164.txt:c8",
+              "exact_span": "Later he made the costs order.\n10 I will now explain why the Federal Magistrates Court had no jurisdiction to entertain the claim under s 51AB. As a result of her absence the Federal Magistrate exercised the power conferred by O13.3A of the Federal Magistrates Court Rules to 'proceed with the hearing generally'. He did so and dismissed the action for 'want of proof'."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.verdict"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "d1ee5f550d63887606d31a610db473ef51776ab30a8d7c5459cbd42a233fec33"
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "859e7ce41c822acb53efedbbf3513f46553d757010c6157a7e65714fe2b53428",
+    "entity_identity": "43c0e09277bd8eb68a9a80da052e55eb4411640750a299d008e055c989e35bde",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "8182ed887c2d6034082d85a491b385ee4f5c48f0b2ea1752512abaebe4cd5b61",
+      "89bf3e767701ab83ca0ba668937d337356d78e6f08a1a15ebe53ad94cf043565",
+      "be0cfbb40ae3f851582697928c7c43396f935a6359a4bad1b4ee56facad0fcf3",
+      "a83a90d20fedeb6a2461acf644670f4730a1e7bf11ab2ca23d661890cd7e1b2e"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"43c0e09277bd8eb68a9a80da052e55eb4411640750a299d008e055c989e35bde\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": 1,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"152.txt:c10\",\n          \"exact_span\": \"The Tribunal suggested to him that this incident would have been sufficiently significant to him that he would not have needed any advice in order to mention it.\"\n        },\n        {\n          \"source_id\": \"152.txt:c5\",\n          \"exact_span\": \"the appellant has appealed to this Court.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "152.txt:c10",
+              "exact_span": "The Tribunal suggested to him that this incident would have been sufficiently significant to him that he would not have needed any advice in order to mention it."
+            },
+            {
+              "source_id": "152.txt:c5",
+              "exact_span": "the appellant has appealed to this Court."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "43c0e09277bd8eb68a9a80da052e55eb4411640750a299d008e055c989e35bde"
+    }
+  }
+}

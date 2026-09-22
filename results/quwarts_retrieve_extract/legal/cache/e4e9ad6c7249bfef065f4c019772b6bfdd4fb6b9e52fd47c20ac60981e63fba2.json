@@ -1,0 +1,60 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "85b7b60242f4cc1c18812eec9106d33cce757a9562e931d148858c0234cd04ee",
+    "entity_identity": "0a0e23e6621050f645c1325ab78bf77916207d562e3c24e4f8940ee7551acb18",
+    "attribute_bundle": [
+      "legal.plaintiff_current_status"
+    ],
+    "context_mode": "whole_document",
+    "context_hashes": [
+      "85b7b60242f4cc1c18812eec9106d33cce757a9562e931d148858c0234cd04ee"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"0a0e23e6621050f645c1325ab78bf77916207d562e3c24e4f8940ee7551acb18\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.plaintiff_current_status\",\n      \"status\": \"found\",\n      \"raw_value\": \"Mr Yalniz is in his mid forties\",\n      \"normalized_value\": \"in his mid forties\",\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"111.txt\",\n          \"exact_span\": \"Mr Yalniz, who is in his mid forties, is a citizen of Turkey.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.plaintiff_current_status": {
+          "attribute": "legal.plaintiff_current_status",
+          "status": "found",
+          "raw_value": "Mr Yalniz is in his mid forties",
+          "normalized_value": "Mr Yalniz is in his mid forties",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "111.txt",
+              "exact_span": "Mr Yalniz, who is in his mid forties, is a citizen of Turkey."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.plaintiff_current_status"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "0a0e23e6621050f645c1325ab78bf77916207d562e3c24e4f8940ee7551acb18"
+    }
+  }
+}

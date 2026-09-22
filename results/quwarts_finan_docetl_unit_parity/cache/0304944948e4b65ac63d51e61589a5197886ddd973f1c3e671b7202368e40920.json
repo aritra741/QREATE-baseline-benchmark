@@ -1,0 +1,66 @@
+{
+  "manifest": {
+    "corpus_id": "Finan",
+    "source_document_hash": "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+    "entity_identity": "finan_filter20:q7:9:map",
+    "attribute_bundle": [
+      "dividend_per_share",
+      "principal_activities"
+    ],
+    "context_mode": "retrieved_context",
+    "context_hashes": [
+      "7feb0dd00ea167c63e21fcfc2b6e914704e6dd734790d1eb6abb2a52c9a1b199",
+      "c9dc390f8ff4c11adc4a2f7b37a6262dd242b76135614d91a02a6859dc3f9804",
+      "1489e27a6e75598a61442c193f8c1e8d1f1bdc6890fbecb918355b26e9ae434f",
+      "03bbb4106bcdaa4a66b5261dadb25f56d49332f380801cab286cf0222a7ebcab",
+      "35c0271c4189529a6178a2f32f18fce8c270cf5f0a63dd9ab7156ed267018a66",
+      "30cbfdca103f640c68f54e36670c9c0332780f2a295a210293704f75fbd227f6",
+      "ace80e9a6e2670333001ba4d3119d3c974d7dd7721ee8ebb207f6c85d87cc726",
+      "5b31673a7fc03a898443ae8a189ba450dd42bb32e1c05bb6b0b97cb441d929c2"
+    ],
+    "schema_hash": "765a804b13d6eb43b3b37c903185cf34a879c9fa65b6cc5f0c0abac2b62a435d",
+    "prompt_hash": "3da222b7230ae88920682543b8f0a65d7a9f5312c9cf4c2b6b68bfd3fee30ecb",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "1e7d7aee10caa321298e970af6ceaa6bd0d5d004bf78e62d8d56194f1da9f586",
+    "operator": "docetl_unit_parity",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n    \"dividend_per_share\": {\n        \"value\": null,\n        \"status\": \"not_found\",\n        \"evidence\": \"\"\n    },\n    \"principal_activities\": {\n        \"value\": \"operating in the Information Technology sector\",\n        \"status\": \"found\",\n        \"evidence\": \"Sourcesense SpA, a company operating in the Information Technology sector\"\n    }\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "dividend_per_share": {
+          "attribute": "dividend_per_share",
+          "raw_value": null,
+          "normalized_value": null,
+          "status": "not_found",
+          "evidence": "",
+          "grounding": "abstain",
+          "kind": "stated",
+          "failure": null
+        },
+        "principal_activities": {
+          "attribute": "principal_activities",
+          "raw_value": "operating in the Information Technology sector",
+          "normalized_value": "operating in the Information Technology sector",
+          "status": "found",
+          "evidence": "Sourcesense SpA, a company operating in the Information Technology sector",
+          "grounding": "stated_span",
+          "kind": "stated",
+          "failure": null
+        }
+      },
+      "errors": [],
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounded_stated": 1,
+        "inferred_semantic": 0
+      }
+    }
+  }
+}

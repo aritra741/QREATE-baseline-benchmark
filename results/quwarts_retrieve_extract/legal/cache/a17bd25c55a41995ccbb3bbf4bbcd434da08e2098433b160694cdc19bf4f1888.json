@@ -1,0 +1,74 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "10af73814bbc46e81c7f8acf779fc08f84c62c86729c1460c378e954ef3db302",
+    "entity_identity": "c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a",
+    "attribute_bundle": [
+      "legal.evidence",
+      "legal.first_judge"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "962d467583167bb8969a5f6683ab7ea3911a425f78cbaef6c1df451f02c94da3",
+      "88295989b0673035e54e0042709f2c9c66d61dad2a29a52c3edcfc7c5c144291",
+      "ac98a9751dc44959748811e6ff15437c19c218ee40e98647e3505e82f3f6369a",
+      "2fffd9e096233c2c11cf17cb0224e54328fbe38d475e9216ba294a4f55bce69a"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"the trustee was an honest and straightforward witness and I accept his evidence.\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"247.txt:c22\",\n          \"exact_span\": \"The trustee was an honest and straightforward witness and I accept his evidence.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.first_judge\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": true,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "the trustee was an honest and straightforward witness and I accept his evidence.",
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "247.txt:c22",
+              "exact_span": "The trustee was an honest and straightforward witness and I accept his evidence."
+            }
+          ],
+          "errors": [
+            "dtype_coercion"
+          ],
+          "grounded": true,
+          "norm_error": "dtype_coercion"
+        },
+        "legal.first_judge": {
+          "attribute": "legal.first_judge",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [],
+      "grounding_failures": 0,
+      "counts": {
+        "found": 1,
+        "not_found": 1,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 0
+      },
+      "entity_id": "c291d82285b8a63ef874bb4bdadaa58aaecdae94380bf7bacf78ec593dbcb62a"
+    }
+  }
+}

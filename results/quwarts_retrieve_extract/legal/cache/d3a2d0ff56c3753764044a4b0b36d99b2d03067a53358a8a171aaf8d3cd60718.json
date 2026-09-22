@@ -1,0 +1,89 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "6fa6f6037335730607055917ddba9e1a61ac91405e00285d5004ba2360f5e1dc",
+    "entity_identity": "2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258",
+    "attribute_bundle": [
+      "legal.case_type",
+      "legal.evidence",
+      "legal.defendant_current_status"
+    ],
+    "context_mode": "retrieved_chunks",
+    "context_hashes": [
+      "c271bfad239e4cfd8c68d0d8a96320dff676360724d8af4ba9ce18dccc813fe8",
+      "f17221ad57ef533a9c2c6ecf7a7af2a2bea777dce9290e7dac5fdfa71cc5b7dd",
+      "276359e121b13b4d4f084033bb0f7d5ea2820f70bae208200ed3decddc9e16c7",
+      "7577235c14339d811fa27434e3d63c91ed0cc59329dc9f76910022ba6420c694"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.case_type\",\n      \"status\": \"found\",\n      \"raw_value\": \"Criminal Case\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"536.txt:c16\",\n          \"exact_span\": \"The Tribunal is satisfied that [the first appellant] has been attending Falungong practice sessions and doing Falungong study in Australia since at least 2005, and possibly (as he has claimed) earlier.\"\n        }\n      ]\n    },\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    },\n    {\n      \"attribute\": \"legal.defendant_current_status\",\n      \"status\": \"not_found\",\n      \"raw_value\": null,\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": []\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.case_type": {
+          "attribute": "legal.case_type",
+          "status": "found",
+          "raw_value": "Criminal Case",
+          "normalized_value": "Criminal Case",
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "536.txt:c16",
+              "exact_span": "The Tribunal is satisfied that [the first appellant] has been attending Falungong practice sessions and doing Falungong study in Australia since at least 2005, and possibly (as he has claimed) earlier."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        },
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        },
+        "legal.defendant_current_status": {
+          "attribute": "legal.defendant_current_status",
+          "status": "not_found",
+          "raw_value": null,
+          "normalized_value": null,
+          "unit": null,
+          "period": null,
+          "evidence": [],
+          "errors": [],
+          "grounded": null,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.case_type"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 2,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "2a6be57317b659accd7f7fd4569c96b7fd6b974e9c9e60ababcfcfe301e2a258"
+    }
+  }
+}

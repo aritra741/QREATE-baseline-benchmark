@@ -1,0 +1,60 @@
+{
+  "manifest": {
+    "corpus_id": "Legal",
+    "source_document_hash": "69f3b708e7fe68e6588c6d37f24c898190afe0a57e9cebaa759e2708061c0f9f",
+    "entity_identity": "22ef3eff29af9ea72b8dcaa502ad53187a77c4158f1a8c51c1378f7a09402aab",
+    "attribute_bundle": [
+      "legal.evidence"
+    ],
+    "context_mode": "whole_document",
+    "context_hashes": [
+      "69f3b708e7fe68e6588c6d37f24c898190afe0a57e9cebaa759e2708061c0f9f"
+    ],
+    "schema_hash": "6daf7e3c09b477dc60ded08c6fca8670150820aa3b3a059a858d8756e6a7ba3a",
+    "prompt_hash": "e2d425f1928e8db25c77895877e4efb373fd3642b0bae9e38125edffcc5e7d53",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "configuration_hash": "57ed3a8e5c1bf995ba421b5cbf92648fe5f6a08ab5ed5cfb5ccdb8849443875c",
+    "operator": "retrieve_extract",
+    "tier": "expensive"
+  },
+  "record": {
+    "raw": "{\n  \"entity_id\": \"22ef3eff29af9ea72b8dcaa502ad53187a77c4158f1a8c51c1378f7a09402aab\",\n  \"attributes\": [\n    {\n      \"attribute\": \"legal.evidence\",\n      \"status\": \"found\",\n      \"raw_value\": \"1\",\n      \"normalized_value\": null,\n      \"unit\": null,\n      \"period\": null,\n      \"evidence\": [\n        {\n          \"source_id\": \"167.txt\",\n          \"exact_span\": \"The Federal Magistrate found that the application had been made out of time, that it was incompetent and concluded that the court had no jurisdiction to entertain it. His Honour found that there was evidence that the Tribunal member signed the decision on 26 February 1999 and that, on that day, posted a copy of it to the applicant at his home address by registered mail. That letter was not returned unclaimed.\"\n        }\n      ]\n    }\n  ]\n}",
+    "parsed": {
+      "ok": false,
+      "malformed": false,
+      "items": {
+        "legal.evidence": {
+          "attribute": "legal.evidence",
+          "status": "found",
+          "raw_value": "1",
+          "normalized_value": 1,
+          "unit": null,
+          "period": null,
+          "evidence": [
+            {
+              "source_id": "167.txt",
+              "exact_span": "The Federal Magistrate found that the application had been made out of time, that it was incompetent and concluded that the court had no jurisdiction to entertain it. His Honour found that there was evidence that the Tribunal member signed the decision on 26 February 1999 and that, on that day, posted a copy of it to the applicant at his home address by registered mail. That letter was not returned unclaimed."
+            }
+          ],
+          "errors": [
+            "grounding_failure"
+          ],
+          "grounded": false,
+          "norm_error": null
+        }
+      },
+      "errors": [
+        "grounding_failure:legal.evidence"
+      ],
+      "grounding_failures": 1,
+      "counts": {
+        "found": 1,
+        "not_found": 0,
+        "uncertain": 0,
+        "malformed": 0,
+        "grounding_failure": 1
+      },
+      "entity_id": "22ef3eff29af9ea72b8dcaa502ad53187a77c4158f1a8c51c1378f7a09402aab"
+    }
+  }
+}
