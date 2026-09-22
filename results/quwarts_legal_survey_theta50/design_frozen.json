@@ -1,0 +1,2168 @@
+{
+  "acceptance": {
+    "count_absolute": 2,
+    "count_relative": 0.25,
+    "having_must_be_stable_at_both_ci_endpoints": true,
+    "kept_group_min_count": 3,
+    "min_change_absolute": 1,
+    "min_change_relative": 0.02,
+    "min_effective_sample_size": 8,
+    "min_known_rate_among_wcci_support": 0.45,
+    "min_known_responses": 20,
+    "no_incomplete_context_absence": true,
+    "numeric_ci_relative": 0.5,
+    "query_local": true
+  },
+  "adaptive_priority": "workload_weight * variance * sql_amplification * nonzero_residual_probability / estimated_call_cost",
+  "attribute_descriptions": {
+    "case_number": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+    "case_type": "type of the case, choose one from [Criminal Case, Civil Case, Commercial Case, Administrative Case]; (e.g., Criminal Case)",
+    "defendant_current_status": "current occupation or type of the defendant (rules same as for plaintiff; e.g., government)",
+    "first_judge": "whether it was the first judgment (1 if yes, 0 if none; e.g., 1)",
+    "hearing_year": "year when the hearing began; use format YYYY (e.g., 2009)",
+    "legal_basis_num": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+    "plaintiff_current_status": "current occupation or type of the plaintiff (if an individual, write occupation; if multiple people, use the first individual's occupation; if an organization, write 'organization'; if a company, write 'company'; if a government body, write 'government'; leave empty if unknown; e.g., company)",
+    "verdict": "court's decision, choose one from: [Guilty, Not Guilty, Others, Dismissed, Approved]; (e.g., Guilty)"
+  },
+  "bundle_limits": {
+    "attributes": 4,
+    "documents_per_call": 1,
+    "numeric_outputs": 2,
+    "queries": 3
+  },
+  "bundles": [
+    [
+      "legal_agg20:q3"
+    ],
+    [
+      "legal_filter20:q9",
+      "legal_agg20:q11",
+      "legal_filter20:q15"
+    ],
+    [
+      "legal_filter20:q7"
+    ],
+    [
+      "legal_groupby20:q14",
+      "legal_filter20:q8",
+      "legal_agg20:q13"
+    ],
+    [
+      "legal_agg20:q17",
+      "legal_filter20:q11"
+    ],
+    [
+      "legal_multiagg20:q11"
+    ],
+    [
+      "legal_multiagg20:q18"
+    ],
+    [
+      "legal_multiagg20:q9"
+    ],
+    [
+      "legal_multiagg20:q4",
+      "legal_agg20:q4",
+      "legal_agg20:q14"
+    ]
+  ],
+  "chunk_tokens": 4500,
+  "context_limit_tokens": 28000,
+  "contribution_specs": [
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        },
+        {
+          "alias": "avg_statutes",
+          "column": "legal_basis_num",
+          "op": "avg"
+        },
+        {
+          "alias": "avg_precedents",
+          "column": "case_number",
+          "op": "avg"
+        },
+        {
+          "alias": "dismissed_count",
+          "case": {
+            "else": {
+              "op": "literal",
+              "value": 0
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "cmp": "=",
+                  "column": "verdict",
+                  "op": "compare",
+                  "value": "Dismissed"
+                },
+                "then": {
+                  "op": "literal",
+                  "value": 1
+                }
+              }
+            ]
+          },
+          "op": "sum_case"
+        }
+      ],
+      "columns": [
+        "case_number",
+        "first_judge",
+        "legal_basis_num",
+        "verdict"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "first_judge",
+          "expr": {
+            "column": "first_judge",
+            "op": "column"
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "first_judge",
+          "sql": "first_judge"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "case_number",
+        "first_judge",
+        "verdict"
+      ],
+      "query_id": "legal_multiagg20:q4",
+      "support_predicates": [
+        {
+          "args": [
+            {
+              "column": "first_judge",
+              "op": "not_null"
+            },
+            {
+              "column": "case_number",
+              "op": "not_null"
+            }
+          ],
+          "op": "and"
+        }
+      ],
+      "support_sql": "NOT first_judge IS NULL AND NOT case_number IS NULL",
+      "value_sql": [
+        {
+          "alias": "avg_statutes",
+          "sql": "legal_basis_num"
+        },
+        {
+          "alias": "avg_precedents",
+          "sql": "case_number"
+        },
+        {
+          "alias": "dismissed_count",
+          "sql": "CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END"
+        }
+      ]
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        }
+      ],
+      "columns": [
+        "plaintiff_current_status",
+        "plaintiff_family",
+        "verdict"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "plaintiff_family",
+          "expr": {
+            "else": {
+              "op": "null"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "plaintiff_current_status",
+                  "op": "in",
+                  "values": [
+                    "Company",
+                    "Organization",
+                    "Government"
+                  ]
+                },
+                "then": {
+                  "column": "plaintiff_current_status",
+                  "op": "column"
+                }
+              },
+              {
+                "if": {
+                  "cmp": "!=",
+                  "column": "plaintiff_current_status",
+                  "op": "compare",
+                  "value": ""
+                },
+                "then": {
+                  "op": "literal",
+                  "value": "Individual_or_other"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "plaintiff_family",
+          "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "plaintiff_current_status",
+        "verdict"
+      ],
+      "query_id": "legal_filter20:q9",
+      "support_predicates": [
+        {
+          "args": [
+            {
+              "cmp": "=",
+              "column": "verdict",
+              "op": "compare",
+              "value": "Approved"
+            },
+            {
+              "cmp": "!=",
+              "column": "plaintiff_current_status",
+              "op": "compare",
+              "value": ""
+            }
+          ],
+          "op": "and"
+        }
+      ],
+      "support_sql": "verdict = 'Approved' AND plaintiff_current_status <> ''",
+      "value_sql": []
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "avg_precedents",
+          "column": "case_number",
+          "op": "avg"
+        }
+      ],
+      "columns": [
+        "case_number",
+        "hearing_year",
+        "verdict",
+        "verdict_family"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "verdict_family",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "Other"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "verdict",
+                  "op": "in",
+                  "values": [
+                    "Dismissed",
+                    "Approved",
+                    "Others"
+                  ]
+                },
+                "then": {
+                  "column": "verdict",
+                  "op": "column"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "verdict_family",
+          "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "case_number",
+        "hearing_year",
+        "verdict"
+      ],
+      "query_id": "legal_filter20:q7",
+      "support_predicates": [
+        {
+          "args": [
+            {
+              "column": "hearing_year",
+              "high": 2008,
+              "low": 2006,
+              "op": "between"
+            },
+            {
+              "column": "case_number",
+              "op": "not_null"
+            }
+          ],
+          "op": "and"
+        }
+      ],
+      "support_sql": "hearing_year BETWEEN 2006 AND 2008 AND NOT case_number IS NULL",
+      "value_sql": [
+        {
+          "alias": "avg_precedents",
+          "sql": "case_number"
+        }
+      ]
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        },
+        {
+          "alias": "avg_precedents",
+          "column": "case_number",
+          "op": "avg"
+        },
+        {
+          "alias": "dismissed_count",
+          "case": {
+            "else": {
+              "op": "literal",
+              "value": 0
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "cmp": "=",
+                  "column": "verdict",
+                  "op": "compare",
+                  "value": "Dismissed"
+                },
+                "then": {
+                  "op": "literal",
+                  "value": 1
+                }
+              }
+            ]
+          },
+          "op": "sum_case"
+        }
+      ],
+      "columns": [
+        "case_number",
+        "legal_basis_num",
+        "statute_band",
+        "verdict"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "statute_band",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "4_or_more"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "cmp": "<=",
+                  "column": "legal_basis_num",
+                  "op": "compare",
+                  "value": 1
+                },
+                "then": {
+                  "op": "literal",
+                  "value": "0_or_1"
+                }
+              },
+              {
+                "if": {
+                  "cmp": "<=",
+                  "column": "legal_basis_num",
+                  "op": "compare",
+                  "value": 3
+                },
+                "then": {
+                  "op": "literal",
+                  "value": "2_or_3"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "statute_band",
+          "sql": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "case_number",
+        "legal_basis_num",
+        "verdict"
+      ],
+      "query_id": "legal_multiagg20:q11",
+      "support_predicates": [
+        {
+          "column": "case_number",
+          "op": "not_null"
+        }
+      ],
+      "support_sql": "NOT case_number IS NULL",
+      "value_sql": [
+        {
+          "alias": "avg_precedents",
+          "sql": "case_number"
+        },
+        {
+          "alias": "dismissed_count",
+          "sql": "CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END"
+        }
+      ]
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        },
+        {
+          "alias": "avg_statutes",
+          "column": "legal_basis_num",
+          "op": "avg"
+        },
+        {
+          "alias": "avg_precedents",
+          "column": "case_number",
+          "op": "avg"
+        }
+      ],
+      "columns": [
+        "case_number",
+        "defendant_current_status",
+        "defendant_family",
+        "legal_basis_num",
+        "plaintiff_current_status",
+        "plaintiff_family"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "plaintiff_family",
+          "expr": {
+            "else": {
+              "op": "null"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "plaintiff_current_status",
+                  "op": "in",
+                  "values": [
+                    "Company",
+                    "Organization",
+                    "Government"
+                  ]
+                },
+                "then": {
+                  "column": "plaintiff_current_status",
+                  "op": "column"
+                }
+              },
+              {
+                "if": {
+                  "cmp": "!=",
+                  "column": "plaintiff_current_status",
+                  "op": "compare",
+                  "value": ""
+                },
+                "then": {
+                  "op": "literal",
+                  "value": "Individual_or_other"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "alias": "defendant_family",
+          "expr": {
+            "else": {
+              "op": "null"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "defendant_current_status",
+                  "op": "in",
+                  "values": [
+                    "Government",
+                    "Company",
+                    "Organization"
+                  ]
+                },
+                "then": {
+                  "column": "defendant_current_status",
+                  "op": "column"
+                }
+              },
+              {
+                "if": {
+                  "cmp": "!=",
+                  "column": "defendant_current_status",
+                  "op": "compare",
+                  "value": ""
+                },
+                "then": {
+                  "op": "literal",
+                  "value": "Other"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "plaintiff_family",
+          "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+        },
+        {
+          "alias": "defendant_family",
+          "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END"
+        }
+      ],
+      "having_expression": {
+        "count_star_gte": 3
+      },
+      "presence_atoms": [
+        "case_number",
+        "defendant_current_status",
+        "plaintiff_current_status"
+      ],
+      "query_id": "legal_multiagg20:q18",
+      "support_predicates": [
+        {
+          "args": [
+            {
+              "args": [
+                {
+                  "cmp": "!=",
+                  "column": "plaintiff_current_status",
+                  "op": "compare",
+                  "value": ""
+                },
+                {
+                  "cmp": "!=",
+                  "column": "defendant_current_status",
+                  "op": "compare",
+                  "value": ""
+                }
+              ],
+              "op": "and"
+            },
+            {
+              "column": "case_number",
+              "op": "not_null"
+            }
+          ],
+          "op": "and"
+        }
+      ],
+      "support_sql": "plaintiff_current_status <> '' AND defendant_current_status <> '' AND NOT case_number IS NULL",
+      "value_sql": [
+        {
+          "alias": "avg_statutes",
+          "sql": "legal_basis_num"
+        },
+        {
+          "alias": "avg_precedents",
+          "sql": "case_number"
+        }
+      ]
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        }
+      ],
+      "columns": [
+        "first_judge"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "first_judge",
+          "expr": {
+            "column": "first_judge",
+            "op": "column"
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "first_judge",
+          "sql": "first_judge"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "first_judge"
+      ],
+      "query_id": "legal_agg20:q4",
+      "support_predicates": [
+        {
+          "column": "first_judge",
+          "op": "not_null"
+        }
+      ],
+      "support_sql": "NOT first_judge IS NULL",
+      "value_sql": []
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        }
+      ],
+      "columns": [
+        "case_family",
+        "case_number",
+        "case_type",
+        "precedent_band"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "case_family",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "Other"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "case_type",
+                  "op": "in",
+                  "values": [
+                    "Administrative Case",
+                    "Civil Case",
+                    "Commercial Case"
+                  ]
+                },
+                "then": {
+                  "column": "case_type",
+                  "op": "column"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "alias": "precedent_band",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "precedent_light"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "cmp": ">=",
+                  "column": "case_number",
+                  "op": "compare",
+                  "value": 8
+                },
+                "then": {
+                  "op": "literal",
+                  "value": "precedent_heavy"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "case_family",
+          "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+        },
+        {
+          "alias": "precedent_band",
+          "sql": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "case_number",
+        "case_type"
+      ],
+      "query_id": "legal_groupby20:q14",
+      "support_predicates": [
+        {
+          "column": "case_number",
+          "op": "not_null"
+        }
+      ],
+      "support_sql": "NOT case_number IS NULL",
+      "value_sql": []
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        }
+      ],
+      "columns": [
+        "plaintiff_current_status",
+        "plaintiff_family"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "plaintiff_family",
+          "expr": {
+            "else": {
+              "op": "null"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "plaintiff_current_status",
+                  "op": "in",
+                  "values": [
+                    "Company",
+                    "Organization",
+                    "Government"
+                  ]
+                },
+                "then": {
+                  "column": "plaintiff_current_status",
+                  "op": "column"
+                }
+              },
+              {
+                "if": {
+                  "cmp": "!=",
+                  "column": "plaintiff_current_status",
+                  "op": "compare",
+                  "value": ""
+                },
+                "then": {
+                  "op": "literal",
+                  "value": "Individual_or_other"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "plaintiff_family",
+          "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "plaintiff_current_status"
+      ],
+      "query_id": "legal_agg20:q11",
+      "support_predicates": [
+        {
+          "cmp": "!=",
+          "column": "plaintiff_current_status",
+          "op": "compare",
+          "value": ""
+        }
+      ],
+      "support_sql": "plaintiff_current_status <> ''",
+      "value_sql": []
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        },
+        {
+          "alias": "avg_statutes",
+          "column": "legal_basis_num",
+          "op": "avg"
+        },
+        {
+          "alias": "avg_precedents",
+          "column": "case_number",
+          "op": "avg"
+        }
+      ],
+      "columns": [
+        "case_family",
+        "case_number",
+        "case_type",
+        "legal_basis_num",
+        "verdict",
+        "verdict_family"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "case_family",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "Other"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "case_type",
+                  "op": "in",
+                  "values": [
+                    "Administrative Case",
+                    "Civil Case",
+                    "Commercial Case"
+                  ]
+                },
+                "then": {
+                  "column": "case_type",
+                  "op": "column"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "alias": "verdict_family",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "Other"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "verdict",
+                  "op": "in",
+                  "values": [
+                    "Dismissed",
+                    "Approved",
+                    "Others"
+                  ]
+                },
+                "then": {
+                  "column": "verdict",
+                  "op": "column"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "case_family",
+          "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+        },
+        {
+          "alias": "verdict_family",
+          "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+        }
+      ],
+      "having_expression": {
+        "count_star_gte": 5
+      },
+      "presence_atoms": [
+        "case_number",
+        "case_type",
+        "verdict"
+      ],
+      "query_id": "legal_multiagg20:q9",
+      "support_predicates": [
+        {
+          "column": "case_number",
+          "op": "not_null"
+        }
+      ],
+      "support_sql": "NOT case_number IS NULL",
+      "value_sql": [
+        {
+          "alias": "avg_statutes",
+          "sql": "legal_basis_num"
+        },
+        {
+          "alias": "avg_precedents",
+          "sql": "case_number"
+        }
+      ]
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "max_precedents",
+          "column": "case_number",
+          "op": "max"
+        }
+      ],
+      "columns": [
+        "case_family",
+        "case_number",
+        "case_type"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "case_family",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "Other"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "case_type",
+                  "op": "in",
+                  "values": [
+                    "Administrative Case",
+                    "Civil Case",
+                    "Commercial Case"
+                  ]
+                },
+                "then": {
+                  "column": "case_type",
+                  "op": "column"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "case_family",
+          "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "case_number",
+        "case_type"
+      ],
+      "query_id": "legal_agg20:q13",
+      "support_predicates": [
+        {
+          "column": "case_number",
+          "op": "not_null"
+        }
+      ],
+      "support_sql": "NOT case_number IS NULL",
+      "value_sql": [
+        {
+          "alias": "max_precedents",
+          "sql": "case_number"
+        }
+      ]
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "avg_statutes",
+          "column": "legal_basis_num",
+          "op": "avg"
+        }
+      ],
+      "columns": [
+        "defendant_current_status",
+        "defendant_family",
+        "legal_basis_num"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "defendant_family",
+          "expr": {
+            "else": {
+              "op": "null"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "defendant_current_status",
+                  "op": "in",
+                  "values": [
+                    "Government",
+                    "Company",
+                    "Organization"
+                  ]
+                },
+                "then": {
+                  "column": "defendant_current_status",
+                  "op": "column"
+                }
+              },
+              {
+                "if": {
+                  "cmp": "!=",
+                  "column": "defendant_current_status",
+                  "op": "compare",
+                  "value": ""
+                },
+                "then": {
+                  "op": "literal",
+                  "value": "Other"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "defendant_family",
+          "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "defendant_current_status"
+      ],
+      "query_id": "legal_agg20:q17",
+      "support_predicates": [
+        {
+          "cmp": "!=",
+          "column": "defendant_current_status",
+          "op": "compare",
+          "value": ""
+        }
+      ],
+      "support_sql": "defendant_current_status <> ''",
+      "value_sql": [
+        {
+          "alias": "avg_statutes",
+          "sql": "legal_basis_num"
+        }
+      ]
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        }
+      ],
+      "columns": [
+        "case_number",
+        "case_type",
+        "precedent_band"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "precedent_band",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "fewer_precedents"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "cmp": ">=",
+                  "column": "case_number",
+                  "op": "compare",
+                  "value": 10
+                },
+                "then": {
+                  "op": "literal",
+                  "value": "many_precedents"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "precedent_band",
+          "sql": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "case_number",
+        "case_type"
+      ],
+      "query_id": "legal_filter20:q8",
+      "support_predicates": [
+        {
+          "args": [
+            {
+              "cmp": "=",
+              "column": "case_type",
+              "op": "compare",
+              "value": "Civil Case"
+            },
+            {
+              "column": "case_number",
+              "op": "not_null"
+            }
+          ],
+          "op": "and"
+        }
+      ],
+      "support_sql": "case_type = 'Civil Case' AND NOT case_number IS NULL",
+      "value_sql": []
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "avg_statutes",
+          "column": "legal_basis_num",
+          "op": "avg"
+        }
+      ],
+      "columns": [
+        "case_family",
+        "case_type",
+        "defendant_current_status",
+        "legal_basis_num"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "case_family",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "Other"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "case_type",
+                  "op": "in",
+                  "values": [
+                    "Administrative Case",
+                    "Civil Case",
+                    "Commercial Case"
+                  ]
+                },
+                "then": {
+                  "column": "case_type",
+                  "op": "column"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "case_family",
+          "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "case_type",
+        "defendant_current_status"
+      ],
+      "query_id": "legal_filter20:q11",
+      "support_predicates": [
+        {
+          "cmp": "=",
+          "column": "defendant_current_status",
+          "op": "compare",
+          "value": "Government"
+        }
+      ],
+      "support_sql": "defendant_current_status = 'Government'",
+      "value_sql": [
+        {
+          "alias": "avg_statutes",
+          "sql": "legal_basis_num"
+        }
+      ]
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        }
+      ],
+      "columns": [
+        "defendant_current_status",
+        "plaintiff_current_status",
+        "verdict",
+        "verdict_family"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "verdict_family",
+          "expr": {
+            "else": {
+              "op": "literal",
+              "value": "Other"
+            },
+            "op": "case",
+            "whens": [
+              {
+                "if": {
+                  "column": "verdict",
+                  "op": "in",
+                  "values": [
+                    "Dismissed",
+                    "Approved",
+                    "Others"
+                  ]
+                },
+                "then": {
+                  "column": "verdict",
+                  "op": "column"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "verdict_family",
+          "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "defendant_current_status",
+        "plaintiff_current_status",
+        "verdict"
+      ],
+      "query_id": "legal_filter20:q15",
+      "support_predicates": [
+        {
+          "args": [
+            {
+              "cmp": "=",
+              "column": "plaintiff_current_status",
+              "op": "compare",
+              "value": "Company"
+            },
+            {
+              "column": "defendant_current_status",
+              "op": "in",
+              "values": [
+                "Company",
+                "Organization",
+                "Government"
+              ]
+            }
+          ],
+          "op": "and"
+        }
+      ],
+      "support_sql": "plaintiff_current_status = 'Company' AND defendant_current_status IN ('Company', 'Organization', 'Government')",
+      "value_sql": []
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "case_count",
+          "op": "count_star"
+        }
+      ],
+      "columns": [
+        "hearing_year"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "hearing_year",
+          "expr": {
+            "column": "hearing_year",
+            "op": "column"
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "hearing_year",
+          "sql": "hearing_year"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "hearing_year"
+      ],
+      "query_id": "legal_agg20:q3",
+      "support_predicates": [
+        {
+          "column": "hearing_year",
+          "high": 2009,
+          "low": 2005,
+          "op": "between"
+        }
+      ],
+      "support_sql": "hearing_year BETWEEN 2005 AND 2009",
+      "value_sql": []
+    },
+    {
+      "aggregate_terms": [
+        {
+          "alias": "avg_statutes",
+          "column": "legal_basis_num",
+          "op": "avg"
+        }
+      ],
+      "columns": [
+        "first_judge",
+        "legal_basis_num"
+      ],
+      "distinct_identity": null,
+      "group_expression": [
+        {
+          "alias": "first_judge",
+          "expr": {
+            "column": "first_judge",
+            "op": "column"
+          }
+        }
+      ],
+      "group_sql": [
+        {
+          "alias": "first_judge",
+          "sql": "first_judge"
+        }
+      ],
+      "having_expression": null,
+      "presence_atoms": [
+        "first_judge"
+      ],
+      "query_id": "legal_agg20:q14",
+      "support_predicates": [
+        {
+          "column": "first_judge",
+          "op": "not_null"
+        }
+      ],
+      "support_sql": "NOT first_judge IS NULL",
+      "value_sql": [
+        {
+          "alias": "avg_statutes",
+          "sql": "legal_basis_num"
+        }
+      ]
+    }
+  ],
+  "estimator": {
+    "additive": "sum_i x_i + sum_sampled (y_i - x_i) / pi_i",
+    "avg": "estimated numerator / estimated non-null denominator",
+    "bootstrap_replicates": 24,
+    "count_distinct": "unused; Chao unseen-mass plus HT identity indicators if a future query needs it; identity is __entity_id when the grain is the entity",
+    "half_samples": 2,
+    "max_min": "certainty tail from WCCI extremes and top numeric candidates; validated value, else WCCI; never a scaled sample",
+    "variance": "Poisson: sum (1-pi) (residual/pi)^2"
+  },
+  "extraction_max_tokens": 900,
+  "fallback": "retain the frozen WCCI bag for any query that fails acceptance",
+  "keywords": [
+    "Act",
+    "Approved",
+    "Company",
+    "Dismissed",
+    "Government",
+    "basis",
+    "case",
+    "current",
+    "defendant",
+    "first",
+    "hearing",
+    "judge",
+    "legal",
+    "num",
+    "number",
+    "plaintiff",
+    "section",
+    "status",
+    "type",
+    "verdict",
+    "year"
+  ],
+  "max_exhaustive_chunks": 8,
+  "model": "qwen/qwen-2.5-7b-instruct",
+  "name": "control-variate survey query execution",
+  "prompts": {
+    "extraction_system": "You extract one document's contribution to a SQL group-by query. Return JSON only. Do not compute a corpus total, do not list other cases, and do not invent values that the document does not support.",
+    "validation_system": "You check one proposed row contribution against cited evidence. Return JSON only. Decide accept, reject, or uncertain. Do not propose a replacement value."
+  },
+  "remaining_budget": 23580289,
+  "sampling": {
+    "combination": "weight each wave's Horvitz-Thompson residual by its expected sample size",
+    "design": "two independent Poisson waves",
+    "nonresponse": "an unknown contribution is omitted; it is not coded as FALSE or zero",
+    "wave0_cap": 0.7,
+    "wave0_floor": 0.025,
+    "wave0_target": 110,
+    "wave1_cap": 0.55,
+    "wave1_target": 70
+  },
+  "seed": 20260922,
+  "stopping": "stop a query when its acceptance gate already passes, when expected variance reduction is below 2 percent, or when the next complete call cannot be reserved",
+  "strata": [
+    "document_length_decile",
+    "wcci_support_prediction",
+    "wcci_rare_group",
+    "wcci_numeric_decile",
+    "wcci_type_confidence",
+    "candidate_density_quartile",
+    "conflicting_candidate",
+    "plumbing_wcci_disagreement",
+    "section_or_table",
+    "workload_label",
+    "prior_probe_uncertainty",
+    "singleton_group_member"
+  ],
+  "theta_cumulative": 25220022,
+  "token_allocation": {
+    "extraction": 16000000,
+    "optimization_tokens": 0,
+    "reserve": 1580289,
+    "validation": 6000000
+  },
+  "validation_max_tokens": 400,
+  "wave0_inclusion": {
+    "1.txt": 0.15559888366402877,
+    "10.txt": 0.15559888366402877,
+    "100.txt": 0.2565278892839393,
+    "101.txt": 0.1808311350690064,
+    "102.txt": 0.16400963413235467,
+    "103.txt": 0.20606338647398403,
+    "104.txt": 0.16821500936651756,
+    "105.txt": 0.20185801123982108,
+    "106.txt": 0.1892418855373323,
+    "107.txt": 0.15559888366402877,
+    "108.txt": 0.1892418855373323,
+    "109.txt": 0.19344726077149518,
+    "11.txt": 0.1724203846006805,
+    "110.txt": 0.1724203846006805,
+    "111.txt": 0.16400963413235467,
+    "112.txt": 0.15559888366402877,
+    "113.txt": 0.14718813319570287,
+    "114.txt": 0.2144741369423099,
+    "115.txt": 0.26493863975226517,
+    "116.txt": 0.2565278892839393,
+    "117.txt": 0.19344726077149518,
+    "118.txt": 0.273349390220591,
+    "119.txt": 0.19765263600565816,
+    "12.txt": 0.1892418855373323,
+    "120.txt": 0.13457200749321407,
+    "121.txt": 0.14718813319570287,
+    "122.txt": 0.1808311350690064,
+    "123.txt": 0.15559888366402877,
+    "124.txt": 0.16400963413235467,
+    "125.txt": 0.15559888366402877,
+    "126.txt": 0.22288488741063578,
+    "127.txt": 0.1892418855373323,
+    "128.txt": 0.16400963413235467,
+    "129.txt": 0.15559888366402877,
+    "13.txt": 0.15559888366402877,
+    "130.txt": 0.1513935084298658,
+    "131.txt": 0.16400963413235467,
+    "132.txt": 0.1808311350690064,
+    "133.txt": 0.15559888366402877,
+    "134.txt": 0.15559888366402877,
+    "135.txt": 0.1892418855373323,
+    "136.txt": 0.15559888366402877,
+    "137.txt": 0.2691440149864281,
+    "138.txt": 0.1892418855373323,
+    "139.txt": 0.15559888366402877,
+    "14.txt": 0.22288488741063578,
+    "140.txt": 0.15559888366402877,
+    "141.txt": 0.15559888366402877,
+    "142.txt": 0.15559888366402877,
+    "143.txt": 0.1808311350690064,
+    "144.txt": 0.19344726077149518,
+    "145.txt": 0.1808311350690064,
+    "146.txt": 0.14298275796153997,
+    "147.txt": 0.29017089115724276,
+    "148.txt": 0.1808311350690064,
+    "149.txt": 0.1724203846006805,
+    "15.txt": 0.15559888366402877,
+    "150.txt": 0.2985816416255687,
+    "151.txt": 0.13457200749321407,
+    "152.txt": 0.15559888366402877,
+    "153.txt": 0.15559888366402877,
+    "154.txt": 0.1808311350690064,
+    "155.txt": 0.15559888366402877,
+    "156.txt": 0.2817601406889169,
+    "157.txt": 0.1724203846006805,
+    "158.txt": 0.16400963413235467,
+    "159.txt": 0.2144741369423099,
+    "16.txt": 0.1724203846006805,
+    "160.txt": 0.16400963413235467,
+    "161.txt": 0.2355010131131246,
+    "162.txt": 0.19765263600565816,
+    "163.txt": 0.1724203846006805,
+    "164.txt": 0.13457200749321407,
+    "165.txt": 0.13457200749321407,
+    "166.txt": 0.1724203846006805,
+    "167.txt": 0.2817601406889169,
+    "168.txt": 0.15559888366402877,
+    "169.txt": 0.1892418855373323,
+    "17.txt": 0.2565278892839393,
+    "170.txt": 0.13457200749321407,
+    "171.txt": 0.1724203846006805,
+    "172.txt": 0.1808311350690064,
+    "173.txt": 0.15559888366402877,
+    "174.txt": 0.22288488741063578,
+    "175.txt": 0.2144741369423099,
+    "176.txt": 0.2397063883472875,
+    "177.txt": 0.13457200749321407,
+    "178.txt": 0.29017089115724276,
+    "179.txt": 0.16400963413235467,
+    "18.txt": 0.1808311350690064,
+    "180.txt": 0.12616125702488817,
+    "181.txt": 0.1724203846006805,
+    "182.txt": 0.15559888366402877,
+    "183.txt": 0.16400963413235467,
+    "184.txt": 0.2144741369423099,
+    "185.txt": 0.2481171388156134,
+    "186.txt": 0.1850365103031693,
+    "187.txt": 0.2144741369423099,
+    "188.txt": 0.1808311350690064,
+    "189.txt": 0.15559888366402877,
+    "19.txt": 0.1892418855373323,
+    "190.txt": 0.15559888366402877,
+    "191.txt": 0.2144741369423099,
+    "192.txt": 0.3154031425622204,
+    "193.txt": 0.29017089115724276,
+    "194.txt": 0.15980425889819172,
+    "195.txt": 0.15559888366402877,
+    "196.txt": 0.1724203846006805,
+    "197.txt": 0.22288488741063578,
+    "198.txt": 0.13457200749321407,
+    "199.txt": 0.15559888366402877,
+    "2.txt": 0.15559888366402877,
+    "20.txt": 0.22288488741063578,
+    "200.txt": 0.15559888366402877,
+    "201.txt": 0.19765263600565816,
+    "202.txt": 0.16400963413235467,
+    "203.txt": 0.15980425889819172,
+    "204.txt": 0.15559888366402877,
+    "205.txt": 0.22288488741063578,
+    "206.txt": 0.2397063883472875,
+    "207.txt": 0.15559888366402877,
+    "208.txt": 0.15559888366402877,
+    "209.txt": 0.2144741369423099,
+    "21.txt": 0.15559888366402877,
+    "210.txt": 0.2565278892839393,
+    "211.txt": 0.12616125702488817,
+    "212.txt": 0.1724203846006805,
+    "213.txt": 0.1850365103031693,
+    "214.txt": 0.22288488741063578,
+    "215.txt": 0.15559888366402877,
+    "216.txt": 0.20606338647398403,
+    "217.txt": 0.1724203846006805,
+    "218.txt": 0.2439117635814505,
+    "219.txt": 0.2607332645181022,
+    "22.txt": 0.2270902626447987,
+    "220.txt": 0.1808311350690064,
+    "221.txt": 0.15559888366402877,
+    "222.txt": 0.22288488741063578,
+    "223.txt": 0.15559888366402877,
+    "224.txt": 0.15559888366402877,
+    "225.txt": 0.26493863975226517,
+    "226.txt": 0.16400963413235467,
+    "227.txt": 0.2565278892839393,
+    "228.txt": 0.2439117635814505,
+    "229.txt": 0.16400963413235467,
+    "23.txt": 0.20606338647398403,
+    "230.txt": 0.20185801123982108,
+    "231.txt": 0.2144741369423099,
+    "232.txt": 0.13457200749321407,
+    "233.txt": 0.13457200749321407,
+    "234.txt": 0.1892418855373323,
+    "235.txt": 0.16400963413235467,
+    "236.txt": 0.1808311350690064,
+    "237.txt": 0.1808311350690064,
+    "238.txt": 0.13457200749321407,
+    "239.txt": 0.12616125702488817,
+    "24.txt": 0.1808311350690064,
+    "240.txt": 0.17662575983484347,
+    "241.txt": 0.2565278892839393,
+    "242.txt": 0.2397063883472875,
+    "243.txt": 0.1808311350690064,
+    "244.txt": 0.1808311350690064,
+    "245.txt": 0.16400963413235467,
+    "246.txt": 0.13457200749321407,
+    "247.txt": 0.2565278892839393,
+    "248.txt": 0.19765263600565816,
+    "249.txt": 0.19344726077149518,
+    "25.txt": 0.23129563787896168,
+    "250.txt": 0.2144741369423099,
+    "251.txt": 0.15559888366402877,
+    "252.txt": 0.19765263600565816,
+    "253.txt": 0.15559888366402877,
+    "254.txt": 0.15559888366402877,
+    "255.txt": 0.1808311350690064,
+    "256.txt": 0.15980425889819172,
+    "257.txt": 0.1724203846006805,
+    "258.txt": 0.1724203846006805,
+    "259.txt": 0.15559888366402877,
+    "26.txt": 0.15559888366402877,
+    "260.txt": 0.15559888366402877,
+    "261.txt": 0.2565278892839393,
+    "262.txt": 0.2144741369423099,
+    "263.txt": 0.15559888366402877,
+    "264.txt": 0.15559888366402877,
+    "265.txt": 0.15559888366402877,
+    "266.txt": 0.21026876170814693,
+    "267.txt": 0.15559888366402877,
+    "268.txt": 0.15980425889819172,
+    "269.txt": 0.20606338647398403,
+    "27.txt": 0.14718813319570287,
+    "270.txt": 0.1808311350690064,
+    "271.txt": 0.273349390220591,
+    "272.txt": 0.23129563787896168,
+    "273.txt": 0.273349390220591,
+    "274.txt": 0.1724203846006805,
+    "275.txt": 0.15559888366402877,
+    "276.txt": 0.2144741369423099,
+    "277.txt": 0.20606338647398403,
+    "278.txt": 0.16400963413235467,
+    "279.txt": 0.1513935084298658,
+    "28.txt": 0.1808311350690064,
+    "280.txt": 0.15559888366402877,
+    "281.txt": 0.15559888366402877,
+    "282.txt": 0.13457200749321407,
+    "283.txt": 0.2565278892839393,
+    "284.txt": 0.2481171388156134,
+    "285.txt": 0.15559888366402877,
+    "286.txt": 0.2607332645181022,
+    "287.txt": 0.26493863975226517,
+    "288.txt": 0.22288488741063578,
+    "289.txt": 0.19765263600565816,
+    "29.txt": 0.2691440149864281,
+    "290.txt": 0.1808311350690064,
+    "291.txt": 0.15559888366402877,
+    "292.txt": 0.1808311350690064,
+    "293.txt": 0.2144741369423099,
+    "294.txt": 0.2565278892839393,
+    "295.txt": 0.15559888366402877,
+    "296.txt": 0.2355010131131246,
+    "297.txt": 0.2565278892839393,
+    "298.txt": 0.1724203846006805,
+    "299.txt": 0.1724203846006805,
+    "3.txt": 0.22288488741063578,
+    "30.txt": 0.15559888366402877,
+    "300.txt": 0.1892418855373323,
+    "301.txt": 0.14718813319570287,
+    "302.txt": 0.16400963413235467,
+    "303.txt": 0.273349390220591,
+    "304.txt": 0.2481171388156134,
+    "305.txt": 0.14298275796153997,
+    "306.txt": 0.29017089115724276,
+    "307.txt": 0.20185801123982108,
+    "308.txt": 0.13457200749321407,
+    "309.txt": 0.2565278892839393,
+    "31.txt": 0.1724203846006805,
+    "310.txt": 0.26493863975226517,
+    "311.txt": 0.15559888366402877,
+    "312.txt": 0.15559888366402877,
+    "313.txt": 0.3154031425622204,
+    "314.txt": 0.16821500936651756,
+    "315.txt": 0.19765263600565816,
+    "316.txt": 0.22288488741063578,
+    "317.txt": 0.13457200749321407,
+    "318.txt": 0.16400963413235467,
+    "319.txt": 0.26493863975226517,
+    "32.txt": 0.15559888366402877,
+    "320.txt": 0.13457200749321407,
+    "321.txt": 0.22288488741063578,
+    "322.txt": 0.15559888366402877,
+    "323.txt": 0.273349390220591,
+    "324.txt": 0.15559888366402877,
+    "325.txt": 0.1724203846006805,
+    "326.txt": 0.2270902626447987,
+    "327.txt": 0.1892418855373323,
+    "328.txt": 0.23129563787896168,
+    "329.txt": 0.15559888366402877,
+    "33.txt": 0.1892418855373323,
+    "330.txt": 0.1808311350690064,
+    "331.txt": 0.15559888366402877,
+    "332.txt": 0.20185801123982108,
+    "333.txt": 0.20185801123982108,
+    "334.txt": 0.1808311350690064,
+    "335.txt": 0.2144741369423099,
+    "336.txt": 0.2565278892839393,
+    "337.txt": 0.1892418855373323,
+    "338.txt": 0.2565278892839393,
+    "339.txt": 0.15980425889819172,
+    "34.txt": 0.2270902626447987,
+    "340.txt": 0.2565278892839393,
+    "341.txt": 0.2397063883472875,
+    "342.txt": 0.1724203846006805,
+    "343.txt": 0.15980425889819172,
+    "344.txt": 0.1724203846006805,
+    "345.txt": 0.16400963413235467,
+    "346.txt": 0.16400963413235467,
+    "347.txt": 0.1808311350690064,
+    "348.txt": 0.15559888366402877,
+    "349.txt": 0.15559888366402877,
+    "35.txt": 0.15559888366402877,
+    "350.txt": 0.1808311350690064,
+    "351.txt": 0.3154031425622204,
+    "352.txt": 0.15559888366402877,
+    "353.txt": 0.20606338647398403,
+    "354.txt": 0.2985816416255687,
+    "355.txt": 0.2144741369423099,
+    "356.txt": 0.19344726077149518,
+    "357.txt": 0.15559888366402877,
+    "358.txt": 0.277554765454754,
+    "359.txt": 0.2817601406889169,
+    "36.txt": 0.15559888366402877,
+    "360.txt": 0.2565278892839393,
+    "361.txt": 0.17662575983484344,
+    "362.txt": 0.20606338647398403,
+    "363.txt": 0.15559888366402877,
+    "364.txt": 0.22288488741063578,
+    "365.txt": 0.1892418855373323,
+    "366.txt": 0.29017089115724276,
+    "367.txt": 0.16400963413235467,
+    "368.txt": 0.2565278892839393,
+    "369.txt": 0.15559888366402877,
+    "37.txt": 0.16400963413235467,
+    "370.txt": 0.15559888366402877,
+    "371.txt": 0.15559888366402877,
+    "372.txt": 0.1808311350690064,
+    "373.txt": 0.21026876170814698,
+    "374.txt": 0.26493863975226517,
+    "375.txt": 0.19765263600565816,
+    "376.txt": 0.1892418855373323,
+    "377.txt": 0.2565278892839393,
+    "378.txt": 0.15559888366402877,
+    "379.txt": 0.15559888366402877,
+    "38.txt": 0.15980425889819172,
+    "380.txt": 0.13457200749321407,
+    "381.txt": 0.13457200749321407,
+    "382.txt": 0.2270902626447987,
+    "383.txt": 0.2565278892839393,
+    "384.txt": 0.19765263600565816,
+    "385.txt": 0.15559888366402877,
+    "386.txt": 0.15559888366402877,
+    "387.txt": 0.15559888366402877,
+    "388.txt": 0.1724203846006805,
+    "389.txt": 0.1892418855373323,
+    "39.txt": 0.1808311350690064,
+    "390.txt": 0.26493863975226517,
+    "391.txt": 0.2565278892839393,
+    "392.txt": 0.23129563787896168,
+    "393.txt": 0.15559888366402877,
+    "394.txt": 0.15559888366402877,
+    "395.txt": 0.2565278892839393,
+    "396.txt": 0.2144741369423099,
+    "397.txt": 0.1724203846006805,
+    "398.txt": 0.277554765454754,
+    "399.txt": 0.1808311350690064,
+    "4.txt": 0.1808311350690064,
+    "40.txt": 0.16400963413235467,
+    "400.txt": 0.20185801123982108,
+    "401.txt": 0.29017089115724276,
+    "402.txt": 0.15559888366402877,
+    "403.txt": 0.14298275796153997,
+    "404.txt": 0.19765263600565816,
+    "405.txt": 0.2565278892839393,
+    "406.txt": 0.1808311350690064,
+    "407.txt": 0.2186795121764728,
+    "408.txt": 0.2565278892839393,
+    "409.txt": 0.1892418855373323,
+    "41.txt": 0.2144741369423099,
+    "410.txt": 0.15559888366402877,
+    "411.txt": 0.15559888366402877,
+    "412.txt": 0.15559888366402877,
+    "413.txt": 0.19765263600565816,
+    "414.txt": 0.13457200749321407,
+    "415.txt": 0.2817601406889169,
+    "416.txt": 0.16400963413235467,
+    "417.txt": 0.2439117635814505,
+    "418.txt": 0.15559888366402877,
+    "419.txt": 0.15559888366402877,
+    "42.txt": 0.1892418855373323,
+    "420.txt": 0.1892418855373323,
+    "421.txt": 0.2481171388156134,
+    "422.txt": 0.1808311350690064,
+    "423.txt": 0.19765263600565816,
+    "424.txt": 0.2565278892839393,
+    "425.txt": 0.15559888366402877,
+    "426.txt": 0.15559888366402877,
+    "427.txt": 0.19765263600565816,
+    "428.txt": 0.23129563787896168,
+    "429.txt": 0.2817601406889169,
+    "43.txt": 0.2565278892839393,
+    "430.txt": 0.19765263600565816,
+    "431.txt": 0.13457200749321407,
+    "432.txt": 0.23129563787896168,
+    "433.txt": 0.1808311350690064,
+    "434.txt": 0.2985816416255687,
+    "435.txt": 0.1808311350690064,
+    "436.txt": 0.29017089115724276,
+    "437.txt": 0.22288488741063578,
+    "438.txt": 0.19765263600565816,
+    "439.txt": 0.2481171388156134,
+    "44.txt": 0.2186795121764728,
+    "440.txt": 0.22288488741063578,
+    "441.txt": 0.29017089115724276,
+    "442.txt": 0.2565278892839393,
+    "443.txt": 0.15559888366402877,
+    "444.txt": 0.1724203846006805,
+    "445.txt": 0.15980425889819172,
+    "446.txt": 0.2565278892839393,
+    "447.txt": 0.1724203846006805,
+    "448.txt": 0.15559888366402877,
+    "449.txt": 0.2144741369423099,
+    "45.txt": 0.22288488741063578,
+    "450.txt": 0.1808311350690064,
+    "451.txt": 0.2565278892839393,
+    "452.txt": 0.15559888366402877,
+    "453.txt": 0.1724203846006805,
+    "454.txt": 0.16400963413235467,
+    "455.txt": 0.14298275796153997,
+    "456.txt": 0.2144741369423099,
+    "457.txt": 0.16400963413235467,
+    "458.txt": 0.22288488741063578,
+    "459.txt": 0.2565278892839393,
+    "46.txt": 0.1892418855373323,
+    "460.txt": 0.2481171388156134,
+    "461.txt": 0.2144741369423099,
+    "462.txt": 0.2397063883472875,
+    "463.txt": 0.22288488741063578,
+    "464.txt": 0.2355010131131246,
+    "465.txt": 0.21026876170814698,
+    "466.txt": 0.29017089115724276,
+    "467.txt": 0.16400963413235467,
+    "468.txt": 0.1808311350690064,
+    "469.txt": 0.15980425889819172,
+    "47.txt": 0.2817601406889169,
+    "470.txt": 0.1850365103031693,
+    "471.txt": 0.16400963413235467,
+    "472.txt": 0.1724203846006805,
+    "473.txt": 0.15559888366402877,
+    "474.txt": 0.14298275796153997,
+    "475.txt": 0.1808311350690064,
+    "476.txt": 0.15980425889819172,
+    "477.txt": 0.15980425889819172,
+    "478.txt": 0.15559888366402877,
+    "479.txt": 0.13457200749321407,
+    "48.txt": 0.16400963413235467,
+    "480.txt": 0.15559888366402877,
+    "481.txt": 0.15980425889819172,
+    "482.txt": 0.2144741369423099,
+    "483.txt": 0.17662575983484347,
+    "484.txt": 0.29017089115724276,
+    "485.txt": 0.1850365103031693,
+    "486.txt": 0.1808311350690064,
+    "487.txt": 0.20606338647398403,
+    "488.txt": 0.23129563787896168,
+    "489.txt": 0.15559888366402877,
+    "49.txt": 0.2565278892839393,
+    "490.txt": 0.1598042588981917,
+    "491.txt": 0.1808311350690064,
+    "492.txt": 0.17662575983484347,
+    "493.txt": 0.15559888366402877,
+    "494.txt": 0.2985816416255687,
+    "495.txt": 0.28596551592307984,
+    "496.txt": 0.1724203846006805,
+    "497.txt": 0.15559888366402877,
+    "498.txt": 0.2565278892839393,
+    "499.txt": 0.15980425889819172,
+    "5.txt": 0.29017089115724276,
+    "50.txt": 0.16400963413235467,
+    "500.txt": 0.15559888366402877,
+    "501.txt": 0.3154031425622204,
+    "502.txt": 0.1724203846006805,
+    "503.txt": 0.1808311350690064,
+    "504.txt": 0.1808311350690064,
+    "505.txt": 0.22288488741063578,
+    "506.txt": 0.1724203846006805,
+    "507.txt": 0.1808311350690064,
+    "508.txt": 0.2565278892839393,
+    "509.txt": 0.1808311350690064,
+    "51.txt": 0.14298275796153997,
+    "510.txt": 0.15559888366402877,
+    "511.txt": 0.16400963413235467,
+    "512.txt": 0.1808311350690064,
+    "513.txt": 0.15559888366402877,
+    "514.txt": 0.15559888366402877,
+    "515.txt": 0.2355010131131246,
+    "516.txt": 0.16400963413235467,
+    "517.txt": 0.1808311350690064,
+    "518.txt": 0.22288488741063578,
+    "519.txt": 0.2144741369423099,
+    "52.txt": 0.1808311350690064,
+    "520.txt": 0.1724203846006805,
+    "521.txt": 0.22288488741063578,
+    "522.txt": 0.1724203846006805,
+    "523.txt": 0.26493863975226517,
+    "524.txt": 0.2355010131131246,
+    "525.txt": 0.16400963413235467,
+    "526.txt": 0.15559888366402877,
+    "527.txt": 0.1724203846006805,
+    "528.txt": 0.22288488741063578,
+    "529.txt": 0.1808311350690064,
+    "53.txt": 0.16821500936651756,
+    "530.txt": 0.1724203846006805,
+    "531.txt": 0.16821500936651756,
+    "532.txt": 0.16400963413235467,
+    "533.txt": 0.26493863975226517,
+    "534.txt": 0.15559888366402877,
+    "535.txt": 0.15559888366402877,
+    "536.txt": 0.1808311350690064,
+    "537.txt": 0.14298275796153997,
+    "538.txt": 0.13457200749321407,
+    "539.txt": 0.16400963413235467,
+    "54.txt": 0.1724203846006805,
+    "540.txt": 0.2481171388156134,
+    "541.txt": 0.15980425889819172,
+    "542.txt": 0.22288488741063578,
+    "543.txt": 0.23129563787896168,
+    "544.txt": 0.19765263600565816,
+    "545.txt": 0.16400963413235467,
+    "546.txt": 0.2565278892839393,
+    "547.txt": 0.1808311350690064,
+    "548.txt": 0.2565278892839393,
+    "549.txt": 0.20606338647398403,
+    "55.txt": 0.15559888366402877,
+    "550.txt": 0.15559888366402877,
+    "551.txt": 0.13877738272737702,
+    "552.txt": 0.2144741369423099,
+    "553.txt": 0.1724203846006805,
+    "554.txt": 0.1892418855373323,
+    "555.txt": 0.15559888366402877,
+    "556.txt": 0.15559888366402877,
+    "557.txt": 0.1892418855373323,
+    "558.txt": 0.1724203846006805,
+    "559.txt": 0.26493863975226517,
+    "56.txt": 0.2144741369423099,
+    "560.txt": 0.15559888366402877,
+    "561.txt": 0.2565278892839393,
+    "562.txt": 0.15559888366402877,
+    "563.txt": 0.15559888366402877,
+    "564.txt": 0.1808311350690064,
+    "565.txt": 0.12616125702488817,
+    "566.txt": 0.1808311350690064,
+    "567.txt": 0.29017089115724276,
+    "568.txt": 0.16400963413235467,
+    "569.txt": 0.15559888366402877,
+    "57.txt": 0.273349390220591,
+    "570.txt": 0.15980425889819172,
+    "58.txt": 0.13457200749321407,
+    "59.txt": 0.1808311350690064,
+    "6.txt": 0.1808311350690064,
+    "60.txt": 0.26493863975226517,
+    "61.txt": 0.15559888366402877,
+    "62.txt": 0.26493863975226517,
+    "63.txt": 0.16400963413235467,
+    "64.txt": 0.1808311350690064,
+    "65.txt": 0.2817601406889169,
+    "66.txt": 0.15559888366402877,
+    "67.txt": 0.1808311350690064,
+    "68.txt": 0.13457200749321407,
+    "69.txt": 0.15559888366402877,
+    "7.txt": 0.13457200749321407,
+    "70.txt": 0.20185801123982108,
+    "71.txt": 0.15559888366402877,
+    "72.txt": 0.3154031425622204,
+    "73.txt": 0.1892418855373323,
+    "74.txt": 0.15559888366402877,
+    "75.txt": 0.2144741369423099,
+    "76.txt": 0.26493863975226517,
+    "77.txt": 0.2144741369423099,
+    "78.txt": 0.22288488741063578,
+    "79.txt": 0.1892418855373323,
+    "8.txt": 0.2397063883472875,
+    "80.txt": 0.16400963413235467,
+    "81.txt": 0.15559888366402877,
+    "82.txt": 0.15559888366402877,
+    "83.txt": 0.2565278892839393,
+    "84.txt": 0.2144741369423099,
+    "85.txt": 0.15559888366402877,
+    "86.txt": 0.14718813319570287,
+    "87.txt": 0.1850365103031693,
+    "88.txt": 0.1808311350690064,
+    "89.txt": 0.1724203846006805,
+    "9.txt": 0.13457200749321407,
+    "90.txt": 0.1892418855373323,
+    "91.txt": 0.15559888366402877,
+    "92.txt": 0.1892418855373323,
+    "93.txt": 0.1808311350690064,
+    "94.txt": 0.19765263600565816,
+    "95.txt": 0.23129563787896168,
+    "96.txt": 0.26493863975226517,
+    "97.txt": 0.15559888366402877,
+    "98.txt": 0.2144741369423099,
+    "99.txt": 0.15559888366402877
+  },
+  "wave0_sample": [
+    "100.txt",
+    "117.txt",
+    "130.txt",
+    "133.txt",
+    "138.txt",
+    "148.txt",
+    "174.txt",
+    "175.txt",
+    "180.txt",
+    "185.txt",
+    "19.txt",
+    "192.txt",
+    "193.txt",
+    "196.txt",
+    "208.txt",
+    "209.txt",
+    "22.txt",
+    "232.txt",
+    "237.txt",
+    "244.txt",
+    "25.txt",
+    "258.txt",
+    "260.txt",
+    "267.txt",
+    "28.txt",
+    "289.txt",
+    "29.txt",
+    "295.txt",
+    "302.txt",
+    "310.txt",
+    "313.txt",
+    "316.txt",
+    "318.txt",
+    "32.txt",
+    "322.txt",
+    "328.txt",
+    "330.txt",
+    "339.txt",
+    "341.txt",
+    "344.txt",
+    "349.txt",
+    "35.txt",
+    "350.txt",
+    "352.txt",
+    "362.txt",
+    "364.txt",
+    "370.txt",
+    "381.txt",
+    "396.txt",
+    "404.txt",
+    "408.txt",
+    "413.txt",
+    "415.txt",
+    "42.txt",
+    "420.txt",
+    "422.txt",
+    "423.txt",
+    "434.txt",
+    "44.txt",
+    "446.txt",
+    "449.txt",
+    "45.txt",
+    "454.txt",
+    "459.txt",
+    "460.txt",
+    "462.txt",
+    "464.txt",
+    "47.txt",
+    "48.txt",
+    "489.txt",
+    "492.txt",
+    "495.txt",
+    "5.txt",
+    "50.txt",
+    "504.txt",
+    "505.txt",
+    "506.txt",
+    "522.txt",
+    "523.txt",
+    "525.txt",
+    "528.txt",
+    "53.txt",
+    "533.txt",
+    "534.txt",
+    "543.txt",
+    "544.txt",
+    "546.txt",
+    "558.txt",
+    "57.txt",
+    "58.txt",
+    "6.txt",
+    "60.txt",
+    "66.txt",
+    "72.txt",
+    "73.txt",
+    "75.txt",
+    "80.txt",
+    "81.txt",
+    "9.txt",
+    "90.txt",
+    "92.txt",
+    "93.txt",
+    "94.txt",
+    "95.txt",
+    "96.txt",
+    "99.txt"
+  ],
+  "wcci_bag_hash": "3bf8f1764778ef5fb332a3d9179b70f3204e6f26afcfb3fdf901d1db35021615",
+  "wcci_database_hash": "52a772cd04a1f8abe19d9ed73091779ef0593f6e681c4847095e3b2ce9936117",
+  "wcci_spent": 1639733,
+  "workers": 3
+}

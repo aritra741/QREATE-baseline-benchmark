@@ -1,0 +1,1337 @@
+[
+  {
+    "query_id": "legal_multiagg20:q4",
+    "support_predicates": [
+      {
+        "op": "and",
+        "args": [
+          {
+            "op": "not_null",
+            "column": "first_judge"
+          },
+          {
+            "op": "not_null",
+            "column": "case_number"
+          }
+        ]
+      }
+    ],
+    "support_sql": "NOT first_judge IS NULL AND NOT case_number IS NULL",
+    "group_sql": [
+      {
+        "alias": "first_judge",
+        "sql": "first_judge"
+      }
+    ],
+    "value_sql": [
+      {
+        "alias": "avg_statutes",
+        "sql": "legal_basis_num"
+      },
+      {
+        "alias": "avg_precedents",
+        "sql": "case_number"
+      },
+      {
+        "alias": "dismissed_count",
+        "sql": "CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END"
+      }
+    ],
+    "columns": [
+      "case_number",
+      "first_judge",
+      "legal_basis_num",
+      "verdict"
+    ],
+    "presence_atoms": [
+      "case_number",
+      "first_judge",
+      "verdict"
+    ],
+    "group_expression": [
+      {
+        "alias": "first_judge",
+        "expr": {
+          "op": "column",
+          "column": "first_judge"
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      },
+      {
+        "alias": "avg_statutes",
+        "op": "avg",
+        "column": "legal_basis_num"
+      },
+      {
+        "alias": "avg_precedents",
+        "op": "avg",
+        "column": "case_number"
+      },
+      {
+        "alias": "dismissed_count",
+        "op": "sum_case",
+        "case": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "compare",
+                "column": "verdict",
+                "cmp": "=",
+                "value": "Dismissed"
+              },
+              "then": {
+                "op": "literal",
+                "value": 1
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": 0
+          }
+        }
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_filter20:q9",
+    "support_predicates": [
+      {
+        "op": "and",
+        "args": [
+          {
+            "op": "compare",
+            "column": "verdict",
+            "cmp": "=",
+            "value": "Approved"
+          },
+          {
+            "op": "compare",
+            "column": "plaintiff_current_status",
+            "cmp": "!=",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "support_sql": "verdict = 'Approved' AND plaintiff_current_status <> ''",
+    "group_sql": [
+      {
+        "alias": "plaintiff_family",
+        "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+      }
+    ],
+    "value_sql": [],
+    "columns": [
+      "plaintiff_current_status",
+      "plaintiff_family",
+      "verdict"
+    ],
+    "presence_atoms": [
+      "plaintiff_current_status",
+      "verdict"
+    ],
+    "group_expression": [
+      {
+        "alias": "plaintiff_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "plaintiff_current_status",
+                "values": [
+                  "Company",
+                  "Organization",
+                  "Government"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "plaintiff_current_status"
+              }
+            },
+            {
+              "if": {
+                "op": "compare",
+                "column": "plaintiff_current_status",
+                "cmp": "!=",
+                "value": ""
+              },
+              "then": {
+                "op": "literal",
+                "value": "Individual_or_other"
+              }
+            }
+          ],
+          "else": {
+            "op": "null"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_filter20:q7",
+    "support_predicates": [
+      {
+        "op": "and",
+        "args": [
+          {
+            "op": "between",
+            "column": "hearing_year",
+            "low": 2006,
+            "high": 2008
+          },
+          {
+            "op": "not_null",
+            "column": "case_number"
+          }
+        ]
+      }
+    ],
+    "support_sql": "hearing_year BETWEEN 2006 AND 2008 AND NOT case_number IS NULL",
+    "group_sql": [
+      {
+        "alias": "verdict_family",
+        "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+      }
+    ],
+    "value_sql": [
+      {
+        "alias": "avg_precedents",
+        "sql": "case_number"
+      }
+    ],
+    "columns": [
+      "case_number",
+      "hearing_year",
+      "verdict",
+      "verdict_family"
+    ],
+    "presence_atoms": [
+      "case_number",
+      "hearing_year",
+      "verdict"
+    ],
+    "group_expression": [
+      {
+        "alias": "verdict_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "verdict",
+                "values": [
+                  "Dismissed",
+                  "Approved",
+                  "Others"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "verdict"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "Other"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "avg_precedents",
+        "op": "avg",
+        "column": "case_number"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_multiagg20:q11",
+    "support_predicates": [
+      {
+        "op": "not_null",
+        "column": "case_number"
+      }
+    ],
+    "support_sql": "NOT case_number IS NULL",
+    "group_sql": [
+      {
+        "alias": "statute_band",
+        "sql": "CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END"
+      }
+    ],
+    "value_sql": [
+      {
+        "alias": "avg_precedents",
+        "sql": "case_number"
+      },
+      {
+        "alias": "dismissed_count",
+        "sql": "CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END"
+      }
+    ],
+    "columns": [
+      "case_number",
+      "legal_basis_num",
+      "statute_band",
+      "verdict"
+    ],
+    "presence_atoms": [
+      "case_number",
+      "legal_basis_num",
+      "verdict"
+    ],
+    "group_expression": [
+      {
+        "alias": "statute_band",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "compare",
+                "column": "legal_basis_num",
+                "cmp": "<=",
+                "value": 1
+              },
+              "then": {
+                "op": "literal",
+                "value": "0_or_1"
+              }
+            },
+            {
+              "if": {
+                "op": "compare",
+                "column": "legal_basis_num",
+                "cmp": "<=",
+                "value": 3
+              },
+              "then": {
+                "op": "literal",
+                "value": "2_or_3"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "4_or_more"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      },
+      {
+        "alias": "avg_precedents",
+        "op": "avg",
+        "column": "case_number"
+      },
+      {
+        "alias": "dismissed_count",
+        "op": "sum_case",
+        "case": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "compare",
+                "column": "verdict",
+                "cmp": "=",
+                "value": "Dismissed"
+              },
+              "then": {
+                "op": "literal",
+                "value": 1
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": 0
+          }
+        }
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_multiagg20:q18",
+    "support_predicates": [
+      {
+        "op": "and",
+        "args": [
+          {
+            "op": "and",
+            "args": [
+              {
+                "op": "compare",
+                "column": "plaintiff_current_status",
+                "cmp": "!=",
+                "value": ""
+              },
+              {
+                "op": "compare",
+                "column": "defendant_current_status",
+                "cmp": "!=",
+                "value": ""
+              }
+            ]
+          },
+          {
+            "op": "not_null",
+            "column": "case_number"
+          }
+        ]
+      }
+    ],
+    "support_sql": "plaintiff_current_status <> '' AND defendant_current_status <> '' AND NOT case_number IS NULL",
+    "group_sql": [
+      {
+        "alias": "plaintiff_family",
+        "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+      },
+      {
+        "alias": "defendant_family",
+        "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END"
+      }
+    ],
+    "value_sql": [
+      {
+        "alias": "avg_statutes",
+        "sql": "legal_basis_num"
+      },
+      {
+        "alias": "avg_precedents",
+        "sql": "case_number"
+      }
+    ],
+    "columns": [
+      "case_number",
+      "defendant_current_status",
+      "defendant_family",
+      "legal_basis_num",
+      "plaintiff_current_status",
+      "plaintiff_family"
+    ],
+    "presence_atoms": [
+      "case_number",
+      "defendant_current_status",
+      "plaintiff_current_status"
+    ],
+    "group_expression": [
+      {
+        "alias": "plaintiff_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "plaintiff_current_status",
+                "values": [
+                  "Company",
+                  "Organization",
+                  "Government"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "plaintiff_current_status"
+              }
+            },
+            {
+              "if": {
+                "op": "compare",
+                "column": "plaintiff_current_status",
+                "cmp": "!=",
+                "value": ""
+              },
+              "then": {
+                "op": "literal",
+                "value": "Individual_or_other"
+              }
+            }
+          ],
+          "else": {
+            "op": "null"
+          }
+        }
+      },
+      {
+        "alias": "defendant_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "defendant_current_status",
+                "values": [
+                  "Government",
+                  "Company",
+                  "Organization"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "defendant_current_status"
+              }
+            },
+            {
+              "if": {
+                "op": "compare",
+                "column": "defendant_current_status",
+                "cmp": "!=",
+                "value": ""
+              },
+              "then": {
+                "op": "literal",
+                "value": "Other"
+              }
+            }
+          ],
+          "else": {
+            "op": "null"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      },
+      {
+        "alias": "avg_statutes",
+        "op": "avg",
+        "column": "legal_basis_num"
+      },
+      {
+        "alias": "avg_precedents",
+        "op": "avg",
+        "column": "case_number"
+      }
+    ],
+    "having_expression": {
+      "count_star_gte": 3
+    },
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_agg20:q4",
+    "support_predicates": [
+      {
+        "op": "not_null",
+        "column": "first_judge"
+      }
+    ],
+    "support_sql": "NOT first_judge IS NULL",
+    "group_sql": [
+      {
+        "alias": "first_judge",
+        "sql": "first_judge"
+      }
+    ],
+    "value_sql": [],
+    "columns": [
+      "first_judge"
+    ],
+    "presence_atoms": [
+      "first_judge"
+    ],
+    "group_expression": [
+      {
+        "alias": "first_judge",
+        "expr": {
+          "op": "column",
+          "column": "first_judge"
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_groupby20:q14",
+    "support_predicates": [
+      {
+        "op": "not_null",
+        "column": "case_number"
+      }
+    ],
+    "support_sql": "NOT case_number IS NULL",
+    "group_sql": [
+      {
+        "alias": "case_family",
+        "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+      },
+      {
+        "alias": "precedent_band",
+        "sql": "CASE WHEN case_number >= 8 THEN 'precedent_heavy' ELSE 'precedent_light' END"
+      }
+    ],
+    "value_sql": [],
+    "columns": [
+      "case_family",
+      "case_number",
+      "case_type",
+      "precedent_band"
+    ],
+    "presence_atoms": [
+      "case_number",
+      "case_type"
+    ],
+    "group_expression": [
+      {
+        "alias": "case_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "case_type",
+                "values": [
+                  "Administrative Case",
+                  "Civil Case",
+                  "Commercial Case"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "case_type"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "Other"
+          }
+        }
+      },
+      {
+        "alias": "precedent_band",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "compare",
+                "column": "case_number",
+                "cmp": ">=",
+                "value": 8
+              },
+              "then": {
+                "op": "literal",
+                "value": "precedent_heavy"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "precedent_light"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_agg20:q11",
+    "support_predicates": [
+      {
+        "op": "compare",
+        "column": "plaintiff_current_status",
+        "cmp": "!=",
+        "value": ""
+      }
+    ],
+    "support_sql": "plaintiff_current_status <> ''",
+    "group_sql": [
+      {
+        "alias": "plaintiff_family",
+        "sql": "CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END"
+      }
+    ],
+    "value_sql": [],
+    "columns": [
+      "plaintiff_current_status",
+      "plaintiff_family"
+    ],
+    "presence_atoms": [
+      "plaintiff_current_status"
+    ],
+    "group_expression": [
+      {
+        "alias": "plaintiff_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "plaintiff_current_status",
+                "values": [
+                  "Company",
+                  "Organization",
+                  "Government"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "plaintiff_current_status"
+              }
+            },
+            {
+              "if": {
+                "op": "compare",
+                "column": "plaintiff_current_status",
+                "cmp": "!=",
+                "value": ""
+              },
+              "then": {
+                "op": "literal",
+                "value": "Individual_or_other"
+              }
+            }
+          ],
+          "else": {
+            "op": "null"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_multiagg20:q9",
+    "support_predicates": [
+      {
+        "op": "not_null",
+        "column": "case_number"
+      }
+    ],
+    "support_sql": "NOT case_number IS NULL",
+    "group_sql": [
+      {
+        "alias": "case_family",
+        "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+      },
+      {
+        "alias": "verdict_family",
+        "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+      }
+    ],
+    "value_sql": [
+      {
+        "alias": "avg_statutes",
+        "sql": "legal_basis_num"
+      },
+      {
+        "alias": "avg_precedents",
+        "sql": "case_number"
+      }
+    ],
+    "columns": [
+      "case_family",
+      "case_number",
+      "case_type",
+      "legal_basis_num",
+      "verdict",
+      "verdict_family"
+    ],
+    "presence_atoms": [
+      "case_number",
+      "case_type",
+      "verdict"
+    ],
+    "group_expression": [
+      {
+        "alias": "case_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "case_type",
+                "values": [
+                  "Administrative Case",
+                  "Civil Case",
+                  "Commercial Case"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "case_type"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "Other"
+          }
+        }
+      },
+      {
+        "alias": "verdict_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "verdict",
+                "values": [
+                  "Dismissed",
+                  "Approved",
+                  "Others"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "verdict"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "Other"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      },
+      {
+        "alias": "avg_statutes",
+        "op": "avg",
+        "column": "legal_basis_num"
+      },
+      {
+        "alias": "avg_precedents",
+        "op": "avg",
+        "column": "case_number"
+      }
+    ],
+    "having_expression": {
+      "count_star_gte": 5
+    },
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_agg20:q13",
+    "support_predicates": [
+      {
+        "op": "not_null",
+        "column": "case_number"
+      }
+    ],
+    "support_sql": "NOT case_number IS NULL",
+    "group_sql": [
+      {
+        "alias": "case_family",
+        "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+      }
+    ],
+    "value_sql": [
+      {
+        "alias": "max_precedents",
+        "sql": "case_number"
+      }
+    ],
+    "columns": [
+      "case_family",
+      "case_number",
+      "case_type"
+    ],
+    "presence_atoms": [
+      "case_number",
+      "case_type"
+    ],
+    "group_expression": [
+      {
+        "alias": "case_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "case_type",
+                "values": [
+                  "Administrative Case",
+                  "Civil Case",
+                  "Commercial Case"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "case_type"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "Other"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "max_precedents",
+        "op": "max",
+        "column": "case_number"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_agg20:q17",
+    "support_predicates": [
+      {
+        "op": "compare",
+        "column": "defendant_current_status",
+        "cmp": "!=",
+        "value": ""
+      }
+    ],
+    "support_sql": "defendant_current_status <> ''",
+    "group_sql": [
+      {
+        "alias": "defendant_family",
+        "sql": "CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END"
+      }
+    ],
+    "value_sql": [
+      {
+        "alias": "avg_statutes",
+        "sql": "legal_basis_num"
+      }
+    ],
+    "columns": [
+      "defendant_current_status",
+      "defendant_family",
+      "legal_basis_num"
+    ],
+    "presence_atoms": [
+      "defendant_current_status"
+    ],
+    "group_expression": [
+      {
+        "alias": "defendant_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "defendant_current_status",
+                "values": [
+                  "Government",
+                  "Company",
+                  "Organization"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "defendant_current_status"
+              }
+            },
+            {
+              "if": {
+                "op": "compare",
+                "column": "defendant_current_status",
+                "cmp": "!=",
+                "value": ""
+              },
+              "then": {
+                "op": "literal",
+                "value": "Other"
+              }
+            }
+          ],
+          "else": {
+            "op": "null"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "avg_statutes",
+        "op": "avg",
+        "column": "legal_basis_num"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_filter20:q8",
+    "support_predicates": [
+      {
+        "op": "and",
+        "args": [
+          {
+            "op": "compare",
+            "column": "case_type",
+            "cmp": "=",
+            "value": "Civil Case"
+          },
+          {
+            "op": "not_null",
+            "column": "case_number"
+          }
+        ]
+      }
+    ],
+    "support_sql": "case_type = 'Civil Case' AND NOT case_number IS NULL",
+    "group_sql": [
+      {
+        "alias": "precedent_band",
+        "sql": "CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END"
+      }
+    ],
+    "value_sql": [],
+    "columns": [
+      "case_number",
+      "case_type",
+      "precedent_band"
+    ],
+    "presence_atoms": [
+      "case_number",
+      "case_type"
+    ],
+    "group_expression": [
+      {
+        "alias": "precedent_band",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "compare",
+                "column": "case_number",
+                "cmp": ">=",
+                "value": 10
+              },
+              "then": {
+                "op": "literal",
+                "value": "many_precedents"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "fewer_precedents"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_filter20:q11",
+    "support_predicates": [
+      {
+        "op": "compare",
+        "column": "defendant_current_status",
+        "cmp": "=",
+        "value": "Government"
+      }
+    ],
+    "support_sql": "defendant_current_status = 'Government'",
+    "group_sql": [
+      {
+        "alias": "case_family",
+        "sql": "CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END"
+      }
+    ],
+    "value_sql": [
+      {
+        "alias": "avg_statutes",
+        "sql": "legal_basis_num"
+      }
+    ],
+    "columns": [
+      "case_family",
+      "case_type",
+      "defendant_current_status",
+      "legal_basis_num"
+    ],
+    "presence_atoms": [
+      "case_type",
+      "defendant_current_status"
+    ],
+    "group_expression": [
+      {
+        "alias": "case_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "case_type",
+                "values": [
+                  "Administrative Case",
+                  "Civil Case",
+                  "Commercial Case"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "case_type"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "Other"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "avg_statutes",
+        "op": "avg",
+        "column": "legal_basis_num"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_filter20:q15",
+    "support_predicates": [
+      {
+        "op": "and",
+        "args": [
+          {
+            "op": "compare",
+            "column": "plaintiff_current_status",
+            "cmp": "=",
+            "value": "Company"
+          },
+          {
+            "op": "in",
+            "column": "defendant_current_status",
+            "values": [
+              "Company",
+              "Organization",
+              "Government"
+            ]
+          }
+        ]
+      }
+    ],
+    "support_sql": "plaintiff_current_status = 'Company' AND defendant_current_status IN ('Company', 'Organization', 'Government')",
+    "group_sql": [
+      {
+        "alias": "verdict_family",
+        "sql": "CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END"
+      }
+    ],
+    "value_sql": [],
+    "columns": [
+      "defendant_current_status",
+      "plaintiff_current_status",
+      "verdict",
+      "verdict_family"
+    ],
+    "presence_atoms": [
+      "defendant_current_status",
+      "plaintiff_current_status",
+      "verdict"
+    ],
+    "group_expression": [
+      {
+        "alias": "verdict_family",
+        "expr": {
+          "op": "case",
+          "whens": [
+            {
+              "if": {
+                "op": "in",
+                "column": "verdict",
+                "values": [
+                  "Dismissed",
+                  "Approved",
+                  "Others"
+                ]
+              },
+              "then": {
+                "op": "column",
+                "column": "verdict"
+              }
+            }
+          ],
+          "else": {
+            "op": "literal",
+            "value": "Other"
+          }
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_agg20:q3",
+    "support_predicates": [
+      {
+        "op": "between",
+        "column": "hearing_year",
+        "low": 2005,
+        "high": 2009
+      }
+    ],
+    "support_sql": "hearing_year BETWEEN 2005 AND 2009",
+    "group_sql": [
+      {
+        "alias": "hearing_year",
+        "sql": "hearing_year"
+      }
+    ],
+    "value_sql": [],
+    "columns": [
+      "hearing_year"
+    ],
+    "presence_atoms": [
+      "hearing_year"
+    ],
+    "group_expression": [
+      {
+        "alias": "hearing_year",
+        "expr": {
+          "op": "column",
+          "column": "hearing_year"
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "case_count",
+        "op": "count_star"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  },
+  {
+    "query_id": "legal_agg20:q14",
+    "support_predicates": [
+      {
+        "op": "not_null",
+        "column": "first_judge"
+      }
+    ],
+    "support_sql": "NOT first_judge IS NULL",
+    "group_sql": [
+      {
+        "alias": "first_judge",
+        "sql": "first_judge"
+      }
+    ],
+    "value_sql": [
+      {
+        "alias": "avg_statutes",
+        "sql": "legal_basis_num"
+      }
+    ],
+    "columns": [
+      "first_judge",
+      "legal_basis_num"
+    ],
+    "presence_atoms": [
+      "first_judge"
+    ],
+    "group_expression": [
+      {
+        "alias": "first_judge",
+        "expr": {
+          "op": "column",
+          "column": "first_judge"
+        }
+      }
+    ],
+    "aggregate_terms": [
+      {
+        "alias": "avg_statutes",
+        "op": "avg",
+        "column": "legal_basis_num"
+      }
+    ],
+    "having_expression": null,
+    "distinct_identity": null
+  }
+]
