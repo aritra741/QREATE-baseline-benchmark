@@ -1,0 +1,177 @@
+{
+  "affected_official_bags": [
+    "legal_filter20:q15",
+    "legal_filter20:q7",
+    "legal_multiagg20:q11",
+    "legal_multiagg20:q18",
+    "legal_multiagg20:q4",
+    "legal_multiagg20:q9"
+  ],
+  "bag_comparisons": {
+    "theta25:fusion_direct": "rebuilt_without_a_frozen_direct_bag",
+    "theta25:fusion_same_attribute": true,
+    "theta50:fusion_direct": "rebuilt_without_a_frozen_direct_bag",
+    "theta50:fusion_same_attribute": true,
+    "theta75:fusion_direct": "rebuilt_without_a_frozen_direct_bag",
+    "theta75:fusion_same_attribute": true
+  },
+  "baseline_products": {
+    "docetl": 0.12350932750098194,
+    "plumbing": 0.022455905439098717,
+    "wcci": 0.09594618648894966
+  },
+  "decision": "Legal fused result invalid",
+  "expected": {
+    "docetl": 0.12350932750098194,
+    "fusion_direct": 0.13543970219666815,
+    "fusion_same_attribute": 0.14382694759870493,
+    "plumbing": 0.022455905439098717,
+    "wcci": 0.09594618648894966
+  },
+  "final_decision": "audit invalidates the Legal win",
+  "identity_ok": true,
+  "inputs": {
+    "forbidden_markers_in_runner": [
+      "query_results.json",
+      "query_tables",
+      "evaluation.json",
+      "extract_fields.json",
+      "pipeline_output.json",
+      "ground_truth",
+      "shared_reachability",
+      "cost_aware_reachability"
+    ],
+    "opened_before_freeze": [
+      "results/docetl_legal_case80/query_manifest.json",
+      "Query/Legal/Legal_attributes.json",
+      "source_data/Legal/legal_case/*.txt",
+      "results/quwarts_legal_plumbing/artifacts/databases/legal_plumbing.db",
+      "systems/docetl-main/docetl/operations/utils/validation.py",
+      "systems/WDIRS/quwarts/core/docetl_unit_parity/schema.py",
+      "quwarts tokenizer via count_tokens"
+    ]
+  },
+  "malformed_and_wrong_type": {
+    "fallback_malformed": 87,
+    "fallback_wrong_type": 802,
+    "relation": "The 87 malformed and 802 wrong-type counts are the terminal fallbacks. Successful repairs cleared the stored error, so those 889 failures are disjoint from the 6351 repaired subresults.",
+    "repaired_subresults": 6351
+  },
+  "material_failures": [
+    "raw model responses were not retained, so the 6351 format repairs cannot be shown to avoid invented values"
+  ],
+  "phase_b": "not started",
+  "plumbing_checks": {
+    "theta25": {
+      "legal_filter20:q15": true,
+      "legal_filter20:q7": true,
+      "legal_multiagg20:q11": true,
+      "legal_multiagg20:q18": true,
+      "legal_multiagg20:q4": true,
+      "legal_multiagg20:q9": true
+    }
+  },
+  "prefixes": {
+    "theta25_prefix_of_theta50": true,
+    "theta50_equals_theta75": true,
+    "theta75_prefix_of_full": true
+  },
+  "repair_classes": {
+    "counts": {
+      "model_format_repair": 6351,
+      "terminal_fallback": 889,
+      "valid_original": 1880
+    },
+    "examples": {
+      "model_format_repair": {
+        "doc": "1.txt",
+        "error": null,
+        "fields": {
+          "first_judge": null,
+          "legal_basis_num": null
+        },
+        "paired_queries": [
+          "legal_agg20:q11",
+          "legal_agg20:q14"
+        ],
+        "query_id": "legal_agg20:q14",
+        "repair_call": true
+      },
+      "terminal_fallback": {
+        "doc": "176.txt",
+        "error": "wrong type",
+        "fields": null,
+        "paired_queries": [
+          "legal_agg20:q11",
+          "legal_agg20:q14"
+        ],
+        "query_id": "legal_agg20:q14",
+        "repair_call": true
+      },
+      "valid_original": {
+        "doc": "1.txt",
+        "error": null,
+        "fields": {
+          "plaintiff_current_status": null
+        },
+        "paired_queries": [
+          "legal_agg20:q11",
+          "legal_agg20:q14"
+        ],
+        "query_id": "legal_agg20:q11",
+        "repair_call": true
+      }
+    },
+    "fallback_errors": {
+      "malformed output": 87,
+      "wrong type": 802
+    },
+    "note": "status=repaired means a second model call returned a schema-valid object. The original response and the repair response were not stored, so the audit cannot prove that the repair avoided inventing a semantic value.",
+    "raw_model_text_retained": false,
+    "repaired_retained_errors": {}
+  },
+  "scores": {
+    "fusion_direct": {
+      "f1": 0.16011904761904763,
+      "f2": 0.7489943944084811,
+      "product": 0.13543970219666815
+    },
+    "fusion_same_attribute": {
+      "f1": 0.17591765873015874,
+      "f2": 0.8069935355289884,
+      "product": 0.14382694759870493
+    }
+  },
+  "sharing": {
+    "by_attribute": {
+      "case_number": 68,
+      "case_type": 40,
+      "legal_basis_num": 106,
+      "verdict": 59
+    },
+    "by_route": {
+      "legal_filter20:q11 -> legal_groupby20:q14": 29,
+      "legal_filter20:q15 -> legal_filter20:q7": 15,
+      "legal_filter20:q7 -> legal_filter20:q15": 15,
+      "legal_groupby20:q14 -> legal_filter20:q11": 11,
+      "legal_multiagg20:q11 -> legal_multiagg20:q4": 154,
+      "legal_multiagg20:q18 -> legal_multiagg20:q9": 5,
+      "legal_multiagg20:q4 -> legal_multiagg20:q11": 44
+    },
+    "missing_subresult_kept_partner": 375,
+    "namespace_mismatches": 0,
+    "paired_calls": 4096,
+    "shares": 273,
+    "violation_count": 0,
+    "violations": []
+  },
+  "tokens": {
+    "ledger_total": 18412006,
+    "over_reservation": 184431,
+    "primary_combined": 17013058,
+    "projected_reservation": 18227575,
+    "repair_combined": 1398948,
+    "split_unavailable": "The runner stored one combined token count per call, not separate prompt and completion counts.",
+    "theta50": 25220022
+  }
+}
