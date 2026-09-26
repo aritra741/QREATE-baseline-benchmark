@@ -50,6 +50,9 @@ FROZEN: dict[str, float | int | str] = {
     # Zero-token priors.
     "label_surface_min": 0.5,
     "corpus_sample_docs": 50,
+    # Plan verdict from served (query, attribute) coverage within theta.
+    "coverage_serve_min": 0.8,
+    "coverage_loss_max": 0.5,
 }
 
 
