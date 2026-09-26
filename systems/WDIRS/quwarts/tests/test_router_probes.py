@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from quwarts.core.router.probes import AttributeProbe, fake_caller_factory, parse_fields, run_probe, same_value
+from quwarts.core.router.probes import AttributeProbe, choose_contexts, fake_caller_factory, parse_fields, run_probe, same_value
 from quwarts.core.router.registry import CorpusSpec, TableSpec
 from quwarts.core.router.text import find_span, prepare_document
 from quwarts.core.router.workload_features import workload_features
@@ -74,7 +74,7 @@ def test_noise_is_subtracted_from_query_sensitivity():
     probe.conditioned = [("d0", "q", "x"), ("d1", "q", "y"), ("d2", "q", "x"), ("d3", "q", "y")]
     metrics = probe.metrics(docs)
     assert metrics["kappa"] == 0.5
-    assert metrics["delta_raw"] == 0.5 and metrics["delta"] == 0.0
+    assert metrics["conflict_raw"] == 0.5 and metrics["delta"] == 0.0
 
 
 def test_helpers():
@@ -82,3 +82,38 @@ def test_helpers():
     assert same_value("1,000", 1000) and not same_value("EY", "Ernst & Young")
     doc = prepare_document("Filed in 2008. Count: 0 items")
     assert find_span(0, doc) > find_span(2008, doc) >= 0  # "0" is not matched inside "2008"
+
+
+def test_single_pair_is_not_evidence():
+    probe = AttributeProbe("t.a")
+    probe.canonical = {"d0": ("x", "x")}
+    probe.conditioned = [("d0", "q", "y")]
+    metrics = probe.metrics({"d0": "x y"})
+    assert metrics["delta"] is None and metrics["g"] is None and metrics["recall_gap"] is None
+
+
+def test_null_versus_value_is_recall_not_conflict():
+    # The CSPaper v1 failure: canonical says null, a query context says "No".
+    probe = AttributeProbe("t.uses_reranker")
+    docs = {f"d{i}": "we do not use a reranker. no." for i in range(6)}
+    probe.canonical = {f"d{i}": (None, None) for i in range(6)}
+    probe.conditioned = [(f"d{i}", "q", "No") for i in range(6)]
+    metrics = probe.metrics(docs)
+    assert metrics["delta"] is None  # no pair where both answered: no conflict evidence
+    assert metrics["recall_gap"] == 1.0
+
+
+def test_contexts_cover_attributes_evenly():
+    from collections import Counter
+
+    from quwarts.core.router.workload_features import AttributeUse
+
+    uses = [
+        AttributeUse("t", "a", "string", ["predicate"], ["q1", "q2", "q3"]),
+        AttributeUse("t", "b", "string", ["predicate"], ["q1"]),
+        AttributeUse("t", "c", "string", ["predicate"], ["q4"]),
+    ]
+    seen: Counter = Counter()
+    picks = [choose_contexts(["q1", "q2", "q3", "q4"], uses, seen, 2) for _ in range(3)]
+    assert picks[0] == ["q1", "q4"]
+    assert min(seen[u.qualified] for u in uses) >= 2

@@ -13,7 +13,7 @@ import json
 from quwarts.core.corpus_probe.context import COMPLETION_SPACE, SAFETY_MARGIN, EFFECTIVE_INPUT_LIMIT
 
 FROZEN: dict[str, float | int | str] = {
-    "version": "router-v1",
+    "version": "router-v2",
     # --- cost model -------------------------------------------------------
     # Usable document tokens in one call (same limit as corpus_probe.context).
     "context_window_tokens": EFFECTIVE_INPUT_LIMIT - COMPLETION_SPACE - SAFETY_MARGIN,
@@ -31,9 +31,13 @@ FROZEN: dict[str, float | int | str] = {
     # --- probe budget -----------------------------------------------------
     "probe_budget_fraction": 0.10,
     "probe_docs_min": 3,
-    "probe_docs_max": 8,
+    "probe_docs_max": 12,
     "probe_query_contexts_per_doc": 2,
     "probe_seed": 20260926,
+    # Minimum evidence before a probe metric is used (v2, after the CSPaper v1 run
+    # showed single-pair estimates).
+    "probe_min_pairs": 4,
+    "probe_min_values": 4,
     # --- decision boundaries ---------------------------------------------
     # Majority rule: an attribute is extractive when most non-null answers are
     # source spans (or normalized spans).
@@ -41,6 +45,9 @@ FROZEN: dict[str, float | int | str] = {
     # Query sensitivity net of sampling noise. Above this, one shared value
     # cannot serve every query context.
     "sensitivity_max": 0.2,
+    # Net recall gained from query context. Above this, a shared canonical
+    # value loses answers that query-conditioned reads find.
+    "recall_gap_max": 0.2,
     # Anchor regularity: most grounded values share one textual anchor.
     "regularity_min": 0.5,
     # Repair only when the SQL-unknown residue is a small fraction of rows and

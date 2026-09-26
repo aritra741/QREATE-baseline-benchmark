@@ -128,3 +128,9 @@ def test_parse_split_sql():
 
     text = "-- Query 1: test (agg_only) id=a1\nSELECT 1\nFROM t;\n\n-- Query 2: test (x) id=b2\nSELECT 2;\n"
     assert parse_split_sql(text) == {"a1": "SELECT 1 FROM t", "b2": "SELECT 2"}
+
+
+def test_recall_gap_routes_to_query_conditioned_reads_when_affordable():
+    probe = {"g": 0.9, "delta": 0.0, "r": 0.9, "recall_gap": 0.5}
+    assert route_decision(use(), table(0.5), probe).route == "fused_map"
+    assert route_decision(use(), table(3.0), probe).route == "program"  # long documents: cannot afford maps

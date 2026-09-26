@@ -4,9 +4,14 @@ For each probed attribute the probe estimates:
 
 * ``kappa``  self-consistency: agreement of two identical canonical requests
 * ``g``      extractiveness: share of non-null answers that are spans of the source
-* ``delta``  query sensitivity net of sampling noise:
-             max(0, disagreement(canonical, query-conditioned) - (1 - kappa))
-* ``delta_cross`` the same, between two query-conditioned requests
+* ``delta``  query sensitivity: conflict rate between canonical and query-conditioned
+             answers when both are non-null, minus the conflict rate of two identical requests
+* ``recall_gap`` net share of informative pairs where query context finds a value the
+             canonical request missed, minus presence noise between identical requests
+* ``delta_cross`` conflict rate between two query-conditioned requests
+
+A metric backed by fewer than ``probe_min_pairs`` pairs (or ``probe_min_values``
+values) is reported as None, and the policy falls back to its prior.
 * ``r``      anchor regularity: share of grounded values that share one textual cue
 
 Every prompt and raw response is journaled. No gold and no baseline outputs
@@ -148,37 +153,49 @@ class AttributeProbe:
     conditioned: list[tuple[str, str, Any]] = field(default_factory=list)  # (doc, query_id, value)
 
     def metrics(self, documents_lower: dict[str, str]) -> dict[str, Any]:
-        pairs = [(a, b) for a, b in self.canonical.values() if not (is_null(a) and is_null(b))]
-        kappa = (sum(same_value(a, b) for a, b in pairs) / len(pairs)) if pairs else None
+        min_pairs = int(FROZEN["probe_min_pairs"])
+        min_values = int(FROZEN["probe_min_values"])
+
+        # Noise floor from two identical canonical requests, split into
+        # value noise (both answer, differently) and presence noise (one is null).
+        canon_pairs = list(self.canonical.values())
+        c_both, c_one = _split(canon_pairs)
+        c_informative = len(c_both) + len(c_one)
+        kappa = (sum(same_value(a, b) for a, b in c_both) + 0) / c_informative if c_informative else None
+        value_noise = (sum(not same_value(a, b) for a, b in c_both) / len(c_both)) if c_both else 0.0
+        presence_noise = (len(c_one) / c_informative) if c_informative else 0.0
 
         values = [(doc, v) for doc, (a, b) in self.canonical.items() for v in (a, b)]
         values += [(doc, v) for doc, _q, v in self.conditioned]
         non_null = [(doc, v) for doc, v in values if not is_null(v)]
         spans = [(doc, find_span(v, documents_lower[doc])) for doc, v in non_null]
-        g = (sum(1 for _doc, offset in spans if offset >= 0) / len(spans)) if spans else None
+        g = (sum(1 for _doc, offset in spans if offset >= 0) / len(spans)) if len(spans) >= min_values else None
 
-        disagreements: list[bool] = []
-        cross: list[bool] = []
+        # Canonical versus query-conditioned, per document.
+        pairs: list[tuple[Any, Any]] = []
+        cross_pairs: list[tuple[Any, Any]] = []
         by_doc: dict[str, list[Any]] = {}
         for doc, _query, value in self.conditioned:
             by_doc.setdefault(doc, []).append(value)
         for doc, conditioned in by_doc.items():
             reference = self.canonical.get(doc, (None, None))[0]
-            for value in conditioned:
-                if is_null(reference) and is_null(value):
-                    continue
-                disagreements.append(not same_value(reference, value))
+            pairs.extend((reference, value) for value in conditioned)
             for i in range(len(conditioned)):
                 for j in range(i + 1, len(conditioned)):
-                    if not (is_null(conditioned[i]) and is_null(conditioned[j])):
-                        cross.append(not same_value(conditioned[i], conditioned[j]))
-        noise = (1.0 - kappa) if kappa is not None else 0.0
-        # Canonical versus query-conditioned: can one query-independent value serve?
-        delta_raw = (sum(disagreements) / len(disagreements)) if disagreements else None
-        delta = None if delta_raw is None else max(0.0, delta_raw - noise)
-        # Query-conditioned versus query-conditioned: can one conditioned read serve several queries?
-        cross_raw = (sum(cross) / len(cross)) if cross else None
-        delta_cross = None if cross_raw is None else max(0.0, cross_raw - noise)
+                    cross_pairs.append((conditioned[i], conditioned[j]))
+        both, one = _split(pairs)
+        # Conflict: both answer and the answers differ. This is what makes one shared value wrong.
+        conflict_raw = (sum(not same_value(a, b) for a, b in both) / len(both)) if len(both) >= min_pairs else None
+        delta = None if conflict_raw is None else max(0.0, conflict_raw - value_noise)
+        # Recall gap: query context finds a value the canonical request missed (net of the reverse).
+        informative = len(both) + len(one)
+        found = sum(1 for a, b in one if is_null(a) and not is_null(b))
+        lost = sum(1 for a, b in one if not is_null(a) and is_null(b))
+        recall_raw = ((found - lost) / informative) if informative >= min_pairs else None
+        recall_gap = None if recall_raw is None else max(0.0, recall_raw - presence_noise)
+        x_both, _x_one = _split(cross_pairs)
+        cross_raw = (sum(not same_value(a, b) for a, b in x_both) / len(x_both)) if len(x_both) >= min_pairs else None
+        delta_cross = None if cross_raw is None else max(0.0, cross_raw - value_noise)
 
         anchors = []
         for doc, (first, _second) in self.canonical.items():
@@ -188,24 +205,63 @@ class AttributeProbe:
             if offset >= 0:
                 anchors.append(anchor(documents_lower[doc], offset))
         anchors = [cue for cue in anchors if cue]
-        r = (Counter(anchors).most_common(1)[0][1] / len(anchors)) if len(anchors) >= 2 else None
+        r = (Counter(anchors).most_common(1)[0][1] / len(anchors)) if len(anchors) >= min_values else None
 
         canonical_answers = [v for a, b in self.canonical.values() for v in (a, b)]
         null_rate = (sum(is_null(v) for v in canonical_answers) / len(canonical_answers)) if canonical_answers else None
         return {
             "n_docs": len(self.canonical),
             "n_conditioned": len(self.conditioned),
+            "n_values": len(spans),
             "kappa": kappa,
+            "value_noise": value_noise,
+            "presence_noise": presence_noise,
             "g": g,
-            "delta_raw": delta_raw,
+            "conflict_raw": conflict_raw,
             "delta": delta,
+            "n_conflict_pairs": len(both),
+            "recall_raw": recall_raw,
+            "recall_gap": recall_gap,
+            "n_recall_pairs": informative,
             "delta_cross_raw": cross_raw,
             "delta_cross": delta_cross,
+            "n_cross_pairs": len(x_both),
             "r": r,
+            "n_anchors": len(anchors),
             "null_rate": null_rate,
-            "n_disagreement_pairs": len(disagreements),
-            "n_cross_pairs": len(cross),
         }
+
+
+def _split(pairs: list[tuple[Any, Any]]) -> tuple[list[tuple[Any, Any]], list[tuple[Any, Any]]]:
+    """(both non-null, exactly one non-null). Pairs where both are null carry no evidence."""
+
+    both = [(a, b) for a, b in pairs if not is_null(a) and not is_null(b)]
+    one = [(a, b) for a, b in pairs if is_null(a) != is_null(b)]
+    return both, one
+
+
+def choose_contexts(contexts: list[str], uses: list[AttributeUse], seen: Counter, n: int) -> list[str]:
+    """Pick query contexts for one document so every probed attribute is seen evenly.
+
+    Each candidate scores sum(1 / (1 + times the attribute was already seen)).
+    """
+
+    chosen: list[str] = []
+    for _ in range(min(n, len(contexts))):
+        best, best_score = None, 0.0
+        for query_id in contexts:
+            if query_id in chosen:
+                continue
+            score = sum(1.0 / (1 + seen[use.qualified]) for use in uses if query_id in use.query_ids)
+            if score > best_score:
+                best, best_score = query_id, score
+        if best is None:
+            break
+        chosen.append(best)
+        for use in uses:
+            if best in use.query_ids:
+                seen[use.qualified] += 1
+    return chosen
 
 
 def _sha(text: str) -> str:
@@ -296,6 +352,7 @@ def run_probe(
         sample = length_stratified_sample(paths, doc_tokens[table], entry["docs"], f"probe:{table}")
         lowered: dict[str, str] = {}
         contexts = entry["contexts"]
+        seen: Counter = Counter()
         for index, path in enumerate(sample):
             raw = read_document(path)
             lowered[path.name] = prepare_document(raw)
@@ -310,8 +367,7 @@ def run_probe(
                     _scalar(reps[0].get(use.name)),
                     _scalar(reps[1].get(use.name)),
                 )
-            n_ctx = min(int(FROZEN["probe_query_contexts_per_doc"]), len(contexts))
-            chosen = [contexts[(index * n_ctx + j) % len(contexts)] for j in range(n_ctx)] if contexts else []
+            chosen = choose_contexts(contexts, table_uses, seen, int(FROZEN["probe_query_contexts_per_doc"]))
             for query_id in dict.fromkeys(chosen):
                 q_uses = [use for use in table_uses if query_id in use.query_ids]
                 if not q_uses:

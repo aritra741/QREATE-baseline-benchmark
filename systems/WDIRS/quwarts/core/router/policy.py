@@ -13,7 +13,8 @@ R2 program        cross-document redundancy: the value is a source span (g high)
                   per attribute serves every document and every query.
 R2' canonical_map cross-query redundancy for spans without a stable cue: read
                   each document once, query-independently, and share the value.
-R3 fused_map      the value is interpretive or query-dependent, so values cannot
+R3 fused_map      the value is interpretive, query-dependent, or found only under
+                  query context (recall gap), so values cannot
                   be shared, but reads can: fuse compatible queries into one
                   whole-document transmission. Requires documents to fit.
 R4 retrieval_map  as R3 when documents do not fit one call; read retrieved windows.
@@ -122,7 +123,15 @@ def route_decision(
     fits = lam <= 1.0
     reasons.append(f"context fit lambda={lam:.2f} ({'fits' if fits else 'does not fit'})")
 
-    if extractive and sharable:
+    recall_gap = probe.get("recall_gap")
+    loses_recall = recall_gap is not None and recall_gap > float(FROZEN["recall_gap_max"])
+    if recall_gap is not None:
+        reasons.append(f"probe recall_gap={recall_gap:.2f}")
+
+    if extractive and sharable and loses_recall and fits:
+        route, rule = "fused_map", "R3"
+        reasons.append("query context recovers values a shared read misses")
+    elif extractive and sharable:
         if not fits:
             route, rule = "program", "R2"
             reasons.append("long documents: amortize with one program per attribute")
@@ -150,6 +159,7 @@ def route_decision(
             "g": g,
             "delta": delta,
             "delta_cross": probe.get("delta_cross"),
+            "recall_gap": recall_gap,
             "r": r,
             "kappa": probe.get("kappa"),
             "probe_docs": probe.get("n_docs"),
