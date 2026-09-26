@@ -222,3 +222,69 @@ def description_text(record: dict[str, Any]) -> str:
     if record.get("if_absent"):
         parts.append(f"If the document does not mention it: {record['if_absent'].rstrip('.')}")
     return ". ".join(parts)
+
+
+def mentions_case_label(text: str, facts: dict[str, list[str]]) -> list[str]:
+    """CASE-only labels mentioned in ``text``, after masking real stored values
+    (so 'Others' or 'Administrative Case' do not count as 'Other' or 'Administrative')."""
+
+    masked = text
+    for value in sorted(facts.get("stored_values", []), key=len, reverse=True):
+        masked = re.sub(re.escape(value), " ", masked, flags=re.I)
+    hits = []
+    for label in facts.get("case_outputs", []):
+        if re.search(r"(?<![\w])" + re.escape(label) + r"(?![\w])", masked, flags=re.I):
+            hits.append(label)
+    return hits
+
+
+def describe_prompt_v3(use: AttributeUse, queries: dict[str, str], passages: list[str]) -> str:
+    facts = sql_facts(use, queries)
+    forbidden = facts["case_outputs"]
+    extra = [
+        "",
+        "Constraints on your answer:",
+        "- Never mention these labels anywhere; they are produced by queries and are never stored: "
+        + (", ".join(repr(v) for v in forbidden) if forbidden else "(none)"),
+        "- if_absent is null unless the column is a 0/1 flag or a count, in which case it is 0.",
+    ]
+    return describe_prompt_v2(use, queries, passages) + "\n".join(extra)
+
+
+def generate_v3(spec: CorpusSpec, uses: list[AttributeUse], queries: dict[str, str], caller: BudgetedCaller,
+                journal: Path, attempts: int = 3) -> dict[str, dict[str, Any]]:
+    """v2 prompt plus explicit constraints; each answer is validated and retried if it breaks them.
+    An attribute whose answers never pass gets no description (the extractor sees its name only)."""
+
+    frags = attribute_file_fragments(spec)
+    out: dict[str, dict[str, Any]] = {}
+    for use in sorted(uses, key=lambda u: u.qualified):
+        facts = sql_facts(use, queries)
+        passages = excerpts(spec, use.table, use.name)
+        prompt = describe_prompt_v3(use, queries, passages)
+        accepted = None
+        for attempt in range(attempts):
+            text = caller.complete(prompt + ("" if attempt == 0 else f"\n(Attempt {attempt + 1}.)"),
+                                   "describe_attribute_v3", system=SYSTEM, attribute=use.qualified)
+            parsed = parse_fields(text, ["meaning", "format", "if_absent"])
+            record = {k: (str(parsed.get(k)).strip() if parsed.get(k) not in (None, "", "null") else None)
+                      for k in ("meaning", "format", "if_absent")}
+            absent = (record.get("if_absent") or "").strip("'\" ")
+            # 0 only where the workload itself compares the column with 0 or 1 (flags, counts);
+            # never for years or amounts the SQL compares with other numbers.
+            zero_ok = any(re.search(r"(?:=|!=|<|>|<=|>=)\s*[01](?:\.0)?$", c) for c in facts["comparisons"])
+            record["if_absent"] = "0" if absent in ("0", "0.0") and use.numeric and zero_ok else None
+            rendered = description_text(record)
+            violations = mentions_case_label(rendered, facts)
+            with journal.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps({"attribute": use.qualified, "attempt": attempt, "prompt": prompt,
+                                         "response": text, "violations": violations,
+                                         "tokens": caller.ledger.records[-1].tokens}, ensure_ascii=False) + "\n")
+            if [f for f in frags if f in rendered]:
+                raise RuntimeError(f"{use.qualified}: attribute-file text in generated description")
+            if not violations and record.get("meaning"):
+                accepted = {**record, "description": rendered}
+                break
+        if accepted:
+            out[use.qualified] = accepted
+    return out

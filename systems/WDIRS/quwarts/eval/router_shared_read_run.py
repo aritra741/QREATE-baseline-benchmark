@@ -47,6 +47,8 @@ def workload(corpus: str) -> tuple[list[dict], list[dict]]:
 
 
 def out_dir(spec, variant: str) -> Path:
+    if variant in ("described_v1", "described_v3"):
+        variant = "described"  # description versions share one folder
     return RESULTS / "quwarts_router_v3" / spec.name / ("shared_read" if variant == "plain" else f"shared_read_{variant}")
 
 
@@ -61,9 +63,11 @@ def setup(corpus: str, variant: str = "plain"):
     fields = field_specs(spec, needs, numeric)
     fields = {q: replace(f, usage=usage_phrase(wf["attributes"][q])) if q in wf["attributes"] else f
               for q, f in fields.items()}
-    if variant in ("described", "described_v1"):
+    if variant in ("described", "described_v1", "described_v3", "per_attribute"):
         base = out_dir(spec, "described")
-        frozen = json.loads(((base / "v1") if variant == "described_v1" else base).joinpath("descriptions.json").read_text())
+        name = {"described": "descriptions.json", "described_v1": "v1/descriptions.json",
+                "described_v3": "descriptions_v3.json", "per_attribute": "descriptions_per_attribute.json"}[variant]
+        frozen = json.loads((base / name).read_text())
         fields = {q: replace(f, description=frozen[q]["description"]) if q in frozen else f for q, f in fields.items()}
     reads = []
     for table in sorted({n.table for n in needs}):
@@ -140,6 +144,61 @@ def describe(corpus: str) -> int:
     return 0
 
 
+def derive_v3(corpus: str) -> int:
+    from quwarts.core.llm.openrouter import load_env_file, make_caller
+    from quwarts.core.router.describe import generate_v3
+
+    spec = get_corpus(corpus)
+    train, _ = workload(corpus)
+    train_q = {r["query_id"]: r["sql"] for r in train}
+    uses = list(workload_features(spec, train_q)["attributes"].values())
+    base = out_dir(spec, "described")
+    if (base / "descriptions_v3.json").exists():
+        raise SystemExit("v3 descriptions are frozen")
+    load_env_file(PROJECT / ".env")
+    ledger = TokenLedger(theta=10**12)
+    caller = make_caller(ledger, max_tokens=300)
+    v3 = generate_v3(spec, uses, train_q, caller, base / "describe_v3_journal.jsonl")
+    (base / "descriptions_v3.json").write_text(json.dumps(v3, indent=2, sort_keys=True))
+    for q in sorted(u.qualified for u in uses):
+        print(f"{q}: {v3[q]['description'] if q in v3 else '(no description: name only)'}")
+    print(json.dumps({"describe_v3_tokens": ledger.spent}))
+    return 0
+
+
+def choose_per_attribute(corpus: str, workers: int) -> int:
+    """Pre-declared (2026-09-26, before any v3 read): per attribute, use the variant among
+    plain / v2 / v3 with the highest SQL consistency on the 20-case check sample; ties go to
+    the simpler variant (plain, then v3, then v2). Plain means the name alone (no description)."""
+
+    spec = get_corpus(corpus)
+    base = out_dir(spec, "described")
+    report = json.loads((base / "check.json").read_text())
+    if "described_v3" not in report:
+        extra = _check_variants(corpus, workers, ("described_v3",))
+        report.update(extra)
+        (base / "check.json").write_text(json.dumps(report, indent=2))
+    order = ["plain", "described_v3", "described"]
+    v2 = json.loads((base / "descriptions.json").read_text())
+    v3 = json.loads((base / "descriptions_v3.json").read_text())
+    chosen, per = {}, {}
+    for q in report["plain"]["per_attribute"]:
+        best = max(order, key=lambda v: (report[v]["per_attribute"][q], -order.index(v)))
+        per[q] = best
+        if best == "described":
+            chosen[q] = v2[q]
+        elif best == "described_v3":
+            chosen[q] = v3[q]
+    out = out_dir(spec, "per_attribute")
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "descriptions_per_attribute.json").write_text(json.dumps(chosen, indent=2, sort_keys=True))
+    (base / "descriptions_per_attribute.json").write_text(json.dumps(chosen, indent=2, sort_keys=True))
+    (out / "choice.json").write_text(json.dumps(per, indent=2, sort_keys=True))
+    for q, v in per.items():
+        print(f"  {q:34} -> {v}  " + " ".join(f"{k}={report[k]['per_attribute'][q]:.2f}" for k in order))
+    return 0
+
+
 def _numeric_literals(queries: dict[str, str], table: str, attr: str) -> set[float]:
     import sqlglot
     from sqlglot import exp
@@ -168,6 +227,18 @@ def check(corpus: str, workers: int) -> int:
     and any value otherwise. No gold is read.
     """
 
+    variants = ("plain", "described_v1", "described")
+    report = _check_variants(corpus, workers, variants)
+    spec = get_corpus(corpus)
+    report["decision"] = max(variants, key=lambda v: (report[v]["mean_consistency"], v == "plain"))
+    (out_dir(spec, "described") / "check.json").write_text(json.dumps(report, indent=2))
+    print(json.dumps({v: round(report[v]["mean_consistency"], 3) for v in variants}), "decision:", report["decision"])
+    for q in report["plain"]["per_attribute"]:
+        print(f"  {q:34} " + " ".join(f"{v}={report[v]['per_attribute'][q]:.2f}" for v in variants))
+    return 0
+
+
+def _check_variants(corpus: str, workers: int, variants) -> dict[str, Any]:
     from quwarts.core.llm.openrouter import load_env_file, make_caller
     from quwarts.core.router.comparator import as_number, as_text, is_null
     from quwarts.core.router.corpus_features import deterministic_sample, list_documents
@@ -180,7 +251,6 @@ def check(corpus: str, workers: int) -> int:
     train_q = {r["query_id"]: r["sql"] for r in train}
     wf = workload_features(spec, train_q)
     report: dict[str, Any] = {}
-    variants = ("plain", "described_v1", "described")
     for variant in variants:
         _s, _tr, _te, fields, reads = setup(corpus, variant)
         base = out_dir(spec, "described") / f"check_{variant}.jsonl"
@@ -219,14 +289,9 @@ def check(corpus: str, workers: int) -> int:
                     else:
                         ok += 1
                 per_attr[q] = ok / max(1, len(got))
-        report[variant] = {"mean_consistency": sum(per_attr.values()) / len(per_attr), "per_attribute": per_attr}
-    report["decision"] = max(variants, key=lambda v: (report[v]["mean_consistency"], v == "plain"))
-    report["check_tokens"] = ledger.spent
-    (out_dir(spec, "described") / "check.json").write_text(json.dumps(report, indent=2))
-    print(json.dumps({v: round(report[v]["mean_consistency"], 3) for v in variants}), "decision:", report["decision"])
-    for q in report["plain"]["per_attribute"]:
-        print(f"  {q:34} " + " ".join(f"{v}={report[v]['per_attribute'][q]:.2f}" for v in variants))
-    return 0
+        report[variant] = {"mean_consistency": sum(per_attr.values()) / len(per_attr), "per_attribute": per_attr,
+                           "check_tokens": ledger.spent}
+    return report
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -238,11 +303,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--variant", choices=["plain", "described"], default="plain")
     parser.add_argument("--describe", action="store_true", help="generate and freeze workload descriptions")
     parser.add_argument("--check", action="store_true", help="gold-free consistency check on a document sample")
+    parser.add_argument("--v3", action="store_true", help="derive v3 descriptions (SQL-constrained v2)")
+    parser.add_argument("--choose", action="store_true", help="pre-declared per-attribute choice of description")
     args = parser.parse_args(argv)
     if args.describe:
         return describe(args.corpus)
     if args.check:
         return check(args.corpus, args.workers)
+    if args.v3:
+        return derive_v3(args.corpus)
+    if args.choose:
+        return choose_per_attribute(args.corpus, args.workers)
     spec, train, test, fields, reads = setup(args.corpus, args.variant)
     out = out_dir(spec, args.variant)
     out.mkdir(parents=True, exist_ok=True)
