@@ -173,7 +173,10 @@ def render_prompt(document: str, fields: list[FieldSpec], sql: str | None) -> st
             "The fields are inputs to the SQL query below. Extract each field as that query intends it.\n"
             "Do not answer the query. Do not copy SQL constants unless the document supports them.\n"
         )
-    head += "Follow each field's allowed values. Use null only for a field not marked 'Never null' that the document does not state.\n\n"
+    if any(f.choices or not f.nullable for f in fields):
+        head += "Follow each field's allowed values. Use null only for a field not marked 'Never null' that the document does not state.\n\n"
+    else:
+        head += "Use null when the document does not state a field.\n\n"
     body = f"DOCUMENT:\n{document}\n\n"
     if sql:
         body += f"SQL context:\n{sql}\n\n"

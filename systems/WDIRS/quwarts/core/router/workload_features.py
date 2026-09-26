@@ -198,7 +198,9 @@ def usage_phrase(use: "AttributeUse") -> str:
 
     roles = set(use.roles)
     parts = []
-    if roles & {"agg_additive", "agg_extremal"}:
+    # A non-numeric column inside an aggregate is aggregated through a CASE/predicate
+    # (e.g. SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END)): not a numeric use.
+    if roles & {"agg_additive", "agg_extremal"} and use.numeric:
         parts.append("aggregated as a number (sum, average, max or min)")
     if "agg_distinct" in roles:
         parts.append("counted by distinct value")
