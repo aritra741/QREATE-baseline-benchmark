@@ -43,7 +43,7 @@ def _guard_open(file, mode="r", *args, **kwargs):
 builtins.open = _guard_open
 
 from quwarts.core.ledger import TokenLedger  # noqa: E402
-from quwarts.core.router.plan import build_plan, canonical_json, estimate_theta, summarize  # noqa: E402
+from quwarts.core.router.plan import build_plan, canonical_json, summarize  # noqa: E402
 from quwarts.core.router.registry import RESULTS, get_corpus  # noqa: E402
 
 
@@ -61,9 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     theta = args.theta or spec.theta(args.fraction)
     theta_source = "argument" if args.theta else "docetl_total"
     if not theta:
-        theta = estimate_theta(spec, args.fraction)
-        theta_source = "docetl_equivalent_estimate"
-        print(f"no DocETL run: theta = {args.fraction:.0%} of the estimated DocETL cost = {theta:,}")
+        parser.error("no DocETL token total for this corpus; pass --theta")
     out = args.out or (RESULTS / "quwarts_router" / spec.name / ("probe" if args.probe else "dry_run"))
     out.mkdir(parents=True, exist_ok=True)
 

@@ -150,17 +150,6 @@ REGISTRY: dict[str, CorpusSpec] = {
         ],
         [QUERY / "Player" / "Player_attributes.json"],
     ),
-    # Held out from router design; no DocETL run exists, so theta must be given or estimated.
-    "sec": CorpusSpec(
-        name="sec",
-        tables=(
-            TableSpec("company", "company", SOURCE / "SEC" / "company"),
-            TableSpec("filing", "filing", SOURCE / "SEC" / "filing"),
-            TableSpec("filing_metrics", "filing_metrics", SOURCE / "SEC" / "filing_metrics"),
-        ),
-        attributes_json=(QUERY / "SEC" / "SEC_attributes.json",),
-        manifest=QUERY / "SEC" / "Splits" / "test.sql",
-    ),
 }
 
 

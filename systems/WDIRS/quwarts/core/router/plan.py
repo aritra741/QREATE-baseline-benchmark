@@ -52,16 +52,6 @@ def verdict(cov: dict[str, Any], fits: bool) -> str:
     return label if cov.get("measured_fraction", 0.0) >= 0.5 else f"{label}(provisional)"
 
 
-def estimate_theta(spec: CorpusSpec, fraction: float) -> int:
-    """Budget from the DocETL-equivalent cost estimate, for corpora with no DocETL run."""
-
-    queries = spec.queries()
-    workload = workload_features(spec, queries)
-    tables = corpus_features(spec, workload)["tables"]
-    queries_by_table = {name: info["queries"] for name, info in workload["tables"].items()}
-    return round(docetl_equivalent_cost(tables, queries_by_table) * fraction)
-
-
 def build_plan(
     spec: CorpusSpec,
     theta: int,
