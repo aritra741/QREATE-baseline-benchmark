@@ -288,7 +288,8 @@
         "lambda": 0.0922041946972695,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "cspaper.agent_framework",
       "query_ids": [
@@ -299,11 +300,10 @@
         "prior: closed labels occur verbatim in the corpus (surface=0.75)",
         "no query-sensitivity estimate: shareable only if extractive",
         "context fit lambda=0.09 (fits)",
-        "no stable anchor",
-        "R5: demoted from canonical_map to keep (budget)"
+        "no stable anchor"
       ],
-      "route": "keep",
-      "rule": "R5",
+      "route": "canonical_map",
+      "rule": "R2'",
       "table": "cspaper"
     },
     {
@@ -316,7 +316,8 @@
         "lambda": 0.0922041946972695,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "cspaper.application_domain",
       "query_ids": [
@@ -356,6 +357,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": []
       },
       "qualified": "cspaper.baseline_amount",
@@ -390,7 +392,8 @@
         "lambda": 0.0922041946972695,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "cspaper.data_modality",
       "query_ids": [
@@ -401,11 +404,10 @@
         "prior: closed labels occur verbatim in the corpus (surface=0.80)",
         "no query-sensitivity estimate: shareable only if extractive",
         "context fit lambda=0.09 (fits)",
-        "no stable anchor",
-        "R5: demoted from canonical_map to keep (budget)"
+        "no stable anchor"
       ],
-      "route": "keep",
-      "rule": "R5",
+      "route": "canonical_map",
+      "rule": "R2'",
       "table": "cspaper"
     },
     {
@@ -418,7 +420,8 @@
         "lambda": 0.0922041946972695,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "cspaper.multi_turn_retrieval",
       "query_ids": [
@@ -449,7 +452,8 @@
         "lambda": 0.0922041946972695,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "cspaper.reasoning_depth",
       "query_ids": [
@@ -476,7 +480,8 @@
         "lambda": 0.0922041946972695,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "cspaper.use_agent",
       "query_ids": [
@@ -507,7 +512,8 @@
         "lambda": 0.0922041946972695,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "cspaper.uses_knowledge_graph",
       "query_ids": [
@@ -518,10 +524,11 @@
         "prior: closed labels occur verbatim in the corpus (surface=1.00)",
         "no query-sensitivity estimate: shareable only if extractive",
         "context fit lambda=0.09 (fits)",
-        "no stable anchor"
+        "no stable anchor",
+        "R5: canonical_map not affordable; keep incumbent"
       ],
-      "route": "canonical_map",
-      "rule": "R2'",
+      "route": "keep",
+      "rule": "R5",
       "table": "cspaper"
     },
     {
@@ -534,7 +541,8 @@
         "lambda": 0.0922041946972695,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "cspaper.uses_reranker",
       "query_ids": [
@@ -545,10 +553,11 @@
         "prior: closed labels occur verbatim in the corpus (surface=1.00)",
         "no query-sensitivity estimate: shareable only if extractive",
         "context fit lambda=0.09 (fits)",
-        "no stable anchor"
+        "no stable anchor",
+        "R5: canonical_map not affordable; keep incumbent"
       ],
-      "route": "canonical_map",
-      "rule": "R2'",
+      "route": "keep",
+      "rule": "R5",
       "table": "cspaper"
     }
   ],
@@ -603,7 +612,7 @@
   "map_queries": {
     "cspaper:fused_map": []
   },
-  "plan_hash": "ad7a3f23978c0fab8a31ebf53e2f1905e18253e0fa33dd3ad4da440143a8220d",
+  "plan_hash": "48f520e580bb8f0188d6d872a154287b482a1588c265b2aa3250694057d105fd",
   "probe": {
     "budget": 65365,
     "dry_run": true,
@@ -666,19 +675,22 @@
       "incumbent_grounding_min": 0.5,
       "label_surface_min": 0.5,
       "probe_budget_fraction": 0.1,
-      "probe_docs_max": 8,
+      "probe_docs_max": 12,
       "probe_docs_min": 3,
+      "probe_min_pairs": 4,
+      "probe_min_values": 4,
       "probe_query_contexts_per_doc": 2,
       "probe_seed": 20260926,
       "program_calls_per_attribute": 8,
+      "recall_gap_max": 0.2,
       "regularity_min": 0.5,
       "residue_fraction_max": 0.1,
       "sensitivity_max": 0.2,
-      "version": "router-v1",
+      "version": "router-v2",
       "window_tokens": 3000
     },
-    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
-    "version": "router-v1"
+    "frozen_hash": "cde688324e7e0db21765d87ca3eb96d65967919dd9508f9d7e46731f61fad21d",
+    "version": "router-v2"
   },
   "tables": {
     "cspaper": {

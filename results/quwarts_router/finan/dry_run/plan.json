@@ -377,7 +377,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.auditor",
       "query_ids": [
@@ -411,6 +412,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": []
       },
       "qualified": "finance.business_segments_num",
@@ -438,7 +440,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.cash_reserves",
       "query_ids": [
@@ -466,7 +469,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.dividend_per_share",
       "query_ids": [
@@ -477,7 +481,7 @@
         "no query-sensitivity estimate: shareable only if extractive",
         "context fit lambda=11.68 (does not fit)",
         "long documents: amortize with one program per attribute",
-        "R5: demoted from program to keep (budget)"
+        "R5: program not affordable; keep incumbent"
       ],
       "route": "keep",
       "rule": "R5",
@@ -493,7 +497,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.earnings_per_share",
       "query_ids": [
@@ -520,7 +525,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.exchange_code",
       "query_ids": [
@@ -548,7 +554,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.major_equity_changes",
       "query_ids": [
@@ -576,7 +583,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.net_assets",
       "query_ids": [
@@ -603,7 +611,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.net_profit_or_loss",
       "query_ids": [
@@ -632,7 +641,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.principal_activities",
       "query_ids": [
@@ -661,7 +671,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.remuneration_policy",
       "query_ids": [
@@ -689,7 +700,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.revenue",
       "query_ids": [
@@ -718,7 +730,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.the_highest_ownership_stake",
       "query_ids": [
@@ -729,7 +742,7 @@
         "no query-sensitivity estimate: shareable only if extractive",
         "context fit lambda=11.68 (does not fit)",
         "long documents: amortize with one program per attribute",
-        "R5: demoted from program to keep (budget)"
+        "R5: program not affordable; keep incumbent"
       ],
       "route": "keep",
       "rule": "R5",
@@ -745,7 +758,8 @@
         "lambda": 11.681440443213296,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "finance.total_debt",
       "query_ids": [
@@ -787,7 +801,7 @@
   "map_queries": {
     "finance:retrieval_map": []
   },
-  "plan_hash": "4f1f7e1dec87e298e2eb36c20b0ed2a3bd234a42795e4a4829336bd7377421d6",
+  "plan_hash": "1da2ada7a8efaf32a51ecfcd2bc60e69d6e641171e83217a354c3ec3a468034a",
   "probe": {
     "budget": 34545,
     "dry_run": true,
@@ -1048,19 +1062,22 @@
       "incumbent_grounding_min": 0.5,
       "label_surface_min": 0.5,
       "probe_budget_fraction": 0.1,
-      "probe_docs_max": 8,
+      "probe_docs_max": 12,
       "probe_docs_min": 3,
+      "probe_min_pairs": 4,
+      "probe_min_values": 4,
       "probe_query_contexts_per_doc": 2,
       "probe_seed": 20260926,
       "program_calls_per_attribute": 8,
+      "recall_gap_max": 0.2,
       "regularity_min": 0.5,
       "residue_fraction_max": 0.1,
       "sensitivity_max": 0.2,
-      "version": "router-v1",
+      "version": "router-v2",
       "window_tokens": 3000
     },
-    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
-    "version": "router-v1"
+    "frozen_hash": "cde688324e7e0db21765d87ca3eb96d65967919dd9508f9d7e46731f61fad21d",
+    "version": "router-v2"
   },
   "tables": {
     "finance": {

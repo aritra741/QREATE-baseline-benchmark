@@ -1,4 +1,4 @@
-corpus=med verdict=workload_served(provisional) coverage=0.85 measured=0.11 rho=0.101 planned=1,937,995/2,685,131 (theta=2,948,971) plan=55a01a68fb2c
+corpus=med verdict=workload_served(provisional) coverage=0.86 measured=0.11 rho=0.101 planned=2,290,795/2,685,131 (theta=2,948,971) plan=c3d1315f1575
   table disease: docs=100 median_tokens=8389 lambda=0.83 queries=11
   table drug: docs=98 median_tokens=11026 lambda=1.09 queries=14
   table institution: docs=99 median_tokens=8872 lambda=0.88 queries=7
@@ -14,7 +14,7 @@ corpus=med verdict=workload_served(provisional) coverage=0.85 measured=0.11 rho=
   drug.manufacturer                          program        R2  uses=4 | prior: named entities are written verbatim
   drug.pharmaceutical_form                   program        R2  uses=5 | prior: closed labels occur verbatim in the corpus (surface=1.00)
   drug.prescription_status                   program        R2  uses=1 | prior: closed labels occur verbatim in the corpus (surface=1.00)
-  drug.unsuitable_population                 keep           R5  uses=1 | prior: no evidence the value is a span; default to query-conditioned reading
+  drug.unsuitable_population                 retrieval_map  R4  uses=1 served=1/1 | prior: no evidence the value is a span; default to query-conditioned reading
   institution.id                             canonical_map  R2' uses=1 | prior: numeric/date/identifier values are written as spans
   institution.institution_country            keep           R5  uses=3 | prior: no evidence the value is a span; default to query-conditioned reading
   institution.institution_type               canonical_map  R2' uses=4 | prior: closed labels occur verbatim in the corpus (surface=1.00)

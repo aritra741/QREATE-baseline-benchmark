@@ -211,49 +211,93 @@ def docetl_equivalent_cost(tables: dict[str, Any], queries_by_table: dict[str, l
     return sum(len(queries_by_table.get(table, [])) * int(info["full_read_cost"]) for table, info in tables.items())
 
 
-def fit_budget(decisions: list[Decision], tables: dict[str, Any], queries_by_table: dict[str, list[str]],
-               available: int) -> dict[str, Any]:
-    """R5. Drop map-served queries with the least workload value per token until the plan fits.
+def _group_options(decisions: list[Decision], tables: dict[str, Any]) -> list[dict[str, Any]]:
+    """Each group offers options (cost, value, selection); value = served (query, attribute) uses.
 
-    Value of a query slot = number of map-routed, SQL-sensitive attributes it
-    needs. Dropped (query, attribute) uses keep the incumbent value.
+    Within a group, the best selection of a given size is always a prefix of a
+    value-ordered list, so each group contributes at most n+1 options.
     """
 
-    map_queries: dict[str, list[str]] = {}
-    value: dict[tuple[str, str], int] = {}
-    for d in decisions:
-        if d.route in ("fused_map", "retrieval_map"):
-            key = f"{d.table}:{d.route}"
-            for q in d.query_ids:
-                map_queries.setdefault(key, [])
-                if q not in map_queries[key]:
-                    map_queries[key].append(q)
-                value[(key, q)] = value.get((key, q), 0) + 1
+    window_call = _call(int(FROZEN["window_tokens"]))
+    width = int(FROZEN["fusion_width"])
+    bundle = int(FROZEN["canonical_bundle_size"])
+    groups: list[dict[str, Any]] = []
+    for table, info in sorted(tables.items()):
+        mine = [d for d in decisions if d.table == table]
+        for route, read_key in (("fused_map", "full_read_cost"), ("retrieval_map", "window_read_cost")):
+            attrs = [d for d in mine if d.route == route]
+            if not attrs:
+                continue
+            value: dict[str, int] = {}
+            for d in attrs:
+                for q in d.query_ids:
+                    value[q] = value.get(q, 0) + 1
+            order = sorted(value, key=lambda q: (-value[q], q))
+            options = [
+                (math.ceil(k / width) * int(info[read_key]), sum(value[q] for q in order[:k]), tuple(order[:k]))
+                for k in range(len(order) + 1)
+            ]
+            groups.append({"key": f"{table}:{route}", "kind": "map", "options": options})
+        for route in ("canonical_map", "program", "repair"):
+            attrs = sorted((d for d in mine if d.route == route), key=lambda d: (-len(d.query_ids), d.qualified))
+            if not attrs:
+                continue
+            options = []
+            for m in range(len(attrs) + 1):
+                chosen = attrs[:m]
+                if route == "canonical_map":
+                    cost = math.ceil(m / bundle) * int(info["full_read_cost"])
+                elif route == "program":
+                    cost = m * int(FROZEN["program_calls_per_attribute"]) * window_call
+                else:
+                    cost = sum(int(d.evidence.get("residue_rows", 0)) for d in chosen) * window_call
+                options.append((cost, sum(len(d.query_ids) for d in chosen), tuple(d.qualified for d in chosen)))
+            groups.append({"key": f"{table}:{route}", "kind": "attrs", "options": options})
+    return groups
+
+
+def _frontier(groups: list[dict[str, Any]], available: int) -> tuple[int, int, dict[str, tuple]]:
+    """Exact max-value selection under the budget via a Pareto frontier over groups."""
+
+    frontier: list[tuple[int, int, dict[str, tuple]]] = [(0, 0, {})]
+    for group in groups:
+        merged: list[tuple[int, int, dict[str, tuple]]] = []
+        for cost, value, picks in frontier:
+            for o_cost, o_value, selection in group["options"]:
+                total = cost + o_cost
+                if total <= available:
+                    merged.append((total, value + o_value, {**picks, group["key"]: selection}))
+        merged.sort(key=lambda row: (row[0], -row[1]))
+        frontier = []
+        best = -1
+        for row in merged:
+            if row[1] > best:  # strictly more value for more cost
+                frontier.append(row)
+                best = row[1]
+    return max(frontier, key=lambda row: (row[1], -row[0]))
+
+
+def fit_budget(decisions: list[Decision], tables: dict[str, Any], queries_by_table: dict[str, list[str]],
+               available: int) -> dict[str, Any]:
+    """R5. Choose the served (query, attribute) uses that maximize workload coverage within budget.
+
+    Solved exactly: every operator group (map query slots, canonical bundles,
+    programs, repairs) offers prefix options, and a Pareto frontier over groups
+    finds the best combination. Unselected uses keep the incumbent value.
+    """
+
+    groups = _group_options(decisions, tables)
+    wanted = sum(group["options"][-1][1] for group in groups)
+    _cost, value, picks = _frontier(groups, available)
+    map_queries = {key: list(sel) for key, sel in picks.items() if any(g["key"] == key and g["kind"] == "map" for g in groups)}
+    chosen_attrs = {name for key, sel in picks.items() for name in sel if key not in map_queries}
+
     dropped: list[tuple[str, str]] = []
-    costs = operator_costs(decisions, tables, queries_by_table, map_queries)
-    while costs["total"] > available:
-        candidates = [(value[(key, q)], key, q) for key, qs in map_queries.items() for q in qs]
-        if not candidates:
-            break
-        # Lowest value first; among equals drop from the most expensive read.
-        candidates.sort(key=lambda row: (row[0], -int(tables[row[1].split(":")[0]]["full_read_cost"]), row[2]))
-        _v, key, q = candidates[0]
-        map_queries[key].remove(q)
-        dropped.append((key, q))
-        costs = operator_costs(decisions, tables, queries_by_table, map_queries)
-
+    for group in groups:
+        if group["kind"] == "map":
+            full = group["options"][-1][2]
+            dropped.extend((group["key"], q) for q in full if q not in set(map_queries.get(group["key"], [])))
     demoted: list[str] = []
-    if costs["total"] > available:
-        # Even without maps the plan does not fit: drop programs/canonical maps, least-used first.
-        for d in sorted(decisions, key=lambda item: (len(item.query_ids), item.qualified)):
-            if costs["total"] <= available:
-                break
-            if d.route in ("program", "canonical_map", "repair"):
-                d.reasons.append(f"R5: demoted from {d.route} to keep (budget)")
-                d.route, d.rule = "keep", "R5"
-                demoted.append(d.qualified)
-                costs = operator_costs(decisions, tables, queries_by_table, map_queries)
-
     for d in decisions:
         if d.route in ("fused_map", "retrieval_map"):
             served = set(map_queries.get(f"{d.table}:{d.route}", []))
@@ -262,7 +306,20 @@ def fit_budget(decisions: list[Decision], tables: dict[str, Any], queries_by_tab
             if not served & set(d.query_ids):
                 d.reasons.append(f"R5: no affordable {d.route} slot; keep incumbent")
                 d.route, d.rule = "keep", "R5"
-    return {"costs": costs, "map_queries": map_queries, "dropped": dropped, "demoted": demoted, "fits": costs["total"] <= available}
+        elif d.route in ("canonical_map", "program", "repair") and d.qualified not in chosen_attrs:
+            d.reasons.append(f"R5: {d.route} not affordable; keep incumbent")
+            d.route, d.rule = "keep", "R5"
+            demoted.append(d.qualified)
+    costs = operator_costs(decisions, tables, queries_by_table, map_queries)
+    return {
+        "costs": costs,
+        "map_queries": map_queries,
+        "dropped": dropped,
+        "demoted": demoted,
+        "fits": costs["total"] <= available,
+        "served_value": value,
+        "wanted_value": wanted,
+    }
 
 
 def coverage(decisions: list[Decision]) -> dict[str, Any]:

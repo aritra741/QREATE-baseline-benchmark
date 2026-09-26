@@ -215,12 +215,12 @@
     }
   },
   "budget": {
-    "available_for_operators": 12499067,
+    "available_for_operators": 12443595,
     "docetl_equivalent_estimate": 51078144,
     "fits": true,
     "planned_operator_tokens": 9577152,
     "probe_budget": 1261001,
-    "probe_spent": 110944,
+    "probe_spent": 166416,
     "rho": 0.2468768442330246,
     "theta": 12610011,
     "theta_source": "docetl_total"
@@ -267,6 +267,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": [
           "legal_multiagg20:q18",
           "legal_multiagg20:q4",
@@ -309,6 +310,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": [
           "legal_filter20:q11",
           "legal_multiagg20:q9"
@@ -346,6 +348,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": [
           "legal_filter20:q11",
           "legal_multiagg20:q18"
@@ -382,6 +385,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": [
           "legal_multiagg20:q4"
         ]
@@ -411,7 +415,8 @@
         "lambda": 0.42951127819548873,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "legal.hearing_year",
       "query_ids": [
@@ -444,6 +449,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": [
           "legal_filter20:q11",
           "legal_multiagg20:q18",
@@ -486,6 +492,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": [
           "legal_multiagg20:q18"
         ]
@@ -516,7 +523,8 @@
         "lambda": 0.42951127819548873,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "legal.verdict",
       "query_ids": [
@@ -539,22 +547,6 @@
     }
   ],
   "dropped_map_queries": [
-    [
-      "legal:fused_map",
-      "legal_agg20:q11"
-    ],
-    [
-      "legal:fused_map",
-      "legal_agg20:q4"
-    ],
-    [
-      "legal:fused_map",
-      "legal_filter20:q7"
-    ],
-    [
-      "legal:fused_map",
-      "legal_filter20:q9"
-    ],
     [
       "legal:fused_map",
       "legal_agg20:q13"
@@ -582,6 +574,22 @@
     [
       "legal:fused_map",
       "legal_multiagg20:q11"
+    ],
+    [
+      "legal:fused_map",
+      "legal_agg20:q11"
+    ],
+    [
+      "legal:fused_map",
+      "legal_agg20:q4"
+    ],
+    [
+      "legal:fused_map",
+      "legal_filter20:q7"
+    ],
+    [
+      "legal:fused_map",
+      "legal_filter20:q9"
     ]
   ],
   "inputs": {
@@ -597,12 +605,12 @@
   "map_queries": {
     "legal:fused_map": [
       "legal_multiagg20:q18",
+      "legal_filter20:q11",
       "legal_multiagg20:q4",
-      "legal_multiagg20:q9",
-      "legal_filter20:q11"
+      "legal_multiagg20:q9"
     ]
   },
-  "plan_hash": "74540a60328c7c49ad475e024718781447c99aad297cc2e117d3f13baa4c2e47",
+  "plan_hash": "862b02701b672e03660b32a63b4b84670f714dadef3f97c530f7ba6cb8e37711",
   "probe": {
     "budget": 1261001,
     "dry_run": true,
@@ -640,7 +648,7 @@
             "legal_multiagg20:q4",
             "legal_multiagg20:q9"
           ],
-          "docs": 8,
+          "docs": 12,
           "mean_call_tokens": 3467.7508771929824,
           "share_tokens": 1261001.0
         }
@@ -794,19 +802,22 @@
       "incumbent_grounding_min": 0.5,
       "label_surface_min": 0.5,
       "probe_budget_fraction": 0.1,
-      "probe_docs_max": 8,
+      "probe_docs_max": 12,
       "probe_docs_min": 3,
+      "probe_min_pairs": 4,
+      "probe_min_values": 4,
       "probe_query_contexts_per_doc": 2,
       "probe_seed": 20260926,
       "program_calls_per_attribute": 8,
+      "recall_gap_max": 0.2,
       "regularity_min": 0.5,
       "residue_fraction_max": 0.1,
       "sensitivity_max": 0.2,
-      "version": "router-v1",
+      "version": "router-v2",
       "window_tokens": 3000
     },
-    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
-    "version": "router-v1"
+    "frozen_hash": "cde688324e7e0db21765d87ca3eb96d65967919dd9508f9d7e46731f61fad21d",
+    "version": "router-v2"
   },
   "tables": {
     "legal": {

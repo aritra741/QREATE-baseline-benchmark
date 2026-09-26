@@ -471,7 +471,7 @@
     "available_for_operators": 2685131,
     "docetl_equivalent_estimate": 29123781,
     "fits": true,
-    "planned_operator_tokens": 1937995,
+    "planned_operator_tokens": 2290795,
     "probe_budget": 294897,
     "probe_spent": 263840,
     "rho": 0.10125646117171393,
@@ -493,7 +493,7 @@
         "fused_map": 0,
         "program": 144000,
         "repair": 7200,
-        "retrieval_map": 0
+        "retrieval_map": 352800
       },
       "institution": {
         "canonical_map": 894931,
@@ -503,18 +503,19 @@
         "retrieval_map": 0
       }
     },
-    "total": 1937995
+    "total": 2290795
   },
   "coverage": {
     "by_route": {
       "canonical_map": 17,
       "keep": 0,
       "program": 24,
-      "repair": 15
+      "repair": 15,
+      "retrieval_map": 1
     },
-    "fraction": 0.8484848484848485,
+    "fraction": 0.8636363636363636,
     "measured_fraction": 0.10526315789473684,
-    "served": 56,
+    "served": 57,
     "uses": 66
   },
   "decisions": [
@@ -553,7 +554,8 @@
         "lambda": 0.8299366838148001,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "disease.disease_type",
       "query_ids": [
@@ -581,7 +583,8 @@
         "lambda": 0.8299366838148001,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "disease.id",
       "query_ids": [
@@ -607,7 +610,8 @@
         "lambda": 0.8299366838148001,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "disease.pathogenesis",
       "query_ids": [
@@ -633,7 +637,8 @@
         "lambda": 0.8299366838148001,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "disease.prognosis",
       "query_ids": [
@@ -661,7 +666,8 @@
         "lambda": 0.8299366838148001,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "disease.treatments",
       "query_ids": [
@@ -689,7 +695,8 @@
         "lambda": 1.0907696873763355,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "drug.administration_route",
       "query_ids": [
@@ -745,7 +752,8 @@
         "lambda": 1.0907696873763355,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "drug.id",
       "query_ids": [
@@ -777,7 +785,8 @@
         "lambda": 1.0907696873763355,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "drug.manufacturer",
       "query_ids": [
@@ -806,7 +815,8 @@
         "lambda": 1.0907696873763355,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "drug.pharmaceutical_form",
       "query_ids": [
@@ -836,7 +846,8 @@
         "lambda": 1.0907696873763355,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "drug.prescription_status",
       "query_ids": [
@@ -858,15 +869,16 @@
         "delta_cross": null,
         "g": null,
         "kappa": null,
-        "kept_queries": [
-          "med_agg20:q17"
-        ],
+        "kept_queries": [],
         "label_surface": 1.0,
         "lambda": 1.0907696873763355,
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
-        "served_queries": []
+        "recall_gap": null,
+        "served_queries": [
+          "med_agg20:q17"
+        ]
       },
       "qualified": "drug.unsuitable_population",
       "query_ids": [
@@ -875,11 +887,10 @@
       "reasons": [
         "prior: no evidence the value is a span; default to query-conditioned reading",
         "no query-sensitivity estimate: shareable only if extractive",
-        "context fit lambda=1.09 (does not fit)",
-        "R5: no affordable retrieval_map slot; keep incumbent"
+        "context fit lambda=1.09 (does not fit)"
       ],
-      "route": "keep",
-      "rule": "R5",
+      "route": "retrieval_map",
+      "rule": "R4",
       "table": "drug"
     },
     {
@@ -892,7 +903,8 @@
         "lambda": 0.8777206173328057,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "institution.id",
       "query_ids": [
@@ -924,6 +936,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": []
       },
       "qualified": "institution.institution_country",
@@ -952,7 +965,8 @@
         "lambda": 0.8777206173328057,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "institution.institution_type",
       "query_ids": [
@@ -985,6 +999,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": []
       },
       "qualified": "institution.international_collaboration",
@@ -1019,6 +1034,7 @@
         "prior": "interpretive",
         "probe_docs": null,
         "r": null,
+        "recall_gap": null,
         "served_queries": []
       },
       "qualified": "institution.research_diseases",
@@ -1049,7 +1065,8 @@
         "lambda": 0.8777206173328057,
         "prior": "extractive",
         "probe_docs": null,
-        "r": null
+        "r": null,
+        "recall_gap": null
       },
       "qualified": "institution.research_fields",
       "query_ids": [
@@ -1068,8 +1085,16 @@
   ],
   "dropped_map_queries": [
     [
-      "drug:retrieval_map",
-      "med_agg20:q17"
+      "institution:fused_map",
+      "med_filterjoin20:q16"
+    ],
+    [
+      "institution:fused_map",
+      "med_groupby20:q15"
+    ],
+    [
+      "institution:fused_map",
+      "med_multiagg20:q15"
     ],
     [
       "institution:fused_map",
@@ -1082,18 +1107,6 @@
     [
       "institution:fused_map",
       "med_join20:q15"
-    ],
-    [
-      "institution:fused_map",
-      "med_filterjoin20:q16"
-    ],
-    [
-      "institution:fused_map",
-      "med_groupby20:q15"
-    ],
-    [
-      "institution:fused_map",
-      "med_multiagg20:q15"
     ]
   ],
   "inputs": {
@@ -1107,10 +1120,12 @@
     "n_queries": 20
   },
   "map_queries": {
-    "drug:retrieval_map": [],
+    "drug:retrieval_map": [
+      "med_agg20:q17"
+    ],
     "institution:fused_map": []
   },
-  "plan_hash": "55a01a68fb2cffe697f7406811f2005c6e41b706466025f73894114f8bcb0bb2",
+  "plan_hash": "c3d1315f1575c3dd83c0c235b95ca0a2c527145b1f41ce251d5a7d6d31ceffb4",
   "probe": {
     "budget": 294897,
     "dry_run": true,
@@ -1483,19 +1498,22 @@
       "incumbent_grounding_min": 0.5,
       "label_surface_min": 0.5,
       "probe_budget_fraction": 0.1,
-      "probe_docs_max": 8,
+      "probe_docs_max": 12,
       "probe_docs_min": 3,
+      "probe_min_pairs": 4,
+      "probe_min_values": 4,
       "probe_query_contexts_per_doc": 2,
       "probe_seed": 20260926,
       "program_calls_per_attribute": 8,
+      "recall_gap_max": 0.2,
       "regularity_min": 0.5,
       "residue_fraction_max": 0.1,
       "sensitivity_max": 0.2,
-      "version": "router-v1",
+      "version": "router-v2",
       "window_tokens": 3000
     },
-    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
-    "version": "router-v1"
+    "frozen_hash": "cde688324e7e0db21765d87ca3eb96d65967919dd9508f9d7e46731f61fad21d",
+    "version": "router-v2"
   },
   "tables": {
     "disease": {

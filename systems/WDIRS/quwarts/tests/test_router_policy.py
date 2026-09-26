@@ -134,3 +134,18 @@ def test_recall_gap_routes_to_query_conditioned_reads_when_affordable():
     probe = {"g": 0.9, "delta": 0.0, "r": 0.9, "recall_gap": 0.5}
     assert route_decision(use(), table(0.5), probe).route == "fused_map"
     assert route_decision(use(), table(3.0), probe).route == "program"  # long documents: cannot afford maps
+
+
+def test_fit_budget_finds_combination_greedy_missed():
+    # The CSPaper v1 failure: one canonical bundle plus one fused slot slightly exceed
+    # the budget; greedy dropped every fused slot. The exact fit trades instead.
+    decisions = [Decision(f"t.c{i}", "t", "canonical_map", "R2'", query_ids=["q9"]) for i in range(2)]
+    decisions.append(Decision("t.f", "t", "fused_map", "R3", query_ids=["q1", "q2", "q3", "q4", "q5"]))
+    out = fit_budget(decisions, {"t": table()}, {"t": []}, available=1500)
+    assert out["served_value"] == 2 and out["fits"]  # only one 1000-token item fits; both are worth 2 uses
+    out = fit_budget(
+        [Decision("t.c", "t", "canonical_map", "R2'", query_ids=["q9"]),
+         Decision("t.f", "t", "fused_map", "R3", query_ids=["q1", "q2", "q3"])],
+        {"t": table()}, {"t": []}, available=1000,
+    )
+    assert out["served_value"] == 2  # fused slot for q1,q2 (2 uses) instead of the bundle (1 use)
