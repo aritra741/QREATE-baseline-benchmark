@@ -61,9 +61,11 @@ def declared_choices(description: str) -> tuple[tuple[str, ...], bool]:
 
     text = description or ""
     match = _CHOICES.search(text)
-    if not match or "choose" not in text.lower():
+    if not match or not re.search(r"\b(?:choose|select)\b", text.lower()):
         return (), False
-    items = tuple(a or b for a, b in _ITEM.findall(match.group(1)))
+    quoted = tuple(a or b for a, b in _ITEM.findall(match.group(1)))
+    # Lists may be quoted (['Yes', 'No']) or bare ([Criminal Case, Civil Case]).
+    items = quoted or tuple(part.strip() for part in match.group(1).split(","))
     multi = bool(re.search(r"one or more|all (?:the )?modalit|choose (?:all|several|multiple)", text.lower()))
     return tuple(i.strip() for i in items if i.strip()), multi
 
@@ -117,14 +119,16 @@ def conform(value: Any, field: FieldSpec) -> Any:
     return " || ".join(kept) if len(kept) > 1 or field.multi_choice else kept[0]
 
 
-_COUNT = re.compile(r"\b(?:number of|count of|how many)\b|\buse 0 if none\b", re.I)
+_COUNT = re.compile(r"\b(?:number of|count of|how many)\b", re.I)
+_ZERO_IF_NONE = re.compile(r"\b0 if (?:none|no|not)\b", re.I)
 
 
 def absence_value(field: FieldSpec) -> Any:
     """The value a never-null field takes when the document says nothing about it.
 
-    Only two cases are declared by the schema itself: a never-null Yes/No field
-    (absence means No) and a never-null count (absence means 0). Every other
+    Only cases the schema itself declares: a never-null Yes/No field (absence
+    means No), a description that states "0 if none", and a never-null count
+    (absence means 0). Every other
     never-null field has no declared absence value and stays null (a recorded
     contract violation).
     """
@@ -133,6 +137,8 @@ def absence_value(field: FieldSpec) -> Any:
         return None
     if {c.lower() for c in field.choices} == {"yes", "no"}:
         return next(c for c in field.choices if c.lower() == "no")
+    if _ZERO_IF_NONE.search(field.description or ""):
+        return 0  # the description declares it ("1 if yes, 0 if none"; "use 0 if none")
     if field.value_type == "int" and _COUNT.search(field.description or ""):
         return 0
     return None

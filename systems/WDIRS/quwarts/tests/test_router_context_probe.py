@@ -83,3 +83,12 @@ def test_declared_absence_values():
     assert complete(None, yn) == "No" and complete("yes", yn) == "Yes"
     assert complete(None, count) == 0 and complete(3, count) == 3
     assert absence_value(name) is None and absence_value(optional) is None
+
+
+def test_bare_choice_lists_and_declared_zero():
+    from quwarts.core.router.context_probe import FieldSpec, absence_value, declared_choices
+
+    assert declared_choices("type, choose one from [Criminal Case, Civil Case]; (e.g., Civil Case)")[0] == ("Criminal Case", "Civil Case")
+    assert declared_choices("continent, select one from [Africa, Asia, Europe]")[0] == ("Africa", "Asia", "Europe")
+    assert declared_choices("decision, choose one from: [Guilty, Not Guilty, Others]")[0] == ("Guilty", "Not Guilty", "Others")
+    assert absence_value(FieldSpec("first_judge", "str", "whether first (1 if yes, 0 if none)", nullable=False)) == 0
