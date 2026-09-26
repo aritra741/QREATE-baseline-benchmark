@@ -48,6 +48,7 @@ from quwarts.core.router.text import prepare_document
 from quwarts.core.router.workload_features import workload_features
 
 EVIDENCE = "__evidence__"
+SUBSET = "__subset__"  # prefix: the query's own field subset, read without SQL context
 DATASET = {"finan": "Finan", "legal": "Legal", "med": "Med", "cspaper": "CSPaper", "art": "Art", "player": "Player"}
 _lock = threading.Lock()
 
@@ -88,7 +89,7 @@ def setup(corpus: str, k: int):
     return spec, queries, needs, fields, docs
 
 
-def tasks_for(spec, queries, needs, fields, docs) -> list[dict[str, Any]]:
+def tasks_for(spec, queries, needs, fields, docs, subsets: bool = False) -> list[dict[str, Any]]:
     window = int(V3["window_tokens"])
     tasks = []
     for table, paths in docs.items():
@@ -104,8 +105,12 @@ def tasks_for(spec, queries, needs, fields, docs) -> list[dict[str, Any]]:
             tasks.append({**base, "kind": EVIDENCE, "rep": 1, "attributes": attrs, "prompt": evidence_prompt(text, specs)})
             for q in contexts:
                 q_attrs = sorted({n.attribute for n in needs if n.table == table and n.query_id == q})
+                q_specs = [fields[f"{table}.{a}"] for a in q_attrs]
                 tasks.append({**base, "kind": q, "rep": 1, "attributes": q_attrs,
-                              "prompt": render_prompt(text, [fields[f"{table}.{a}"] for a in q_attrs], queries[q])})
+                              "prompt": render_prompt(text, q_specs, queries[q])})
+                if subsets:
+                    tasks.append({**base, "kind": SUBSET + q, "rep": 1, "attributes": q_attrs,
+                                  "prompt": render_prompt(text, q_specs, None)})
     for t in tasks:
         t["sha"] = hashlib.sha256(t["prompt"].encode()).hexdigest()
     return tasks
@@ -207,7 +212,8 @@ def score(corpus: str, out: Path, needs, fields, docs) -> dict[str, Any]:
     per_need = []
     for need in needs:
         vt = fields[need.qualified].value_type
-        providers = [CANONICAL, EVIDENCE] + sorted({m.query_id for m in by_attr[need.qualified]})
+        contexts = sorted({m.query_id for m in by_attr[need.qualified]})
+        providers = [CANONICAL, EVIDENCE] + contexts + [SUBSET + q for q in contexts]
         gold_s: dict[str, list[float]] = defaultdict(list)
         sig_s: dict[str, dict[str, list[float]]] = {s: defaultdict(list) for s in signals}
         for (table, doc), ctx in reads.items():
@@ -252,14 +258,20 @@ def score(corpus: str, out: Path, needs, fields, docs) -> dict[str, Any]:
             "weighted_gold_of_picks": sum(r["weight"] * (r[s]["pick_gold"] or 0) for r in per_need) / total_w,
         }
     summary["oracle"] = {"weighted_gold_of_picks": sum(r["weight"] * (r["best_gold"] or 0) for r in per_need) / total_w}
-    for fixed in (CANONICAL, EVIDENCE, "own"):
-        key = (lambda r: r["need"].split("|")[0]) if fixed == "own" else (lambda r, f=fixed: f)
+    for fixed in (CANONICAL, EVIDENCE, "own", "own_subset"):
+        if fixed == "own":
+            key = lambda r: r["need"].split("|")[0]  # noqa: E731
+        elif fixed == "own_subset":
+            key = lambda r: SUBSET + r["need"].split("|")[0]  # noqa: E731
+        else:
+            key = lambda r, f=fixed: f  # noqa: E731
         summary[f"always_{fixed.strip('_')}"] = {
             "weighted_gold_of_picks": sum(r["weight"] * (r["gold"].get(key(r)) or 0) for r in per_need) / total_w}
     tokens = defaultdict(list)
     for line in (out / "calls.jsonl").read_text().splitlines():
         row = json.loads(line)
-        tokens["canonical" if row["kind"] == CANONICAL else "evidence" if row["kind"] == EVIDENCE else "query"].append(row["tokens"])
+        kind = row["kind"]
+        tokens["canonical" if kind == CANONICAL else "evidence" if kind == EVIDENCE else "subset" if kind.startswith(SUBSET) else "query"].append(row["tokens"])
     summary["tokens_per_call"] = {k: sum(v) / len(v) for k, v in tokens.items()}
     return {"summary": summary, "per_need": per_need}
 
@@ -272,11 +284,12 @@ def main() -> None:
     parser.add_argument("--run", action="store_true")
     parser.add_argument("--score", action="store_true")
     parser.add_argument("--tag", default="", help="output subfolder suffix, e.g. 'contract'")
+    parser.add_argument("--subsets", action="store_true", help="also read each query's field subset without SQL")
     args = parser.parse_args()
     out = RESULTS / "quwarts_router_v3" / "reference_validation" / (args.corpus + (f"_{args.tag}" if args.tag else ""))
     spec, queries, needs, fields, docs = setup(args.corpus, args.docs)
     if args.run:
-        tasks = tasks_for(spec, queries, needs, fields, docs)
+        tasks = tasks_for(spec, queries, needs, fields, docs, subsets=args.subsets)
         print(f"{len(tasks)} calls, ~{sum(count_tokens(t['prompt']) + 150 for t in tasks):,} tokens", flush=True)
         run(out, tasks, args.workers)
     if args.score:
