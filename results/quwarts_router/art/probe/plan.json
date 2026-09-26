@@ -1,0 +1,1202 @@
+{
+  "attributes": {
+    "art.age": {
+      "closed_label": false,
+      "description": "age of the artist (if death_date is given, compute as death_date - birth_date; otherwise, compute as 2025/1/1 - birth_date)",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 7,
+      "name": "age",
+      "numeric": true,
+      "qualified": "art.age",
+      "query_ids": [
+        "art_agg20:q17",
+        "art_agg20:q4",
+        "art_filter20:q9",
+        "art_multiagg20:q11",
+        "art_multiagg20:q18",
+        "art_multiagg20:q4",
+        "art_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "agg_extremal",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "int"
+    },
+    "art.art_institution": {
+      "closed_label": false,
+      "description": "art academies, schools, organizations, associations, or exhibition societies the artist was affiliated with, taught at, or participated in (e.g., national art academies, artist unions, art schools, exhibition societies).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 1,
+      "name": "art_institution",
+      "numeric": false,
+      "qualified": "art.art_institution",
+      "query_ids": [
+        "art_multiagg20:q11"
+      ],
+      "roles": [
+        "group",
+        "project"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "multi_str"
+    },
+    "art.awards": {
+      "closed_label": false,
+      "description": "Number of significant and clearly documented awards the artist received (enter an integer; use 0 if none; exclude medals, scholarships, or honorary mentions).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 9,
+      "name": "awards",
+      "numeric": true,
+      "qualified": "art.awards",
+      "query_ids": [
+        "art_agg20:q11",
+        "art_agg20:q13",
+        "art_agg20:q14",
+        "art_filter20:q11",
+        "art_filter20:q8",
+        "art_multiagg20:q11",
+        "art_multiagg20:q18",
+        "art_multiagg20:q4",
+        "art_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "int"
+    },
+    "art.birth_continent": {
+      "closed_label": true,
+      "description": "continent where the artist was born, select one from [Africa, Asia, Europe, North America, South America, Oceania]",
+      "dtype": "string",
+      "literals": [
+        "Europe"
+      ],
+      "n_queries": 2,
+      "name": "birth_continent",
+      "numeric": false,
+      "qualified": "art.birth_continent",
+      "query_ids": [
+        "art_filter20:q11",
+        "art_filter20:q9"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "str"
+    },
+    "art.birth_country": {
+      "closed_label": false,
+      "description": "country where the artist was born (e.g., netherlands)",
+      "dtype": "string",
+      "literals": [
+        "France",
+        "Germany",
+        "Italy",
+        "United Kingdom",
+        "United States"
+      ],
+      "n_queries": 2,
+      "name": "birth_country",
+      "numeric": false,
+      "qualified": "art.birth_country",
+      "query_ids": [
+        "art_groupby20:q14",
+        "art_multiagg20:q9"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "multi_str"
+    },
+    "art.century": {
+      "closed_label": false,
+      "description": "century when the artist was active or influential (e.g., 19th or 19th\u201320th; can span multiple centuries)",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 5,
+      "name": "century",
+      "numeric": false,
+      "qualified": "art.century",
+      "query_ids": [
+        "art_agg20:q13",
+        "art_agg20:q4",
+        "art_filter20:q11",
+        "art_filter20:q15",
+        "art_filter20:q8"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "str"
+    },
+    "art.color": {
+      "closed_label": false,
+      "description": "the dominant or characteristic colors of the image (e.g., red and black, muted earth tones, bright multicolored palette, monochrome blue). Describe the color usage in free-form text; if multiple color groups are important, separate them with `||`.",
+      "dtype": "string",
+      "literals": [
+        "Black And White",
+        "Blue",
+        "Brown",
+        "Earth Tones",
+        "Green",
+        "Red",
+        "Yellow"
+      ],
+      "n_queries": 1,
+      "name": "color",
+      "numeric": false,
+      "qualified": "art.color",
+      "query_ids": [
+        "art_filter20:q7"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "multi_str"
+    },
+    "art.field": {
+      "closed_label": true,
+      "description": "primary artistic field, choose one or more from: [Painting, Sculpture, Printmaking, Drawing, Photography, Illustration, Collage, Textile art, Installation, Performance, Ceramics, Digital art, Architecture, Mosaic, Graphic Design, Calligraphy], seperated by `||` (e.g. Collage || Illustration || Textile art).",
+      "dtype": "string",
+      "literals": [
+        "Painting"
+      ],
+      "n_queries": 1,
+      "name": "field",
+      "numeric": false,
+      "qualified": "art.field",
+      "query_ids": [
+        "art_filter20:q9"
+      ],
+      "roles": [
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "multi_str"
+    },
+    "art.genre": {
+      "closed_label": true,
+      "description": "primary genre of work, choose one or more from: [Portrait, Landscape, Still Life, Religious, Mythological, History, genre, Nude, Animal, Illustration, Allegorical, Abstract, Fantasy, Sketch, Figurative, Conceptual, Surrealist, Symbolic, Political, Social Realism, Pop art, Narrative, Environmental, Sculpture, Architecture, Music, Film, Digital art, Literature, Other], seperated by `||` (e.g. Portrait || Political).",
+      "dtype": "string",
+      "literals": [
+        "Abstract",
+        "Landscape",
+        "Portrait"
+      ],
+      "n_queries": 1,
+      "name": "genre",
+      "numeric": false,
+      "qualified": "art.genre",
+      "query_ids": [
+        "art_filter20:q15"
+      ],
+      "roles": [
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "multi_str"
+    },
+    "art.image_genre": {
+      "closed_label": false,
+      "description": "the artistic genre or type of the image, described in a short phrase (e.g., landscape, portrait, still life, historical scene, narrative scene, conceptual work). Use free-form text; if multiple genres are relevant, separate them with `||`.",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 2,
+      "name": "image_genre",
+      "numeric": false,
+      "qualified": "art.image_genre",
+      "query_ids": [
+        "art_agg20:q17",
+        "art_multiagg20:q4"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "multi_str"
+    },
+    "art.style": {
+      "closed_label": false,
+      "description": "the overall artistic style of the image, described in a short phrase (e.g., abstract expressionism, geometric abstraction, minimalist line drawing). Use free-form text; if multiple styles are clearly present, separate them with `||`.",
+      "dtype": "string",
+      "literals": [
+        "Expressionism",
+        "Impressionism",
+        "Realism",
+        "Surrealism"
+      ],
+      "n_queries": 1,
+      "name": "style",
+      "numeric": false,
+      "qualified": "art.style",
+      "query_ids": [
+        "art_filter20:q7"
+      ],
+      "roles": [
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "multi_str"
+    },
+    "art.teaching": {
+      "closed_label": false,
+      "description": "whether the artist taught at an institution (1 if yes, 0 if none)",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 5,
+      "name": "teaching",
+      "numeric": true,
+      "qualified": "art.teaching",
+      "query_ids": [
+        "art_agg20:q14",
+        "art_agg20:q3",
+        "art_filter20:q8",
+        "art_groupby20:q14",
+        "art_multiagg20:q18"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "art",
+      "value_type": "int"
+    }
+  },
+  "budget": {
+    "available_for_operators": 5038535,
+    "docetl_equivalent_estimate": 22749904,
+    "fits": true,
+    "planned_operator_tokens": 4265607,
+    "probe_budget": 510689,
+    "probe_spent": 68360,
+    "rho": 0.22447984835452492,
+    "theta": 5106895,
+    "theta_source": "docetl_total"
+  },
+  "corpus": "art",
+  "costs": {
+    "per_table": {
+      "art": {
+        "canonical_map": 0,
+        "fused_map": 4265607,
+        "program": 0,
+        "repair": 0,
+        "retrieval_map": 0
+      }
+    },
+    "total": 4265607
+  },
+  "coverage": {
+    "by_route": {
+      "fused_map": 18,
+      "keep": 0
+    },
+    "fraction": 0.4864864864864865,
+    "measured_fraction": 1.0,
+    "served": 18,
+    "uses": 37
+  },
+  "decisions": [
+    {
+      "evidence": {
+        "delta": 0.09090909090909091,
+        "delta_cross": null,
+        "g": 0.21212121212121213,
+        "kappa": 1.0,
+        "kept_queries": [
+          "art_agg20:q17",
+          "art_agg20:q4",
+          "art_multiagg20:q9"
+        ],
+        "label_surface": null,
+        "lambda": 0.08008508112386228,
+        "prior": "extractive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": 0.0,
+        "served_queries": [
+          "art_filter20:q9",
+          "art_multiagg20:q11",
+          "art_multiagg20:q18",
+          "art_multiagg20:q4"
+        ]
+      },
+      "qualified": "art.age",
+      "query_ids": [
+        "art_agg20:q17",
+        "art_agg20:q4",
+        "art_filter20:q9",
+        "art_multiagg20:q11",
+        "art_multiagg20:q18",
+        "art_multiagg20:q4",
+        "art_multiagg20:q9"
+      ],
+      "reasons": [
+        "probe g=0.21 (not extractive)",
+        "probe delta=0.09 (shareable)",
+        "context fit lambda=0.08 (fits)",
+        "probe recall_gap=0.00"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": 0.2777777777777778,
+        "kappa": 0.75,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 0.08008508112386228,
+        "prior": "interpretive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": null,
+        "served_queries": [
+          "art_multiagg20:q11"
+        ]
+      },
+      "qualified": "art.art_institution",
+      "query_ids": [
+        "art_multiagg20:q11"
+      ],
+      "reasons": [
+        "probe g=0.28 (not extractive)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.08 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": 0.16666666666666666,
+        "kappa": 1.0,
+        "kept_queries": [
+          "art_agg20:q11",
+          "art_agg20:q13",
+          "art_agg20:q14",
+          "art_multiagg20:q9"
+        ],
+        "label_surface": null,
+        "lambda": 0.08008508112386228,
+        "prior": "interpretive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": null,
+        "served_queries": [
+          "art_filter20:q11",
+          "art_filter20:q8",
+          "art_multiagg20:q11",
+          "art_multiagg20:q18",
+          "art_multiagg20:q4"
+        ]
+      },
+      "qualified": "art.awards",
+      "query_ids": [
+        "art_agg20:q11",
+        "art_agg20:q13",
+        "art_agg20:q14",
+        "art_filter20:q11",
+        "art_filter20:q8",
+        "art_multiagg20:q11",
+        "art_multiagg20:q18",
+        "art_multiagg20:q4",
+        "art_multiagg20:q9"
+      ],
+      "reasons": [
+        "probe g=0.17 (not extractive)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.08 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": 0.0,
+        "delta_cross": null,
+        "g": 0.13333333333333333,
+        "kappa": 1.0,
+        "kept_queries": [],
+        "label_surface": 1.0,
+        "lambda": 0.08008508112386228,
+        "prior": "extractive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": 0.0,
+        "served_queries": [
+          "art_filter20:q11",
+          "art_filter20:q9"
+        ]
+      },
+      "qualified": "art.birth_continent",
+      "query_ids": [
+        "art_filter20:q11",
+        "art_filter20:q9"
+      ],
+      "reasons": [
+        "probe g=0.13 (not extractive)",
+        "probe delta=0.00 (shareable)",
+        "context fit lambda=0.08 (fits)",
+        "probe recall_gap=0.00"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": 0.5555555555555556,
+        "kappa": 0.9166666666666666,
+        "label_surface": 1.0,
+        "lambda": 0.08008508112386228,
+        "prior": "interpretive",
+        "probe_docs": 12,
+        "r": 0.14285714285714285,
+        "recall_gap": null
+      },
+      "qualified": "art.birth_country",
+      "query_ids": [
+        "art_groupby20:q14",
+        "art_multiagg20:q9"
+      ],
+      "reasons": [
+        "probe g=0.56 (extractive)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.08 (fits)",
+        "irregular anchor r=0.14",
+        "R5: canonical_map not affordable; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": 0.25,
+        "delta_cross": null,
+        "g": 0.3,
+        "kappa": 0.9166666666666666,
+        "kept_queries": [
+          "art_agg20:q13",
+          "art_agg20:q4",
+          "art_filter20:q15"
+        ],
+        "label_surface": null,
+        "lambda": 0.08008508112386228,
+        "prior": "interpretive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": 0.0,
+        "served_queries": [
+          "art_filter20:q11",
+          "art_filter20:q8"
+        ]
+      },
+      "qualified": "art.century",
+      "query_ids": [
+        "art_agg20:q13",
+        "art_agg20:q4",
+        "art_filter20:q11",
+        "art_filter20:q15",
+        "art_filter20:q8"
+      ],
+      "reasons": [
+        "probe g=0.30 (not extractive)",
+        "probe delta=0.25 (query-dependent)",
+        "context fit lambda=0.08 (fits)",
+        "probe recall_gap=0.00"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": 0.4166666666666667,
+        "delta_cross": null,
+        "g": 0.0,
+        "kappa": 0.6666666666666666,
+        "kept_queries": [
+          "art_filter20:q7"
+        ],
+        "label_surface": 0.7142857142857143,
+        "lambda": 0.08008508112386228,
+        "prior": "interpretive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": 0.0,
+        "served_queries": []
+      },
+      "qualified": "art.color",
+      "query_ids": [
+        "art_filter20:q7"
+      ],
+      "reasons": [
+        "probe g=0.00 (not extractive)",
+        "probe delta=0.42 (query-dependent)",
+        "context fit lambda=0.08 (fits)",
+        "probe recall_gap=0.00",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": 0.6,
+        "delta_cross": null,
+        "g": 0.6551724137931034,
+        "kappa": 1.0,
+        "kept_queries": [],
+        "label_surface": 1.0,
+        "lambda": 0.08008508112386228,
+        "prior": "extractive",
+        "probe_docs": 12,
+        "r": 0.1111111111111111,
+        "recall_gap": 0.0,
+        "served_queries": [
+          "art_filter20:q9"
+        ]
+      },
+      "qualified": "art.field",
+      "query_ids": [
+        "art_filter20:q9"
+      ],
+      "reasons": [
+        "probe g=0.66 (extractive)",
+        "probe delta=0.60 (query-dependent)",
+        "context fit lambda=0.08 (fits)",
+        "probe recall_gap=0.00"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": 0.0,
+        "kappa": 0.8333333333333334,
+        "kept_queries": [
+          "art_filter20:q15"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.08008508112386228,
+        "prior": "extractive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": null,
+        "served_queries": []
+      },
+      "qualified": "art.genre",
+      "query_ids": [
+        "art_filter20:q15"
+      ],
+      "reasons": [
+        "probe g=0.00 (not extractive)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.08 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": 0.375,
+        "kappa": 0.0,
+        "kept_queries": [
+          "art_agg20:q17"
+        ],
+        "label_surface": null,
+        "lambda": 0.08008508112386228,
+        "prior": "interpretive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": null,
+        "served_queries": [
+          "art_multiagg20:q4"
+        ]
+      },
+      "qualified": "art.image_genre",
+      "query_ids": [
+        "art_agg20:q17",
+        "art_multiagg20:q4"
+      ],
+      "reasons": [
+        "probe g=0.38 (not extractive)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.08 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": 0.6666666666666666,
+        "delta_cross": null,
+        "g": 0.14285714285714285,
+        "kappa": 0.9166666666666666,
+        "kept_queries": [
+          "art_filter20:q7"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.08008508112386228,
+        "prior": "interpretive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": 0.0,
+        "served_queries": []
+      },
+      "qualified": "art.style",
+      "query_ids": [
+        "art_filter20:q7"
+      ],
+      "reasons": [
+        "probe g=0.14 (not extractive)",
+        "probe delta=0.67 (query-dependent)",
+        "context fit lambda=0.08 (fits)",
+        "probe recall_gap=0.00",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "art"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": 0.0,
+        "kappa": 1.0,
+        "kept_queries": [
+          "art_agg20:q14",
+          "art_agg20:q3",
+          "art_groupby20:q14"
+        ],
+        "label_surface": null,
+        "lambda": 0.08008508112386228,
+        "prior": "extractive",
+        "probe_docs": 12,
+        "r": null,
+        "recall_gap": 0.0,
+        "served_queries": [
+          "art_filter20:q8",
+          "art_multiagg20:q18"
+        ]
+      },
+      "qualified": "art.teaching",
+      "query_ids": [
+        "art_agg20:q14",
+        "art_agg20:q3",
+        "art_filter20:q8",
+        "art_groupby20:q14",
+        "art_multiagg20:q18"
+      ],
+      "reasons": [
+        "probe g=0.00 (not extractive)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.08 (fits)",
+        "probe recall_gap=0.00"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "art"
+    }
+  ],
+  "dropped_map_queries": [
+    [
+      "art:fused_map",
+      "art_agg20:q13"
+    ],
+    [
+      "art:fused_map",
+      "art_agg20:q14"
+    ],
+    [
+      "art:fused_map",
+      "art_agg20:q17"
+    ],
+    [
+      "art:fused_map",
+      "art_agg20:q4"
+    ],
+    [
+      "art:fused_map",
+      "art_filter20:q15"
+    ],
+    [
+      "art:fused_map",
+      "art_filter20:q7"
+    ],
+    [
+      "art:fused_map",
+      "art_multiagg20:q9"
+    ],
+    [
+      "art:fused_map",
+      "art_agg20:q11"
+    ],
+    [
+      "art:fused_map",
+      "art_agg20:q3"
+    ],
+    [
+      "art:fused_map",
+      "art_groupby20:q14"
+    ]
+  ],
+  "inputs": {
+    "attributes_sha": [
+      "a9af3ccee07ae1ce9adc56c0640321f2e037e54b2cdfb8299306da1d9d0fe72b"
+    ],
+    "corpus_fingerprint": "7ad9e6b2f22d69c5a99d2ee111628b9c76bcef4d55ef1f762c35a46bb40cb230",
+    "incumbent_db": null,
+    "incumbent_sha": null,
+    "manifest_sha": "a3898db990ebb3c4ea8ce59bf2d2e1faf05f27d42eb227f82a9777c6dcd7fe29",
+    "n_queries": 16
+  },
+  "map_queries": {
+    "art:fused_map": [
+      "art_filter20:q11",
+      "art_filter20:q8",
+      "art_filter20:q9",
+      "art_multiagg20:q11",
+      "art_multiagg20:q18",
+      "art_multiagg20:q4"
+    ]
+  },
+  "plan_hash": "9e2970d4196dbd3898d3ea11b4c1b07987ac9484064a88f89c5863c47e68860d",
+  "probe": {
+    "budget": 510689,
+    "exhausted": false,
+    "tables": {
+      "art": {
+        "metrics": {
+          "art.age": {
+            "conflict_raw": 0.09090909090909091,
+            "delta": 0.09090909090909091,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.21212121212121213,
+            "kappa": 1.0,
+            "n_anchors": 2,
+            "n_conditioned": 11,
+            "n_conflict_pairs": 11,
+            "n_cross_pairs": 2,
+            "n_docs": 12,
+            "n_recall_pairs": 11,
+            "n_values": 33,
+            "null_rate": 0.08333333333333333,
+            "presence_noise": 0.0,
+            "r": null,
+            "recall_gap": 0.0,
+            "recall_raw": 0.0,
+            "value_noise": 0.0
+          },
+          "art.art_institution": {
+            "conflict_raw": null,
+            "delta": null,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.2777777777777778,
+            "kappa": 0.75,
+            "n_anchors": 2,
+            "n_conditioned": 3,
+            "n_conflict_pairs": 2,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 2,
+            "n_values": 18,
+            "null_rate": 0.3333333333333333,
+            "presence_noise": 0.0,
+            "r": null,
+            "recall_gap": null,
+            "recall_raw": null,
+            "value_noise": 0.25
+          },
+          "art.awards": {
+            "conflict_raw": null,
+            "delta": null,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.16666666666666666,
+            "kappa": 1.0,
+            "n_anchors": 1,
+            "n_conditioned": 9,
+            "n_conflict_pairs": 2,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 3,
+            "n_values": 12,
+            "null_rate": 0.5833333333333334,
+            "presence_noise": 0.0,
+            "r": null,
+            "recall_gap": null,
+            "recall_raw": null,
+            "value_noise": 0.0
+          },
+          "art.birth_continent": {
+            "conflict_raw": 0.0,
+            "delta": 0.0,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.13333333333333333,
+            "kappa": 1.0,
+            "n_anchors": 2,
+            "n_conditioned": 6,
+            "n_conflict_pairs": 6,
+            "n_cross_pairs": 1,
+            "n_docs": 12,
+            "n_recall_pairs": 6,
+            "n_values": 30,
+            "null_rate": 0.0,
+            "presence_noise": 0.0,
+            "r": null,
+            "recall_gap": 0.0,
+            "recall_raw": 0.0,
+            "value_noise": 0.0
+          },
+          "art.birth_country": {
+            "conflict_raw": null,
+            "delta": null,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.5555555555555556,
+            "kappa": 0.9166666666666666,
+            "n_anchors": 7,
+            "n_conditioned": 3,
+            "n_conflict_pairs": 3,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 3,
+            "n_values": 27,
+            "null_rate": 0.0,
+            "presence_noise": 0.0,
+            "r": 0.14285714285714285,
+            "recall_gap": null,
+            "recall_raw": null,
+            "value_noise": 0.08333333333333333
+          },
+          "art.century": {
+            "conflict_raw": 0.3333333333333333,
+            "delta": 0.25,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.3,
+            "kappa": 0.9166666666666666,
+            "n_anchors": 3,
+            "n_conditioned": 6,
+            "n_conflict_pairs": 6,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 6,
+            "n_values": 30,
+            "null_rate": 0.0,
+            "presence_noise": 0.0,
+            "r": null,
+            "recall_gap": 0.0,
+            "recall_raw": 0.0,
+            "value_noise": 0.08333333333333333
+          },
+          "art.color": {
+            "conflict_raw": 0.75,
+            "delta": 0.4166666666666667,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.0,
+            "kappa": 0.6666666666666666,
+            "n_anchors": 0,
+            "n_conditioned": 4,
+            "n_conflict_pairs": 4,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 4,
+            "n_values": 28,
+            "null_rate": 0.0,
+            "presence_noise": 0.0,
+            "r": null,
+            "recall_gap": 0.0,
+            "recall_raw": 0.0,
+            "value_noise": 0.3333333333333333
+          },
+          "art.field": {
+            "conflict_raw": 0.6,
+            "delta": 0.6,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.6551724137931034,
+            "kappa": 1.0,
+            "n_anchors": 9,
+            "n_conditioned": 5,
+            "n_conflict_pairs": 5,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 5,
+            "n_values": 29,
+            "null_rate": 0.0,
+            "presence_noise": 0.0,
+            "r": 0.1111111111111111,
+            "recall_gap": 0.0,
+            "recall_raw": 0.0,
+            "value_noise": 0.0
+          },
+          "art.genre": {
+            "conflict_raw": null,
+            "delta": null,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.0,
+            "kappa": 0.8333333333333334,
+            "n_anchors": 0,
+            "n_conditioned": 3,
+            "n_conflict_pairs": 3,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 3,
+            "n_values": 27,
+            "null_rate": 0.0,
+            "presence_noise": 0.0,
+            "r": null,
+            "recall_gap": null,
+            "recall_raw": null,
+            "value_noise": 0.16666666666666666
+          },
+          "art.image_genre": {
+            "conflict_raw": null,
+            "delta": null,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.375,
+            "kappa": 0.0,
+            "n_anchors": 1,
+            "n_conditioned": 3,
+            "n_conflict_pairs": 1,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 3,
+            "n_values": 8,
+            "null_rate": 0.7916666666666666,
+            "presence_noise": 0.3333333333333333,
+            "r": null,
+            "recall_gap": null,
+            "recall_raw": null,
+            "value_noise": 1.0
+          },
+          "art.style": {
+            "conflict_raw": 0.75,
+            "delta": 0.6666666666666666,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.14285714285714285,
+            "kappa": 0.9166666666666666,
+            "n_anchors": 2,
+            "n_conditioned": 4,
+            "n_conflict_pairs": 4,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 4,
+            "n_values": 28,
+            "null_rate": 0.0,
+            "presence_noise": 0.0,
+            "r": null,
+            "recall_gap": 0.0,
+            "recall_raw": 0.0,
+            "value_noise": 0.08333333333333333
+          },
+          "art.teaching": {
+            "conflict_raw": null,
+            "delta": null,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "g": 0.0,
+            "kappa": 1.0,
+            "n_anchors": 0,
+            "n_conditioned": 5,
+            "n_conflict_pairs": 1,
+            "n_cross_pairs": 0,
+            "n_docs": 12,
+            "n_recall_pairs": 4,
+            "n_values": 23,
+            "null_rate": 0.08333333333333333,
+            "presence_noise": 0.0,
+            "r": null,
+            "recall_gap": 0.0,
+            "recall_raw": -0.75,
+            "value_noise": 0.0
+          }
+        },
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "art.age",
+            "art.art_institution",
+            "art.awards",
+            "art.birth_continent",
+            "art.birth_country",
+            "art.century",
+            "art.color",
+            "art.field",
+            "art.genre",
+            "art.image_genre",
+            "art.style",
+            "art.teaching"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "art_agg20:q11",
+            "art_agg20:q13",
+            "art_agg20:q14",
+            "art_agg20:q17",
+            "art_agg20:q3",
+            "art_agg20:q4",
+            "art_filter20:q11",
+            "art_filter20:q15",
+            "art_filter20:q7",
+            "art_filter20:q8",
+            "art_filter20:q9",
+            "art_groupby20:q14",
+            "art_multiagg20:q11",
+            "art_multiagg20:q18",
+            "art_multiagg20:q4",
+            "art_multiagg20:q9"
+          ],
+          "docs": 12,
+          "mean_call_tokens": 1701.869,
+          "share_tokens": 510689.0
+        },
+        "sample": [
+          "6.txt",
+          "712.txt",
+          "350.txt",
+          "80.txt",
+          "53.txt",
+          "743.txt",
+          "547.txt",
+          "806.txt",
+          "357.txt",
+          "408.txt",
+          "496.txt",
+          "376.txt"
+        ]
+      }
+    }
+  },
+  "residue": {
+    "attributes": {},
+    "available": false
+  },
+  "router": {
+    "constants": {
+      "call_overhead_tokens": 600,
+      "canonical_bundle_size": 6,
+      "context_window_tokens": 10108,
+      "corpus_sample_docs": 50,
+      "coverage_loss_max": 0.5,
+      "coverage_serve_min": 0.8,
+      "extractive_min": 0.5,
+      "fusion_width": 2,
+      "incumbent_grounding_min": 0.5,
+      "label_surface_min": 0.5,
+      "probe_budget_fraction": 0.1,
+      "probe_docs_max": 12,
+      "probe_docs_min": 3,
+      "probe_min_pairs": 4,
+      "probe_min_values": 4,
+      "probe_query_contexts_per_doc": 2,
+      "probe_seed": 20260926,
+      "program_calls_per_attribute": 8,
+      "recall_gap_max": 0.2,
+      "regularity_min": 0.5,
+      "residue_fraction_max": 0.1,
+      "sensitivity_max": 0.2,
+      "version": "router-v2",
+      "window_tokens": 3000
+    },
+    "frozen_hash": "cde688324e7e0db21765d87ca3eb96d65967919dd9508f9d7e46731f61fad21d",
+    "version": "router-v2"
+  },
+  "tables": {
+    "art": {
+      "context_fit_lambda": 0.08008508112386228,
+      "fit_fraction": 1.0,
+      "full_read_cost": 1421869,
+      "n_docs": 1000,
+      "tokens_median": 809.5,
+      "tokens_p90": 927,
+      "tokens_total": 821869,
+      "window_read_cost": 1421869,
+      "workload": {
+        "attribute_reuse": 3.0833333333333335,
+        "n_attributes": 12,
+        "n_queries": 16,
+        "queries": [
+          "art_agg20:q11",
+          "art_agg20:q13",
+          "art_agg20:q14",
+          "art_agg20:q17",
+          "art_agg20:q3",
+          "art_agg20:q4",
+          "art_filter20:q11",
+          "art_filter20:q15",
+          "art_filter20:q7",
+          "art_filter20:q8",
+          "art_filter20:q9",
+          "art_groupby20:q14",
+          "art_multiagg20:q11",
+          "art_multiagg20:q18",
+          "art_multiagg20:q4",
+          "art_multiagg20:q9"
+        ]
+      }
+    }
+  },
+  "verdict": "predicted_loss"
+}
