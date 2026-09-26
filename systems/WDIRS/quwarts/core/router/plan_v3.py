@@ -122,7 +122,6 @@ def build_plan_v3(
         "corpus": spec.name,
         "inputs": {
             "manifest_sha": file_sha(spec.manifest),
-            "attributes_sha": [file_sha(p) for p in spec.attributes_json],
             "incumbent_sha": file_sha(db) if incumbent else None,
             "corpus_fingerprint": hashlib.sha256(canonical_json(doc_tokens).encode()).hexdigest(),
         },

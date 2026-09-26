@@ -62,10 +62,10 @@ _lock = threading.Lock()
 
 # ---------------------------------------------------------------- inputs
 def attributes(spec) -> list[FieldSpec]:
-    descriptions = {k.lower(): v for k, v in spec.descriptions()["finance"].items()}
+    # Scoring types only (the benchmark comparator); reads use names alone since 2026-09-26.
+    descriptions = {k.lower(): v for k, v in spec.benchmark_attribute_descriptions(purpose="scoring")["finance"].items()}
     names = sorted({n.attribute for n in workload_needs(spec)})
-    return [FieldSpec(name, str(descriptions.get(name.lower(), {}).get("value_type", "str")),
-                      str(descriptions.get(name.lower(), {}).get("description", ""))) for name in names]
+    return [FieldSpec(name, str(descriptions.get(name.lower(), {}).get("value_type", "str")), "") for name in names]
 
 
 def sample_docs(spec, k: int) -> list[Path]:

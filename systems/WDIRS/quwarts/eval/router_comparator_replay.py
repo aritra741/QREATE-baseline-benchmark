@@ -75,7 +75,7 @@ def replay(corpus: str, journal: Path | None = None) -> dict:
     spec = get_corpus(corpus)
     journal = journal or RESULTS / "quwarts_router" / corpus / "probe" / "probe_journal.jsonl"
     types = {}
-    for key, attrs in spec.descriptions().items():
+    for key, attrs in spec.benchmark_attribute_descriptions(purpose="scoring").items():
         table = next((t.sql_name for t in spec.tables if t.attributes_key == key), key)
         for name, record in attrs.items():
             types[(table, name)] = str(record.get("value_type", ""))

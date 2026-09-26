@@ -50,7 +50,7 @@ def setup(corpus: str):
     spec = get_corpus(corpus)
     train, test = workload(corpus)
     train_q = {r["query_id"]: r["sql"] for r in train}
-    table_attrs = table_attribute_names(spec)
+    table_attrs = table_attribute_names(spec, train_q)
     needs = [n for r in train for n in query_needs(r["query_id"], r["sql"], table_attrs)]
     wf = workload_features(spec, train_q)
     numeric = {q for q, u in wf["attributes"].items() if u.numeric}

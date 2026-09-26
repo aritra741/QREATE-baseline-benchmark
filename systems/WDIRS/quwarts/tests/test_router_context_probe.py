@@ -22,8 +22,10 @@ def test_contexts_and_fields(tmp_path):
     ctx = contexts_by_table(needs)["c"]
     assert set(ctx) == {"q1", "q2", CANONICAL}
     assert {n.attribute for n in ctx[CANONICAL]} == {"hearing_year", "verdict"}
-    fields = field_specs(spec, needs, set())
-    assert fields["c.hearing_year"].value_type == "int"
+    fields = field_specs(spec, needs, {"c.hearing_year"})
+    # SQL-only: type from how the workload uses the column, no description text.
+    assert fields["c.hearing_year"].value_type == "float" and fields["c.verdict"].value_type == "str"
+    assert all(f.description == "" and f.choices == () for f in fields.values())
 
 
 def test_probe_builds_pairs_and_noise_within_budget(tmp_path):
@@ -58,19 +60,19 @@ def test_schema_contract_parsing_and_conformance():
     assert conform("text || Video || Image", multi_f) == "Text || Image"
 
 
-def test_description_can_declare_an_empty_case(tmp_path):
+def test_attribute_files_are_ignored(tmp_path):
     import json
 
     from quwarts.core.router.registry import CorpusSpec, TableSpec
 
     attrs = tmp_path / "a.json"
     attrs.write_text(json.dumps({"p": {"fw": {"value_type": "str", "is_nullable": False,
-        "description": "framework, choose one from ['CoT', 'Other'], if the system does not use agent, leave it empty."}}}))
+        "description": "framework, choose one from ['CoT', 'Other']"}}}))
     manifest = tmp_path / "m.json"
     manifest.write_text(json.dumps([{"query_id": "q", "sql": "SELECT fw, COUNT(*) FROM t GROUP BY fw"}]))
     spec = CorpusSpec("x", (TableSpec("t", "p", tmp_path),), (attrs,), manifest)
     fields = field_specs(spec, workload_needs(spec), set())
-    assert fields["t.fw"].nullable and fields["t.fw"].choices == ("CoT", "Other")
+    assert fields["t.fw"].nullable and fields["t.fw"].choices == () and fields["t.fw"].description == ""
 
 
 def test_declared_absence_values():

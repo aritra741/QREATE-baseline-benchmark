@@ -136,7 +136,7 @@ def query_needs(query_id: str, sql: str, table_attrs: dict[str, set[str]]) -> li
 
 def workload_needs(spec: CorpusSpec, queries: dict[str, str] | None = None) -> list[Need]:
     queries = queries if queries is not None else spec.queries()
-    table_attrs = table_attribute_names(spec)
+    table_attrs = table_attribute_names(spec, queries)
     needs: list[Need] = []
     for query_id in sorted(queries):
         needs.extend(query_needs(query_id, queries[query_id], table_attrs))

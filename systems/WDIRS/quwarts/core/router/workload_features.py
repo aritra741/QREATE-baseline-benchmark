@@ -102,25 +102,45 @@ def comparison_literals(sql: str, table_attrs: dict[str, set[str]]) -> dict[str,
     return found
 
 
-def table_attribute_names(spec: CorpusSpec) -> dict[str, set[str]]:
-    descriptions = spec.descriptions()
-    out: dict[str, set[str]] = {}
-    for table in spec.tables:
-        out[table.sql_name] = set(descriptions.get(table.attributes_key, {}))
+def sql_table_attributes(queries: dict[str, str], tables: list[str]) -> dict[str, set[str]]:
+    """Physical attributes per table, from the SQL workload alone.
+
+    Qualified references (``t.col`` via aliases) and columns of single-table statements
+    resolve directly. An unqualified column in a multi-table statement goes to the one
+    table the workload elsewhere qualifies it with; if none or several, it is left out.
+    SELECT aliases are never attributes.
+    """
+
+    out: dict[str, set[str]] = {t: set() for t in tables}
+    for sql in queries.values():
+        tree = sqlglot.parse_one(sql, read="sqlite")
+        aliases = alias_map(tree)
+        names = set(aliases.values())
+        output_aliases = {n.alias for n in tree.find_all(exp.Alias) if n.alias}
+        for column in tree.find_all(exp.Column):
+            if not column.name or (not column.table and column.name in output_aliases):
+                continue
+            if column.table:
+                table = aliases.get(column.table)
+                if table:
+                    out.setdefault(table, set()).add(column.name)
+            elif len(names) == 1:
+                out.setdefault(next(iter(names)), set()).add(column.name)
+            # An unqualified column in a multi-table statement is recorded only through
+            # its qualified uses elsewhere in the workload.
     return out
 
 
-def _closed_label(record: dict[str, Any]) -> bool:
-    text = str(record.get("description", "")).lower()
-    return bool(record.get("is_fixed")) or "choose one" in text or "choose from" in text
+def table_attribute_names(spec: CorpusSpec, queries: dict[str, str] | None = None) -> dict[str, set[str]]:
+    queries = queries if queries is not None else spec.queries()
+    return sql_table_attributes(queries, [t.sql_name for t in spec.tables])
 
 
 def workload_features(spec: CorpusSpec, queries: dict[str, str] | None = None) -> dict[str, Any]:
     queries = queries if queries is not None else spec.queries()
     _logical, workload = analyze_workload(queries)
     template_statements = {template.id: list(template.statement_ids) for template in workload.templates}
-    table_attrs = table_attribute_names(spec)
-    descriptions = spec.descriptions()
+    table_attrs = table_attribute_names(spec, queries)
 
     literals: dict[str, set[str]] = {}
     table_queries: dict[str, set[str]] = {table.sql_name: set() for table in spec.tables}
@@ -136,10 +156,6 @@ def workload_features(spec: CorpusSpec, queries: dict[str, str] | None = None) -
         if "." not in qualified:
             continue
         table, name = qualified.split(".", 1)
-        table_spec = spec.table(table)
-        record = {}
-        if table_spec is not None:
-            record = descriptions.get(table_spec.attributes_key, {}).get(name, {})
         query_ids = sorted({sid for tid in requirement.templates for sid in template_statements.get(tid, [])})
         attributes[qualified] = AttributeUse(
             table=table,
@@ -147,9 +163,10 @@ def workload_features(spec: CorpusSpec, queries: dict[str, str] | None = None) -
             dtype=str(requirement.dtype),
             roles=sorted(role.value for role in requirement.roles),
             query_ids=query_ids,
-            description=str(record.get("description", "")),
-            value_type=str(record.get("value_type", "")),
-            closed_label=_closed_label(record),
+            # SQL-only: no benchmark description, type or label flag (RULES.md: T, Q, theta).
+            description="",
+            value_type="float" if str(requirement.dtype) == "numeric" else "",
+            closed_label=False,
             literals=sorted(literals.get(qualified, set())),
         )
 

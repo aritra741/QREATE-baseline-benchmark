@@ -97,12 +97,10 @@ _CHOICES = re.compile(r"\[([^\]]+)\]")
 
 
 def declared_labels(use) -> set[str]:
-    """Closed label vocabulary: workload literals plus a bracketed choice list in the description."""
+    """Closed label vocabulary: the workload's compared literals."""
 
-    labels = {label.lower() for label in use.literals}
-    for match in _CHOICES.finditer(use.description or ""):
-        labels.update(part.strip().lower() for part in match.group(1).split(",") if part.strip())
-    return labels
+    # SQL-only: the values the workload compares the attribute with.
+    return {label.lower() for label in use.literals}
 
 
 def incumbent_label_validity(conn, table: str, attribute: str, labels: set[str]) -> float | None:

@@ -30,7 +30,9 @@ _FORBIDDEN = (
     "docetl_cache",
     "diagnostic_scores",
 )
-_ORIGINAL_OPEN = builtins.open
+# Idempotent: re-importing the module must not wrap the guard in itself.
+_ORIGINAL_OPEN = getattr(builtins, "_quwarts_original_open", builtins.open)
+builtins._quwarts_original_open = _ORIGINAL_OPEN
 
 
 def _guard_open(file, mode="r", *args, **kwargs):

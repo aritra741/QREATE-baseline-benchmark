@@ -152,25 +152,17 @@ def complete(value: Any, field: FieldSpec) -> Any:
 
 
 def field_specs(spec: CorpusSpec, needs: list[Need], sql_numeric: set[str]) -> dict[str, FieldSpec]:
-    descriptions = spec.descriptions()
+    """Fields as the SQL workload defines them: name and SQL-derived type, nothing else.
+
+    The benchmark's attribute files (descriptions, allowed values, nullability) are not a
+    system input (RULES.md). Without them every field is nullable and has no declared
+    domain, so ``conform`` and ``absence_value`` are no-ops.
+    """
+
     out: dict[str, FieldSpec] = {}
     for need in needs:
-        table = spec.table(need.table)
-        records = descriptions.get(table.attributes_key, {}) if table else {}
-        record = records.get(need.attribute) or {k.lower(): v for k, v in records.items()}.get(need.attribute.lower(), {})
-        value_type = str(record.get("value_type") or ("float" if need.qualified in sql_numeric else "str"))
-        description = str(record.get("description", ""))
-        choices, multi = declared_choices(description)
-        out[need.qualified] = FieldSpec(
-            need.attribute,
-            value_type,
-            description,
-            # The description can declare an empty case the flag does not (CSPaper agent_framework:
-            # "if the system does not use agent, leave it empty").
-            nullable=bool(record.get("is_nullable", True)) or bool(_EMPTY_CASE.search(description)),
-            choices=choices,
-            multi_choice=multi,
-        )
+        value_type = "float" if need.qualified in sql_numeric else "str"
+        out[need.qualified] = FieldSpec(need.attribute, value_type, "")
     return out
 
 

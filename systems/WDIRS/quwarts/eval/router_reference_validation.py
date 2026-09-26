@@ -180,6 +180,16 @@ def plurality(values: list[Any], need: Need, value_type: str) -> Any:
     return best
 
 
+def spec_scoring_types(corpus: str) -> dict[str, str]:
+    spec = get_corpus(corpus)
+    out = {}
+    for key, attrs in spec.benchmark_attribute_descriptions(purpose="scoring").items():
+        table = next((t.sql_name for t in spec.tables if t.attributes_key == key), key)
+        for name, record in attrs.items():
+            out[f"{table}.{name}"] = str(record.get("value_type") or "str")
+    return out
+
+
 def kendall(a: list[float], b: list[float]) -> float | None:
     pairs = conc = disc = 0
     for i in range(len(a)):
@@ -198,6 +208,11 @@ def score(corpus: str, out: Path, needs, fields, docs, completion: bool = False)
     from quwarts.experiments.synthesize_case80 import gold_name
 
     reads = load_reads(out, docs, fields, completion)
+    # The benchmark comparator's value types (multi-valued, numeric) are scoring-side knowledge.
+    from dataclasses import replace as _replace
+
+    bench = spec_scoring_types(corpus)
+    fields = {q: _replace(f, value_type=bench.get(q, f.value_type)) for q, f in fields.items()}
     gold_tables = load_ground_truth(gold_name(DATASET[corpus]))  # gold read only here
 
     def gold_row(table: str, doc: str) -> dict[str, Any]:

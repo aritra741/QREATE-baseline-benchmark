@@ -59,8 +59,18 @@ class CorpusSpec:
         return {str(item["query_id"]): str(item["sql"]) for item in payload}
 
     def descriptions(self) -> dict[str, dict[str, dict]]:
-        """``{attributes_key: {attribute: description_record}}`` over all files."""
+        """Not a system input. The system sees documents, the SQL workload and theta only."""
 
+        raise PermissionError(
+            "benchmark attribute descriptions are not a system input (RULES.md: T, Q, theta only); "
+            "scoring and audit code must call benchmark_attribute_descriptions(purpose=...)"
+        )
+
+    def benchmark_attribute_descriptions(self, *, purpose: str) -> dict[str, dict[str, dict]]:
+        """``{attributes_key: {attribute: record}}``, for scoring and audits only, never for reads."""
+
+        if purpose not in {"scoring", "audit"}:
+            raise PermissionError(f"attribute descriptions requested for {purpose!r}")
         merged: dict[str, dict[str, dict]] = {}
         for path in self.attributes_json:
             payload = json.loads(path.read_text())
