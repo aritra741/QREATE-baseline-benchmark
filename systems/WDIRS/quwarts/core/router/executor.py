@@ -30,7 +30,7 @@ from typing import Any
 from quwarts.core.ledger import BudgetExhausted, BudgetedCaller
 from quwarts.core.retrieve_extract.parse import normalize_value
 from quwarts.core.router.comparator import as_text, is_null
-from quwarts.core.router.context_probe import SYSTEM, V3, FieldSpec, conform, render_prompt, truncate
+from quwarts.core.router.context_probe import SYSTEM, V3, FieldSpec, complete, render_prompt, truncate
 from quwarts.core.router.corpus_features import list_documents, read_document
 from quwarts.core.router.facility import INCUMBENT
 from quwarts.core.router.needs import CANONICAL
@@ -77,7 +77,7 @@ def run_reads(
     tasks = []
     for read in reads:
         specs = [fields[f"{read.table}.{a}"] for a in read.attributes]
-        sql = None if read.context == CANONICAL else queries[read.context]
+        sql = queries.get(read.context)  # None for shared (query-independent) contexts
         for path in list_documents(spec.table(read.table)):
             prompt = render_prompt(truncate(read_document(path), window), specs, sql)
             sha = _sha(prompt)
@@ -127,9 +127,11 @@ def commit_value(value: Any, field: FieldSpec) -> Any:
         return None
     if isinstance(value, list):
         value = " || ".join(as_text(v) for v in value if not is_null(v))
-    value = conform(value, field)
+    value = complete(value, field)  # declared domain, then declared absence value
     if value is None:
         return None
+    if isinstance(value, bool) or (isinstance(value, (int, float)) and field.value_type not in ("int", "float")):
+        value = str(int(value)) if isinstance(value, (int, bool)) else str(value)
     dtype = "numeric" if field.value_type in ("int", "float") else "string"
     normalized, _unit, error = normalize_value(value, dtype)
     if dtype == "numeric" and (error or normalized is None):
