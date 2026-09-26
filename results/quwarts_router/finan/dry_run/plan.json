@@ -1,0 +1,1099 @@
+{
+  "attributes": {
+    "finance.auditor": {
+      "closed_label": false,
+      "description": "name of the external audit firm.",
+      "dtype": "string",
+      "literals": [
+        "Deloitte",
+        "EY",
+        "Ernst & Young",
+        "KPMG",
+        "Pricewaterhouse",
+        "PwC"
+      ],
+      "n_queries": 4,
+      "name": "auditor",
+      "numeric": false,
+      "qualified": "finance.auditor",
+      "query_ids": [
+        "finan_agg20:q13",
+        "finan_filter20:q11",
+        "finan_filter20:q15",
+        "finan_multiagg20:q18"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "str"
+    },
+    "finance.business_segments_num": {
+      "closed_label": false,
+      "description": "number of business segments reported. Enter a number.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 2,
+      "name": "business_segments_num",
+      "numeric": true,
+      "qualified": "finance.business_segments_num",
+      "query_ids": [
+        "finan_agg20:q11",
+        "finan_groupby20:q14"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "int"
+    },
+    "finance.cash_reserves": {
+      "closed_label": false,
+      "description": "total cash and cash equivalents held at period-end. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 3,
+      "name": "cash_reserves",
+      "numeric": true,
+      "qualified": "finance.cash_reserves",
+      "query_ids": [
+        "finan_agg20:q14",
+        "finan_multiagg20:q11",
+        "finan_multiagg20:q4"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "int"
+    },
+    "finance.dividend_per_share": {
+      "closed_label": false,
+      "description": "dividends paid per share for the period. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 1,
+      "name": "dividend_per_share",
+      "numeric": true,
+      "qualified": "finance.dividend_per_share",
+      "query_ids": [
+        "finan_filter20:q7"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "float"
+    },
+    "finance.earnings_per_share": {
+      "closed_label": false,
+      "description": "earnings per share (EPS) for the reporting period. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 2,
+      "name": "earnings_per_share",
+      "numeric": true,
+      "qualified": "finance.earnings_per_share",
+      "query_ids": [
+        "finan_agg20:q13",
+        "finan_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "float"
+    },
+    "finance.exchange_code": {
+      "closed_label": false,
+      "description": "The code of the stock exchange where the company is listed (e.g., ASX, SUN).",
+      "dtype": "string",
+      "literals": [
+        "AIM",
+        "ASX",
+        "LSE",
+        "NASDAQ",
+        "NYSE"
+      ],
+      "n_queries": 3,
+      "name": "exchange_code",
+      "numeric": false,
+      "qualified": "finance.exchange_code",
+      "query_ids": [
+        "finan_agg20:q14",
+        "finan_filter20:q8",
+        "finan_multiagg20:q18"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "multi_str"
+    },
+    "finance.major_equity_changes": {
+      "closed_label": true,
+      "description": "whether there were major equity changes during the period; choose one from ['Yes', 'No'].",
+      "dtype": "string",
+      "literals": [
+        "No",
+        "Yes"
+      ],
+      "n_queries": 3,
+      "name": "major_equity_changes",
+      "numeric": true,
+      "qualified": "finance.major_equity_changes",
+      "query_ids": [
+        "finan_agg20:q17",
+        "finan_agg20:q3",
+        "finan_filter20:q15"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "int"
+    },
+    "finance.net_assets": {
+      "closed_label": false,
+      "description": "net asset value at the end of the reporting period. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 2,
+      "name": "net_assets",
+      "numeric": true,
+      "qualified": "finance.net_assets",
+      "query_ids": [
+        "finan_filter20:q11",
+        "finan_multiagg20:q11"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "int"
+    },
+    "finance.net_profit_or_loss": {
+      "closed_label": false,
+      "description": "net profit or loss amount for the reporting period (enter a negative number for loss). Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 4,
+      "name": "net_profit_or_loss",
+      "numeric": true,
+      "qualified": "finance.net_profit_or_loss",
+      "query_ids": [
+        "finan_filter20:q11",
+        "finan_filter20:q8",
+        "finan_multiagg20:q18",
+        "finan_multiagg20:q4"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "int"
+    },
+    "finance.principal_activities": {
+      "closed_label": true,
+      "description": "main business activities or industry classification; choose one or more from ['Mining', 'finance', 'Healthcare', 'Manufacturing', 'Technology', 'Retail', 'Energy', 'Utilities', 'Real Estate', 'Transportation', 'Agriculture', 'Telecommunications', 'Media', 'Other'], seperated by `||` (e.g. Mining || finance).",
+      "dtype": "string",
+      "literals": [
+        "Finance",
+        "Healthcare",
+        "Mining",
+        "Retail",
+        "Technology"
+      ],
+      "n_queries": 4,
+      "name": "principal_activities",
+      "numeric": false,
+      "qualified": "finance.principal_activities",
+      "query_ids": [
+        "finan_agg20:q11",
+        "finan_filter20:q7",
+        "finan_groupby20:q14",
+        "finan_multiagg20:q11"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "multi_str"
+    },
+    "finance.remuneration_policy": {
+      "closed_label": true,
+      "description": "executive remuneration policy type; choose only one from ['Fixed', 'Performance-based', 'Stock Option', 'Mixed', 'Not Disclosed'].",
+      "dtype": "string",
+      "literals": [
+        "Mixed"
+      ],
+      "n_queries": 3,
+      "name": "remuneration_policy",
+      "numeric": false,
+      "qualified": "finance.remuneration_policy",
+      "query_ids": [
+        "finan_agg20:q4",
+        "finan_filter20:q9",
+        "finan_multiagg20:q9"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "multi_str"
+    },
+    "finance.revenue": {
+      "closed_label": false,
+      "description": "total operating revenue recognized during the reporting period. Enter a number. If the original currency is not USD, convert to USD according to the latest available exchange rate.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 4,
+      "name": "revenue",
+      "numeric": true,
+      "qualified": "finance.revenue",
+      "query_ids": [
+        "finan_filter20:q9",
+        "finan_multiagg20:q18",
+        "finan_multiagg20:q4",
+        "finan_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "int"
+    },
+    "finance.the_highest_ownership_stake": {
+      "closed_label": false,
+      "description": "the highest percentage of ownership held by a single shareholder. Enter a number, unit: percent (%).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 1,
+      "name": "the_highest_ownership_stake",
+      "numeric": true,
+      "qualified": "finance.the_highest_ownership_stake",
+      "query_ids": [
+        "finan_agg20:q17"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": "float"
+    },
+    "finance.total_debt": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 3,
+      "name": "total_debt",
+      "numeric": true,
+      "qualified": "finance.total_debt",
+      "query_ids": [
+        "finan_filter20:q8",
+        "finan_multiagg20:q11",
+        "finan_multiagg20:q4"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "finance",
+      "value_type": ""
+    }
+  },
+  "budget": {
+    "available_for_operators": 345457,
+    "docetl_equivalent_estimate": 17094880,
+    "fits": true,
+    "planned_operator_tokens": 316800,
+    "probe_budget": 34545,
+    "probe_spent": 0,
+    "rho": 0.020208214389337627,
+    "theta": 345457
+  },
+  "corpus": "finan",
+  "costs": {
+    "per_table": {
+      "finance": {
+        "canonical_map": 0,
+        "fused_map": 0,
+        "program": 316800,
+        "repair": 0,
+        "retrieval_map": 0
+      }
+    },
+    "total": 316800
+  },
+  "coverage": {
+    "by_route": {
+      "keep": 0,
+      "program": 35
+    },
+    "fraction": 0.8974358974358975,
+    "served": 35,
+    "uses": 39
+  },
+  "decisions": [
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.auditor",
+      "query_ids": [
+        "finan_agg20:q13",
+        "finan_filter20:q11",
+        "finan_filter20:q15",
+        "finan_multiagg20:q18"
+      ],
+      "reasons": [
+        "prior: named entities are written verbatim",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "finan_agg20:q11",
+          "finan_groupby20:q14"
+        ],
+        "label_surface": null,
+        "lambda": 11.681440443213296,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": []
+      },
+      "qualified": "finance.business_segments_num",
+      "query_ids": [
+        "finan_agg20:q11",
+        "finan_groupby20:q14"
+      ],
+      "reasons": [
+        "prior: count-like attribute: the value is computed over the document, not copied",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "R5: no affordable retrieval_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.cash_reserves",
+      "query_ids": [
+        "finan_agg20:q14",
+        "finan_multiagg20:q11",
+        "finan_multiagg20:q4"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.dividend_per_share",
+      "query_ids": [
+        "finan_filter20:q7"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute",
+        "R5: demoted from program to keep (budget)"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.earnings_per_share",
+      "query_ids": [
+        "finan_agg20:q13",
+        "finan_multiagg20:q9"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.exchange_code",
+      "query_ids": [
+        "finan_agg20:q14",
+        "finan_filter20:q8",
+        "finan_multiagg20:q18"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.major_equity_changes",
+      "query_ids": [
+        "finan_agg20:q17",
+        "finan_agg20:q3",
+        "finan_filter20:q15"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.net_assets",
+      "query_ids": [
+        "finan_filter20:q11",
+        "finan_multiagg20:q11"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.net_profit_or_loss",
+      "query_ids": [
+        "finan_filter20:q11",
+        "finan_filter20:q8",
+        "finan_multiagg20:q18",
+        "finan_multiagg20:q4"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.principal_activities",
+      "query_ids": [
+        "finan_agg20:q11",
+        "finan_filter20:q7",
+        "finan_groupby20:q14",
+        "finan_multiagg20:q11"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.remuneration_policy",
+      "query_ids": [
+        "finan_agg20:q4",
+        "finan_filter20:q9",
+        "finan_multiagg20:q9"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.revenue",
+      "query_ids": [
+        "finan_filter20:q9",
+        "finan_multiagg20:q18",
+        "finan_multiagg20:q4",
+        "finan_multiagg20:q9"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.the_highest_ownership_stake",
+      "query_ids": [
+        "finan_agg20:q17"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute",
+        "R5: demoted from program to keep (budget)"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "finance"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 11.681440443213296,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "finance.total_debt",
+      "query_ids": [
+        "finan_filter20:q8",
+        "finan_multiagg20:q11",
+        "finan_multiagg20:q4"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=11.68 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "finance"
+    }
+  ],
+  "dropped_map_queries": [
+    [
+      "finance:retrieval_map",
+      "finan_agg20:q11"
+    ],
+    [
+      "finance:retrieval_map",
+      "finan_groupby20:q14"
+    ]
+  ],
+  "inputs": {
+    "attributes_sha": [
+      "3f88e9f1a5ef0e559280ac4e6470ed5fa536a99fe1c4fc588bba8bdc24bfad1e"
+    ],
+    "corpus_fingerprint": "b70acdae03bffc292c2bf7584a1236026e403a97ab039c5a577da0e33a9e5f66",
+    "incumbent_db": "/sessions/rcw-01n4cex6u5bon8kzynq4paep/mnt/UDA-Bench-main/results/quwarts_finan_plumbing/artifacts/databases/finan_plumbing.db",
+    "incumbent_sha": "ad91c2554f32510cb378737009e6479cfcb71299f245c7fe766722057b2b2a3d",
+    "manifest_sha": "e94136f82cb634d45c2c37a861452f2e2e00185b7de3ecb8049d4b814986bfcd",
+    "n_queries": 16
+  },
+  "map_queries": {
+    "finance:retrieval_map": []
+  },
+  "plan_hash": "5e227c377d10c031b46a42f28c9930c1e3a2dd4bba03b082a1c609a3ae038bd0",
+  "probe": {
+    "budget": 34545,
+    "dry_run": true,
+    "tables": {
+      "finance": {
+        "metrics": {},
+        "plan": {
+          "affordable": false,
+          "attributes": [
+            "finance.auditor",
+            "finance.business_segments_num",
+            "finance.cash_reserves",
+            "finance.dividend_per_share",
+            "finance.earnings_per_share",
+            "finance.exchange_code",
+            "finance.major_equity_changes",
+            "finance.net_assets",
+            "finance.net_profit_or_loss",
+            "finance.principal_activities",
+            "finance.remuneration_policy",
+            "finance.revenue",
+            "finance.the_highest_ownership_stake",
+            "finance.total_debt"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "finan_agg20:q11",
+            "finan_agg20:q13",
+            "finan_agg20:q14",
+            "finan_agg20:q17",
+            "finan_agg20:q3",
+            "finan_agg20:q4",
+            "finan_filter20:q11",
+            "finan_filter20:q15",
+            "finan_filter20:q7",
+            "finan_filter20:q8",
+            "finan_filter20:q9",
+            "finan_groupby20:q14",
+            "finan_multiagg20:q11",
+            "finan_multiagg20:q18",
+            "finan_multiagg20:q4",
+            "finan_multiagg20:q9"
+          ],
+          "docs": 2,
+          "mean_call_tokens": 3880.0,
+          "share_tokens": 34545.0
+        }
+      }
+    }
+  },
+  "residue": {
+    "attributes": {
+      "finance.auditor": {
+        "incumbent_trust": 0.9666666666666667,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 59,
+        "present": true,
+        "residue_fraction": 0.59,
+        "residue_queries": [
+          "finan_agg20:q13",
+          "finan_filter20:q11",
+          "finan_filter20:q15",
+          "finan_multiagg20:q18"
+        ],
+        "residue_rows": 59,
+        "rows": 100
+      },
+      "finance.business_segments_num": {
+        "incumbent_trust": 1.0,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 83,
+        "present": true,
+        "residue_fraction": 0.83,
+        "residue_queries": [
+          "finan_agg20:q11",
+          "finan_groupby20:q14"
+        ],
+        "residue_rows": 83,
+        "rows": 100
+      },
+      "finance.cash_reserves": {
+        "incumbent_trust": 0.16666666666666666,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 88,
+        "present": true,
+        "residue_fraction": 0.88,
+        "residue_queries": [
+          "finan_agg20:q14",
+          "finan_multiagg20:q4"
+        ],
+        "residue_rows": 88,
+        "rows": 100
+      },
+      "finance.dividend_per_share": {
+        "incumbent_trust": 0.9166666666666666,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 88,
+        "present": true,
+        "residue_fraction": 0.53,
+        "residue_queries": [
+          "finan_filter20:q7"
+        ],
+        "residue_rows": 53,
+        "rows": 100
+      },
+      "finance.earnings_per_share": {
+        "incumbent_trust": 0.8,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 85,
+        "present": true,
+        "residue_fraction": 0.85,
+        "residue_queries": [
+          "finan_agg20:q13",
+          "finan_multiagg20:q9"
+        ],
+        "residue_rows": 85,
+        "rows": 100
+      },
+      "finance.exchange_code": {
+        "incumbent_trust": 1.0,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 87,
+        "present": true,
+        "residue_fraction": 0.14,
+        "residue_queries": [
+          "finan_agg20:q14",
+          "finan_filter20:q8",
+          "finan_multiagg20:q18"
+        ],
+        "residue_rows": 14,
+        "rows": 100
+      },
+      "finance.major_equity_changes": {
+        "incumbent_trust": 0.14285714285714285,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 93,
+        "present": true,
+        "residue_fraction": 0.93,
+        "residue_queries": [
+          "finan_agg20:q17",
+          "finan_agg20:q3",
+          "finan_filter20:q15"
+        ],
+        "residue_rows": 93,
+        "rows": 100
+      },
+      "finance.net_assets": {
+        "incumbent_trust": null,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 100,
+        "present": true,
+        "residue_fraction": 0.9,
+        "residue_queries": [
+          "finan_filter20:q11",
+          "finan_multiagg20:q11"
+        ],
+        "residue_rows": 90,
+        "rows": 100
+      },
+      "finance.net_profit_or_loss": {
+        "incumbent_trust": 0.2222222222222222,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 82,
+        "present": true,
+        "residue_fraction": 0.82,
+        "residue_queries": [
+          "finan_filter20:q11",
+          "finan_filter20:q8",
+          "finan_multiagg20:q18",
+          "finan_multiagg20:q4"
+        ],
+        "residue_rows": 82,
+        "rows": 100
+      },
+      "finance.principal_activities": {
+        "incumbent_trust": 0.2765957446808511,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 53,
+        "present": true,
+        "residue_fraction": 0.03,
+        "residue_queries": [
+          "finan_agg20:q11",
+          "finan_filter20:q7",
+          "finan_groupby20:q14"
+        ],
+        "residue_rows": 3,
+        "rows": 100
+      },
+      "finance.remuneration_policy": {
+        "incumbent_trust": 0.0,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 89,
+        "present": true,
+        "residue_fraction": 0.89,
+        "residue_queries": [
+          "finan_agg20:q4",
+          "finan_filter20:q9",
+          "finan_multiagg20:q9"
+        ],
+        "residue_rows": 89,
+        "rows": 100
+      },
+      "finance.revenue": {
+        "incumbent_trust": 0.3125,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 84,
+        "present": true,
+        "residue_fraction": 0.84,
+        "residue_queries": [
+          "finan_filter20:q9",
+          "finan_multiagg20:q18",
+          "finan_multiagg20:q4",
+          "finan_multiagg20:q9"
+        ],
+        "residue_rows": 84,
+        "rows": 100
+      },
+      "finance.the_highest_ownership_stake": {
+        "incumbent_trust": 1.0,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 95,
+        "present": true,
+        "residue_fraction": 0.89,
+        "residue_queries": [
+          "finan_agg20:q17"
+        ],
+        "residue_rows": 89,
+        "rows": 100
+      },
+      "finance.total_debt": {
+        "incumbent_trust": 0.5,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 96,
+        "present": true,
+        "residue_fraction": 0.89,
+        "residue_queries": [
+          "finan_filter20:q8",
+          "finan_multiagg20:q4"
+        ],
+        "residue_rows": 89,
+        "rows": 100
+      }
+    },
+    "available": true,
+    "db": "/sessions/rcw-01n4cex6u5bon8kzynq4paep/mnt/UDA-Bench-main/results/quwarts_finan_plumbing/artifacts/databases/finan_plumbing.db",
+    "errors": []
+  },
+  "router": {
+    "constants": {
+      "call_overhead_tokens": 600,
+      "canonical_bundle_size": 6,
+      "context_window_tokens": 10108,
+      "corpus_sample_docs": 50,
+      "coverage_loss_max": 0.5,
+      "coverage_serve_min": 0.8,
+      "extractive_min": 0.5,
+      "fusion_width": 2,
+      "incumbent_grounding_min": 0.5,
+      "label_surface_min": 0.5,
+      "probe_budget_fraction": 0.1,
+      "probe_docs_max": 8,
+      "probe_docs_min": 3,
+      "probe_query_contexts_per_doc": 2,
+      "probe_seed": 20260926,
+      "program_calls_per_attribute": 8,
+      "regularity_min": 0.5,
+      "residue_fraction_max": 0.1,
+      "sensitivity_max": 0.2,
+      "version": "router-v1",
+      "window_tokens": 3000
+    },
+    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
+    "version": "router-v1"
+  },
+  "tables": {
+    "finance": {
+      "context_fit_lambda": 11.681440443213296,
+      "fit_fraction": 0.01,
+      "full_read_cost": 1068430,
+      "n_docs": 100,
+      "tokens_median": 118076.0,
+      "tokens_p90": 248264,
+      "tokens_total": 14027763,
+      "window_read_cost": 360000,
+      "workload": {
+        "attribute_reuse": 2.7857142857142856,
+        "n_attributes": 14,
+        "n_queries": 16,
+        "queries": [
+          "finan_agg20:q11",
+          "finan_agg20:q13",
+          "finan_agg20:q14",
+          "finan_agg20:q17",
+          "finan_agg20:q3",
+          "finan_agg20:q4",
+          "finan_filter20:q11",
+          "finan_filter20:q15",
+          "finan_filter20:q7",
+          "finan_filter20:q8",
+          "finan_filter20:q9",
+          "finan_groupby20:q14",
+          "finan_multiagg20:q11",
+          "finan_multiagg20:q18",
+          "finan_multiagg20:q4",
+          "finan_multiagg20:q9"
+        ]
+      }
+    }
+  },
+  "verdict": "workload_served"
+}

@@ -1,0 +1,1607 @@
+{
+  "attributes": {
+    "city.city_name": {
+      "closed_label": false,
+      "description": "city_name is the name of the city (e.g. Boston)",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 5,
+      "name": "city_name",
+      "numeric": false,
+      "qualified": "city.city_name",
+      "query_ids": [
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_filterjoin20:q6",
+        "player_join20:q11",
+        "player_join20:q7"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "city",
+      "value_type": "str"
+    },
+    "city.population": {
+      "closed_label": false,
+      "description": "population is the population of the city (e.g. 7000000).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 3,
+      "name": "population",
+      "numeric": true,
+      "qualified": "city.population",
+      "query_ids": [
+        "player_filterjoin20:q17",
+        "player_filterjoin20:q8",
+        "player_join20:q7"
+      ],
+      "roles": [
+        "agg_extremal",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "city",
+      "value_type": "int"
+    },
+    "city.state_name": {
+      "closed_label": false,
+      "description": "state_name is the name of the state the city is located in (e.g. California).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 6,
+      "name": "state_name",
+      "numeric": false,
+      "qualified": "city.state_name",
+      "query_ids": [
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_filterjoin20:q6",
+        "player_filterjoin20:q8",
+        "player_join20:q11",
+        "player_join20:q7"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "city",
+      "value_type": "str"
+    },
+    "owner.name": {
+      "closed_label": false,
+      "description": "name is the full name of the team owner (e.g. Jeanie Buss).",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 1,
+      "name": "name",
+      "numeric": false,
+      "qualified": "owner.name",
+      "query_ids": [
+        "player_multiagg20:q15"
+      ],
+      "roles": [
+        "group"
+      ],
+      "sensitive": true,
+      "table": "owner",
+      "value_type": "str"
+    },
+    "owner.nationality": {
+      "closed_label": false,
+      "description": "nationality is the nationality of the team owner (e.g. American).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 5,
+      "name": "nationality",
+      "numeric": false,
+      "qualified": "owner.nationality",
+      "query_ids": [
+        "docetl_Player_v7:q17",
+        "player_groupby20:q14",
+        "player_join20:q15",
+        "player_join20:q8",
+        "player_join20:q9"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "owner",
+      "value_type": "str"
+    },
+    "owner.nba_team": {
+      "closed_label": false,
+      "description": "NBA_team is the NBA team's name the owner own, (e.g. Los Angeles Lakers).",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 5,
+      "name": "nba_team",
+      "numeric": false,
+      "qualified": "owner.nba_team",
+      "query_ids": [
+        "player_filterjoin20:q17",
+        "player_join20:q15",
+        "player_join20:q8",
+        "player_join20:q9",
+        "player_multiagg20:q15"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "owner",
+      "value_type": "str"
+    },
+    "owner.own_year": {
+      "closed_label": false,
+      "description": "own_year is year the owner have this NBA team (e.g. 2010).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 2,
+      "name": "own_year",
+      "numeric": true,
+      "qualified": "owner.own_year",
+      "query_ids": [
+        "docetl_Player_v7:q17",
+        "player_groupby20:q14"
+      ],
+      "roles": [
+        "agg_extremal",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "owner",
+      "value_type": "int"
+    },
+    "player.age": {
+      "closed_label": false,
+      "description": "age of the player (if death_date is given, compute as death_date - birth_date; otherwise, compute as 2025/1/1 - birth_date).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 5,
+      "name": "age",
+      "numeric": true,
+      "qualified": "player.age",
+      "query_ids": [
+        "docetl_Player_v7:q11",
+        "player_filterjoin20:q14",
+        "player_join20:q15",
+        "player_multiagg20:q15",
+        "player_multiagg20:q4"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "int"
+    },
+    "player.college": {
+      "closed_label": false,
+      "description": "the college the player attended, if applicable (e.g., Duke University).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 1,
+      "name": "college",
+      "numeric": false,
+      "qualified": "player.college",
+      "query_ids": [
+        "docetl_Player_v7:q3"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "str"
+    },
+    "player.draft_pick": {
+      "closed_label": false,
+      "description": "the pick number at which the player was selected in the NBA draft (e.g., 1).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 2,
+      "name": "draft_pick",
+      "numeric": true,
+      "qualified": "player.draft_pick",
+      "query_ids": [
+        "player_filterjoin20:q1",
+        "player_filterjoin20:q14"
+      ],
+      "roles": [
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "int"
+    },
+    "player.draft_year": {
+      "closed_label": false,
+      "description": "the year the player was selected in the NBA draft; use format YYYY (e.g., 2003).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 1,
+      "name": "draft_year",
+      "numeric": true,
+      "qualified": "player.draft_year",
+      "query_ids": [
+        "player_filterjoin20:q1"
+      ],
+      "roles": [
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "int"
+    },
+    "player.fiba_world_cup": {
+      "closed_label": false,
+      "description": "number of FIBA World Cup titles the player has won (e.g., 1).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 1,
+      "name": "fiba_world_cup",
+      "numeric": true,
+      "qualified": "player.fiba_world_cup",
+      "query_ids": [
+        "player_filterjoin20:q17"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "int"
+    },
+    "player.mvp_awards": {
+      "closed_label": false,
+      "description": "number of NBA MVP awards the player has won; use 0 if none (e.g., 2).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 2,
+      "name": "mvp_awards",
+      "numeric": true,
+      "qualified": "player.mvp_awards",
+      "query_ids": [
+        "docetl_Player_v7:q3",
+        "docetl_Player_v7:q4"
+      ],
+      "roles": [
+        "agg_additive",
+        "agg_extremal"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "int"
+    },
+    "player.nationality": {
+      "closed_label": false,
+      "description": "nationality of the player (e.g., American, France).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 1,
+      "name": "nationality",
+      "numeric": false,
+      "qualified": "player.nationality",
+      "query_ids": [
+        "docetl_Player_v7:q11"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "str"
+    },
+    "player.nba_championships": {
+      "closed_label": false,
+      "description": "number of NBA championships the player has won (e.g., 4).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 2,
+      "name": "nba_championships",
+      "numeric": true,
+      "qualified": "player.nba_championships",
+      "query_ids": [
+        "player_join20:q11",
+        "player_multiagg20:q15"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "int"
+    },
+    "player.olympic_gold_medals": {
+      "closed_label": false,
+      "description": "number of Olympic gold medals the player has won (e.g., 3).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 1,
+      "name": "olympic_gold_medals",
+      "numeric": true,
+      "qualified": "player.olympic_gold_medals",
+      "query_ids": [
+        "player_multiagg20:q4"
+      ],
+      "roles": [
+        "agg_additive"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "int"
+    },
+    "player.position": {
+      "closed_label": true,
+      "description": "player's primary position on the team; choose one from ['Frontcourt', 'Backcourt'].",
+      "dtype": "string",
+      "literals": [
+        "Backcourt",
+        "Frontcourt"
+      ],
+      "n_queries": 2,
+      "name": "position",
+      "numeric": false,
+      "qualified": "player.position",
+      "query_ids": [
+        "docetl_Player_v7:q4",
+        "player_filterjoin20:q1"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "str"
+    },
+    "player.team": {
+      "closed_label": false,
+      "description": "the current NBA team the player belongs to, or the last NBA team the player joined if not currently active.",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 6,
+      "name": "team",
+      "numeric": false,
+      "qualified": "player.team",
+      "query_ids": [
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_join20:q11",
+        "player_join20:q15",
+        "player_multiagg20:q15",
+        "player_multiagg20:q4"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "player",
+      "value_type": "str"
+    },
+    "team.championship": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 5,
+      "name": "championship",
+      "numeric": true,
+      "qualified": "team.championship",
+      "query_ids": [
+        "docetl_Player_v7:q14",
+        "player_filterjoin20:q6",
+        "player_join20:q9",
+        "player_multiagg20:q15",
+        "player_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "agg_extremal",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "team",
+      "value_type": ""
+    },
+    "team.founded_year": {
+      "closed_label": false,
+      "description": "founded_year is the year of this team team founded (e.g. 1947).",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 3,
+      "name": "founded_year",
+      "numeric": true,
+      "qualified": "team.founded_year",
+      "query_ids": [
+        "docetl_Player_v7:q13",
+        "player_filterjoin20:q6",
+        "player_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_extremal",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "team",
+      "value_type": "int"
+    },
+    "team.location": {
+      "closed_label": false,
+      "description": "location is the lastest city the team team located (e.g. Los Angeles).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 6,
+      "name": "location",
+      "numeric": false,
+      "qualified": "team.location",
+      "query_ids": [
+        "docetl_Player_v7:q13",
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_filterjoin20:q6",
+        "player_join20:q11",
+        "player_join20:q7"
+      ],
+      "roles": [
+        "group",
+        "join",
+        "key",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "team",
+      "value_type": "str"
+    },
+    "team.ownership": {
+      "closed_label": false,
+      "description": "ownership is the name of the team's owner (e.g. Jeanie Buss).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 1,
+      "name": "ownership",
+      "numeric": false,
+      "qualified": "team.ownership",
+      "query_ids": [
+        "docetl_Player_v7:q14"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "team",
+      "value_type": "str"
+    },
+    "team.team_name": {
+      "closed_label": false,
+      "description": "team_name is the full name of the team (e.g. Los Angeles Lakers).",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 8,
+      "name": "team_name",
+      "numeric": false,
+      "qualified": "team.team_name",
+      "query_ids": [
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_join20:q11",
+        "player_join20:q15",
+        "player_join20:q8",
+        "player_join20:q9",
+        "player_multiagg20:q15",
+        "player_multiagg20:q4"
+      ],
+      "roles": [
+        "group",
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "team",
+      "value_type": "str"
+    }
+  },
+  "budget": {
+    "available_for_operators": 3016611,
+    "docetl_equivalent_estimate": 12250214,
+    "fits": true,
+    "planned_operator_tokens": 2973869,
+    "probe_budget": 320747,
+    "probe_spent": 190864,
+    "rho": 0.2618301198656611,
+    "theta": 3207475
+  },
+  "corpus": "player",
+  "costs": {
+    "per_table": {
+      "city": {
+        "canonical_map": 0,
+        "fused_map": 0,
+        "program": 86400,
+        "repair": 0,
+        "retrieval_map": 0
+      },
+      "owner": {
+        "canonical_map": 50373,
+        "fused_map": 201492,
+        "program": 0,
+        "repair": 0,
+        "retrieval_map": 0
+      },
+      "player": {
+        "canonical_map": 603101,
+        "fused_map": 1809303,
+        "program": 0,
+        "repair": 0,
+        "retrieval_map": 0
+      },
+      "team": {
+        "canonical_map": 0,
+        "fused_map": 0,
+        "program": 115200,
+        "repair": 0,
+        "retrieval_map": 108000
+      }
+    },
+    "total": 2973869
+  },
+  "coverage": {
+    "by_route": {
+      "canonical_map": 13,
+      "fused_map": 20,
+      "keep": 0,
+      "program": 31,
+      "retrieval_map": 2
+    },
+    "fraction": 0.8918918918918919,
+    "served": 66,
+    "uses": 74
+  },
+  "decisions": [
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 1.7568262762168578,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "city.city_name",
+      "query_ids": [
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_filterjoin20:q6",
+        "player_join20:q11",
+        "player_join20:q7"
+      ],
+      "reasons": [
+        "prior: named entities are written verbatim",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.76 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "city"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 1.7568262762168578,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "city.population",
+      "query_ids": [
+        "player_filterjoin20:q17",
+        "player_filterjoin20:q8",
+        "player_join20:q7"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.76 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "city"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 1.7568262762168578,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "city.state_name",
+      "query_ids": [
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_filterjoin20:q6",
+        "player_filterjoin20:q8",
+        "player_join20:q11",
+        "player_join20:q7"
+      ],
+      "reasons": [
+        "prior: named entities are written verbatim",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.76 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "city"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 0.20142461416699645,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "owner.name",
+      "query_ids": [
+        "player_multiagg20:q15"
+      ],
+      "reasons": [
+        "prior: named entities are written verbatim",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.20 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "owner"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 0.20142461416699645,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "docetl_Player_v7:q17",
+          "player_groupby20:q14",
+          "player_join20:q15",
+          "player_join20:q8",
+          "player_join20:q9"
+        ]
+      },
+      "qualified": "owner.nationality",
+      "query_ids": [
+        "docetl_Player_v7:q17",
+        "player_groupby20:q14",
+        "player_join20:q15",
+        "player_join20:q8",
+        "player_join20:q9"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.20 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "owner"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 0.20142461416699645,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "player_filterjoin20:q17",
+          "player_join20:q15",
+          "player_join20:q8",
+          "player_join20:q9",
+          "player_multiagg20:q15"
+        ]
+      },
+      "qualified": "owner.nba_team",
+      "query_ids": [
+        "player_filterjoin20:q17",
+        "player_join20:q15",
+        "player_join20:q8",
+        "player_join20:q9",
+        "player_multiagg20:q15"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.20 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "owner"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 0.20142461416699645,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "owner.own_year",
+      "query_ids": [
+        "docetl_Player_v7:q17",
+        "player_groupby20:q14"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.20 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "owner"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "player.age",
+      "query_ids": [
+        "docetl_Player_v7:q11",
+        "player_filterjoin20:q14",
+        "player_join20:q15",
+        "player_multiagg20:q15",
+        "player_multiagg20:q4"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "docetl_Player_v7:q3"
+        ]
+      },
+      "qualified": "player.college",
+      "query_ids": [
+        "docetl_Player_v7:q3"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "player.draft_pick",
+      "query_ids": [
+        "player_filterjoin20:q1",
+        "player_filterjoin20:q14"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "player.draft_year",
+      "query_ids": [
+        "player_filterjoin20:q1"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "player_filterjoin20:q17"
+        ]
+      },
+      "qualified": "player.fiba_world_cup",
+      "query_ids": [
+        "player_filterjoin20:q17"
+      ],
+      "reasons": [
+        "prior: count-like attribute: the value is computed over the document, not copied",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "docetl_Player_v7:q4"
+        ],
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "docetl_Player_v7:q3"
+        ]
+      },
+      "qualified": "player.mvp_awards",
+      "query_ids": [
+        "docetl_Player_v7:q3",
+        "docetl_Player_v7:q4"
+      ],
+      "reasons": [
+        "prior: count-like attribute: the value is computed over the document, not copied",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "docetl_Player_v7:q11"
+        ],
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": []
+      },
+      "qualified": "player.nationality",
+      "query_ids": [
+        "docetl_Player_v7:q11"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "player_join20:q11",
+          "player_multiagg20:q15"
+        ]
+      },
+      "qualified": "player.nba_championships",
+      "query_ids": [
+        "player_join20:q11",
+        "player_multiagg20:q15"
+      ],
+      "reasons": [
+        "prior: count-like attribute: the value is computed over the document, not copied",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "player_multiagg20:q4"
+        ]
+      },
+      "qualified": "player.olympic_gold_medals",
+      "query_ids": [
+        "player_multiagg20:q4"
+      ],
+      "reasons": [
+        "prior: count-like attribute: the value is computed over the document, not copied",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 0.5,
+        "lambda": 0.1786703601108033,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "player.position",
+      "query_ids": [
+        "docetl_Player_v7:q4",
+        "player_filterjoin20:q1"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=0.50)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "player_filterjoin20:q14",
+          "player_join20:q15"
+        ],
+        "label_surface": null,
+        "lambda": 0.1786703601108033,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "player_filterjoin20:q17",
+          "player_join20:q11",
+          "player_multiagg20:q15",
+          "player_multiagg20:q4"
+        ]
+      },
+      "qualified": "player.team",
+      "query_ids": [
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_join20:q11",
+        "player_join20:q15",
+        "player_multiagg20:q15",
+        "player_multiagg20:q4"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.18 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "player"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 1.47096359319351,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "team.championship",
+      "query_ids": [
+        "docetl_Player_v7:q14",
+        "player_filterjoin20:q6",
+        "player_join20:q9",
+        "player_multiagg20:q15",
+        "player_multiagg20:q9"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.47 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "team"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 1.47096359319351,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "team.founded_year",
+      "query_ids": [
+        "docetl_Player_v7:q13",
+        "player_filterjoin20:q6",
+        "player_multiagg20:q9"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.47 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "team"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "docetl_Player_v7:q13",
+          "player_filterjoin20:q14",
+          "player_filterjoin20:q17",
+          "player_filterjoin20:q6"
+        ],
+        "label_surface": null,
+        "lambda": 1.47096359319351,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "player_join20:q11",
+          "player_join20:q7"
+        ]
+      },
+      "qualified": "team.location",
+      "query_ids": [
+        "docetl_Player_v7:q13",
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_filterjoin20:q6",
+        "player_join20:q11",
+        "player_join20:q7"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.47 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "team"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 1.47096359319351,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "team.ownership",
+      "query_ids": [
+        "docetl_Player_v7:q14"
+      ],
+      "reasons": [
+        "prior: named entities are written verbatim",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.47 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "team"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 1.47096359319351,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "team.team_name",
+      "query_ids": [
+        "player_filterjoin20:q14",
+        "player_filterjoin20:q17",
+        "player_join20:q11",
+        "player_join20:q15",
+        "player_join20:q8",
+        "player_join20:q9",
+        "player_multiagg20:q15",
+        "player_multiagg20:q4"
+      ],
+      "reasons": [
+        "prior: named entities are written verbatim",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.47 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "team"
+    }
+  ],
+  "dropped_map_queries": [
+    [
+      "player:fused_map",
+      "docetl_Player_v7:q11"
+    ],
+    [
+      "player:fused_map",
+      "docetl_Player_v7:q4"
+    ],
+    [
+      "player:fused_map",
+      "player_filterjoin20:q14"
+    ],
+    [
+      "player:fused_map",
+      "player_join20:q15"
+    ],
+    [
+      "team:retrieval_map",
+      "docetl_Player_v7:q13"
+    ],
+    [
+      "team:retrieval_map",
+      "player_filterjoin20:q14"
+    ],
+    [
+      "team:retrieval_map",
+      "player_filterjoin20:q17"
+    ],
+    [
+      "team:retrieval_map",
+      "player_filterjoin20:q6"
+    ]
+  ],
+  "inputs": {
+    "attributes_sha": [
+      "f0b61793baaf133cef5145151b647b446ed48a7918ce486bb082f867b6f7f8cf"
+    ],
+    "corpus_fingerprint": "be792ca1ddcccadf300e1aa533f982ba945a7fa8f73d3c2932dc49036fb33cb0",
+    "incumbent_db": null,
+    "incumbent_sha": null,
+    "manifest_sha": "7fead1e353232d8f1a437d8c9b27b343c467ee1b7c66e7c4d2a1a7ca82f29a91",
+    "n_queries": 20
+  },
+  "map_queries": {
+    "owner:fused_map": [
+      "docetl_Player_v7:q17",
+      "player_groupby20:q14",
+      "player_join20:q15",
+      "player_join20:q8",
+      "player_join20:q9",
+      "player_filterjoin20:q17",
+      "player_multiagg20:q15"
+    ],
+    "player:fused_map": [
+      "docetl_Player_v7:q3",
+      "player_filterjoin20:q17",
+      "player_join20:q11",
+      "player_multiagg20:q15",
+      "player_multiagg20:q4"
+    ],
+    "team:retrieval_map": [
+      "player_join20:q11",
+      "player_join20:q7"
+    ]
+  },
+  "plan_hash": "9c5b9d27a4015d2bbc9516e9682ea31e281681838db79013ea792f1edd15bbe1",
+  "probe": {
+    "budget": 320747,
+    "dry_run": true,
+    "tables": {
+      "city": {
+        "metrics": {},
+        "plan": {
+          "affordable": false,
+          "attributes": [
+            "city.city_name",
+            "city.population",
+            "city.state_name"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "player_filterjoin20:q14",
+            "player_filterjoin20:q17",
+            "player_filterjoin20:q6",
+            "player_filterjoin20:q8",
+            "player_join20:q11",
+            "player_join20:q7"
+          ],
+          "docs": 2,
+          "mean_call_tokens": 3880.0,
+          "share_tokens": 41836.565217391304
+        }
+      },
+      "owner": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "owner.name",
+            "owner.nationality",
+            "owner.nba_team",
+            "owner.own_year"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "docetl_Player_v7:q17",
+            "player_filterjoin20:q17",
+            "player_groupby20:q14",
+            "player_join20:q15",
+            "player_join20:q8",
+            "player_join20:q9",
+            "player_multiagg20:q15"
+          ],
+          "docs": 4,
+          "mean_call_tokens": 2807.4375,
+          "share_tokens": 55782.086956521736
+        }
+      },
+      "player": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "player.age",
+            "player.college",
+            "player.draft_pick",
+            "player.draft_year",
+            "player.fiba_world_cup",
+            "player.mvp_awards",
+            "player.nationality",
+            "player.nba_championships",
+            "player.olympic_gold_medals",
+            "player.position",
+            "player.team"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "docetl_Player_v7:q11",
+            "docetl_Player_v7:q3",
+            "docetl_Player_v7:q4",
+            "player_filterjoin20:q1",
+            "player_filterjoin20:q14",
+            "player_filterjoin20:q17",
+            "player_join20:q11",
+            "player_join20:q15",
+            "player_multiagg20:q15",
+            "player_multiagg20:q4"
+          ],
+          "docs": 8,
+          "mean_call_tokens": 2621.205673758865,
+          "share_tokens": 153400.73913043478
+        }
+      },
+      "team": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "team.championship",
+            "team.founded_year",
+            "team.location",
+            "team.ownership",
+            "team.team_name"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "docetl_Player_v7:q13",
+            "docetl_Player_v7:q14",
+            "player_filterjoin20:q14",
+            "player_filterjoin20:q17",
+            "player_filterjoin20:q6",
+            "player_join20:q11",
+            "player_join20:q15",
+            "player_join20:q7",
+            "player_join20:q8",
+            "player_join20:q9",
+            "player_multiagg20:q15",
+            "player_multiagg20:q4",
+            "player_multiagg20:q9"
+          ],
+          "docs": 4,
+          "mean_call_tokens": 3880.0,
+          "share_tokens": 69727.60869565218
+        }
+      }
+    }
+  },
+  "residue": {
+    "attributes": {},
+    "available": false
+  },
+  "router": {
+    "constants": {
+      "call_overhead_tokens": 600,
+      "canonical_bundle_size": 6,
+      "context_window_tokens": 10108,
+      "corpus_sample_docs": 50,
+      "coverage_loss_max": 0.5,
+      "coverage_serve_min": 0.8,
+      "extractive_min": 0.5,
+      "fusion_width": 2,
+      "incumbent_grounding_min": 0.5,
+      "label_surface_min": 0.5,
+      "probe_budget_fraction": 0.1,
+      "probe_docs_max": 8,
+      "probe_docs_min": 3,
+      "probe_query_contexts_per_doc": 2,
+      "probe_seed": 20260926,
+      "program_calls_per_attribute": 8,
+      "regularity_min": 0.5,
+      "residue_fraction_max": 0.1,
+      "sensitivity_max": 0.2,
+      "version": "router-v1",
+      "window_tokens": 3000
+    },
+    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
+    "version": "router-v1"
+  },
+  "tables": {
+    "city": {
+      "context_fit_lambda": 1.7568262762168578,
+      "fit_fraction": 0.034482758620689655,
+      "full_read_cost": 309169,
+      "n_docs": 29,
+      "tokens_median": 17758,
+      "tokens_p90": 22693,
+      "tokens_total": 524165,
+      "window_read_cost": 104400,
+      "workload": {
+        "attribute_reuse": 4.666666666666667,
+        "n_attributes": 3,
+        "n_queries": 6,
+        "queries": [
+          "player_filterjoin20:q14",
+          "player_filterjoin20:q17",
+          "player_filterjoin20:q6",
+          "player_filterjoin20:q8",
+          "player_join20:q11",
+          "player_join20:q7"
+        ]
+      }
+    },
+    "owner": {
+      "context_fit_lambda": 0.20142461416699645,
+      "fit_fraction": 1.0,
+      "full_read_cost": 50373,
+      "n_docs": 16,
+      "tokens_median": 2036.0,
+      "tokens_p90": 5412,
+      "tokens_total": 40773,
+      "window_read_cost": 40439,
+      "workload": {
+        "attribute_reuse": 3.25,
+        "n_attributes": 4,
+        "n_queries": 7,
+        "queries": [
+          "docetl_Player_v7:q17",
+          "player_filterjoin20:q17",
+          "player_groupby20:q14",
+          "player_join20:q15",
+          "player_join20:q8",
+          "player_join20:q9",
+          "player_multiagg20:q15"
+        ]
+      }
+    },
+    "player": {
+      "context_fit_lambda": 0.1786703601108033,
+      "fit_fraction": 0.7943262411347518,
+      "full_read_cost": 603101,
+      "n_docs": 141,
+      "tokens_median": 1806,
+      "tokens_p90": 18989,
+      "tokens_total": 887672,
+      "window_read_cost": 330110,
+      "workload": {
+        "attribute_reuse": 2.1818181818181817,
+        "n_attributes": 11,
+        "n_queries": 10,
+        "queries": [
+          "docetl_Player_v7:q11",
+          "docetl_Player_v7:q3",
+          "docetl_Player_v7:q4",
+          "player_filterjoin20:q1",
+          "player_filterjoin20:q14",
+          "player_filterjoin20:q17",
+          "player_join20:q11",
+          "player_join20:q15",
+          "player_multiagg20:q15",
+          "player_multiagg20:q4"
+        ]
+      }
+    },
+    "team": {
+      "context_fit_lambda": 1.47096359319351,
+      "fit_fraction": 0.16666666666666666,
+      "full_read_cost": 308583,
+      "n_docs": 30,
+      "tokens_median": 14868.5,
+      "tokens_p90": 22572,
+      "tokens_total": 447586,
+      "window_read_cost": 108000,
+      "workload": {
+        "attribute_reuse": 4.6,
+        "n_attributes": 5,
+        "n_queries": 13,
+        "queries": [
+          "docetl_Player_v7:q13",
+          "docetl_Player_v7:q14",
+          "player_filterjoin20:q14",
+          "player_filterjoin20:q17",
+          "player_filterjoin20:q6",
+          "player_join20:q11",
+          "player_join20:q15",
+          "player_join20:q7",
+          "player_join20:q8",
+          "player_join20:q9",
+          "player_multiagg20:q15",
+          "player_multiagg20:q4",
+          "player_multiagg20:q9"
+        ]
+      }
+    }
+  },
+  "verdict": "workload_served"
+}

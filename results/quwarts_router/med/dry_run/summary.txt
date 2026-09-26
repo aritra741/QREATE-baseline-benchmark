@@ -1,0 +1,24 @@
+corpus=med verdict=workload_served coverage=0.85 rho=0.101 planned=1,937,995/2,685,131 (theta=2,948,971) plan=d876647efd8b
+  table disease: docs=100 median_tokens=8389 lambda=0.83 queries=11
+  table drug: docs=98 median_tokens=11026 lambda=1.09 queries=14
+  table institution: docs=99 median_tokens=8872 lambda=0.88 queries=7
+  disease.disease_name                       repair         R1  uses=8 | SQL-unknown residue is 4.3% of rows (<= 10%)
+  disease.disease_type                       canonical_map  R2' uses=3 | prior: closed labels occur verbatim in the corpus (surface=1.00)
+  disease.id                                 canonical_map  R2' uses=1 | prior: numeric/date/identifier values are written as spans
+  disease.pathogenesis                       canonical_map  R2' uses=1 | prior: closed labels occur verbatim in the corpus (surface=1.00)
+  disease.prognosis                          canonical_map  R2' uses=3 | prior: closed labels occur verbatim in the corpus (surface=1.00)
+  disease.treatments                         canonical_map  R2' uses=3 | prior: closed labels occur verbatim in the corpus (surface=0.50)
+  drug.administration_route                  program        R2  uses=7 | prior: closed labels occur verbatim in the corpus (surface=1.00)
+  drug.disease_name                          repair         R1  uses=7 | SQL-unknown residue is 2.9% of rows (<= 10%)
+  drug.id                                    program        R2  uses=7 | prior: numeric/date/identifier values are written as spans
+  drug.manufacturer                          program        R2  uses=4 | prior: named entities are written verbatim
+  drug.pharmaceutical_form                   program        R2  uses=5 | prior: closed labels occur verbatim in the corpus (surface=1.00)
+  drug.prescription_status                   program        R2  uses=1 | prior: closed labels occur verbatim in the corpus (surface=1.00)
+  drug.unsuitable_population                 keep           R5  uses=1 | prior: no evidence the value is a span; default to query-conditioned reading
+  institution.id                             canonical_map  R2' uses=1 | prior: numeric/date/identifier values are written as spans
+  institution.institution_country            keep           R5  uses=3 | prior: no evidence the value is a span; default to query-conditioned reading
+  institution.institution_type               canonical_map  R2' uses=4 | prior: closed labels occur verbatim in the corpus (surface=1.00)
+  institution.international_collaboration    keep           R5  uses=1 | prior: no evidence the value is a span; default to query-conditioned reading
+  institution.research_diseases              keep           R5  uses=5 | prior: no evidence the value is a span; default to query-conditioned reading
+  institution.research_fields                canonical_map  R2' uses=1 | prior: closed labels occur verbatim in the corpus (surface=1.00)
+wrote /sessions/rcw-01n4cex6u5bon8kzynq4paep/mnt/UDA-Bench-main/results/quwarts_router/med/dry_run/plan.json

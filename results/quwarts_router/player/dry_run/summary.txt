@@ -1,0 +1,29 @@
+corpus=player verdict=workload_served coverage=0.89 rho=0.262 planned=2,973,869/3,016,611 (theta=3,207,475) plan=9c5b9d27a401
+  table player: docs=141 median_tokens=1806 lambda=0.18 queries=10
+  table team: docs=30 median_tokens=14868 lambda=1.47 queries=13
+  table owner: docs=16 median_tokens=2036 lambda=0.20 queries=7
+  table city: docs=29 median_tokens=17758 lambda=1.76 queries=6
+  city.city_name                             program        R2  uses=5 | prior: named entities are written verbatim
+  city.population                            program        R2  uses=3 | prior: numeric/date/identifier values are written as spans
+  city.state_name                            program        R2  uses=6 | prior: named entities are written verbatim
+  owner.name                                 canonical_map  R2' uses=1 | prior: named entities are written verbatim
+  owner.nationality                          fused_map      R3  uses=5 served=5/5 | prior: no evidence the value is a span; default to query-conditioned reading
+  owner.nba_team                             fused_map      R3  uses=5 served=5/5 | prior: no evidence the value is a span; default to query-conditioned reading
+  owner.own_year                             canonical_map  R2' uses=2 | prior: numeric/date/identifier values are written as spans
+  player.age                                 canonical_map  R2' uses=5 | prior: numeric/date/identifier values are written as spans
+  player.college                             fused_map      R3  uses=1 served=1/1 | prior: no evidence the value is a span; default to query-conditioned reading
+  player.draft_pick                          canonical_map  R2' uses=2 | prior: numeric/date/identifier values are written as spans
+  player.draft_year                          canonical_map  R2' uses=1 | prior: numeric/date/identifier values are written as spans
+  player.fiba_world_cup                      fused_map      R3  uses=1 served=1/1 | prior: count-like attribute: the value is computed over the document, not copied
+  player.mvp_awards                          fused_map      R3  uses=2 served=1/2 | prior: count-like attribute: the value is computed over the document, not copied
+  player.nationality                         keep           R5  uses=1 | prior: no evidence the value is a span; default to query-conditioned reading
+  player.nba_championships                   fused_map      R3  uses=2 served=2/2 | prior: count-like attribute: the value is computed over the document, not copied
+  player.olympic_gold_medals                 fused_map      R3  uses=1 served=1/1 | prior: count-like attribute: the value is computed over the document, not copied
+  player.position                            canonical_map  R2' uses=2 | prior: closed labels occur verbatim in the corpus (surface=0.50)
+  player.team                                fused_map      R3  uses=6 served=4/6 | prior: no evidence the value is a span; default to query-conditioned reading
+  team.championship                          program        R2  uses=5 | prior: numeric/date/identifier values are written as spans
+  team.founded_year                          program        R2  uses=3 | prior: numeric/date/identifier values are written as spans
+  team.location                              retrieval_map  R4  uses=6 served=2/6 | prior: no evidence the value is a span; default to query-conditioned reading
+  team.ownership                             program        R2  uses=1 | prior: named entities are written verbatim
+  team.team_name                             program        R2  uses=8 | prior: named entities are written verbatim
+wrote /sessions/rcw-01n4cex6u5bon8kzynq4paep/mnt/UDA-Bench-main/results/quwarts_router/player/dry_run/plan.json

@@ -1,0 +1,1584 @@
+{
+  "attributes": {
+    "disease.disease_name": {
+      "closed_label": false,
+      "description": "the official name of the disease (e.g., Rheumatoid Arthritis).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 8,
+      "name": "disease_name",
+      "numeric": false,
+      "qualified": "disease.disease_name",
+      "query_ids": [
+        "med_filterjoin20:q10",
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "disease",
+      "value_type": "multi_str"
+    },
+    "disease.disease_type": {
+      "closed_label": true,
+      "description": "comprehensive classification of the disease; choose one or more from ['autoimmune', 'infectious', 'genetic', 'metabolic', 'neoplastic', 'degenerative', 'congenital', 'traumatic', 'nutritional', 'vascular', 'inflammatory', 'endocrine', 'psychiatric', 'toxic', 'allergic', 'iatrogenic', 'idiopathic', 'parasitic', 'others'], seperated by `||` (e.g. neoplastic || degenerative)",
+      "dtype": "string",
+      "literals": [
+        "infectious",
+        "inflammatory",
+        "neoplastic",
+        "psychiatric"
+      ],
+      "n_queries": 3,
+      "name": "disease_type",
+      "numeric": false,
+      "qualified": "disease.disease_type",
+      "query_ids": [
+        "med_groupby20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "disease",
+      "value_type": "multi_str"
+    },
+    "disease.id": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 1,
+      "name": "id",
+      "numeric": true,
+      "qualified": "disease.id",
+      "query_ids": [
+        "med_multiagg20:q8"
+      ],
+      "roles": [
+        "agg_additive"
+      ],
+      "sensitive": true,
+      "table": "disease",
+      "value_type": ""
+    },
+    "disease.pathogenesis": {
+      "closed_label": true,
+      "description": "the biological and physiological process by which the disease develops and progresses, choose one or more from: ['autoimmune', 'infectious_bacterial', 'infectious_viral', 'infectious_fungal', 'infectious_parasitic', 'genetic_mutation', 'metabolic_disorder', 'inflammatory', 'degenerative', 'neoplastic', 'vascular', 'traumatic', 'toxic', 'allergic', 'endocrine_disorder', 'nutritional_deficiency', 'iatrogenic', 'idiopathic', 'other'], seperated by `||` (e.g. inflammatory || degenerative).",
+      "dtype": "string",
+      "literals": [
+        "infectious",
+        "inflammatory"
+      ],
+      "n_queries": 1,
+      "name": "pathogenesis",
+      "numeric": false,
+      "qualified": "disease.pathogenesis",
+      "query_ids": [
+        "med_agg20:q11"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "disease",
+      "value_type": "multi_str"
+    },
+    "disease.prognosis": {
+      "closed_label": true,
+      "description": "typical course and expected outcome of the disease; choose one or more from ['full_recovery', 'partial_recovery', 'chronic_condition', 'remission_possible', 'high_recurrence_risk', 'low_recurrence_risk', 'high_mortality', 'moderate_mortality', 'low_mortality', 'disability', 'variable', 'stable', 'progressive', 'quality_of_life_impairment', 'asymptomatic', 'unknown'], seperated by `||` (e.g.artial_recovery || chronic_condition)",
+      "dtype": "string",
+      "literals": [
+        "chronic",
+        "high_mortality"
+      ],
+      "n_queries": 3,
+      "name": "prognosis",
+      "numeric": false,
+      "qualified": "disease.prognosis",
+      "query_ids": [
+        "med_agg20:q3",
+        "med_groupby20:q11",
+        "med_multiagg20:q8"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "disease",
+      "value_type": "multi_str"
+    },
+    "disease.treatments": {
+      "closed_label": true,
+      "description": "list of treatment modalities, choose one or more from ['oral_medication', 'injection', 'surgery', 'radiotherapy', 'chemotherapy', 'physical_therapy', 'psychotherapy', 'lifestyle_modification', 'device_implantation', 'dietary_intervention', 'others'], seperated by `||` (e.g. oral_medication).",
+      "dtype": "string",
+      "literals": [
+        "injection",
+        "oral_medication"
+      ],
+      "n_queries": 3,
+      "name": "treatments",
+      "numeric": false,
+      "qualified": "disease.treatments",
+      "query_ids": [
+        "med_filterjoin20:q10",
+        "med_groupby20:q9",
+        "med_multiagg20:q8"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "disease",
+      "value_type": "multi_str"
+    },
+    "drug.administration_route": {
+      "closed_label": true,
+      "description": "the route through which the drug is administered; choose one or more from ['oral', 'intravenous', 'intramuscular', 'subcutaneous', 'topical', 'transdermal', 'rectal', 'nasal', 'inhalation', 'other'], seperated by `||` (e.g. other).",
+      "dtype": "string",
+      "literals": [
+        "intravenous",
+        "oral",
+        "subcutaneous"
+      ],
+      "n_queries": 7,
+      "name": "administration_route",
+      "numeric": false,
+      "qualified": "drug.administration_route",
+      "query_ids": [
+        "med_agg20:q14",
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_multiagg20:q15",
+        "med_multiagg20:q17",
+        "med_multiagg20:q2",
+        "med_multiagg20:q7"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "drug",
+      "value_type": "multi_str"
+    },
+    "drug.disease_name": {
+      "closed_label": false,
+      "description": "the main disease(s) the drug is intended to treat; use standard disease names (e.g., Hypertension, Diabetes Mellitus, Asthma).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 7,
+      "name": "disease_name",
+      "numeric": false,
+      "qualified": "drug.disease_name",
+      "query_ids": [
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "drug",
+      "value_type": "multi_str"
+    },
+    "drug.id": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 7,
+      "name": "id",
+      "numeric": true,
+      "qualified": "drug.id",
+      "query_ids": [
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ],
+      "roles": [
+        "agg_additive"
+      ],
+      "sensitive": true,
+      "table": "drug",
+      "value_type": ""
+    },
+    "drug.manufacturer": {
+      "closed_label": false,
+      "description": "the name of the company or manufacturer producing the drug (e.g., Ajanta Pharma).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 4,
+      "name": "manufacturer",
+      "numeric": false,
+      "qualified": "drug.manufacturer",
+      "query_ids": [
+        "med_agg20:q13",
+        "med_groupby20:q7",
+        "med_multiagg20:q17",
+        "med_multiagg20:q2"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "project"
+      ],
+      "sensitive": true,
+      "table": "drug",
+      "value_type": "multi_str"
+    },
+    "drug.pharmaceutical_form": {
+      "closed_label": true,
+      "description": "the physical form in which the drug is administered; choose one or more from ['tablet', 'capsule', 'injection', 'solution', 'cream', 'ointment', 'powder', 'granule', 'suspension', 'patch', 'spray', 'suppository', 'other'], seperated by `||` (e.g. tablet || injection).",
+      "dtype": "string",
+      "literals": [
+        "capsule",
+        "injection",
+        "tablet"
+      ],
+      "n_queries": 5,
+      "name": "pharmaceutical_form",
+      "numeric": false,
+      "qualified": "drug.pharmaceutical_form",
+      "query_ids": [
+        "med_agg20:q4",
+        "med_groupby20:q7",
+        "med_multiagg20:q2",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "drug",
+      "value_type": "multi_str"
+    },
+    "drug.prescription_status": {
+      "closed_label": true,
+      "description": "whether the drug requires a prescription or can be bought over-the-counter; choose one from ['prescription_only', 'over_the_counter', 'restricted', 'unclassified'].",
+      "dtype": "string",
+      "literals": [
+        "prescription_only"
+      ],
+      "n_queries": 1,
+      "name": "prescription_status",
+      "numeric": false,
+      "qualified": "drug.prescription_status",
+      "query_ids": [
+        "med_multiagg20:q17"
+      ],
+      "roles": [
+        "agg_additive"
+      ],
+      "sensitive": true,
+      "table": "drug",
+      "value_type": "multi_str"
+    },
+    "drug.unsuitable_population": {
+      "closed_label": false,
+      "description": "main populations for which the drug is not suitable or should be avoided; specify as described in the document (e.g., children, elderly, pregnant women, patients with renal impairment, children under 12).",
+      "dtype": "string",
+      "literals": [
+        "pregnant"
+      ],
+      "n_queries": 1,
+      "name": "unsuitable_population",
+      "numeric": false,
+      "qualified": "drug.unsuitable_population",
+      "query_ids": [
+        "med_agg20:q17"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "drug",
+      "value_type": "multi_str"
+    },
+    "institution.id": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 1,
+      "name": "id",
+      "numeric": true,
+      "qualified": "institution.id",
+      "query_ids": [
+        "med_filterjoin20:q10"
+      ],
+      "roles": [
+        "agg_additive"
+      ],
+      "sensitive": true,
+      "table": "institution",
+      "value_type": ""
+    },
+    "institution.institution_country": {
+      "closed_label": false,
+      "description": "the country where the institution is located (e.g., USA, Japan, China, Germany).",
+      "dtype": "string",
+      "literals": [
+        "USA"
+      ],
+      "n_queries": 3,
+      "name": "institution_country",
+      "numeric": false,
+      "qualified": "institution.institution_country",
+      "query_ids": [
+        "med_filterjoin20:q16",
+        "med_groupby20:q15",
+        "med_multiagg20:q15"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "institution",
+      "value_type": "multi_str"
+    },
+    "institution.institution_type": {
+      "closed_label": true,
+      "description": "list of the type of institution, choose only one from ['public', 'private', 'university-affiliated',  'corporate research lab'].",
+      "dtype": "string",
+      "literals": [
+        "public",
+        "university"
+      ],
+      "n_queries": 4,
+      "name": "institution_type",
+      "numeric": false,
+      "qualified": "institution.institution_type",
+      "query_ids": [
+        "med_filterjoin20:q10",
+        "med_filterjoin20:q5",
+        "med_groupby20:q8",
+        "med_join20:q15"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "institution",
+      "value_type": "multi_str"
+    },
+    "institution.international_collaboration": {
+      "closed_label": false,
+      "description": "partnerships or collaborations with other institutions or companies, including joint projects and investments (e.g., collaboration between IPC and AP-HM, pharma investment in CAR-T therapy).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 1,
+      "name": "international_collaboration",
+      "numeric": false,
+      "qualified": "institution.international_collaboration",
+      "query_ids": [
+        "med_groupby20:q8"
+      ],
+      "roles": [
+        "group",
+        "project"
+      ],
+      "sensitive": true,
+      "table": "institution",
+      "value_type": "multi_str"
+    },
+    "institution.research_diseases": {
+      "closed_label": false,
+      "description": "main diseases that the institution focuses its research on (e.g., breast cancer, diabetes, Alzheimer's disease, inflammatory bowel disease).",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 5,
+      "name": "research_diseases",
+      "numeric": false,
+      "qualified": "institution.research_diseases",
+      "query_ids": [
+        "med_filterjoin20:q10",
+        "med_filterjoin20:q16",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "institution",
+      "value_type": "multi_str"
+    },
+    "institution.research_fields": {
+      "closed_label": true,
+      "description": "main areas or directions of medical research the institution focuses on, choose one or more from ['molecular_biology', 'regenerative_medicine', 'immunology', 'genomics', 'pharmacology', 'oncology', 'neuroscience', 'bioinformatics', 'microbiology', 'epidemiology', 'clinical_research', 'biochemistry', 'cell_biology', 'virology', 'pathology', 'public_health', 'medical_imaging', 'others'], (e.g. molecular_biology || pathology) .",
+      "dtype": "string",
+      "literals": [
+        "clinical_research",
+        "immunology",
+        "microbiology",
+        "neuroscience",
+        "oncology"
+      ],
+      "n_queries": 1,
+      "name": "research_fields",
+      "numeric": false,
+      "qualified": "institution.research_fields",
+      "query_ids": [
+        "med_filterjoin20:q5"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "institution",
+      "value_type": "multi_str"
+    }
+  },
+  "budget": {
+    "available_for_operators": 2685131,
+    "docetl_equivalent_estimate": 29123781,
+    "fits": true,
+    "planned_operator_tokens": 1937995,
+    "probe_budget": 294897,
+    "probe_spent": 263840,
+    "rho": 0.10125646117171393,
+    "theta": 2948971
+  },
+  "corpus": "med",
+  "costs": {
+    "per_table": {
+      "disease": {
+        "canonical_map": 881064,
+        "fused_map": 0,
+        "program": 0,
+        "repair": 10800,
+        "retrieval_map": 0
+      },
+      "drug": {
+        "canonical_map": 0,
+        "fused_map": 0,
+        "program": 144000,
+        "repair": 7200,
+        "retrieval_map": 0
+      },
+      "institution": {
+        "canonical_map": 894931,
+        "fused_map": 0,
+        "program": 0,
+        "repair": 0,
+        "retrieval_map": 0
+      }
+    },
+    "total": 1937995
+  },
+  "coverage": {
+    "by_route": {
+      "canonical_map": 17,
+      "keep": 0,
+      "program": 24,
+      "repair": 15
+    },
+    "fraction": 0.8484848484848485,
+    "served": 56,
+    "uses": 66
+  },
+  "decisions": [
+    {
+      "evidence": {
+        "incumbent_trust": 0.6,
+        "residue_fraction": 0.04285714285714286,
+        "residue_rows": 3
+      },
+      "qualified": "disease.disease_name",
+      "query_ids": [
+        "med_filterjoin20:q10",
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ],
+      "reasons": [
+        "SQL-unknown residue is 4.3% of rows (<= 10%)",
+        "incumbent values are trustworthy (grounding=0.60)"
+      ],
+      "route": "repair",
+      "rule": "R1",
+      "table": "disease"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 0.8299366838148001,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "disease.disease_type",
+      "query_ids": [
+        "med_groupby20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.83 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "disease"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 0.8299366838148001,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "disease.id",
+      "query_ids": [
+        "med_multiagg20:q8"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.83 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "disease"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 0.8299366838148001,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "disease.pathogenesis",
+      "query_ids": [
+        "med_agg20:q11"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.83 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "disease"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 0.8299366838148001,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "disease.prognosis",
+      "query_ids": [
+        "med_agg20:q3",
+        "med_groupby20:q11",
+        "med_multiagg20:q8"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.83 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "disease"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 0.5,
+        "lambda": 0.8299366838148001,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "disease.treatments",
+      "query_ids": [
+        "med_filterjoin20:q10",
+        "med_groupby20:q9",
+        "med_multiagg20:q8"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=0.50)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.83 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "disease"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 1.0907696873763355,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "drug.administration_route",
+      "query_ids": [
+        "med_agg20:q14",
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_multiagg20:q15",
+        "med_multiagg20:q17",
+        "med_multiagg20:q2",
+        "med_multiagg20:q7"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.09 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "drug"
+    },
+    {
+      "evidence": {
+        "incumbent_trust": 0.6333333333333333,
+        "residue_fraction": 0.02857142857142857,
+        "residue_rows": 2
+      },
+      "qualified": "drug.disease_name",
+      "query_ids": [
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ],
+      "reasons": [
+        "SQL-unknown residue is 2.9% of rows (<= 10%)",
+        "incumbent values are trustworthy (grounding=0.63)"
+      ],
+      "route": "repair",
+      "rule": "R1",
+      "table": "drug"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 1.0907696873763355,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "drug.id",
+      "query_ids": [
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.09 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "drug"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 1.0907696873763355,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "drug.manufacturer",
+      "query_ids": [
+        "med_agg20:q13",
+        "med_groupby20:q7",
+        "med_multiagg20:q17",
+        "med_multiagg20:q2"
+      ],
+      "reasons": [
+        "prior: named entities are written verbatim",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.09 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "drug"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 1.0907696873763355,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "drug.pharmaceutical_form",
+      "query_ids": [
+        "med_agg20:q4",
+        "med_groupby20:q7",
+        "med_multiagg20:q2",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.09 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "drug"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 1.0907696873763355,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "drug.prescription_status",
+      "query_ids": [
+        "med_multiagg20:q17"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.09 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "drug"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "med_agg20:q17"
+        ],
+        "label_surface": 1.0,
+        "lambda": 1.0907696873763355,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": []
+      },
+      "qualified": "drug.unsuitable_population",
+      "query_ids": [
+        "med_agg20:q17"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=1.09 (does not fit)",
+        "R5: no affordable retrieval_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "drug"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 0.8777206173328057,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "institution.id",
+      "query_ids": [
+        "med_filterjoin20:q10"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.88 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "institution"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "med_filterjoin20:q16",
+          "med_groupby20:q15",
+          "med_multiagg20:q15"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.8777206173328057,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": []
+      },
+      "qualified": "institution.institution_country",
+      "query_ids": [
+        "med_filterjoin20:q16",
+        "med_groupby20:q15",
+        "med_multiagg20:q15"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.88 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "institution"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 0.8777206173328057,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "institution.institution_type",
+      "query_ids": [
+        "med_filterjoin20:q10",
+        "med_filterjoin20:q5",
+        "med_groupby20:q8",
+        "med_join20:q15"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.88 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "institution"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "med_groupby20:q8"
+        ],
+        "label_surface": null,
+        "lambda": 0.8777206173328057,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": []
+      },
+      "qualified": "institution.international_collaboration",
+      "query_ids": [
+        "med_groupby20:q8"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.88 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "institution"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "med_filterjoin20:q10",
+          "med_filterjoin20:q16",
+          "med_groupby20:q15",
+          "med_join20:q15",
+          "med_multiagg20:q15"
+        ],
+        "label_surface": null,
+        "lambda": 0.8777206173328057,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": []
+      },
+      "qualified": "institution.research_diseases",
+      "query_ids": [
+        "med_filterjoin20:q10",
+        "med_filterjoin20:q16",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.88 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "institution"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 0.8777206173328057,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "institution.research_fields",
+      "query_ids": [
+        "med_filterjoin20:q5"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.88 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "institution"
+    }
+  ],
+  "dropped_map_queries": [
+    [
+      "drug:retrieval_map",
+      "med_agg20:q17"
+    ],
+    [
+      "institution:fused_map",
+      "med_filterjoin20:q10"
+    ],
+    [
+      "institution:fused_map",
+      "med_groupby20:q8"
+    ],
+    [
+      "institution:fused_map",
+      "med_join20:q15"
+    ],
+    [
+      "institution:fused_map",
+      "med_filterjoin20:q16"
+    ],
+    [
+      "institution:fused_map",
+      "med_groupby20:q15"
+    ],
+    [
+      "institution:fused_map",
+      "med_multiagg20:q15"
+    ]
+  ],
+  "inputs": {
+    "attributes_sha": [
+      "08a01f35c44d6f0b48d502bf4dcd96e95f9cb4140eb35c6768f4fc419667adf9"
+    ],
+    "corpus_fingerprint": "3ef4ecc98194fb9c46e6dee48490f21de2416c1ce426b418c64e0cfd4c25047a",
+    "incumbent_db": "/sessions/rcw-01n4cex6u5bon8kzynq4paep/mnt/UDA-Bench-main/results/quwarts_med_repair80/artifacts/databases/ab189be670f0c82c.db",
+    "incumbent_sha": "4efc6af00dc212f7a87a0b5e256b80b8727f455b193c1e0909da23f8de676f1a",
+    "manifest_sha": "4cfb10698724c013890b74712adde791e88f4d44a52b4fb1f75d0c3b2f5f5979",
+    "n_queries": 20
+  },
+  "map_queries": {
+    "drug:retrieval_map": [],
+    "institution:fused_map": []
+  },
+  "plan_hash": "d876647efd8b40b3fcb1046d05ca6e739d2c45aafdd061bfcc421e2dd5242295",
+  "probe": {
+    "budget": 294897,
+    "dry_run": true,
+    "tables": {
+      "disease": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "disease.disease_type",
+            "disease.id",
+            "disease.pathogenesis",
+            "disease.prognosis",
+            "disease.treatments"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "med_agg20:q11",
+            "med_agg20:q3",
+            "med_filterjoin20:q10",
+            "med_groupby20:q11",
+            "med_groupby20:q15",
+            "med_groupby20:q9",
+            "med_multiagg20:q15",
+            "med_multiagg20:q7",
+            "med_multiagg20:q8"
+          ],
+          "docs": 5,
+          "mean_call_tokens": 3880.0,
+          "share_tokens": 86734.41176470589
+        }
+      },
+      "drug": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "drug.administration_route",
+            "drug.id",
+            "drug.manufacturer",
+            "drug.pharmaceutical_form",
+            "drug.prescription_status",
+            "drug.unsuitable_population"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "med_agg20:q13",
+            "med_agg20:q14",
+            "med_agg20:q17",
+            "med_agg20:q4",
+            "med_filterjoin20:q16",
+            "med_groupby20:q11",
+            "med_groupby20:q15",
+            "med_groupby20:q7",
+            "med_join20:q15",
+            "med_multiagg20:q15",
+            "med_multiagg20:q17",
+            "med_multiagg20:q2",
+            "med_multiagg20:q7",
+            "med_multiagg20:q8"
+          ],
+          "docs": 6,
+          "mean_call_tokens": 3880.0,
+          "share_tokens": 104081.29411764706
+        }
+      },
+      "institution": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "institution.id",
+            "institution.institution_country",
+            "institution.institution_type",
+            "institution.international_collaboration",
+            "institution.research_diseases",
+            "institution.research_fields"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "med_filterjoin20:q10",
+            "med_filterjoin20:q16",
+            "med_filterjoin20:q5",
+            "med_groupby20:q15",
+            "med_groupby20:q8",
+            "med_join20:q15",
+            "med_multiagg20:q15"
+          ],
+          "docs": 6,
+          "mean_call_tokens": 3880.0,
+          "share_tokens": 104081.29411764706
+        }
+      }
+    }
+  },
+  "residue": {
+    "attributes": {
+      "disease.disease_name": {
+        "incumbent_trust": 0.6,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 3,
+        "present": true,
+        "residue_fraction": 0.04285714285714286,
+        "residue_queries": [
+          "med_filterjoin20:q10",
+          "med_filterjoin20:q16",
+          "med_groupby20:q11",
+          "med_groupby20:q15",
+          "med_join20:q15",
+          "med_multiagg20:q15",
+          "med_multiagg20:q7",
+          "med_multiagg20:q8"
+        ],
+        "residue_rows": 3,
+        "rows": 70
+      },
+      "disease.disease_type": {
+        "incumbent_trust": 0.044444444444444446,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 25,
+        "present": true,
+        "residue_fraction": 0.35714285714285715,
+        "residue_queries": [
+          "med_groupby20:q15",
+          "med_multiagg20:q15",
+          "med_multiagg20:q7"
+        ],
+        "residue_rows": 25,
+        "rows": 70
+      },
+      "disease.id": {
+        "incumbent_trust": 0.8333333333333334,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 64,
+        "present": true,
+        "residue_fraction": 0.9142857142857143,
+        "residue_queries": [
+          "med_multiagg20:q8"
+        ],
+        "residue_rows": 64,
+        "rows": 70
+      },
+      "disease.pathogenesis": {
+        "incumbent_trust": 0.04,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 45,
+        "present": true,
+        "residue_fraction": 0.6428571428571429,
+        "residue_queries": [
+          "med_agg20:q11"
+        ],
+        "residue_rows": 45,
+        "rows": 70
+      },
+      "disease.prognosis": {
+        "incumbent_trust": 0.045454545454545456,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 48,
+        "present": true,
+        "residue_fraction": 0.6857142857142857,
+        "residue_queries": [
+          "med_agg20:q3",
+          "med_groupby20:q11",
+          "med_multiagg20:q8"
+        ],
+        "residue_rows": 48,
+        "rows": 70
+      },
+      "disease.treatments": {
+        "incumbent_trust": 0.02040816326530612,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 21,
+        "present": true,
+        "residue_fraction": 0.3,
+        "residue_queries": [
+          "med_filterjoin20:q10",
+          "med_groupby20:q9",
+          "med_multiagg20:q8"
+        ],
+        "residue_rows": 21,
+        "rows": 70
+      },
+      "drug.administration_route": {
+        "incumbent_trust": 0.5454545454545454,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 48,
+        "present": true,
+        "residue_fraction": 0.6857142857142857,
+        "residue_queries": [
+          "med_agg20:q14",
+          "med_filterjoin20:q16",
+          "med_groupby20:q11",
+          "med_multiagg20:q15",
+          "med_multiagg20:q17",
+          "med_multiagg20:q2",
+          "med_multiagg20:q7"
+        ],
+        "residue_rows": 48,
+        "rows": 70
+      },
+      "drug.disease_name": {
+        "incumbent_trust": 0.6333333333333333,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 2,
+        "present": true,
+        "residue_fraction": 0.02857142857142857,
+        "residue_queries": [
+          "med_filterjoin20:q16",
+          "med_groupby20:q11",
+          "med_groupby20:q15",
+          "med_join20:q15",
+          "med_multiagg20:q15",
+          "med_multiagg20:q7",
+          "med_multiagg20:q8"
+        ],
+        "residue_rows": 2,
+        "rows": 70
+      },
+      "drug.id": {
+        "incumbent_trust": 1.0,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 59,
+        "present": true,
+        "residue_fraction": 0.8428571428571429,
+        "residue_queries": [
+          "med_filterjoin20:q16",
+          "med_groupby20:q11",
+          "med_groupby20:q15",
+          "med_join20:q15",
+          "med_multiagg20:q15",
+          "med_multiagg20:q7",
+          "med_multiagg20:q8"
+        ],
+        "residue_rows": 59,
+        "rows": 70
+      },
+      "drug.manufacturer": {
+        "incumbent_trust": 0.9333333333333333,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 55,
+        "present": true,
+        "residue_fraction": 0.7857142857142857,
+        "residue_queries": [
+          "med_agg20:q13",
+          "med_groupby20:q7",
+          "med_multiagg20:q17",
+          "med_multiagg20:q2"
+        ],
+        "residue_rows": 55,
+        "rows": 70
+      },
+      "drug.pharmaceutical_form": {
+        "incumbent_trust": 0.75,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 46,
+        "present": true,
+        "residue_fraction": 0.6571428571428571,
+        "residue_queries": [
+          "med_agg20:q4",
+          "med_groupby20:q7",
+          "med_multiagg20:q2",
+          "med_multiagg20:q7",
+          "med_multiagg20:q8"
+        ],
+        "residue_rows": 46,
+        "rows": 70
+      },
+      "drug.prescription_status": {
+        "present": false
+      },
+      "drug.unsuitable_population": {
+        "present": false
+      },
+      "institution.id": {
+        "incumbent_trust": 0.8461538461538461,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 62,
+        "present": true,
+        "residue_fraction": 0.8266666666666667,
+        "residue_queries": [
+          "med_filterjoin20:q10"
+        ],
+        "residue_rows": 62,
+        "rows": 75
+      },
+      "institution.institution_country": {
+        "incumbent_trust": 0.7,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 38,
+        "present": true,
+        "residue_fraction": 0.5066666666666667,
+        "residue_queries": [
+          "med_filterjoin20:q16",
+          "med_groupby20:q15",
+          "med_multiagg20:q15"
+        ],
+        "residue_rows": 38,
+        "rows": 75
+      },
+      "institution.institution_type": {
+        "incumbent_trust": 0.35294117647058826,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 24,
+        "present": true,
+        "residue_fraction": 0.32,
+        "residue_queries": [
+          "med_filterjoin20:q10",
+          "med_filterjoin20:q5",
+          "med_groupby20:q8",
+          "med_join20:q15"
+        ],
+        "residue_rows": 24,
+        "rows": 75
+      },
+      "institution.international_collaboration": {
+        "incumbent_trust": 0.2222222222222222,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 66,
+        "present": true,
+        "residue_fraction": 0.88,
+        "residue_queries": [
+          "med_groupby20:q8"
+        ],
+        "residue_rows": 66,
+        "rows": 75
+      },
+      "institution.research_diseases": {
+        "incumbent_trust": 0.8,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 10,
+        "present": true,
+        "residue_fraction": 0.13333333333333333,
+        "residue_queries": [
+          "med_filterjoin20:q10",
+          "med_filterjoin20:q16",
+          "med_groupby20:q15",
+          "med_join20:q15",
+          "med_multiagg20:q15"
+        ],
+        "residue_rows": 10,
+        "rows": 75
+      },
+      "institution.research_fields": {
+        "incumbent_trust": 0.018518518518518517,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 21,
+        "present": true,
+        "residue_fraction": 0.17333333333333334,
+        "residue_queries": [
+          "med_filterjoin20:q5"
+        ],
+        "residue_rows": 13,
+        "rows": 75
+      }
+    },
+    "available": true,
+    "db": "/sessions/rcw-01n4cex6u5bon8kzynq4paep/mnt/UDA-Bench-main/results/quwarts_med_repair80/artifacts/databases/ab189be670f0c82c.db",
+    "errors": []
+  },
+  "router": {
+    "constants": {
+      "call_overhead_tokens": 600,
+      "canonical_bundle_size": 6,
+      "context_window_tokens": 10108,
+      "corpus_sample_docs": 50,
+      "coverage_loss_max": 0.5,
+      "coverage_serve_min": 0.8,
+      "extractive_min": 0.5,
+      "fusion_width": 2,
+      "incumbent_grounding_min": 0.5,
+      "label_surface_min": 0.5,
+      "probe_budget_fraction": 0.1,
+      "probe_docs_max": 8,
+      "probe_docs_min": 3,
+      "probe_query_contexts_per_doc": 2,
+      "probe_seed": 20260926,
+      "program_calls_per_attribute": 8,
+      "regularity_min": 0.5,
+      "residue_fraction_max": 0.1,
+      "sensitivity_max": 0.2,
+      "version": "router-v1",
+      "window_tokens": 3000
+    },
+    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
+    "version": "router-v1"
+  },
+  "tables": {
+    "disease": {
+      "context_fit_lambda": 0.8299366838148001,
+      "fit_fraction": 0.7,
+      "full_read_cost": 881064,
+      "n_docs": 100,
+      "tokens_median": 8389.0,
+      "tokens_p90": 12938,
+      "tokens_total": 899171,
+      "window_read_cost": 360000,
+      "workload": {
+        "attribute_reuse": 3.1666666666666665,
+        "n_attributes": 6,
+        "n_queries": 11,
+        "queries": [
+          "med_agg20:q11",
+          "med_agg20:q3",
+          "med_filterjoin20:q10",
+          "med_filterjoin20:q16",
+          "med_groupby20:q11",
+          "med_groupby20:q15",
+          "med_groupby20:q9",
+          "med_join20:q15",
+          "med_multiagg20:q15",
+          "med_multiagg20:q7",
+          "med_multiagg20:q8"
+        ]
+      }
+    },
+    "drug": {
+      "context_fit_lambda": 1.0907696873763355,
+      "fit_fraction": 0.46938775510204084,
+      "full_read_cost": 940540,
+      "n_docs": 98,
+      "tokens_median": 11025.5,
+      "tokens_p90": 20504,
+      "tokens_total": 1220388,
+      "window_read_cost": 352800,
+      "workload": {
+        "attribute_reuse": 4.571428571428571,
+        "n_attributes": 7,
+        "n_queries": 14,
+        "queries": [
+          "med_agg20:q13",
+          "med_agg20:q14",
+          "med_agg20:q17",
+          "med_agg20:q4",
+          "med_filterjoin20:q16",
+          "med_groupby20:q11",
+          "med_groupby20:q15",
+          "med_groupby20:q7",
+          "med_join20:q15",
+          "med_multiagg20:q15",
+          "med_multiagg20:q17",
+          "med_multiagg20:q2",
+          "med_multiagg20:q7",
+          "med_multiagg20:q8"
+        ]
+      }
+    },
+    "institution": {
+      "context_fit_lambda": 0.8777206173328057,
+      "fit_fraction": 0.6060606060606061,
+      "full_read_cost": 894931,
+      "n_docs": 99,
+      "tokens_median": 8872,
+      "tokens_p90": 16874,
+      "tokens_total": 1029878,
+      "window_read_cost": 356400,
+      "workload": {
+        "attribute_reuse": 2.5,
+        "n_attributes": 6,
+        "n_queries": 7,
+        "queries": [
+          "med_filterjoin20:q10",
+          "med_filterjoin20:q16",
+          "med_filterjoin20:q5",
+          "med_groupby20:q15",
+          "med_groupby20:q8",
+          "med_join20:q15",
+          "med_multiagg20:q15"
+        ]
+      }
+    }
+  },
+  "verdict": "workload_served"
+}

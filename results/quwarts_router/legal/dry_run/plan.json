@@ -1,0 +1,845 @@
+{
+  "attributes": {
+    "legal.case_number": {
+      "closed_label": false,
+      "description": "Number of distinct precedent cases referenced in the judgment, including those cited, considered, discussed, or applied (e.g., 'Australian Competition and Consumer Commission v Rana' counts as 1; enter an integer, e.g., 1)",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 8,
+      "name": "case_number",
+      "numeric": true,
+      "qualified": "legal.case_number",
+      "query_ids": [
+        "legal_agg20:q13",
+        "legal_filter20:q7",
+        "legal_filter20:q8",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "agg_extremal",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "legal",
+      "value_type": "int"
+    },
+    "legal.case_type": {
+      "closed_label": true,
+      "description": "type of the case, choose one from [Criminal Case, Civil Case, Commercial Case, Administrative Case]; (e.g., Criminal Case)",
+      "dtype": "string",
+      "literals": [
+        "Administrative Case",
+        "Civil Case",
+        "Commercial Case"
+      ],
+      "n_queries": 5,
+      "name": "case_type",
+      "numeric": false,
+      "qualified": "legal.case_type",
+      "query_ids": [
+        "legal_agg20:q13",
+        "legal_filter20:q11",
+        "legal_filter20:q8",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9"
+      ],
+      "roles": [
+        "group",
+        "predicate",
+        "project"
+      ],
+      "sensitive": true,
+      "table": "legal",
+      "value_type": "str"
+    },
+    "legal.defendant_current_status": {
+      "closed_label": false,
+      "description": "current occupation or type of the defendant (rules same as for plaintiff; e.g., government)",
+      "dtype": "string",
+      "literals": [
+        "Company",
+        "Government",
+        "Organization"
+      ],
+      "n_queries": 4,
+      "name": "defendant_current_status",
+      "numeric": false,
+      "qualified": "legal.defendant_current_status",
+      "query_ids": [
+        "legal_agg20:q17",
+        "legal_filter20:q11",
+        "legal_filter20:q15",
+        "legal_multiagg20:q18"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "legal",
+      "value_type": "str"
+    },
+    "legal.first_judge": {
+      "closed_label": false,
+      "description": "whether it was the first judgment (1 if yes, 0 if none; e.g., 1)",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 3,
+      "name": "first_judge",
+      "numeric": false,
+      "qualified": "legal.first_judge",
+      "query_ids": [
+        "legal_agg20:q14",
+        "legal_agg20:q4",
+        "legal_multiagg20:q4"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "legal",
+      "value_type": "str"
+    },
+    "legal.hearing_year": {
+      "closed_label": false,
+      "description": "year when the hearing began; use format YYYY (e.g., 2009)",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 2,
+      "name": "hearing_year",
+      "numeric": true,
+      "qualified": "legal.hearing_year",
+      "query_ids": [
+        "legal_agg20:q3",
+        "legal_filter20:q7"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "legal",
+      "value_type": "str"
+    },
+    "legal.legal_basis_num": {
+      "closed_label": false,
+      "description": "Number of distinct legal statutes or codes cited in the judgment (e.g., 'Trade Practices Act 1974' counts as 1; enter an integer, e.g., 1)",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 7,
+      "name": "legal_basis_num",
+      "numeric": true,
+      "qualified": "legal.legal_basis_num",
+      "query_ids": [
+        "legal_agg20:q14",
+        "legal_agg20:q17",
+        "legal_filter20:q11",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "project"
+      ],
+      "sensitive": true,
+      "table": "legal",
+      "value_type": "int"
+    },
+    "legal.plaintiff_current_status": {
+      "closed_label": false,
+      "description": "current occupation or type of the plaintiff (if an individual, write occupation; if multiple people, use the first individual's occupation; if an organization, write 'organization'; if a company, write 'company'; if a government body, write 'government'; leave empty if unknown; e.g., company)",
+      "dtype": "string",
+      "literals": [
+        "Company",
+        "Government",
+        "Organization"
+      ],
+      "n_queries": 4,
+      "name": "plaintiff_current_status",
+      "numeric": false,
+      "qualified": "legal.plaintiff_current_status",
+      "query_ids": [
+        "legal_agg20:q11",
+        "legal_filter20:q15",
+        "legal_filter20:q9",
+        "legal_multiagg20:q18"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "legal",
+      "value_type": "str"
+    },
+    "legal.verdict": {
+      "closed_label": true,
+      "description": "court's decision, choose one from: [Guilty, Not Guilty, Others, Dismissed, Approved]; (e.g., Guilty)",
+      "dtype": "string",
+      "literals": [
+        "Approved",
+        "Dismissed",
+        "Others"
+      ],
+      "n_queries": 6,
+      "name": "verdict",
+      "numeric": false,
+      "qualified": "legal.verdict",
+      "query_ids": [
+        "legal_filter20:q15",
+        "legal_filter20:q7",
+        "legal_filter20:q9",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate",
+        "project"
+      ],
+      "sensitive": true,
+      "table": "legal",
+      "value_type": "str"
+    }
+  },
+  "budget": {
+    "available_for_operators": 12499067,
+    "docetl_equivalent_estimate": 51078144,
+    "fits": true,
+    "planned_operator_tokens": 9577152,
+    "probe_budget": 1261001,
+    "probe_spent": 110944,
+    "rho": 0.2468768442330246,
+    "theta": 12610011
+  },
+  "corpus": "legal",
+  "costs": {
+    "per_table": {
+      "legal": {
+        "canonical_map": 3192384,
+        "fused_map": 6384768,
+        "program": 0,
+        "repair": 0,
+        "retrieval_map": 0
+      }
+    },
+    "total": 9577152
+  },
+  "coverage": {
+    "by_route": {
+      "canonical_map": 8,
+      "fused_map": 13
+    },
+    "fraction": 0.5384615384615384,
+    "served": 21,
+    "uses": 39
+  },
+  "decisions": [
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "legal_agg20:q13",
+          "legal_filter20:q7",
+          "legal_filter20:q8",
+          "legal_groupby20:q14",
+          "legal_multiagg20:q11"
+        ],
+        "label_surface": null,
+        "lambda": 0.42951127819548873,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "legal_multiagg20:q18",
+          "legal_multiagg20:q4",
+          "legal_multiagg20:q9"
+        ]
+      },
+      "qualified": "legal.case_number",
+      "query_ids": [
+        "legal_agg20:q13",
+        "legal_filter20:q7",
+        "legal_filter20:q8",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q9"
+      ],
+      "reasons": [
+        "prior: count-like attribute: the value is computed over the document, not copied",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.43 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "legal"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "legal_agg20:q13",
+          "legal_filter20:q8",
+          "legal_groupby20:q14"
+        ],
+        "label_surface": 0.0,
+        "lambda": 0.42951127819548873,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "legal_filter20:q11",
+          "legal_multiagg20:q9"
+        ]
+      },
+      "qualified": "legal.case_type",
+      "query_ids": [
+        "legal_agg20:q13",
+        "legal_filter20:q11",
+        "legal_filter20:q8",
+        "legal_groupby20:q14",
+        "legal_multiagg20:q9"
+      ],
+      "reasons": [
+        "prior: closed label set not written in the corpus: classification, not copying",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.43 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "legal"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "legal_agg20:q17",
+          "legal_filter20:q15"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.42951127819548873,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "legal_filter20:q11",
+          "legal_multiagg20:q18"
+        ]
+      },
+      "qualified": "legal.defendant_current_status",
+      "query_ids": [
+        "legal_agg20:q17",
+        "legal_filter20:q11",
+        "legal_filter20:q15",
+        "legal_multiagg20:q18"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.43 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "legal"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "legal_agg20:q14",
+          "legal_agg20:q4"
+        ],
+        "label_surface": null,
+        "lambda": 0.42951127819548873,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "legal_multiagg20:q4"
+        ]
+      },
+      "qualified": "legal.first_judge",
+      "query_ids": [
+        "legal_agg20:q14",
+        "legal_agg20:q4",
+        "legal_multiagg20:q4"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.43 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "legal"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 0.42951127819548873,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "legal.hearing_year",
+      "query_ids": [
+        "legal_agg20:q3",
+        "legal_filter20:q7"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.43 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "legal"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "legal_agg20:q14",
+          "legal_agg20:q17",
+          "legal_multiagg20:q11"
+        ],
+        "label_surface": null,
+        "lambda": 0.42951127819548873,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "legal_filter20:q11",
+          "legal_multiagg20:q18",
+          "legal_multiagg20:q4",
+          "legal_multiagg20:q9"
+        ]
+      },
+      "qualified": "legal.legal_basis_num",
+      "query_ids": [
+        "legal_agg20:q14",
+        "legal_agg20:q17",
+        "legal_filter20:q11",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q18",
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q9"
+      ],
+      "reasons": [
+        "prior: count-like attribute: the value is computed over the document, not copied",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.43 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "legal"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [
+          "legal_agg20:q11",
+          "legal_filter20:q15",
+          "legal_filter20:q9"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.42951127819548873,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "legal_multiagg20:q18"
+        ]
+      },
+      "qualified": "legal.plaintiff_current_status",
+      "query_ids": [
+        "legal_agg20:q11",
+        "legal_filter20:q15",
+        "legal_filter20:q9",
+        "legal_multiagg20:q18"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.43 (fits)"
+      ],
+      "route": "fused_map",
+      "rule": "R3",
+      "table": "legal"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": 1.0,
+        "lambda": 0.42951127819548873,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "legal.verdict",
+      "query_ids": [
+        "legal_filter20:q15",
+        "legal_filter20:q7",
+        "legal_filter20:q9",
+        "legal_multiagg20:q11",
+        "legal_multiagg20:q4",
+        "legal_multiagg20:q9"
+      ],
+      "reasons": [
+        "prior: closed labels occur verbatim in the corpus (surface=1.00)",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=0.43 (fits)",
+        "no stable anchor"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "legal"
+    }
+  ],
+  "dropped_map_queries": [
+    [
+      "legal:fused_map",
+      "legal_agg20:q11"
+    ],
+    [
+      "legal:fused_map",
+      "legal_agg20:q4"
+    ],
+    [
+      "legal:fused_map",
+      "legal_filter20:q7"
+    ],
+    [
+      "legal:fused_map",
+      "legal_filter20:q9"
+    ],
+    [
+      "legal:fused_map",
+      "legal_agg20:q13"
+    ],
+    [
+      "legal:fused_map",
+      "legal_agg20:q14"
+    ],
+    [
+      "legal:fused_map",
+      "legal_agg20:q17"
+    ],
+    [
+      "legal:fused_map",
+      "legal_filter20:q15"
+    ],
+    [
+      "legal:fused_map",
+      "legal_filter20:q8"
+    ],
+    [
+      "legal:fused_map",
+      "legal_groupby20:q14"
+    ],
+    [
+      "legal:fused_map",
+      "legal_multiagg20:q11"
+    ]
+  ],
+  "inputs": {
+    "attributes_sha": [
+      "6f3519b0d22cd9c0cf131fd58eebfd3b281e581aa00b263632f5b8c774379eaa"
+    ],
+    "corpus_fingerprint": "d09e3e1fcbb0e00dc97f8ea201f0ae27880a873f4fac2f816e8178efafcc97bd",
+    "incumbent_db": "/sessions/rcw-01n4cex6u5bon8kzynq4paep/mnt/UDA-Bench-main/results/quwarts_legal_plumbing/artifacts/databases/legal_plumbing.db",
+    "incumbent_sha": "9117d3ffbc0f47f11556d751302d539ac26e7a029d543bb15b41c154fe4d7267",
+    "manifest_sha": "9c5f18d398d54609d0d8bfe7bf30a55a42cce356af523fd6b76f4905b9cfc019",
+    "n_queries": 16
+  },
+  "map_queries": {
+    "legal:fused_map": [
+      "legal_multiagg20:q18",
+      "legal_multiagg20:q4",
+      "legal_multiagg20:q9",
+      "legal_filter20:q11"
+    ]
+  },
+  "plan_hash": "a11b4ca58c44746d981c6477dfd9c39848dbba8c7993c6979780f873163367b3",
+  "probe": {
+    "budget": 1261001,
+    "dry_run": true,
+    "tables": {
+      "legal": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "legal.case_number",
+            "legal.case_type",
+            "legal.defendant_current_status",
+            "legal.first_judge",
+            "legal.hearing_year",
+            "legal.legal_basis_num",
+            "legal.plaintiff_current_status",
+            "legal.verdict"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "legal_agg20:q11",
+            "legal_agg20:q13",
+            "legal_agg20:q14",
+            "legal_agg20:q17",
+            "legal_agg20:q3",
+            "legal_agg20:q4",
+            "legal_filter20:q11",
+            "legal_filter20:q15",
+            "legal_filter20:q7",
+            "legal_filter20:q8",
+            "legal_filter20:q9",
+            "legal_groupby20:q14",
+            "legal_multiagg20:q11",
+            "legal_multiagg20:q18",
+            "legal_multiagg20:q4",
+            "legal_multiagg20:q9"
+          ],
+          "docs": 8,
+          "mean_call_tokens": 3467.7508771929824,
+          "share_tokens": 1261001.0
+        }
+      }
+    }
+  },
+  "residue": {
+    "attributes": {
+      "legal.case_number": {
+        "incumbent_trust": 1.0,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 485,
+        "present": true,
+        "residue_fraction": 0.8508771929824561,
+        "residue_queries": [
+          "legal_agg20:q13",
+          "legal_filter20:q7",
+          "legal_filter20:q8",
+          "legal_groupby20:q14",
+          "legal_multiagg20:q11",
+          "legal_multiagg20:q18",
+          "legal_multiagg20:q4",
+          "legal_multiagg20:q9"
+        ],
+        "residue_rows": 485,
+        "rows": 570
+      },
+      "legal.case_type": {
+        "incumbent_trust": 0.0,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 153,
+        "present": true,
+        "residue_fraction": 0.2649122807017544,
+        "residue_queries": [
+          "legal_agg20:q13",
+          "legal_filter20:q11",
+          "legal_filter20:q8",
+          "legal_groupby20:q14",
+          "legal_multiagg20:q9"
+        ],
+        "residue_rows": 151,
+        "rows": 570
+      },
+      "legal.defendant_current_status": {
+        "incumbent_trust": 0.36666666666666664,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 509,
+        "present": true,
+        "residue_fraction": 0.8929824561403509,
+        "residue_queries": [
+          "legal_agg20:q17",
+          "legal_filter20:q11",
+          "legal_filter20:q15",
+          "legal_multiagg20:q18"
+        ],
+        "residue_rows": 509,
+        "rows": 570
+      },
+      "legal.first_judge": {
+        "incumbent_trust": 1.0,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 277,
+        "present": true,
+        "residue_fraction": 0.48596491228070177,
+        "residue_queries": [
+          "legal_agg20:q14",
+          "legal_agg20:q4",
+          "legal_multiagg20:q4"
+        ],
+        "residue_rows": 277,
+        "rows": 570
+      },
+      "legal.hearing_year": {
+        "incumbent_trust": 1.0,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 280,
+        "present": true,
+        "residue_fraction": 0.49122807017543857,
+        "residue_queries": [
+          "legal_agg20:q3",
+          "legal_filter20:q7"
+        ],
+        "residue_rows": 280,
+        "rows": 570
+      },
+      "legal.legal_basis_num": {
+        "incumbent_trust": 0.9333333333333333,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 538,
+        "present": true,
+        "residue_fraction": 0.9438596491228071,
+        "residue_queries": [
+          "legal_agg20:q14",
+          "legal_agg20:q17",
+          "legal_filter20:q11",
+          "legal_multiagg20:q11",
+          "legal_multiagg20:q18",
+          "legal_multiagg20:q4",
+          "legal_multiagg20:q9"
+        ],
+        "residue_rows": 538,
+        "rows": 570
+      },
+      "legal.plaintiff_current_status": {
+        "incumbent_trust": 0.16666666666666666,
+        "incumbent_trust_kind": "grounding",
+        "null_rows": 528,
+        "present": true,
+        "residue_fraction": 0.9263157894736842,
+        "residue_queries": [
+          "legal_agg20:q11",
+          "legal_filter20:q15",
+          "legal_filter20:q9",
+          "legal_multiagg20:q18"
+        ],
+        "residue_rows": 528,
+        "rows": 570
+      },
+      "legal.verdict": {
+        "incumbent_trust": 0.5994475138121547,
+        "incumbent_trust_kind": "label_validity",
+        "null_rows": 208,
+        "present": true,
+        "residue_fraction": 0.3649122807017544,
+        "residue_queries": [
+          "legal_filter20:q15",
+          "legal_filter20:q7",
+          "legal_filter20:q9",
+          "legal_multiagg20:q11",
+          "legal_multiagg20:q4",
+          "legal_multiagg20:q9"
+        ],
+        "residue_rows": 208,
+        "rows": 570
+      }
+    },
+    "available": true,
+    "db": "/sessions/rcw-01n4cex6u5bon8kzynq4paep/mnt/UDA-Bench-main/results/quwarts_legal_plumbing/artifacts/databases/legal_plumbing.db",
+    "errors": []
+  },
+  "router": {
+    "constants": {
+      "call_overhead_tokens": 600,
+      "canonical_bundle_size": 6,
+      "context_window_tokens": 10108,
+      "corpus_sample_docs": 50,
+      "coverage_loss_max": 0.5,
+      "coverage_serve_min": 0.8,
+      "extractive_min": 0.5,
+      "fusion_width": 2,
+      "incumbent_grounding_min": 0.5,
+      "label_surface_min": 0.5,
+      "probe_budget_fraction": 0.1,
+      "probe_docs_max": 8,
+      "probe_docs_min": 3,
+      "probe_query_contexts_per_doc": 2,
+      "probe_seed": 20260926,
+      "program_calls_per_attribute": 8,
+      "regularity_min": 0.5,
+      "residue_fraction_max": 0.1,
+      "sensitivity_max": 0.2,
+      "version": "router-v1",
+      "window_tokens": 3000
+    },
+    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
+    "version": "router-v1"
+  },
+  "tables": {
+    "legal": {
+      "context_fit_lambda": 0.42951127819548873,
+      "fit_fraction": 0.8491228070175438,
+      "full_read_cost": 3192384,
+      "n_docs": 570,
+      "tokens_median": 4341.5,
+      "tokens_p90": 13038,
+      "tokens_total": 3822242,
+      "window_read_cost": 1817018,
+      "workload": {
+        "attribute_reuse": 4.875,
+        "n_attributes": 8,
+        "n_queries": 16,
+        "queries": [
+          "legal_agg20:q11",
+          "legal_agg20:q13",
+          "legal_agg20:q14",
+          "legal_agg20:q17",
+          "legal_agg20:q3",
+          "legal_agg20:q4",
+          "legal_filter20:q11",
+          "legal_filter20:q15",
+          "legal_filter20:q7",
+          "legal_filter20:q8",
+          "legal_filter20:q9",
+          "legal_groupby20:q14",
+          "legal_multiagg20:q11",
+          "legal_multiagg20:q18",
+          "legal_multiagg20:q4",
+          "legal_multiagg20:q9"
+        ]
+      }
+    }
+  },
+  "verdict": "partially_served"
+}
