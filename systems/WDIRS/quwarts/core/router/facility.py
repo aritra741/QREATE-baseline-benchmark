@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from quwarts.core.router.comparator import need_score
-from quwarts.core.router.context_probe import FieldSpec, Observations, V3
+from quwarts.core.router.context_probe import FieldSpec, Observations, V3, conform
 from quwarts.core.router.needs import CANONICAL, Need
 
 INCUMBENT = "__incumbent__"
@@ -78,7 +78,8 @@ def noise_floor(need: Need, obs: Observations, fields: dict[str, FieldSpec]) -> 
         for context, rows in ctx.items():
             if len(rows) < 2 or need.attribute not in rows[0]:
                 continue
-            loss = 1.0 - need_score(need, rows[0].get(need.attribute), rows[1].get(need.attribute), value_type)
+            f = fields[need.qualified]
+            loss = 1.0 - need_score(need, conform(rows[0].get(need.attribute), f), conform(rows[1].get(need.attribute), f), value_type)
             (own if context == need.query_id else pooled).append(loss)
     sample = own or pooled
     return (sum(sample) / len(sample), len(sample)) if sample else (0.0, 0)
@@ -105,11 +106,12 @@ def need_distances(
             for (table, doc), ctx in obs.reads.items():
                 if table != need.table or need.query_id not in ctx:
                     continue
-                mine = ctx[need.query_id][0].get(need.attribute)
+                field = fields[need.qualified]
+                mine = conform(ctx[need.query_id][0].get(need.attribute), field)
                 if provider == INCUMBENT:
-                    theirs = (incumbent.get((table, doc)) or {}).get(need.attribute)
+                    theirs = conform((incumbent.get((table, doc)) or {}).get(need.attribute), field)
                 elif provider in ctx and need.attribute in ctx[provider][0]:
-                    theirs = ctx[provider][0].get(need.attribute)
+                    theirs = conform(ctx[provider][0].get(need.attribute), field)
                 else:
                     continue
                 losses.append(1.0 - need_score(need, theirs, mine, value_type))

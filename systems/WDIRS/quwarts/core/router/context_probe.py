@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -50,16 +51,67 @@ def truncate(text: str, max_tokens: int) -> str:
     return text[: offsets[max_tokens - 1][1]]
 
 
+_CHOICES = re.compile(r"\[([^\]]+)\]")
+_EMPTY_CASE = re.compile(r"leave (?:it |this )?(?:empty|blank)|if not applicable|otherwise (?:null|empty)", re.I)
+_ITEM = re.compile(r"'([^']+)'|\"([^\"]+)\"")
+
+
+def declared_choices(description: str) -> tuple[tuple[str, ...], bool]:
+    """Allowed values and whether several may be chosen, from the schema description."""
+
+    text = description or ""
+    match = _CHOICES.search(text)
+    if not match or "choose" not in text.lower():
+        return (), False
+    items = tuple(a or b for a, b in _ITEM.findall(match.group(1)))
+    multi = bool(re.search(r"one or more|all (?:the )?modalit|choose (?:all|several|multiple)", text.lower()))
+    return tuple(i.strip() for i in items if i.strip()), multi
+
+
 @dataclass(frozen=True)
 class FieldSpec:
+    """One extraction field under the benchmark's declared schema contract."""
+
     name: str
     value_type: str
     description: str
+    nullable: bool = True
+    choices: tuple[str, ...] = ()
+    multi_choice: bool = False
 
     def line(self) -> str:
         kind = {"int": "integer", "float": "number"}.get(self.value_type, "text")
-        extra = " Multiple values separated by ' || '." if self.value_type.startswith("multi") else ""
+        many = self.value_type.startswith("multi") or self.multi_choice
+        extra = " Multiple values separated by ' || '." if many else ""
+        if self.choices:
+            extra += f" Allowed values: {', '.join(self.choices)}."
+        if not self.nullable:
+            extra += " Never null: always give a value."
+            if {c.lower() for c in self.choices} == {"yes", "no"}:
+                extra += " Answer No unless the document indicates Yes."
         return f"- {self.name} ({kind}): {self.description or self.name.replace('_', ' ')}.{extra}"
+
+
+def conform(value: Any, field: FieldSpec) -> Any:
+    """Validate a raw value against the declared domain; out-of-domain parts are dropped."""
+
+    from quwarts.core.router.comparator import as_text, is_null
+
+    if is_null(value):
+        return None
+    if not field.choices:
+        return value
+    lookup = {c.lower(): c for c in field.choices}
+    parts = [p.strip() for p in as_text(value).split("||")] if field.multi_choice or field.value_type.startswith("multi") else [as_text(value).strip()]
+    kept = []
+    for part in parts:
+        key = part.lower().strip(" .")
+        match = lookup.get(key) or next((c for k, c in lookup.items() if key.startswith(k + " ") or key.startswith(k + ",")), None)
+        if match and match not in kept:
+            kept.append(match)
+    if not kept:
+        return None
+    return " || ".join(kept) if len(kept) > 1 or field.multi_choice else kept[0]
 
 
 def field_specs(spec: CorpusSpec, needs: list[Need], sql_numeric: set[str]) -> dict[str, FieldSpec]:
@@ -67,9 +119,21 @@ def field_specs(spec: CorpusSpec, needs: list[Need], sql_numeric: set[str]) -> d
     out: dict[str, FieldSpec] = {}
     for need in needs:
         table = spec.table(need.table)
-        record = descriptions.get(table.attributes_key, {}).get(need.attribute, {}) if table else {}
+        records = descriptions.get(table.attributes_key, {}) if table else {}
+        record = records.get(need.attribute) or {k.lower(): v for k, v in records.items()}.get(need.attribute.lower(), {})
         value_type = str(record.get("value_type") or ("float" if need.qualified in sql_numeric else "str"))
-        out[need.qualified] = FieldSpec(need.attribute, value_type, str(record.get("description", "")))
+        description = str(record.get("description", ""))
+        choices, multi = declared_choices(description)
+        out[need.qualified] = FieldSpec(
+            need.attribute,
+            value_type,
+            description,
+            # The description can declare an empty case the flag does not (CSPaper agent_framework:
+            # "if the system does not use agent, leave it empty").
+            nullable=bool(record.get("is_nullable", True)) or bool(_EMPTY_CASE.search(description)),
+            choices=choices,
+            multi_choice=multi,
+        )
     return out
 
 
@@ -80,7 +144,7 @@ def render_prompt(document: str, fields: list[FieldSpec], sql: str | None) -> st
             "The fields are inputs to the SQL query below. Extract each field as that query intends it.\n"
             "Do not answer the query. Do not copy SQL constants unless the document supports them.\n"
         )
-    head += "Use null when a field is not stated.\n\n"
+    head += "Follow each field's allowed values. Use null only for a field not marked 'Never null' that the document does not state.\n\n"
     body = f"DOCUMENT:\n{document}\n\n"
     if sql:
         body += f"SQL context:\n{sql}\n\n"

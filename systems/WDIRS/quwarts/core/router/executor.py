@@ -30,7 +30,7 @@ from typing import Any
 from quwarts.core.ledger import BudgetExhausted, BudgetedCaller
 from quwarts.core.retrieve_extract.parse import normalize_value
 from quwarts.core.router.comparator import as_text, is_null
-from quwarts.core.router.context_probe import SYSTEM, V3, FieldSpec, render_prompt, truncate
+from quwarts.core.router.context_probe import SYSTEM, V3, FieldSpec, conform, render_prompt, truncate
 from quwarts.core.router.corpus_features import list_documents, read_document
 from quwarts.core.router.facility import INCUMBENT
 from quwarts.core.router.needs import CANONICAL
@@ -127,6 +127,9 @@ def commit_value(value: Any, field: FieldSpec) -> Any:
         return None
     if isinstance(value, list):
         value = " || ".join(as_text(v) for v in value if not is_null(v))
+    value = conform(value, field)
+    if value is None:
+        return None
     dtype = "numeric" if field.value_type in ("int", "float") else "string"
     normalized, _unit, error = normalize_value(value, dtype)
     if dtype == "numeric" and (error or normalized is None):

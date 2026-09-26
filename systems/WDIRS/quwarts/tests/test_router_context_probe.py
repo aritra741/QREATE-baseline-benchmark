@@ -42,3 +42,32 @@ def test_probe_builds_pairs_and_noise_within_budget(tmp_path):
     repeats = sum(1 for ctx in reads.values() for rows in ctx.values() if len(rows) > 1)
     assert repeats >= 1  # noise floor measured
     assert len((tmp_path / "j.jsonl").read_text().splitlines()) == sum(len(r) for c in reads.values() for r in c.values())
+
+
+def test_schema_contract_parsing_and_conformance():
+    from quwarts.core.router.context_probe import FieldSpec, conform, declared_choices
+
+    choices, multi = declared_choices("whether X, choose one from ['Yes', 'No'].")
+    assert choices == ("Yes", "No") and not multi
+    choices, multi = declared_choices("domains, choose one or more from ['General', 'Medical', 'Other']")
+    assert multi and "Medical" in choices
+    yn = FieldSpec("r", "str", "", nullable=False, choices=("Yes", "No"))
+    assert conform("yes", yn) == "Yes" and conform("Maybe", yn) is None and conform(None, yn) is None
+    assert "Answer No unless the document indicates Yes" in yn.line() and "Never null" in yn.line()
+    multi_f = FieldSpec("m", "str", "", choices=("Text", "Image", "Audio"), multi_choice=True)
+    assert conform("text || Video || Image", multi_f) == "Text || Image"
+
+
+def test_description_can_declare_an_empty_case(tmp_path):
+    import json
+
+    from quwarts.core.router.registry import CorpusSpec, TableSpec
+
+    attrs = tmp_path / "a.json"
+    attrs.write_text(json.dumps({"p": {"fw": {"value_type": "str", "is_nullable": False,
+        "description": "framework, choose one from ['CoT', 'Other'], if the system does not use agent, leave it empty."}}}))
+    manifest = tmp_path / "m.json"
+    manifest.write_text(json.dumps([{"query_id": "q", "sql": "SELECT fw, COUNT(*) FROM t GROUP BY fw"}]))
+    spec = CorpusSpec("x", (TableSpec("t", "p", tmp_path),), (attrs,), manifest)
+    fields = field_specs(spec, workload_needs(spec), set())
+    assert fields["t.fw"].nullable and fields["t.fw"].choices == ("CoT", "Other")
