@@ -1,0 +1,697 @@
+{
+  "budget": {
+    "available": 5106895,
+    "own_context_cost": 22749904,
+    "planned": 4265607,
+    "probe_budget": 1021379,
+    "probe_spent": 0,
+    "theta": 5106895
+  },
+  "columns": {
+    "art.age": {
+      "__incumbent__": [
+        "art_agg20:q17",
+        "art_agg20:q4",
+        "art_filter20:q9",
+        "art_multiagg20:q11",
+        "art_multiagg20:q18",
+        "art_multiagg20:q4",
+        "art_multiagg20:q9"
+      ]
+    },
+    "art.art_institution": {
+      "__incumbent__": [
+        "art_multiagg20:q11"
+      ]
+    },
+    "art.awards": {
+      "__incumbent__": [
+        "art_agg20:q14",
+        "art_filter20:q11",
+        "art_filter20:q8",
+        "art_multiagg20:q11",
+        "art_multiagg20:q18",
+        "art_multiagg20:q4",
+        "art_multiagg20:q9"
+      ],
+      "art_agg20:q11": [
+        "art_agg20:q11"
+      ],
+      "art_agg20:q13": [
+        "art_agg20:q13"
+      ]
+    },
+    "art.birth_continent": {
+      "__incumbent__": [
+        "art_filter20:q11",
+        "art_filter20:q9"
+      ]
+    },
+    "art.birth_country": {
+      "__incumbent__": [
+        "art_groupby20:q14",
+        "art_multiagg20:q9"
+      ]
+    },
+    "art.century": {
+      "__incumbent__": [
+        "art_agg20:q4",
+        "art_filter20:q11",
+        "art_filter20:q8"
+      ],
+      "art_agg20:q13": [
+        "art_agg20:q13"
+      ],
+      "art_filter20:q15": [
+        "art_filter20:q15"
+      ]
+    },
+    "art.color": {
+      "__incumbent__": [
+        "art_filter20:q7"
+      ]
+    },
+    "art.field": {
+      "__incumbent__": [
+        "art_filter20:q9"
+      ]
+    },
+    "art.genre": {
+      "art_filter20:q15": [
+        "art_filter20:q15"
+      ]
+    },
+    "art.image_genre": {
+      "__incumbent__": [
+        "art_agg20:q17",
+        "art_multiagg20:q4"
+      ]
+    },
+    "art.style": {
+      "__incumbent__": [
+        "art_filter20:q7"
+      ]
+    },
+    "art.teaching": {
+      "__incumbent__": [
+        "art_agg20:q14",
+        "art_agg20:q3",
+        "art_filter20:q8",
+        "art_groupby20:q14",
+        "art_multiagg20:q18"
+      ]
+    }
+  },
+  "contexts_opened": {
+    "art": [
+      "art_agg20:q11",
+      "art_agg20:q13",
+      "art_filter20:q15"
+    ]
+  },
+  "corpus": "art",
+  "decisions": [
+    {
+      "attribute": "awards",
+      "conditions": [
+        "NOT awards IS NULL",
+        "awards >= 1"
+      ],
+      "key": "art_agg20:q11|art.awards",
+      "kind": "predicate",
+      "loss_point": 0.0,
+      "loss_upper": 0.0,
+      "pairs": 0,
+      "provider": "art_agg20:q11",
+      "qualified": "art.awards",
+      "query_id": "art_agg20:q11",
+      "table": "art",
+      "weight": 1.0
+    },
+    {
+      "attribute": "awards",
+      "conditions": [],
+      "key": "art_agg20:q13|art.awards",
+      "kind": "value",
+      "loss_point": 0.0,
+      "loss_upper": 0.0,
+      "pairs": 0,
+      "provider": "art_agg20:q13",
+      "qualified": "art.awards",
+      "query_id": "art_agg20:q13",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "century",
+      "conditions": [],
+      "key": "art_agg20:q13|art.century",
+      "kind": "value",
+      "loss_point": 0.0,
+      "loss_upper": 0.0,
+      "pairs": 0,
+      "provider": "art_agg20:q13",
+      "qualified": "art.century",
+      "query_id": "art_agg20:q13",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "awards",
+      "conditions": [],
+      "key": "art_agg20:q14|art.awards",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.awards",
+      "query_id": "art_agg20:q14",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "teaching",
+      "conditions": [],
+      "key": "art_agg20:q14|art.teaching",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.teaching",
+      "query_id": "art_agg20:q14",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "age",
+      "conditions": [],
+      "key": "art_agg20:q17|art.age",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.age",
+      "query_id": "art_agg20:q17",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "image_genre",
+      "conditions": [],
+      "key": "art_agg20:q17|art.image_genre",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.image_genre",
+      "query_id": "art_agg20:q17",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "teaching",
+      "conditions": [],
+      "key": "art_agg20:q3|art.teaching",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.teaching",
+      "query_id": "art_agg20:q3",
+      "table": "art",
+      "weight": 1.0
+    },
+    {
+      "attribute": "age",
+      "conditions": [],
+      "key": "art_agg20:q4|art.age",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.age",
+      "query_id": "art_agg20:q4",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "century",
+      "conditions": [],
+      "key": "art_agg20:q4|art.century",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.century",
+      "query_id": "art_agg20:q4",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "awards",
+      "conditions": [
+        "awards >= 1"
+      ],
+      "key": "art_filter20:q11|art.awards",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.awards",
+      "query_id": "art_filter20:q11",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "birth_continent",
+      "conditions": [
+        "birth_continent = 'Europe'"
+      ],
+      "key": "art_filter20:q11|art.birth_continent",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.birth_continent",
+      "query_id": "art_filter20:q11",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "century",
+      "conditions": [],
+      "key": "art_filter20:q11|art.century",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.century",
+      "query_id": "art_filter20:q11",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "century",
+      "conditions": [],
+      "key": "art_filter20:q15|art.century",
+      "kind": "value",
+      "loss_point": 0.0,
+      "loss_upper": 0.0,
+      "pairs": 0,
+      "provider": "art_filter20:q15",
+      "qualified": "art.century",
+      "query_id": "art_filter20:q15",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "genre",
+      "conditions": [
+        "genre IN ('Abstract', 'Landscape', 'Portrait')"
+      ],
+      "key": "art_filter20:q15|art.genre",
+      "kind": "predicate",
+      "loss_point": 0.0,
+      "loss_upper": 0.0,
+      "pairs": 0,
+      "provider": "art_filter20:q15",
+      "qualified": "art.genre",
+      "query_id": "art_filter20:q15",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "color",
+      "conditions": [],
+      "key": "art_filter20:q7|art.color",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.color",
+      "query_id": "art_filter20:q7",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "style",
+      "conditions": [
+        "style IN ('Expressionism', 'Impressionism', 'Surrealism', 'Realism')"
+      ],
+      "key": "art_filter20:q7|art.style",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.style",
+      "query_id": "art_filter20:q7",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "awards",
+      "conditions": [
+        "awards >= 1"
+      ],
+      "key": "art_filter20:q8|art.awards",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.awards",
+      "query_id": "art_filter20:q8",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "century",
+      "conditions": [],
+      "key": "art_filter20:q8|art.century",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.century",
+      "query_id": "art_filter20:q8",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "teaching",
+      "conditions": [
+        "teaching = 1"
+      ],
+      "key": "art_filter20:q8|art.teaching",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.teaching",
+      "query_id": "art_filter20:q8",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "age",
+      "conditions": [
+        "age BETWEEN 50 AND 90"
+      ],
+      "key": "art_filter20:q9|art.age",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.age",
+      "query_id": "art_filter20:q9",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "birth_continent",
+      "conditions": [],
+      "key": "art_filter20:q9|art.birth_continent",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.birth_continent",
+      "query_id": "art_filter20:q9",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "field",
+      "conditions": [
+        "field LIKE '%Painting%'"
+      ],
+      "key": "art_filter20:q9|art.field",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.field",
+      "query_id": "art_filter20:q9",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "birth_country",
+      "conditions": [],
+      "key": "art_groupby20:q14|art.birth_country",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.birth_country",
+      "query_id": "art_groupby20:q14",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "teaching",
+      "conditions": [
+        "NOT teaching IS NULL",
+        "teaching = 1"
+      ],
+      "key": "art_groupby20:q14|art.teaching",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.teaching",
+      "query_id": "art_groupby20:q14",
+      "table": "art",
+      "weight": 0.5
+    },
+    {
+      "attribute": "age",
+      "conditions": [],
+      "key": "art_multiagg20:q11|art.age",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.age",
+      "query_id": "art_multiagg20:q11",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "art_institution",
+      "conditions": [
+        "art_institution <> ''"
+      ],
+      "key": "art_multiagg20:q11|art.art_institution",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.art_institution",
+      "query_id": "art_multiagg20:q11",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "awards",
+      "conditions": [],
+      "key": "art_multiagg20:q11|art.awards",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.awards",
+      "query_id": "art_multiagg20:q11",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "age",
+      "conditions": [],
+      "key": "art_multiagg20:q18|art.age",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.age",
+      "query_id": "art_multiagg20:q18",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "awards",
+      "conditions": [
+        "NOT awards IS NULL",
+        "awards = 0",
+        "awards = 1"
+      ],
+      "key": "art_multiagg20:q18|art.awards",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.awards",
+      "query_id": "art_multiagg20:q18",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "teaching",
+      "conditions": [
+        "teaching = 1"
+      ],
+      "key": "art_multiagg20:q18|art.teaching",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.teaching",
+      "query_id": "art_multiagg20:q18",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "age",
+      "conditions": [],
+      "key": "art_multiagg20:q4|art.age",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.age",
+      "query_id": "art_multiagg20:q4",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "awards",
+      "conditions": [],
+      "key": "art_multiagg20:q4|art.awards",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.awards",
+      "query_id": "art_multiagg20:q4",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "image_genre",
+      "conditions": [],
+      "key": "art_multiagg20:q4|art.image_genre",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.image_genre",
+      "query_id": "art_multiagg20:q4",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "age",
+      "conditions": [],
+      "key": "art_multiagg20:q9|art.age",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.age",
+      "query_id": "art_multiagg20:q9",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "awards",
+      "conditions": [],
+      "key": "art_multiagg20:q9|art.awards",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.awards",
+      "query_id": "art_multiagg20:q9",
+      "table": "art",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "birth_country",
+      "conditions": [],
+      "key": "art_multiagg20:q9|art.birth_country",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "art.birth_country",
+      "query_id": "art_multiagg20:q9",
+      "table": "art",
+      "weight": 0.3333333333333333
+    }
+  ],
+  "distances": [],
+  "expected_loss_per_query": {
+    "point": 0.8125000000000002,
+    "upper": 0.8125000000000002
+  },
+  "frontier_sizes": {
+    "art": 17
+  },
+  "inputs": {
+    "attributes_sha": [
+      "a9af3ccee07ae1ce9adc56c0640321f2e037e54b2cdfb8299306da1d9d0fe72b"
+    ],
+    "corpus_fingerprint": "7ad9e6b2f22d69c5a99d2ee111628b9c76bcef4d55ef1f762c35a46bb40cb230",
+    "incumbent_sha": null,
+    "manifest_sha": "a3898db990ebb3c4ea8ce59bf2d2e1faf05f27d42eb227f82a9777c6dcd7fe29"
+  },
+  "plan_hash": "122e5874f2c3f13bc20db29e9c14fc4fbd30988a490dcacc7e3eb6b4cbd835e2",
+  "probe": {
+    "budget": 1021379,
+    "dry_run": true,
+    "spent": 0
+  },
+  "router": {
+    "probe_fraction": 0.2,
+    "v3": {
+      "call_overhead_tokens": 600,
+      "noise_repeats_per_context": 2,
+      "pool_docs_per_table": 40,
+      "seed": 20260926,
+      "window_tokens": 10108,
+      "workers": 4
+    },
+    "version": "router-v3"
+  }
+}

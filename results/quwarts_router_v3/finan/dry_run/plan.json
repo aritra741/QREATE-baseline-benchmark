@@ -1,0 +1,781 @@
+{
+  "budget": {
+    "available": 345457,
+    "own_context_cost": 17094880,
+    "planned": 0,
+    "probe_budget": 69091,
+    "probe_spent": 0,
+    "theta": 345457
+  },
+  "columns": {
+    "finance.auditor": {
+      "__incumbent__": [
+        "finan_agg20:q13",
+        "finan_filter20:q11",
+        "finan_filter20:q15",
+        "finan_multiagg20:q18"
+      ]
+    },
+    "finance.business_segments_num": {
+      "__incumbent__": [
+        "finan_agg20:q11",
+        "finan_groupby20:q14"
+      ]
+    },
+    "finance.cash_reserves": {
+      "__incumbent__": [
+        "finan_agg20:q14",
+        "finan_multiagg20:q11",
+        "finan_multiagg20:q4"
+      ]
+    },
+    "finance.dividend_per_share": {
+      "__incumbent__": [
+        "finan_filter20:q7"
+      ]
+    },
+    "finance.earnings_per_share": {
+      "__incumbent__": [
+        "finan_agg20:q13",
+        "finan_multiagg20:q9"
+      ]
+    },
+    "finance.exchange_code": {
+      "__incumbent__": [
+        "finan_agg20:q14",
+        "finan_filter20:q8",
+        "finan_multiagg20:q18"
+      ]
+    },
+    "finance.major_equity_changes": {
+      "__incumbent__": [
+        "finan_agg20:q17",
+        "finan_agg20:q3",
+        "finan_filter20:q15"
+      ]
+    },
+    "finance.net_assets": {
+      "__incumbent__": [
+        "finan_filter20:q11",
+        "finan_multiagg20:q11"
+      ]
+    },
+    "finance.net_profit_or_loss": {
+      "__incumbent__": [
+        "finan_filter20:q11",
+        "finan_filter20:q8",
+        "finan_multiagg20:q18",
+        "finan_multiagg20:q4"
+      ]
+    },
+    "finance.principal_activities": {
+      "__incumbent__": [
+        "finan_agg20:q11",
+        "finan_filter20:q7",
+        "finan_groupby20:q14",
+        "finan_multiagg20:q11"
+      ]
+    },
+    "finance.remuneration_policy": {
+      "__incumbent__": [
+        "finan_agg20:q4",
+        "finan_filter20:q9",
+        "finan_multiagg20:q9"
+      ]
+    },
+    "finance.revenue": {
+      "__incumbent__": [
+        "finan_filter20:q9",
+        "finan_multiagg20:q18",
+        "finan_multiagg20:q4",
+        "finan_multiagg20:q9"
+      ]
+    },
+    "finance.the_highest_ownership_stake": {
+      "__incumbent__": [
+        "finan_agg20:q17"
+      ]
+    },
+    "finance.total_debt": {
+      "__incumbent__": [
+        "finan_filter20:q8",
+        "finan_multiagg20:q11",
+        "finan_multiagg20:q4"
+      ]
+    }
+  },
+  "contexts_opened": {
+    "finance": []
+  },
+  "corpus": "finan",
+  "decisions": [
+    {
+      "attribute": "business_segments_num",
+      "conditions": [],
+      "key": "finan_agg20:q11|finance.business_segments_num",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.business_segments_num",
+      "query_id": "finan_agg20:q11",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "principal_activities",
+      "conditions": [
+        "principal_activities <> ''",
+        "principal_activities LIKE '%Finance%'",
+        "principal_activities LIKE '%Healthcare%'",
+        "principal_activities LIKE '%Technology%'",
+        "principal_activities LIKE '%Retail%'",
+        "principal_activities LIKE '%Mining%'"
+      ],
+      "key": "finan_agg20:q11|finance.principal_activities",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.principal_activities",
+      "query_id": "finan_agg20:q11",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "auditor",
+      "conditions": [
+        "auditor <> ''",
+        "auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%'",
+        "auditor LIKE '%KPMG%'",
+        "auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%'",
+        "auditor LIKE '%Deloitte%'"
+      ],
+      "key": "finan_agg20:q13|finance.auditor",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.auditor",
+      "query_id": "finan_agg20:q13",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "earnings_per_share",
+      "conditions": [],
+      "key": "finan_agg20:q13|finance.earnings_per_share",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.earnings_per_share",
+      "query_id": "finan_agg20:q13",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "cash_reserves",
+      "conditions": [],
+      "key": "finan_agg20:q14|finance.cash_reserves",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.cash_reserves",
+      "query_id": "finan_agg20:q14",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "exchange_code",
+      "conditions": [
+        "exchange_code <> ''",
+        "exchange_code LIKE '%NASDAQ%'",
+        "exchange_code LIKE '%NYSE%'",
+        "exchange_code LIKE '%ASX%'",
+        "exchange_code LIKE '%LSE%' OR exchange_code LIKE '%AIM%'"
+      ],
+      "key": "finan_agg20:q14|finance.exchange_code",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.exchange_code",
+      "query_id": "finan_agg20:q14",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "major_equity_changes",
+      "conditions": [],
+      "key": "finan_agg20:q17|finance.major_equity_changes",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.major_equity_changes",
+      "query_id": "finan_agg20:q17",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "the_highest_ownership_stake",
+      "conditions": [],
+      "key": "finan_agg20:q17|finance.the_highest_ownership_stake",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.the_highest_ownership_stake",
+      "query_id": "finan_agg20:q17",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "major_equity_changes",
+      "conditions": [],
+      "key": "finan_agg20:q3|finance.major_equity_changes",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.major_equity_changes",
+      "query_id": "finan_agg20:q3",
+      "table": "finance",
+      "weight": 1.0
+    },
+    {
+      "attribute": "remuneration_policy",
+      "conditions": [
+        "remuneration_policy <> ''",
+        "remuneration_policy LIKE '%Mixed%'"
+      ],
+      "key": "finan_agg20:q4|finance.remuneration_policy",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.remuneration_policy",
+      "query_id": "finan_agg20:q4",
+      "table": "finance",
+      "weight": 1.0
+    },
+    {
+      "attribute": "auditor",
+      "conditions": [
+        "auditor <> ''",
+        "auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%'",
+        "auditor LIKE '%KPMG%'",
+        "auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%'",
+        "auditor LIKE '%Deloitte%'"
+      ],
+      "key": "finan_filter20:q11|finance.auditor",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.auditor",
+      "query_id": "finan_filter20:q11",
+      "table": "finance",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "net_assets",
+      "conditions": [
+        "net_assets > 0"
+      ],
+      "key": "finan_filter20:q11|finance.net_assets",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.net_assets",
+      "query_id": "finan_filter20:q11",
+      "table": "finance",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "net_profit_or_loss",
+      "conditions": [
+        "net_profit_or_loss > 0"
+      ],
+      "key": "finan_filter20:q11|finance.net_profit_or_loss",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.net_profit_or_loss",
+      "query_id": "finan_filter20:q11",
+      "table": "finance",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "auditor",
+      "conditions": [
+        "auditor LIKE '%KPMG%' OR auditor LIKE '%Ernst & Young%' OR auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%Deloitte%'"
+      ],
+      "key": "finan_filter20:q15|finance.auditor",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.auditor",
+      "query_id": "finan_filter20:q15",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "major_equity_changes",
+      "conditions": [],
+      "key": "finan_filter20:q15|finance.major_equity_changes",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.major_equity_changes",
+      "query_id": "finan_filter20:q15",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "dividend_per_share",
+      "conditions": [
+        "NOT dividend_per_share IS NULL",
+        "dividend_per_share > 0"
+      ],
+      "key": "finan_filter20:q7|finance.dividend_per_share",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.dividend_per_share",
+      "query_id": "finan_filter20:q7",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "principal_activities",
+      "conditions": [
+        "principal_activities LIKE '%Finance%'"
+      ],
+      "key": "finan_filter20:q7|finance.principal_activities",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.principal_activities",
+      "query_id": "finan_filter20:q7",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "exchange_code",
+      "conditions": [
+        "exchange_code <> ''",
+        "exchange_code LIKE '%NASDAQ%'",
+        "exchange_code LIKE '%NYSE%'",
+        "exchange_code LIKE '%ASX%'",
+        "exchange_code LIKE '%LSE%' OR exchange_code LIKE '%AIM%'"
+      ],
+      "key": "finan_filter20:q8|finance.exchange_code",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.exchange_code",
+      "query_id": "finan_filter20:q8",
+      "table": "finance",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "net_profit_or_loss",
+      "conditions": [
+        "net_profit_or_loss > 0"
+      ],
+      "key": "finan_filter20:q8|finance.net_profit_or_loss",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.net_profit_or_loss",
+      "query_id": "finan_filter20:q8",
+      "table": "finance",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "total_debt",
+      "conditions": [],
+      "key": "finan_filter20:q8|finance.total_debt",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.total_debt",
+      "query_id": "finan_filter20:q8",
+      "table": "finance",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "remuneration_policy",
+      "conditions": [
+        "remuneration_policy <> ''",
+        "remuneration_policy LIKE '%Mixed%'"
+      ],
+      "key": "finan_filter20:q9|finance.remuneration_policy",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.remuneration_policy",
+      "query_id": "finan_filter20:q9",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "revenue",
+      "conditions": [
+        "revenue >= 100000000"
+      ],
+      "key": "finan_filter20:q9|finance.revenue",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.revenue",
+      "query_id": "finan_filter20:q9",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "business_segments_num",
+      "conditions": [
+        "NOT business_segments_num IS NULL",
+        "business_segments_num >= 3"
+      ],
+      "key": "finan_groupby20:q14|finance.business_segments_num",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.business_segments_num",
+      "query_id": "finan_groupby20:q14",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "principal_activities",
+      "conditions": [
+        "principal_activities <> ''",
+        "principal_activities LIKE '%Finance%'",
+        "principal_activities LIKE '%Healthcare%'",
+        "principal_activities LIKE '%Technology%'",
+        "principal_activities LIKE '%Retail%'",
+        "principal_activities LIKE '%Mining%'"
+      ],
+      "key": "finan_groupby20:q14|finance.principal_activities",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.principal_activities",
+      "query_id": "finan_groupby20:q14",
+      "table": "finance",
+      "weight": 0.5
+    },
+    {
+      "attribute": "cash_reserves",
+      "conditions": [],
+      "key": "finan_multiagg20:q11|finance.cash_reserves",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.cash_reserves",
+      "query_id": "finan_multiagg20:q11",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "net_assets",
+      "conditions": [],
+      "key": "finan_multiagg20:q11|finance.net_assets",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.net_assets",
+      "query_id": "finan_multiagg20:q11",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "principal_activities",
+      "conditions": [
+        "principal_activities <> ''",
+        "principal_activities LIKE '%Finance%'",
+        "principal_activities LIKE '%Healthcare%'",
+        "principal_activities LIKE '%Technology%'",
+        "principal_activities LIKE '%Retail%'",
+        "principal_activities LIKE '%Mining%'"
+      ],
+      "key": "finan_multiagg20:q11|finance.principal_activities",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.principal_activities",
+      "query_id": "finan_multiagg20:q11",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "total_debt",
+      "conditions": [],
+      "key": "finan_multiagg20:q11|finance.total_debt",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.total_debt",
+      "query_id": "finan_multiagg20:q11",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "auditor",
+      "conditions": [
+        "auditor <> ''",
+        "auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%'",
+        "auditor LIKE '%KPMG%'",
+        "auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%'",
+        "auditor LIKE '%Deloitte%'"
+      ],
+      "key": "finan_multiagg20:q18|finance.auditor",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.auditor",
+      "query_id": "finan_multiagg20:q18",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "exchange_code",
+      "conditions": [
+        "exchange_code <> ''",
+        "exchange_code LIKE '%NASDAQ%'",
+        "exchange_code LIKE '%NYSE%'",
+        "exchange_code LIKE '%ASX%'",
+        "exchange_code LIKE '%LSE%' OR exchange_code LIKE '%AIM%'"
+      ],
+      "key": "finan_multiagg20:q18|finance.exchange_code",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.exchange_code",
+      "query_id": "finan_multiagg20:q18",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "net_profit_or_loss",
+      "conditions": [],
+      "key": "finan_multiagg20:q18|finance.net_profit_or_loss",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.net_profit_or_loss",
+      "query_id": "finan_multiagg20:q18",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "revenue",
+      "conditions": [],
+      "key": "finan_multiagg20:q18|finance.revenue",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.revenue",
+      "query_id": "finan_multiagg20:q18",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "cash_reserves",
+      "conditions": [],
+      "key": "finan_multiagg20:q4|finance.cash_reserves",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.cash_reserves",
+      "query_id": "finan_multiagg20:q4",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "net_profit_or_loss",
+      "conditions": [
+        "NOT net_profit_or_loss IS NULL",
+        "net_profit_or_loss <> 0",
+        "net_profit_or_loss > 0"
+      ],
+      "key": "finan_multiagg20:q4|finance.net_profit_or_loss",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.net_profit_or_loss",
+      "query_id": "finan_multiagg20:q4",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "revenue",
+      "conditions": [],
+      "key": "finan_multiagg20:q4|finance.revenue",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.revenue",
+      "query_id": "finan_multiagg20:q4",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "total_debt",
+      "conditions": [],
+      "key": "finan_multiagg20:q4|finance.total_debt",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.total_debt",
+      "query_id": "finan_multiagg20:q4",
+      "table": "finance",
+      "weight": 0.25
+    },
+    {
+      "attribute": "earnings_per_share",
+      "conditions": [],
+      "key": "finan_multiagg20:q9|finance.earnings_per_share",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.earnings_per_share",
+      "query_id": "finan_multiagg20:q9",
+      "table": "finance",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "remuneration_policy",
+      "conditions": [
+        "remuneration_policy <> ''",
+        "remuneration_policy LIKE '%Mixed%'"
+      ],
+      "key": "finan_multiagg20:q9|finance.remuneration_policy",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.remuneration_policy",
+      "query_id": "finan_multiagg20:q9",
+      "table": "finance",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "revenue",
+      "conditions": [],
+      "key": "finan_multiagg20:q9|finance.revenue",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "finance.revenue",
+      "query_id": "finan_multiagg20:q9",
+      "table": "finance",
+      "weight": 0.3333333333333333
+    }
+  ],
+  "distances": [],
+  "expected_loss_per_query": {
+    "point": 1.0000000000000002,
+    "upper": 1.0000000000000002
+  },
+  "frontier_sizes": {
+    "finance": 17
+  },
+  "inputs": {
+    "attributes_sha": [
+      "3f88e9f1a5ef0e559280ac4e6470ed5fa536a99fe1c4fc588bba8bdc24bfad1e"
+    ],
+    "corpus_fingerprint": "b70acdae03bffc292c2bf7584a1236026e403a97ab039c5a577da0e33a9e5f66",
+    "incumbent_sha": "ad91c2554f32510cb378737009e6479cfcb71299f245c7fe766722057b2b2a3d",
+    "manifest_sha": "e94136f82cb634d45c2c37a861452f2e2e00185b7de3ecb8049d4b814986bfcd"
+  },
+  "plan_hash": "7fca8790a1ea845e78a841ce39134973ec34ec6015042a63dacbba5210e5576a",
+  "probe": {
+    "budget": 69091,
+    "dry_run": true,
+    "spent": 0
+  },
+  "router": {
+    "probe_fraction": 0.2,
+    "v3": {
+      "call_overhead_tokens": 600,
+      "noise_repeats_per_context": 2,
+      "pool_docs_per_table": 40,
+      "seed": 20260926,
+      "window_tokens": 10108,
+      "workers": 4
+    },
+    "version": "router-v3"
+  }
+}

@@ -1,0 +1,1250 @@
+{
+  "budget": {
+    "available": 2948971,
+    "own_context_cost": 29123781,
+    "planned": 2643192,
+    "probe_budget": 589794,
+    "probe_spent": 0,
+    "theta": 2948971
+  },
+  "columns": {
+    "disease.disease_name": {
+      "__incumbent__": [
+        "med_filterjoin20:q10",
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ]
+    },
+    "disease.disease_type": {
+      "__incumbent__": [
+        "med_groupby20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7"
+      ]
+    },
+    "disease.id": {
+      "__incumbent__": [
+        "med_multiagg20:q8"
+      ]
+    },
+    "disease.pathogenesis": {
+      "med_agg20:q11": [
+        "med_agg20:q11"
+      ]
+    },
+    "disease.prognosis": {
+      "__incumbent__": [
+        "med_groupby20:q11",
+        "med_multiagg20:q8"
+      ],
+      "med_agg20:q3": [
+        "med_agg20:q3"
+      ]
+    },
+    "disease.treatments": {
+      "__incumbent__": [
+        "med_filterjoin20:q10",
+        "med_multiagg20:q8"
+      ],
+      "med_groupby20:q9": [
+        "med_groupby20:q9"
+      ]
+    },
+    "drug.administration_route": {
+      "__incumbent__": [
+        "med_agg20:q14",
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_multiagg20:q15",
+        "med_multiagg20:q17",
+        "med_multiagg20:q2",
+        "med_multiagg20:q7"
+      ]
+    },
+    "drug.disease_name": {
+      "__incumbent__": [
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ]
+    },
+    "drug.id": {
+      "__incumbent__": [
+        "med_filterjoin20:q16",
+        "med_groupby20:q11",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ]
+    },
+    "drug.manufacturer": {
+      "__incumbent__": [
+        "med_agg20:q13",
+        "med_groupby20:q7",
+        "med_multiagg20:q17",
+        "med_multiagg20:q2"
+      ]
+    },
+    "drug.pharmaceutical_form": {
+      "__incumbent__": [
+        "med_agg20:q4",
+        "med_groupby20:q7",
+        "med_multiagg20:q2",
+        "med_multiagg20:q7",
+        "med_multiagg20:q8"
+      ]
+    },
+    "drug.prescription_status": {
+      "__incumbent__": [
+        "med_multiagg20:q17"
+      ]
+    },
+    "drug.unsuitable_population": {
+      "__incumbent__": [
+        "med_agg20:q17"
+      ]
+    },
+    "institution.id": {
+      "__incumbent__": [
+        "med_filterjoin20:q10"
+      ]
+    },
+    "institution.institution_country": {
+      "__incumbent__": [
+        "med_filterjoin20:q16",
+        "med_groupby20:q15",
+        "med_multiagg20:q15"
+      ]
+    },
+    "institution.institution_type": {
+      "__incumbent__": [
+        "med_filterjoin20:q10",
+        "med_filterjoin20:q5",
+        "med_groupby20:q8",
+        "med_join20:q15"
+      ]
+    },
+    "institution.international_collaboration": {
+      "__incumbent__": [
+        "med_groupby20:q8"
+      ]
+    },
+    "institution.research_diseases": {
+      "__incumbent__": [
+        "med_filterjoin20:q10",
+        "med_filterjoin20:q16",
+        "med_groupby20:q15",
+        "med_join20:q15",
+        "med_multiagg20:q15"
+      ]
+    },
+    "institution.research_fields": {
+      "__incumbent__": [
+        "med_filterjoin20:q5"
+      ]
+    }
+  },
+  "contexts_opened": {
+    "disease": [
+      "med_agg20:q11",
+      "med_agg20:q3",
+      "med_groupby20:q9"
+    ],
+    "drug": [],
+    "institution": []
+  },
+  "corpus": "med",
+  "decisions": [
+    {
+      "attribute": "pathogenesis",
+      "conditions": [
+        "pathogenesis <> ''",
+        "LOWER(pathogenesis) LIKE '%infectious%'",
+        "LOWER(pathogenesis) LIKE '%inflammatory%'"
+      ],
+      "key": "med_agg20:q11|disease.pathogenesis",
+      "kind": "predicate",
+      "loss_point": 0.0,
+      "loss_upper": 0.0,
+      "pairs": 0,
+      "provider": "med_agg20:q11",
+      "qualified": "disease.pathogenesis",
+      "query_id": "med_agg20:q11",
+      "table": "disease",
+      "weight": 1.0
+    },
+    {
+      "attribute": "manufacturer",
+      "conditions": [
+        "manufacturer <> ''"
+      ],
+      "key": "med_agg20:q13|drug.manufacturer",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.manufacturer",
+      "query_id": "med_agg20:q13",
+      "table": "drug",
+      "weight": 1.0
+    },
+    {
+      "attribute": "administration_route",
+      "conditions": [
+        "administration_route <> ''",
+        "LOWER(administration_route) LIKE '%intravenous%' OR LOWER(administration_route) LIKE '%subcutaneous%'"
+      ],
+      "key": "med_agg20:q14|drug.administration_route",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.administration_route",
+      "query_id": "med_agg20:q14",
+      "table": "drug",
+      "weight": 1.0
+    },
+    {
+      "attribute": "unsuitable_population",
+      "conditions": [
+        "unsuitable_population <> ''",
+        "LOWER(unsuitable_population) LIKE '%pregnant%'"
+      ],
+      "key": "med_agg20:q17|drug.unsuitable_population",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.unsuitable_population",
+      "query_id": "med_agg20:q17",
+      "table": "drug",
+      "weight": 1.0
+    },
+    {
+      "attribute": "prognosis",
+      "conditions": [
+        "prognosis <> ''",
+        "LOWER(prognosis) LIKE '%high_mortality%'",
+        "LOWER(prognosis) LIKE '%chronic%'"
+      ],
+      "key": "med_agg20:q3|disease.prognosis",
+      "kind": "predicate",
+      "loss_point": 0.0,
+      "loss_upper": 0.0,
+      "pairs": 0,
+      "provider": "med_agg20:q3",
+      "qualified": "disease.prognosis",
+      "query_id": "med_agg20:q3",
+      "table": "disease",
+      "weight": 1.0
+    },
+    {
+      "attribute": "pharmaceutical_form",
+      "conditions": [
+        "pharmaceutical_form <> ''",
+        "LOWER(pharmaceutical_form) LIKE '%tablet%'",
+        "LOWER(pharmaceutical_form) LIKE '%injection%'",
+        "LOWER(pharmaceutical_form) LIKE '%capsule%'"
+      ],
+      "key": "med_agg20:q4|drug.pharmaceutical_form",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.pharmaceutical_form",
+      "query_id": "med_agg20:q4",
+      "table": "drug",
+      "weight": 1.0
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_filterjoin20:q10|disease.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_name",
+      "query_id": "med_filterjoin20:q10",
+      "table": "disease",
+      "weight": 0.2
+    },
+    {
+      "attribute": "treatments",
+      "conditions": [
+        "LOWER(treatments) LIKE '%oral_medication%'"
+      ],
+      "key": "med_filterjoin20:q10|disease.treatments",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.treatments",
+      "query_id": "med_filterjoin20:q10",
+      "table": "disease",
+      "weight": 0.2
+    },
+    {
+      "attribute": "id",
+      "conditions": [],
+      "key": "med_filterjoin20:q10|institution.id",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.id",
+      "query_id": "med_filterjoin20:q10",
+      "table": "institution",
+      "weight": 0.2
+    },
+    {
+      "attribute": "institution_type",
+      "conditions": [
+        "institution_type <> ''",
+        "LOWER(institution_type) LIKE '%university%'",
+        "LOWER(institution_type) LIKE '%public%'"
+      ],
+      "key": "med_filterjoin20:q10|institution.institution_type",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.institution_type",
+      "query_id": "med_filterjoin20:q10",
+      "table": "institution",
+      "weight": 0.2
+    },
+    {
+      "attribute": "research_diseases",
+      "conditions": [],
+      "key": "med_filterjoin20:q10|institution.research_diseases",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.research_diseases",
+      "query_id": "med_filterjoin20:q10",
+      "table": "institution",
+      "weight": 0.2
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_filterjoin20:q16|disease.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_name",
+      "query_id": "med_filterjoin20:q16",
+      "table": "disease",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "administration_route",
+      "conditions": [
+        "administration_route <> ''",
+        "LOWER(administration_route) LIKE '%oral%'"
+      ],
+      "key": "med_filterjoin20:q16|drug.administration_route",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.administration_route",
+      "query_id": "med_filterjoin20:q16",
+      "table": "drug",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_filterjoin20:q16|drug.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.disease_name",
+      "query_id": "med_filterjoin20:q16",
+      "table": "drug",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "id",
+      "conditions": [],
+      "key": "med_filterjoin20:q16|drug.id",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.id",
+      "query_id": "med_filterjoin20:q16",
+      "table": "drug",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "institution_country",
+      "conditions": [
+        "institution_country LIKE '%USA%'"
+      ],
+      "key": "med_filterjoin20:q16|institution.institution_country",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.institution_country",
+      "query_id": "med_filterjoin20:q16",
+      "table": "institution",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "research_diseases",
+      "conditions": [],
+      "key": "med_filterjoin20:q16|institution.research_diseases",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.research_diseases",
+      "query_id": "med_filterjoin20:q16",
+      "table": "institution",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "institution_type",
+      "conditions": [
+        "LOWER(institution_type) LIKE '%university%'"
+      ],
+      "key": "med_filterjoin20:q5|institution.institution_type",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.institution_type",
+      "query_id": "med_filterjoin20:q5",
+      "table": "institution",
+      "weight": 0.5
+    },
+    {
+      "attribute": "research_fields",
+      "conditions": [
+        "research_fields <> ''",
+        "LOWER(research_fields) LIKE '%oncology%'",
+        "LOWER(research_fields) LIKE '%neuroscience%'",
+        "LOWER(research_fields) LIKE '%immunology%' OR LOWER(research_fields) LIKE '%microbiology%'",
+        "LOWER(research_fields) LIKE '%clinical_research%'"
+      ],
+      "key": "med_filterjoin20:q5|institution.research_fields",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.research_fields",
+      "query_id": "med_filterjoin20:q5",
+      "table": "institution",
+      "weight": 0.5
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_groupby20:q11|disease.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_name",
+      "query_id": "med_groupby20:q11",
+      "table": "disease",
+      "weight": 0.2
+    },
+    {
+      "attribute": "prognosis",
+      "conditions": [
+        "prognosis <> ''",
+        "LOWER(prognosis) LIKE '%chronic%'"
+      ],
+      "key": "med_groupby20:q11|disease.prognosis",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.prognosis",
+      "query_id": "med_groupby20:q11",
+      "table": "disease",
+      "weight": 0.2
+    },
+    {
+      "attribute": "administration_route",
+      "conditions": [
+        "administration_route <> ''",
+        "LOWER(administration_route) LIKE '%oral%'"
+      ],
+      "key": "med_groupby20:q11|drug.administration_route",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.administration_route",
+      "query_id": "med_groupby20:q11",
+      "table": "drug",
+      "weight": 0.2
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_groupby20:q11|drug.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.disease_name",
+      "query_id": "med_groupby20:q11",
+      "table": "drug",
+      "weight": 0.2
+    },
+    {
+      "attribute": "id",
+      "conditions": [],
+      "key": "med_groupby20:q11|drug.id",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.id",
+      "query_id": "med_groupby20:q11",
+      "table": "drug",
+      "weight": 0.2
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_groupby20:q15|disease.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_name",
+      "query_id": "med_groupby20:q15",
+      "table": "disease",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "disease_type",
+      "conditions": [
+        "disease_type <> ''",
+        "LOWER(disease_type) LIKE '%infectious%'",
+        "LOWER(disease_type) LIKE '%neoplastic%'",
+        "LOWER(disease_type) LIKE '%inflammatory%'",
+        "LOWER(disease_type) LIKE '%psychiatric%'"
+      ],
+      "key": "med_groupby20:q15|disease.disease_type",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_type",
+      "query_id": "med_groupby20:q15",
+      "table": "disease",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_groupby20:q15|drug.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.disease_name",
+      "query_id": "med_groupby20:q15",
+      "table": "drug",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "id",
+      "conditions": [],
+      "key": "med_groupby20:q15|drug.id",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.id",
+      "query_id": "med_groupby20:q15",
+      "table": "drug",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "institution_country",
+      "conditions": [
+        "institution_country <> ''",
+        "institution_country LIKE '%USA%'"
+      ],
+      "key": "med_groupby20:q15|institution.institution_country",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.institution_country",
+      "query_id": "med_groupby20:q15",
+      "table": "institution",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "research_diseases",
+      "conditions": [],
+      "key": "med_groupby20:q15|institution.research_diseases",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.research_diseases",
+      "query_id": "med_groupby20:q15",
+      "table": "institution",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "manufacturer",
+      "conditions": [
+        "manufacturer <> ''"
+      ],
+      "key": "med_groupby20:q7|drug.manufacturer",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.manufacturer",
+      "query_id": "med_groupby20:q7",
+      "table": "drug",
+      "weight": 0.5
+    },
+    {
+      "attribute": "pharmaceutical_form",
+      "conditions": [
+        "pharmaceutical_form <> ''",
+        "LOWER(pharmaceutical_form) LIKE '%tablet%'",
+        "LOWER(pharmaceutical_form) LIKE '%injection%'",
+        "LOWER(pharmaceutical_form) LIKE '%capsule%'"
+      ],
+      "key": "med_groupby20:q7|drug.pharmaceutical_form",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.pharmaceutical_form",
+      "query_id": "med_groupby20:q7",
+      "table": "drug",
+      "weight": 0.5
+    },
+    {
+      "attribute": "institution_type",
+      "conditions": [
+        "institution_type <> ''",
+        "LOWER(institution_type) LIKE '%university%'",
+        "LOWER(institution_type) LIKE '%public%'"
+      ],
+      "key": "med_groupby20:q8|institution.institution_type",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.institution_type",
+      "query_id": "med_groupby20:q8",
+      "table": "institution",
+      "weight": 0.5
+    },
+    {
+      "attribute": "international_collaboration",
+      "conditions": [
+        "international_collaboration <> ''"
+      ],
+      "key": "med_groupby20:q8|institution.international_collaboration",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.international_collaboration",
+      "query_id": "med_groupby20:q8",
+      "table": "institution",
+      "weight": 0.5
+    },
+    {
+      "attribute": "treatments",
+      "conditions": [
+        "treatments <> ''",
+        "LOWER(treatments) LIKE '%injection%'",
+        "LOWER(treatments) LIKE '%oral_medication%'"
+      ],
+      "key": "med_groupby20:q9|disease.treatments",
+      "kind": "predicate",
+      "loss_point": 0.0,
+      "loss_upper": 0.0,
+      "pairs": 0,
+      "provider": "med_groupby20:q9",
+      "qualified": "disease.treatments",
+      "query_id": "med_groupby20:q9",
+      "table": "disease",
+      "weight": 1.0
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_join20:q15|disease.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_name",
+      "query_id": "med_join20:q15",
+      "table": "disease",
+      "weight": 0.2
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_join20:q15|drug.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.disease_name",
+      "query_id": "med_join20:q15",
+      "table": "drug",
+      "weight": 0.2
+    },
+    {
+      "attribute": "id",
+      "conditions": [],
+      "key": "med_join20:q15|drug.id",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.id",
+      "query_id": "med_join20:q15",
+      "table": "drug",
+      "weight": 0.2
+    },
+    {
+      "attribute": "institution_type",
+      "conditions": [
+        "institution_type <> ''",
+        "LOWER(institution_type) LIKE '%university%'",
+        "LOWER(institution_type) LIKE '%public%'"
+      ],
+      "key": "med_join20:q15|institution.institution_type",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.institution_type",
+      "query_id": "med_join20:q15",
+      "table": "institution",
+      "weight": 0.2
+    },
+    {
+      "attribute": "research_diseases",
+      "conditions": [],
+      "key": "med_join20:q15|institution.research_diseases",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.research_diseases",
+      "query_id": "med_join20:q15",
+      "table": "institution",
+      "weight": 0.2
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_multiagg20:q15|disease.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_name",
+      "query_id": "med_multiagg20:q15",
+      "table": "disease",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "disease_type",
+      "conditions": [
+        "disease_type <> ''",
+        "LOWER(disease_type) LIKE '%infectious%'",
+        "LOWER(disease_type) LIKE '%neoplastic%'",
+        "LOWER(disease_type) LIKE '%inflammatory%'",
+        "LOWER(disease_type) LIKE '%psychiatric%'"
+      ],
+      "key": "med_multiagg20:q15|disease.disease_type",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_type",
+      "query_id": "med_multiagg20:q15",
+      "table": "disease",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "administration_route",
+      "conditions": [
+        "LOWER(administration_route) LIKE '%oral%'"
+      ],
+      "key": "med_multiagg20:q15|drug.administration_route",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.administration_route",
+      "query_id": "med_multiagg20:q15",
+      "table": "drug",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_multiagg20:q15|drug.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.disease_name",
+      "query_id": "med_multiagg20:q15",
+      "table": "drug",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "id",
+      "conditions": [],
+      "key": "med_multiagg20:q15|drug.id",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.id",
+      "query_id": "med_multiagg20:q15",
+      "table": "drug",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "institution_country",
+      "conditions": [
+        "institution_country LIKE '%USA%'"
+      ],
+      "key": "med_multiagg20:q15|institution.institution_country",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.institution_country",
+      "query_id": "med_multiagg20:q15",
+      "table": "institution",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "research_diseases",
+      "conditions": [],
+      "key": "med_multiagg20:q15|institution.research_diseases",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "institution.research_diseases",
+      "query_id": "med_multiagg20:q15",
+      "table": "institution",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "administration_route",
+      "conditions": [
+        "LOWER(administration_route) LIKE '%oral%'"
+      ],
+      "key": "med_multiagg20:q17|drug.administration_route",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.administration_route",
+      "query_id": "med_multiagg20:q17",
+      "table": "drug",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "manufacturer",
+      "conditions": [
+        "manufacturer <> ''"
+      ],
+      "key": "med_multiagg20:q17|drug.manufacturer",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.manufacturer",
+      "query_id": "med_multiagg20:q17",
+      "table": "drug",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "prescription_status",
+      "conditions": [
+        "prescription_status LIKE '%prescription_only%'"
+      ],
+      "key": "med_multiagg20:q17|drug.prescription_status",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.prescription_status",
+      "query_id": "med_multiagg20:q17",
+      "table": "drug",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "administration_route",
+      "conditions": [
+        "LOWER(administration_route) LIKE '%oral%'"
+      ],
+      "key": "med_multiagg20:q2|drug.administration_route",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.administration_route",
+      "query_id": "med_multiagg20:q2",
+      "table": "drug",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "manufacturer",
+      "conditions": [
+        "manufacturer <> ''"
+      ],
+      "key": "med_multiagg20:q2|drug.manufacturer",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.manufacturer",
+      "query_id": "med_multiagg20:q2",
+      "table": "drug",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "pharmaceutical_form",
+      "conditions": [
+        "pharmaceutical_form <> ''",
+        "LOWER(pharmaceutical_form) LIKE '%tablet%'",
+        "LOWER(pharmaceutical_form) LIKE '%injection%'",
+        "LOWER(pharmaceutical_form) LIKE '%capsule%'"
+      ],
+      "key": "med_multiagg20:q2|drug.pharmaceutical_form",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.pharmaceutical_form",
+      "query_id": "med_multiagg20:q2",
+      "table": "drug",
+      "weight": 0.3333333333333333
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_multiagg20:q7|disease.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_name",
+      "query_id": "med_multiagg20:q7",
+      "table": "disease",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "disease_type",
+      "conditions": [
+        "disease_type <> ''",
+        "LOWER(disease_type) LIKE '%infectious%'",
+        "LOWER(disease_type) LIKE '%neoplastic%'",
+        "LOWER(disease_type) LIKE '%inflammatory%'",
+        "LOWER(disease_type) LIKE '%psychiatric%'"
+      ],
+      "key": "med_multiagg20:q7|disease.disease_type",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_type",
+      "query_id": "med_multiagg20:q7",
+      "table": "disease",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "administration_route",
+      "conditions": [
+        "LOWER(administration_route) LIKE '%oral%'"
+      ],
+      "key": "med_multiagg20:q7|drug.administration_route",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.administration_route",
+      "query_id": "med_multiagg20:q7",
+      "table": "drug",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_multiagg20:q7|drug.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.disease_name",
+      "query_id": "med_multiagg20:q7",
+      "table": "drug",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "id",
+      "conditions": [],
+      "key": "med_multiagg20:q7|drug.id",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.id",
+      "query_id": "med_multiagg20:q7",
+      "table": "drug",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "pharmaceutical_form",
+      "conditions": [
+        "LOWER(pharmaceutical_form) LIKE '%tablet%'"
+      ],
+      "key": "med_multiagg20:q7|drug.pharmaceutical_form",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.pharmaceutical_form",
+      "query_id": "med_multiagg20:q7",
+      "table": "drug",
+      "weight": 0.16666666666666666
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_multiagg20:q8|disease.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.disease_name",
+      "query_id": "med_multiagg20:q8",
+      "table": "disease",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "id",
+      "conditions": [],
+      "key": "med_multiagg20:q8|disease.id",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.id",
+      "query_id": "med_multiagg20:q8",
+      "table": "disease",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "prognosis",
+      "conditions": [
+        "prognosis <> ''"
+      ],
+      "key": "med_multiagg20:q8|disease.prognosis",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.prognosis",
+      "query_id": "med_multiagg20:q8",
+      "table": "disease",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "treatments",
+      "conditions": [
+        "LOWER(treatments) LIKE '%oral_medication%'"
+      ],
+      "key": "med_multiagg20:q8|disease.treatments",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "disease.treatments",
+      "query_id": "med_multiagg20:q8",
+      "table": "disease",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "disease_name",
+      "conditions": [],
+      "key": "med_multiagg20:q8|drug.disease_name",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.disease_name",
+      "query_id": "med_multiagg20:q8",
+      "table": "drug",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "id",
+      "conditions": [],
+      "key": "med_multiagg20:q8|drug.id",
+      "kind": "value",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.id",
+      "query_id": "med_multiagg20:q8",
+      "table": "drug",
+      "weight": 0.14285714285714285
+    },
+    {
+      "attribute": "pharmaceutical_form",
+      "conditions": [
+        "pharmaceutical_form <> ''",
+        "LOWER(pharmaceutical_form) LIKE '%tablet%'",
+        "LOWER(pharmaceutical_form) LIKE '%injection%'",
+        "LOWER(pharmaceutical_form) LIKE '%capsule%'"
+      ],
+      "key": "med_multiagg20:q8|drug.pharmaceutical_form",
+      "kind": "predicate",
+      "loss_point": 1.0,
+      "loss_upper": 1.0,
+      "pairs": 0,
+      "provider": "__incumbent__",
+      "qualified": "drug.pharmaceutical_form",
+      "query_id": "med_multiagg20:q8",
+      "table": "drug",
+      "weight": 0.14285714285714285
+    }
+  ],
+  "distances": [],
+  "expected_loss_per_query": {
+    "point": 0.85,
+    "upper": 0.8499999999999994
+  },
+  "frontier_sizes": {
+    "disease": 12,
+    "drug": 15,
+    "institution": 8
+  },
+  "inputs": {
+    "attributes_sha": [
+      "08a01f35c44d6f0b48d502bf4dcd96e95f9cb4140eb35c6768f4fc419667adf9"
+    ],
+    "corpus_fingerprint": "3ef4ecc98194fb9c46e6dee48490f21de2416c1ce426b418c64e0cfd4c25047a",
+    "incumbent_sha": "4efc6af00dc212f7a87a0b5e256b80b8727f455b193c1e0909da23f8de676f1a",
+    "manifest_sha": "4cfb10698724c013890b74712adde791e88f4d44a52b4fb1f75d0c3b2f5f5979"
+  },
+  "plan_hash": "954741eb6042678fd0e49d49c694eba7d941ddbaa79fd1a3af5991ea0308d5d0",
+  "probe": {
+    "budget": 589794,
+    "dry_run": true,
+    "spent": 0
+  },
+  "router": {
+    "probe_fraction": 0.2,
+    "v3": {
+      "call_overhead_tokens": 600,
+      "noise_repeats_per_context": 2,
+      "pool_docs_per_table": 40,
+      "seed": 20260926,
+      "window_tokens": 10108,
+      "workers": 4
+    },
+    "version": "router-v3"
+  }
+}
