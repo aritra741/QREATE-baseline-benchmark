@@ -68,6 +68,7 @@ def build_plan_v3(
     journal: Path | None = None,
     incumbent_db: Path | None = None,
     observations: Observations | None = None,
+    probe_spent: int = 0,
 ) -> dict[str, Any]:
     queries = spec.queries()
     needs = workload_needs(spec, queries)
@@ -81,7 +82,7 @@ def build_plan_v3(
     incumbent = load_incumbent(spec, db)
 
     probe_budget = int(theta * PROBE_FRACTION)
-    probe: dict[str, Any] = {"budget": probe_budget, "spent": 0, "dry_run": caller is None and observations is None}
+    probe: dict[str, Any] = {"budget": probe_budget, "spent": probe_spent, "dry_run": caller is None and observations is None}
     if observations is None and caller is not None:
         probe = run_context_probe(spec, needs, queries, doc_tokens, fields, caller, probe_budget, journal)
         observations = Observations.from_json(probe["observations"])

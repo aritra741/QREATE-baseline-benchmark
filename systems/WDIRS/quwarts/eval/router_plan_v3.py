@@ -58,9 +58,7 @@ def main(argv: list[str] | None = None) -> int:
         observations = Observations.from_json(payload["observations"])
 
     plan, obs = build_plan_v3(spec, theta, caller=caller, journal=out / "probe_journal.jsonl",
-                              observations=observations)
-    if args.replay:
-        plan["budget"]["probe_spent"] = payload["spent"]
+                              observations=observations, probe_spent=payload["spent"] if args.replay else 0)
     if args.probe:
         (out / "observations.json").write_text(json.dumps(
             {"spent": plan["budget"]["probe_spent"], "observations": obs.to_json()}, sort_keys=True))
