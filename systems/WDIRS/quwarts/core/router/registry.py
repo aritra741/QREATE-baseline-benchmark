@@ -9,6 +9,7 @@ database built without gold.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -52,6 +53,8 @@ class CorpusSpec:
         return None if total is None else round(total * fraction)
 
     def queries(self) -> dict[str, str]:
+        if self.manifest.suffix == ".sql":
+            return parse_split_sql(self.manifest.read_text())
         payload = json.loads(self.manifest.read_text())
         return {str(item["query_id"]): str(item["sql"]) for item in payload}
 
@@ -64,6 +67,21 @@ class CorpusSpec:
             for key, attrs in payload.items():
                 merged.setdefault(key, {}).update(attrs)
         return merged
+
+
+_SPLIT_HEADER = re.compile(r"^-- Query \d+:.*?id=(\S+)\s*$", re.M)
+
+
+def parse_split_sql(text: str) -> dict[str, str]:
+    """``-- Query N: <split> (<slice>) id=<id>`` blocks, each followed by one statement."""
+
+    matches = list(_SPLIT_HEADER.finditer(text))
+    out: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        body = " ".join(line for line in text[match.end():end].splitlines() if line.strip() and not line.startswith("--"))
+        out[match.group(1)] = body.strip().rstrip(";").strip()
+    return out
 
 
 def _case80(tag: str) -> tuple[Path, Path]:
@@ -131,6 +149,17 @@ REGISTRY: dict[str, CorpusSpec] = {
             ("city", "city", SOURCE / "Player" / "city"),
         ],
         [QUERY / "Player" / "Player_attributes.json"],
+    ),
+    # Held out from router design; no DocETL run exists, so theta must be given or estimated.
+    "sec": CorpusSpec(
+        name="sec",
+        tables=(
+            TableSpec("company", "company", SOURCE / "SEC" / "company"),
+            TableSpec("filing", "filing", SOURCE / "SEC" / "filing"),
+            TableSpec("filing_metrics", "filing_metrics", SOURCE / "SEC" / "filing_metrics"),
+        ),
+        attributes_json=(QUERY / "SEC" / "SEC_attributes.json",),
+        manifest=QUERY / "SEC" / "Splits" / "test.sql",
     ),
 }
 

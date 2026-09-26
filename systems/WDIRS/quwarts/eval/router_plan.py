@@ -43,7 +43,7 @@ def _guard_open(file, mode="r", *args, **kwargs):
 builtins.open = _guard_open
 
 from quwarts.core.ledger import TokenLedger  # noqa: E402
-from quwarts.core.router.plan import build_plan, canonical_json, summarize  # noqa: E402
+from quwarts.core.router.plan import build_plan, canonical_json, estimate_theta, summarize  # noqa: E402
 from quwarts.core.router.registry import RESULTS, get_corpus  # noqa: E402
 
 
@@ -59,8 +59,11 @@ def main(argv: list[str] | None = None) -> int:
 
     spec = get_corpus(args.corpus)
     theta = args.theta or spec.theta(args.fraction)
+    theta_source = "argument" if args.theta else "docetl_total"
     if not theta:
-        parser.error("no DocETL token total for this corpus; pass --theta")
+        theta = estimate_theta(spec, args.fraction)
+        theta_source = "docetl_equivalent_estimate"
+        print(f"no DocETL run: theta = {args.fraction:.0%} of the estimated DocETL cost = {theta:,}")
     out = args.out or (RESULTS / "quwarts_router" / spec.name / ("probe" if args.probe else "dry_run"))
     out.mkdir(parents=True, exist_ok=True)
 
@@ -75,6 +78,7 @@ def main(argv: list[str] | None = None) -> int:
         caller = make_caller(ledger, max_tokens=280)
 
     plan = build_plan(spec, theta, caller=caller, journal=out / "probe_journal.jsonl", incumbent_db=args.incumbent)
+    plan["budget"]["theta_source"] = theta_source
     (out / "plan.json").write_text(json.dumps(plan, indent=2, sort_keys=True, default=str))
     if ledger is not None:
         (out / "ledger.json").write_text(canonical_json(ledger.snapshot()))

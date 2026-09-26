@@ -56,6 +56,8 @@ def test_priors_without_probe():
     assert extractiveness_prior(use("verdict", closed_label=True), 0.0)[0] == "interpretive"
     assert extractiveness_prior(use("verdict", closed_label=True), 1.0)[0] == "extractive"
     assert extractiveness_prior(use("auditor", description="name of the audit firm"), None)[0] == "extractive"
+    assert extractiveness_prior(use("company_id"), None)[0] == "extractive"
+    assert extractiveness_prior(use("valid_flag"), None)[0] == "interpretive"
 
 
 def test_fit_budget_drops_lowest_value_queries_first():
@@ -119,3 +121,10 @@ def test_cli_blocks_gold_reads(tmp_path):
             open(gold)
     finally:
         builtins.open = cli._ORIGINAL_OPEN
+
+
+def test_parse_split_sql():
+    from quwarts.core.router.registry import parse_split_sql
+
+    text = "-- Query 1: test (agg_only) id=a1\nSELECT 1\nFROM t;\n\n-- Query 2: test (x) id=b2\nSELECT 2;\n"
+    assert parse_split_sql(text) == {"a1": "SELECT 1 FROM t", "b2": "SELECT 2"}

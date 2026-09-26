@@ -1,0 +1,29 @@
+no DocETL run: theta = 25% of the estimated DocETL cost = 20,559,360
+corpus=sec verdict=workload_served(provisional) coverage=1.00 measured=0.00 rho=0.250 planned=8,985,600/20,186,880 (theta=20,559,360) plan=1a99742b74de
+  table company: docs=160 median_tokens=58068 lambda=5.74 queries=13
+  table filing: docs=160 median_tokens=58068 lambda=5.74 queries=10
+  table filing_metrics: docs=160 median_tokens=58068 lambda=5.74 queries=25
+  company.company_id                         program        R2  uses=13 | prior: numeric/date/identifier values are written as spans
+  company.sic_description                    retrieval_map  R4  uses=6 served=6/6 | prior: no evidence the value is a span; default to query-conditioned reading
+  company.state_of_incorporation             retrieval_map  R4  uses=3 served=3/3 | prior: no evidence the value is a span; default to query-conditioned reading
+  company.ticker                             retrieval_map  R4  uses=4 served=4/4 | prior: no evidence the value is a span; default to query-conditioned reading
+  filing.filing_id                           program        R2  uses=10 | prior: numeric/date/identifier values are written as spans
+  filing.form_type                           retrieval_map  R4  uses=3 served=3/3 | prior: no evidence the value is a span; default to query-conditioned reading
+  filing_metrics.assets_usd                  program        R2  uses=2 | prior: numeric/date/identifier values are written as spans
+  filing_metrics.company_id                  program        R2  uses=13 | prior: numeric/date/identifier values are written as spans
+  filing_metrics.company_name                program        R2  uses=3 | prior: named entities are written verbatim
+  filing_metrics.filing_id                   program        R2  uses=10 | prior: numeric/date/identifier values are written as spans
+  filing_metrics.financing_cash_flow_usd     retrieval_map  R4  uses=1 served=1/1 | prior: no evidence the value is a span; default to query-conditioned reading
+  filing_metrics.fiscal_period               retrieval_map  R4  uses=5 served=5/5 | prior: no evidence the value is a span; default to query-conditioned reading
+  filing_metrics.fiscal_year                 program        R2  uses=3 | prior: numeric/date/identifier values are written as spans
+  filing_metrics.form_type                   retrieval_map  R4  uses=2 served=2/2 | prior: no evidence the value is a span; default to query-conditioned reading
+  filing_metrics.investing_cash_flow_usd     retrieval_map  R4  uses=2 served=2/2 | prior: no evidence the value is a span; default to query-conditioned reading
+  filing_metrics.liabilities_usd             program        R2  uses=7 | prior: numeric/date/identifier values are written as spans
+  filing_metrics.net_income_usd              program        R2  uses=3 | prior: numeric/date/identifier values are written as spans
+  filing_metrics.operating_cash_flow_usd     program        R2  uses=6 | prior: numeric/date/identifier values are written as spans
+  filing_metrics.revenue_usd                 program        R2  uses=3 | prior: numeric/date/identifier values are written as spans
+  filing_metrics.shares_outstanding          program        R2  uses=2 | prior: numeric/date/identifier values are written as spans
+  filing_metrics.sic_description             retrieval_map  R4  uses=2 served=2/2 | prior: no evidence the value is a span; default to query-conditioned reading
+  filing_metrics.state_of_incorporation      retrieval_map  R4  uses=1 served=1/1 | prior: no evidence the value is a span; default to query-conditioned reading
+  filing_metrics.ticker                      retrieval_map  R4  uses=3 served=3/3 | prior: no evidence the value is a span; default to query-conditioned reading
+wrote /sessions/rcw-01n4cex6u5bon8kzynq4paep/mnt/UDA-Bench-main/results/quwarts_router/sec/dry_run/plan.json

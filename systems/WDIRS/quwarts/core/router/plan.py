@@ -41,12 +41,25 @@ def canonical_json(payload: Any) -> str:
 def verdict(cov: dict[str, Any], fits: bool) -> str:
     fraction = cov["fraction"]
     if not fits:
-        return "infeasible_at_theta"
-    if fraction >= float(FROZEN["coverage_serve_min"]):
-        return "workload_served"
-    if fraction < float(FROZEN["coverage_loss_max"]):
-        return "predicted_loss"
-    return "partially_served"
+        label = "infeasible_at_theta"
+    elif fraction >= float(FROZEN["coverage_serve_min"]):
+        label = "workload_served"
+    elif fraction < float(FROZEN["coverage_loss_max"]):
+        label = "predicted_loss"
+    else:
+        label = "partially_served"
+    # A verdict built on priors alone is provisional until the probe runs.
+    return label if cov.get("measured_fraction", 0.0) >= 0.5 else f"{label}(provisional)"
+
+
+def estimate_theta(spec: CorpusSpec, fraction: float) -> int:
+    """Budget from the DocETL-equivalent cost estimate, for corpora with no DocETL run."""
+
+    queries = spec.queries()
+    workload = workload_features(spec, queries)
+    tables = corpus_features(spec, workload)["tables"]
+    queries_by_table = {name: info["queries"] for name, info in workload["tables"].items()}
+    return round(docetl_equivalent_cost(tables, queries_by_table) * fraction)
 
 
 def build_plan(
@@ -146,7 +159,7 @@ def build_plan(
 def summarize(plan: dict[str, Any]) -> str:
     lines = [
         f"corpus={plan['corpus']} verdict={plan['verdict']} coverage={plan['coverage']['fraction']:.2f} "
-        f"rho={plan['budget']['rho']:.3f} planned={plan['budget']['planned_operator_tokens']:,}/"
+        f"measured={plan['coverage']['measured_fraction']:.2f} rho={plan['budget']['rho']:.3f} planned={plan['budget']['planned_operator_tokens']:,}/"
         f"{plan['budget']['available_for_operators']:,} (theta={plan['budget']['theta']:,}) plan={plan['plan_hash'][:12]}",
     ]
     for name, info in plan["tables"].items():

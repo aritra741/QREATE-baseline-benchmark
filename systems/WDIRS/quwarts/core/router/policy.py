@@ -59,7 +59,8 @@ def extractiveness_prior(use: AttributeUse, label_surface: float | None) -> tupl
         if label_surface is not None and label_surface >= float(FROZEN["label_surface_min"]):
             return "extractive", f"closed labels occur verbatim in the corpus (surface={label_surface:.2f})"
         return "interpretive", "closed label set not written in the corpus: classification, not copying"
-    if use.numeric or re.search(r"\b(year|date|id|code)\b", text):
+    # Match whole words and snake_case parts ("company_id" has the part "id").
+    if use.numeric or re.search(r"(^|[\s_])(year|date|id|code)($|[\s_])", text):
         return "extractive", "numeric/date/identifier values are written as spans"
     if re.search(r"(^|_)name\b|\bname of\b", text):
         return "extractive", "named entities are written verbatim"
@@ -255,9 +256,16 @@ def fit_budget(decisions: list[Decision], tables: dict[str, Any], queries_by_tab
 
 
 def coverage(decisions: list[Decision]) -> dict[str, Any]:
-    """Share of (query, attribute) uses served by a non-keep operator."""
+    """Share of (query, attribute) uses served by a non-keep operator.
+
+    ``measured_fraction`` is the share of decisions resting on zero-token
+    residue or probe measurements rather than on priors alone.
+    """
 
     total = served = 0
+    measured = sum(
+        1 for d in decisions if d.rule == "R1" or d.evidence.get("g") is not None or d.evidence.get("delta") is not None
+    )
     by_route: dict[str, int] = {}
     for d in decisions:
         uses = len(d.query_ids)
@@ -270,4 +278,10 @@ def coverage(decisions: list[Decision]) -> dict[str, Any]:
             n = uses
         served += n
         by_route[d.route] = by_route.get(d.route, 0) + n
-    return {"uses": total, "served": served, "fraction": served / total if total else 0.0, "by_route": by_route}
+    return {
+        "uses": total,
+        "served": served,
+        "fraction": served / total if total else 0.0,
+        "by_route": by_route,
+        "measured_fraction": measured / len(decisions) if decisions else 0.0,
+    }

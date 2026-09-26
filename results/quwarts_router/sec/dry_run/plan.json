@@ -1,0 +1,1636 @@
+{
+  "attributes": {
+    "company.company_id": {
+      "closed_label": false,
+      "description": "stable SEC company identifier, equal to zero-padded CIK.",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 13,
+      "name": "company_id",
+      "numeric": false,
+      "qualified": "company.company_id",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_join_sec_10",
+        "agg_join_sec_110",
+        "agg_join_sec_24",
+        "agg_join_sec_84",
+        "agg_join_sec_88",
+        "agg_temporal_sec_153",
+        "agg_temporal_sec_174",
+        "agg_temporal_sec_94"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "company",
+      "value_type": "str"
+    },
+    "company.sic_description": {
+      "closed_label": false,
+      "description": "SEC industry description.",
+      "dtype": "string",
+      "literals": [
+        "National Commercial Banks",
+        "Petroleum Refining",
+        "Pharmaceutical Preparations"
+      ],
+      "n_queries": 6,
+      "name": "sic_description",
+      "numeric": false,
+      "qualified": "company.sic_description",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_temporal_sec_94"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "company",
+      "value_type": "str"
+    },
+    "company.state_of_incorporation": {
+      "closed_label": false,
+      "description": "issuer state of incorporation.",
+      "dtype": "string",
+      "literals": [
+        "CA"
+      ],
+      "n_queries": 3,
+      "name": "state_of_incorporation",
+      "numeric": false,
+      "qualified": "company.state_of_incorporation",
+      "query_ids": [
+        "agg_filter_join_sec_143",
+        "agg_join_sec_84",
+        "agg_join_sec_88"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "company",
+      "value_type": "str"
+    },
+    "company.ticker": {
+      "closed_label": false,
+      "description": "public ticker symbol from SEC company_tickers.json.",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 4,
+      "name": "ticker",
+      "numeric": false,
+      "qualified": "company.ticker",
+      "query_ids": [
+        "agg_join_sec_10",
+        "agg_join_sec_24",
+        "agg_temporal_sec_153",
+        "agg_temporal_sec_174"
+      ],
+      "roles": [
+        "group"
+      ],
+      "sensitive": true,
+      "table": "company",
+      "value_type": "str"
+    },
+    "filing.filing_id": {
+      "closed_label": false,
+      "description": "stable filing identifier, accession number without dashes.",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 10,
+      "name": "filing_id",
+      "numeric": false,
+      "qualified": "filing.filing_id",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_join_sec_10",
+        "agg_join_sec_110",
+        "agg_join_sec_24",
+        "agg_join_sec_84",
+        "agg_join_sec_88"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "filing",
+      "value_type": "str"
+    },
+    "filing.form_type": {
+      "closed_label": false,
+      "description": "SEC form type, restricted here to 10-K and 10-Q.",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 3,
+      "name": "form_type",
+      "numeric": false,
+      "qualified": "filing.form_type",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_join_sec_110"
+      ],
+      "roles": [
+        "group"
+      ],
+      "sensitive": true,
+      "table": "filing",
+      "value_type": "str"
+    },
+    "filing_metrics.assets_usd": {
+      "closed_label": false,
+      "description": "canonical total assets fact for the filing.",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 2,
+      "name": "assets_usd",
+      "numeric": true,
+      "qualified": "filing_metrics.assets_usd",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_sec_2347"
+      ],
+      "roles": [
+        "agg_extremal"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": "float"
+    },
+    "filing_metrics.company_id": {
+      "closed_label": false,
+      "description": "foreign key to company.company_id.",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 13,
+      "name": "company_id",
+      "numeric": false,
+      "qualified": "filing_metrics.company_id",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_join_sec_10",
+        "agg_join_sec_110",
+        "agg_join_sec_24",
+        "agg_join_sec_84",
+        "agg_join_sec_88",
+        "agg_temporal_sec_153",
+        "agg_temporal_sec_174",
+        "agg_temporal_sec_94"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": "str"
+    },
+    "filing_metrics.company_name": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 3,
+      "name": "company_name",
+      "numeric": false,
+      "qualified": "filing_metrics.company_name",
+      "query_ids": [
+        "agg_filter_sec_397",
+        "agg_only_sec_14",
+        "agg_only_sec_6"
+      ],
+      "roles": [
+        "group"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": ""
+    },
+    "filing_metrics.filing_id": {
+      "closed_label": false,
+      "description": "foreign key to filing.filing_id.",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 10,
+      "name": "filing_id",
+      "numeric": false,
+      "qualified": "filing_metrics.filing_id",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_join_sec_10",
+        "agg_join_sec_110",
+        "agg_join_sec_24",
+        "agg_join_sec_84",
+        "agg_join_sec_88"
+      ],
+      "roles": [
+        "join",
+        "key"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": "str"
+    },
+    "filing_metrics.financing_cash_flow_usd": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 1,
+      "name": "financing_cash_flow_usd",
+      "numeric": false,
+      "qualified": "filing_metrics.financing_cash_flow_usd",
+      "query_ids": [
+        "agg_temporal_sec_153"
+      ],
+      "roles": [
+        "agg_extremal"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": ""
+    },
+    "filing_metrics.fiscal_period": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "string",
+      "literals": [
+        "Q1",
+        "Q3"
+      ],
+      "n_queries": 5,
+      "name": "fiscal_period",
+      "numeric": false,
+      "qualified": "filing_metrics.fiscal_period",
+      "query_ids": [
+        "agg_filter_sec_1867",
+        "agg_filter_sec_2347",
+        "agg_filter_sec_397",
+        "agg_temporal_sec_181",
+        "agg_temporal_sec_67"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": ""
+    },
+    "filing_metrics.fiscal_year": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 3,
+      "name": "fiscal_year",
+      "numeric": true,
+      "qualified": "filing_metrics.fiscal_year",
+      "query_ids": [
+        "agg_temporal_sec_181",
+        "agg_temporal_sec_67",
+        "agg_temporal_sec_94"
+      ],
+      "roles": [
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": ""
+    },
+    "filing_metrics.form_type": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "string",
+      "literals": [
+        "10-K"
+      ],
+      "n_queries": 2,
+      "name": "form_type",
+      "numeric": false,
+      "qualified": "filing_metrics.form_type",
+      "query_ids": [
+        "agg_filter_sec_2347",
+        "agg_only_sec_79"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": ""
+    },
+    "filing_metrics.investing_cash_flow_usd": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 2,
+      "name": "investing_cash_flow_usd",
+      "numeric": false,
+      "qualified": "filing_metrics.investing_cash_flow_usd",
+      "query_ids": [
+        "agg_join_sec_24",
+        "agg_join_sec_88"
+      ],
+      "roles": [
+        "agg_extremal"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": ""
+    },
+    "filing_metrics.liabilities_usd": {
+      "closed_label": false,
+      "description": "canonical total liabilities fact for the filing.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 7,
+      "name": "liabilities_usd",
+      "numeric": true,
+      "qualified": "filing_metrics.liabilities_usd",
+      "query_ids": [
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_join_sec_10",
+        "agg_only_sec_14",
+        "agg_only_sec_48",
+        "agg_only_sec_79",
+        "agg_temporal_sec_67"
+      ],
+      "roles": [
+        "agg_additive",
+        "agg_extremal"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": "float"
+    },
+    "filing_metrics.net_income_usd": {
+      "closed_label": false,
+      "description": "canonical net income or profit/loss fact for the filing.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 3,
+      "name": "net_income_usd",
+      "numeric": true,
+      "qualified": "filing_metrics.net_income_usd",
+      "query_ids": [
+        "agg_filter_join_sec_202",
+        "agg_join_sec_110",
+        "agg_temporal_sec_94"
+      ],
+      "roles": [
+        "agg_additive",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": "float"
+    },
+    "filing_metrics.operating_cash_flow_usd": {
+      "closed_label": false,
+      "description": "canonical operating cash flow fact for the filing.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 6,
+      "name": "operating_cash_flow_usd",
+      "numeric": true,
+      "qualified": "filing_metrics.operating_cash_flow_usd",
+      "query_ids": [
+        "agg_filter_join_sec_1363",
+        "agg_filter_sec_1191",
+        "agg_filter_sec_1856",
+        "agg_filter_sec_1867",
+        "agg_filter_sec_397",
+        "agg_join_sec_84"
+      ],
+      "roles": [
+        "agg_additive",
+        "agg_extremal"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": "float"
+    },
+    "filing_metrics.revenue_usd": {
+      "closed_label": false,
+      "description": "canonical revenue fact selected from SEC companyfacts for the filing.",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 3,
+      "name": "revenue_usd",
+      "numeric": true,
+      "qualified": "filing_metrics.revenue_usd",
+      "query_ids": [
+        "agg_filter_join_sec_38",
+        "agg_filter_sec_1191",
+        "agg_only_sec_38"
+      ],
+      "roles": [
+        "agg_extremal",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": "float"
+    },
+    "filing_metrics.shares_outstanding": {
+      "closed_label": false,
+      "description": "canonical shares outstanding fact for the filing.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 2,
+      "name": "shares_outstanding",
+      "numeric": true,
+      "qualified": "filing_metrics.shares_outstanding",
+      "query_ids": [
+        "agg_temporal_sec_174",
+        "agg_temporal_sec_181"
+      ],
+      "roles": [
+        "agg_additive"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": "float"
+    },
+    "filing_metrics.sic_description": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "string",
+      "literals": [],
+      "n_queries": 2,
+      "name": "sic_description",
+      "numeric": false,
+      "qualified": "filing_metrics.sic_description",
+      "query_ids": [
+        "agg_filter_sec_1856",
+        "agg_filter_sec_1867"
+      ],
+      "roles": [
+        "group"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": ""
+    },
+    "filing_metrics.state_of_incorporation": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "string",
+      "literals": [
+        "TX"
+      ],
+      "n_queries": 1,
+      "name": "state_of_incorporation",
+      "numeric": false,
+      "qualified": "filing_metrics.state_of_incorporation",
+      "query_ids": [
+        "agg_filter_sec_1856"
+      ],
+      "roles": [
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": ""
+    },
+    "filing_metrics.ticker": {
+      "closed_label": false,
+      "description": "",
+      "dtype": "unknown",
+      "literals": [],
+      "n_queries": 3,
+      "name": "ticker",
+      "numeric": false,
+      "qualified": "filing_metrics.ticker",
+      "query_ids": [
+        "agg_filter_sec_1191",
+        "agg_only_sec_38",
+        "agg_only_sec_48"
+      ],
+      "roles": [
+        "group"
+      ],
+      "sensitive": true,
+      "table": "filing_metrics",
+      "value_type": ""
+    }
+  },
+  "budget": {
+    "available_for_operators": 20186880,
+    "docetl_equivalent_estimate": 82237440,
+    "fits": true,
+    "planned_operator_tokens": 8985600,
+    "probe_budget": 2055936,
+    "probe_spent": 372480,
+    "rho": 0.25,
+    "theta": 20559360,
+    "theta_source": "docetl_equivalent_estimate"
+  },
+  "corpus": "sec",
+  "costs": {
+    "per_table": {
+      "company": {
+        "canonical_map": 0,
+        "fused_map": 0,
+        "program": 28800,
+        "repair": 0,
+        "retrieval_map": 3456000
+      },
+      "filing": {
+        "canonical_map": 0,
+        "fused_map": 0,
+        "program": 28800,
+        "repair": 0,
+        "retrieval_map": 1152000
+      },
+      "filing_metrics": {
+        "canonical_map": 0,
+        "fused_map": 0,
+        "program": 288000,
+        "repair": 0,
+        "retrieval_map": 4032000
+      }
+    },
+    "total": 8985600
+  },
+  "coverage": {
+    "by_route": {
+      "program": 75,
+      "retrieval_map": 32
+    },
+    "fraction": 1.0,
+    "measured_fraction": 0.0,
+    "served": 107,
+    "uses": 107
+  },
+  "decisions": [
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "company.company_id",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_join_sec_10",
+        "agg_join_sec_110",
+        "agg_join_sec_24",
+        "agg_join_sec_84",
+        "agg_join_sec_88",
+        "agg_temporal_sec_153",
+        "agg_temporal_sec_174",
+        "agg_temporal_sec_94"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "company"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": 0.0,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_filter_join_sec_1212",
+          "agg_filter_join_sec_1363",
+          "agg_filter_join_sec_143",
+          "agg_filter_join_sec_202",
+          "agg_filter_join_sec_38",
+          "agg_temporal_sec_94"
+        ]
+      },
+      "qualified": "company.sic_description",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_temporal_sec_94"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "company"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": 1.0,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_filter_join_sec_143",
+          "agg_join_sec_84",
+          "agg_join_sec_88"
+        ]
+      },
+      "qualified": "company.state_of_incorporation",
+      "query_ids": [
+        "agg_filter_join_sec_143",
+        "agg_join_sec_84",
+        "agg_join_sec_88"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "company"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_join_sec_10",
+          "agg_join_sec_24",
+          "agg_temporal_sec_153",
+          "agg_temporal_sec_174"
+        ]
+      },
+      "qualified": "company.ticker",
+      "query_ids": [
+        "agg_join_sec_10",
+        "agg_join_sec_24",
+        "agg_temporal_sec_153",
+        "agg_temporal_sec_174"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "company"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing.filing_id",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_join_sec_10",
+        "agg_join_sec_110",
+        "agg_join_sec_24",
+        "agg_join_sec_84",
+        "agg_join_sec_88"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_filter_join_sec_1212",
+          "agg_filter_join_sec_1363",
+          "agg_join_sec_110"
+        ]
+      },
+      "qualified": "filing.form_type",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_join_sec_110"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "filing"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.assets_usd",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_sec_2347"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.company_id",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_join_sec_10",
+        "agg_join_sec_110",
+        "agg_join_sec_24",
+        "agg_join_sec_84",
+        "agg_join_sec_88",
+        "agg_temporal_sec_153",
+        "agg_temporal_sec_174",
+        "agg_temporal_sec_94"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.company_name",
+      "query_ids": [
+        "agg_filter_sec_397",
+        "agg_only_sec_14",
+        "agg_only_sec_6"
+      ],
+      "reasons": [
+        "prior: named entities are written verbatim",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.filing_id",
+      "query_ids": [
+        "agg_filter_join_sec_1212",
+        "agg_filter_join_sec_1363",
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_filter_join_sec_38",
+        "agg_join_sec_10",
+        "agg_join_sec_110",
+        "agg_join_sec_24",
+        "agg_join_sec_84",
+        "agg_join_sec_88"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_temporal_sec_153"
+        ]
+      },
+      "qualified": "filing_metrics.financing_cash_flow_usd",
+      "query_ids": [
+        "agg_temporal_sec_153"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": 1.0,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_filter_sec_1867",
+          "agg_filter_sec_2347",
+          "agg_filter_sec_397",
+          "agg_temporal_sec_181",
+          "agg_temporal_sec_67"
+        ]
+      },
+      "qualified": "filing_metrics.fiscal_period",
+      "query_ids": [
+        "agg_filter_sec_1867",
+        "agg_filter_sec_2347",
+        "agg_filter_sec_397",
+        "agg_temporal_sec_181",
+        "agg_temporal_sec_67"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.fiscal_year",
+      "query_ids": [
+        "agg_temporal_sec_181",
+        "agg_temporal_sec_67",
+        "agg_temporal_sec_94"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": 1.0,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_filter_sec_2347",
+          "agg_only_sec_79"
+        ]
+      },
+      "qualified": "filing_metrics.form_type",
+      "query_ids": [
+        "agg_filter_sec_2347",
+        "agg_only_sec_79"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_join_sec_24",
+          "agg_join_sec_88"
+        ]
+      },
+      "qualified": "filing_metrics.investing_cash_flow_usd",
+      "query_ids": [
+        "agg_join_sec_24",
+        "agg_join_sec_88"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.liabilities_usd",
+      "query_ids": [
+        "agg_filter_join_sec_143",
+        "agg_filter_join_sec_202",
+        "agg_join_sec_10",
+        "agg_only_sec_14",
+        "agg_only_sec_48",
+        "agg_only_sec_79",
+        "agg_temporal_sec_67"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.net_income_usd",
+      "query_ids": [
+        "agg_filter_join_sec_202",
+        "agg_join_sec_110",
+        "agg_temporal_sec_94"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.operating_cash_flow_usd",
+      "query_ids": [
+        "agg_filter_join_sec_1363",
+        "agg_filter_sec_1191",
+        "agg_filter_sec_1856",
+        "agg_filter_sec_1867",
+        "agg_filter_sec_397",
+        "agg_join_sec_84"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.revenue_usd",
+      "query_ids": [
+        "agg_filter_join_sec_38",
+        "agg_filter_sec_1191",
+        "agg_only_sec_38"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "extractive",
+        "probe_docs": null,
+        "r": null
+      },
+      "qualified": "filing_metrics.shares_outstanding",
+      "query_ids": [
+        "agg_temporal_sec_174",
+        "agg_temporal_sec_181"
+      ],
+      "reasons": [
+        "prior: numeric/date/identifier values are written as spans",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)",
+        "long documents: amortize with one program per attribute"
+      ],
+      "route": "program",
+      "rule": "R2",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_filter_sec_1856",
+          "agg_filter_sec_1867"
+        ]
+      },
+      "qualified": "filing_metrics.sic_description",
+      "query_ids": [
+        "agg_filter_sec_1856",
+        "agg_filter_sec_1867"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": 1.0,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_filter_sec_1856"
+        ]
+      },
+      "qualified": "filing_metrics.state_of_incorporation",
+      "query_ids": [
+        "agg_filter_sec_1856"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "filing_metrics"
+    },
+    {
+      "evidence": {
+        "delta": null,
+        "delta_cross": null,
+        "g": null,
+        "kappa": null,
+        "kept_queries": [],
+        "label_surface": null,
+        "lambda": 5.744756628413138,
+        "prior": "interpretive",
+        "probe_docs": null,
+        "r": null,
+        "served_queries": [
+          "agg_filter_sec_1191",
+          "agg_only_sec_38",
+          "agg_only_sec_48"
+        ]
+      },
+      "qualified": "filing_metrics.ticker",
+      "query_ids": [
+        "agg_filter_sec_1191",
+        "agg_only_sec_38",
+        "agg_only_sec_48"
+      ],
+      "reasons": [
+        "prior: no evidence the value is a span; default to query-conditioned reading",
+        "no query-sensitivity estimate: shareable only if extractive",
+        "context fit lambda=5.74 (does not fit)"
+      ],
+      "route": "retrieval_map",
+      "rule": "R4",
+      "table": "filing_metrics"
+    }
+  ],
+  "dropped_map_queries": [],
+  "inputs": {
+    "attributes_sha": [
+      "baf7c121fa8010c35d1a88456fee728fbc79f6caead9e72e9648cf7e41687ac6"
+    ],
+    "corpus_fingerprint": "31693b25d2f68a91049fa6017b03912da81d78e01edfa6a691542725515b5935",
+    "incumbent_db": null,
+    "incumbent_sha": null,
+    "manifest_sha": "60c8d32c63f1cf0728534e08595f407c15341724c2db50b5cc61a4fc393032a8",
+    "n_queries": 25
+  },
+  "map_queries": {
+    "company:retrieval_map": [
+      "agg_filter_join_sec_1212",
+      "agg_filter_join_sec_1363",
+      "agg_filter_join_sec_143",
+      "agg_filter_join_sec_202",
+      "agg_filter_join_sec_38",
+      "agg_temporal_sec_94",
+      "agg_join_sec_84",
+      "agg_join_sec_88",
+      "agg_join_sec_10",
+      "agg_join_sec_24",
+      "agg_temporal_sec_153",
+      "agg_temporal_sec_174"
+    ],
+    "filing:retrieval_map": [
+      "agg_filter_join_sec_1212",
+      "agg_filter_join_sec_1363",
+      "agg_join_sec_110"
+    ],
+    "filing_metrics:retrieval_map": [
+      "agg_temporal_sec_153",
+      "agg_filter_sec_1867",
+      "agg_filter_sec_2347",
+      "agg_filter_sec_397",
+      "agg_temporal_sec_181",
+      "agg_temporal_sec_67",
+      "agg_only_sec_79",
+      "agg_join_sec_24",
+      "agg_join_sec_88",
+      "agg_filter_sec_1856",
+      "agg_filter_sec_1191",
+      "agg_only_sec_38",
+      "agg_only_sec_48"
+    ]
+  },
+  "plan_hash": "1a99742b74def58231a2476e3f7fedebf2b777920efc8e2a30fcd949331151ae",
+  "probe": {
+    "budget": 2055936,
+    "dry_run": true,
+    "tables": {
+      "company": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "company.company_id",
+            "company.sic_description",
+            "company.state_of_incorporation",
+            "company.ticker"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "agg_filter_join_sec_1212",
+            "agg_filter_join_sec_1363",
+            "agg_filter_join_sec_143",
+            "agg_filter_join_sec_202",
+            "agg_filter_join_sec_38",
+            "agg_join_sec_10",
+            "agg_join_sec_110",
+            "agg_join_sec_24",
+            "agg_join_sec_84",
+            "agg_join_sec_88",
+            "agg_temporal_sec_153",
+            "agg_temporal_sec_174",
+            "agg_temporal_sec_94"
+          ],
+          "docs": 8,
+          "mean_call_tokens": 3880.0,
+          "share_tokens": 357554.0869565217
+        }
+      },
+      "filing": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "filing.filing_id",
+            "filing.form_type"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "agg_filter_join_sec_1212",
+            "agg_filter_join_sec_1363",
+            "agg_filter_join_sec_143",
+            "agg_filter_join_sec_202",
+            "agg_filter_join_sec_38",
+            "agg_join_sec_10",
+            "agg_join_sec_110",
+            "agg_join_sec_24",
+            "agg_join_sec_84",
+            "agg_join_sec_88"
+          ],
+          "docs": 8,
+          "mean_call_tokens": 3880.0,
+          "share_tokens": 178777.04347826086
+        }
+      },
+      "filing_metrics": {
+        "metrics": {},
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "filing_metrics.assets_usd",
+            "filing_metrics.company_id",
+            "filing_metrics.company_name",
+            "filing_metrics.filing_id",
+            "filing_metrics.financing_cash_flow_usd",
+            "filing_metrics.fiscal_period",
+            "filing_metrics.fiscal_year",
+            "filing_metrics.form_type",
+            "filing_metrics.investing_cash_flow_usd",
+            "filing_metrics.liabilities_usd",
+            "filing_metrics.net_income_usd",
+            "filing_metrics.operating_cash_flow_usd",
+            "filing_metrics.revenue_usd",
+            "filing_metrics.shares_outstanding",
+            "filing_metrics.sic_description",
+            "filing_metrics.state_of_incorporation",
+            "filing_metrics.ticker"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "agg_filter_join_sec_1212",
+            "agg_filter_join_sec_1363",
+            "agg_filter_join_sec_143",
+            "agg_filter_join_sec_202",
+            "agg_filter_join_sec_38",
+            "agg_filter_sec_1191",
+            "agg_filter_sec_1856",
+            "agg_filter_sec_1867",
+            "agg_filter_sec_2347",
+            "agg_filter_sec_397",
+            "agg_join_sec_10",
+            "agg_join_sec_110",
+            "agg_join_sec_24",
+            "agg_join_sec_84",
+            "agg_join_sec_88",
+            "agg_only_sec_14",
+            "agg_only_sec_38",
+            "agg_only_sec_48",
+            "agg_only_sec_6",
+            "agg_only_sec_79",
+            "agg_temporal_sec_153",
+            "agg_temporal_sec_174",
+            "agg_temporal_sec_181",
+            "agg_temporal_sec_67",
+            "agg_temporal_sec_94"
+          ],
+          "docs": 8,
+          "mean_call_tokens": 3880.0,
+          "share_tokens": 1519604.8695652173
+        }
+      }
+    }
+  },
+  "residue": {
+    "attributes": {},
+    "available": false
+  },
+  "router": {
+    "constants": {
+      "call_overhead_tokens": 600,
+      "canonical_bundle_size": 6,
+      "context_window_tokens": 10108,
+      "corpus_sample_docs": 50,
+      "coverage_loss_max": 0.5,
+      "coverage_serve_min": 0.8,
+      "extractive_min": 0.5,
+      "fusion_width": 2,
+      "incumbent_grounding_min": 0.5,
+      "label_surface_min": 0.5,
+      "probe_budget_fraction": 0.1,
+      "probe_docs_max": 8,
+      "probe_docs_min": 3,
+      "probe_query_contexts_per_doc": 2,
+      "probe_seed": 20260926,
+      "program_calls_per_attribute": 8,
+      "regularity_min": 0.5,
+      "residue_fraction_max": 0.1,
+      "sensitivity_max": 0.2,
+      "version": "router-v1",
+      "window_tokens": 3000
+    },
+    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
+    "version": "router-v1"
+  },
+  "tables": {
+    "company": {
+      "context_fit_lambda": 5.744756628413138,
+      "fit_fraction": 0.0,
+      "full_read_cost": 1713280,
+      "n_docs": 160,
+      "tokens_median": 58068.0,
+      "tokens_p90": 242991,
+      "tokens_total": 14340790,
+      "window_read_cost": 576000,
+      "workload": {
+        "attribute_reuse": 6.5,
+        "n_attributes": 4,
+        "n_queries": 13,
+        "queries": [
+          "agg_filter_join_sec_1212",
+          "agg_filter_join_sec_1363",
+          "agg_filter_join_sec_143",
+          "agg_filter_join_sec_202",
+          "agg_filter_join_sec_38",
+          "agg_join_sec_10",
+          "agg_join_sec_110",
+          "agg_join_sec_24",
+          "agg_join_sec_84",
+          "agg_join_sec_88",
+          "agg_temporal_sec_153",
+          "agg_temporal_sec_174",
+          "agg_temporal_sec_94"
+        ]
+      }
+    },
+    "filing": {
+      "context_fit_lambda": 5.744756628413138,
+      "fit_fraction": 0.0,
+      "full_read_cost": 1713280,
+      "n_docs": 160,
+      "tokens_median": 58068.0,
+      "tokens_p90": 242991,
+      "tokens_total": 14340790,
+      "window_read_cost": 576000,
+      "workload": {
+        "attribute_reuse": 6.5,
+        "n_attributes": 2,
+        "n_queries": 10,
+        "queries": [
+          "agg_filter_join_sec_1212",
+          "agg_filter_join_sec_1363",
+          "agg_filter_join_sec_143",
+          "agg_filter_join_sec_202",
+          "agg_filter_join_sec_38",
+          "agg_join_sec_10",
+          "agg_join_sec_110",
+          "agg_join_sec_24",
+          "agg_join_sec_84",
+          "agg_join_sec_88"
+        ]
+      }
+    },
+    "filing_metrics": {
+      "context_fit_lambda": 5.744756628413138,
+      "fit_fraction": 0.0,
+      "full_read_cost": 1713280,
+      "n_docs": 160,
+      "tokens_median": 58068.0,
+      "tokens_p90": 242991,
+      "tokens_total": 14340790,
+      "window_read_cost": 576000,
+      "workload": {
+        "attribute_reuse": 4.0,
+        "n_attributes": 17,
+        "n_queries": 25,
+        "queries": [
+          "agg_filter_join_sec_1212",
+          "agg_filter_join_sec_1363",
+          "agg_filter_join_sec_143",
+          "agg_filter_join_sec_202",
+          "agg_filter_join_sec_38",
+          "agg_filter_sec_1191",
+          "agg_filter_sec_1856",
+          "agg_filter_sec_1867",
+          "agg_filter_sec_2347",
+          "agg_filter_sec_397",
+          "agg_join_sec_10",
+          "agg_join_sec_110",
+          "agg_join_sec_24",
+          "agg_join_sec_84",
+          "agg_join_sec_88",
+          "agg_only_sec_14",
+          "agg_only_sec_38",
+          "agg_only_sec_48",
+          "agg_only_sec_6",
+          "agg_only_sec_79",
+          "agg_temporal_sec_153",
+          "agg_temporal_sec_174",
+          "agg_temporal_sec_181",
+          "agg_temporal_sec_67",
+          "agg_temporal_sec_94"
+        ]
+      }
+    }
+  },
+  "verdict": "workload_served(provisional)"
+}
