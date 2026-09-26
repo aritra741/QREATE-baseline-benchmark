@@ -46,7 +46,11 @@ def workload(corpus: str) -> tuple[list[dict], list[dict]]:
     return split_80_20(load_queries(DATASET[corpus]), SEED)
 
 
-def setup(corpus: str):
+def out_dir(spec, variant: str) -> Path:
+    return RESULTS / "quwarts_router_v3" / spec.name / ("shared_read" if variant == "plain" else f"shared_read_{variant}")
+
+
+def setup(corpus: str, variant: str = "plain"):
     spec = get_corpus(corpus)
     train, test = workload(corpus)
     train_q = {r["query_id"]: r["sql"] for r in train}
@@ -57,6 +61,10 @@ def setup(corpus: str):
     fields = field_specs(spec, needs, numeric)
     fields = {q: replace(f, usage=usage_phrase(wf["attributes"][q])) if q in wf["attributes"] else f
               for q, f in fields.items()}
+    if variant in ("described", "described_v1"):
+        base = out_dir(spec, "described")
+        frozen = json.loads(((base / "v1") if variant == "described_v1" else base).joinpath("descriptions.json").read_text())
+        fields = {q: replace(f, description=frozen[q]["description"]) if q in frozen else f for q, f in fields.items()}
     reads = []
     for table in sorted({n.table for n in needs}):
         attrs = tuple(sorted({n.attribute for n in needs if n.table == table}))
@@ -108,15 +116,135 @@ def subset(per_query: list[dict], ids: set[str]) -> dict[str, float]:
     return {"n": len(rows), "structure_f2": mean("structure_f2"), "cell_f1_20": mean("cell_f1_20"), "product": mean("product")}
 
 
+def describe(corpus: str) -> int:
+    from quwarts.core.llm.openrouter import load_env_file, make_caller
+    from quwarts.core.router.describe import generate_descriptions
+
+    spec = get_corpus(corpus)
+    train, _test = workload(corpus)
+    train_q = {r["query_id"]: r["sql"] for r in train}
+    uses = list(workload_features(spec, train_q)["attributes"].values())
+    out = out_dir(spec, "described")
+    out.mkdir(parents=True, exist_ok=True)
+    if (out / "descriptions.json").exists():
+        raise SystemExit("descriptions are frozen; remove descriptions.json to regenerate")
+    load_env_file(PROJECT / ".env")
+    ledger = TokenLedger(theta=10**12)
+    caller = make_caller(ledger, max_tokens=300)
+    records = generate_descriptions(spec, uses, train_q, caller, out / "describe_journal.jsonl")
+    (out / "descriptions.json").write_text(json.dumps(records, indent=2, sort_keys=True))
+    (out / "descriptions.sha256").write_text(hashlib.sha256((out / "descriptions.json").read_bytes()).hexdigest() + "\n")
+    for q, r in records.items():
+        print(f"{q}: {r['description']}")
+    print(json.dumps({"describe_tokens": ledger.spent}))
+    return 0
+
+
+def _numeric_literals(queries: dict[str, str], table: str, attr: str) -> set[float]:
+    import sqlglot
+    from sqlglot import exp
+
+    out: set[float] = set()
+    for sql in queries.values():
+        for node in sqlglot.parse_one(sql, read="sqlite").find_all(exp.EQ, exp.NEQ, exp.GT, exp.GTE, exp.LT, exp.LTE, exp.In):
+            cols = [c for c in node.find_all(exp.Column) if c.name == attr]
+            if len(cols) != 1:
+                continue
+            for lit in node.find_all(exp.Literal):
+                if not lit.is_string:
+                    try:
+                        out.add(float(lit.this))
+                    except ValueError:
+                        pass
+    return out
+
+
+def check(corpus: str, workers: int) -> int:
+    """Pre-declared rule: use the generated descriptions iff they raise mean SQL consistency.
+
+    Per attribute, consistency = share of sampled documents whose value has the form the SQL
+    workload uses: a number where the SQL compares or aggregates numerically, 0/1 where it is
+    only compared with 0 and 1, one of the compared labels where it is compared with labels,
+    and any value otherwise. No gold is read.
+    """
+
+    from quwarts.core.llm.openrouter import load_env_file, make_caller
+    from quwarts.core.router.comparator import as_number, as_text, is_null
+    from quwarts.core.router.corpus_features import deterministic_sample, list_documents
+
+    load_env_file(PROJECT / ".env")
+    ledger = TokenLedger(theta=10**12)
+    caller = make_caller(ledger, max_tokens=400)
+    spec = get_corpus(corpus)
+    train, _ = workload(corpus)
+    train_q = {r["query_id"]: r["sql"] for r in train}
+    wf = workload_features(spec, train_q)
+    report: dict[str, Any] = {}
+    variants = ("plain", "described_v1", "described")
+    for variant in variants:
+        _s, _tr, _te, fields, reads = setup(corpus, variant)
+        base = out_dir(spec, "described") / f"check_{variant}.jsonl"
+        sample_spec = spec
+        # Same 20 documents for both variants.
+        import quwarts.core.router.executor as ex
+
+        original = ex.list_documents
+        paths = deterministic_sample(list_documents(spec.table(reads[0].table)), 20, "describe-check")
+        ex.list_documents = lambda table, p=paths: p
+        try:
+            run_reads(sample_spec, reads, train_q, fields, caller, base, workers)
+        finally:
+            ex.list_documents = original
+        values = load_values(base)
+        per_attr = {}
+        for read in reads:
+            got = values.get((read.table, read.context), {})
+            for attr in read.attributes:
+                q = f"{read.table}.{attr}"
+                use = wf["attributes"][q]
+                nums = _numeric_literals(train_q, read.table, attr)
+                labels = {l.lower() for l in use.literals}
+                ok = 0
+                for doc_vals in got.values():
+                    v = doc_vals.get(attr)
+                    if is_null(v):
+                        continue
+                    n = as_number(v)
+                    if nums and nums <= {0.0, 1.0}:
+                        ok += n in (0.0, 1.0)
+                    elif use.numeric:
+                        ok += n is not None
+                    elif labels:
+                        ok += any(l == as_text(part).strip().lower() for part in as_text(v).split("||") for l in labels)
+                    else:
+                        ok += 1
+                per_attr[q] = ok / max(1, len(got))
+        report[variant] = {"mean_consistency": sum(per_attr.values()) / len(per_attr), "per_attribute": per_attr}
+    report["decision"] = max(variants, key=lambda v: (report[v]["mean_consistency"], v == "plain"))
+    report["check_tokens"] = ledger.spent
+    (out_dir(spec, "described") / "check.json").write_text(json.dumps(report, indent=2))
+    print(json.dumps({v: round(report[v]["mean_consistency"], 3) for v in variants}), "decision:", report["decision"])
+    for q in report["plain"]["per_attribute"]:
+        print(f"  {q:34} " + " ".join(f"{v}={report[v]['per_attribute'][q]:.2f}" for v in variants))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", required=True)
     parser.add_argument("--reads", action="store_true")
     parser.add_argument("--score", action="store_true")
     parser.add_argument("--workers", type=int, default=32)
+    parser.add_argument("--variant", choices=["plain", "described"], default="plain")
+    parser.add_argument("--describe", action="store_true", help="generate and freeze workload descriptions")
+    parser.add_argument("--check", action="store_true", help="gold-free consistency check on a document sample")
     args = parser.parse_args(argv)
-    spec, train, test, fields, reads = setup(args.corpus)
-    out = RESULTS / "quwarts_router_v3" / spec.name / "shared_read"
+    if args.describe:
+        return describe(args.corpus)
+    if args.check:
+        return check(args.corpus, args.workers)
+    spec, train, test, fields, reads = setup(args.corpus, args.variant)
+    out = out_dir(spec, args.variant)
     out.mkdir(parents=True, exist_ok=True)
     journal = out / "reads.jsonl"
     print(json.dumps({"input_queries": len(train), "held_out_queries": len(test),
