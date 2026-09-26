@@ -217,14 +217,38 @@ def materialize_plan(
     incumbent: Path | None,
     out_dir: Path,
     policy: str = "fill",
+    queries: dict[str, str] | None = None,
 ) -> dict[str, dict[str, Any]]:
+    """Per-query databases. With ``queries``, the base gets the full physical schema
+    (referenced columns and unresolved signature fallback columns) and every rewritten
+    query must execute on its database: a SQL error is raised, never scored as empty."""
+
+    from quwarts.core.pipeline import official_sql
+    from quwarts.core.schema_columns import complete_physical_schema
+    from quwarts.core.signature import audit_workload, enumerate_predicates
+    from quwarts.core.signature_realize import live_predicates
+
     needs_attrs: dict[str, set[str]] = defaultdict(set)
     for row in plan["decisions"]:
         needs_attrs[row["table"]].add(row["attribute"])
     base = base_database(spec, needs_attrs, incumbent, out_dir / "base.db", fields)
+    predicates = None
+    if queries:
+        audit = audit_workload([{"query_id": q, "sql": s} for q, s in queries.items()])
+        predicates = live_predicates(enumerate_predicates(audit.occurrences, audit.signature_eligible))
+        conn = sqlite3.connect(base)
+        complete_physical_schema(conn, queries, predicates)
+        conn.commit()
+        conn.close()
     out: dict[str, dict[str, Any]] = {}
     for query_id in sorted({row["query_id"] for row in plan["decisions"]}):
         dest = out_dir / f"{query_id.replace(':', '_')}.db"
         stats = materialize_query(base, dest, query_id, plan["decisions"], values, fields, policy)
+        if queries and query_id in queries:
+            conn = sqlite3.connect(f"file:{dest}?mode=ro", uri=True)
+            try:
+                conn.execute(official_sql(queries[query_id], dest, predicates, query_id=query_id)).fetchall()
+            finally:
+                conn.close()
         out[query_id] = {"db": str(dest), **stats}
     return out
