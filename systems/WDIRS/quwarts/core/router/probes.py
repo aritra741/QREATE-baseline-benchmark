@@ -105,19 +105,99 @@ def probe_window(text: str, uses: list[AttributeUse], budget: int | None = None)
     return "\n...\n".join(chunk["text"] for chunk in chosen)
 
 
-def parse_fields(text: str) -> dict[str, Any]:
+def _scalar_token(raw: str) -> Any:
+    token = raw.strip().rstrip(",").strip()
+    if not token:
+        return None
+    low = token.lower()
+    if low in ("null", "none"):
+        return None
+    if low in ("true", "false"):
+        return low == "true"
+    if token[0] in "\"'" and token[-1] == token[0] and len(token) >= 2:
+        try:
+            return json.loads(token) if token[0] == '"' else token[1:-1]
+        except json.JSONDecodeError:
+            return token[1:-1]
+    try:
+        return json.loads(token)
+    except json.JSONDecodeError:
+        return token
+
+
+def _balanced(text: str, start: int) -> int:
+    """Index just past the bracket group opening at ``start`` (quote-aware)."""
+
+    opener = text[start]
+    closer = {"{": "}", "[": "]"}[opener]
+    depth, i, quote = 0, start, None
+    while i < len(text):
+        ch = text[i]
+        if quote:
+            if ch == "\\":
+                i += 1
+            elif ch == quote:
+                quote = None
+        elif ch == '"':
+            quote = ch
+        elif ch == opener:
+            depth += 1
+        elif ch == closer:
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+    return len(text)
+
+
+def lenient_fields(text: str, names: list[str]) -> dict[str, Any]:
+    """Recover known fields from JSON-like output with unquoted values.
+
+    Qwen sometimes emits ``"country": Japan || Nippon`` inside otherwise valid JSON. The
+    field names are known, so each value runs from its key to the next known key (or the
+    closing brace). Nested objects and lists are parsed by bracket matching.
+    """
+
+    keys = sorted(names, key=len, reverse=True)
+    pattern = re.compile(r'"(' + "|".join(re.escape(k) for k in keys) + r')"\s*:\s*')
+    hits = list(pattern.finditer(text))
+    out: dict[str, Any] = {}
+    for index, hit in enumerate(hits):
+        name, start = hit.group(1), hit.end()
+        if name in out:
+            continue
+        if start < len(text) and text[start] in "{[":
+            end = _balanced(text, start)
+            chunk = text[start:end]
+            try:
+                out[name] = json.loads(chunk)
+            except json.JSONDecodeError:
+                inner = lenient_fields(chunk, ["value", "evidence"]) if text[start] == "{" else None
+                out[name] = inner if inner else chunk
+            continue
+        end = hits[index + 1].start() if index + 1 < len(hits) else len(text)
+        segment = text[start:end].rstrip()
+        segment = re.sub(r"[\s,]*[}\]]*\s*$", "", segment) if index + 1 == len(hits) else segment.rstrip().rstrip(",")
+        out[name] = _scalar_token(segment)
+    return out
+
+
+def parse_fields(text: str, names: list[str] | None = None) -> dict[str, Any]:
     body = (text or "").strip()
     body = re.sub(r"^```(?:json)?|```$", "", body, flags=re.M).strip()
     start, end = body.find("{"), body.rfind("}")
-    if start < 0 or end <= start:
-        return {}
-    try:
-        payload = json.loads(body[start : end + 1])
-    except json.JSONDecodeError:
-        return {}
-    if isinstance(payload, dict) and isinstance(payload.get("fields"), dict):
-        return payload["fields"]
-    return payload if isinstance(payload, dict) else {}
+    if start >= 0 and end > start:
+        try:
+            payload = json.loads(body[start : end + 1])
+        except json.JSONDecodeError:
+            payload = None
+        if isinstance(payload, dict):
+            if isinstance(payload.get("fields"), dict):
+                return payload["fields"]
+            return payload
+    if names:
+        return lenient_fields(body, list(names))
+    return {}
 
 
 def _as_number(value: Any) -> float | None:

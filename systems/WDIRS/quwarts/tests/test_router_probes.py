@@ -117,3 +117,16 @@ def test_contexts_cover_attributes_evenly():
     picks = [choose_contexts(["q1", "q2", "q3", "q4"], uses, seen, 2) for _ in range(3)]
     assert picks[0] == ["q1", "q4"]
     assert min(seen[u.qualified] for u in uses) >= 2
+
+
+def test_lenient_parse_recovers_unquoted_values():
+    text = ('{"fields": {"institution": null || null, "awards": null, "birth_continent": Asia, '
+            '"birth_country": Japan || nihon, "color": "white || bold", "teaching": 0}}')
+    names = ["institution", "awards", "birth_continent", "birth_country", "color", "teaching"]
+    got = parse_fields(text, names)
+    assert got["birth_continent"] == "Asia" and got["birth_country"] == "Japan || nihon"
+    assert got["color"] == "white || bold" and got["teaching"] == 0 and got["awards"] is None
+    nested = '{"fields": {"a": {"value": Yes, "evidence": "we use a reranker"}, "b": {"value": 3, "evidence": null}}}'
+    got = parse_fields(nested, ["a", "b"])
+    assert got["a"]["value"] == "Yes" and got["a"]["evidence"] == "we use a reranker" and got["b"]["value"] == 3
+    assert parse_fields("no json here", ["a"]) == {}

@@ -141,7 +141,7 @@ def load_reads(out: Path, docs, fields: dict[str, FieldSpec] | None = None) -> d
     reads: dict[tuple[str, str], dict[str, Any]] = defaultdict(dict)
     for line in (out / "calls.jsonl").read_text().splitlines():
         row = json.loads(line)
-        parsed = parse_fields(row["response"])
+        parsed = parse_fields(row["response"], row["attributes"])
         key = (row["table"], row["doc"])
         if row["kind"] == EVIDENCE:
             vals = {a: supported(parsed.get(a), lowered[key]) for a in row["attributes"]}
@@ -190,9 +190,13 @@ def score(corpus: str, out: Path, needs, fields, docs) -> dict[str, Any]:
     def gold_row(table: str, doc: str) -> dict[str, Any]:
         rows = gold_tables.get(table) or next(iter(gold_tables.values()))
         stem = Path(doc).stem
+
+        def same(a: str, b: str) -> bool:
+            return a == b or (a.isdigit() and b.isdigit() and int(a) == int(b))  # Art ids are zero-padded
+
         for r in rows:
             for key in ("pdf_filename", "doc_id", "id", "file", "filename"):
-                if key in r and Path(str(r[key])).stem == stem:
+                if key in r and same(Path(str(r[key])).stem, stem):
                     return r
         return {}
 

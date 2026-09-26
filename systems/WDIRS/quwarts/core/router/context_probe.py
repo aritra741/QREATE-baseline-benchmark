@@ -294,7 +294,7 @@ def run_context_probe(
             text = caller.complete(prompt, "router_v3_probe", system=SYSTEM, table=table, doc=doc, context=context)
         except BudgetExhausted:
             return action, None, prompt, ""
-        return action, parse_fields(text), prompt, text
+        return action, parse_fields(text, [f.name for f in specs]), prompt, text
 
     def log(row: dict[str, Any]) -> None:
         if journal is None:

@@ -115,7 +115,7 @@ def load_values(journal: Path) -> dict[tuple[str, str], dict[str, dict[str, Any]
         if not line.strip():
             continue
         row = json.loads(line)
-        parsed = parse_fields(row["response"])
+        parsed = parse_fields(row["response"], row["attributes"])
         out[(row["table"], row["context"])][row["doc"]] = {a: parsed.get(a) for a in row["attributes"]}
     return out
 
