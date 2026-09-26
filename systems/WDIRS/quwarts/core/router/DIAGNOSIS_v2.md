@@ -49,22 +49,28 @@ runs reproducible, not principled.
 canonical-store test (Legal 6.20) scored 0.035. No plan has been executed, so no
 router output has ever been checked against an outcome.
 
-### 7. The budget reference is inconsistent across corpora
-Recorded DocETL runs (`results/docetl_*_case80/session_token_cost.json`):
+### 7. The budget reference (corrected)
+The original DocETL runs are `results/docetl_*_case80`. Rows extracted per
+(query, table) in their `extract_fields.json` (counts only, values not read)
+against recorded calls in `session_token_cost.json`:
 
-| Corpus | DocETL calls | Queries x docs | Tokens per call | Median doc tokens |
+| Corpus | Docs in source | Rows per query-table | Recorded calls | Tokens per call |
 |---|---:|---:|---:|---:|
-| Art | 16,000 | 16 x 1,000 | 1,276 | 810 |
-| Legal | 8,799 | 16 x 570 | 5,732 | 4,342 |
-| Player | 1,874 | mixed tables | 6,846 | 1.8k-17.8k |
-| CSPaper | 1,800 | 16 x 200 = 3,200 | 1,452 | 932 |
-| Med | 1,123 | mixed tables | 10,503 | 8.4k-11.0k |
-| Finan | 112 | 16 x 7 (of 100) | 12,337 | 118,076 |
+| Art | 1,000 | 1,000-1,007 | 16,000 | 1,276 |
+| Legal | 570 | 550-554 | 8,799 | 5,732 |
+| CSPaper | 200 | 200 | 1,800 (vs 3,200 rows) | 1,452 |
+| Med | 297 | 88-119 | 1,123 (vs ~3,100 rows) | 10,503 |
+| Player | 216 | 16-128 | 1,874 | 6,846 |
+| Finan | 100 | **7** | 112 | 12,337 |
 
-DocETL read every document for Art and Legal, fewer than expected for CSPaper and
-Med, and 7 of 100 filings (at most ~12k tokens of each ~118k-token filing) for
-Finan. "25% of DocETL tokens" is therefore 25% of very different amounts of work,
-and the router's DocETL-cost estimate was off by 2.5-12x on three corpora.
+An earlier draft said CSPaper and Med "read fewer documents than expected". That
+was wrong: they extracted rows for essentially every document. They record fewer
+calls than rows, which `results/docetl_execution_anatomy_audit` could not explain,
+so their token totals may understate the work. Finan is the real anomaly: the
+original run saw only documents 9, 10, 18, 69, 70, 78 and 93
+(`results/docetl_finan_current_snapshot_replay/REPORT.md`). "25% of DocETL" on
+Finan is 25% of a run over 7% of the corpus, and the router's DocETL-cost
+estimate (which assumed every document) was off by about 12x there.
 
 ### 8. The probe measured a hypothetical operator
 Probe prompts were my own wording and listed workload labels, which invites the
