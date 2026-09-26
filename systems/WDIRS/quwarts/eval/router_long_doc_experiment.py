@@ -5,6 +5,7 @@ Strategies, all with Qwen 2.5 7B and the same field prompt (no query context):
 * ``head``        the first 10,108 tokens of the filing, one call (DocETL-style truncation)
 * ``window_1``    one call over a 10,108-token window assembled from each attribute's top BM25
                   chunks (round-robin), i.e. attribute-targeted chunking with one shared read
+* ``window_small`` as window_1 but 2,900 tokens: the largest bundled read that fits theta25
 * ``window_attr`` one call per attribute over its own top BM25 chunks (up to 3,000 tokens)
 * ``exhaustive``  every 3,000-token chunk, one call each, majority of non-null answers per
                   attribute (the expensive full-coverage reference)
@@ -49,6 +50,7 @@ from quwarts.core.router.text import find_span, prepare_document
 OUT = RESULTS / "quwarts_router_v3" / "finan_long_doc"
 WINDOW = 10_108
 ATTR_WINDOW = 3_000
+SMALL_WINDOW = 2_900  # one bundled read that fits theta25 on Finan (~3.5k tokens per filing)
 CHUNK = 600
 EXHAUSTIVE_CHUNK = 3_000
 OVERHEAD = 600
@@ -110,7 +112,7 @@ def assemble(chunks: list[dict], order: list[int], budget: int) -> str:
     return "\n...\n".join(chunks[i]["text"] for i in sorted(chosen))
 
 
-def window_one(text: str, fields: list[FieldSpec]) -> str:
+def window_one(text: str, fields: list[FieldSpec], budget: int = WINDOW) -> str:
     chunks = exhaustive_chunks(text, CHUNK)
     ranks = [bm25_rank(chunks, attr_query(f)) for f in fields]
     order, seen = [], set()
@@ -119,7 +121,7 @@ def window_one(text: str, fields: list[FieldSpec]) -> str:
             if depth < len(r) and r[depth] not in seen:
                 seen.add(r[depth])
                 order.append(r[depth])
-    return assemble(chunks, order, WINDOW)
+    return assemble(chunks, order, budget)
 
 
 def window_attr(text: str, field: FieldSpec) -> str:
@@ -137,6 +139,8 @@ def build_tasks(docs: list[Path], fields: list[FieldSpec]) -> list[dict[str, Any
                       "prompt": render_prompt(truncate(text, WINDOW), fields, None)})
         tasks.append({"strategy": "window_1", "doc": doc, "fields": [f.name for f in fields],
                       "prompt": render_prompt(window_one(text, fields), fields, None)})
+        tasks.append({"strategy": "window_small", "doc": doc, "fields": [f.name for f in fields],
+                      "prompt": render_prompt(window_one(text, fields, SMALL_WINDOW), fields, None)})
         for f in fields:
             tasks.append({"strategy": "window_attr", "doc": doc, "fields": [f.name],
                           "prompt": render_prompt(window_attr(text, f), [f], None)})
@@ -261,7 +265,7 @@ def score(docs: list[Path], fields: list[FieldSpec]) -> dict[str, Any]:
         gold_rows = {f"{row['id']}.txt": {k.lower(): v for k, v in row.items()} for row in csv.DictReader(handle)}
     fields_by = {f.name: f for f in fields}
     report: dict[str, Any] = {"docs": names, "strategies": {}}
-    for strategy in ["plumbing", "program", "head", "window_1", "window_attr", "exhaustive"]:
+    for strategy in ["plumbing", "program", "window_small", "head", "window_1", "window_attr", "exhaustive"]:
         per_field: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
         for doc in names:
             gold = gold_rows.get(doc, {})
@@ -289,7 +293,8 @@ def score(docs: list[Path], fields: list[FieldSpec]) -> dict[str, Any]:
         text = read_document(path)
         gold = gold_rows.get(path.name, {})
         views = {"full": prepare_document(text), "head": prepare_document(truncate(text, WINDOW)),
-                 "window_1": prepare_document(window_one(text, fields))}
+                 "window_1": prepare_document(window_one(text, fields)),
+                 "window_small": prepare_document(window_one(text, fields, SMALL_WINDOW))}
         for f in fields:
             g = gold.get(f.name.lower())
             if is_null(g) or f.value_type in ("int", "float") and normalize_number(g) is None:
@@ -297,7 +302,7 @@ def score(docs: list[Path], fields: list[FieldSpec]) -> dict[str, Any]:
             probe = g if f.value_type not in ("int", "float") else g.split(".0")[0]
             if find_span(probe, views["full"]) < 0:
                 continue  # gold not written verbatim anywhere: recall undefined
-            for name in ("head", "window_1"):
+            for name in ("head", "window_1", "window_small"):
                 recall[name].append(1.0 if find_span(probe, views[name]) >= 0 else 0.0)
             recall["window_attr"].append(1.0 if find_span(probe, prepare_document(window_attr(text, f))) >= 0 else 0.0)
     report["window_recall_of_verbatim_gold"] = {k: (sum(v) / len(v), len(v)) for k, v in recall.items()}
