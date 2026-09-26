@@ -1,5 +1,9 @@
 # QuWARTS router (router-v2)
 
+> **Inputs (2026-09-26).** The system sees the documents, the SQL workload and theta only
+> (`quwarts/RULES.md`). Results produced before commit 518b596571 prompted reads with
+> benchmark attribute descriptions and are marked `INVALID.md` in their result folders.
+
 A gold-free controller that assigns each workload attribute to one operator
 family *before execution*, from workload SQL, the raw corpus, an optional
 incumbent database, and a small budgeted probe. Rules come from a redundancy
