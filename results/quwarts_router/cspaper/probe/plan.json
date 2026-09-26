@@ -1,0 +1,926 @@
+{
+  "attributes": {
+    "cspaper.agent_framework": {
+      "closed_label": true,
+      "description": "main agent-style reasoning framework used by the system, choose one from ['CoT', 'ToT', 'Multi-Agent Collaboration', 'Other'], if the system does not use agent, leave it empty.",
+      "dtype": "string",
+      "literals": [
+        "CoT",
+        "Multi-Agent Collaboration",
+        "Other",
+        "ToT"
+      ],
+      "n_queries": 2,
+      "name": "agent_framework",
+      "numeric": false,
+      "qualified": "cspaper.agent_framework",
+      "query_ids": [
+        "cspaper_agg20:q11",
+        "cspaper_filter20:q11"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "cspaper",
+      "value_type": "str"
+    },
+    "cspaper.application_domain": {
+      "closed_label": true,
+      "description": "primary real-world domain or application scenario targeted by the paper, choose one or more from ['General', 'Education', 'Finance', 'Sports', 'Government', 'Legal', 'Medical', 'Academic', 'Art', 'Other'], e.g. Education; Finance",
+      "dtype": "string",
+      "literals": [
+        "Academic",
+        "Education",
+        "Finance",
+        "General",
+        "Medical"
+      ],
+      "n_queries": 3,
+      "name": "application_domain",
+      "numeric": false,
+      "qualified": "cspaper.application_domain",
+      "query_ids": [
+        "cspaper_agg20:q14",
+        "cspaper_filter20:q8",
+        "cspaper_multiagg20:q11"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "cspaper",
+      "value_type": "str"
+    },
+    "cspaper.baseline_amount": {
+      "closed_label": false,
+      "description": "the number of baselines in this paper.",
+      "dtype": "numeric",
+      "literals": [],
+      "n_queries": 9,
+      "name": "baseline_amount",
+      "numeric": true,
+      "qualified": "cspaper.baseline_amount",
+      "query_ids": [
+        "cspaper_agg20:q13",
+        "cspaper_agg20:q14",
+        "cspaper_agg20:q17",
+        "cspaper_filter20:q15",
+        "cspaper_groupby20:q14",
+        "cspaper_multiagg20:q11",
+        "cspaper_multiagg20:q18",
+        "cspaper_multiagg20:q4",
+        "cspaper_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "agg_extremal",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "cspaper",
+      "value_type": "int"
+    },
+    "cspaper.data_modality": {
+      "closed_label": true,
+      "description": "all modality of the input data handled by the system, choose one or more from ['Audio', 'Image', 'Table', 'Text', 'Code'], e.g. Text; Table; Image.",
+      "dtype": "string",
+      "literals": [
+        "Audio",
+        "Code",
+        "Image",
+        "Table",
+        "Text"
+      ],
+      "n_queries": 2,
+      "name": "data_modality",
+      "numeric": false,
+      "qualified": "cspaper.data_modality",
+      "query_ids": [
+        "cspaper_agg20:q17",
+        "cspaper_filter20:q7"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "cspaper",
+      "value_type": "str"
+    },
+    "cspaper.multi_turn_retrieval": {
+      "closed_label": true,
+      "description": "whether the method explicitly supports multi-turn retrieval. Only choose one from ['Yes', 'No'].",
+      "dtype": "string",
+      "literals": [
+        "No",
+        "Yes"
+      ],
+      "n_queries": 6,
+      "name": "multi_turn_retrieval",
+      "numeric": false,
+      "qualified": "cspaper.multi_turn_retrieval",
+      "query_ids": [
+        "cspaper_agg20:q13",
+        "cspaper_agg20:q3",
+        "cspaper_filter20:q15",
+        "cspaper_filter20:q9",
+        "cspaper_multiagg20:q18",
+        "cspaper_multiagg20:q4"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "cspaper",
+      "value_type": "str"
+    },
+    "cspaper.reasoning_depth": {
+      "closed_label": true,
+      "description": "reasoning path length in the application scenarios of the method by the main task or benchmark, choose one from ['single-hop', 'multi-hop'].",
+      "dtype": "string",
+      "literals": [
+        "multi-hop",
+        "single-hop"
+      ],
+      "n_queries": 2,
+      "name": "reasoning_depth",
+      "numeric": false,
+      "qualified": "cspaper.reasoning_depth",
+      "query_ids": [
+        "cspaper_filter20:q8",
+        "cspaper_multiagg20:q9"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "cspaper",
+      "value_type": "str"
+    },
+    "cspaper.use_agent": {
+      "closed_label": true,
+      "description": "whether the system explicitly adopts an agent-style architecture (e.g., tool-calling or multi-step planning) rather than a single forward pass, choose one from ['Yes', 'No'].",
+      "dtype": "string",
+      "literals": [
+        "No",
+        "Yes"
+      ],
+      "n_queries": 6,
+      "name": "use_agent",
+      "numeric": false,
+      "qualified": "cspaper.use_agent",
+      "query_ids": [
+        "cspaper_filter20:q11",
+        "cspaper_filter20:q15",
+        "cspaper_filter20:q7",
+        "cspaper_filter20:q9",
+        "cspaper_groupby20:q14",
+        "cspaper_multiagg20:q18"
+      ],
+      "roles": [
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "cspaper",
+      "value_type": "str"
+    },
+    "cspaper.uses_knowledge_graph": {
+      "closed_label": true,
+      "description": "whether the method explicitly incorporates a knowledge graph as part of retrieval or reasoning choose one from ['Yes', 'No'].",
+      "dtype": "string",
+      "literals": [
+        "No",
+        "Yes"
+      ],
+      "n_queries": 2,
+      "name": "uses_knowledge_graph",
+      "numeric": false,
+      "qualified": "cspaper.uses_knowledge_graph",
+      "query_ids": [
+        "cspaper_agg20:q4",
+        "cspaper_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "cspaper",
+      "value_type": "str"
+    },
+    "cspaper.uses_reranker": {
+      "closed_label": true,
+      "description": "whether the system uses an explicit reranker stage to re-score retrieved candidates before generation, choose one from ['Yes', 'No'].",
+      "dtype": "string",
+      "literals": [
+        "No",
+        "Yes"
+      ],
+      "n_queries": 2,
+      "name": "uses_reranker",
+      "numeric": false,
+      "qualified": "cspaper.uses_reranker",
+      "query_ids": [
+        "cspaper_multiagg20:q4",
+        "cspaper_multiagg20:q9"
+      ],
+      "roles": [
+        "agg_additive",
+        "group",
+        "predicate"
+      ],
+      "sensitive": true,
+      "table": "cspaper",
+      "value_type": "str"
+    }
+  },
+  "budget": {
+    "available_for_operators": 609412,
+    "docetl_equivalent_estimate": 4920544,
+    "fits": true,
+    "planned_operator_tokens": 307534,
+    "probe_budget": 65365,
+    "probe_spent": 44245,
+    "rho": 0.13284242555294698,
+    "theta": 653657,
+    "theta_source": "docetl_total"
+  },
+  "corpus": "cspaper",
+  "costs": {
+    "per_table": {
+      "cspaper": {
+        "canonical_map": 307534,
+        "fused_map": 0,
+        "program": 0,
+        "repair": 0,
+        "retrieval_map": 0
+      }
+    },
+    "total": 307534
+  },
+  "coverage": {
+    "by_route": {
+      "canonical_map": 2,
+      "keep": 0
+    },
+    "fraction": 0.058823529411764705,
+    "measured_fraction": 1.0,
+    "served": 2,
+    "uses": 34
+  },
+  "decisions": [
+    {
+      "evidence": {
+        "delta": 1.0,
+        "delta_cross": null,
+        "g": 0.0,
+        "kappa": null,
+        "kept_queries": [
+          "cspaper_agg20:q11",
+          "cspaper_filter20:q11"
+        ],
+        "label_surface": 0.75,
+        "lambda": 0.0922041946972695,
+        "prior": "extractive",
+        "probe_docs": 8,
+        "r": null,
+        "served_queries": []
+      },
+      "qualified": "cspaper.agent_framework",
+      "query_ids": [
+        "cspaper_agg20:q11",
+        "cspaper_filter20:q11"
+      ],
+      "reasons": [
+        "probe g=0.00 (not extractive)",
+        "probe delta=1.00 (query-dependent)",
+        "context fit lambda=0.09 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "cspaper"
+    },
+    {
+      "evidence": {
+        "delta": 0.5416666666666666,
+        "delta_cross": null,
+        "g": 0.2631578947368421,
+        "kappa": 0.875,
+        "kept_queries": [
+          "cspaper_agg20:q14",
+          "cspaper_filter20:q8",
+          "cspaper_multiagg20:q11"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.0922041946972695,
+        "prior": "extractive",
+        "probe_docs": 8,
+        "r": 0.5,
+        "served_queries": []
+      },
+      "qualified": "cspaper.application_domain",
+      "query_ids": [
+        "cspaper_agg20:q14",
+        "cspaper_filter20:q8",
+        "cspaper_multiagg20:q11"
+      ],
+      "reasons": [
+        "probe g=0.26 (not extractive)",
+        "probe delta=0.54 (query-dependent)",
+        "context fit lambda=0.09 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "cspaper"
+    },
+    {
+      "evidence": {
+        "delta": 1.0,
+        "delta_cross": null,
+        "g": 1.0,
+        "kappa": 1.0,
+        "kept_queries": [
+          "cspaper_agg20:q13",
+          "cspaper_agg20:q14",
+          "cspaper_agg20:q17",
+          "cspaper_filter20:q15",
+          "cspaper_groupby20:q14",
+          "cspaper_multiagg20:q11",
+          "cspaper_multiagg20:q18",
+          "cspaper_multiagg20:q4",
+          "cspaper_multiagg20:q9"
+        ],
+        "label_surface": null,
+        "lambda": 0.0922041946972695,
+        "prior": "interpretive",
+        "probe_docs": 8,
+        "r": 0.5,
+        "served_queries": []
+      },
+      "qualified": "cspaper.baseline_amount",
+      "query_ids": [
+        "cspaper_agg20:q13",
+        "cspaper_agg20:q14",
+        "cspaper_agg20:q17",
+        "cspaper_filter20:q15",
+        "cspaper_groupby20:q14",
+        "cspaper_multiagg20:q11",
+        "cspaper_multiagg20:q18",
+        "cspaper_multiagg20:q4",
+        "cspaper_multiagg20:q9"
+      ],
+      "reasons": [
+        "probe g=1.00 (extractive)",
+        "probe delta=1.00 (query-dependent)",
+        "context fit lambda=0.09 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "cspaper"
+    },
+    {
+      "evidence": {
+        "delta": 0.0,
+        "delta_cross": null,
+        "g": 1.0,
+        "kappa": 1.0,
+        "label_surface": 0.8,
+        "lambda": 0.0922041946972695,
+        "prior": "extractive",
+        "probe_docs": 8,
+        "r": 0.125
+      },
+      "qualified": "cspaper.data_modality",
+      "query_ids": [
+        "cspaper_agg20:q17",
+        "cspaper_filter20:q7"
+      ],
+      "reasons": [
+        "probe g=1.00 (extractive)",
+        "probe delta=0.00 (shareable)",
+        "context fit lambda=0.09 (fits)",
+        "irregular anchor r=0.12"
+      ],
+      "route": "canonical_map",
+      "rule": "R2'",
+      "table": "cspaper"
+    },
+    {
+      "evidence": {
+        "delta": 0.0,
+        "delta_cross": null,
+        "g": 0.4,
+        "kappa": 1.0,
+        "kept_queries": [
+          "cspaper_agg20:q13",
+          "cspaper_agg20:q3",
+          "cspaper_filter20:q15",
+          "cspaper_filter20:q9",
+          "cspaper_multiagg20:q18",
+          "cspaper_multiagg20:q4"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.0922041946972695,
+        "prior": "extractive",
+        "probe_docs": 8,
+        "r": null,
+        "served_queries": []
+      },
+      "qualified": "cspaper.multi_turn_retrieval",
+      "query_ids": [
+        "cspaper_agg20:q13",
+        "cspaper_agg20:q3",
+        "cspaper_filter20:q15",
+        "cspaper_filter20:q9",
+        "cspaper_multiagg20:q18",
+        "cspaper_multiagg20:q4"
+      ],
+      "reasons": [
+        "probe g=0.40 (not extractive)",
+        "probe delta=0.00 (shareable)",
+        "context fit lambda=0.09 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "cspaper"
+    },
+    {
+      "evidence": {
+        "delta": 0.5,
+        "delta_cross": null,
+        "g": 0.11764705882352941,
+        "kappa": 1.0,
+        "kept_queries": [
+          "cspaper_filter20:q8",
+          "cspaper_multiagg20:q9"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.0922041946972695,
+        "prior": "extractive",
+        "probe_docs": 8,
+        "r": null,
+        "served_queries": []
+      },
+      "qualified": "cspaper.reasoning_depth",
+      "query_ids": [
+        "cspaper_filter20:q8",
+        "cspaper_multiagg20:q9"
+      ],
+      "reasons": [
+        "probe g=0.12 (not extractive)",
+        "probe delta=0.50 (query-dependent)",
+        "context fit lambda=0.09 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "cspaper"
+    },
+    {
+      "evidence": {
+        "delta": 0.75,
+        "delta_cross": 0.75,
+        "g": 0.7,
+        "kappa": 0.75,
+        "kept_queries": [
+          "cspaper_filter20:q11",
+          "cspaper_filter20:q15",
+          "cspaper_filter20:q7",
+          "cspaper_filter20:q9",
+          "cspaper_groupby20:q14",
+          "cspaper_multiagg20:q18"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.0922041946972695,
+        "prior": "extractive",
+        "probe_docs": 8,
+        "r": 0.25,
+        "served_queries": []
+      },
+      "qualified": "cspaper.use_agent",
+      "query_ids": [
+        "cspaper_filter20:q11",
+        "cspaper_filter20:q15",
+        "cspaper_filter20:q7",
+        "cspaper_filter20:q9",
+        "cspaper_groupby20:q14",
+        "cspaper_multiagg20:q18"
+      ],
+      "reasons": [
+        "probe g=0.70 (extractive)",
+        "probe delta=0.75 (query-dependent)",
+        "context fit lambda=0.09 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "cspaper"
+    },
+    {
+      "evidence": {
+        "delta": 1.0,
+        "delta_cross": null,
+        "g": 0.6666666666666666,
+        "kappa": 1.0,
+        "kept_queries": [
+          "cspaper_agg20:q4",
+          "cspaper_multiagg20:q9"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.0922041946972695,
+        "prior": "extractive",
+        "probe_docs": 8,
+        "r": 0.3333333333333333,
+        "served_queries": []
+      },
+      "qualified": "cspaper.uses_knowledge_graph",
+      "query_ids": [
+        "cspaper_agg20:q4",
+        "cspaper_multiagg20:q9"
+      ],
+      "reasons": [
+        "probe g=0.67 (extractive)",
+        "probe delta=1.00 (query-dependent)",
+        "context fit lambda=0.09 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "cspaper"
+    },
+    {
+      "evidence": {
+        "delta": 1.0,
+        "delta_cross": 1.0,
+        "g": 1.0,
+        "kappa": 1.0,
+        "kept_queries": [
+          "cspaper_multiagg20:q4",
+          "cspaper_multiagg20:q9"
+        ],
+        "label_surface": 1.0,
+        "lambda": 0.0922041946972695,
+        "prior": "extractive",
+        "probe_docs": 8,
+        "r": 0.25,
+        "served_queries": []
+      },
+      "qualified": "cspaper.uses_reranker",
+      "query_ids": [
+        "cspaper_multiagg20:q4",
+        "cspaper_multiagg20:q9"
+      ],
+      "reasons": [
+        "probe g=1.00 (extractive)",
+        "probe delta=1.00 (query-dependent)",
+        "context fit lambda=0.09 (fits)",
+        "R5: no affordable fused_map slot; keep incumbent"
+      ],
+      "route": "keep",
+      "rule": "R5",
+      "table": "cspaper"
+    }
+  ],
+  "dropped_map_queries": [
+    [
+      "cspaper:fused_map",
+      "cspaper_agg20:q11"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_agg20:q17"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_agg20:q3"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_agg20:q4"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_filter20:q7"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_agg20:q13"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_agg20:q14"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_filter20:q11"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_filter20:q8"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_filter20:q9"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_groupby20:q14"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_multiagg20:q11"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_filter20:q15"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_multiagg20:q18"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_multiagg20:q4"
+    ],
+    [
+      "cspaper:fused_map",
+      "cspaper_multiagg20:q9"
+    ]
+  ],
+  "inputs": {
+    "attributes_sha": [
+      "34be867a0b0f1a7dc47880d75deb1661a0ab38993e037c02e7c6f850e76be8ca"
+    ],
+    "corpus_fingerprint": "52a9e7601381931dec1f398fbb292623b6986edb561e049d50c73c38ae17b3c3",
+    "incumbent_db": null,
+    "incumbent_sha": null,
+    "manifest_sha": "7c031a45174ee191c4884b2bf4cdfbd916be04e93c5b49112aacb8fe61aed971",
+    "n_queries": 16
+  },
+  "map_queries": {
+    "cspaper:fused_map": []
+  },
+  "plan_hash": "90ba607cb3d74d3aabb329057f5b38583e30508d6127893a67e7d433d740e282",
+  "probe": {
+    "budget": 65365,
+    "exhausted": false,
+    "tables": {
+      "cspaper": {
+        "metrics": {
+          "cspaper.agent_framework": {
+            "delta": 1.0,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "delta_raw": 1.0,
+            "g": 0.0,
+            "kappa": null,
+            "n_conditioned": 2,
+            "n_cross_pairs": 0,
+            "n_disagreement_pairs": 1,
+            "n_docs": 8,
+            "null_rate": 1.0,
+            "r": null
+          },
+          "cspaper.application_domain": {
+            "delta": 0.5416666666666666,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "delta_raw": 0.6666666666666666,
+            "g": 0.2631578947368421,
+            "kappa": 0.875,
+            "n_conditioned": 3,
+            "n_cross_pairs": 0,
+            "n_disagreement_pairs": 3,
+            "n_docs": 8,
+            "null_rate": 0.0,
+            "r": 0.5
+          },
+          "cspaper.baseline_amount": {
+            "delta": 1.0,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "delta_raw": 1.0,
+            "g": 1.0,
+            "kappa": 1.0,
+            "n_conditioned": 9,
+            "n_cross_pairs": 0,
+            "n_disagreement_pairs": 2,
+            "n_docs": 8,
+            "null_rate": 0.75,
+            "r": 0.5
+          },
+          "cspaper.data_modality": {
+            "delta": 0.0,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "delta_raw": 0.0,
+            "g": 1.0,
+            "kappa": 1.0,
+            "n_conditioned": 2,
+            "n_cross_pairs": 0,
+            "n_disagreement_pairs": 2,
+            "n_docs": 8,
+            "null_rate": 0.0,
+            "r": 0.125
+          },
+          "cspaper.multi_turn_retrieval": {
+            "delta": 0.0,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "delta_raw": 0.0,
+            "g": 0.4,
+            "kappa": 1.0,
+            "n_conditioned": 6,
+            "n_cross_pairs": 0,
+            "n_disagreement_pairs": 1,
+            "n_docs": 8,
+            "null_rate": 0.75,
+            "r": null
+          },
+          "cspaper.reasoning_depth": {
+            "delta": 0.5,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "delta_raw": 0.5,
+            "g": 0.11764705882352941,
+            "kappa": 1.0,
+            "n_conditioned": 2,
+            "n_cross_pairs": 0,
+            "n_disagreement_pairs": 2,
+            "n_docs": 8,
+            "null_rate": 0.0,
+            "r": null
+          },
+          "cspaper.use_agent": {
+            "delta": 0.75,
+            "delta_cross": 0.75,
+            "delta_cross_raw": 1.0,
+            "delta_raw": 1.0,
+            "g": 0.7,
+            "kappa": 0.75,
+            "n_conditioned": 6,
+            "n_cross_pairs": 1,
+            "n_disagreement_pairs": 5,
+            "n_docs": 8,
+            "null_rate": 0.5,
+            "r": 0.25
+          },
+          "cspaper.uses_knowledge_graph": {
+            "delta": 1.0,
+            "delta_cross": null,
+            "delta_cross_raw": null,
+            "delta_raw": 1.0,
+            "g": 0.6666666666666666,
+            "kappa": 1.0,
+            "n_conditioned": 2,
+            "n_cross_pairs": 0,
+            "n_disagreement_pairs": 1,
+            "n_docs": 8,
+            "null_rate": 0.5,
+            "r": 0.3333333333333333
+          },
+          "cspaper.uses_reranker": {
+            "delta": 1.0,
+            "delta_cross": 1.0,
+            "delta_cross_raw": 1.0,
+            "delta_raw": 1.0,
+            "g": 1.0,
+            "kappa": 1.0,
+            "n_conditioned": 2,
+            "n_cross_pairs": 1,
+            "n_disagreement_pairs": 1,
+            "n_docs": 8,
+            "null_rate": 0.5,
+            "r": 0.25
+          }
+        },
+        "plan": {
+          "affordable": true,
+          "attributes": [
+            "cspaper.agent_framework",
+            "cspaper.application_domain",
+            "cspaper.baseline_amount",
+            "cspaper.data_modality",
+            "cspaper.multi_turn_retrieval",
+            "cspaper.reasoning_depth",
+            "cspaper.use_agent",
+            "cspaper.uses_knowledge_graph",
+            "cspaper.uses_reranker"
+          ],
+          "calls_per_doc": 4,
+          "contexts": [
+            "cspaper_agg20:q11",
+            "cspaper_agg20:q13",
+            "cspaper_agg20:q14",
+            "cspaper_agg20:q17",
+            "cspaper_agg20:q3",
+            "cspaper_agg20:q4",
+            "cspaper_filter20:q11",
+            "cspaper_filter20:q15",
+            "cspaper_filter20:q7",
+            "cspaper_filter20:q8",
+            "cspaper_filter20:q9",
+            "cspaper_groupby20:q14",
+            "cspaper_multiagg20:q11",
+            "cspaper_multiagg20:q18",
+            "cspaper_multiagg20:q4",
+            "cspaper_multiagg20:q9"
+          ],
+          "docs": 8,
+          "mean_call_tokens": 1817.67,
+          "share_tokens": 65365.0
+        },
+        "sample": [
+          "2506.16037v1_Enhancing-Document-Level-Question-Answering-via-Multi-Hop-Retrieval-Augmented-Generation-with-LLaMA-.txt",
+          "2502.20188v1_Bisecting-K-Means-in-RAG-for-Enhancing-Question-Answering-Tasks-Performance-in-Telecommunications.txt",
+          "2510.20296v1_RAG-Stack-Co-Optimizing-RAG-Quality-and-Performance-From-the-Vector-Database-Perspective.txt",
+          "2407.19994v3_A-Study-on-the-Implementation-Method-of-an-Agent-Based-Advanced-RAG-System-Using-Graph.txt",
+          "2507.07847v1_From-Ambiguity-to-Accuracy-The-Transformative-Effect-of-Coreference-Resolution-on-Retrieval-Augmente.txt",
+          "2405.15556v1_Certifiably-Robust-RAG-against-Retrieval-Corruption.txt",
+          "2412.12775v1_RemoteRAG-A-Privacy-Preserving-LLM-Cloud-RAG-Service.txt",
+          "2506.02503v1_KARE-RAG-Knowledge-Aware-Refinement-and-Enhancement-for-RAG.txt"
+        ]
+      }
+    }
+  },
+  "residue": {
+    "attributes": {},
+    "available": false
+  },
+  "router": {
+    "constants": {
+      "call_overhead_tokens": 600,
+      "canonical_bundle_size": 6,
+      "context_window_tokens": 10108,
+      "corpus_sample_docs": 50,
+      "coverage_loss_max": 0.5,
+      "coverage_serve_min": 0.8,
+      "extractive_min": 0.5,
+      "fusion_width": 2,
+      "incumbent_grounding_min": 0.5,
+      "label_surface_min": 0.5,
+      "probe_budget_fraction": 0.1,
+      "probe_docs_max": 8,
+      "probe_docs_min": 3,
+      "probe_query_contexts_per_doc": 2,
+      "probe_seed": 20260926,
+      "program_calls_per_attribute": 8,
+      "regularity_min": 0.5,
+      "residue_fraction_max": 0.1,
+      "sensitivity_max": 0.2,
+      "version": "router-v1",
+      "window_tokens": 3000
+    },
+    "frozen_hash": "ad0a21cbdf4be401affc3a81e37855891f63e5ca82dc02b3c50ae49832d27608",
+    "version": "router-v1"
+  },
+  "tables": {
+    "cspaper": {
+      "context_fit_lambda": 0.0922041946972695,
+      "fit_fraction": 1.0,
+      "full_read_cost": 307534,
+      "n_docs": 200,
+      "tokens_median": 932.0,
+      "tokens_p90": 1053,
+      "tokens_total": 187534,
+      "window_read_cost": 307534,
+      "workload": {
+        "attribute_reuse": 3.7777777777777777,
+        "n_attributes": 9,
+        "n_queries": 16,
+        "queries": [
+          "cspaper_agg20:q11",
+          "cspaper_agg20:q13",
+          "cspaper_agg20:q14",
+          "cspaper_agg20:q17",
+          "cspaper_agg20:q3",
+          "cspaper_agg20:q4",
+          "cspaper_filter20:q11",
+          "cspaper_filter20:q15",
+          "cspaper_filter20:q7",
+          "cspaper_filter20:q8",
+          "cspaper_filter20:q9",
+          "cspaper_groupby20:q14",
+          "cspaper_multiagg20:q11",
+          "cspaper_multiagg20:q18",
+          "cspaper_multiagg20:q4",
+          "cspaper_multiagg20:q9"
+        ]
+      }
+    }
+  },
+  "verdict": "predicted_loss"
+}
