@@ -170,3 +170,32 @@ def workload_features(spec: CorpusSpec, queries: dict[str, str] | None = None) -
         "tables": tables,
         "attributes": attributes,
     }
+
+
+def usage_phrase(use: "AttributeUse") -> str:
+    """How the whole reference workload uses an attribute, without any single query's SQL.
+
+    This is what the workload knows about a column that a query-independent read lacks:
+    whether it is aggregated as a number, grouped by value, or compared with specific values.
+    """
+
+    roles = set(use.roles)
+    parts = []
+    if roles & {"agg_additive", "agg_extremal"}:
+        parts.append("aggregated as a number (sum, average, max or min)")
+    if "agg_distinct" in roles:
+        parts.append("counted by distinct value")
+    if "group" in roles:
+        parts.append("grouped by its value")
+    if "predicate" in roles:
+        if use.literals:
+            parts.append("compared with " + ", ".join(repr(v) for v in use.literals[:12]))
+        elif use.numeric:
+            parts.append("compared numerically")
+        else:
+            parts.append("filtered on")
+    if roles & {"join", "key"}:
+        parts.append("used to join with another table")
+    if "project" in roles and not parts:
+        parts.append("reported as is")
+    return "; ".join(parts)

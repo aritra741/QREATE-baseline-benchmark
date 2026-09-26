@@ -78,6 +78,7 @@ class FieldSpec:
     nullable: bool = True
     choices: tuple[str, ...] = ()
     multi_choice: bool = False
+    usage: str = ""  # how the reference workload uses the field (workload-informed shared reads)
 
     def line(self) -> str:
         kind = {"int": "integer", "float": "number"}.get(self.value_type, "text")
@@ -89,6 +90,8 @@ class FieldSpec:
             extra += " Never null: always give a value."
             if {c.lower() for c in self.choices} == {"yes", "no"}:
                 extra += " Answer No unless the document indicates Yes."
+        if self.usage:
+            extra += f" Workload use: {self.usage}."
         return f"- {self.name} ({kind}): {self.description or self.name.replace('_', ' ')}.{extra}"
 
 
@@ -112,6 +115,34 @@ def conform(value: Any, field: FieldSpec) -> Any:
     if not kept:
         return None
     return " || ".join(kept) if len(kept) > 1 or field.multi_choice else kept[0]
+
+
+_COUNT = re.compile(r"\b(?:number of|count of|how many)\b|\buse 0 if none\b", re.I)
+
+
+def absence_value(field: FieldSpec) -> Any:
+    """The value a never-null field takes when the document says nothing about it.
+
+    Only two cases are declared by the schema itself: a never-null Yes/No field
+    (absence means No) and a never-null count (absence means 0). Every other
+    never-null field has no declared absence value and stays null (a recorded
+    contract violation).
+    """
+
+    if field.nullable:
+        return None
+    if {c.lower() for c in field.choices} == {"yes", "no"}:
+        return next(c for c in field.choices if c.lower() == "no")
+    if field.value_type == "int" and _COUNT.search(field.description or ""):
+        return 0
+    return None
+
+
+def complete(value: Any, field: FieldSpec) -> Any:
+    """Conform to the declared domain, then apply the declared absence value."""
+
+    value = conform(value, field)
+    return absence_value(field) if value is None else value
 
 
 def field_specs(spec: CorpusSpec, needs: list[Need], sql_numeric: set[str]) -> dict[str, FieldSpec]:

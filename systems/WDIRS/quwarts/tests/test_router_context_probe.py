@@ -71,3 +71,15 @@ def test_description_can_declare_an_empty_case(tmp_path):
     spec = CorpusSpec("x", (TableSpec("t", "p", tmp_path),), (attrs,), manifest)
     fields = field_specs(spec, workload_needs(spec), set())
     assert fields["t.fw"].nullable and fields["t.fw"].choices == ("CoT", "Other")
+
+
+def test_declared_absence_values():
+    from quwarts.core.router.context_probe import FieldSpec, absence_value, complete
+
+    yn = FieldSpec("r", "str", "whether it uses X", nullable=False, choices=("Yes", "No"))
+    count = FieldSpec("n", "int", "Number of awards (use 0 if none)", nullable=False)
+    name = FieldSpec("a", "str", "name of the audit firm", nullable=False)
+    optional = FieldSpec("f", "str", "framework", nullable=True, choices=("Yes", "No"))
+    assert complete(None, yn) == "No" and complete("yes", yn) == "Yes"
+    assert complete(None, count) == 0 and complete(3, count) == 3
+    assert absence_value(name) is None and absence_value(optional) is None
