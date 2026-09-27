@@ -1,0 +1,3341 @@
+{
+  "audit_only": true,
+  "zero_queries": [
+    "legal_agg20:q13",
+    "legal_agg20:q14",
+    "legal_agg20:q17",
+    "legal_agg20:q4",
+    "legal_filter20:q11",
+    "legal_filter20:q15",
+    "legal_filter20:q7",
+    "legal_filter20:q8",
+    "legal_multiagg20:q4"
+  ],
+  "queries": {
+    "legal_agg20:q13": {
+      "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, MAX(case_number) AS max_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family",
+      "gold": [
+        {
+          "case_family": "Administrative Case",
+          "max_precedents": ""
+        },
+        {
+          "case_family": "Civil Case",
+          "max_precedents": 93
+        },
+        {
+          "case_family": "Commercial Case",
+          "max_precedents": 48
+        },
+        {
+          "case_family": "Other",
+          "max_precedents": 21
+        }
+      ],
+      "quwarts": [
+        {
+          "case_family": "Administrative Case",
+          "max_precedents": "776"
+        },
+        {
+          "case_family": "Civil Case",
+          "max_precedents": "3351"
+        },
+        {
+          "case_family": "Commercial Case",
+          "max_precedents": "0"
+        }
+      ],
+      "docetl_fair": [
+        {
+          "case_family": "Administrative Case",
+          "max_precedents": 56862092.0
+        },
+        {
+          "case_family": "Civil Case",
+          "max_precedents": 192392.7
+        },
+        {
+          "case_family": "Commercial Case",
+          "max_precedents": 273000000.0
+        },
+        {
+          "case_family": "Other",
+          "max_precedents": 100.0
+        }
+      ],
+      "columns": {
+        "case_number": {
+          "type": "int",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 569,
+            "acc_on_gold_nonnull": 0.107,
+            "gold_null": 1,
+            "acc_on_gold_null": 0.0,
+            "pred_null_rate": 0.102,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "0",
+                  "1"
+                ],
+                58
+              ],
+              [
+                [
+                  "0",
+                  "3"
+                ],
+                54
+              ],
+              [
+                [
+                  "0",
+                  "2"
+                ],
+                46
+              ],
+              [
+                [
+                  "0",
+                  "5"
+                ],
+                46
+              ],
+              [
+                [
+                  "0",
+                  "4"
+                ],
+                32
+              ],
+              [
+                [
+                  "0",
+                  "6"
+                ],
+                30
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 569,
+            "acc_on_gold_nonnull": 0.0,
+            "gold_null": 1,
+            "acc_on_gold_null": 1.0,
+            "pred_null_rate": 0.97,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "0"
+                ],
+                65
+              ],
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                63
+              ],
+              [
+                [
+                  "None",
+                  "3"
+                ],
+                57
+              ],
+              [
+                [
+                  "None",
+                  "2"
+                ],
+                54
+              ],
+              [
+                [
+                  "None",
+                  "5"
+                ],
+                48
+              ],
+              [
+                [
+                  "None",
+                  "4"
+                ],
+                35
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "0",
+              66
+            ],
+            [
+              "1",
+              63
+            ],
+            [
+              "3",
+              57
+            ],
+            [
+              "2",
+              54
+            ],
+            [
+              "5",
+              50
+            ],
+            [
+              "4",
+              36
+            ],
+            [
+              "6",
+              33
+            ],
+            [
+              "7",
+              28
+            ]
+          ]
+        },
+        "case_type": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.772,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.002,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Civil Case",
+                  "Administrative Case"
+                ],
+                58
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Commercial Case"
+                ],
+                40
+              ],
+              [
+                [
+                  "Commercial Case",
+                  "Civil Case"
+                ],
+                14
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Criminal Case"
+                ],
+                9
+              ],
+              [
+                [
+                  "Administrative Case",
+                  "Civil Case"
+                ],
+                6
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Others"
+                ],
+                1
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.149,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.749,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Administrative Case"
+                ],
+                266
+              ],
+              [
+                [
+                  "None",
+                  "Civil Case"
+                ],
+                114
+              ],
+              [
+                [
+                  "None",
+                  "Commercial Case"
+                ],
+                38
+              ],
+              [
+                [
+                  "Administrative Case",
+                  "Civil Case"
+                ],
+                23
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Commercial Case"
+                ],
+                10
+              ],
+              [
+                [
+                  "None",
+                  "Criminal Case"
+                ],
+                8
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "Administrative Case",
+              344
+            ],
+            [
+              "Civil Case",
+              156
+            ],
+            [
+              "Commercial Case",
+              59
+            ],
+            [
+              "Criminal Case",
+              10
+            ],
+            [
+              "Others",
+              1
+            ]
+          ]
+        }
+      }
+    },
+    "legal_agg20:q14": {
+      "sql": "SELECT first_judge, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE first_judge IS NOT NULL GROUP BY first_judge",
+      "gold": [
+        {
+          "first_judge": 0,
+          "avg_statutes": 2.1254125412541254
+        },
+        {
+          "first_judge": 1,
+          "avg_statutes": 2.4082397003745317
+        }
+      ],
+      "quwarts": [
+        {
+          "first_judge": "0",
+          "avg_statutes": 7.5
+        },
+        {
+          "first_judge": "1",
+          "avg_statutes": 4.069767441860465
+        },
+        {
+          "first_judge": "Scarlett FM",
+          "avg_statutes": 0.0
+        }
+      ],
+      "docetl_fair": [
+        {
+          "first_judge": 0.0,
+          "avg_statutes": 0.0
+        },
+        {
+          "first_judge": 1.0,
+          "avg_statutes": 2668.188052434457
+        }
+      ],
+      "columns": {
+        "first_judge": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.468,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.007,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "1",
+                  "0"
+                ],
+                298
+              ],
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                2
+              ],
+              [
+                [
+                  "None",
+                  "0"
+                ],
+                2
+              ],
+              [
+                [
+                  "Scarlett FM",
+                  "0"
+                ],
+                1
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.0,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.0,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "1.0",
+                  "0"
+                ],
+                242
+              ],
+              [
+                [
+                  "1.0",
+                  "1"
+                ],
+                215
+              ],
+              [
+                [
+                  "0.0",
+                  "0"
+                ],
+                61
+              ],
+              [
+                [
+                  "0.0",
+                  "1"
+                ],
+                52
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "0",
+              303
+            ],
+            [
+              "1",
+              267
+            ]
+          ]
+        },
+        "legal_basis_num": {
+          "type": "int",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.191,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.011,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "4",
+                  "1"
+                ],
+                79
+              ],
+              [
+                [
+                  "4",
+                  "2"
+                ],
+                47
+              ],
+              [
+                [
+                  "2",
+                  "1"
+                ],
+                36
+              ],
+              [
+                [
+                  "2",
+                  "3"
+                ],
+                23
+              ],
+              [
+                [
+                  "4",
+                  "3"
+                ],
+                22
+              ],
+              [
+                [
+                  "5",
+                  "1"
+                ],
+                17
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.077,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.461,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                104
+              ],
+              [
+                [
+                  "None",
+                  "2"
+                ],
+                66
+              ],
+              [
+                [
+                  "0.0",
+                  "1"
+                ],
+                54
+              ],
+              [
+                [
+                  "0.0",
+                  "2"
+                ],
+                36
+              ],
+              [
+                [
+                  "None",
+                  "3"
+                ],
+                36
+              ],
+              [
+                [
+                  "None",
+                  "0"
+                ],
+                25
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "1",
+              204
+            ],
+            [
+              "2",
+              145
+            ],
+            [
+              "3",
+              82
+            ],
+            [
+              "0",
+              43
+            ],
+            [
+              "4",
+              41
+            ],
+            [
+              "5",
+              25
+            ],
+            [
+              "6",
+              12
+            ],
+            [
+              "7",
+              4
+            ]
+          ]
+        }
+      }
+    },
+    "legal_agg20:q17": {
+      "sql": "SELECT CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status != '' THEN 'Other' END AS defendant_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE defendant_current_status != '' GROUP BY defendant_family",
+      "gold": [
+        {
+          "defendant_family": "Company",
+          "avg_statutes": 2.2790697674418605
+        },
+        {
+          "defendant_family": "Government",
+          "avg_statutes": 1.847457627118644
+        },
+        {
+          "defendant_family": "Organization",
+          "avg_statutes": 3.25
+        },
+        {
+          "defendant_family": "Other",
+          "avg_statutes": 3.25
+        }
+      ],
+      "quwarts": [
+        {
+          "defendant_family": "Company",
+          "avg_statutes": 4.175
+        },
+        {
+          "defendant_family": "Government",
+          "avg_statutes": 3.986046511627907
+        },
+        {
+          "defendant_family": "Organization",
+          "avg_statutes": 4.666666666666667
+        },
+        {
+          "defendant_family": "Other",
+          "avg_statutes": 4.217391304347826
+        }
+      ],
+      "docetl_fair": [
+        {
+          "defendant_family": "Company",
+          "avg_statutes": 1542.55
+        },
+        {
+          "defendant_family": "Government",
+          "avg_statutes": 2.3333333333333335
+        }
+      ],
+      "columns": {
+        "defendant_current_status": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 512,
+            "acc_on_gold_nonnull": 0.498,
+            "gold_null": 58,
+            "acc_on_gold_null": 0.517,
+            "pred_null_rate": 0.372,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Government"
+                ],
+                95
+              ],
+              [
+                [
+                  "None",
+                  "Company"
+                ],
+                51
+              ],
+              [
+                [
+                  "None",
+                  "Organization"
+                ],
+                23
+              ],
+              [
+                [
+                  "Organization",
+                  "Company"
+                ],
+                14
+              ],
+              [
+                [
+                  "Government",
+                  "Organization"
+                ],
+                9
+              ],
+              [
+                [
+                  "Company",
+                  "Government"
+                ],
+                4
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 477,
+            "gold_nonnull": 424,
+            "acc_on_gold_nonnull": 0.035,
+            "gold_null": 53,
+            "acc_on_gold_null": 0.925,
+            "pred_null_rate": 0.952,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Government"
+                ],
+                231
+              ],
+              [
+                [
+                  "None",
+                  "Company"
+                ],
+                104
+              ],
+              [
+                [
+                  "None",
+                  "Organization"
+                ],
+                38
+              ],
+              [
+                [
+                  "None",
+                  "Employee"
+                ],
+                3
+              ],
+              [
+                [
+                  "None",
+                  "Chief Executive Officer"
+                ],
+                2
+              ],
+              [
+                [
+                  "None",
+                  "Director of Professional Services Review"
+                ],
+                1
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "Government",
+              295
+            ],
+            [
+              "Company",
+              129
+            ],
+            [
+              "",
+              58
+            ],
+            [
+              "Organization",
+              48
+            ],
+            [
+              "Employee",
+              5
+            ],
+            [
+              "Chief Executive Officer",
+              2
+            ],
+            [
+              "Director of Professional Services Review",
+              1
+            ],
+            [
+              "Corporate Executive",
+              1
+            ]
+          ]
+        },
+        "legal_basis_num": {
+          "type": "int",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.191,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.011,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "4",
+                  "1"
+                ],
+                79
+              ],
+              [
+                [
+                  "4",
+                  "2"
+                ],
+                47
+              ],
+              [
+                [
+                  "2",
+                  "1"
+                ],
+                36
+              ],
+              [
+                [
+                  "2",
+                  "3"
+                ],
+                23
+              ],
+              [
+                [
+                  "4",
+                  "3"
+                ],
+                22
+              ],
+              [
+                [
+                  "5",
+                  "1"
+                ],
+                17
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 477,
+            "gold_nonnull": 477,
+            "acc_on_gold_nonnull": 0.078,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.172,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "0.0",
+                  "1"
+                ],
+                98
+              ],
+              [
+                [
+                  "0.0",
+                  "2"
+                ],
+                66
+              ],
+              [
+                [
+                  "0.0",
+                  "3"
+                ],
+                49
+              ],
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                42
+              ],
+              [
+                [
+                  "0.0",
+                  "4"
+                ],
+                21
+              ],
+              [
+                [
+                  "None",
+                  "2"
+                ],
+                20
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "1",
+              204
+            ],
+            [
+              "2",
+              145
+            ],
+            [
+              "3",
+              82
+            ],
+            [
+              "0",
+              43
+            ],
+            [
+              "4",
+              41
+            ],
+            [
+              "5",
+              25
+            ],
+            [
+              "6",
+              12
+            ],
+            [
+              "7",
+              4
+            ]
+          ]
+        }
+      }
+    },
+    "legal_agg20:q4": {
+      "sql": "SELECT first_judge, COUNT(*) AS case_count FROM legal WHERE first_judge IS NOT NULL GROUP BY first_judge",
+      "gold": [
+        {
+          "first_judge": 0,
+          "case_count": 303
+        },
+        {
+          "first_judge": 1,
+          "case_count": 267
+        }
+      ],
+      "quwarts": [
+        {
+          "first_judge": "0",
+          "case_count": 2
+        },
+        {
+          "first_judge": "1",
+          "case_count": 563
+        },
+        {
+          "first_judge": "Scarlett FM",
+          "case_count": 1
+        }
+      ],
+      "docetl_fair": [
+        {
+          "first_judge": 0.0,
+          "case_count": 171
+        },
+        {
+          "first_judge": 1.0,
+          "case_count": 393
+        }
+      ],
+      "columns": {
+        "first_judge": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.468,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.007,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "1",
+                  "0"
+                ],
+                298
+              ],
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                2
+              ],
+              [
+                [
+                  "None",
+                  "0"
+                ],
+                2
+              ],
+              [
+                [
+                  "Scarlett FM",
+                  "0"
+                ],
+                1
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.0,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.011,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "1.0",
+                  "0"
+                ],
+                207
+              ],
+              [
+                [
+                  "1.0",
+                  "1"
+                ],
+                186
+              ],
+              [
+                [
+                  "0.0",
+                  "0"
+                ],
+                92
+              ],
+              [
+                [
+                  "0.0",
+                  "1"
+                ],
+                79
+              ],
+              [
+                [
+                  "None",
+                  "0"
+                ],
+                4
+              ],
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                2
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "0",
+              303
+            ],
+            [
+              "1",
+              267
+            ]
+          ]
+        }
+      }
+    },
+    "legal_filter20:q11": {
+      "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE defendant_current_status = 'Government' GROUP BY case_family",
+      "gold": [
+        {
+          "case_family": "Administrative Case",
+          "avg_statutes": 1.7174721189591078
+        },
+        {
+          "case_family": "Civil Case",
+          "avg_statutes": 2.789473684210526
+        },
+        {
+          "case_family": "Commercial Case",
+          "avg_statutes": 4.666666666666667
+        },
+        {
+          "case_family": "Other",
+          "avg_statutes": 4.0
+        }
+      ],
+      "quwarts": [
+        {
+          "case_family": "Administrative Case",
+          "avg_statutes": 3.9692307692307693
+        },
+        {
+          "case_family": "Civil Case",
+          "avg_statutes": 4.15
+        }
+      ],
+      "docetl_fair": [
+        {
+          "case_family": "Administrative Case",
+          "avg_statutes": 14.357142857142858
+        },
+        {
+          "case_family": "Civil Case",
+          "avg_statutes": 48.294117647058826
+        },
+        {
+          "case_family": "Commercial Case",
+          "avg_statutes": 28.444444444444443
+        },
+        {
+          "case_family": "Other",
+          "avg_statutes": 323.01435897435897
+        }
+      ],
+      "columns": {
+        "case_type": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.772,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.002,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Civil Case",
+                  "Administrative Case"
+                ],
+                58
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Commercial Case"
+                ],
+                40
+              ],
+              [
+                [
+                  "Commercial Case",
+                  "Civil Case"
+                ],
+                14
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Criminal Case"
+                ],
+                9
+              ],
+              [
+                [
+                  "Administrative Case",
+                  "Civil Case"
+                ],
+                6
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Others"
+                ],
+                1
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 490,
+            "gold_nonnull": 490,
+            "acc_on_gold_nonnull": 0.045,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.898,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Administrative Case"
+                ],
+                267
+              ],
+              [
+                [
+                  "None",
+                  "Civil Case"
+                ],
+                123
+              ],
+              [
+                [
+                  "None",
+                  "Commercial Case"
+                ],
+                42
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Administrative Case"
+                ],
+                9
+              ],
+              [
+                [
+                  "None",
+                  "Criminal Case"
+                ],
+                7
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Commercial Case"
+                ],
+                7
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "Administrative Case",
+              344
+            ],
+            [
+              "Civil Case",
+              156
+            ],
+            [
+              "Commercial Case",
+              59
+            ],
+            [
+              "Criminal Case",
+              10
+            ],
+            [
+              "Others",
+              1
+            ]
+          ]
+        },
+        "defendant_current_status": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 512,
+            "acc_on_gold_nonnull": 0.498,
+            "gold_null": 58,
+            "acc_on_gold_null": 0.517,
+            "pred_null_rate": 0.372,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Government"
+                ],
+                95
+              ],
+              [
+                [
+                  "None",
+                  "Company"
+                ],
+                51
+              ],
+              [
+                [
+                  "None",
+                  "Organization"
+                ],
+                23
+              ],
+              [
+                [
+                  "Organization",
+                  "Company"
+                ],
+                14
+              ],
+              [
+                [
+                  "Government",
+                  "Organization"
+                ],
+                9
+              ],
+              [
+                [
+                  "Company",
+                  "Government"
+                ],
+                4
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 490,
+            "gold_nonnull": 435,
+            "acc_on_gold_nonnull": 0.324,
+            "gold_null": 55,
+            "acc_on_gold_null": 0.345,
+            "pred_null_rate": 0.384,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Government"
+                ],
+                101
+              ],
+              [
+                [
+                  "Government",
+                  "Company"
+                ],
+                70
+              ],
+              [
+                [
+                  "None",
+                  "Company"
+                ],
+                42
+              ],
+              [
+                [
+                  "Government",
+                  "Organization"
+                ],
+                26
+              ],
+              [
+                [
+                  "None",
+                  "Organization"
+                ],
+                16
+              ],
+              [
+                [
+                  "Government",
+                  "Employee"
+                ],
+                4
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "Government",
+              295
+            ],
+            [
+              "Company",
+              129
+            ],
+            [
+              "",
+              58
+            ],
+            [
+              "Organization",
+              48
+            ],
+            [
+              "Employee",
+              5
+            ],
+            [
+              "Chief Executive Officer",
+              2
+            ],
+            [
+              "Director of Professional Services Review",
+              1
+            ],
+            [
+              "Corporate Executive",
+              1
+            ]
+          ]
+        },
+        "legal_basis_num": {
+          "type": "int",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.191,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.011,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "4",
+                  "1"
+                ],
+                79
+              ],
+              [
+                [
+                  "4",
+                  "2"
+                ],
+                47
+              ],
+              [
+                [
+                  "2",
+                  "1"
+                ],
+                36
+              ],
+              [
+                [
+                  "2",
+                  "3"
+                ],
+                23
+              ],
+              [
+                [
+                  "4",
+                  "3"
+                ],
+                22
+              ],
+              [
+                [
+                  "5",
+                  "1"
+                ],
+                17
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 490,
+            "gold_nonnull": 490,
+            "acc_on_gold_nonnull": 0.067,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.353,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                79
+              ],
+              [
+                [
+                  "0.0",
+                  "1"
+                ],
+                72
+              ],
+              [
+                [
+                  "0.0",
+                  "2"
+                ],
+                58
+              ],
+              [
+                [
+                  "None",
+                  "2"
+                ],
+                46
+              ],
+              [
+                [
+                  "0.0",
+                  "3"
+                ],
+                37
+              ],
+              [
+                [
+                  "0.0",
+                  "4"
+                ],
+                21
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "1",
+              204
+            ],
+            [
+              "2",
+              145
+            ],
+            [
+              "3",
+              82
+            ],
+            [
+              "0",
+              43
+            ],
+            [
+              "4",
+              41
+            ],
+            [
+              "5",
+              25
+            ],
+            [
+              "6",
+              12
+            ],
+            [
+              "7",
+              4
+            ]
+          ]
+        }
+      }
+    },
+    "legal_filter20:q15": {
+      "sql": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE plaintiff_current_status = 'Company' AND defendant_current_status IN ('Company', 'Organization', 'Government') GROUP BY verdict_family",
+      "gold": [
+        {
+          "verdict_family": "Approved",
+          "case_count": 22
+        },
+        {
+          "verdict_family": "Dismissed",
+          "case_count": 44
+        },
+        {
+          "verdict_family": "Others",
+          "case_count": 26
+        }
+      ],
+      "quwarts": [
+        {
+          "verdict_family": "Approved",
+          "case_count": 1
+        },
+        {
+          "verdict_family": "Dismissed",
+          "case_count": 19
+        },
+        {
+          "verdict_family": "Other",
+          "case_count": 20
+        },
+        {
+          "verdict_family": "Others",
+          "case_count": 10
+        }
+      ],
+      "docetl_fair": [
+        {
+          "verdict_family": "Approved",
+          "case_count": 9
+        },
+        {
+          "verdict_family": "Dismissed",
+          "case_count": 111
+        },
+        {
+          "verdict_family": "Other",
+          "case_count": 47
+        },
+        {
+          "verdict_family": "Others",
+          "case_count": 3
+        }
+      ],
+      "columns": {
+        "defendant_current_status": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 512,
+            "acc_on_gold_nonnull": 0.498,
+            "gold_null": 58,
+            "acc_on_gold_null": 0.517,
+            "pred_null_rate": 0.372,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Government"
+                ],
+                95
+              ],
+              [
+                [
+                  "None",
+                  "Company"
+                ],
+                51
+              ],
+              [
+                [
+                  "None",
+                  "Organization"
+                ],
+                23
+              ],
+              [
+                [
+                  "Organization",
+                  "Company"
+                ],
+                14
+              ],
+              [
+                [
+                  "Government",
+                  "Organization"
+                ],
+                9
+              ],
+              [
+                [
+                  "Company",
+                  "Government"
+                ],
+                4
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 512,
+            "acc_on_gold_nonnull": 0.135,
+            "gold_null": 58,
+            "acc_on_gold_null": 0.483,
+            "pred_null_rate": 0.661,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Government"
+                ],
+                252
+              ],
+              [
+                [
+                  "None",
+                  "Company"
+                ],
+                39
+              ],
+              [
+                [
+                  "None",
+                  "Organization"
+                ],
+                31
+              ],
+              [
+                [
+                  "Organization",
+                  "Company"
+                ],
+                24
+              ],
+              [
+                [
+                  "Organization",
+                  "Government"
+                ],
+                15
+              ],
+              [
+                [
+                  "Company",
+                  "Government"
+                ],
+                12
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "Government",
+              295
+            ],
+            [
+              "Company",
+              129
+            ],
+            [
+              "",
+              58
+            ],
+            [
+              "Organization",
+              48
+            ],
+            [
+              "Employee",
+              5
+            ],
+            [
+              "Chief Executive Officer",
+              2
+            ],
+            [
+              "Director of Professional Services Review",
+              1
+            ],
+            [
+              "Corporate Executive",
+              1
+            ]
+          ]
+        },
+        "plaintiff_current_status": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 314,
+            "acc_on_gold_nonnull": 0.306,
+            "gold_null": 256,
+            "acc_on_gold_null": 0.746,
+            "pred_null_rate": 0.537,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Organization",
+                  "Company"
+                ],
+                24
+              ],
+              [
+                [
+                  "Government",
+                  "Organization"
+                ],
+                14
+              ],
+              [
+                [
+                  "None",
+                  "Visa Applicant"
+                ],
+                13
+              ],
+              [
+                [
+                  "None",
+                  "Company"
+                ],
+                12
+              ],
+              [
+                [
+                  "None",
+                  "Student"
+                ],
+                10
+              ],
+              [
+                [
+                  "None",
+                  "Refugee"
+                ],
+                7
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 314,
+            "acc_on_gold_nonnull": 0.347,
+            "gold_null": 256,
+            "acc_on_gold_null": 0.262,
+            "pred_null_rate": 0.189,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Company",
+                  "Organization"
+                ],
+                29
+              ],
+              [
+                [
+                  "Company",
+                  "Government"
+                ],
+                15
+              ],
+              [
+                [
+                  "Company",
+                  "Employee"
+                ],
+                8
+              ],
+              [
+                [
+                  "Company",
+                  "Visa Applicant"
+                ],
+                8
+              ],
+              [
+                [
+                  "Company",
+                  "Student"
+                ],
+                7
+              ],
+              [
+                [
+                  "None",
+                  "Student"
+                ],
+                5
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "",
+              256
+            ],
+            [
+              "Company",
+              115
+            ],
+            [
+              "Organization",
+              32
+            ],
+            [
+              "Government",
+              19
+            ],
+            [
+              "Visa Applicant",
+              14
+            ],
+            [
+              "Student",
+              12
+            ],
+            [
+              "Refugee",
+              9
+            ],
+            [
+              "Employee",
+              8
+            ]
+          ]
+        },
+        "verdict": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.646,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.132,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Others",
+                  "Approved"
+                ],
+                38
+              ],
+              [
+                [
+                  "None",
+                  "Others"
+                ],
+                30
+              ],
+              [
+                [
+                  "Others",
+                  "Dismissed"
+                ],
+                26
+              ],
+              [
+                [
+                  "None",
+                  "Dismissed"
+                ],
+                23
+              ],
+              [
+                [
+                  "None",
+                  "Approved"
+                ],
+                20
+              ],
+              [
+                [
+                  "Dismissed",
+                  "Approved"
+                ],
+                15
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.628,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.012,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Dismissed",
+                  "Approved"
+                ],
+                53
+              ],
+              [
+                [
+                  "Dismissed",
+                  "Others"
+                ],
+                40
+              ],
+              [
+                [
+                  "Other",
+                  "Approved"
+                ],
+                11
+              ],
+              [
+                [
+                  "Other",
+                  "Others"
+                ],
+                10
+              ],
+              [
+                [
+                  "Approved",
+                  "Dismissed"
+                ],
+                8
+              ],
+              [
+                [
+                  "Other",
+                  "Dismissed"
+                ],
+                7
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "Dismissed",
+              384
+            ],
+            [
+              "Approved",
+              105
+            ],
+            [
+              "Others",
+              73
+            ],
+            [
+              "Guilty",
+              7
+            ],
+            [
+              "Not Guilty",
+              1
+            ]
+          ]
+        }
+      }
+    },
+    "legal_filter20:q7": {
+      "sql": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(case_number) AS avg_precedents FROM legal WHERE hearing_year BETWEEN 2006 AND 2008 AND case_number IS NOT NULL GROUP BY verdict_family",
+      "gold": [
+        {
+          "verdict_family": "Approved",
+          "avg_precedents": 7.987804878048781
+        },
+        {
+          "verdict_family": "Dismissed",
+          "avg_precedents": 6.472843450479234
+        },
+        {
+          "verdict_family": "Other",
+          "avg_precedents": 4.8
+        },
+        {
+          "verdict_family": "Others",
+          "avg_precedents": 9.807692307692308
+        }
+      ],
+      "quwarts": [
+        {
+          "verdict_family": "Approved",
+          "avg_precedents": 111.44444444444444
+        },
+        {
+          "verdict_family": "Dismissed",
+          "avg_precedents": 15.11111111111111
+        },
+        {
+          "verdict_family": "Other",
+          "avg_precedents": 0.0
+        },
+        {
+          "verdict_family": "Others",
+          "avg_precedents": 63.509433962264154
+        }
+      ],
+      "docetl_fair": [
+        {
+          "verdict_family": "Approved",
+          "avg_precedents": 5169285.2727272725
+        },
+        {
+          "verdict_family": "Dismissed",
+          "avg_precedents": 4316.606896551724
+        },
+        {
+          "verdict_family": "Other",
+          "avg_precedents": 5503.134285714286
+        },
+        {
+          "verdict_family": "Others",
+          "avg_precedents": 35230.0
+        }
+      ],
+      "columns": {
+        "case_number": {
+          "type": "int",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 569,
+            "acc_on_gold_nonnull": 0.107,
+            "gold_null": 1,
+            "acc_on_gold_null": 0.0,
+            "pred_null_rate": 0.102,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "0",
+                  "1"
+                ],
+                58
+              ],
+              [
+                [
+                  "0",
+                  "3"
+                ],
+                54
+              ],
+              [
+                [
+                  "0",
+                  "2"
+                ],
+                46
+              ],
+              [
+                [
+                  "0",
+                  "5"
+                ],
+                46
+              ],
+              [
+                [
+                  "0",
+                  "4"
+                ],
+                32
+              ],
+              [
+                [
+                  "0",
+                  "6"
+                ],
+                30
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 569,
+            "acc_on_gold_nonnull": 0.018,
+            "gold_null": 1,
+            "acc_on_gold_null": 1.0,
+            "pred_null_rate": 0.593,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "0"
+                ],
+                53
+              ],
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                39
+              ],
+              [
+                [
+                  "None",
+                  "2"
+                ],
+                36
+              ],
+              [
+                [
+                  "None",
+                  "3"
+                ],
+                34
+              ],
+              [
+                [
+                  "None",
+                  "5"
+                ],
+                28
+              ],
+              [
+                [
+                  "None",
+                  "6"
+                ],
+                20
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "0",
+              66
+            ],
+            [
+              "1",
+              63
+            ],
+            [
+              "3",
+              57
+            ],
+            [
+              "2",
+              54
+            ],
+            [
+              "5",
+              50
+            ],
+            [
+              "4",
+              36
+            ],
+            [
+              "6",
+              33
+            ],
+            [
+              "7",
+              28
+            ]
+          ]
+        },
+        "hearing_year": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 565,
+            "acc_on_gold_nonnull": 0.798,
+            "gold_null": 5,
+            "acc_on_gold_null": 0.2,
+            "pred_null_rate": 0.119,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "2006"
+                ],
+                21
+              ],
+              [
+                [
+                  "None",
+                  "2007"
+                ],
+                18
+              ],
+              [
+                [
+                  "None",
+                  "2008"
+                ],
+                16
+              ],
+              [
+                [
+                  "2006",
+                  "2007"
+                ],
+                14
+              ],
+              [
+                [
+                  "None",
+                  "2009"
+                ],
+                9
+              ],
+              [
+                [
+                  "2005",
+                  "2006"
+                ],
+                6
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 565,
+            "acc_on_gold_nonnull": 0.0,
+            "gold_null": 5,
+            "acc_on_gold_null": 0.0,
+            "pred_null_rate": 0.047,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "2006.0",
+                  "2006"
+                ],
+                156
+              ],
+              [
+                [
+                  "2008.0",
+                  "2008"
+                ],
+                100
+              ],
+              [
+                [
+                  "2007.0",
+                  "2007"
+                ],
+                98
+              ],
+              [
+                [
+                  "2009.0",
+                  "2009"
+                ],
+                76
+              ],
+              [
+                [
+                  "2006.0",
+                  "2007"
+                ],
+                39
+              ],
+              [
+                [
+                  "2007.0",
+                  "2008"
+                ],
+                12
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "2006",
+              171
+            ],
+            [
+              "2007",
+              150
+            ],
+            [
+              "2008",
+              131
+            ],
+            [
+              "2009",
+              94
+            ],
+            [
+              "2005",
+              17
+            ],
+            [
+              "",
+              5
+            ],
+            [
+              "2027",
+              1
+            ],
+            [
+              "2024",
+              1
+            ]
+          ]
+        },
+        "verdict": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.646,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.132,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Others",
+                  "Approved"
+                ],
+                38
+              ],
+              [
+                [
+                  "None",
+                  "Others"
+                ],
+                30
+              ],
+              [
+                [
+                  "Others",
+                  "Dismissed"
+                ],
+                26
+              ],
+              [
+                [
+                  "None",
+                  "Dismissed"
+                ],
+                23
+              ],
+              [
+                [
+                  "None",
+                  "Approved"
+                ],
+                20
+              ],
+              [
+                [
+                  "Dismissed",
+                  "Approved"
+                ],
+                15
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.551,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.246,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Dismissed"
+                ],
+                64
+              ],
+              [
+                [
+                  "Dismissed",
+                  "Approved"
+                ],
+                41
+              ],
+              [
+                [
+                  "None",
+                  "Others"
+                ],
+                37
+              ],
+              [
+                [
+                  "None",
+                  "Approved"
+                ],
+                36
+              ],
+              [
+                [
+                  "Dismissed",
+                  "Others"
+                ],
+                24
+              ],
+              [
+                [
+                  "Approved",
+                  "Dismissed"
+                ],
+                8
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "Dismissed",
+              384
+            ],
+            [
+              "Approved",
+              105
+            ],
+            [
+              "Others",
+              73
+            ],
+            [
+              "Guilty",
+              7
+            ],
+            [
+              "Not Guilty",
+              1
+            ]
+          ]
+        }
+      }
+    },
+    "legal_filter20:q8": {
+      "sql": "SELECT CASE WHEN case_number >= 10 THEN 'many_precedents' ELSE 'fewer_precedents' END AS precedent_band, COUNT(*) AS case_count FROM legal WHERE case_type = 'Civil Case' AND case_number IS NOT NULL GROUP BY precedent_band",
+      "gold": [
+        {
+          "precedent_band": "fewer_precedents",
+          "case_count": 105
+        },
+        {
+          "precedent_band": "many_precedents",
+          "case_count": 51
+        }
+      ],
+      "quwarts": [
+        {
+          "precedent_band": "fewer_precedents",
+          "case_count": 204
+        },
+        {
+          "precedent_band": "many_precedents",
+          "case_count": 6
+        }
+      ],
+      "docetl_fair": [
+        {
+          "precedent_band": "fewer_precedents",
+          "case_count": 68
+        },
+        {
+          "precedent_band": "many_precedents",
+          "case_count": 12
+        }
+      ],
+      "columns": {
+        "case_number": {
+          "type": "int",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 569,
+            "acc_on_gold_nonnull": 0.107,
+            "gold_null": 1,
+            "acc_on_gold_null": 0.0,
+            "pred_null_rate": 0.102,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "0",
+                  "1"
+                ],
+                58
+              ],
+              [
+                [
+                  "0",
+                  "3"
+                ],
+                54
+              ],
+              [
+                [
+                  "0",
+                  "2"
+                ],
+                46
+              ],
+              [
+                [
+                  "0",
+                  "5"
+                ],
+                46
+              ],
+              [
+                [
+                  "0",
+                  "4"
+                ],
+                32
+              ],
+              [
+                [
+                  "0",
+                  "6"
+                ],
+                30
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 569,
+            "acc_on_gold_nonnull": 0.005,
+            "gold_null": 1,
+            "acc_on_gold_null": 1.0,
+            "pred_null_rate": 0.86,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "0"
+                ],
+                64
+              ],
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                61
+              ],
+              [
+                [
+                  "None",
+                  "3"
+                ],
+                56
+              ],
+              [
+                [
+                  "None",
+                  "2"
+                ],
+                49
+              ],
+              [
+                [
+                  "None",
+                  "5"
+                ],
+                45
+              ],
+              [
+                [
+                  "None",
+                  "4"
+                ],
+                33
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "0",
+              66
+            ],
+            [
+              "1",
+              63
+            ],
+            [
+              "3",
+              57
+            ],
+            [
+              "2",
+              54
+            ],
+            [
+              "5",
+              50
+            ],
+            [
+              "4",
+              36
+            ],
+            [
+              "6",
+              33
+            ],
+            [
+              "7",
+              28
+            ]
+          ]
+        },
+        "case_type": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.772,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.002,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Civil Case",
+                  "Administrative Case"
+                ],
+                58
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Commercial Case"
+                ],
+                40
+              ],
+              [
+                [
+                  "Commercial Case",
+                  "Civil Case"
+                ],
+                14
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Criminal Case"
+                ],
+                9
+              ],
+              [
+                [
+                  "Administrative Case",
+                  "Civil Case"
+                ],
+                6
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Others"
+                ],
+                1
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.251,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.093,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Civil Case",
+                  "Administrative Case"
+                ],
+                302
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Commercial Case"
+                ],
+                57
+              ],
+              [
+                [
+                  "None",
+                  "Administrative Case"
+                ],
+                39
+              ],
+              [
+                [
+                  "None",
+                  "Civil Case"
+                ],
+                11
+              ],
+              [
+                [
+                  "Civil Case",
+                  "Criminal Case"
+                ],
+                9
+              ],
+              [
+                [
+                  "None",
+                  "Commercial Case"
+                ],
+                2
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "Administrative Case",
+              344
+            ],
+            [
+              "Civil Case",
+              156
+            ],
+            [
+              "Commercial Case",
+              59
+            ],
+            [
+              "Criminal Case",
+              10
+            ],
+            [
+              "Others",
+              1
+            ]
+          ]
+        }
+      }
+    },
+    "legal_multiagg20:q4": {
+      "sql": "SELECT first_judge, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count FROM legal WHERE first_judge IS NOT NULL AND case_number IS NOT NULL GROUP BY first_judge",
+      "gold": [
+        {
+          "first_judge": 0,
+          "case_count": 303,
+          "avg_statutes": 2.1254125412541254,
+          "avg_precedents": 7.993399339933993,
+          "dismissed_count": 216
+        },
+        {
+          "first_judge": 1,
+          "case_count": 267,
+          "avg_statutes": 2.4082397003745317,
+          "avg_precedents": 6.037453183520599,
+          "dismissed_count": 168
+        }
+      ],
+      "quwarts": [
+        {
+          "first_judge": "0",
+          "case_count": 2,
+          "avg_statutes": 7.5,
+          "avg_precedents": 0.0,
+          "dismissed_count": 0
+        },
+        {
+          "first_judge": "1",
+          "case_count": 509,
+          "avg_statutes": 4.0355731225296445,
+          "avg_precedents": 21.035363457760315,
+          "dismissed_count": 325
+        }
+      ],
+      "docetl_fair": [
+        {
+          "first_judge": 0.0,
+          "case_count": 9,
+          "avg_statutes": 0.0,
+          "avg_precedents": 0.0,
+          "dismissed_count": 2
+        },
+        {
+          "first_judge": 1.0,
+          "case_count": 215,
+          "avg_statutes": 5.414285714285715,
+          "avg_precedents": 1573526.450744186,
+          "dismissed_count": 140
+        }
+      ],
+      "columns": {
+        "case_number": {
+          "type": "int",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 569,
+            "acc_on_gold_nonnull": 0.107,
+            "gold_null": 1,
+            "acc_on_gold_null": 0.0,
+            "pred_null_rate": 0.102,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "0",
+                  "1"
+                ],
+                58
+              ],
+              [
+                [
+                  "0",
+                  "3"
+                ],
+                54
+              ],
+              [
+                [
+                  "0",
+                  "2"
+                ],
+                46
+              ],
+              [
+                [
+                  "0",
+                  "5"
+                ],
+                46
+              ],
+              [
+                [
+                  "0",
+                  "4"
+                ],
+                32
+              ],
+              [
+                [
+                  "0",
+                  "6"
+                ],
+                30
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 569,
+            "acc_on_gold_nonnull": 0.023,
+            "gold_null": 1,
+            "acc_on_gold_null": 1.0,
+            "pred_null_rate": 0.607,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "0"
+                ],
+                47
+              ],
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                44
+              ],
+              [
+                [
+                  "None",
+                  "2"
+                ],
+                41
+              ],
+              [
+                [
+                  "None",
+                  "3"
+                ],
+                35
+              ],
+              [
+                [
+                  "None",
+                  "5"
+                ],
+                33
+              ],
+              [
+                [
+                  "None",
+                  "4"
+                ],
+                24
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "0",
+              66
+            ],
+            [
+              "1",
+              63
+            ],
+            [
+              "3",
+              57
+            ],
+            [
+              "2",
+              54
+            ],
+            [
+              "5",
+              50
+            ],
+            [
+              "4",
+              36
+            ],
+            [
+              "6",
+              33
+            ],
+            [
+              "7",
+              28
+            ]
+          ]
+        },
+        "first_judge": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.468,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.007,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "1",
+                  "0"
+                ],
+                298
+              ],
+              [
+                [
+                  "None",
+                  "1"
+                ],
+                2
+              ],
+              [
+                [
+                  "None",
+                  "0"
+                ],
+                2
+              ],
+              [
+                [
+                  "Scarlett FM",
+                  "0"
+                ],
+                1
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.0,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.0,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "1.0",
+                  "0"
+                ],
+                271
+              ],
+              [
+                [
+                  "1.0",
+                  "1"
+                ],
+                238
+              ],
+              [
+                [
+                  "0.0",
+                  "0"
+                ],
+                32
+              ],
+              [
+                [
+                  "0.0",
+                  "1"
+                ],
+                29
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "0",
+              303
+            ],
+            [
+              "1",
+              267
+            ]
+          ]
+        },
+        "legal_basis_num": {
+          "type": "int",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.191,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.011,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "4",
+                  "1"
+                ],
+                79
+              ],
+              [
+                [
+                  "4",
+                  "2"
+                ],
+                47
+              ],
+              [
+                [
+                  "2",
+                  "1"
+                ],
+                36
+              ],
+              [
+                [
+                  "2",
+                  "3"
+                ],
+                23
+              ],
+              [
+                [
+                  "4",
+                  "3"
+                ],
+                22
+              ],
+              [
+                [
+                  "5",
+                  "1"
+                ],
+                17
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.112,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.068,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "0.0",
+                  "1"
+                ],
+                137
+              ],
+              [
+                [
+                  "0.0",
+                  "2"
+                ],
+                91
+              ],
+              [
+                [
+                  "0.0",
+                  "3"
+                ],
+                50
+              ],
+              [
+                [
+                  "2.0",
+                  "1"
+                ],
+                28
+              ],
+              [
+                [
+                  "0.0",
+                  "4"
+                ],
+                22
+              ],
+              [
+                [
+                  "0.0",
+                  "5"
+                ],
+                16
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "1",
+              204
+            ],
+            [
+              "2",
+              145
+            ],
+            [
+              "3",
+              82
+            ],
+            [
+              "0",
+              43
+            ],
+            [
+              "4",
+              41
+            ],
+            [
+              "5",
+              25
+            ],
+            [
+              "6",
+              12
+            ],
+            [
+              "7",
+              4
+            ]
+          ]
+        },
+        "verdict": {
+          "type": "str",
+          "quwarts": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.646,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.132,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "Others",
+                  "Approved"
+                ],
+                38
+              ],
+              [
+                [
+                  "None",
+                  "Others"
+                ],
+                30
+              ],
+              [
+                [
+                  "Others",
+                  "Dismissed"
+                ],
+                26
+              ],
+              [
+                [
+                  "None",
+                  "Dismissed"
+                ],
+                23
+              ],
+              [
+                [
+                  "None",
+                  "Approved"
+                ],
+                20
+              ],
+              [
+                [
+                  "Dismissed",
+                  "Approved"
+                ],
+                15
+              ]
+            ]
+          },
+          "docetl_fair": {
+            "docs": 570,
+            "gold_nonnull": 570,
+            "acc_on_gold_nonnull": 0.525,
+            "gold_null": 0,
+            "acc_on_gold_null": null,
+            "pred_null_rate": 0.274,
+            "top_confusions_pred_vs_gold": [
+              [
+                [
+                  "None",
+                  "Dismissed"
+                ],
+                71
+              ],
+              [
+                [
+                  "None",
+                  "Approved"
+                ],
+                49
+              ],
+              [
+                [
+                  "None",
+                  "Others"
+                ],
+                34
+              ],
+              [
+                [
+                  "Dismissed",
+                  "Approved"
+                ],
+                34
+              ],
+              [
+                [
+                  "Dismissed",
+                  "Others"
+                ],
+                22
+              ],
+              [
+                [
+                  "Others",
+                  "Dismissed"
+                ],
+                19
+              ]
+            ]
+          },
+          "gold_top_values": [
+            [
+              "Dismissed",
+              384
+            ],
+            [
+              "Approved",
+              105
+            ],
+            [
+              "Others",
+              73
+            ],
+            [
+              "Guilty",
+              7
+            ],
+            [
+              "Not Guilty",
+              1
+            ]
+          ]
+        }
+      }
+    }
+  }
+}
