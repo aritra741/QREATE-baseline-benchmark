@@ -1,0 +1,123 @@
+{
+  "audit_only": true,
+  "passages": "bm25",
+  "chunk_tokens": 2000,
+  "k_candidates": 5,
+  "columns": {
+    "case_number": {
+      "definition": "One counted item: precedent\nHow items are written: previous judicial decision, High Court of Australia in 'Scott & Anor v Pedler & Ors [2005] HCATrans 1002', Federal Court of Australia in 'Scott & Anor v Pedler & Ors [2004] FCAFC 67'\nDo NOT count: repeated mentions of the same precedent, claims, or complaints",
+      "candidates": [
+        [
+          "(?:High Court of Australia|Federal Court of Australia) in '([^\\']+)'",
+          "(?:High Court of Australia|Federal Court of Australia) in ([^\\s]+)"
+        ],
+        [
+          "(\\[([0-9]{4})\\] (F|H)CATrans [0-9]+)",
+          "(\\[([0-9]{4})\\] ([A-Z]+ Court of Australia))"
+        ],
+        [],
+        [
+          "(?i)the high court of australia in '(.*?)'\\s*\\[.*?\\]",
+          "(?i)the federal court of australia in '(.*?)'\\s*\\[.*?\\]"
+        ],
+        [
+          "(?:previous\\s+judicial\\s+decision|High\\s+Court\\s+of\\s+Australia|Federal\\s+Court\\s+of\\s+Australia)\\s+in\\s+'(.*?)'",
+          "(?:previous\\s+judicial\\s+decision|High\\s+Court\\s+of\\s+Australia|Federal\\s+Court\\s+of\\s+Australia)\\s+in\\s+'(.*?)'"
+        ]
+      ],
+      "candidate_disagreement_on_selection": {
+        "0": 1.9,
+        "1": 1.8,
+        "2": Infinity,
+        "3": 1.8,
+        "4": 1.8
+      },
+      "chosen_candidate": 1,
+      "arms": {
+        "chunk_verified": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.14,
+          "within20_doc": 0.16,
+          "mae": 5.88,
+          "gold_mean": 9.32,
+          "pred_mean": 3.56,
+          "mean_ratio": 0.382
+        },
+        "chunk_unverified": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.16,
+          "within20_doc": 0.2,
+          "mae": 5.52,
+          "gold_mean": 9.32,
+          "pred_mean": 3.92,
+          "mean_ratio": 0.421
+        },
+        "regex_selected": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.1,
+          "mae": 9.28,
+          "gold_mean": 9.32,
+          "pred_mean": 0.04,
+          "mean_ratio": 0.004
+        },
+        "regex_median_of_k": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.1,
+          "mae": 9.32,
+          "gold_mean": 9.32,
+          "pred_mean": 0.0,
+          "mean_ratio": 0.0
+        },
+        "direct_probe1": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.1,
+          "mae": 34.96,
+          "gold_mean": 9.32,
+          "pred_mean": 26.52,
+          "mean_ratio": 2.845
+        },
+        "list10_probe1": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.08,
+          "within20_doc": 0.18,
+          "mae": 6.2,
+          "gold_mean": 9.32,
+          "pred_mean": 4.88,
+          "mean_ratio": 0.524
+        },
+        "list22_probe1": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.18,
+          "mae": 7.06,
+          "gold_mean": 9.32,
+          "pred_mean": 3.9,
+          "mean_ratio": 0.418
+        }
+      },
+      "go": {
+        "chunk_verified": false,
+        "chunk_unverified": false,
+        "regex_selected": false,
+        "regex_median_of_k": false
+      },
+      "tokens": {
+        "define": 6461,
+        "chunk_eval_docs": 662058,
+        "chunk_selection_docs": 122876,
+        "synth": 30671,
+        "regex_per_document": 0
+      }
+    }
+  }
+}

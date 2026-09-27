@@ -48,6 +48,10 @@ N_SELECT = 20
 K_CANDIDATES = 5
 SYSTEM = "You read documents carefully and answer in JSON only."
 _WS = re.compile(r"\s+")
+# Generic English and schema words; nothing corpus-specific.
+_STOP = set("""the a an and or of in on to is are was were be been this that these those which who whom for with
+by as at from it its into can such etc also any all each per column columns stores store records record value values
+number numbers count counts counted used use using document documents""".split())
 
 
 def chunks(text: str) -> list[str]:
@@ -68,15 +72,45 @@ def squash(text: str) -> str:
     return _WS.sub(" ", text).strip().lower()
 
 
+_BAD_ESCAPE = re.compile(r'\\(?!["\\/bfnrtu])')
+
+
+def _loads_lenient(blob: str) -> Any:
+    """json.loads, retrying with invalid backslash escapes doubled (models write regex as \\[ in JSON)."""
+    try:
+        return json.loads(blob)
+    except json.JSONDecodeError:
+        try:
+            return json.loads(_BAD_ESCAPE.sub(r"\\\\", blob))
+        except json.JSONDecodeError:
+            return None
+
+
 def parse_json(text: str) -> dict[str, Any] | None:
     m = re.search(r"\{.*\}", text, re.S)
-    if not m:
-        return None
-    try:
-        value = json.loads(m.group(0))
-    except json.JSONDecodeError:
-        return None
-    return value if isinstance(value, dict) else None
+    value = _loads_lenient(m.group(0)) if m else None
+    if isinstance(value, dict):
+        return value
+    m = re.search(r"\[.*\]", text, re.S)  # a bare list answers a {"patterns": [...]} request
+    value = _loads_lenient(m.group(0)) if m else None
+    return {"patterns": value, "items": value} if isinstance(value, list) else None
+
+
+def _terms(text: str) -> list[str]:
+    return [w for w in re.findall(r"[a-z]+", text.lower()) if len(w) > 2 and w not in _STOP]
+
+
+def bm25_ranked(meaning: str, docs: list[Path], doc_chunks: dict[str, list[str]]) -> list[str]:
+    """Selection-document chunks ranked by BM25 against the generated meaning, best chunk per document."""
+    from rank_bm25 import BM25Okapi
+    items = [(p.stem, ch) for p in docs for ch in doc_chunks[p.stem]]
+    scores = BM25Okapi([_terms(ch) for _, ch in items]).get_scores(_terms(meaning))
+    seen, ranked = set(), []
+    for j in sorted(range(len(items)), key=lambda j: -scores[j]):
+        if items[j][0] not in seen:
+            seen.add(items[j][0])
+            ranked.append(items[j][1])
+    return ranked
 
 
 def define_prompt(name: str, meaning: str, passages: list[str]) -> str:
@@ -165,12 +199,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--stage", choices=["define", "chunks", "synth", "report"], required=True)
     parser.add_argument("--workers", type=int, default=32)
     parser.add_argument("--deadline", type=float, default=140.0)
+    parser.add_argument("--passages", choices=["random", "bm25"], default="random",
+                        help="how define/synth passages are picked from the selection documents")
     args = parser.parse_args(argv)
     spec = get_corpus(args.corpus)
     table = spec.tables[0]
     descs = json.loads((RESULTS / "quwarts_router_v3" / spec.name / "shared_read_per_attribute"
                         / "descriptions_per_attribute.json").read_text())
-    out = RESULTS / "quwarts_router_v3" / spec.name / "count_probe2"
+    out = RESULTS / "quwarts_router_v3" / spec.name / ("count_probe2" if args.passages == "random" else "count_probe3_bm25")
     out.mkdir(parents=True, exist_ok=True)
     cache_path = out / "calls.jsonl"
     cache: dict[tuple, dict] = {}
@@ -215,6 +251,11 @@ def main(argv: list[str] | None = None) -> int:
         return True
 
     def passages_for(col: str, salt: int) -> list[str]:
+        if args.passages == "bm25":
+            ranked = bm25_ranked(descs[f"{table.sql_name}.{col}"]["meaning"], selection, doc_chunks)
+            if salt == 0:
+                return ranked[:3]
+            return random.Random(f"{SEED}:{col}:{salt}").sample(ranked[:10], 3)
         rng = random.Random(f"{SEED}:{col}:{salt}")
         docs = rng.sample(selection, 3)
         return [rng.choice(doc_chunks[p.stem]) for p in docs]
@@ -260,9 +301,10 @@ def main(argv: list[str] | None = None) -> int:
     gold_rows = {str(r["id"]).strip(): r for r in load_ground_truth({"legal": "Legal"}.get(spec.name, spec.name))[table.sql_name]}
     probe1 = {}
     p1 = RESULTS / "quwarts_router_v3" / spec.name / "count_probe" / "report.json"
+    report_passages = args.passages
     if p1.exists():
         probe1 = json.loads(p1.read_text())["columns"]
-    report: dict[str, Any] = {"audit_only": True, "chunk_tokens": CHUNK, "k_candidates": K_CANDIDATES, "columns": {}}
+    report: dict[str, Any] = {"audit_only": True, "passages": report_passages, "chunk_tokens": CHUNK, "k_candidates": K_CANDIDATES, "columns": {}}
     for col in args.columns:
         def chunk_count(stem: str) -> float | None:
             items: set[str] = set()

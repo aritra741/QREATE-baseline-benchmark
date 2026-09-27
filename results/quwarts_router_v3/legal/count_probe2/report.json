@@ -1,17 +1,34 @@
 {
   "audit_only": true,
+  "passages": "random",
   "chunk_tokens": 2000,
   "k_candidates": 5,
   "columns": {
     "case_number": {
       "definition": "One counted item: precedent\nHow items are written: a previous judicial decision\nExamples of items: 15 Comandate Marine asked me to infer that the mere making of the order by Colman J showed that there was some risk that Pan would dissipate its assets so as not to have them available to meet any arbitration award were the arbitration allowed to proceed.; 18 I am of opinion that there is the power in the Court to impose conditions on a grant of leave to appeal in circumstances where, like the present, the appeal is interlocutory but there are other proceedings on foot, the benefit of which the unsuccessful party seeks to maintain while at the same time seeking to challenge the result which would have the effect of negating the factual substratum underlying those other proceedings.\nDo NOT count: evidence presented during the current case; orders made by courts outside the current case; arguments or inferences drawn from previous decisions",
       "candidates": [
-        [],
+        [
+          "(\\d+) ([^\n]+)",
+          "(\\d+ Comandate Marine asked me to infer that the mere making of the order by Colman J showed that there was some risk that Pan would dissipate its assets so as not to have them available to meet any arbitration award were the arbitration allowed to proceed\\.)",
+          "(\\d+ I am of opinion that there is the power in the Court to impose conditions on a grant of leave to appeal in circumstances where, like the present, the appeal is interlocutory but there are other proceedings on foot, the benefit of which the unsuccessful party seeks to maintain while at the same time seeking to challenge the result which would have the effect of negating the factual substratum underlying those other proceedings\\.)"
+        ],
         [
           "(\\d+) (Comandate|I am of opinion)"
         ],
-        [],
-        [],
+        [
+          "(\\d+) (If|The) (.*?) (was|were) (not) (addressed|considered) (issues|questions) of (relocation|internal relocation test) in the (present|current) proceeding\\.",
+          "(\\d+) The (tribunal|court) (did|had) (not) make its findings on those matters material to its decision\\.",
+          "(\\d+) The tribunal (failed|did not) address (issues|questions) of (relocation|internal relocation test) in the present case\\.",
+          "(\\d+) The tribunal (did not) address issues of relocation in the present case\\.",
+          "(\\d+) The tribunal (did not) address issues of internal relocation test in the present case\\."
+        ],
+        [
+          "(\\d+)\\s+Counsel for (.+?) submitted the Minister was bound to consider the best interest of his children",
+          "(\\d+)\\s+The Issues Paper referred to art \\d+\\.\\d+ of the Convention on the Rights of the Child",
+          "(\\d+)\\s+It is open for you to find that the standards of education and health care in Turkey are not comparable to those available in Australia",
+          "(\\d+)\\s+It is open for you to find that should Mr Yalniz's children leave Australia, they may be separated from their mothers and would face a period of readjustment as they become accustomed to a new school and attempt to establish new social networks",
+          "(\\d+)\\s+There is no evidence of any current Parenting Order in force imposing parental responsibilities on Mr YALNIZ for any of his nine children"
+        ],
         [
           "(?<=precedent)(.*?)(?=precedent)",
           "(?<=precedent)(.*?)(?=\\.)",
@@ -24,13 +41,13 @@
         ]
       ],
       "candidate_disagreement_on_selection": {
-        "0": Infinity,
+        "0": 42.35,
         "1": 1.2,
-        "2": Infinity,
-        "3": Infinity,
+        "2": 1.15,
+        "3": 1.2,
         "4": 1.2
       },
-      "chosen_candidate": 1,
+      "chosen_candidate": 2,
       "arms": {
         "chunk_verified": {
           "n": 50,
@@ -67,10 +84,10 @@
           "parsed": 50,
           "exact": 0.1,
           "within20_doc": 0.1,
-          "mae": 9.16,
+          "mae": 9.32,
           "gold_mean": 9.32,
-          "pred_mean": 0.16,
-          "mean_ratio": 0.017
+          "pred_mean": 0.0,
+          "mean_ratio": 0.0
         },
         "direct_probe1": {
           "n": 50,
