@@ -157,3 +157,64 @@ def test_carry_facts():
     assert S.carry_facts("This document is about Acme Corp, year 2021, in USD.") == \
         S.carry_facts("The document concerns Acme Corp; USD, for 2021.")
     assert S.carry_facts("Acme Corp 2021") != S.carry_facts("Acme Corp 2022")
+
+
+def _noted(run):
+    def noted(prompt, metadata):
+        out = json.loads(responder(prompt, metadata))
+        if "PART " in prompt and "Intro" in prompt:  # the note carries an introduction forward once it has seen one
+            out["context_for_next_part"] += " Intro"
+        run["calls"].append(prompt)
+        return json.dumps(out)
+
+    return fake_caller_factory(noted)(10**9)
+
+
+def _chunks_of_9(run):
+    conn = sqlite3.connect(run["store"])
+    (n,) = conn.execute("SELECT n_chunks FROM documents WHERE doc = '9.txt'").fetchone()
+    conn.close()
+    return n
+
+
+def test_facts_policy_ripples_when_the_note_states_a_new_fact(run):
+    n = _chunks_of_9(run)
+    new = "Intro paragraph.\n" * 30 + LONG
+    r = M.apply(run["store"], run["spec"], READS, FIELDS, run["queries"], overlay(run, {"9.txt": new}), "facts",
+                _noted(run), None, workers=1, build=build)
+    assert r["reads"] == n + 1 and r["cells_changed"] == 0
+
+
+def test_answers_policy_ends_the_ripple_at_the_probe(run):
+    new = "Intro paragraph.\n" * 30 + LONG
+    r = M.apply(run["store"], run["spec"], READS, FIELDS, run["queries"], overlay(run, {"9.txt": new}), "answers",
+                _noted(run), None, workers=1, build=build)
+    assert r["reads"] == 2 and r["answer_cutoffs"] == 1 and r["cells_changed"] == 0
+
+
+def test_attribution_keeps_unexplained_changes(run):
+    def noisy(prompt, metadata):
+        out = json.loads(responder(prompt, metadata))
+        if "extra remark" in prompt:
+            out["fields"]["verdict"] = "Approved"  # read noise: nothing in the edit says so
+        return json.dumps(out)
+
+    caller = fake_caller_factory(noisy)(10**9)
+    text = (run["tmp"] / "docs" / "4.txt").read_text() + "An extra remark about the weather.\n"
+    report = M.apply(run["store"], run["spec"], READS, FIELDS, run["queries"], overlay(run, {"4.txt": text}), "answers",
+                     caller, None, workers=1, build=build, attribute=True)
+    assert report["changes_kept_unexplained"] == 1 and report["cells_changed"] == 0
+    text = (run["tmp"] / "docs" / "5.txt").read_text().replace("2005", "2015")
+    report = M.apply(run["store"], run["spec"], READS, FIELDS, run["queries"], overlay(run, {"5.txt": text}), "answers",
+                     caller, None, workers=1, build=build, attribute=True)
+    assert report["changes_explained"] == 1
+    assert cell(run["store"].parent / "maintained.db", "5.txt", "hearing_year") == 2015
+
+
+def test_maintained_database_edited_outside_apply_is_refused(run):
+    conn = sqlite3.connect(run["store"].parent / "maintained.db")
+    conn.execute("UPDATE c SET hearing_year = 1 WHERE doc_id = '1.txt'")
+    conn.commit()
+    conn.close()
+    with pytest.raises(RuntimeError):
+        apply(run)

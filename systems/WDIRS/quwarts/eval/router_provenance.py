@@ -55,7 +55,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--corpus", required=True)
     parser.add_argument("--store", type=Path, default=None, help="store folder (default: <run>/provenance)")
     parser.add_argument("--overlay", type=Path, default=None)
-    parser.add_argument("--policy", choices=["exact", "facts"], default="facts")
+    parser.add_argument("--policy", choices=["exact", "facts", "answers"], default="answers")
+    parser.add_argument("--attribute", action="store_true", help="commit a re-read change only if the edit explains it")
     parser.add_argument("--budget", type=int, default=None, help="token budget for new reads")
     parser.add_argument("--workers", type=int, default=24)
     parser.add_argument("--deadline", type=float, default=None, help="seconds after which no new read starts")
@@ -79,7 +80,7 @@ def main(argv: list[str] | None = None) -> int:
         load_env_file(PROJECT / ".env")
         caller = make_caller(TokenLedger(theta=10**12), max_tokens=600)
         report = M.apply(store, spec, reads, fields, queries, args.overlay, args.policy, caller, args.budget,
-                         args.workers, args.deadline, workload, build=build)
+                         args.workers, args.deadline, workload, build=build, attribute=args.attribute)
     else:
         conn = S.open_store(store)
         report = {"versions": [{"version": v, "note": n, **{k: x for k, x in json.loads(s).items() if k != "plan"}}

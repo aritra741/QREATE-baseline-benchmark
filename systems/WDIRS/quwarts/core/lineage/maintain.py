@@ -12,7 +12,15 @@ deleted files), the maintainer decides, per level, whether anything must change 
    replayed in order against the read memo: a chunk whose inputs (text, carried note, field list)
    were read before reuses that read; the others are read. When a re-read chunk passes on the same note
    as before, the chunks after it are hits again: early cutoff (build systems). Policy ``exact``
-   requires the same note verbatim; ``facts`` accepts a note stating the same facts (numbers and names).
+   requires the same note verbatim; ``facts`` accepts a note stating the same facts (numbers and names);
+   ``answers`` also ends the ripple when an unchanged chunk, re-read because its note changed, gives the
+   same answers as before: the changed note is then observably equivalent for what follows (the re-read
+   chunk is the probe), and the rest of the document continues with the old notes and reads.
+   Optionally (``attribute``), a re-read value that differs from the stored one is committed only if the
+   edit explains it: the stored value's evidence changed (it is stated verbatim and its number of
+   occurrences changed), the new value is stated in the added text, or, for a stored value that is not
+   stated verbatim, the changed text names the field. Otherwise the change is read noise and the stored
+   value is kept (a change must be explained by a change in its provenance).
 3. **Cell.** The new database is built with the system's own builder from the reads of the current
    version (reused and new), diffed against the maintained database, and only the differing cells and
    rows are written (the delta); a re-read value equal to the old one writes nothing. The maintained
@@ -122,6 +130,7 @@ def capture(store_path: Path, spec, reads, fields, journal: Path, db: Path, quer
             stats[f"{mode}_documents"] += 1
     maintained = store_path.parent / "maintained.db"
     shutil.copy2(db, maintained)
+    conn.execute("INSERT OR REPLACE INTO meta VALUES ('maintained_sha', ?)", (_file_sha(maintained),))
     support: dict = {}
     load_values(journal, fields, support)
     _store_cells(conn, maintained, reads, support, version=0)
@@ -130,6 +139,12 @@ def capture(store_path: Path, spec, reads, fields, journal: Path, db: Path, quer
     conn.commit()
     conn.close()
     return dict(stats)
+
+
+def _file_sha(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def _store_cells(conn, db: Path, reads, support: dict, version: int, only: set[tuple[str, str]] | None = None) -> None:
@@ -154,8 +169,10 @@ def query_lineage(sql: str) -> tuple[list[str], list[str]]:
     return tables, sorted(column_set(sql))
 
 
-def query_answers(db: Path, queries: dict[str, str]) -> dict[str, tuple[str, int]]:
-    """Each query's answer through the official SQL path, as (hash of the sorted rows, row count)."""
+def query_answers(db: Path, queries: dict[str, str], only: set[str] | None = None) -> dict[str, tuple[str, int]]:
+    """Each query's answer through the official SQL path, as (hash of the sorted rows, row count).
+    The predicate rewriting depends on the whole query set, so it is computed from all ``queries``
+    even when only the queries in ``only`` are executed."""
 
     from quwarts.core.pipeline import official_sql
     from quwarts.core.signature import audit_workload, enumerate_predicates
@@ -166,6 +183,8 @@ def query_answers(db: Path, queries: dict[str, str]) -> dict[str, tuple[str, int
     conn = sqlite3.connect(db)
     out = {}
     for q, s in queries.items():
+        if only is not None and q not in only:
+            continue
         rows = conn.execute(official_sql(s, db, predicates, query_id=q)).fetchall()
         out[q] = (S.sha(json.dumps(sorted(repr(r) for r in rows))), len(rows))
     conn.close()
@@ -352,10 +371,17 @@ def refresh_document(conn, lock, dp: DocPlan, specs, fsha: str, context: str, ca
         return [row(rec, {})]
 
     rows, carry, n = [], "", len(dp.chunks)
+    lookup = "facts" if policy == "answers" else policy
+    old_reads: dict[int, dict] = {}
+    if policy == "answers" and dp.status == "changed":
+        with lock:
+            for i, key in conn.execute("SELECT idx, read_key FROM chunks WHERE tbl = ? AND doc = ? ORDER BY idx",
+                                       (dp.table, dp.doc)).fetchall():
+                old_reads[i] = S.get_read(conn, key)
     for idx, piece in enumerate(dp.chunks):
         tsha = S.sha(piece)
         with lock:
-            rec = S.find_chunk_read(conn, tsha, carry, fsha, policy)
+            rec = S.find_chunk_read(conn, tsha, carry, fsha, lookup)
         if rec is None:
             prompt = chunked.render_chunk_prompt(piece, specs, carry, idx + 1, n)
             guard(count_tokens(prompt) + 400)
@@ -387,7 +413,83 @@ def refresh_document(conn, lock, dp: DocPlan, specs, fsha: str, context: str, ca
                 stats["memo_hits"] += 1
         rows.append(row(rec, {"chunk": idx, "chunks": n, "_key": rec["read_key"]}))
         carry = rec["carry_out"]
+        before = old_reads.get(dp.kept[idx]) if dp.kept[idx] is not None else None
+        if before is not None and before["read_key"] != rec["read_key"] and same_answers(before["response"], rec["response"], specs):
+            carry = before["carry_out"]  # probe cutoff: continue with the old notes (their reads are memo hits)
+            with lock:
+                stats["answer_cutoffs"] += 1
     return rows
+
+
+def same_answers(a: str, b: str, specs) -> bool:
+    from quwarts.core.router.executor import commit_value
+    from quwarts.core.router.probes import parse_fields
+
+    names = [f.name for f in specs]
+    pa, pb = parse_fields(a, names), parse_fields(b, names)
+    return all(same_value(commit_value(pa.get(f.name), f), commit_value(pb.get(f.name), f)) for f in specs)
+
+
+def same_value(a: Any, b: Any) -> bool:
+    if a is None or b is None:
+        return a is None and b is None
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return abs(float(a) - float(b)) <= 1e-9 * max(1.0, abs(float(a)))
+    return str(a).strip().casefold() == str(b).strip().casefold()
+
+
+# ---- evidence attribution of cell changes
+
+_NAME_STOP = {"the", "and", "for", "num", "of", "or", "is", "has", "any", "per"}
+
+
+def _surfaces(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        v = abs(float(value))
+        if v.is_integer():
+            return [f"{int(v):,}", f"{int(v)}"]
+        return [f"{v:,.2f}", f"{v:.2f}", f"{v:g}"]
+    text = str(value).strip()
+    return [p.strip() for p in text.split("||") if len(p.strip()) >= 3] if text else []
+
+
+def _count(text: str, value: Any) -> int:
+    import re
+
+    n = 0
+    for surface in _surfaces(value):
+        n += len(re.findall(r"(?<![\w.,])" + re.escape(surface) + r"(?![\w]|[.,]\d)", text, flags=re.I))
+    return n
+
+
+def line_diff(old: str, new: str) -> tuple[str, str]:
+    """Added and removed text as multiset differences of lines (order-free, linear time)."""
+
+    from collections import Counter
+
+    a, b = Counter(old.splitlines()), Counter(new.splitlines())
+    added = "\n".join(line for line, k in (b - a).items() for _ in range(k))
+    removed = "\n".join(line for line, k in (a - b).items() for _ in range(k))
+    return added, removed
+
+
+def explained(field, old_value: Any, new_value: Any, old_text: str, new_text: str, added: str, removed: str) -> bool:
+    """Is a change of this cell from ``old_value`` to ``new_value`` explained by the edit?"""
+
+    import re
+
+    before = _count(old_text, old_value)
+    if before and _count(new_text, old_value) != before:
+        return True  # the stored value's evidence changed
+    if _count(added, new_value):
+        return True  # the new value is stated in the added text
+    if not before:
+        names = {w for w in field.name.lower().split("_") if len(w) >= 3 and w not in _NAME_STOP}
+        diff = (added + "\n" + removed).lower()
+        return any(re.search(r"\b" + re.escape(w), diff) for w in names)
+    return False
 
 
 def _table_rows(conn: sqlite3.Connection, table: str) -> tuple[list[str], dict[Any, tuple]]:
@@ -480,7 +582,7 @@ def _incumbent_view(spec, current: dict[str, dict[str, Path]], dest: Path) -> Pa
 
 def apply(store_path: Path, spec, reads, fields, queries: dict[str, str], overlay: Path | None, policy: str,
           caller, budget: int | None = None, workers: int = 16, deadline: float | None = None,
-          workload: dict[str, str] | None = None, build=None) -> dict[str, Any]:
+          workload: dict[str, str] | None = None, build=None, attribute: bool = False) -> dict[str, Any]:
     """Bring the maintained database to the corpus version ``spec`` + ``overlay``. ``queries``: every
     query the database serves; ``workload``: the reference workload used to prioritize (default: queries).
     ``build(spec, reads, values, fields, queries, dest)``: the system's database builder, the one
@@ -496,6 +598,10 @@ def apply(store_path: Path, spec, reads, fields, queries: dict[str, str], overla
     conn = S.open_store(store_path)
     lock = threading.Lock()
     maintained = store_path.parent / "maintained.db"
+    recorded = conn.execute("SELECT value FROM meta WHERE key = 'maintained_sha'").fetchone()
+    if recorded is None or recorded[0] != _file_sha(maintained):
+        raise RuntimeError(f"{maintained} does not match the version its store records (edited outside apply, "
+                           "or an apply was interrupted while writing it)")
     plans = plan(conn, spec, reads, fields, overlay, policy)
     todo = [p for p in plans if p.status in ("new", "changed")]
     by_table = {r.table: r for r in reads}
@@ -553,18 +659,35 @@ def apply(store_path: Path, spec, reads, fields, queries: dict[str, str], overla
     journal.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     support: dict = {}
     values = load_values(journal, fields, support)
+    if attribute:
+        from quwarts.core.router.executor import commit_value
+
+        for p in plans:
+            key = (p.table, p.doc)
+            if p.status != "changed" or key not in fresh:
+                continue
+            read = by_table[p.table]
+            blob, = conn.execute("SELECT snapshot FROM documents WHERE tbl = ? AND doc = ?", key).fetchone()
+            old_text, new_text = S.unsnapshot(blob), read_document(p.path)
+            added, removed = line_diff(old_text, new_text)
+            got = values[(p.table, read.context)][p.doc]
+            for attr in read.attributes:
+                f = fields[f"{p.table}.{attr}"]
+                (stored,) = conn.execute("SELECT value FROM cells WHERE tbl = ? AND doc = ? AND attr = ?", (*key, attr)).fetchone()
+                old_value, new_value = json.loads(stored), commit_value(got.get(attr), f)
+                if same_value(old_value, new_value):
+                    continue
+                if explained(f, old_value, new_value, old_text, new_text, added, removed):
+                    stats["changes_explained"] += 1
+                else:
+                    got[attr] = old_value
+                    stats["changes_kept_unexplained"] += 1
     view, view_root = _view(spec, current)
     if spec.incumbent_db is not None and Path(spec.incumbent_db).is_file():
         view = replace(view, incumbent_db=_incumbent_view(spec, current, work_dir / "incumbent.db"))
     rebuilt = work_dir / "rebuilt.db"
     build(view, reads, values, fields, queries, rebuilt)
     delta = diff_databases(maintained, rebuilt)
-    if delta["schema_changed"]:
-        shutil.copy2(rebuilt, maintained)
-    else:
-        apply_delta(maintained, delta)
-        check = diff_databases(maintained, rebuilt)
-        assert not any(d["cells"] or d["deleted"] or d["inserted"] for d in check["tables"].values()), "delta mismatch"
 
     version = conn.execute("SELECT COALESCE(MAX(version), 0) + 1 FROM versions").fetchone()[0]
     changed_cols: dict[str, set[str]] = defaultdict(set)
@@ -594,7 +717,7 @@ def apply(store_path: Path, spec, reads, fields, queries: dict[str, str], overla
             affected.append(qid)
         if tables & stale_tables:
             flagged.append(qid)
-    answers = query_answers(maintained, {q: queries[q] for q in affected}) if affected else {}
+    answers = query_answers(rebuilt, queries, set(affected)) if affected else {}
     stored = {q: a for q, a in conn.execute("SELECT qid, answer_sha FROM queries")}
     answer_changed = sorted(q for q, (h, _n) in answers.items() if stored.get(q) != h)
     for q, (h, n) in answers.items():
@@ -622,8 +745,19 @@ def apply(store_path: Path, spec, reads, fields, queries: dict[str, str], overla
                           S.snapshot(text), 0, version))
         elif key in stale and p.status == "changed":
             conn.execute("UPDATE documents SET stale = 1 WHERE tbl = ? AND doc = ?", key)
+    # Write the delta last, then record the database's hash in the same store transaction.
+    if delta["schema_changed"]:
+        shutil.copy2(rebuilt, maintained)
+    else:
+        apply_delta(maintained, delta)
+        check = diff_databases(maintained, rebuilt)
+        assert not any(d["cells"] or d["deleted"] or d["inserted"] for d in check["tables"].values()), "delta mismatch"
+    conn.execute("INSERT OR REPLACE INTO meta VALUES ('maintained_sha', ?)", (_file_sha(maintained),))
     _store_cells(conn, maintained, reads, support, version, only=set(fresh) | {k for k in stale})
-    report = {**base, "status": "applied", "version": version, "policy": policy,
+    report = {**base, "status": "applied", "version": version, "policy": policy, "attribute": attribute,
+              "changes_explained": stats.get("changes_explained", 0),
+              "changes_kept_unexplained": stats.get("changes_kept_unexplained", 0),
+              "answer_cutoffs": stats.get("answer_cutoffs", 0),
               "cells_changed": n_cells, "rows_deleted": sum(len(d["deleted"]) for d in delta["tables"].values()),
               "rows_inserted": sum(len(d["inserted"]) for d in delta["tables"].values()),
               "deferred_documents": sorted(deferred), "stale_documents": sorted(f"{t}/{d}" for t, d in stale),
