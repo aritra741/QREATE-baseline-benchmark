@@ -219,7 +219,7 @@ def prepare(corpus: str) -> dict[str, Any]:
     return plan
 
 
-def run(corpus: str, deadline: float, workers: int) -> dict[str, Any]:
+def run(corpus: str, deadline: float, workers: int, kinds: list[str] | None = None) -> dict[str, Any]:
     from quwarts.core.ledger import TokenLedger
     from quwarts.core.lineage import maintain as M
     from quwarts.core.llm.openrouter import load_env_file, make_caller
@@ -261,7 +261,7 @@ def run(corpus: str, deadline: float, workers: int) -> dict[str, Any]:
             report.write_text(json.dumps(r, indent=1, default=str))
             done[f"{kind}/{policy}"] = "applied"
     # Reference: the edited documents read from scratch by the same system.
-    for kind in KINDS:
+    for kind in kinds or KINDS:
         folder = _root(corpus) / kind
         if (folder / "reference_done").exists():
             continue
@@ -391,13 +391,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--deadline", type=float, default=100)
     parser.add_argument("--workers", type=int, default=24)
     parser.add_argument("--tag", default="", help="sample tag: a fresh seeded sample in its own folder")
+    parser.add_argument("--kinds", default="", help="comma-separated edit kinds for the reference step")
     args = parser.parse_args(argv)
     global TAG
     TAG = args.tag
     if args.prepare:
         print(json.dumps(prepare(args.corpus)))
     if args.run:
-        print(json.dumps(run(args.corpus, args.deadline, args.workers)))
+        print(json.dumps(run(args.corpus, args.deadline, args.workers, [k for k in args.kinds.split(",") if k] or None)))
     if args.report:
         print(json.dumps(report(args.corpus), indent=1))
     return 0
