@@ -47,6 +47,33 @@ BLANK_BASE = False
 TAG = ""  # a system version: its own results folder next to the others (e.g. "agnostic")
 CANONICALIZE = False  # canonicalize text columns' spellings after the reads (executor.canonicalize_surface)
 SPLIT_FOLDER = {"random": "", "drift": "_drift_roles", "drift_v0": "_drift"}
+# "head": a document longer than the window is read from its first window (the original system).
+# "chain": it is read in full as ordered long chunks with carried context (core.router.chunked).
+LONG = "head"
+
+
+def seed_journal(spec, variant: str, journal: Path) -> int:
+    """Start a chained run's journal from the same run's head journal, keeping only the reads of
+    documents that fit the window: their prompts are unchanged, so they are not paid for twice."""
+
+    from quwarts.core.retrieve_extract.tokens import count_tokens
+    from quwarts.core.router.context_probe import V3
+    from quwarts.core.router.corpus_features import list_documents, read_document
+
+    global TAG
+    tag, TAG = TAG, ""
+    base = out_dir(spec, variant) / "reads.jsonl"
+    TAG = tag
+    if journal.exists() or not base.exists():
+        return 0
+    window = int(V3["window_tokens"])
+    fits = {(t.sql_name, p.name) for t in spec.tables for p in list_documents(t)
+            if count_tokens(read_document(p)) <= window}
+    rows = [line for line in base.read_text().splitlines()
+            if line.strip() and (json.loads(line)["table"], json.loads(line)["doc"]) in fits]
+    journal.parent.mkdir(parents=True, exist_ok=True)
+    journal.write_text("".join(r + "\n" for r in rows))
+    return len(rows)
 
 
 def workload(corpus: str) -> tuple[list[dict], list[dict]]:
@@ -374,9 +401,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tag", default="", help="system version; results go to their own folder")
     parser.add_argument("--canonicalize", action="store_true", help="canonicalize text spellings after reads")
     parser.add_argument("--blank-base", action="store_true", help="start from NULLs, not the incumbent database")
+    parser.add_argument("--long", choices=["head", "chain"], default="head",
+                        help="documents longer than the window: first window only, or chained chunks")
     args = parser.parse_args(argv)
-    global SPLIT, BLANK_BASE, TAG, CANONICALIZE
-    SPLIT, BLANK_BASE, TAG, CANONICALIZE = args.split, args.blank_base, args.tag, args.canonicalize
+    global SPLIT, BLANK_BASE, TAG, CANONICALIZE, LONG
+    SPLIT, BLANK_BASE, TAG, CANONICALIZE, LONG = args.split, args.blank_base, args.tag, args.canonicalize, args.long
+    if LONG == "chain" and not TAG:
+        TAG = "chain"
     tag = ("_blank" if BLANK_BASE else "") + ("_canon" if CANONICALIZE else "")
     if args.describe:
         return describe(args.corpus)
@@ -397,12 +428,19 @@ def main(argv: list[str] | None = None) -> int:
 
         load_env_file(PROJECT / ".env")
         ledger = TokenLedger(theta=10**12)
-        caller = make_caller(ledger, max_tokens=400)
-        stats = run_reads(spec, reads, {r["query_id"]: r["sql"] for r in train}, fields, caller, journal, args.workers)
+        seeded = seed_journal(spec, args.variant, journal) if LONG == "chain" else 0
+        caller = make_caller(ledger, max_tokens=600 if LONG == "chain" else 400)
+        stats = run_reads(spec, reads, {r["query_id"]: r["sql"] for r in train}, fields, caller, journal, args.workers,
+                          long_documents=LONG)
+        stats["seeded_from_head_run"] = seeded
         stats["spent_this_run"] = ledger.spent
         print(json.dumps(stats))
     if args.score:
-        values = load_values(journal)
+        provenance: dict = {}
+        values = load_values(journal, fields, provenance)
+        if provenance:
+            (out / "chunk_support.json").write_text(json.dumps(
+                {"|".join(k): v for k, v in sorted(provenance.items())}, indent=0))
         all_q = {r["query_id"]: r["sql"] for r in train + test}
         tokens = sum(json.loads(l)["tokens"] for l in journal.read_text().splitlines())
         report: dict[str, Any] = {"read_tokens": tokens, "calls": len(journal.read_text().splitlines())}

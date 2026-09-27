@@ -67,26 +67,68 @@ def run_reads(
     caller: BudgetedCaller | None,
     journal: Path,
     workers: int = 8,
+    long_documents: str = "head",
 ) -> dict[str, Any]:
-    """Run every (read, document) call not already in the journal. Returns coverage stats."""
+    """Run every (read, document) call not already in the journal. Returns coverage stats.
 
+    ``long_documents``: ``head`` reads the first window of a longer document (the original
+    behaviour); ``chain`` reads all of it as ordered long chunks with carried context
+    (``core.router.chunked``). Documents that fit the window are read once either way.
+    """
+
+    from quwarts.core.router import chunked
+    from quwarts.core.retrieve_extract.tokens import count_tokens
+
+    if long_documents not in ("head", "chain"):
+        raise ValueError(long_documents)
     window = int(V3["window_tokens"])
-    done: set[str] = set()
+    done: dict[str, str] = {}
     if journal.exists():
-        done = {json.loads(line)["prompt_sha"] for line in journal.read_text().splitlines() if line.strip()}
+        for line in journal.read_text().splitlines():
+            if line.strip():
+                row = json.loads(line)
+                done[row["prompt_sha"]] = row["response"]
     tasks = []
+    chains = []
     for read in reads:
         specs = [fields[f"{read.table}.{a}"] for a in read.attributes]
         sql = queries.get(read.context)  # None for shared (query-independent) contexts
         for path in list_documents(spec.table(read.table)):
-            prompt = render_prompt(truncate(read_document(path), window), specs, sql)
+            text = read_document(path)
+            if long_documents == "chain" and sql is None and count_tokens(text) > window:
+                chains.append((read, path.name, chunked.split_chunks(text, chunked.chunk_tokens(window)), specs))
+                continue
+            prompt = render_prompt(truncate(text, window), specs, sql)
             sha = _sha(prompt)
             if sha not in done:
                 tasks.append((read, path.name, prompt, sha))
-    stats = {"planned_calls": len(tasks), "done_before": len(done), "exhausted": False}
-    if caller is None or not tasks:
+    stats = {"planned_calls": len(tasks), "done_before": len(done), "exhausted": False,
+             "chained_documents": len(chains), "chunks": sum(len(c[2]) for c in chains), "chunk_calls": 0}
+    if caller is None or not (tasks or chains):
         return stats
     journal.parent.mkdir(parents=True, exist_ok=True)
+
+    def chain(task):
+        read, doc, chunks, specs = task
+        carry = ""
+        for index, chunk in enumerate(chunks):
+            prompt = chunked.render_chunk_prompt(chunk, specs, carry, index + 1, len(chunks))
+            sha = _sha(prompt)
+            text = done.get(sha)
+            if text is None:
+                try:
+                    text = caller.complete(prompt, "router_v3_execute_chunk", system=SYSTEM, table=read.table, doc=doc,
+                                           context=read.context)
+                except BudgetExhausted:
+                    stats["exhausted"] = True
+                    return
+                row = {"table": read.table, "context": read.context, "attributes": list(read.attributes), "doc": doc,
+                       "prompt_sha": sha, "response": text, "tokens": caller.ledger.records[-1].tokens,
+                       "chunk": index, "chunks": len(chunks), "carry_in": carry}
+                with _lock, journal.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    stats["chunk_calls"] += 1
+            carry = chunked.parse_carry(text, carry)
 
     def one(task):
         read, doc, prompt, sha = task
@@ -101,22 +143,53 @@ def run_reads(
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        list(pool.map(one, tasks))
+        # Longest chains first: they are sequential inside a document and set the wall-clock time.
+        futures = [pool.submit(chain, c) for c in sorted(chains, key=lambda c: -len(c[2]))]
+        futures += [pool.submit(one, t) for t in tasks]
+        for future in futures:
+            future.result()
     return stats
 
 
-def load_values(journal: Path) -> dict[tuple[str, str], dict[str, dict[str, Any]]]:
-    """``{(table, context): {doc: {attribute: raw value}}}`` from the execution journal."""
+def load_values(journal: Path, fields: dict[str, FieldSpec] | None = None,
+                provenance: dict | None = None) -> dict[tuple[str, str], dict[str, dict[str, Any]]]:
+    """``{(table, context): {doc: {attribute: raw value}}}`` from the execution journal.
+
+    Chunk rows of chained reads (``chunked``) are combined per field with ``chunked.reduce_chunks``,
+    which needs the field specs, and take precedence over a single read of the same document.
+    ``provenance``, when given, receives ``{(table, context, doc, attribute): [supporting chunks]}``.
+    """
+
+    from quwarts.core.router.chunked import reduce_chunks
 
     out: dict[tuple[str, str], dict[str, dict[str, Any]]] = defaultdict(dict)
     if not journal.exists():
         return out
+    chunk_rows: dict[tuple[str, str, str], dict[int, dict[str, Any]]] = defaultdict(dict)
     for line in journal.read_text().splitlines():
         if not line.strip():
             continue
         row = json.loads(line)
         parsed = parse_fields(row["response"], row["attributes"])
-        out[(row["table"], row["context"])][row["doc"]] = {a: parsed.get(a) for a in row["attributes"]}
+        answer = {a: parsed.get(a) for a in row["attributes"]}
+        if "chunk" in row:
+            chunk_rows[(row["table"], row["context"], row["doc"])][int(row["chunk"])] = {**row, "answer": answer}
+            continue
+        out[(row["table"], row["context"])][row["doc"]] = answer
+    for (table, context, doc), rows in chunk_rows.items():
+        if fields is None:
+            raise ValueError("chained reads in the journal: load_values needs the field specs")
+        first = rows[min(rows)]
+        if sorted(rows) != list(range(int(first["chunks"]))):
+            continue  # incomplete chain (an interrupted run): keep any single read of the document
+        answers = [rows[i]["answer"] for i in sorted(rows)]
+        values = {}
+        for attribute in first["attributes"]:
+            value, support = reduce_chunks(answers, fields[f"{table}.{attribute}"])
+            values[attribute] = value
+            if provenance is not None:
+                provenance[(table, context, doc, attribute)] = support
+        out[(table, context)][doc] = values
     return out
 
 
