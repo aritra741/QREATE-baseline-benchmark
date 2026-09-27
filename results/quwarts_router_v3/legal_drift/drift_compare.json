@@ -1,0 +1,266 @@
+{
+  "hidden_items": [
+    [
+      "literal",
+      "hearing_year",
+      "2005"
+    ],
+    [
+      "literal",
+      "case_number",
+      "10"
+    ],
+    [
+      "role",
+      "judge_name",
+      "filter:neq"
+    ],
+    [
+      "role",
+      "evidence",
+      "case"
+    ],
+    [
+      "literal",
+      "legal_basis_num",
+      "5"
+    ],
+    [
+      "role",
+      "defendant_current_status",
+      "filter:eq"
+    ],
+    [
+      "literal",
+      "judgment_year",
+      "2007"
+    ],
+    [
+      "role",
+      "case_type",
+      "filter:in"
+    ],
+    [
+      "role",
+      "plaintiff_current_status",
+      "filter:eq"
+    ],
+    [
+      "role",
+      "verdict",
+      "filter:in"
+    ],
+    [
+      "role",
+      "nationality_for_applicant",
+      "filter:in"
+    ],
+    [
+      "role",
+      "first_judge",
+      "agg:sum"
+    ]
+  ],
+  "exposure": {
+    "n_train": 64,
+    "n_held_out": 16,
+    "L1_seen": 0.0,
+    "L2_seen": 0.0,
+    "L3_seen": 0.375,
+    "with_unseen_role": 0.8125,
+    "with_unseen_column": 0.0,
+    "with_unseen_literal": 0.5625,
+    "with_any_drift": 1.0
+  },
+  "S_drift": {
+    "input_64": 0.39587929739021144,
+    "held_out_16": 0.3853229901360671
+  },
+  "S_random": {
+    "input_64": 0.3366935183750735,
+    "held_out_16": 0.15366884021102645,
+    "on_drift_held_out_16": 0.28262762651631756
+  },
+  "drift_penalty_on_queries_S_random_saw": {
+    "n": 12,
+    "a": 0.2935035020217568,
+    "b": 0.37333188808265744,
+    "a_minus_b": -0.07982838606090066,
+    "ci95": [
+      -0.17345346539425485,
+      0.00879745738829514
+    ],
+    "a_better": 2,
+    "b_better": 5,
+    "same": 5
+  },
+  "both_unseen": {
+    "n": 4,
+    "a": 0.25,
+    "b": 0.4212962962962963,
+    "a_minus_b": -0.17129629629629628,
+    "ci95": [
+      -0.375,
+      0.0
+    ],
+    "a_better": 0,
+    "b_better": 2,
+    "same": 2
+  },
+  "all_16_drift_held_out": {
+    "n": 16,
+    "a": 0.28262762651631756,
+    "b": 0.3853229901360671,
+    "a_minus_b": -0.10269536361974957,
+    "ci95": [
+      -0.19386587766521973,
+      -0.02185652525714694
+    ],
+    "a_better": 2,
+    "b_better": 7,
+    "same": 7
+  },
+  "per_query": {
+    "legal_agg20:q12": {
+      "S_random": 0.4902,
+      "S_drift": 0.3363,
+      "seen_by_S_random": true,
+      "drift": [
+        "judge_name:filter:neq",
+        "judge_name="
+      ]
+    },
+    "legal_agg20:q3": {
+      "S_random": 1.0,
+      "S_drift": 1.0,
+      "seen_by_S_random": false,
+      "drift": [
+        "hearing_year=2005"
+      ]
+    },
+    "legal_filter20:q0": {
+      "S_random": 0.3636,
+      "S_drift": 0.5,
+      "seen_by_S_random": true,
+      "drift": [
+        "judgment_year=2007"
+      ]
+    },
+    "legal_filter20:q11": {
+      "S_random": 0.0,
+      "S_drift": 0.1852,
+      "seen_by_S_random": false,
+      "drift": [
+        "defendant_current_status:filter:eq"
+      ]
+    },
+    "legal_filter20:q12": {
+      "S_random": 0.0,
+      "S_drift": 0.0,
+      "seen_by_S_random": true,
+      "drift": [
+        "legal_basis_num:filter:between",
+        "case_number=4",
+        "legal_basis_num=5"
+      ]
+    },
+    "legal_filter20:q15": {
+      "S_random": 0.0,
+      "S_drift": 0.0,
+      "seen_by_S_random": false,
+      "drift": [
+        "defendant_current_status:filter:in",
+        "plaintiff_current_status:filter:eq"
+      ]
+    },
+    "legal_filter20:q17": {
+      "S_random": 0.4511,
+      "S_drift": 0.75,
+      "seen_by_S_random": true,
+      "drift": [
+        "verdict:filter:in"
+      ]
+    },
+    "legal_filter20:q18": {
+      "S_random": 0.5,
+      "S_drift": 0.5,
+      "seen_by_S_random": true,
+      "drift": [
+        "case_type:filter:in",
+        "legal_basis_num=4"
+      ]
+    },
+    "legal_filter20:q2": {
+      "S_random": 0.6767,
+      "S_drift": 0.6767,
+      "seen_by_S_random": true,
+      "drift": [
+        "nationality_for_applicant:filter:in"
+      ]
+    },
+    "legal_filter20:q8": {
+      "S_random": 0.0,
+      "S_drift": 0.5,
+      "seen_by_S_random": false,
+      "drift": [
+        "case_number=10"
+      ]
+    },
+    "legal_groupby20:q4": {
+      "S_random": 0.0769,
+      "S_drift": 0.3333,
+      "seen_by_S_random": true,
+      "drift": [
+        "case_type:filter:in",
+        "case_type:select",
+        "case_number=4"
+      ]
+    },
+    "legal_multiagg20:q13": {
+      "S_random": 0.1504,
+      "S_drift": 0.5833,
+      "seen_by_S_random": true,
+      "drift": [
+        "evidence:agg:sum",
+        "evidence:case"
+      ]
+    },
+    "legal_multiagg20:q15": {
+      "S_random": 0.0,
+      "S_drift": 0.0,
+      "seen_by_S_random": true,
+      "drift": [
+        "first_judge:agg:sum",
+        "first_judge:case",
+        "case_number=4"
+      ]
+    },
+    "legal_multiagg20:q16": {
+      "S_random": 0.6875,
+      "S_drift": 0.75,
+      "seen_by_S_random": true,
+      "drift": [
+        "evidence:agg:sum",
+        "evidence:case"
+      ]
+    },
+    "legal_multiagg20:q2": {
+      "S_random": 0.0,
+      "S_drift": 0.0,
+      "seen_by_S_random": true,
+      "drift": [
+        "evidence:agg:sum",
+        "evidence:case"
+      ]
+    },
+    "legal_multiagg20:q6": {
+      "S_random": 0.1256,
+      "S_drift": 0.0503,
+      "seen_by_S_random": true,
+      "drift": [
+        "judge_name:filter:neq",
+        "judge_name="
+      ]
+    }
+  }
+}
