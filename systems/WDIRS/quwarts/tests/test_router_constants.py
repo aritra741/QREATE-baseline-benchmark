@@ -51,3 +51,18 @@ def test_drift_split_never_hides_constants_by_default():
     rows = [{"query_id": f"q{i}", "sql": s} for i, s in enumerate(sqls)]
     _train, _test, hidden = drift_split(rows, seed=3, held_out_fraction=0.3)
     assert hidden and all(item[0] == "role" for item in hidden)
+
+
+def test_canonicalize_surface_merges_spellings_by_majority():
+    import sqlite3
+
+    from quwarts.core.router.executor import canonicalize_surface
+
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE t (doc_id TEXT, judge TEXT)")
+    conn.executemany("INSERT INTO t VALUES (?, ?)",
+                     [("1", "Tracey"), ("2", "Tracey"), ("3", "TRACEY"), ("4", "Flick."), ("5", " Flick"), ("6", None)])
+    changed = canonicalize_surface(conn, "t", ["judge"])
+    values = [v for (v,) in conn.execute("SELECT judge FROM t ORDER BY doc_id")]
+    assert values[:3] == ["Tracey"] * 3 and values[3] == values[4] and values[5] is None
+    assert changed["judge"] >= 2

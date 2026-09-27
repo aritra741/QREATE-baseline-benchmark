@@ -143,6 +143,36 @@ def _q(name: str) -> str:
     return '"' + str(name).replace('"', '""') + '"'
 
 
+def _surface_key(text: str) -> str:
+    import re as _re
+
+    return _re.sub(r"\s+", " ", text).strip().strip(".,;:").casefold()
+
+
+def canonicalize_surface(conn: sqlite3.Connection, table: str, columns: list[str]) -> dict[str, int]:
+    """Per text column, give values that differ only in case, spacing or edge punctuation the column's
+    most frequent spelling ('TRACEY' and 'Tracey' become one group). Uses no constants: the spelling
+    convention comes from the extracted column itself. Returns the number of rewritten cells per column."""
+
+    changed: dict[str, int] = {}
+    for col in columns:
+        rows = [(rowid, v) for rowid, v in conn.execute(f'SELECT rowid, "{col}" FROM "{table}"')
+                if isinstance(v, str) and v.strip()]
+        spellings: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        for _rowid, v in rows:
+            for part in v.split("||"):
+                spellings[_surface_key(part)][part.strip()] += 1
+        best = {k: max(sorted(c), key=lambda s: c[s]) for k, c in spellings.items()}
+        n = 0
+        for rowid, v in rows:
+            new = " || ".join(best[_surface_key(p)] for p in v.split("||"))
+            if new != v:
+                conn.execute(f'UPDATE "{table}" SET "{col}" = ? WHERE rowid = ?', (new, rowid))
+                n += 1
+        changed[col] = n
+    return changed
+
+
 def base_database(spec: CorpusSpec, needs_attrs: dict[str, set[str]], incumbent: Path | None, dest: Path,
                   fields: dict[str, FieldSpec] | None = None) -> Path:
     """The incumbent, or an empty table per source document with every needed column.

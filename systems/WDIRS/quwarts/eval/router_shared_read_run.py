@@ -45,6 +45,7 @@ SEED = 42  # the case80 split seed: its held-out 20% are exactly the 16 DocETL e
 SPLIT = "random"
 BLANK_BASE = False
 TAG = ""  # a system version: its own results folder next to the others (e.g. "agnostic")
+CANONICALIZE = False  # canonicalize text columns' spellings after the reads (executor.canonicalize_surface)
 SPLIT_FOLDER = {"random": "", "drift": "_drift_roles", "drift_v0": "_drift"}
 
 
@@ -129,6 +130,12 @@ def build_db(spec, reads, values, fields, queries: dict[str, str], dest: Path, p
                         continue
                 conn.execute(f'UPDATE "{read.table}" SET "{attr}" = ? WHERE doc_id = ?', (value, rows[doc]))
                 stats["written"] += 1
+    if CANONICALIZE:
+        from quwarts.core.router.executor import canonicalize_surface
+
+        for read in reads:
+            text_cols = [a for a in read.attributes if fields[f"{read.table}.{a}"].value_type not in ("int", "float")]
+            stats.setdefault("canonicalized", {}).update(canonicalize_surface(conn, read.table, text_cols))
     conn.commit()
     for q, s in queries.items():  # every rewritten query must execute: errors are raised, not scored empty
         conn.execute(official_sql(s, dest, predicates, query_id=q)).fetchall()
@@ -207,9 +214,10 @@ def choose_per_attribute(corpus: str, workers: int) -> int:
     for q in report["plain"]["per_attribute"]:
         best = max(order, key=lambda v: (report[v]["per_attribute"][q], -order.index(v)))
         per[q] = best
-        if best == "described":
+        # A variant that fell back to the name alone (its answers never passed validation) has no text.
+        if best == "described" and q in v2:
             chosen[q] = v2[q]
-        elif best == "described_v3":
+        elif best == "described_v3" and q in v3:
             chosen[q] = v3[q]
     out = out_dir(spec, "per_attribute")
     out.mkdir(parents=True, exist_ok=True)
@@ -338,11 +346,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--choose", action="store_true", help="pre-declared per-attribute choice of description")
     parser.add_argument("--split", choices=["random", "drift", "drift_v0"], default="random")
     parser.add_argument("--tag", default="", help="system version; results go to their own folder")
+    parser.add_argument("--canonicalize", action="store_true", help="canonicalize text spellings after reads")
     parser.add_argument("--blank-base", action="store_true", help="start from NULLs, not the incumbent database")
     args = parser.parse_args(argv)
-    global SPLIT, BLANK_BASE, TAG
-    SPLIT, BLANK_BASE, TAG = args.split, args.blank_base, args.tag
-    tag = "_blank" if BLANK_BASE else ""
+    global SPLIT, BLANK_BASE, TAG, CANONICALIZE
+    SPLIT, BLANK_BASE, TAG, CANONICALIZE = args.split, args.blank_base, args.tag, args.canonicalize
+    tag = ("_blank" if BLANK_BASE else "") + ("_canon" if CANONICALIZE else "")
     if args.describe:
         return describe(args.corpus)
     if args.check:
