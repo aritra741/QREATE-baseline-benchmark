@@ -92,18 +92,18 @@ def fit(text: str, template: str) -> str:
     return text[: offsets[budget - 1][1]]
 
 
-def run_query(qid: str, sql: str, table: str, fields: list[str], numeric: set[str], descriptions: dict[str, str],
-              records: list[dict[str, Any]], out: Path, threads: int) -> dict[str, Any]:
-    template = prompt_template(table, fields, numeric, sql, descriptions)
-    data = [{"doc_id": r["doc_id"], "text": fit(r["text"], template)} for r in records]
-    out.mkdir(parents=True, exist_ok=True)
-    schema = {c: ("number" if c in numeric else "str") for c in fields}
+BATCH = 95  # documents per resumable batch
+DEADLINE = 120.0  # seconds after which no new batch starts in this process
+
+
+def run_batch(template: str, schema: dict[str, str], data: list[dict[str, Any]], out: Path, threads: int) -> list[dict]:
     op = MapOp(name="extract_fields", type="map", prompt=template, output={"schema": schema},
                model="openrouter/qwen/qwen-2.5-7b-instruct", skip_on_error=True, timeout=420,
                max_retries_per_timeout=2,
                # Without max_tokens the only OpenRouter provider for this model reserves a large
                # default for the answer and rejects prompts over ~21k tokens (HTTP 400).
                litellm_completion_kwargs={"max_tokens": ANSWER_ROOM})
+    out.mkdir(parents=True, exist_ok=True)
     pipeline = Pipeline(
         name="extract",
         datasets={"raw": Dataset(type="memory", path=data, source="local")},
@@ -113,20 +113,52 @@ def run_query(qid: str, sql: str, table: str, fields: list[str], numeric: set[st
         default_model="openrouter/qwen/qwen-2.5-7b-instruct",
         bypass_cache=True,
     )
-    before = dict(TOKENS)
-    started = time.time()
     cwd = os.getcwd()
     try:
         os.chdir(out)
         pipeline.run(max_threads=threads)
     finally:
         os.chdir(cwd)
-    produced = json.loads((out / "pipeline_output.json").read_text())
+    return json.loads((out / "pipeline_output.json").read_text())
+
+
+def run_query(qid: str, sql: str, table: str, fields: list[str], numeric: set[str], descriptions: dict[str, str],
+              records: list[dict[str, Any]], out: Path, threads: int, t0: float) -> dict[str, Any] | None:
+    """One DocETL map over the table's documents, run as fixed batches so an interrupted query resumes.
+
+    Each finished batch stores its rows and its own token usage; the query's pipeline_output.json and
+    stats.json are written only when every batch is done. Returns None while batches remain.
+    """
+    template = prompt_template(table, fields, numeric, sql, descriptions)
+    data = [{"doc_id": r["doc_id"], "text": fit(r["text"], template)} for r in records]
+    schema = {c: ("number" if c in numeric else "str") for c in fields}
+    batches = out / "batches"
+    batches.mkdir(parents=True, exist_ok=True)
+    chunks = [data[i:i + BATCH] for i in range(0, len(data), BATCH)]
+    for i, chunk in enumerate(chunks):
+        done_path = batches / f"{i:03d}.json"
+        if done_path.exists():
+            continue
+        if time.time() - t0 > DEADLINE:
+            return None
+        before, started = dict(TOKENS), time.time()
+        rows = run_batch(template, schema, chunk, batches / f"{i:03d}", threads)
+        done_path.write_text(json.dumps({
+            "rows": rows, "prompt_tokens": TOKENS["prompt"] - before["prompt"],
+            "completion_tokens": TOKENS["completion"] - before["completion"],
+            "calls": TOKENS["calls"] - before["calls"], "seconds": round(time.time() - started, 1)}))
+        print(json.dumps({"query_id": qid, "batch": i, "of": len(chunks), "rows": len(rows),
+                          "calls": TOKENS["calls"] - before["calls"]}), flush=True)
+    parts = [json.loads((batches / f"{i:03d}.json").read_text()) for i in range(len(chunks))]
+    produced = [r for part in parts for r in part["rows"]]
+    (out / "pipeline_output.json").write_text(json.dumps(produced, indent=2))
     missing = sorted({r["doc_id"] for r in data} - {r.get("doc_id") for r in produced})
     stats = {"query_id": qid, "documents": len(data), "rows": len(produced), "failed": missing,
              "truncated": sum(1 for r, d in zip(records, data) if len(d["text"]) < len(r["text"])),
-             "prompt_tokens": TOKENS["prompt"] - before["prompt"], "completion_tokens": TOKENS["completion"] - before["completion"],
-             "calls": TOKENS["calls"] - before["calls"], "seconds": round(time.time() - started, 1)}
+             "prompt_tokens": sum(p["prompt_tokens"] for p in parts),
+             "completion_tokens": sum(p["completion_tokens"] for p in parts),
+             "calls": sum(p["calls"] for p in parts), "seconds": round(sum(p["seconds"] for p in parts), 1),
+             "batches": len(chunks)}
     (out / "stats.json").write_text(json.dumps(stats, indent=2))
     return stats
 
@@ -158,6 +190,7 @@ def main() -> int:
     descriptions_all = json.loads(args.descriptions.read_text())
     root = ROOT / "results" / f"docetl_fair_{corpus}"
     done = 0
+    t0 = time.time()
     for q in manifest:
         qid, sql = q["query_id"], q["sql"]
         need = runner.columns_per_table_from_sql(sql)
@@ -167,7 +200,10 @@ def main() -> int:
                 continue
             descriptions = {c: descriptions_all.get(f"{table}.{c}", {}).get("description") for c in cols}
             records = runner._raw_doc_records_for_table(table)
-            stats = run_query(qid, sql, table, cols, numeric_sql, descriptions, records, out, args.threads)
+            stats = run_query(qid, sql, table, cols, numeric_sql, descriptions, records, out, args.threads, t0)
+            if stats is None:
+                print(json.dumps({"query_id": qid, "status": "paused; rerun to resume"}), flush=True)
+                return 0
             print(json.dumps({k: (len(v) if k == "failed" else v) for k, v in stats.items()}), flush=True)
             done += 1
             if done >= args.max_queries:
