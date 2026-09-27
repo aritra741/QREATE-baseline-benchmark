@@ -39,13 +39,19 @@ from typing import Any
 from quwarts.core.router.registry import RESULTS
 
 KINDS = ["irrelevant", "value", "prepend", "append", "evidence", "copy_delete"]
-POLICIES = ["exact", "facts"]
+POLICIES = ["exact", "facts", "answers"]  # model-calling policies
+VARIANTS = POLICIES + [f"{p}+attr" for p in POLICIES]  # +attr: the same reads, changes committed only if explained
 SAMPLE = {"finan": 6, "legal": 12}
 SEED = 20260928
 NEUTRAL = ("The following section is provided for general information only. It does not modify, qualify or "
            "replace any statement made elsewhere in this document, and readers should refer to the relevant "
            "sections for complete details.")
 ROOT = RESULTS / "provenance_eval"
+TAG = ""  # "" is the development sample; another tag draws a fresh sample into its own folder
+
+
+def _root(corpus: str) -> Path:
+    return ROOT / (corpus + (f"_{TAG}" if TAG else ""))
 
 
 def _ctx(corpus: str):
@@ -93,7 +99,7 @@ def prepare(corpus: str) -> dict[str, Any]:
     spec, fields, reads, queries, workload, out = _ctx(corpus)
     base = out / "provenance"
     docs, cells = _store_rows(base)
-    rng = random.Random(f"{SEED}:{corpus}")
+    rng = random.Random(f"{SEED}:{corpus}" + (f":{TAG}" if TAG else ""))
     paths = {(t.sql_name, p.name): p for t in spec.tables for p in sorted(t.doc_dir.glob("*.txt"))}
     by_col: dict[tuple[str, str], list] = {}
     for t, d, a, v in cells:
@@ -139,7 +145,7 @@ def prepare(corpus: str) -> dict[str, Any]:
     all_keys = sorted(k for k in docs if k in paths)
     plan: dict[str, Any] = {}
     for kind in KINDS:
-        folder = ROOT / corpus / kind
+        folder = _root(corpus) / kind
         if folder.exists():
             shutil.rmtree(folder)
         edits = []
@@ -202,7 +208,7 @@ def prepare(corpus: str) -> dict[str, Any]:
                     h.write(e["doc"] + "\n")
             else:
                 (layer / e["doc"]).write_text(e["text"])
-        for policy in POLICIES:
+        for policy in VARIANTS:
             dest = folder / policy
             dest.mkdir(parents=True)
             shutil.copy2(base / "provenance.db", dest / "provenance.db")
@@ -226,25 +232,37 @@ def run(corpus: str, deadline: float, workers: int) -> dict[str, Any]:
     stop = time.monotonic() + deadline
     done: dict[str, Any] = {}
     for kind in KINDS:
-        folder = ROOT / corpus / kind
-        for policy in POLICIES:
-            report = folder / policy / "report.json"
+        folder = _root(corpus) / kind
+        for variant in VARIANTS:
+            policy, attribute = variant.split("+")[0], variant.endswith("+attr")
+            report = folder / variant / "report.json"
             if report.exists():
-                done[f"{kind}/{policy}"] = "done"
+                done[f"{kind}/{variant}"] = "done"
                 continue
+            if attribute:
+                if not (folder / policy / "report.json").exists():
+                    continue
+                # The same reads as the policy's run: copy its memo, so the attributed run makes no calls.
+                conn = sqlite3.connect(folder / variant / "provenance.db")
+                conn.execute("ATTACH DATABASE ? AS src", (str(folder / policy / "provenance.db"),))
+                conn.execute("INSERT OR IGNORE INTO reads SELECT * FROM src.reads")
+                conn.commit()
+                conn.execute("DETACH DATABASE src")
+                conn.close()
             left = stop - time.monotonic()
             if left < 10:
                 return {**done, "status": "incomplete"}
             caller = make_caller(TokenLedger(theta=10**12), max_tokens=600)
-            r = M.apply(folder / policy / "provenance.db", spec, reads, fields, queries, folder / "overlay", policy,
-                        caller, None, workers, left, workload, build=build)
+            r = M.apply(folder / variant / "provenance.db", spec, reads, fields, queries, folder / "overlay", policy,
+                        caller, None, workers, left, workload, build=build, attribute=attribute)
+            policy = variant
             if r["status"] != "applied":
                 return {**done, f"{kind}/{policy}": r.get("reads", 0), "status": "incomplete"}
             report.write_text(json.dumps(r, indent=1, default=str))
             done[f"{kind}/{policy}"] = "applied"
     # Reference: the edited documents read from scratch by the same system.
     for kind in KINDS:
-        folder = ROOT / corpus / kind
+        folder = _root(corpus) / kind
         if (folder / "reference_done").exists():
             continue
         edits = json.loads((folder / "edits.json").read_text())
@@ -301,8 +319,19 @@ def report(corpus: str) -> dict[str, Any]:
         conn.close()
         return out_
 
+    base_keys = {k for (k,) in sqlite3.connect(out / "provenance" / "provenance.db").execute("SELECT read_key FROM reads")}
+
+    def new_reads(store: Path) -> tuple[int, int]:
+        """Reads this maintenance made: memo rows the copy has and the base store does not (robust to
+        resumed runs and to documents sharing a chunk)."""
+
+        conn = sqlite3.connect(store)
+        rows = [t for k, t in conn.execute("SELECT read_key, tokens FROM reads") if k not in base_keys]
+        conn.close()
+        return len(rows), sum(rows)
+
     for kind in KINDS:
-        folder = ROOT / corpus / kind
+        folder = _root(corpus) / kind
         edits = json.loads((folder / "edits.json").read_text())
         edited = {(e["table"], e["doc"]) for e in edits if not e.get("deleted")}
         ref_values = {}
@@ -324,11 +353,14 @@ def report(corpus: str) -> dict[str, Any]:
                                "from_scratch_tokens_estimate": scratch_tokens}
         if ref_values:
             row["reference_vs_old_agreement"] = round(sum(_same(old.get(k), v) for k, v in ref_values.items()) / len(ref_values), 3)
-        for policy in POLICIES:
+        for policy in VARIANTS:
+            if not (folder / policy / "report.json").exists():
+                continue
             rep = json.loads((folder / policy / "report.json").read_text())
             new = db_cells(folder / policy / "maintained.db", edited)
-            r = {"reads": rep.get("reads", 0), "read_tokens": rep.get("read_tokens", 0), "memo_hits": rep.get("memo_hits", 0),
-                 "reads_of_kept_chunks": rep.get("reads_of_kept_chunks", 0), "cells_changed": rep["cells_changed"],
+            n_reads, n_tokens = new_reads(folder / policy.split("+")[0] / "provenance.db")
+            r = {"reads": n_reads, "read_tokens": n_tokens, "answer_cutoffs": rep.get("answer_cutoffs", 0),
+                 "changes_kept_unexplained": rep.get("changes_kept_unexplained", 0), "cells_changed": rep["cells_changed"],
                  "rows_deleted": rep["rows_deleted"], "rows_inserted": rep["rows_inserted"],
                  "queries_reexecuted": rep["queries_reexecuted"], "queries_answer_changed": len(rep["queries_answer_changed"]),
                  "edited_cells_changed": sum(not _same(old.get(k), new.get(k)) for k in new if k in old)}
@@ -346,7 +378,7 @@ def report(corpus: str) -> dict[str, Any]:
         if kind in ("value", "evidence"):
             row["edited_cells"] = len(edits)
         result["kinds"][kind] = row
-    (ROOT / corpus / "report.json").write_text(json.dumps(result, indent=1))
+    (_root(corpus) / "report.json").write_text(json.dumps(result, indent=1))
     return result
 
 
@@ -358,7 +390,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", action="store_true")
     parser.add_argument("--deadline", type=float, default=100)
     parser.add_argument("--workers", type=int, default=24)
+    parser.add_argument("--tag", default="", help="sample tag: a fresh seeded sample in its own folder")
     args = parser.parse_args(argv)
+    global TAG
+    TAG = args.tag
     if args.prepare:
         print(json.dumps(prepare(args.corpus)))
     if args.run:

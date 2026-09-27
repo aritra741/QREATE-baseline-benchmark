@@ -363,6 +363,7 @@ def refresh_document(conn, lock, dp: DocPlan, specs, fsha: str, context: str, ca
             with lock:
                 S.put_read(conn, rec)
                 conn.commit()
+                rec = S.get_read(conn, key)  # a concurrent read of the same inputs may have been stored first
                 stats["reads"] += 1
                 stats["read_tokens"] += rec["tokens"]
         else:
@@ -404,6 +405,9 @@ def refresh_document(conn, lock, dp: DocPlan, specs, fsha: str, context: str, ca
             with lock:
                 S.put_read(conn, rec)
                 conn.commit()
+                # Continue with the stored record: when two documents share a chunk (the same inputs) and
+                # are read concurrently, the first stored read is the one every chain continues from.
+                rec = S.get_read(conn, rec["read_key"])
                 stats["reads"] += 1
                 stats["read_tokens"] += rec["tokens"]
                 if dp.kept[idx] is not None:
