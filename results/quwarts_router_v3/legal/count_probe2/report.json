@@ -1,0 +1,248 @@
+{
+  "audit_only": true,
+  "chunk_tokens": 2000,
+  "k_candidates": 5,
+  "columns": {
+    "case_number": {
+      "definition": "One counted item: precedent\nHow items are written: a previous judicial decision\nExamples of items: 15 Comandate Marine asked me to infer that the mere making of the order by Colman J showed that there was some risk that Pan would dissipate its assets so as not to have them available to meet any arbitration award were the arbitration allowed to proceed.; 18 I am of opinion that there is the power in the Court to impose conditions on a grant of leave to appeal in circumstances where, like the present, the appeal is interlocutory but there are other proceedings on foot, the benefit of which the unsuccessful party seeks to maintain while at the same time seeking to challenge the result which would have the effect of negating the factual substratum underlying those other proceedings.\nDo NOT count: evidence presented during the current case; orders made by courts outside the current case; arguments or inferences drawn from previous decisions",
+      "candidates": [
+        [],
+        [
+          "(\\d+) (Comandate|I am of opinion)"
+        ],
+        [],
+        [],
+        [
+          "(?<=precedent)(.*?)(?=precedent)",
+          "(?<=precedent)(.*?)(?=\\.)",
+          "(?<=precedent)(.*?)(?=\\s+the\\s+Tribunal)",
+          "(?<=precedent)(.*?)(?=\\sand\\s+the\\s+second\\s+appellant\\s+gave\\s+evidence)",
+          "(?<=precedent)(.*?)(?=\\sand\\s+the\\s+second\\s+appellant\\s+gave\\s+evidence)",
+          "(?<=precedent)(.*?)(?=\\sand\\s+the\\s+second\\s+appellant\\s+gave\\s+evidence)",
+          "(?<=precedent)(.*?)(?=\\sand\\s+the\\s+second\\s+appellant\\s+gave\\s+evidence)",
+          "(?<=precedent)(.*?)(?=\\sand\\s+the\\s+second\\s+appellant\\s+gave\\s+evidence)"
+        ]
+      ],
+      "candidate_disagreement_on_selection": {
+        "0": Infinity,
+        "1": 1.2,
+        "2": Infinity,
+        "3": Infinity,
+        "4": 1.2
+      },
+      "chosen_candidate": 1,
+      "arms": {
+        "chunk_verified": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.1,
+          "mae": 8.26,
+          "gold_mean": 9.32,
+          "pred_mean": 1.06,
+          "mean_ratio": 0.114
+        },
+        "chunk_unverified": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.1,
+          "mae": 8.02,
+          "gold_mean": 9.32,
+          "pred_mean": 1.3,
+          "mean_ratio": 0.139
+        },
+        "regex_selected": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.1,
+          "mae": 9.32,
+          "gold_mean": 9.32,
+          "pred_mean": 0.0,
+          "mean_ratio": 0.0
+        },
+        "regex_median_of_k": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.1,
+          "mae": 9.16,
+          "gold_mean": 9.32,
+          "pred_mean": 0.16,
+          "mean_ratio": 0.017
+        },
+        "direct_probe1": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.1,
+          "mae": 34.96,
+          "gold_mean": 9.32,
+          "pred_mean": 26.52,
+          "mean_ratio": 2.845
+        },
+        "list10_probe1": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.08,
+          "within20_doc": 0.18,
+          "mae": 6.2,
+          "gold_mean": 9.32,
+          "pred_mean": 4.88,
+          "mean_ratio": 0.524
+        },
+        "list22_probe1": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.1,
+          "within20_doc": 0.18,
+          "mae": 7.06,
+          "gold_mean": 9.32,
+          "pred_mean": 3.9,
+          "mean_ratio": 0.418
+        }
+      },
+      "go": {
+        "chunk_verified": false,
+        "chunk_unverified": false,
+        "regex_selected": false,
+        "regex_median_of_k": false
+      },
+      "tokens": {
+        "define": 6457,
+        "chunk_eval_docs": 688924,
+        "chunk_selection_docs": 128261,
+        "synth": 30371,
+        "regex_per_document": 0
+      }
+    },
+    "legal_basis_num": {
+      "definition": "One counted item: legal statute or regulation\nHow items are written: statute, regulation, Act, legislation\nExamples of items: s 20(2)(c)(iii) of the HREOC Act; s 9 of the Racial Discrimination Act 1975 (Cth); the HREOC Act; the Racial Discrimination Act 1975 (Cth)\nDo NOT count: court decisions, judgments, judicial opinions, case law",
+      "candidates": [
+        [
+          "s\\s+\\d+\\(\\d+\\)\\(\\w+\\)\\(\\d+\\)(?:\\(Cth\\))?(?:\\s+Act)?",
+          "the\\s+(\\w+\\s+)+Act",
+          "(\\w+\\s+)+Act",
+          "the\\s+s\\s+\\d+\\(\\w+\\)\\(\\d+\\)(?:\\(Cth\\))?",
+          "s\\s+\\d+\\(\\w+\\)\\(\\d+\\)(?:\\(Cth\\))?"
+        ],
+        [
+          "s\\s+\\d+\\(\\d+\\)\\(\\w+\\)\\(\\d+\\)\\(\\w+\\)\\(\\d+\\)\\(\\w+\\)(?:\\(Cth\\))?",
+          "s\\s+\\d+\\(\\w+\\)(?:\\s+Act)?",
+          "(the|the\\s+Racial\\s+Discrimination)\\s+Act\\s+\\d{4}\\s+\\(Cth\\)",
+          "(the|the\\s+HREOC)\\s+Act",
+          "\\bSection\\s+s?\\d+(?:\\((\\d+)\\))?(?:\\(Cth\\))?"
+        ],
+        [
+          "(s\\s?\\d+\\(\\d+\\)?|the\\s[A-Za-z]+\\s?Act|the\\s?[A-Za-z]+\\s?Act\\s?\\d+,?\\s?\\([A-Za-z]{3}\\s?\\d{4}\\)\\s?\\(Cth\\)|s\\s?\\d+\\(\\d+\\)\\(\\w+\\)(?:\\(\\w+\\))?(?:\\s?of\\s?the\\s?[A-Za-z]+\\s?Act)?|the\\s?[A-Za-z]+\\s?Act\\s?\\d+,?\\s?\\([A-Za-z]{3}\\s?\\d{4}\\)\\s?\\(Cth\\))",
+          "(s\\s?\\d+\\(\\d+\\)?|the\\s[A-Za-z]+\\s?Act|the\\s?[A-Za-z]+\\s?Act\\s?\\d+,?\\s?\\([A-Za-z]{3}\\s?\\d{4}\\)\\s?\\(Cth\\)|s\\s?\\d+\\(\\d+\\)\\(\\w+\\)(?:\\(\\w+\\))?(?:\\s?of\\s?the\\s?[A-Za-z]+\\s?Act)?|the\\s?[A-Za-z]+\\s?Act\\s?\\d+,?\\s?\\([A-Za-z]{3}\\s?\\d{4}\\)\\s?\\(Cth\\))"
+        ],
+        [
+          "s \\d+\\(\\w+\\)(\\(\\w+\\))?\\s+of\\s+the\\s+\\w+\\w*\\s+Act",
+          "s \\d+ of the \\w+\\w* Act \\d{4}\\s?\\(Cth\\)",
+          "(the|The)\\s+\\w+\\w*\\s+Act",
+          "(the|The)\\s+\\w+\\w*\\s+Act\\s+\\d{4}\\s?\\(Cth\\)"
+        ],
+        [
+          "(?i)\\bs+\\d+\\(\\w+\\)(?:\\.?\\w+)*(?:\\s+of\\s+)?(\\w+\\s+Act|\\w+\\s+Act\\s+1975\\s+\\(Cth\\))",
+          "(?i)s+\\d+\\(\\w+\\)(?:\\.?\\w+)*",
+          "(?i)the\\s+(\\w+\\s+Act|\\w+\\s+Act\\s+1975\\s+\\(Cth\\))"
+        ]
+      ],
+      "candidate_disagreement_on_selection": {
+        "0": 2.65,
+        "1": 2.0,
+        "2": 1.65,
+        "3": 2.05,
+        "4": 2.05
+      },
+      "chosen_candidate": 2,
+      "arms": {
+        "chunk_verified": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.24,
+          "within20_doc": 0.26,
+          "mae": 2.6,
+          "gold_mean": 3.08,
+          "pred_mean": 3.92,
+          "mean_ratio": 1.273
+        },
+        "chunk_unverified": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.2,
+          "within20_doc": 0.22,
+          "mae": 3.54,
+          "gold_mean": 3.08,
+          "pred_mean": 5.18,
+          "mean_ratio": 1.682
+        },
+        "regex_selected": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.2,
+          "within20_doc": 0.24,
+          "mae": 1.9,
+          "gold_mean": 3.08,
+          "pred_mean": 3.3,
+          "mean_ratio": 1.071
+        },
+        "regex_median_of_k": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.26,
+          "within20_doc": 0.28,
+          "mae": 1.76,
+          "gold_mean": 3.08,
+          "pred_mean": 3.04,
+          "mean_ratio": 0.987
+        },
+        "direct_probe1": {
+          "n": 50,
+          "parsed": 49,
+          "exact": 0.14,
+          "within20_doc": 0.16,
+          "mae": 2.59,
+          "gold_mean": 3.08,
+          "pred_mean": 0.837,
+          "mean_ratio": 0.272
+        },
+        "list10_probe1": {
+          "n": 50,
+          "parsed": 50,
+          "exact": 0.16,
+          "within20_doc": 0.16,
+          "mae": 3.46,
+          "gold_mean": 3.08,
+          "pred_mean": 4.22,
+          "mean_ratio": 1.37
+        },
+        "list22_probe1": {
+          "n": 50,
+          "parsed": 49,
+          "exact": 0.14,
+          "within20_doc": 0.18,
+          "mae": 2.73,
+          "gold_mean": 3.08,
+          "pred_mean": 3.735,
+          "mean_ratio": 1.213
+        }
+      },
+      "go": {
+        "chunk_verified": false,
+        "chunk_unverified": false,
+        "regex_selected": false,
+        "regex_median_of_k": false
+      },
+      "tokens": {
+        "define": 5312,
+        "chunk_eval_docs": 673014,
+        "chunk_selection_docs": 124960,
+        "synth": 25182,
+        "regex_per_document": 0
+      }
+    }
+  }
+}
