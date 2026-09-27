@@ -65,6 +65,8 @@ def make_caller(
             except (RateLimitError, APIStatusError, APITimeoutError, APIConnectionError) as exc:
                 status = getattr(exc, "status_code", None)
                 retryable = isinstance(exc, (RateLimitError, APITimeoutError, APIConnectionError)) or status in {400, 429, 502, 503}
+                if status == 400 and "maximum context length" in str(exc):
+                    retryable = False  # deterministic: the same prompt is rejected again
                 if not retryable:
                     raise
                 if attempt == 7:

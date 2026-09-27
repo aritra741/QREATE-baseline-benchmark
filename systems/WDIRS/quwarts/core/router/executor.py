@@ -68,13 +68,18 @@ def run_reads(
     journal: Path,
     workers: int = 8,
     long_documents: str = "head",
+    deadline: float | None = None,
 ) -> dict[str, Any]:
     """Run every (read, document) call not already in the journal. Returns coverage stats.
 
     ``long_documents``: ``head`` reads the first window of a longer document (the original
     behaviour); ``chain`` reads all of it as ordered long chunks with carried context
     (``core.router.chunked``). Documents that fit the window are read once either way.
+    ``deadline`` (seconds, counted once the calls are planned): no new call starts after it; calls
+    in flight finish and are journaled, and a later run resumes from the journal.
     """
+
+    import time
 
     from quwarts.core.router import chunked
     from quwarts.core.retrieve_extract.tokens import count_tokens
@@ -107,24 +112,46 @@ def run_reads(
     if caller is None or not (tasks or chains):
         return stats
     journal.parent.mkdir(parents=True, exist_ok=True)
+    if deadline is not None:
+        deadline = time.monotonic() + deadline
 
     def chain(task):
         read, doc, chunks, specs = task
         carry = ""
         for index, chunk in enumerate(chunks):
             prompt = chunked.render_chunk_prompt(chunk, specs, carry, index + 1, len(chunks))
+            compacted = chunked.render_chunk_prompt(chunked.compact(chunk), specs, carry, index + 1, len(chunks))
             sha = _sha(prompt)
             text = done.get(sha)
+            if text is None and _sha(compacted) in done:  # the endpoint rejected this chunk before
+                sha, text = _sha(compacted), done[_sha(compacted)]
             if text is None:
+                if deadline is not None and time.monotonic() > deadline:
+                    stats["stopped_at_deadline"] = True
+                    return
+                meta = dict(system=SYSTEM, table=read.table, doc=doc, context=read.context)
+                was_compacted = False
                 try:
-                    text = caller.complete(prompt, "router_v3_execute_chunk", system=SYSTEM, table=read.table, doc=doc,
-                                           context=read.context)
+                    try:
+                        text = caller.complete(prompt, "router_v3_execute_chunk", **meta)
+                    except BudgetExhausted:
+                        raise
+                    except Exception as exc:  # noqa: BLE001
+                        if not chunked.too_long(exc):
+                            raise
+                        sha, was_compacted = _sha(compacted), True
+                        text = caller.complete(compacted, "router_v3_execute_chunk", **meta)
                 except BudgetExhausted:
                     stats["exhausted"] = True
                     return
+                except Exception as exc:  # noqa: BLE001
+                    if not chunked.too_long(exc):
+                        raise
+                    stats.setdefault("rejected_chunks", []).append(f"{doc}#{index}")
+                    return  # still too long after compaction: the chain stops, the document keeps its head read
                 row = {"table": read.table, "context": read.context, "attributes": list(read.attributes), "doc": doc,
                        "prompt_sha": sha, "response": text, "tokens": caller.ledger.records[-1].tokens,
-                       "chunk": index, "chunks": len(chunks), "carry_in": carry}
+                       "chunk": index, "chunks": len(chunks), "carry_in": carry, "compacted": was_compacted}
                 with _lock, journal.open("a", encoding="utf-8") as handle:
                     handle.write(json.dumps(row, ensure_ascii=False) + "\n")
                     stats["chunk_calls"] += 1
@@ -132,6 +159,9 @@ def run_reads(
 
     def one(task):
         read, doc, prompt, sha = task
+        if deadline is not None and time.monotonic() > deadline:
+            stats["stopped_at_deadline"] = True
+            return
         try:
             text = caller.complete(prompt, "router_v3_execute", system=SYSTEM, table=read.table, doc=doc, context=read.context)
         except BudgetExhausted:

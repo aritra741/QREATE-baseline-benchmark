@@ -75,6 +75,23 @@ def split_chunks(text: str, max_tokens: int) -> list[str]:
     return chunks
 
 
+_PAD = re.compile(r"[ \t]{2,}")
+_RULE = re.compile(r"([-=_.])\1{3,}")
+
+
+def compact(text: str) -> str:
+    """Collapse layout padding: runs of spaces or tabs to one space, rules of - = _ . to three.
+    Used only for a chunk the endpoint rejects as too long: PDF-extracted tables can be mostly
+    padding, which the Qwen tokenizer merges into few tokens but the endpoint's length estimate
+    counts by characters."""
+
+    return _RULE.sub(lambda m: m.group(1) * 3, _PAD.sub(" ", text))
+
+
+def too_long(exc: BaseException) -> bool:
+    return "maximum context length" in str(exc)
+
+
 def render_chunk_prompt(chunk: str, fields: list[FieldSpec], carry: str, index: int, total: int) -> str:
     """One chunk's prompt. Fields are asked as nullable: a chunk that does not state a field says so;
     never-null fields get their declared absence value when no chunk states them."""

@@ -403,6 +403,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--blank-base", action="store_true", help="start from NULLs, not the incumbent database")
     parser.add_argument("--long", choices=["head", "chain"], default="head",
                         help="documents longer than the window: first window only, or chained chunks")
+    parser.add_argument("--deadline", type=float, default=None, help="seconds after which no new call starts")
     args = parser.parse_args(argv)
     global SPLIT, BLANK_BASE, TAG, CANONICALIZE, LONG
     SPLIT, BLANK_BASE, TAG, CANONICALIZE, LONG = args.split, args.blank_base, args.tag, args.canonicalize, args.long
@@ -431,7 +432,7 @@ def main(argv: list[str] | None = None) -> int:
         seeded = seed_journal(spec, args.variant, journal) if LONG == "chain" else 0
         caller = make_caller(ledger, max_tokens=600 if LONG == "chain" else 400)
         stats = run_reads(spec, reads, {r["query_id"]: r["sql"] for r in train}, fields, caller, journal, args.workers,
-                          long_documents=LONG)
+                          long_documents=LONG, deadline=args.deadline)
         stats["seeded_from_head_run"] = seeded
         stats["spent_this_run"] = ledger.spent
         print(json.dumps(stats))

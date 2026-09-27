@@ -83,3 +83,29 @@ def test_split_chunks_are_even():
     text = "".join(f"Line {i}: revenue was {i * 7} thousand dollars in the period.\n" for i in range(400))
     sizes = [count_tokens(c) for c in chunked.split_chunks(text, 1000)]
     assert max(sizes) <= 1002 and min(sizes) > 0.8 * max(sizes)
+
+
+def test_compact_and_rejected_chunk_is_retried_compacted(tmp_path, monkeypatch):
+    assert chunked.compact("| a      | b |\n|--------|---|\n") == "| a | b |\n|---|---|\n"
+    spec = toy_spec(tmp_path)
+    long = "Hearing year: 2011\n" + "".join(f"| item {i}" + " " * 200 + "|\n" for i in range(300))
+    (tmp_path / "docs" / "9.txt").write_text(long)
+    monkeypatch.setitem(V3, "window_tokens", 1300)
+    calls = []
+
+    def responder(prompt, metadata):
+        if "PART " in prompt and "     " in prompt:
+            raise RuntimeError("This endpoint's maximum context length is 32768 tokens.")
+        calls.append(prompt)
+        return json.dumps({"fields": {"hearing_year": 2011}, "context_for_next_part": "case 9"})
+
+    fields = {"c.verdict": FieldSpec("verdict", "str", ""), "c.hearing_year": FieldSpec("hearing_year", "int", "")}
+    reads = [Read("c", "__workload__", ("hearing_year", "verdict"))]
+    journal = tmp_path / "reads.jsonl"
+    caller = fake_caller_factory(responder)(10**9)
+    stats = run_reads(spec, reads, {}, fields, caller, journal, workers=1, long_documents="chain")
+    rows = [json.loads(l) for l in journal.read_text().splitlines() if "chunk" in json.loads(l)]
+    assert rows and all(r["compacted"] for r in rows) and len(rows) == stats["chunks"]
+    n = len(calls)
+    run_reads(spec, reads, {}, fields, caller, journal, workers=1, long_documents="chain")
+    assert len(calls) == n  # replay finds the compacted prompts
