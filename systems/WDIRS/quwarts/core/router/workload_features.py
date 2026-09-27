@@ -208,7 +208,9 @@ def usage_phrase(use: "AttributeUse") -> str:
         parts.append("grouped by its value")
     if "predicate" in roles:
         if use.literals:
-            parts.append("compared with " + ", ".join(repr(v) for v in use.literals[:12]))
+            # Constants change with every use of a template: examples of form, never the domain.
+            parts.append("compared with specific values, for example " + ", ".join(repr(v) for v in use.literals[:3])
+                         + " (not a complete list; give the value as the document states it)")
         elif use.numeric:
             parts.append("compared numerically")
         else:

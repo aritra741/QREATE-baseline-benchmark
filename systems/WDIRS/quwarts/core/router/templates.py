@@ -8,12 +8,14 @@ Three template levels, finest to coarsest:
       filter:<op>}.
   L3  column set.
 
-In case80 Legal every query is its own L1 and L2 template, so holding out templates is the same as
-the random split. The drift that matters for extraction is finer: a known column used in a new role
-(an AVG column now under MIN; an equality column now under a range) or compared with a new constant.
-``drift_split`` hides such (column, role) pairs and (column, constant) pairs, so every held-out query
-is new to the system on at least one of these axes, while every column it uses is still used by some
-input query (so the system still extracts it).
+Constants are template parameters: they change with every use, so a new constant is not drift and
+the system must work for any constant by design. In case80 Legal every query is its own L1 and L2
+template, so holding out templates equals the random split. The drift that matters is structural: a
+known column used in a new role (an AVG column now under MIN; a grouped column now filtered).
+``drift_split`` hides (column, role) pairs so every held-out query uses at least one known column in
+a role no input query uses, while every column it uses is still used by some input query (so the
+system still extracts it). ``include_constants=True`` reproduces the first definition, which also hid
+(column, constant) pairs; that was a category error, kept only to reproduce the earlier run.
 """
 
 from __future__ import annotations
@@ -107,14 +109,14 @@ def literals(sql: str) -> set[tuple[str, str]]:
     return out
 
 
-def _items(sql: str) -> set[tuple[str, ...]]:
+def _items(sql: str, include_constants: bool = False) -> set[tuple[str, ...]]:
     roles = {("role", c, r) for c, r in role_signature(sql) if c != "*"}
-    return roles | {("literal", c, v) for c, v in literals(sql)}
+    return roles | ({("literal", c, v) for c, v in literals(sql)} if include_constants else set())
 
 
 def drift_split(rows: list[dict[str, str]], seed: int, held_out_fraction: float = 0.2,
                 slack: float = 0.25, max_per_column: int | None = 1,
-                max_item_share: float = 0.25) -> tuple[list[dict], list[dict], list[tuple[str, ...]]]:
+                max_item_share: float = 0.25, include_constants: bool = False) -> tuple[list[dict], list[dict], list[tuple[str, ...]]]:
     """Hide (column, role) and (column, constant) items; hold out every query that uses a hidden item.
 
     Items are tried in seeded random order. An item is hidden only if the held-out set stays within
@@ -124,7 +126,7 @@ def drift_split(rows: list[dict[str, str]], seed: int, held_out_fraction: float 
     spread over several columns and items instead of one. Stops once the held-out
     set reaches ``held_out_fraction``.
     """
-    items_of = {r["query_id"]: _items(r["sql"]) for r in rows}
+    items_of = {r["query_id"]: _items(r["sql"], include_constants) for r in rows}
     cols_of = {r["query_id"]: column_set(r["sql"]) for r in rows}
     candidates = sorted(set().union(*items_of.values()))
     random.Random(seed).shuffle(candidates)
@@ -179,6 +181,6 @@ def exposure(train: list[dict], held: list[dict]) -> dict[str, Any]:
             "L1_seen": frac("L1_seen"), "L2_seen": frac("L2_seen"), "L3_seen": frac("L3_seen"),
             "with_unseen_role": has("unseen_roles"), "with_unseen_column": has("unseen_columns"),
             "with_unseen_literal": has("unseen_literals"),
-            "with_any_drift": sum(bool(v["unseen_roles"] or v["unseen_literals"] or v["unseen_columns"])
-                                  for v in per_query.values()) / n,
+            # Structural drift only: new constants are the normal use of a template, not drift.
+            "with_any_drift": sum(bool(v["unseen_roles"] or v["unseen_columns"]) for v in per_query.values()) / n,
             "per_query": per_query}

@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     spec = get_corpus(args.corpus)
     rows = load_queries(DATASET[spec.name])
     r_train, r_test = split_80_20(rows, args.seed)
-    d_train, d_test, hidden = drift_split(rows, args.seed)
+    d_train, d_test, hidden = drift_split(rows, args.seed, include_constants=True)  # the drift_v0 run
     root = RESULTS / "quwarts_router_v3"
     load = lambda p: {r["query_id"]: float(r["product"]) for r in json.loads(p.read_text())["read_first"]["per_query"]}  # noqa: E731
     s_drift = load(root / f"{spec.name}_drift" / "shared_read_per_attribute" / "score_blank.json")

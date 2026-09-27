@@ -18,6 +18,7 @@ additive fill of incumbent NULLs only (``fill``).
 from __future__ import annotations
 
 import argparse
+import re
 import hashlib
 import json
 import shutil
@@ -43,6 +44,8 @@ SEED = 42  # the case80 split seed: its held-out 20% are exactly the 16 DocETL e
 # incumbent was built from the random split's input queries, so it would leak into a drift test).
 SPLIT = "random"
 BLANK_BASE = False
+TAG = ""  # a system version: its own results folder next to the others (e.g. "agnostic")
+SPLIT_FOLDER = {"random": "", "drift": "_drift_roles", "drift_v0": "_drift"}
 
 
 def workload(corpus: str) -> tuple[list[dict], list[dict]]:
@@ -50,10 +53,10 @@ def workload(corpus: str) -> tuple[list[dict], list[dict]]:
     from quwarts.experiments.single_table_case80 import load_queries
 
     rows = load_queries(DATASET[corpus])
-    if SPLIT == "drift":
+    if SPLIT in ("drift", "drift_v0"):
         from quwarts.core.router.templates import drift_split
 
-        train, test, _hidden = drift_split(rows, SEED)
+        train, test, _hidden = drift_split(rows, SEED, include_constants=SPLIT == "drift_v0")
         return train, test
     return split_80_20(rows, SEED)
 
@@ -61,7 +64,7 @@ def workload(corpus: str) -> tuple[list[dict], list[dict]]:
 def out_dir(spec, variant: str) -> Path:
     if variant in ("described_v1", "described_v3"):
         variant = "described"  # description versions share one folder
-    root = RESULTS / "quwarts_router_v3" / (spec.name if SPLIT == "random" else f"{spec.name}_{SPLIT}")
+    root = RESULTS / "quwarts_router_v3" / (spec.name + SPLIT_FOLDER[SPLIT] + (f"_{TAG}" if TAG else ""))
     return root / ("shared_read" if variant == "plain" else f"shared_read_{variant}")
 
 
@@ -258,6 +261,14 @@ def check(corpus: str, workers: int) -> int:
     return 0
 
 
+def _label_like(text: str) -> bool:
+    """A short category label: non-empty, not a number, at most six words, not a sentence."""
+    from quwarts.core.router.comparator import as_number
+
+    t = str(text).strip()
+    return bool(t) and as_number(t) is None and len(t.split()) <= 6 and len(t) <= 60 and not re.search(r"[.;:]\s", t)
+
+
 def _check_variants(corpus: str, workers: int, variants) -> dict[str, Any]:
     from quwarts.core.llm.openrouter import load_env_file, make_caller
     from quwarts.core.router.comparator import as_number, as_text, is_null
@@ -293,7 +304,7 @@ def _check_variants(corpus: str, workers: int, variants) -> dict[str, Any]:
                 q = f"{read.table}.{attr}"
                 use = wf["attributes"][q]
                 nums = _numeric_literals(train_q, read.table, attr)
-                labels = {l.lower() for l in use.literals}
+                labels = bool(use.literals)
                 ok = 0
                 for doc_vals in got.values():
                     v = doc_vals.get(attr)
@@ -304,8 +315,8 @@ def _check_variants(corpus: str, workers: int, variants) -> dict[str, Any]:
                         ok += n in (0.0, 1.0)
                     elif use.numeric:
                         ok += n is not None
-                    elif labels:
-                        ok += any(l == as_text(part).strip().lower() for part in as_text(v).split("||") for l in labels)
+                    elif labels:  # form of a category label, not membership in the workload's constants
+                        ok += all(_label_like(part) for part in as_text(v).split("||"))
                     else:
                         ok += 1
                 per_attr[q] = ok / max(1, len(got))
@@ -325,11 +336,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="gold-free consistency check on a document sample")
     parser.add_argument("--v3", action="store_true", help="derive v3 descriptions (SQL-constrained v2)")
     parser.add_argument("--choose", action="store_true", help="pre-declared per-attribute choice of description")
-    parser.add_argument("--split", choices=["random", "drift"], default="random")
+    parser.add_argument("--split", choices=["random", "drift", "drift_v0"], default="random")
+    parser.add_argument("--tag", default="", help="system version; results go to their own folder")
     parser.add_argument("--blank-base", action="store_true", help="start from NULLs, not the incumbent database")
     args = parser.parse_args(argv)
-    global SPLIT, BLANK_BASE
-    SPLIT, BLANK_BASE = args.split, args.blank_base
+    global SPLIT, BLANK_BASE, TAG
+    SPLIT, BLANK_BASE, TAG = args.split, args.blank_base, args.tag
     tag = "_blank" if BLANK_BASE else ""
     if args.describe:
         return describe(args.corpus)
