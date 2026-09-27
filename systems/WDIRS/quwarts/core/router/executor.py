@@ -124,7 +124,13 @@ def commit_value(value: Any, field: FieldSpec) -> Any:
     """Commit-time normalization shared with the other QuWARTS arms (compiler rule 9)."""
 
     if is_null(value):
-        return None
+        # A null answer takes the field's declared absence value (never-null fields only; e.g.
+        # "0 if none", a never-null count); a nullable field stays null.
+        from quwarts.core.router.context_probe import absence_value
+
+        value = absence_value(field)
+        if value is None:
+            return None
     if isinstance(value, list):
         value = " || ".join(as_text(v) for v in value if not is_null(v))
     value = complete(value, field)  # declared domain, then declared absence value

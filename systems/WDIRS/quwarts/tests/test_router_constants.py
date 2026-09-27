@@ -66,3 +66,15 @@ def test_canonicalize_surface_merges_spellings_by_majority():
     values = [v for (v,) in conn.execute("SELECT judge FROM t ORDER BY doc_id")]
     assert values[:3] == ["Tracey"] * 3 and values[3] == values[4] and values[5] is None
     assert changed["judge"] >= 2
+
+
+def test_null_answer_takes_the_declared_absence_value():
+    from quwarts.core.router.context_probe import FieldSpec
+    from quwarts.core.router.executor import commit_value
+
+    never_null_flag = FieldSpec("first_judge", "str", "whether it was the first judgment (1 if yes, 0 if none)", nullable=False)
+    never_null_count = FieldSpec("case_number", "int", "Number of distinct precedent cases referenced", nullable=False)
+    nullable = FieldSpec("judge_name", "str", "")
+    assert str(commit_value(None, never_null_flag)) == "0"  # same normalization as a model answer of 0
+    assert float(commit_value(None, never_null_count)) == 0.0
+    assert commit_value(None, nullable) is None
