@@ -53,7 +53,12 @@ def workload(corpus: str) -> tuple[list[dict], list[dict]]:
     from quwarts.experiments.player_case80 import split_80_20
     from quwarts.experiments.single_table_case80 import load_queries
 
-    rows = load_queries(DATASET[corpus])
+    if corpus in ("med", "cspaper", "player"):  # corpus-specific case80 loaders (same seed-42 split as DocETL's)
+        import importlib
+
+        rows = importlib.import_module(f"quwarts.experiments.{corpus}_case80").load_queries()
+    else:
+        rows = load_queries(DATASET[corpus])
     if SPLIT in ("drift", "drift_v0"):
         from quwarts.core.router.templates import drift_split
 
@@ -105,8 +110,23 @@ def build_db(spec, reads, values, fields, queries: dict[str, str], dest: Path, p
     from quwarts.core.signature_realize import live_predicates
 
     dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(spec.incumbent_db, dest)
-    conn = sqlite3.connect(dest)
+    if spec.incumbent_db is None:
+        # No incumbent database: the base is one row per document of each table, every attribute NULL
+        # (the same content a blank base has); referenced columns are added below.
+        if not BLANK_BASE:
+            raise SystemExit(f"{spec.name}: no incumbent database; use --blank-base")
+        from quwarts.core.router.corpus_features import list_documents
+
+        if dest.exists():
+            dest.unlink()
+        conn = sqlite3.connect(dest)
+        for table in spec.tables:
+            conn.execute(f'CREATE TABLE "{table.sql_name}" (doc_id TEXT)')
+            conn.executemany(f'INSERT INTO "{table.sql_name}" VALUES (?)', [(p.name,) for p in list_documents(table)])
+        conn.commit()
+    else:
+        shutil.copy2(spec.incumbent_db, dest)
+        conn = sqlite3.connect(dest)
     if BLANK_BASE:  # keep only the document rows: every attribute starts NULL
         for (name,) in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall():
             cols = [r[1] for r in conn.execute(f'PRAGMA table_info("{name}")')
