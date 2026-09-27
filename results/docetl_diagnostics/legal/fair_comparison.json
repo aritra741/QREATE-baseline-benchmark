@@ -2,8 +2,14 @@
   "queries": [
     "legal_agg20:q11",
     "legal_agg20:q13",
+    "legal_agg20:q14",
+    "legal_agg20:q17",
+    "legal_agg20:q3",
     "legal_agg20:q4",
+    "legal_filter20:q11",
+    "legal_filter20:q15",
     "legal_filter20:q7",
+    "legal_filter20:q8",
     "legal_filter20:q9",
     "legal_groupby20:q14",
     "legal_multiagg20:q11",
@@ -11,8 +17,12 @@
     "legal_multiagg20:q4",
     "legal_multiagg20:q9"
   ],
-  "n": 10,
-  "missing_from_16": "runs stopped when OpenRouter credits ran out (HTTP 402); see stats",
+  "n": 16,
+  "fair_documents_dropped": {
+    "legal_agg20:q17": 93,
+    "legal_filter20:q11": 80,
+    "legal_filter20:q9": 1
+  },
   "per_query": {
     "legal_agg20:q11": {
       "fair_raw": 0.25,
@@ -30,6 +40,30 @@
       "quwarts_per_attribute": 0.0,
       "fair_tokens": 3636160
     },
+    "legal_agg20:q14": {
+      "fair_raw": 0.0,
+      "fair_nullfix": 0.0,
+      "recorded": 0.0,
+      "recorded_nullfix": 0.0,
+      "quwarts_per_attribute": 0.0,
+      "fair_tokens": 3669731
+    },
+    "legal_agg20:q17": {
+      "fair_raw": 0.0,
+      "fair_nullfix": 0.0,
+      "recorded": 0.0,
+      "recorded_nullfix": 0.0,
+      "quwarts_per_attribute": 0.0,
+      "fair_tokens": 5221727
+    },
+    "legal_agg20:q3": {
+      "fair_raw": 0.4000000000000001,
+      "fair_nullfix": 0.4000000000000001,
+      "recorded": 0.20000000000000004,
+      "recorded_nullfix": 0.20000000000000004,
+      "quwarts_per_attribute": 1.0,
+      "fair_tokens": 3597209
+    },
     "legal_agg20:q4": {
       "fair_raw": 0.0,
       "fair_nullfix": 0.0,
@@ -38,6 +72,22 @@
       "quwarts_per_attribute": 0.0,
       "fair_tokens": 3608000
     },
+    "legal_filter20:q11": {
+      "fair_raw": 0.0,
+      "fair_nullfix": 0.0,
+      "recorded": 0.0,
+      "recorded_nullfix": 0.0,
+      "quwarts_per_attribute": 0.0,
+      "fair_tokens": 4885428
+    },
+    "legal_filter20:q15": {
+      "fair_raw": 0.0,
+      "fair_nullfix": 0.0,
+      "recorded": 0.0,
+      "recorded_nullfix": 0.0,
+      "quwarts_per_attribute": 0.0,
+      "fair_tokens": 3654391
+    },
     "legal_filter20:q7": {
       "fair_raw": 0.0,
       "fair_nullfix": 0.0,
@@ -45,6 +95,14 @@
       "recorded_nullfix": 0.0,
       "quwarts_per_attribute": 0.0,
       "fair_tokens": 3685585
+    },
+    "legal_filter20:q8": {
+      "fair_raw": 0.0,
+      "fair_nullfix": 0.0,
+      "recorded": 0.0,
+      "recorded_nullfix": 0.0,
+      "quwarts_per_attribute": 0.0,
+      "fair_tokens": 3637976
     },
     "legal_filter20:q9": {
       "fair_raw": 0.5,
@@ -95,53 +153,53 @@
       "fair_tokens": 3764332
     }
   },
-  "fair_docetl_tokens_mean_per_query": 3696318.9,
+  "fair_docetl_tokens_mean_per_query": 3851853.1875,
   "quwarts_vs_fair_nullfix": {
-    "mean_a": 0.1346882288991243,
-    "mean_b": 0.1600787284610814,
-    "mean_diff": -0.025390499561957103,
+    "mean_a": 0.1466801430619527,
+    "mean_b": 0.1250492052881759,
+    "mean_diff": 0.021630937773776802,
     "ci95": [
-      -0.13543179181387555,
-      0.048630370262248826
+      -0.07451354274570371,
+      0.12263132713796848
     ],
-    "wins": 2,
+    "wins": 3,
     "losses": 1,
-    "ties": 7
+    "ties": 12
   },
   "quwarts_vs_fair_raw": {
-    "mean_a": 0.1346882288991243,
-    "mean_b": 0.16381107998755057,
-    "mean_diff": -0.029122851088426265,
+    "mean_a": 0.1466801430619527,
+    "mean_b": 0.12738192499221912,
+    "mean_diff": 0.019298218069733575,
     "ci95": [
-      -0.1141641433403447,
-      0.033195130911577816
+      -0.06122126244974693,
+      0.11552530855187401
     ],
-    "wins": 2,
+    "wins": 3,
     "losses": 2,
-    "ties": 6
+    "ties": 11
   },
   "quwarts_vs_recorded": {
-    "mean_a": 0.1346882288991243,
-    "mean_b": 0.1776149240015711,
-    "mean_diff": -0.0429266951024468,
+    "mean_a": 0.1466801430619527,
+    "mean_b": 0.12350932750098195,
+    "mean_diff": 0.023170815560970746,
     "ci95": [
-      -0.2415894018229947,
-      0.1276000004242487
+      -0.11895418417387377,
+      0.17537747523147965
     ],
-    "wins": 2,
+    "wins": 3,
     "losses": 4,
-    "ties": 4
+    "ties": 9
   },
   "fair_nullfix_vs_recorded": {
-    "mean_a": 0.1600787284610814,
-    "mean_b": 0.1776149240015711,
-    "mean_diff": -0.0175361955404897,
+    "mean_a": 0.1250492052881759,
+    "mean_b": 0.12350932750098195,
+    "mean_diff": 0.0015398777871939422,
     "ci95": [
-      -0.21869791414642736,
-      0.1641160591718401
+      -0.1276177814080122,
+      0.121875
     ],
-    "wins": 2,
+    "wins": 3,
     "losses": 4,
-    "ties": 4
+    "ties": 9
   }
 }

@@ -78,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
     summary = {
         "queries": qids,
         "n": len(qids),
-        "missing_from_16": "runs stopped when OpenRouter credits ran out (HTTP 402); see stats",
+        "fair_documents_dropped": {q: len(stats[q]["failed"]) for q in qids if stats[q]["failed"]},
         "per_query": {q: {"fair_raw": fair_raw[q], "fair_nullfix": fair_null[q], "recorded": recorded[q],
                           "recorded_nullfix": recorded_null[q], "quwarts_per_attribute": quwarts[q],
                           "fair_tokens": tokens[q]} for q in qids},
