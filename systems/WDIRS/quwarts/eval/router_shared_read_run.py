@@ -37,19 +37,32 @@ from quwarts.eval.router_execute_v3 import DATASET, score
 
 SHARED = "__workload__"
 SEED = 42  # the case80 split seed: its held-out 20% are exactly the 16 DocETL evaluation queries
+# Set by main(). "random": the case80 split (DocETL's 16 held-out). "drift": core.router.templates
+# .drift_split, whose held-out queries all use a known column in a role, or with a constant, that no
+# input query uses. BLANK_BASE starts the database from NULLs instead of the incumbent database (the
+# incumbent was built from the random split's input queries, so it would leak into a drift test).
+SPLIT = "random"
+BLANK_BASE = False
 
 
 def workload(corpus: str) -> tuple[list[dict], list[dict]]:
     from quwarts.experiments.player_case80 import split_80_20
     from quwarts.experiments.single_table_case80 import load_queries
 
-    return split_80_20(load_queries(DATASET[corpus]), SEED)
+    rows = load_queries(DATASET[corpus])
+    if SPLIT == "drift":
+        from quwarts.core.router.templates import drift_split
+
+        train, test, _hidden = drift_split(rows, SEED)
+        return train, test
+    return split_80_20(rows, SEED)
 
 
 def out_dir(spec, variant: str) -> Path:
     if variant in ("described_v1", "described_v3"):
         variant = "described"  # description versions share one folder
-    return RESULTS / "quwarts_router_v3" / spec.name / ("shared_read" if variant == "plain" else f"shared_read_{variant}")
+    root = RESULTS / "quwarts_router_v3" / (spec.name if SPLIT == "random" else f"{spec.name}_{SPLIT}")
+    return root / ("shared_read" if variant == "plain" else f"shared_read_{variant}")
 
 
 def setup(corpus: str, variant: str = "plain"):
@@ -85,6 +98,12 @@ def build_db(spec, reads, values, fields, queries: dict[str, str], dest: Path, p
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(spec.incumbent_db, dest)
     conn = sqlite3.connect(dest)
+    if BLANK_BASE:  # keep only the document rows: every attribute starts NULL
+        for (name,) in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall():
+            cols = [r[1] for r in conn.execute(f'PRAGMA table_info("{name}")')
+                    if r[1] != "doc_id" and not r[1].startswith("__")]
+            if cols:
+                conn.execute(f'UPDATE "{name}" SET ' + ", ".join(f'"{c}" = NULL' for c in cols))
     audit = audit_workload([{"query_id": q, "sql": s} for q, s in queries.items()])
     predicates = live_predicates(enumerate_predicates(audit.occurrences, audit.signature_eligible))
     complete_physical_schema(conn, queries, predicates)
@@ -227,9 +246,10 @@ def check(corpus: str, workers: int) -> int:
     and any value otherwise. No gold is read.
     """
 
-    variants = ("plain", "described_v1", "described")
-    report = _check_variants(corpus, workers, variants)
     spec = get_corpus(corpus)
+    variants = tuple(v for v in ("plain", "described_v1", "described")
+                     if v != "described_v1" or (out_dir(spec, "described") / "v1" / "descriptions.json").exists())
+    report = _check_variants(corpus, workers, variants)
     report["decision"] = max(variants, key=lambda v: (report[v]["mean_consistency"], v == "plain"))
     (out_dir(spec, "described") / "check.json").write_text(json.dumps(report, indent=2))
     print(json.dumps({v: round(report[v]["mean_consistency"], 3) for v in variants}), "decision:", report["decision"])
@@ -305,7 +325,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="gold-free consistency check on a document sample")
     parser.add_argument("--v3", action="store_true", help="derive v3 descriptions (SQL-constrained v2)")
     parser.add_argument("--choose", action="store_true", help="pre-declared per-attribute choice of description")
+    parser.add_argument("--split", choices=["random", "drift"], default="random")
+    parser.add_argument("--blank-base", action="store_true", help="start from NULLs, not the incumbent database")
     args = parser.parse_args(argv)
+    global SPLIT, BLANK_BASE
+    SPLIT, BLANK_BASE = args.split, args.blank_base
+    tag = "_blank" if BLANK_BASE else ""
     if args.describe:
         return describe(args.corpus)
     if args.check:
@@ -336,11 +361,11 @@ def main(argv: list[str] | None = None) -> int:
         report: dict[str, Any] = {"read_tokens": tokens, "calls": len(journal.read_text().splitlines())}
         dbs = {}
         for policy in ("read_first", "fill"):
-            db = out / f"{policy}.db"
+            db = out / f"{policy}{tag}.db"
             report[f"{policy}_db"] = build_db(spec, reads, values, fields, all_q, db, "replace" if policy == "read_first" else "fill")
             report[f"{policy}_sha256"] = hashlib.sha256(db.read_bytes()).hexdigest()
             dbs[policy] = db
-        (out / "frozen.json").write_text(json.dumps(report, indent=2))
+        (out / f"frozen{tag}.json").write_text(json.dumps(report, indent=2))
         # Gold is read only below, after both databases are written and hashed.
         for policy, db in dbs.items():
             result = score(DATASET[spec.name], all_q, {q: str(db) for q in all_q}, db)
@@ -350,7 +375,7 @@ def main(argv: list[str] | None = None) -> int:
                 "held_out_split": subset(result["per_query"], {r["query_id"] for r in test}),
                 "per_query": result["per_query"],
             }
-        (out / "score.json").write_text(json.dumps(report, indent=2))
+        (out / f"score{tag}.json").write_text(json.dumps(report, indent=2))
         print(json.dumps({p: {k: v for k, v in report[p].items() if k != "per_query"} for p in dbs}, indent=2))
         print(json.dumps({"read_tokens": tokens}))
     return 0
