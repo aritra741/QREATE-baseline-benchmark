@@ -28,8 +28,7 @@ from quwarts.core.signature_realize import live_predicates
 from quwarts.eval.router_execute_v3 import DATASET, score
 
 
-def build_query_db(table: str, records: list[dict[str, Any]], numeric: set[str], sql: str, qid: str,
-                   dest: Path, predicates, null_sentinels: bool) -> Path:
+def _frame(records: list[dict[str, Any]], numeric: set[str], null_sentinels: bool) -> pd.DataFrame:
     frame = pd.DataFrame([{k: v for k, v in r.items() if k != "text"} for r in records])
     for col in frame.columns:
         if col in numeric:
@@ -39,11 +38,19 @@ def build_query_db(table: str, records: list[dict[str, Any]], numeric: set[str],
                 frame.loc[frame[col] == -1, col] = None
         elif null_sentinels:
             frame[col] = frame[col].where(~frame[col].astype(str).str.strip().isin(["", "None", "nan"]), None)
+    return frame
+
+
+def build_query_db(tables: dict[str, list[dict[str, Any]]], numeric_by_table: dict[str, set[str]], sql: str,
+                   qid: str, dest: Path, predicates, null_sentinels: bool) -> Path:
+    """One SQLite database per query holding every table the query reads (one DocETL map each), so
+    join queries run over the per-table extractions exactly as the recorded runner executed them."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists():
         dest.unlink()
     conn = sqlite3.connect(dest)
-    frame.to_sql(table, conn, if_exists="replace", index=False)
+    for table, records in tables.items():
+        _frame(records, numeric_by_table.get(table, set()), null_sentinels).to_sql(table, conn, if_exists="replace", index=False)
     complete_physical_schema(conn, {qid: sql}, predicates)
     conn.commit()
     conn.execute(official_sql(sql, dest, predicates, query_id=qid)).fetchall()
@@ -57,10 +64,7 @@ def rescore(corpus: str, tables_by_query: dict[str, dict[str, list[dict]]], nume
     predicates = live_predicates(enumerate_predicates(audit.occurrences, audit.signature_eligible))
     dbs = {}
     for qid, tables in tables_by_query.items():
-        if len(tables) != 1:
-            raise NotImplementedError("multi-table queries: one database with several tables")
-        (table, records), = tables.items()
-        dbs[qid] = str(build_query_db(table, records, numeric_by_table.get(table, set()), queries[qid], qid,
+        dbs[qid] = str(build_query_db(tables, numeric_by_table, queries[qid], qid,
                                       out / f"{qid.replace(':', '_')}.db", predicates, null_sentinels))
     base = Path(next(iter(dbs.values())))
     return score(DATASET[corpus], queries, dbs, base)

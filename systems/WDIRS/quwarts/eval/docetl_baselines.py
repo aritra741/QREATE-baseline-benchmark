@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:  # noqa: BLE001
             same_split = f"workload unavailable: {exc}"
 
-        single = {q: t for q, t in tables.items() if len(t) == 1}
+        single = tables  # every query, single- or multi-table (one database per query with all its tables)
         rescored = {}
         if single:
             types = spec.benchmark_attribute_descriptions(purpose="scoring")
@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
 
         report["corpora"][name] = {
             "queries": len(manifest),
-            "multi_table_queries": len(tables) - len(single),
+            "multi_table_queries": sum(len(t) > 1 for t in tables.values()),
             "recorded_product": ev["mean_query_score"]["0.2"],
             "rescored_single_table_product": rescored,
             "tokens_summary_json": summary.get("total_tokens"),
