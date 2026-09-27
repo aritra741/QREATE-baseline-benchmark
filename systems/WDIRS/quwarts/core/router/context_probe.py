@@ -166,6 +166,25 @@ def field_specs(spec: CorpusSpec, needs: list[Need], sql_numeric: set[str]) -> d
     return out
 
 
+def protocol_field_specs(spec: CorpusSpec, needs: list[Need]) -> dict[str, FieldSpec]:
+    """Fields under the benchmark's published protocol: each needed column's description, value
+    type, nullability and declared allowed values come from the benchmark attribute file, as for
+    every system the benchmark evaluates. Which columns are read, and how the workload uses them
+    (the usage phrase added by the caller), still comes from the SQL workload."""
+
+    attrs = spec.benchmark_attribute_descriptions(purpose="protocol")
+    out: dict[str, FieldSpec] = {}
+    for need in needs:
+        record = attrs.get(spec.table(need.table).attributes_key, {}).get(need.attribute, {})
+        description = str(record.get("description") or "")
+        raw_type = str(record.get("value_type") or "str")
+        value_type = raw_type if raw_type in ("int", "float") or raw_type.startswith("multi") else "str"
+        choices, multi = declared_choices(description)
+        out[need.qualified] = FieldSpec(need.attribute, value_type, description,
+                                        bool(record.get("is_nullable", True)), choices, multi)
+    return out
+
+
 def render_prompt(document: str, fields: list[FieldSpec], sql: str | None) -> str:
     head = "Extract the following fields about the single entity described in the document.\n"
     if sql:

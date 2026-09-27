@@ -67,9 +67,15 @@ class CorpusSpec:
         )
 
     def benchmark_attribute_descriptions(self, *, purpose: str) -> dict[str, dict[str, dict]]:
-        """``{attributes_key: {attribute: record}}``, for scoring and audits only, never for reads."""
+        """``{attributes_key: {attribute: record}}``.
 
-        if purpose not in {"scoring", "audit"}:
+        Purposes: "scoring" and "audit" (gold-side code), and "protocol": the benchmark's published
+        system input. UDA-Bench / Bench-U gives every evaluated system the attribute descriptions
+        (appendix A.5: PZ, LOTUS, QUEST and UQE prompts include them), so the protocol variant of
+        QuWARTS and the fair baselines receive them. The SQL-only variants never call this.
+        """
+
+        if purpose not in {"scoring", "audit", "protocol"}:
             raise PermissionError(f"attribute descriptions requested for {purpose!r}")
         merged: dict[str, dict[str, dict]] = {}
         for path in self.attributes_json:

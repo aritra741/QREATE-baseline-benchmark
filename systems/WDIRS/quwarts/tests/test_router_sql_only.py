@@ -49,3 +49,14 @@ def test_descriptions_are_not_a_system_input():
     with pytest.raises(PermissionError):
         spec.benchmark_attribute_descriptions(purpose="reads")
     assert spec.benchmark_attribute_descriptions(purpose="scoring")
+    assert spec.benchmark_attribute_descriptions(purpose="protocol")  # the benchmark's published input
+
+
+def test_protocol_fields_carry_the_benchmark_schema():
+    from quwarts.core.router.context_probe import protocol_field_specs
+
+    spec = REGISTRY["legal"]
+    queries = spec.queries()
+    fields = protocol_field_specs(spec, workload_needs(spec, queries))
+    assert all(f.description for f in fields.values())
+    assert any(f.choices for f in fields.values())  # declared "choose from [...]" label sets

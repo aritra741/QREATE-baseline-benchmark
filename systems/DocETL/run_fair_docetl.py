@@ -167,7 +167,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--corpus", required=True)
     parser.add_argument("--held-out", action="store_true", help="only the 16 held-out queries DocETL was scored on")
-    parser.add_argument("--descriptions", type=Path, required=True)
+    parser.add_argument("--descriptions", type=Path, help="{table.column: {description}} JSON (e.g. generated)")
+    parser.add_argument("--protocol", action="store_true",
+                        help="the benchmark's published input: attribute descriptions and value types")
+    parser.add_argument("--tag", default="", help="results go to results/docetl_fair_<corpus>_<tag>")
     parser.add_argument("--threads", type=int, default=32)
     parser.add_argument("--max-queries", type=int, default=1)
     args = parser.parse_args()
@@ -181,14 +184,24 @@ def main() -> int:
     from quwarts.core.router.workload_features import workload_features
     from quwarts.eval.router_shared_read_run import workload
 
-    train, _test = workload(corpus)
-    wf = workload_features(get_corpus(corpus), {r["query_id"]: r["sql"] for r in train})
-    numeric_sql = {u.name for u in wf["attributes"].values() if u.numeric}
-    (ROOT / "results" / f"docetl_fair_{corpus}").mkdir(parents=True, exist_ok=True)
-    (ROOT / "results" / f"docetl_fair_{corpus}" / "numeric_fields.json").write_text(json.dumps(sorted(numeric_sql)))
+    spec = get_corpus(corpus)
+    root = ROOT / "results" / (f"docetl_fair_{corpus}" + (f"_{args.tag}" if args.tag else ""))
+    root.mkdir(parents=True, exist_ok=True)
+    if args.protocol:
+        # As UDA-Bench runs every system: descriptions and value types from the attribute files.
+        attrs = spec.benchmark_attribute_descriptions(purpose="protocol")
+        descriptions_all = {f"{t.sql_name}.{a}": {"description": r.get("description")}
+                            for t in spec.tables for a, r in attrs.get(t.attributes_key, {}).items()}
+        numeric_sql = {a for t in spec.tables for a, r in attrs.get(t.attributes_key, {}).items()
+                       if str(r.get("value_type")) in ("int", "float")}
+    else:
+        train, _test = workload(corpus)
+        wf = workload_features(spec, {r["query_id"]: r["sql"] for r in train})
+        numeric_sql = {u.name for u in wf["attributes"].values() if u.numeric}
+        descriptions_all = json.loads(args.descriptions.read_text()) if args.descriptions else {}
+    (root / "numeric_fields.json").write_text(json.dumps(sorted(numeric_sql)))
+    (root / "descriptions.json").write_text(json.dumps(descriptions_all, indent=2))
     manifest = json.loads((ROOT / "results" / f"docetl_{corpus}_case80" / "query_manifest.json").read_text())
-    descriptions_all = json.loads(args.descriptions.read_text())
-    root = ROOT / "results" / f"docetl_fair_{corpus}"
     done = 0
     t0 = time.time()
     for q in manifest:

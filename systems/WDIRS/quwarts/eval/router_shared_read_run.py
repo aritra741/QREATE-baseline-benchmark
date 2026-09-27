@@ -77,7 +77,12 @@ def setup(corpus: str, variant: str = "plain"):
     needs = [n for r in train for n in query_needs(r["query_id"], r["sql"], table_attrs)]
     wf = workload_features(spec, train_q)
     numeric = {q for q, u in wf["attributes"].items() if u.numeric}
-    fields = field_specs(spec, needs, numeric)
+    if variant == "protocol":  # the benchmark's published input: attribute descriptions (see registry)
+        from quwarts.core.router.context_probe import protocol_field_specs
+
+        fields = protocol_field_specs(spec, needs)
+    else:
+        fields = field_specs(spec, needs, numeric)
     fields = {q: replace(f, usage=usage_phrase(wf["attributes"][q])) if q in wf["attributes"] else f
               for q, f in fields.items()}
     if variant in ("described", "described_v1", "described_v3", "per_attribute"):
@@ -339,7 +344,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reads", action="store_true")
     parser.add_argument("--score", action="store_true")
     parser.add_argument("--workers", type=int, default=32)
-    parser.add_argument("--variant", choices=["plain", "described", "described_v3", "per_attribute"], default="plain")
+    parser.add_argument("--variant", choices=["plain", "described", "described_v3", "per_attribute", "protocol"],
+                        default="plain")
     parser.add_argument("--describe", action="store_true", help="generate and freeze workload descriptions")
     parser.add_argument("--check", action="store_true", help="gold-free consistency check on a document sample")
     parser.add_argument("--v3", action="store_true", help="derive v3 descriptions (SQL-constrained v2)")
