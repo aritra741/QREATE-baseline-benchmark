@@ -210,10 +210,14 @@ def main() -> int:
     parser.add_argument("--protocol", action="store_true",
                         help="the benchmark's published input: attribute descriptions and value types")
     parser.add_argument("--tag", default="", help="results go to results/docetl_fair_<corpus>_<tag>")
+    parser.add_argument("--batch", type=int, default=None, help="documents per resumable batch (layout only)")
     parser.add_argument("--threads", type=int, default=32)
     parser.add_argument("--max-queries", type=int, default=1)
     args = parser.parse_args()
     corpus = args.corpus
+    if args.batch:
+        global BATCH
+        BATCH = args.batch
     runner.DOCETL_MODEL = "openrouter/qwen/qwen-2.5-7b-instruct"
     runner.OLLAMA_BASE_URL = None
     runner.configure_dataset(DATASET[corpus])
