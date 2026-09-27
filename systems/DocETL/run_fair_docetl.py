@@ -84,16 +84,27 @@ def prompt_template(table: str, fields: list[str], numeric: set[str], sql: str, 
     )
 
 
-def fit(text: str, template: str) -> str:
-    budget = CONTEXT - count_tokens(template) - ANSWER_ROOM - MARGIN
-    if count_tokens(text) <= budget:
+# The endpoint checks the context with its own token estimate, which runs up to ~35% above Qwen's
+# exact count on number-heavy filings. A document it rejects (or loses to a transport error) is
+# retried with a smaller cut; each document's final cut is recorded.
+RETRY_SCALES = (1.0, 0.8, 0.64)  # 1.0 first: a transport or rate-limit failure is retried at the same cut
+
+
+def fit(text: str, template: str, context: int = CONTEXT) -> str:
+    budget = context - count_tokens(template) - ANSWER_ROOM - MARGIN
+    # Only the first `budget` tokens matter: tokenize a prefix, which gives the same cut point as
+    # tokenizing the whole document whenever the prefix holds comfortably more than `budget` tokens.
+    prefix = text[: 16 * budget]
+    _ids, offsets = encode_offsets(prefix)
+    if len(offsets) <= budget + 50 and len(prefix) < len(text):
+        _ids, offsets = encode_offsets(text)
+    if len(offsets) <= budget:
         return text
-    _ids, offsets = encode_offsets(text)
     return text[: offsets[budget - 1][1]]
 
 
-BATCH = 95  # documents per resumable batch
-DEADLINE = 120.0  # seconds after which no new batch starts in this process
+BATCH = 34  # documents per resumable batch (each device call is capped at ~3 minutes)
+DEADLINE = 110.0  # seconds after which no new batch starts in this process
 
 
 def run_batch(template: str, schema: dict[str, str], data: list[dict[str, Any]], out: Path, threads: int) -> list[dict]:
@@ -130,7 +141,11 @@ def run_query(qid: str, sql: str, table: str, fields: list[str], numeric: set[st
     stats.json are written only when every batch is done. Returns None while batches remain.
     """
     template = prompt_template(table, fields, numeric, sql, descriptions)
-    data = [{"doc_id": r["doc_id"], "text": fit(r["text"], template)} for r in records]
+    # The largest context the endpoint accepted for each document in an earlier query is reused, so
+    # every query gives a document the same cut and rejected attempts are not repeated.
+    cache_path = out.parent.parent / "accepted_context.json"
+    accepted = json.loads(cache_path.read_text()) if cache_path.exists() else {}
+    data = [{"doc_id": r["doc_id"], "text": fit(r["text"], template, accepted.get(r["doc_id"], CONTEXT))} for r in records]
     schema = {c: ("number" if c in numeric else "str") for c in fields}
     batches = out / "batches"
     batches.mkdir(parents=True, exist_ok=True)
@@ -143,10 +158,33 @@ def run_query(qid: str, sql: str, table: str, fields: list[str], numeric: set[st
             return None
         before, started = dict(TOKENS), time.time()
         rows = run_batch(template, schema, chunk, batches / f"{i:03d}", threads)
+        cut = {d["doc_id"]: accepted.get(d["doc_id"], CONTEXT) for d in chunk}
+        by_id = {r["doc_id"]: r for r in records}
+        for j, scale in enumerate(RETRY_SCALES):
+            missing = [d["doc_id"] for d in chunk if d["doc_id"] not in {r.get("doc_id") for r in rows}]
+            if not missing:
+                break
+            context = min(int(CONTEXT * scale), min(cut[m] for m in missing)) if scale == 1.0 else int(CONTEXT * scale)
+            if scale == 1.0:  # same cut as the first attempt, per document
+                retry = [{"doc_id": m, "text": fit(by_id[m]["text"], template, cut[m])} for m in missing]
+                rows += run_batch(template, schema, retry, batches / f"{i:03d}_retry{j}", threads)
+                continue
+            missing = [m for m in missing if cut[m] > context]  # a document is never retried at a larger cut
+            if not missing:
+                break
+            retry = [{"doc_id": m, "text": fit(by_id[m]["text"], template, context)} for m in missing]
+            rows += run_batch(template, schema, retry, batches / f"{i:03d}_retry{j}", threads)
+            cut.update({m: context for m in missing})
         done_path.write_text(json.dumps({
             "rows": rows, "prompt_tokens": TOKENS["prompt"] - before["prompt"],
             "completion_tokens": TOKENS["completion"] - before["completion"],
-            "calls": TOKENS["calls"] - before["calls"], "seconds": round(time.time() - started, 1)}))
+            "calls": TOKENS["calls"] - before["calls"], "seconds": round(time.time() - started, 1),
+            "context_per_doc": {d: c for d, c in cut.items() if d in {r.get("doc_id") for r in rows}}}))
+        produced = {r.get("doc_id") for r in rows}
+        for d, c in cut.items():  # keep the largest cut the endpoint accepted; never shrink it
+            if d in produced:
+                accepted[d] = max(accepted.get(d, 0), c)
+        cache_path.write_text(json.dumps(accepted, indent=1, sort_keys=True))
         print(json.dumps({"query_id": qid, "batch": i, "of": len(chunks), "rows": len(rows),
                           "calls": TOKENS["calls"] - before["calls"]}), flush=True)
     parts = [json.loads((batches / f"{i:03d}.json").read_text()) for i in range(len(chunks))]
@@ -158,7 +196,8 @@ def run_query(qid: str, sql: str, table: str, fields: list[str], numeric: set[st
              "prompt_tokens": sum(p["prompt_tokens"] for p in parts),
              "completion_tokens": sum(p["completion_tokens"] for p in parts),
              "calls": sum(p["calls"] for p in parts), "seconds": round(sum(p["seconds"] for p in parts), 1),
-             "batches": len(chunks)}
+             "batches": len(chunks),
+             "docs_at_reduced_context": sum(1 for p in parts for c in p.get("context_per_doc", {}).values() if c < CONTEXT)}
     (out / "stats.json").write_text(json.dumps(stats, indent=2))
     return stats
 
@@ -192,8 +231,14 @@ def main() -> int:
         attrs = spec.benchmark_attribute_descriptions(purpose="protocol")
         descriptions_all = {f"{t.sql_name}.{a}": {"description": r.get("description")}
                             for t in spec.tables for a, r in attrs.get(t.attributes_key, {}).items()}
+        from quwarts.core.router.context_probe import declared_choices
+
+        def labels(r):  # a declared label set outranks the value type (Finan's Yes/No major_equity_changes is typed int)
+            choices, _ = declared_choices(str(r.get("description") or ""))
+            return choices and not all(c.replace(".", "", 1).lstrip("-").isdigit() for c in choices)
+
         numeric_sql = {a for t in spec.tables for a, r in attrs.get(t.attributes_key, {}).items()
-                       if str(r.get("value_type")) in ("int", "float")}
+                       if str(r.get("value_type")) in ("int", "float") and not labels(r)}
     else:
         train, _test = workload(corpus)
         wf = workload_features(spec, {r["query_id"]: r["sql"] for r in train})

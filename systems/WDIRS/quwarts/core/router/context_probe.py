@@ -180,6 +180,8 @@ def protocol_field_specs(spec: CorpusSpec, needs: list[Need]) -> dict[str, Field
         raw_type = str(record.get("value_type") or "str")
         value_type = raw_type if raw_type in ("int", "float") or raw_type.startswith("multi") else "str"
         choices, multi = declared_choices(description)
+        if choices and not all(c.replace(".", "", 1).lstrip("-").isdigit() for c in choices):
+            value_type = "str"  # a declared label set outranks the value type (e.g. Yes/No typed int)
         out[need.qualified] = FieldSpec(need.attribute, value_type, description,
                                         bool(record.get("is_nullable", True)), choices, multi)
     return out
