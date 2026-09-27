@@ -1,0 +1,4548 @@
+{
+  "audit_only": true,
+  "design": {
+    "sample": [
+      "1.txt",
+      "10.txt",
+      "101.txt",
+      "104.txt",
+      "109.txt",
+      "132.txt",
+      "143.txt",
+      "17.txt",
+      "172.txt",
+      "174.txt",
+      "175.txt",
+      "178.txt",
+      "184.txt",
+      "191.txt",
+      "193.txt",
+      "2.txt",
+      "201.txt",
+      "213.txt",
+      "214.txt",
+      "220.txt",
+      "226.txt",
+      "234.txt",
+      "239.txt",
+      "24.txt",
+      "244.txt",
+      "247.txt",
+      "249.txt",
+      "258.txt",
+      "26.txt",
+      "267.txt",
+      "273.txt",
+      "275.txt",
+      "277.txt",
+      "283.txt",
+      "287.txt",
+      "288.txt",
+      "290.txt",
+      "296.txt",
+      "298.txt",
+      "30.txt",
+      "303.txt",
+      "33.txt",
+      "332.txt",
+      "335.txt",
+      "344.txt",
+      "353.txt",
+      "357.txt",
+      "361.txt",
+      "365.txt",
+      "371.txt",
+      "379.txt",
+      "385.txt",
+      "389.txt",
+      "397.txt",
+      "401.txt",
+      "408.txt",
+      "412.txt",
+      "416.txt",
+      "418.txt",
+      "433.txt",
+      "436.txt",
+      "440.txt",
+      "441.txt",
+      "454.txt",
+      "456.txt",
+      "465.txt",
+      "47.txt",
+      "472.txt",
+      "474.txt",
+      "475.txt",
+      "488.txt",
+      "49.txt",
+      "490.txt",
+      "492.txt",
+      "493.txt",
+      "494.txt",
+      "498.txt",
+      "50.txt",
+      "51.txt",
+      "519.txt",
+      "52.txt",
+      "523.txt",
+      "524.txt",
+      "538.txt",
+      "539.txt",
+      "541.txt",
+      "547.txt",
+      "562.txt",
+      "563.txt",
+      "568.txt",
+      "60.txt",
+      "65.txt",
+      "69.txt",
+      "81.txt",
+      "82.txt",
+      "9.txt",
+      "93.txt",
+      "94.txt",
+      "95.txt",
+      "97.txt"
+    ],
+    "define_docs": [
+      "150.txt",
+      "181.txt",
+      "195.txt",
+      "228.txt",
+      "237.txt",
+      "271.txt",
+      "292.txt",
+      "304.txt",
+      "314.txt",
+      "317.txt",
+      "323.txt",
+      "362.txt",
+      "368.txt",
+      "373.txt",
+      "413.txt",
+      "44.txt",
+      "457.txt",
+      "509.txt",
+      "7.txt",
+      "99.txt"
+    ],
+    "repeat_docs": [
+      "1.txt",
+      "10.txt",
+      "101.txt",
+      "104.txt",
+      "109.txt",
+      "132.txt",
+      "143.txt",
+      "17.txt",
+      "172.txt",
+      "174.txt",
+      "175.txt",
+      "178.txt",
+      "184.txt",
+      "191.txt",
+      "193.txt",
+      "2.txt",
+      "201.txt",
+      "213.txt",
+      "214.txt",
+      "220.txt",
+      "226.txt",
+      "234.txt",
+      "239.txt",
+      "24.txt",
+      "244.txt",
+      "247.txt",
+      "249.txt",
+      "258.txt",
+      "26.txt",
+      "267.txt"
+    ],
+    "count_columns": [
+      "case_number",
+      "legal_basis_num"
+    ],
+    "focus_columns": [
+      "first_judge",
+      "defendant_current_status"
+    ],
+    "meanings": {
+      "case_number": "The case_number column represents the number of precedents cited in a legal case.",
+      "legal_basis_num": "The number of statutory bases or references used in a legal case document.",
+      "first_judge": "The value represents whether a judge was assigned to the case, with 1 indicating that a judge was assigned.",
+      "defendant_current_status": "defendant current status"
+    },
+    "proxy_db": "quwarts_router_v3/legal_agnostic/shared_read_per_attribute/read_first_blank.db"
+  },
+  "oracle_tokens": 3705815,
+  "q1_per_document": {
+    "case_number": {
+      "type": "int",
+      "proxy_acc": 0.12,
+      "oracle_acc": 0.12,
+      "oracle_self_agreement": 0.9333333333333333,
+      "proxy_oracle_agreement": 0.77,
+      "proxy_mean_ratio": 5.542568542568542,
+      "proxy_within20": 0.12,
+      "oracle_mean_ratio": 0.05627705627705628,
+      "oracle_within20": 0.13
+    },
+    "legal_basis_num": {
+      "type": "int",
+      "proxy_acc": 0.33,
+      "oracle_acc": 0.12,
+      "oracle_self_agreement": 0.6333333333333333,
+      "proxy_oracle_agreement": 0.24,
+      "proxy_mean_ratio": 2.630252100840336,
+      "proxy_within20": 0.33,
+      "oracle_mean_ratio": 1.327731092436975,
+      "oracle_within20": 0.12
+    },
+    "first_judge": {
+      "type": "str",
+      "proxy_acc": 0.39,
+      "oracle_acc": 0.49,
+      "oracle_self_agreement": 0.9,
+      "proxy_oracle_agreement": 0.22,
+      "evidence_verbatim_rate": 0.28
+    },
+    "defendant_current_status": {
+      "type": "str",
+      "proxy_acc": 0.49,
+      "oracle_acc": 0.11,
+      "oracle_self_agreement": 0.9666666666666667,
+      "proxy_oracle_agreement": 0.3,
+      "evidence_verbatim_rate": 0.01
+    }
+  },
+  "q2_queries": {
+    "corrected_all": {
+      "n": 57,
+      "proxy": 0.2204714327300098,
+      "null_oracle": 0.21645096489375248,
+      "corrected": 0.16703058908929383,
+      "diff": -0.053440843640715906,
+      "ci95": [
+        -0.11313901079683991,
+        -0.0002842125494875627
+      ],
+      "better": 10,
+      "worse": 13
+    },
+    "corrected_input": {
+      "n": 44,
+      "proxy": 0.25991931616531055,
+      "null_oracle": 0.25471098283197724,
+      "corrected": 0.19428305580622338,
+      "diff": -0.0656362603590871,
+      "ci95": [
+        -0.14090445356011275,
+        0.0027047553604436867
+      ],
+      "better": 10,
+      "worse": 12
+    },
+    "corrected_held_out": {
+      "n": 13,
+      "proxy": 0.08695551956437647,
+      "null_oracle": 0.08695551956437647,
+      "corrected": 0.07479147097045537,
+      "diff": -0.012164048593921091,
+      "ci95": [
+        -0.036492145781763276,
+        0.0
+      ],
+      "better": 0,
+      "worse": 1
+    },
+    "all_80": {
+      "n": 80,
+      "proxy": 0.3160100516500959,
+      "null_oracle": 0.31314546831676254,
+      "corrected": 0.27793345055608587,
+      "diff": -0.03807660109401008,
+      "ci95": [
+        -0.08091548227952192,
+        0.0003506281086099371
+      ],
+      "better": 10,
+      "worse": 13
+    }
+  },
+  "not_corrected": {
+    "legal_agg20:q0": "no oracle column",
+    "legal_agg20:q1": "no oracle column",
+    "legal_agg20:q11": "no oracle column",
+    "legal_agg20:q12": "no oracle column",
+    "legal_agg20:q2": "no oracle column",
+    "legal_agg20:q3": "no oracle column",
+    "legal_agg20:q5": "no oracle column",
+    "legal_agg20:q6": "no oracle column",
+    "legal_filter20:q0": "no oracle column",
+    "legal_filter20:q10": "no oracle column",
+    "legal_filter20:q2": "no oracle column",
+    "legal_filter20:q4": "no oracle column",
+    "legal_filter20:q9": "no oracle column",
+    "legal_groupby20:q0": "no oracle column",
+    "legal_groupby20:q10": "no oracle column",
+    "legal_groupby20:q13": "no oracle column",
+    "legal_groupby20:q15": "no oracle column",
+    "legal_groupby20:q16": "no oracle column",
+    "legal_groupby20:q18": "no oracle column",
+    "legal_groupby20:q19": "no oracle column",
+    "legal_groupby20:q2": "no oracle column",
+    "legal_groupby20:q3": "no oracle column",
+    "legal_groupby20:q8": "no oracle column"
+  },
+  "ci_coverage": {
+    "cells": 427,
+    "covered": 0.3395784543325527,
+    "median_relative_half_width": 0.2883474873850931
+  },
+  "coverage_cells": [
+    {
+      "query_id": "legal_agg20:q10",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 12.163057324840764,
+      "gold": 1.8546511627906976,
+      "lo": 11.295278017026575,
+      "hi": 13.030836632654953
+    },
+    {
+      "query_id": "legal_agg20:q10",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 3.3000000000000003,
+      "gold": 2.337748344370861,
+      "lo": 0.4950932053725343,
+      "hi": 6.104906794627466
+    },
+    {
+      "query_id": "legal_agg20:q10",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 5.160330578512396,
+      "gold": 2.448529411764706,
+      "lo": 0.4887218526427972,
+      "hi": 9.831939304381995
+    },
+    {
+      "query_id": "legal_agg20:q10",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -4.323913043478262,
+      "gold": 2.5596330275229358,
+      "lo": -12.99705392009054,
+      "hi": 4.349227833134016
+    },
+    {
+      "query_id": "legal_agg20:q14",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.307501241927471,
+      "gold": 2.1254125412541254,
+      "lo": 0.7012965194150977,
+      "hi": 3.9137059644398446
+    },
+    {
+      "query_id": "legal_agg20:q14",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 14.495008319467553,
+      "gold": 2.4082397003745317,
+      "lo": 3.4637331952257693,
+      "hi": 25.52628344370934
+    },
+    {
+      "query_id": "legal_agg20:q15",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 25.16764705882353,
+      "gold": 8.421686746987952,
+      "lo": 24.869276797812752,
+      "hi": 25.466017319834307
+    },
+    {
+      "query_id": "legal_agg20:q15",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 4.615384615384615,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_agg20:q15",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 6.253968253968254,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_agg20:q15",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 45.65909090909091,
+      "gold": 6.104166666666667,
+      "lo": 45.65909090909091,
+      "hi": 45.65909090909091
+    },
+    {
+      "query_id": "legal_agg20:q15",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 35.306666666666665,
+      "gold": 5.867469879518072,
+      "lo": 34.436209272227735,
+      "hi": 36.177124061105594
+    },
+    {
+      "query_id": "legal_agg20:q16",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 127,
+      "gold": 96.0,
+      "lo": 75.01195000190953,
+      "hi": 178.98804999809047
+    },
+    {
+      "query_id": "legal_agg20:q16",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 177,
+      "gold": 43.0,
+      "lo": 131.8352458296218,
+      "hi": 222.36475417037818
+    },
+    {
+      "query_id": "legal_agg20:q16",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 41,
+      "gold": 204.0,
+      "lo": -9.927875145367906,
+      "hi": 91.1278751453679
+    },
+    {
+      "query_id": "legal_agg20:q16",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 225,
+      "gold": 227.0,
+      "lo": 162.6234186855301,
+      "hi": 287.9765813144699
+    },
+    {
+      "query_id": "legal_agg20:q17",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 22.443609022556394,
+      "gold": 2.2790697674418605,
+      "lo": 4.987320732589623,
+      "hi": 39.899897312523166
+    },
+    {
+      "query_id": "legal_agg20:q17",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 36.54655870445345,
+      "gold": 1.847457627118644,
+      "lo": -41.82772216260111,
+      "hi": 114.92083957150803
+    },
+    {
+      "query_id": "legal_agg20:q17",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -28.460317460317462,
+      "gold": 3.25,
+      "lo": -177.3259606388734,
+      "hi": 120.40532571823846
+    },
+    {
+      "query_id": "legal_agg20:q18",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 121.05263157894737,
+      "gold": 5.222222222222222,
+      "lo": 121.05263157894737,
+      "hi": 121.05263157894737
+    },
+    {
+      "query_id": "legal_agg20:q18",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -15.515581854043395,
+      "gold": 7.603603603603603,
+      "lo": -60.38334422571652,
+      "hi": 29.352180517629726
+    },
+    {
+      "query_id": "legal_agg20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 403,
+      "gold": 303.0,
+      "lo": 350.85245113739586,
+      "hi": 454.3475488626042
+    },
+    {
+      "query_id": "legal_agg20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 128,
+      "gold": 267.0,
+      "lo": 79.04871054116693,
+      "hi": 177.35128945883304
+    },
+    {
+      "query_id": "legal_agg20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 41,
+      "gold": 129.0,
+      "lo": 3.7031741273229812,
+      "hi": 78.096825872677
+    },
+    {
+      "query_id": "legal_agg20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 29,
+      "gold": 295.0,
+      "lo": -28.786003621409996,
+      "hi": 86.18600362140998
+    },
+    {
+      "query_id": "legal_agg20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 8,
+      "gold": 40.0,
+      "lo": -9.330005513313267,
+      "hi": 25.93000551331327
+    },
+    {
+      "query_id": "legal_agg20:q8",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 6.49463601532567,
+      "gold": 1.994186046511628,
+      "lo": 4.087550618693408,
+      "hi": 8.901721411957933
+    },
+    {
+      "query_id": "legal_agg20:q8",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 3.714930555555555,
+      "gold": 2.8525641025641026,
+      "lo": 0.22910847853495397,
+      "hi": 7.200752632576156
+    },
+    {
+      "query_id": "legal_agg20:q8",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.23,
+      "gold": 2.0847457627118646,
+      "lo": 1.2155411125633537,
+      "hi": 3.2444588874366462
+    },
+    {
+      "query_id": "legal_agg20:q8",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 4.8999999999999995,
+      "gold": 3.0,
+      "lo": 1.5184703752111797,
+      "hi": 8.281529624788819
+    },
+    {
+      "query_id": "legal_agg20:q9",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 87.33478260869565,
+      "gold": 7.542857142857143,
+      "lo": 86.89371352720146,
+      "hi": 87.77585169018984
+    },
+    {
+      "query_id": "legal_agg20:q9",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -9.771510791366913,
+      "gold": 6.541666666666667,
+      "lo": -69.58899808033247,
+      "hi": 50.04597649759865
+    },
+    {
+      "query_id": "legal_agg20:q9",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -10.51004016064257,
+      "gold": 6.5,
+      "lo": -86.68912964091754,
+      "hi": 65.66904931963239
+    },
+    {
+      "query_id": "legal_agg20:q9",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 5.264150943396227,
+      "gold": 9.287671232876713,
+      "lo": 5.264150943396227,
+      "hi": 5.264150943396227
+    },
+    {
+      "query_id": "legal_filter20:q11",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 29.882812499999996,
+      "gold": 1.7174721189591078,
+      "lo": -3.370620143304553,
+      "hi": 63.13624514330455
+    },
+    {
+      "query_id": "legal_filter20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 1,
+      "gold": 30.0,
+      "lo": 1.0,
+      "hi": 1.0
+    },
+    {
+      "query_id": "legal_filter20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 13,
+      "gold": 155.0,
+      "lo": -6.889177748732921,
+      "hi": 33.689177748732924
+    },
+    {
+      "query_id": "legal_filter20:q13",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 3.9555555555555557,
+      "gold": 3.1333333333333333,
+      "lo": 1.7012024723630095,
+      "hi": 6.209908638748102
+    },
+    {
+      "query_id": "legal_filter20:q13",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 4.091666666666667,
+      "gold": 1.3076923076923077,
+      "lo": 2.7590563796617054,
+      "hi": 5.424276953671628
+    },
+    {
+      "query_id": "legal_filter20:q13",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 4.516981132075472,
+      "gold": 1.4827586206896552,
+      "lo": 3.2708644097036887,
+      "hi": 5.763097854447254
+    },
+    {
+      "query_id": "legal_filter20:q13",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -1.028571428571429,
+      "gold": 1.3191489361702127,
+      "lo": -8.770275754184013,
+      "hi": 6.713132897041156
+    },
+    {
+      "query_id": "legal_filter20:q13",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 3.583076923076923,
+      "gold": 1.6666666666666667,
+      "lo": 3.019482588962604,
+      "hi": 4.146671257191242
+    },
+    {
+      "query_id": "legal_filter20:q14",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 1,
+      "gold": 8.0,
+      "lo": 1.0,
+      "hi": 1.0
+    },
+    {
+      "query_id": "legal_filter20:q14",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 2,
+      "gold": 11.0,
+      "lo": 2.0,
+      "hi": 2.0
+    },
+    {
+      "query_id": "legal_filter20:q15",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 10,
+      "gold": 44.0,
+      "lo": -7.4925535204199925,
+      "hi": 27.29255352041999
+    },
+    {
+      "query_id": "legal_filter20:q15",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 14,
+      "gold": 26.0,
+      "lo": 14.0,
+      "hi": 14.0
+    },
+    {
+      "query_id": "legal_filter20:q16",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.421304347826087,
+      "gold": 8.536082474226804,
+      "lo": 0.06729448020583567,
+      "hi": 0.7753142154463384
+    },
+    {
+      "query_id": "legal_filter20:q16",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": 24.53164556962024,
+      "gold": 6.574585635359116,
+      "lo": -197.65948409023116,
+      "hi": 246.72277522947167
+    },
+    {
+      "query_id": "legal_filter20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 15,
+      "gold": 72.0,
+      "lo": -2.492553520419989,
+      "hi": 32.292553520419986
+    },
+    {
+      "query_id": "legal_filter20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 12,
+      "gold": 43.0,
+      "lo": -13.290864683437862,
+      "hi": 36.49086468343786
+    },
+    {
+      "query_id": "legal_filter20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 2,
+      "gold": 23.0,
+      "lo": 2.0,
+      "hi": 2.0
+    },
+    {
+      "query_id": "legal_filter20:q18",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 56,
+      "gold": 46.0,
+      "lo": 11.869690726310104,
+      "hi": 100.7303092736899
+    },
+    {
+      "query_id": "legal_filter20:q18",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 247,
+      "gold": 169.0,
+      "lo": 202.2696907263101,
+      "hi": 291.1303092736899
+    },
+    {
+      "query_id": "legal_filter20:q19",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 4,
+      "gold": 48.0,
+      "lo": -13.492553520419989,
+      "hi": 21.292553520419986
+    },
+    {
+      "query_id": "legal_filter20:q19",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 10,
+      "gold": 10.0,
+      "lo": -4.673973614594647,
+      "hi": 23.873973614594647
+    },
+    {
+      "query_id": "legal_filter20:q19",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 2,
+      "gold": 4.0,
+      "lo": 2.0,
+      "hi": 2.0
+    },
+    {
+      "query_id": "legal_filter20:q3",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 155,
+      "gold": 64.0,
+      "lo": 109.63524582962182,
+      "hi": 200.1647541703782
+    },
+    {
+      "query_id": "legal_filter20:q3",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 27,
+      "gold": 58.0,
+      "lo": -19.72254611191599,
+      "hi": 73.72254611191599
+    },
+    {
+      "query_id": "legal_filter20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 17,
+      "gold": 44.0,
+      "lo": -0.4925535204199605,
+      "hi": 34.29255352041996
+    },
+    {
+      "query_id": "legal_filter20:q5",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 4,
+      "gold": 15.0,
+      "lo": -10.418890767653908,
+      "hi": 18.418890767653906
+    },
+    {
+      "query_id": "legal_filter20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 4,
+      "gold": 56.0,
+      "lo": -41.669299526063185,
+      "hi": 50.06929952606316
+    },
+    {
+      "query_id": "legal_filter20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 26,
+      "gold": 54.0,
+      "lo": -11.57803688953284,
+      "hi": 63.178036889532834
+    },
+    {
+      "query_id": "legal_filter20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 30,
+      "gold": 49.0,
+      "lo": -5.177740940266382,
+      "hi": 65.57774094026638
+    },
+    {
+      "query_id": "legal_filter20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 33,
+      "gold": 43.0,
+      "lo": 2.4129136830114817,
+      "hi": 63.58708631698852
+    },
+    {
+      "query_id": "legal_filter20:q7",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 7.987804878048781,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_filter20:q7",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -22.028800000000004,
+      "gold": 6.472843450479234,
+      "lo": -105.13005858287542,
+      "hi": 61.07245858287541
+    },
+    {
+      "query_id": "legal_filter20:q7",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -26.870030581039757,
+      "gold": 4.8,
+      "lo": -171.95960653103901,
+      "hi": 118.21954536895949
+    },
+    {
+      "query_id": "legal_filter20:q7",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 9.807692307692308,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_filter20:q8",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 257,
+      "gold": 105.0,
+      "lo": 219.54487972649366,
+      "hi": 294.8551202735063
+    },
+    {
+      "query_id": "legal_filter20:q8",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 31,
+      "gold": 51.0,
+      "lo": 4.2986989140500285,
+      "hi": 57.901301085949974
+    },
+    {
+      "query_id": "legal_groupby20:q1",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 132,
+      "gold": 95.0,
+      "lo": 86.83524582962181,
+      "hi": 177.36475417037818
+    },
+    {
+      "query_id": "legal_groupby20:q1",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 4,
+      "gold": 77.0,
+      "lo": -43.40581418178524,
+      "hi": 51.60581418178523
+    },
+    {
+      "query_id": "legal_groupby20:q1",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 117,
+      "gold": 76.0,
+      "lo": 76.21721824401533,
+      "hi": 157.78278175598467
+    },
+    {
+      "query_id": "legal_groupby20:q1",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 20,
+      "gold": 75.0,
+      "lo": -20.78278175598468,
+      "hi": 60.78278175598468
+    },
+    {
+      "query_id": "legal_groupby20:q1",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 75,
+      "gold": 75.0,
+      "lo": 40.81152607605993,
+      "hi": 109.3884739239401
+    },
+    {
+      "query_id": "legal_groupby20:q1",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 41,
+      "gold": 61.0,
+      "lo": 5.822259059733618,
+      "hi": 76.57774094026638
+    },
+    {
+      "query_id": "legal_groupby20:q1",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 52,
+      "gold": 57.0,
+      "lo": 23.12177930510074,
+      "hi": 81.47822069489926
+    },
+    {
+      "query_id": "legal_groupby20:q1",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 37,
+      "gold": 52.0,
+      "lo": 6.412913683011482,
+      "hi": 67.58708631698852
+    },
+    {
+      "query_id": "legal_groupby20:q11",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 23,
+      "gold": 63.0,
+      "lo": 2.820598881310115,
+      "hi": 42.77940111868989
+    },
+    {
+      "query_id": "legal_groupby20:q11",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 16,
+      "gold": 63.0,
+      "lo": -6.721003038851478,
+      "hi": 37.72100303885148
+    },
+    {
+      "query_id": "legal_groupby20:q11",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 368,
+      "gold": 240.0,
+      "lo": 314.8750265468521,
+      "hi": 421.92497345314797
+    },
+    {
+      "query_id": "legal_groupby20:q11",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 118,
+      "gold": 204.0,
+      "lo": 66.00209135476472,
+      "hi": 170.1979086452352
+    },
+    {
+      "query_id": "legal_groupby20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 17,
+      "gold": 44.0,
+      "lo": -0.4925535204199605,
+      "hi": 34.29255352041996
+    },
+    {
+      "query_id": "legal_groupby20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 24,
+      "gold": 85.0,
+      "lo": -9.815296247888199,
+      "hi": 57.8152962478882
+    },
+    {
+      "query_id": "legal_groupby20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 30,
+      "gold": 221.0,
+      "lo": -19.351289458833072,
+      "hi": 78.95128945883303
+    },
+    {
+      "query_id": "legal_groupby20:q12",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 4,
+      "gold": 15.0,
+      "lo": -10.418890767653908,
+      "hi": 18.418890767653906
+    },
+    {
+      "query_id": "legal_groupby20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 4,
+      "gold": 25.0,
+      "lo": -5.844588874366459,
+      "hi": 14.44458887436646
+    },
+    {
+      "query_id": "legal_groupby20:q14",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 251,
+      "gold": 254.0,
+      "lo": 240.55541112563353,
+      "hi": 260.8445888743664
+    },
+    {
+      "query_id": "legal_groupby20:q14",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 2,
+      "gold": 58.0,
+      "lo": -12.418890767653908,
+      "hi": 16.418890767653906
+    },
+    {
+      "query_id": "legal_groupby20:q14",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 286,
+      "gold": 98.0,
+      "lo": 253.75352593767212,
+      "hi": 318.8464740623279
+    },
+    {
+      "query_id": "legal_groupby20:q14",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 7,
+      "gold": 28.0,
+      "lo": 7.0,
+      "hi": 7.0
+    },
+    {
+      "query_id": "legal_groupby20:q14",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 2,
+      "gold": 7.0,
+      "lo": 2.0,
+      "hi": 2.0
+    },
+    {
+      "query_id": "legal_groupby20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 20,
+      "gold": 299.0,
+      "lo": -8.365596737400551,
+      "hi": 49.16559673740055
+    },
+    {
+      "query_id": "legal_groupby20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 174,
+      "gold": 50.0,
+      "lo": 107.93787055298507,
+      "hi": 240.2621294470149
+    },
+    {
+      "query_id": "legal_groupby20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 47,
+      "gold": 173.0,
+      "lo": 20.885987281739144,
+      "hi": 72.91401271826085
+    },
+    {
+      "query_id": "legal_groupby20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 130,
+      "gold": 5.0,
+      "lo": 74.29195219998722,
+      "hi": 185.3080478000128
+    },
+    {
+      "query_id": "legal_groupby20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 11,
+      "gold": 32.0,
+      "lo": -2.873973614594652,
+      "hi": 25.67397361459465
+    },
+    {
+      "query_id": "legal_groupby20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 165,
+      "gold": 11.0,
+      "lo": 118.49980098061752,
+      "hi": 212.3001990193825
+    },
+    {
+      "query_id": "legal_groupby20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 13,
+      "gold": 144.0,
+      "lo": -0.8739736145946448,
+      "hi": 27.673973614594644
+    },
+    {
+      "query_id": "legal_groupby20:q4",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 49,
+      "gold": 49.0,
+      "lo": 15.8464422543517,
+      "hi": 81.9535577456483
+    },
+    {
+      "query_id": "legal_groupby20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 6,
+      "gold": 159.0,
+      "lo": -4.444588874366462,
+      "hi": 15.844588874366462
+    },
+    {
+      "query_id": "legal_groupby20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 11,
+      "gold": 88.0,
+      "lo": -6.930005513313244,
+      "hi": 28.330005513313242
+    },
+    {
+      "query_id": "legal_groupby20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 232,
+      "gold": 41.0,
+      "lo": 211.31082225126707,
+      "hi": 251.88917774873292
+    },
+    {
+      "query_id": "legal_groupby20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 229,
+      "gold": 19.0,
+      "lo": 189.22540614247356,
+      "hi": 268.1745938575264
+    },
+    {
+      "query_id": "legal_groupby20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 7,
+      "gold": 4.0,
+      "lo": 7.0,
+      "hi": 7.0
+    },
+    {
+      "query_id": "legal_groupby20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 4,
+      "gold": 54.0,
+      "lo": -21.989193778259516,
+      "hi": 30.989193778259516
+    },
+    {
+      "query_id": "legal_groupby20:q5",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 22,
+      "gold": 3.0,
+      "lo": -0.7210030388514497,
+      "hi": 43.72100303885145
+    },
+    {
+      "query_id": "legal_groupby20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 21,
+      "gold": 34.0,
+      "lo": 21.0,
+      "hi": 21.0
+    },
+    {
+      "query_id": "legal_groupby20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 12,
+      "gold": 32.0,
+      "lo": -5.930005513313262,
+      "hi": 29.33000551331326
+    },
+    {
+      "query_id": "legal_groupby20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 18,
+      "gold": 252.0,
+      "lo": -34.14754886260419,
+      "hi": 69.34754886260419
+    },
+    {
+      "query_id": "legal_groupby20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 2,
+      "gold": 29.0,
+      "lo": -15.492553520419996,
+      "hi": 19.292553520419993
+    },
+    {
+      "query_id": "legal_groupby20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 1,
+      "gold": 16.0,
+      "lo": 1.0,
+      "hi": 1.0
+    },
+    {
+      "query_id": "legal_groupby20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 14,
+      "gold": 1.0,
+      "lo": 3.5554111256335403,
+      "hi": 23.84458887436646
+    },
+    {
+      "query_id": "legal_groupby20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 1,
+      "gold": 7.0,
+      "lo": 1.0,
+      "hi": 1.0
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 82,
+      "gold": 85.0,
+      "lo": 52.34072616935687,
+      "hi": 112.65927383064313
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 31,
+      "gold": 65.0,
+      "lo": -1.9535577456482827,
+      "hi": 64.15355774564829
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 43,
+      "gold": 21.0,
+      "lo": 14.634403262599452,
+      "hi": 72.16559673740055
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 36,
+      "gold": 67.0,
+      "lo": 9.344000364695717,
+      "hi": 63.25599963530428
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 52,
+      "gold": 55.0,
+      "lo": 21.729911231596667,
+      "hi": 82.87008876840332
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 37,
+      "gold": 28.0,
+      "lo": 12.509135316562137,
+      "hi": 62.29086468343786
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 42,
+      "gold": 47.0,
+      "lo": 19.50784806774243,
+      "hi": 64.69215193225757
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 41,
+      "gold": 59.0,
+      "lo": 15.70913531656214,
+      "hi": 65.49086468343786
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 23,
+      "gold": 25.0,
+      "lo": 5.669994486686754,
+      "hi": 40.93000551331325
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 26,
+      "gold": 40.0,
+      "lo": 8.06999448668672,
+      "hi": 43.33000551331328
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 49,
+      "gold": 36.0,
+      "lo": 31.069994486686724,
+      "hi": 66.33000551331328
+    },
+    {
+      "query_id": "legal_groupby20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 9,
+      "gold": 18.0,
+      "lo": -11.689177748732918,
+      "hi": 28.88917774873292
+    },
+    {
+      "query_id": "legal_groupby20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 35,
+      "gold": 63.0,
+      "lo": 15.220598881310124,
+      "hi": 55.17940111868988
+    },
+    {
+      "query_id": "legal_groupby20:q7",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 6,
+      "gold": 19.0,
+      "lo": -11.33000551331326,
+      "hi": 23.93000551331326
+    },
+    {
+      "query_id": "legal_groupby20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 3,
+      "gold": 10.0,
+      "lo": 3.0,
+      "hi": 3.0
+    },
+    {
+      "query_id": "legal_groupby20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 3,
+      "gold": 12.0,
+      "lo": 3.0,
+      "hi": 3.0
+    },
+    {
+      "query_id": "legal_groupby20:q7",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 1,
+      "gold": 6.0,
+      "lo": -18.77940111868991,
+      "hi": 21.17940111868991
+    },
+    {
+      "query_id": "legal_groupby20:q7",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 12,
+      "gold": 21.0,
+      "lo": -2.4188907676539078,
+      "hi": 26.418890767653906
+    },
+    {
+      "query_id": "legal_groupby20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 10,
+      "gold": 92.0,
+      "lo": -35.66929952606318,
+      "hi": 56.069299526063155
+    },
+    {
+      "query_id": "legal_groupby20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 1,
+      "gold": 12.0,
+      "lo": 1.0,
+      "hi": 1.0
+    },
+    {
+      "query_id": "legal_groupby20:q9",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 205,
+      "gold": 190.0,
+      "lo": 154.39571543958073,
+      "hi": 255.2042845604193
+    },
+    {
+      "query_id": "legal_groupby20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 47,
+      "gold": 154.0,
+      "lo": -4.219243676661669,
+      "hi": 97.81924367666164
+    },
+    {
+      "query_id": "legal_groupby20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 192,
+      "gold": 78.0,
+      "lo": 142.03716274283147,
+      "hi": 242.16283725716852
+    },
+    {
+      "query_id": "legal_groupby20:q9",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 75,
+      "gold": 78.0,
+      "lo": 23.80643002461744,
+      "hi": 126.39356997538255
+    },
+    {
+      "query_id": "legal_groupby20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 6,
+      "gold": 30.0,
+      "lo": -4.4445888743664606,
+      "hi": 15.844588874366462
+    },
+    {
+      "query_id": "legal_groupby20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 4,
+      "gold": 29.0,
+      "lo": -5.844588874366461,
+      "hi": 14.44458887436646
+    },
+    {
+      "query_id": "legal_groupby20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 2,
+      "gold": 6.0,
+      "lo": 2.0,
+      "hi": 2.0
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 251,
+      "gold": 344.0,
+      "lo": 240.55541112563353,
+      "hi": 260.8445888743664
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 6.375150784077202,
+      "gold": 1.994186046511628,
+      "lo": 3.846993476034121,
+      "hi": 8.903308092120284
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 9.353809333865177,
+      "gold": 5.781976744186046,
+      "lo": 8.891023645338523,
+      "hi": 9.816595022391832
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 288,
+      "gold": 156.0,
+      "lo": 259.1217793051008,
+      "hi": 317.4782206948992
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 4.650887573964496,
+      "gold": 2.8525641025641026,
+      "lo": 1.6232276406236306,
+      "hi": 7.678547507305362
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -16.515435310440516,
+      "gold": 8.538461538461538,
+      "lo": -95.40975367514605,
+      "hi": 62.37888305426501
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 7,
+      "gold": 59.0,
+      "lo": 7.0,
+      "hi": 7.0
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 0.7571428571428571,
+      "gold": 2.0847457627118646,
+      "lo": -0.6920841249094944,
+      "hi": 2.206369839195209
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 11.0,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 2,
+      "gold": 11.0,
+      "lo": 2.0,
+      "hi": 2.0
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 6.35,
+      "gold": 3.0,
+      "lo": 1.2777055628167702,
+      "hi": 11.42229443718323
+    },
+    {
+      "query_id": "legal_multiagg20:q0",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 5.818181818181818,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q1",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 23,
+      "gold": 105.0,
+      "lo": 23.0,
+      "hi": 23.0
+    },
+    {
+      "query_id": "legal_multiagg20:q1",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 4.5260869565217385,
+      "gold": 2.085714285714286,
+      "lo": -0.5381137882176414,
+      "hi": 9.590287701261119
+    },
+    {
+      "query_id": "legal_multiagg20:q1",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 348,
+      "gold": 384.0,
+      "lo": 325.27899696114855,
+      "hi": 369.72100303885145
+    },
+    {
+      "query_id": "legal_multiagg20:q1",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 7.633381712626995,
+      "gold": 2.1927083333333335,
+      "lo": 5.059708731108746,
+      "hi": 10.207054694145244
+    },
+    {
+      "query_id": "legal_multiagg20:q1",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 124,
+      "gold": 8.0,
+      "lo": 102.27899696114855,
+      "hi": 146.72100303885145
+    },
+    {
+      "query_id": "legal_multiagg20:q1",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 3.0192771084337346,
+      "gold": 2.75,
+      "lo": 1.3752114676587184,
+      "hi": 4.663342749208751
+    },
+    {
+      "query_id": "legal_multiagg20:q1",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 53,
+      "gold": 73.0,
+      "lo": 53.0,
+      "hi": 53.0
+    },
+    {
+      "query_id": "legal_multiagg20:q1",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -3.207547169811321,
+      "gold": 2.7945205479452055,
+      "lo": -13.733632403787665,
+      "hi": 7.318538064165024
+    },
+    {
+      "query_id": "legal_multiagg20:q10",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 143,
+      "gold": 171.0,
+      "lo": 143.0,
+      "hi": 143.0
+    },
+    {
+      "query_id": "legal_multiagg20:q10",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -46.36853146853147,
+      "gold": 6.2105263157894735,
+      "lo": -161.6366134600745,
+      "hi": 68.89955052301154
+    },
+    {
+      "query_id": "legal_multiagg20:q10",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 125,
+      "gold": 150.0,
+      "lo": 114.55541112563354,
+      "hi": 134.84458887436645
+    },
+    {
+      "query_id": "legal_multiagg20:q10",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 34.36888532477947,
+      "gold": 7.6466666666666665,
+      "lo": 31.550773776407908,
+      "hi": 37.18699687315103
+    },
+    {
+      "query_id": "legal_multiagg20:q10",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 102,
+      "gold": 131.0,
+      "lo": 91.55541112563354,
+      "hi": 111.84458887436647
+    },
+    {
+      "query_id": "legal_multiagg20:q10",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -48.37364798426746,
+      "gold": 7.679389312977099,
+      "lo": -204.41176056793654,
+      "hi": 107.66446459940164
+    },
+    {
+      "query_id": "legal_multiagg20:q10",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 80,
+      "gold": 94.0,
+      "lo": 66.12602638540535,
+      "hi": 94.67397361459466
+    },
+    {
+      "query_id": "legal_multiagg20:q10",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 30.78233830845771,
+      "gold": 7.372340425531915,
+      "lo": 25.356368892266342,
+      "hi": 36.208307724649075
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 211,
+      "gold": 247.0,
+      "lo": 156.91261624334533,
+      "hi": 265.8873837566547
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 22.075212866603593,
+      "gold": 4.862348178137652,
+      "lo": 16.3928694335601,
+      "hi": 27.757556299647085
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 122.5,
+      "gold": 178.0,
+      "lo": 78.35134370290088,
+      "hi": 166.64865629709914
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 214,
+      "gold": 227.0,
+      "lo": 150.03230772641297,
+      "hi": 276.96769227358703
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -56.570491803278685,
+      "gold": 7.237885462555066,
+      "lo": -167.18201180357556,
+      "hi": 54.04102819701819
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "cell": "dismissed_count",
+      "covered": true,
+      "estimate": 141.6,
+      "gold": 144.0,
+      "lo": 89.65195620252325,
+      "hi": 193.54804379747674
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 123,
+      "gold": 96.0,
+      "lo": 72.21336679809161,
+      "hi": 173.98663320190838
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 40.574329813160034,
+      "gold": 12.395833333333334,
+      "lo": 23.97247521270351,
+      "hi": 57.176184413616554
+    },
+    {
+      "query_id": "legal_multiagg20:q11",
+      "cell": "dismissed_count",
+      "covered": true,
+      "estimate": 83.4,
+      "gold": 62.0,
+      "lo": 40.19141739762312,
+      "hi": 126.60858260237688
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 37,
+      "gold": 83.0,
+      "lo": 37.0,
+      "hi": 37.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 16.0,
+      "gold": 35.0,
+      "lo": 16.0,
+      "hi": 16.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 1.9540540540540536,
+      "gold": 2.891566265060241,
+      "lo": -6.285999499071761,
+      "hi": 10.194107607179868
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 25,
+      "gold": 26.0,
+      "lo": 25.0,
+      "hi": 25.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 23.0,
+      "gold": 24.0,
+      "lo": 23.0,
+      "hi": 23.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 4.168,
+      "gold": 1.3076923076923077,
+      "lo": 2.8886941244752373,
+      "hi": 5.447305875524763
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 58,
+      "gold": 63.0,
+      "lo": 58.0,
+      "hi": 58.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 50.0,
+      "gold": 54.0,
+      "lo": 50.0,
+      "hi": 50.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 4.375438596491228,
+      "gold": 1.5396825396825398,
+      "lo": 3.216768661654307,
+      "hi": 5.534108531328149
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 46,
+      "gold": 48.0,
+      "lo": 46.0,
+      "hi": 46.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 42.0,
+      "gold": 43.0,
+      "lo": 42.0,
+      "hi": 42.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -1.0799999999999998,
+      "gold": 1.3541666666666667,
+      "lo": -8.314536872873257,
+      "hi": 6.154536872873257
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 82,
+      "gold": 83.0,
+      "lo": 82.0,
+      "hi": 82.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 67.0,
+      "gold": 69.0,
+      "lo": 67.0,
+      "hi": 67.0
+    },
+    {
+      "query_id": "legal_multiagg20:q12",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 3.5999999999999996,
+      "gold": 1.7108433734939759,
+      "lo": 3.0748293745089303,
+      "hi": 4.125170625491069
+    },
+    {
+      "query_id": "legal_multiagg20:q13",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 33,
+      "gold": 129.0,
+      "lo": -0.8152962478881918,
+      "hi": 66.8152962478882
+    },
+    {
+      "query_id": "legal_multiagg20:q13",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": 160.06060606060606,
+      "gold": 8.868217054263566,
+      "lo": -3.9544488350281313,
+      "hi": 324.07566095624026
+    },
+    {
+      "query_id": "legal_multiagg20:q13",
+      "cell": "evidence_count",
+      "covered": false,
+      "estimate": 26.0,
+      "gold": 113.0,
+      "lo": -7.815296247888192,
+      "hi": 59.81529624788819
+    },
+    {
+      "query_id": "legal_multiagg20:q13",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 24,
+      "gold": 295.0,
+      "lo": -33.003841932101636,
+      "hi": 80.6038419321016
+    },
+    {
+      "query_id": "legal_multiagg20:q13",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -703.1512605042021,
+      "gold": 5.532203389830508,
+      "lo": -2793.1617388275668,
+      "hi": 1386.8592178191625
+    },
+    {
+      "query_id": "legal_multiagg20:q13",
+      "cell": "evidence_count",
+      "covered": false,
+      "estimate": 30.299999999999983,
+      "gold": 214.0,
+      "lo": -24.973459446621547,
+      "hi": 85.57345944662151
+    },
+    {
+      "query_id": "legal_multiagg20:q13",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 3,
+      "gold": 40.0,
+      "lo": -14.330005513313267,
+      "hi": 20.93000551331327
+    },
+    {
+      "query_id": "legal_multiagg20:q13",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 10.825,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q13",
+      "cell": "evidence_count",
+      "covered": false,
+      "estimate": 2.3,
+      "gold": 30.0,
+      "lo": -15.330005513313267,
+      "hi": 19.93000551331327
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 132,
+      "gold": 95.0,
+      "lo": 86.83524582962181,
+      "hi": 177.36475417037818
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 1.9795609386828161,
+      "gold": 1.7894736842105263,
+      "lo": 1.068909004921955,
+      "hi": 2.8902128724436773
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.04314912944738834,
+      "gold": 6.905263157894737,
+      "lo": -0.03248287239287438,
+      "hi": 0.11878113128765107
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 116,
+      "gold": 76.0,
+      "lo": 75.21721824401533,
+      "hi": 156.78278175598467
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 3.179310344827586,
+      "gold": 2.3157894736842106,
+      "lo": 0.6976383756735052,
+      "hi": 5.660982313981667
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.19655172413793104,
+      "gold": 7.434210526315789,
+      "lo": -0.14612402950494047,
+      "hi": 0.5392274777808026
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 21,
+      "gold": 75.0,
+      "lo": -17.770582749752045,
+      "hi": 60.57058274975203
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 0.12616822429906493,
+      "gold": 2.36,
+      "lo": -23.082967653510075,
+      "hi": 23.335304102108203
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": 281.2943925233646,
+      "gold": 5.613333333333333,
+      "lo": -233.56505837384424,
+      "hi": 796.1538434205734
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 74,
+      "gold": 75.0,
+      "lo": 39.81152607605993,
+      "hi": 108.3884739239401
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.6153846153846154,
+      "gold": 2.2,
+      "lo": 1.2049520737486479,
+      "hi": 4.025817157020583
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.5384615384615383,
+      "gold": 9.173333333333334,
+      "lo": -0.15267506072800563,
+      "hi": 1.2295981376510823
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 45,
+      "gold": 61.0,
+      "lo": 10.291479570461554,
+      "hi": 80.30852042953845
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 8.749435665914222,
+      "gold": 2.7540983606557377,
+      "lo": -5.062999566953014,
+      "hi": 22.561870898781457
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -103.87417218543047,
+      "gold": 8.114754098360656,
+      "lo": -483.9261907472908,
+      "hi": 276.1778463764298
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 52,
+      "gold": 57.0,
+      "lo": 23.12177930510074,
+      "hi": 81.47822069489926
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 3.0,
+      "gold": 2.3333333333333335,
+      "lo": 1.8632770623464556,
+      "hi": 4.136722937653545
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.6539196940726577,
+      "gold": 9.0,
+      "lo": -0.26048751238945855,
+      "hi": 1.568326900534774
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 33,
+      "gold": 52.0,
+      "lo": 2.2071700011456983,
+      "hi": 64.5928299988543
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -11.79320987654321,
+      "gold": 2.8076923076923075,
+      "lo": -39.517738117475616,
+      "hi": 15.931318364389194
+    },
+    {
+      "query_id": "legal_multiagg20:q14",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": 74.44011976047905,
+      "gold": 6.6923076923076925,
+      "lo": 5.047938686655868,
+      "hi": 143.83230083430223
+    },
+    {
+      "query_id": "legal_multiagg20:q15",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 62,
+      "gold": 210.0,
+      "lo": 26.702564911790112,
+      "hi": 97.8974350882099
+    },
+    {
+      "query_id": "legal_multiagg20:q15",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 5.822185970636215,
+      "gold": 1.7714285714285714,
+      "lo": 3.2965912966188,
+      "hi": 8.34778064465363
+    },
+    {
+      "query_id": "legal_multiagg20:q15",
+      "cell": "first_judge_count",
+      "covered": false,
+      "estimate": 28.1,
+      "gold": 104.0,
+      "lo": 1.2986989140500356,
+      "hi": 54.90130108594997
+    },
+    {
+      "query_id": "legal_multiagg20:q15",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 16,
+      "gold": 294.0,
+      "lo": -3.889177748732923,
+      "hi": 36.68917774873292
+    },
+    {
+      "query_id": "legal_multiagg20:q15",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.695121951219513,
+      "gold": 2.816326530612245,
+      "lo": 0.4408188684706347,
+      "hi": 4.9494250339683905
+    },
+    {
+      "query_id": "legal_multiagg20:q15",
+      "cell": "first_judge_count",
+      "covered": false,
+      "estimate": 5.0,
+      "gold": 129.0,
+      "lo": -9.418890767653908,
+      "hi": 19.418890767653906
+    },
+    {
+      "query_id": "legal_multiagg20:q15",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 469,
+      "gold": 66.0,
+      "lo": 424.8696907263101,
+      "hi": 513.73030927369
+    },
+    {
+      "query_id": "legal_multiagg20:q15",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 5.432484485341322,
+      "gold": 1.3181818181818181,
+      "lo": 3.1608360656653853,
+      "hi": 7.704132905017259
+    },
+    {
+      "query_id": "legal_multiagg20:q15",
+      "cell": "first_judge_count",
+      "covered": true,
+      "estimate": 79.39999999999998,
+      "gold": 34.0,
+      "lo": 25.681165088424095,
+      "hi": 133.11883491157585
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 264,
+      "gold": 344.0,
+      "lo": 264.0,
+      "hi": 264.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 213.0,
+      "gold": 280.0,
+      "lo": 213.0,
+      "hi": 213.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "evidence_count",
+      "covered": false,
+      "estimate": 243.0,
+      "gold": 251.0,
+      "lo": 243.0,
+      "hi": 243.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 6.49463601532567,
+      "gold": 1.994186046511628,
+      "lo": 4.087550618693408,
+      "hi": 8.901721411957933
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 293,
+      "gold": 156.0,
+      "lo": 293.0,
+      "hi": 293.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 137.0,
+      "gold": 85.0,
+      "lo": 137.0,
+      "hi": 137.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "evidence_count",
+      "covered": false,
+      "estimate": 265.0,
+      "gold": 132.0,
+      "lo": 265.0,
+      "hi": 265.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 3.714930555555555,
+      "gold": 2.8525641025641026,
+      "lo": 0.22910847853495397,
+      "hi": 7.200752632576156
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 10,
+      "gold": 59.0,
+      "lo": 10.0,
+      "hi": 10.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 3.0,
+      "gold": 16.0,
+      "lo": 3.0,
+      "hi": 3.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "evidence_count",
+      "covered": false,
+      "estimate": 8.0,
+      "gold": 52.0,
+      "lo": 8.0,
+      "hi": 8.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.23,
+      "gold": 2.0847457627118646,
+      "lo": 1.2155411125633537,
+      "hi": 3.2444588874366462
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 3,
+      "gold": 11.0,
+      "lo": 3.0,
+      "hi": 3.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 2.0,
+      "gold": 3.0,
+      "lo": 2.0,
+      "hi": 2.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "evidence_count",
+      "covered": false,
+      "estimate": 2.0,
+      "gold": 9.0,
+      "lo": 2.0,
+      "hi": 2.0
+    },
+    {
+      "query_id": "legal_multiagg20:q16",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 4.8999999999999995,
+      "gold": 3.0,
+      "lo": 1.5184703752111797,
+      "hi": 8.281529624788819
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 26,
+      "gold": 29.0,
+      "lo": 26.0,
+      "hi": 26.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "dismissed_count",
+      "covered": true,
+      "estimate": 25.0,
+      "gold": 25.0,
+      "lo": 25.0,
+      "hi": 25.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 78.36538461538461,
+      "gold": 13.96551724137931,
+      "lo": 76.41450213954491,
+      "hi": 80.31626709122432
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 21,
+      "gold": 25.0,
+      "lo": 21.0,
+      "hi": 21.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 15.0,
+      "gold": 16.0,
+      "lo": 15.0,
+      "hi": 15.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 6.08,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 16,
+      "gold": 17.0,
+      "lo": 16.0,
+      "hi": 16.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 6.0,
+      "gold": 8.0,
+      "lo": 6.0,
+      "hi": 6.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 53.125,
+      "gold": 6.705882352941177,
+      "lo": 53.125,
+      "hi": 53.125
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 15,
+      "gold": 17.0,
+      "lo": 15.0,
+      "hi": 15.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 10.0,
+      "gold": 13.0,
+      "lo": 10.0,
+      "hi": 10.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 2.6470588235294117,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 13,
+      "gold": 17.0,
+      "lo": 13.0,
+      "hi": 13.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 13.0,
+      "gold": 15.0,
+      "lo": 13.0,
+      "hi": 13.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 2.8823529411764706,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 9,
+      "gold": 16.0,
+      "lo": 9.0,
+      "hi": 9.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 3.0,
+      "gold": 5.0,
+      "lo": 3.0,
+      "hi": 3.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 10.0,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 12,
+      "gold": 16.0,
+      "lo": 12.0,
+      "hi": 12.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 9.0,
+      "gold": 12.0,
+      "lo": 9.0,
+      "hi": 9.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 357.4166666666667,
+      "gold": 3.25,
+      "lo": 357.4166666666667,
+      "hi": 357.4166666666667
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 9,
+      "gold": 29.0,
+      "lo": 9.0,
+      "hi": 9.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 6.0,
+      "gold": 20.0,
+      "lo": 6.0,
+      "hi": 6.0
+    },
+    {
+      "query_id": "legal_multiagg20:q17",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 4.517241379310345,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 24,
+      "gold": 63.0,
+      "lo": 4.220598881310121,
+      "hi": 44.17940111868988
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 22.49586776859504,
+      "gold": 2.1904761904761907,
+      "lo": 8.866604302960763,
+      "hi": 36.125131234229315
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 117.89256198347108,
+      "gold": 9.380952380952381,
+      "lo": 20.56104195133129,
+      "hi": 215.22408201561086
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 4,
+      "gold": 19.0,
+      "lo": -13.33000551331326,
+      "hi": 21.93000551331326
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 0.9069767441860462,
+      "gold": 3.210526315789474,
+      "lo": -8.306304233889858,
+      "hi": 10.12025772226195
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 7.105263157894737,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 3,
+      "gold": 10.0,
+      "lo": 3.0,
+      "hi": 3.0
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 9.666666666666666,
+      "gold": 3.7,
+      "lo": 9.666666666666666,
+      "hi": 9.666666666666666
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 8.7,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 4,
+      "gold": 6.0,
+      "lo": -13.492553520419975,
+      "hi": 21.292553520419972
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 7.12820512820513,
+      "gold": 1.8333333333333333,
+      "lo": -17.74576726978788,
+      "hi": 32.00217752619814
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": 622.820512820513,
+      "gold": 6.666666666666667,
+      "lo": -2154.727975088767,
+      "hi": 3400.3690007297932
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 13,
+      "gold": 21.0,
+      "lo": 2.5554111256335386,
+      "hi": 22.84458887436646
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 12.110236220472443,
+      "gold": 2.7142857142857144,
+      "lo": 2.6128531215243456,
+      "hi": 21.60761931942054
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 9.19047619047619,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 7,
+      "gold": 92.0,
+      "lo": -38.36475417037817,
+      "hi": 52.16475417037818
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 177.54237288135576,
+      "gold": 1.5978260869565217,
+      "lo": -1153.334866043353,
+      "hi": 1508.4196118060645
+    },
+    {
+      "query_id": "legal_multiagg20:q18",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -451.84057971014454,
+      "gold": 5.728260869565218,
+      "lo": -3930.0779804373965,
+      "hi": 3026.3968210171074
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 143,
+      "gold": 171.0,
+      "lo": 143.0,
+      "hi": 143.0
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 13.271830985915493,
+      "gold": 1.912280701754386,
+      "lo": 12.236406540762049,
+      "hi": 14.307255431068937
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "approved_count",
+      "covered": false,
+      "estimate": 7.0,
+      "gold": 28.0,
+      "lo": 7.0,
+      "hi": 7.0
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 125,
+      "gold": 150.0,
+      "lo": 114.55541112563354,
+      "hi": 134.84458887436645
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.3608660785886126,
+      "gold": 2.34,
+      "lo": -0.692365130691706,
+      "hi": 5.414097287868931
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "approved_count",
+      "covered": false,
+      "estimate": 6.0,
+      "gold": 29.0,
+      "lo": 6.0,
+      "hi": 6.0
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 102,
+      "gold": 131.0,
+      "lo": 91.55541112563354,
+      "hi": 111.84458887436647
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 3.7596822244289965,
+      "gold": 2.435114503816794,
+      "lo": -2.2907511200783524,
+      "hi": 9.810115568936345
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "approved_count",
+      "covered": false,
+      "estimate": 2.0,
+      "gold": 25.0,
+      "lo": 2.0,
+      "hi": 2.0
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 80,
+      "gold": 94.0,
+      "lo": 66.12602638540535,
+      "hi": 94.67397361459466
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 1.3690176322418133,
+      "gold": 2.4893617021276597,
+      "lo": -2.8007482431967876,
+      "hi": 5.538783507680414
+    },
+    {
+      "query_id": "legal_multiagg20:q19",
+      "cell": "approved_count",
+      "covered": false,
+      "estimate": 3.0,
+      "gold": 17.0,
+      "lo": 3.0,
+      "hi": 3.0
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 145,
+      "gold": 172.0,
+      "lo": 145.0,
+      "hi": 145.0
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 13.031944444444443,
+      "gold": 1.8546511627906976,
+      "lo": 12.085823949119252,
+      "hi": 13.978064939769634
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -43.85793103448275,
+      "gold": 5.819767441860465,
+      "lo": -157.53509874947812,
+      "hi": 69.81923668051263
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "evidence_count",
+      "covered": false,
+      "estimate": 131.0,
+      "gold": 124.0,
+      "lo": 131.0,
+      "hi": 131.0
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 137,
+      "gold": 151.0,
+      "lo": 123.12602638540537,
+      "hi": 151.67397361459464
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.7037845705967976,
+      "gold": 2.337748344370861,
+      "lo": -0.10281063586584827,
+      "hi": 5.510379777059443
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 43.977438136826784,
+      "gold": 6.529801324503311,
+      "lo": 39.393417762871664,
+      "hi": 48.561458510781904
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "evidence_count",
+      "covered": true,
+      "estimate": 121.4,
+      "gold": 117.0,
+      "lo": 107.12602638540537,
+      "hi": 135.67397361459464
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 125,
+      "gold": 136.0,
+      "lo": 107.70744647958003,
+      "hi": 142.49255352041996
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 5.373892022562449,
+      "gold": 2.448529411764706,
+      "lo": 0.9076137797831976,
+      "hi": 9.840170265341701
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -37.29496402877698,
+      "gold": 8.698529411764707,
+      "lo": -164.24318677195546,
+      "hi": 89.65325871440149
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "evidence_count",
+      "covered": true,
+      "estimate": 117.1,
+      "gold": 111.0,
+      "lo": 99.70744647958003,
+      "hi": 134.49255352041996
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 91,
+      "gold": 109.0,
+      "lo": 77.12602638540535,
+      "hi": 105.67397361459466
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -2.4911504424778763,
+      "gold": 2.5596330275229358,
+      "lo": -9.78238152166014,
+      "hi": 4.8000806367043864
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 27.576586433260392,
+      "gold": 7.89908256880734,
+      "lo": 23.198099045324753,
+      "hi": 31.95507382119603
+    },
+    {
+      "query_id": "legal_multiagg20:q2",
+      "cell": "evidence_count",
+      "covered": true,
+      "estimate": 88.4,
+      "gold": 90.0,
+      "lo": 74.12602638540535,
+      "hi": 102.67397361459466
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 34,
+      "gold": 83.0,
+      "lo": 34.0,
+      "hi": 34.0
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -0.02058823529411815,
+      "gold": 2.891566265060241,
+      "lo": -8.987705337225151,
+      "hi": 8.946528866636914
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 25.16764705882353,
+      "gold": 8.421686746987952,
+      "lo": 24.869276797812752,
+      "hi": 25.466017319834307
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 22,
+      "gold": 26.0,
+      "lo": 22.0,
+      "hi": 22.0
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 2.8272727272727276,
+      "gold": 1.3076923076923077,
+      "lo": 1.3735160505400423,
+      "hi": 4.281029404005412
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 4.615384615384615,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 61,
+      "gold": 63.0,
+      "lo": 50.55541112563354,
+      "hi": 70.84458887436647
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 3.966499162479062,
+      "gold": 1.5396825396825398,
+      "lo": 2.8605727385405766,
+      "hi": 5.072425586417547
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 6.253968253968254,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 44,
+      "gold": 48.0,
+      "lo": 44.0,
+      "hi": 44.0
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -1.2232558139534881,
+      "gold": 1.3541666666666667,
+      "lo": -8.794282773937129,
+      "hi": 6.347771146030153
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 45.65909090909091,
+      "gold": 6.104166666666667,
+      "lo": 45.65909090909091,
+      "hi": 45.65909090909091
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 75,
+      "gold": 83.0,
+      "lo": 75.0,
+      "hi": 75.0
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 3.349333333333333,
+      "gold": 1.7108433734939759,
+      "lo": 2.7751467827964307,
+      "hi": 3.9235198838702354
+    },
+    {
+      "query_id": "legal_multiagg20:q3",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 35.306666666666665,
+      "gold": 5.867469879518072,
+      "lo": 34.436209272227735,
+      "hi": 36.177124061105594
+    },
+    {
+      "query_id": "legal_multiagg20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 401,
+      "gold": 303.0,
+      "lo": 351.99034489789335,
+      "hi": 450.6096551021067
+    },
+    {
+      "query_id": "legal_multiagg20:q4",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.480936954896586,
+      "gold": 2.1254125412541254,
+      "lo": 1.0098783943768006,
+      "hi": 3.9519955154163715
+    },
+    {
+      "query_id": "legal_multiagg20:q4",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.28407675056067777,
+      "gold": 7.993399339933993,
+      "lo": 0.07400645754358365,
+      "hi": 0.4941470435777719
+    },
+    {
+      "query_id": "legal_multiagg20:q4",
+      "cell": "dismissed_count",
+      "covered": true,
+      "estimate": 265.2,
+      "gold": 216.0,
+      "lo": 214.38491578043357,
+      "hi": 316.0150842195664
+    },
+    {
+      "query_id": "legal_multiagg20:q4",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 112,
+      "gold": 267.0,
+      "lo": 54.152465950769326,
+      "hi": 170.84753404923066
+    },
+    {
+      "query_id": "legal_multiagg20:q4",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 16.66118721461187,
+      "gold": 2.4082397003745317,
+      "lo": 4.8492177641262,
+      "hi": 28.47315666509754
+    },
+    {
+      "query_id": "legal_multiagg20:q4",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -22.49244444444446,
+      "gold": 6.037453183520599,
+      "lo": -226.26929015817166,
+      "hi": 181.28440126928274
+    },
+    {
+      "query_id": "legal_multiagg20:q4",
+      "cell": "dismissed_count",
+      "covered": false,
+      "estimate": 59.5,
+      "gold": 168.0,
+      "lo": 2.962133762790451,
+      "hi": 116.03786623720956
+    },
+    {
+      "query_id": "legal_multiagg20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 41,
+      "gold": 129.0,
+      "lo": 3.7031741273229812,
+      "hi": 78.096825872677
+    },
+    {
+      "query_id": "legal_multiagg20:q5",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 22.443609022556394,
+      "gold": 2.2790697674418605,
+      "lo": 4.987320732589623,
+      "hi": 39.899897312523166
+    },
+    {
+      "query_id": "legal_multiagg20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 29,
+      "gold": 295.0,
+      "lo": -28.786003621409996,
+      "hi": 86.18600362140998
+    },
+    {
+      "query_id": "legal_multiagg20:q5",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 36.54655870445345,
+      "gold": 1.847457627118644,
+      "lo": -41.82772216260111,
+      "hi": 114.92083957150803
+    },
+    {
+      "query_id": "legal_multiagg20:q5",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 8,
+      "gold": 40.0,
+      "lo": -9.330005513313267,
+      "hi": 25.93000551331327
+    },
+    {
+      "query_id": "legal_multiagg20:q5",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -28.460317460317462,
+      "gold": 3.25,
+      "lo": -177.3259606388734,
+      "hi": 120.40532571823846
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 11,
+      "gold": 15.0,
+      "lo": 11.0,
+      "hi": 11.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 35.18181818181818,
+      "gold": 2.4,
+      "lo": 35.18181818181818,
+      "hi": 35.18181818181818
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 8.266666666666667,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 12,
+      "gold": 15.0,
+      "lo": 12.0,
+      "hi": 12.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 6.4750000000000005,
+      "gold": 3.3333333333333335,
+      "lo": 0.407942458981454,
+      "hi": 12.542057541018547
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.47500000000000003,
+      "gold": 7.0,
+      "lo": -0.3703824061972049,
+      "hi": 1.320382406197205
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 14,
+      "gold": 12.0,
+      "lo": 3.555411125633537,
+      "hi": 23.844588874366462
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.021897810218978,
+      "gold": 3.0833333333333335,
+      "lo": 0.7444874570163127,
+      "hi": 3.2993081634216437
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 10.0,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 10,
+      "gold": 11.0,
+      "lo": 10.0,
+      "hi": 10.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 3.1,
+      "gold": 1.7272727272727273,
+      "lo": 3.1,
+      "hi": 3.1
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 7.545454545454546,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 26,
+      "gold": 29.0,
+      "lo": 26.0,
+      "hi": 26.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -4.8500000000000005,
+      "gold": 1.9310344827586208,
+      "lo": -25.529354243900894,
+      "hi": 15.829354243900891
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 78.36538461538461,
+      "gold": 13.96551724137931,
+      "lo": 76.41450213954491,
+      "hi": 80.31626709122432
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 18,
+      "gold": 13.0,
+      "lo": 4.126026385405352,
+      "hi": 32.673973614594644
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 0.7989130434782609,
+      "gold": 2.230769230769231,
+      "lo": 0.3436202019127283,
+      "hi": 1.2542058850437934
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": 31.956521739130437,
+      "gold": 9.23076923076923,
+      "lo": 7.1659484718169395,
+      "hi": 56.747095006443935
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": true,
+      "estimate": 11,
+      "gold": 11.0,
+      "lo": 11.0,
+      "hi": 11.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 0.7454545454545454,
+      "gold": 2.727272727272727,
+      "lo": -2.9434868634059868,
+      "hi": 4.434395954315077
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 1.0363636363636364,
+      "gold": 14.727272727272727,
+      "lo": -0.8081070680666296,
+      "hi": 2.8808343407939025
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 21,
+      "gold": 25.0,
+      "lo": 21.0,
+      "hi": 21.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 25.490476190476187,
+      "gold": 2.72,
+      "lo": 11.457745343946135,
+      "hi": 39.52320703700624
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 6.08,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 16,
+      "gold": 17.0,
+      "lo": 16.0,
+      "hi": 16.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 4.775,
+      "gold": 1.6470588235294117,
+      "lo": 3.5069263907041925,
+      "hi": 6.043073609295808
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 53.125,
+      "gold": 6.705882352941177,
+      "lo": 53.125,
+      "hi": 53.125
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 11,
+      "gold": 15.0,
+      "lo": 11.0,
+      "hi": 11.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 0.41818181818181815,
+      "gold": 2.3333333333333335,
+      "lo": -1.426288886248447,
+      "hi": 2.2626525226120835
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": 1.5545454545454547,
+      "gold": 4.266666666666667,
+      "lo": -1.2121606020999427,
+      "hi": 4.321251511190852
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 15,
+      "gold": 17.0,
+      "lo": 15.0,
+      "hi": 15.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 2.2666666666666666,
+      "gold": 2.1176470588235294,
+      "lo": 2.2666666666666666,
+      "hi": 2.2666666666666666
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 2.6470588235294117,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 11,
+      "gold": 14.0,
+      "lo": 11.0,
+      "hi": 11.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 3.9909090909090907,
+      "gold": 1.3571428571428572,
+      "lo": 1.2242030342636943,
+      "hi": 6.757615147554487
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 4.928571428571429,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 13,
+      "gold": 17.0,
+      "lo": 13.0,
+      "hi": 13.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 2.3846153846153846,
+      "gold": 1.2941176470588236,
+      "lo": 2.3846153846153846,
+      "hi": 2.3846153846153846
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 2.8823529411764706,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 12,
+      "gold": 16.0,
+      "lo": 12.0,
+      "hi": 12.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -9.720000000000002,
+      "gold": 2.0,
+      "lo": -38.2176527126217,
+      "hi": 18.777652712621695
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 357.4166666666667,
+      "gold": 3.25,
+      "lo": 357.4166666666667,
+      "hi": 357.4166666666667
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 14,
+      "gold": 29.0,
+      "lo": 14.0,
+      "hi": 14.0
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 2.0214285714285714,
+      "gold": 1.896551724137931,
+      "lo": 0.39461011422477665,
+      "hi": 3.6482470286323663
+    },
+    {
+      "query_id": "legal_multiagg20:q6",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 4.517241379310345,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 69,
+      "gold": 115.0,
+      "lo": 69.0,
+      "hi": 69.0
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 45.35942028985507,
+      "gold": 8.643478260869566,
+      "lo": 44.89590366828813,
+      "hi": 45.82293691142202
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "approved_count",
+      "covered": false,
+      "estimate": 5.0,
+      "gold": 29.0,
+      "lo": 5.0,
+      "hi": 5.0
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 38,
+      "gold": 19.0,
+      "lo": 27.55541112563354,
+      "hi": 47.844588874366465
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 65.33687002652519,
+      "gold": 6.578947368421052,
+      "lo": 47.71092883208685,
+      "hi": 82.96281122096353
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "approved_count",
+      "covered": false,
+      "estimate": 4.0,
+      "gold": 9.0,
+      "lo": 4.0,
+      "hi": 4.0
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 182,
+      "gold": 148.0,
+      "lo": 164.70744647958003,
+      "hi": 199.49255352041996
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -2.6644700713893457,
+      "gold": 7.216216216216216,
+      "lo": -54.707561819576036,
+      "hi": 49.378621676797344
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "approved_count",
+      "covered": false,
+      "estimate": 4.0,
+      "gold": 23.0,
+      "lo": 4.0,
+      "hi": 4.0
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 68,
+      "gold": 32.0,
+      "lo": 50.70744647958002,
+      "hi": 85.49255352041996
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -199.45814977973572,
+      "gold": 9.59375,
+      "lo": -510.0270860855481,
+      "hi": 111.11078652607665
+    },
+    {
+      "query_id": "legal_multiagg20:q7",
+      "cell": "approved_count",
+      "covered": false,
+      "estimate": 6.0,
+      "gold": 10.0,
+      "lo": 6.0,
+      "hi": 6.0
+    },
+    {
+      "query_id": "legal_multiagg20:q8",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 38,
+      "gold": 126.0,
+      "lo": 38.0,
+      "hi": 38.0
+    },
+    {
+      "query_id": "legal_multiagg20:q8",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 1.6631578947368422,
+      "gold": 2.0396825396825395,
+      "lo": 1.0147628593570568,
+      "hi": 2.3115529301166275
+    },
+    {
+      "query_id": "legal_multiagg20:q8",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 121.05263157894737,
+      "gold": 5.222222222222222,
+      "lo": 121.05263157894737,
+      "hi": 121.05263157894737
+    },
+    {
+      "query_id": "legal_multiagg20:q8",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 507,
+      "gold": 444.0,
+      "lo": 476.4129136830115,
+      "hi": 537.5870863169886
+    },
+    {
+      "query_id": "legal_multiagg20:q8",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 5.696825396825396,
+      "gold": 2.31981981981982,
+      "lo": 3.590328783214445,
+      "hi": 7.803322010436347
+    },
+    {
+      "query_id": "legal_multiagg20:q8",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -15.515581854043395,
+      "gold": 7.603603603603603,
+      "lo": -60.38334422571652,
+      "hi": 29.352180517629726
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 6,
+      "gold": 49.0,
+      "lo": 6.0,
+      "hi": 6.0
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 11.833333333333334,
+      "gold": 2.306122448979592,
+      "lo": 11.833333333333334,
+      "hi": 11.833333333333334
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 6.73469387755102,
+      "lo": 0.0,
+      "hi": 0.0
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 197,
+      "gold": 280.0,
+      "lo": 197.0,
+      "hi": 197.0
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 8.666666666666666,
+      "gold": 1.8357142857142856,
+      "lo": 7.3731919213863755,
+      "hi": 9.960141411946957
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 10.48730964467005,
+      "gold": 5.428571428571429,
+      "lo": 10.155917235619695,
+      "hi": 10.818702053720406
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 20,
+      "gold": 14.0,
+      "lo": 20.0,
+      "hi": 20.0
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": -15.315000000000001,
+      "gold": 3.857142857142857,
+      "lo": -43.193236413046776,
+      "hi": 12.563236413046777
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 13.95,
+      "gold": 9.5,
+      "lo": 13.95,
+      "hi": 13.95
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 17,
+      "gold": 37.0,
+      "lo": 17.0,
+      "hi": 17.0
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 1.947058823529412,
+      "gold": 1.7297297297297298,
+      "lo": -4.904506889941514,
+      "hi": 8.798624537000338
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 118.15882352941176,
+      "gold": 6.972972972972973,
+      "lo": 117.5620830073902,
+      "hi": 118.75556405143332
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 146,
+      "gold": 85.0,
+      "lo": 123.27899696114855,
+      "hi": 167.72100303885145
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_statutes",
+      "covered": true,
+      "estimate": 6.447750865051902,
+      "gold": 3.4235294117647057,
+      "lo": 0.5793322212140914,
+      "hi": 12.316169508889713
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_precedents",
+      "covered": true,
+      "estimate": -37.53676975945019,
+      "gold": 9.364705882352942,
+      "lo": -180.63897519820915,
+      "hi": 105.56543567930879
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "case_count",
+      "covered": false,
+      "estimate": 32,
+      "gold": 33.0,
+      "lo": 32.0,
+      "hi": 32.0
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_statutes",
+      "covered": false,
+      "estimate": 4.103125,
+      "gold": 2.6666666666666665,
+      "lo": 3.391391924973341,
+      "hi": 4.81485807502666
+    },
+    {
+      "query_id": "legal_multiagg20:q9",
+      "cell": "avg_precedents",
+      "covered": false,
+      "estimate": 0.0,
+      "gold": 8.333333333333334,
+      "lo": 0.0,
+      "hi": 0.0
+    }
+  ],
+  "per_query": {
+    "legal_agg20:q0": {
+      "proxy": 0.5,
+      "null_oracle": 0.5,
+      "corrected": 0.5
+    },
+    "legal_agg20:q1": {
+      "proxy": 0.5,
+      "null_oracle": 0.5,
+      "corrected": 0.5
+    },
+    "legal_agg20:q10": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q11": {
+      "proxy": 0.25,
+      "null_oracle": 0.25,
+      "corrected": 0.25
+    },
+    "legal_agg20:q12": {
+      "proxy": 0.5012,
+      "null_oracle": 0.5012,
+      "corrected": 0.5012
+    },
+    "legal_agg20:q13": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q14": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q15": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q16": {
+      "proxy": 0.5,
+      "null_oracle": 0.5,
+      "corrected": 0.5
+    },
+    "legal_agg20:q17": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q18": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q19": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q2": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q3": {
+      "proxy": 1.0,
+      "null_oracle": 1.0,
+      "corrected": 1.0
+    },
+    "legal_agg20:q4": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q5": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_agg20:q6": {
+      "proxy": 0.8,
+      "null_oracle": 0.8,
+      "corrected": 0.8
+    },
+    "legal_agg20:q7": {
+      "proxy": 1.0,
+      "null_oracle": 1.0,
+      "corrected": 0.2256
+    },
+    "legal_agg20:q8": {
+      "proxy": 0.25,
+      "null_oracle": 0.25,
+      "corrected": 0.25
+    },
+    "legal_agg20:q9": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q0": {
+      "proxy": 0.5,
+      "null_oracle": 0.5,
+      "corrected": 0.5
+    },
+    "legal_filter20:q1": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q10": {
+      "proxy": 0.2595,
+      "null_oracle": 0.2595,
+      "corrected": 0.2595
+    },
+    "legal_filter20:q11": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q12": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q13": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q14": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q15": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q16": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q17": {
+      "proxy": 0.25,
+      "null_oracle": 0.25,
+      "corrected": 0.0
+    },
+    "legal_filter20:q18": {
+      "proxy": 0.5,
+      "null_oracle": 0.5,
+      "corrected": 0.5
+    },
+    "legal_filter20:q19": {
+      "proxy": 0.2256,
+      "null_oracle": 0.2256,
+      "corrected": 0.4511
+    },
+    "legal_filter20:q2": {
+      "proxy": 0.4511,
+      "null_oracle": 0.4511,
+      "corrected": 0.4511
+    },
+    "legal_filter20:q3": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q4": {
+      "proxy": 0.8,
+      "null_oracle": 0.8,
+      "corrected": 0.8
+    },
+    "legal_filter20:q5": {
+      "proxy": 1.0,
+      "null_oracle": 1.0,
+      "corrected": 0.1852
+    },
+    "legal_filter20:q6": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q7": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q8": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_filter20:q9": {
+      "proxy": 0.5,
+      "null_oracle": 0.5,
+      "corrected": 0.5
+    },
+    "legal_groupby20:q0": {
+      "proxy": 0.5822,
+      "null_oracle": 0.5822,
+      "corrected": 0.5822
+    },
+    "legal_groupby20:q1": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.25
+    },
+    "legal_groupby20:q10": {
+      "proxy": 0.4941,
+      "null_oracle": 0.4941,
+      "corrected": 0.4941
+    },
+    "legal_groupby20:q11": {
+      "proxy": 0.2256,
+      "null_oracle": 0.2256,
+      "corrected": 0.0
+    },
+    "legal_groupby20:q12": {
+      "proxy": 0.875,
+      "null_oracle": 0.875,
+      "corrected": 0.3119
+    },
+    "legal_groupby20:q13": {
+      "proxy": 0.7296,
+      "null_oracle": 0.7296,
+      "corrected": 0.7296
+    },
+    "legal_groupby20:q14": {
+      "proxy": 0.3119,
+      "null_oracle": 0.3119,
+      "corrected": 0.3119
+    },
+    "legal_groupby20:q15": {
+      "proxy": 1.0,
+      "null_oracle": 1.0,
+      "corrected": 1.0
+    },
+    "legal_groupby20:q16": {
+      "proxy": 0.573,
+      "null_oracle": 0.573,
+      "corrected": 0.573
+    },
+    "legal_groupby20:q17": {
+      "proxy": 0.1567,
+      "null_oracle": 0.1567,
+      "corrected": 0.1667
+    },
+    "legal_groupby20:q18": {
+      "proxy": 0.8,
+      "null_oracle": 0.8,
+      "corrected": 0.8
+    },
+    "legal_groupby20:q19": {
+      "proxy": 0.375,
+      "null_oracle": 0.375,
+      "corrected": 0.375
+    },
+    "legal_groupby20:q2": {
+      "proxy": 0.5983,
+      "null_oracle": 0.5983,
+      "corrected": 0.5983
+    },
+    "legal_groupby20:q3": {
+      "proxy": 0.5,
+      "null_oracle": 0.5,
+      "corrected": 0.5
+    },
+    "legal_groupby20:q4": {
+      "proxy": 0.0952,
+      "null_oracle": 0.0952,
+      "corrected": 0.2035
+    },
+    "legal_groupby20:q5": {
+      "proxy": 0.764,
+      "null_oracle": 0.764,
+      "corrected": 0.4348
+    },
+    "legal_groupby20:q6": {
+      "proxy": 0.6667,
+      "null_oracle": 0.6667,
+      "corrected": 0.5833
+    },
+    "legal_groupby20:q7": {
+      "proxy": 0.7778,
+      "null_oracle": 0.7778,
+      "corrected": 0.303
+    },
+    "legal_groupby20:q8": {
+      "proxy": 1.0,
+      "null_oracle": 1.0,
+      "corrected": 1.0
+    },
+    "legal_groupby20:q9": {
+      "proxy": 0.2256,
+      "null_oracle": 0.2256,
+      "corrected": 0.5983
+    },
+    "legal_multiagg20:q0": {
+      "proxy": 0.1667,
+      "null_oracle": 0.1667,
+      "corrected": 0.1667
+    },
+    "legal_multiagg20:q1": {
+      "proxy": 0.0833,
+      "null_oracle": 0.0833,
+      "corrected": 0.1667
+    },
+    "legal_multiagg20:q10": {
+      "proxy": 0.3125,
+      "null_oracle": 0.25,
+      "corrected": 0.3125
+    },
+    "legal_multiagg20:q11": {
+      "proxy": 0.4444,
+      "null_oracle": 0.4444,
+      "corrected": 0.4444
+    },
+    "legal_multiagg20:q12": {
+      "proxy": 0.5333,
+      "null_oracle": 0.5333,
+      "corrected": 0.5333
+    },
+    "legal_multiagg20:q13": {
+      "proxy": 0.5833,
+      "null_oracle": 0.5833,
+      "corrected": 0.1504
+    },
+    "legal_multiagg20:q14": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.1197
+    },
+    "legal_multiagg20:q15": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.1111
+    },
+    "legal_multiagg20:q16": {
+      "proxy": 0.5625,
+      "null_oracle": 0.5625,
+      "corrected": 0.5625
+    },
+    "legal_multiagg20:q17": {
+      "proxy": 0.375,
+      "null_oracle": 0.375,
+      "corrected": 0.375
+    },
+    "legal_multiagg20:q18": {
+      "proxy": 0.2404,
+      "null_oracle": 0.2404,
+      "corrected": 0.0823
+    },
+    "legal_multiagg20:q19": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.125
+    },
+    "legal_multiagg20:q2": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.25
+    },
+    "legal_multiagg20:q3": {
+      "proxy": 0.2667,
+      "null_oracle": 0.2667,
+      "corrected": 0.2667
+    },
+    "legal_multiagg20:q4": {
+      "proxy": 0.0,
+      "null_oracle": 0.0,
+      "corrected": 0.0
+    },
+    "legal_multiagg20:q5": {
+      "proxy": 0.5,
+      "null_oracle": 0.3333,
+      "corrected": 0.0752
+    },
+    "legal_multiagg20:q6": {
+      "proxy": 0.0827,
+      "null_oracle": 0.0827,
+      "corrected": 0.0788
+    },
+    "legal_multiagg20:q7": {
+      "proxy": 0.3333,
+      "null_oracle": 0.3333,
+      "corrected": 0.1667
+    },
+    "legal_multiagg20:q8": {
+      "proxy": 0.125,
+      "null_oracle": 0.125,
+      "corrected": 0.125
+    },
+    "legal_multiagg20:q9": {
+      "proxy": 0.1337,
+      "null_oracle": 0.1337,
+      "corrected": 0.1337
+    }
+  }
+}
