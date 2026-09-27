@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import os
 import sys
 import time
@@ -169,7 +170,8 @@ def run_query(qid: str, sql: str, table: str, fields: list[str], numeric: set[st
                 retry = [{"doc_id": m, "text": fit(by_id[m]["text"], template, cut[m])} for m in missing]
                 rows += run_batch(template, schema, retry, batches / f"{i:03d}_retry{j}", threads)
                 continue
-            missing = [m for m in missing if cut[m] > context]  # a document is never retried at a larger cut
+            missing = [m for m in missing if cut[m] > context  # a document is never retried at a larger cut
+                       and count_tokens(by_id[m]["text"]) > context - count_tokens(template) - ANSWER_ROOM]  # only cut documents
             if not missing:
                 break
             retry = [{"doc_id": m, "text": fit(by_id[m]["text"], template, context)} for m in missing]
@@ -241,8 +243,11 @@ def main() -> int:
             choices, _ = declared_choices(str(r.get("description") or ""))
             return choices and not all(c.replace(".", "", 1).lstrip("-").isdigit() for c in choices)
 
+        def codes(r):  # declared numeric codes ("1 if yes, 0 if none") make a text-typed field numeric
+            return len(re.findall(r"\b\d+\s+if\b", str(r.get("description") or ""))) >= 2
+
         numeric_sql = {a for t in spec.tables for a, r in attrs.get(t.attributes_key, {}).items()
-                       if str(r.get("value_type")) in ("int", "float") and not labels(r)}
+                       if (str(r.get("value_type")) in ("int", "float") and not labels(r)) or codes(r)}
     else:
         train, _test = workload(corpus)
         wf = workload_features(spec, {r["query_id"]: r["sql"] for r in train})
