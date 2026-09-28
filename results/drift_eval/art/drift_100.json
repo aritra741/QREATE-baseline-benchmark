@@ -1,0 +1,877 @@
+{
+ "level": 1.0,
+ "queries": 64,
+ "drifted": 64,
+ "short_of_pool": 0,
+ "cliffguard_delta": 0.24626,
+ "novel_feature_share": 0.4879,
+ "novelty_test_p": 0.0,
+ "sha256": "4f352460f3bcd148e3a5262548e51ad20a174dc87fd36fa1461bae741b2e9566",
+ "rows": [
+  {
+   "query_id": "art_drift:art_groupby20.q18.4",
+   "sql": "SELECT CASE WHEN death_city LIKE '%paris%' THEN 'Painting' WHEN death_city LIKE '%york%' THEN 'Sculpture' WHEN death_city LIKE '%london%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE death_city <> '' GROUP BY field_family, award_status",
+   "drifted": true,
+   "source": "art_groupby20:q18",
+   "operator": "replace",
+   "replaced": "art.field",
+   "by": "art.death_city",
+   "novel_features": [
+    "death_city@group",
+    "death_city@select",
+    "death_city@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q1.5",
+   "sql": "SELECT art_movement, COUNT(*) AS artist_count FROM art WHERE art_movement <> '' GROUP BY art_movement",
+   "drifted": true,
+   "source": "art_agg20:q1",
+   "operator": "replace",
+   "replaced": "art.century",
+   "by": "art.art_movement",
+   "novel_features": [
+    "art_movement@group",
+    "art_movement@select",
+    "art_movement@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q2.6",
+   "sql": "SELECT CASE WHEN object <> '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count FROM art GROUP BY institution_status",
+   "drifted": true,
+   "source": "art_agg20:q2",
+   "operator": "replace",
+   "replaced": "art.art_institution",
+   "by": "art.object",
+   "novel_features": [
+    "object@group",
+    "object@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q1.7",
+   "sql": "SELECT marriage, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE marriage <> '' AND NOT teaching IS NULL GROUP BY marriage, teaching_status",
+   "drifted": true,
+   "source": "art_groupby20:q1",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.marriage",
+   "novel_features": [
+    "marriage@group",
+    "marriage@select",
+    "marriage@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q11.3",
+   "sql": "SELECT composition, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE composition IN ('Balanced', 'Asymmetrical', 'Centralized', 'Dynamic', 'Symmetrical', 'Central Focus') AND NOT teaching IS NULL GROUP BY composition, teaching_status",
+   "drifted": true,
+   "source": "art_groupby20:q11",
+   "operator": "replace",
+   "replaced": "art.style",
+   "by": "art.composition",
+   "novel_features": [
+    "composition@group",
+    "composition@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q0.0",
+   "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE object IN ('Geometric Shapes', 'Human Figure') AND field <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "art_filter20:q0",
+   "operator": "replace",
+   "replaced": "art.century",
+   "by": "art.object",
+   "novel_features": [
+    "object@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q12.7",
+   "sql": "SELECT genre, MAX(awards) AS max_awards FROM art WHERE genre <> '' GROUP BY genre",
+   "drifted": true,
+   "source": "art_agg20:q12",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.genre",
+   "novel_features": [
+    "genre@group",
+    "genre@select",
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q6.3",
+   "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN zodiac IN ('Aries', 'Taurus', 'Pisces', 'Gemini', 'Leo', 'Aquarius', 'Sagittarius') THEN zodiac WHEN zodiac <> '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE field <> '' AND zodiac <> '' GROUP BY field_family, color_family",
+   "drifted": true,
+   "source": "art_groupby20:q6",
+   "operator": "replace",
+   "replaced": "art.color",
+   "by": "art.zodiac",
+   "novel_features": [
+    "zodiac@group",
+    "zodiac@select",
+    "zodiac@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q12.1",
+   "sql": "SELECT zodiac, century, COUNT(*) AS artist_count FROM art WHERE zodiac IN ('Aries', 'Taurus', 'Pisces', 'Gemini', 'Leo') AND century <> '' GROUP BY zodiac, century",
+   "drifted": true,
+   "source": "art_groupby20:q12",
+   "operator": "replace",
+   "replaced": "art.birth_country",
+   "by": "art.zodiac",
+   "novel_features": [
+    "zodiac@group",
+    "zodiac@select",
+    "zodiac@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q0.1",
+   "sql": "SELECT composition, COUNT(*) AS artist_count FROM art WHERE composition <> '' GROUP BY composition",
+   "drifted": true,
+   "source": "art_agg20:q0",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.composition",
+   "novel_features": [
+    "composition@group",
+    "composition@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q6.6",
+   "sql": "SELECT composition, COUNT(*) AS artist_count FROM art WHERE teaching = 1 AND awards = 0 AND composition <> '' GROUP BY composition HAVING COUNT(*) >= 3",
+   "drifted": true,
+   "source": "art_filter20:q6",
+   "operator": "replace",
+   "replaced": "art.image_genre",
+   "by": "art.composition",
+   "novel_features": [
+    "composition@group",
+    "composition@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q5.7",
+   "sql": "SELECT composition, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE composition IN ('Balanced', 'Asymmetrical', 'Centralized', 'Dynamic', 'Symmetrical', 'Central Focus') GROUP BY composition, award_status",
+   "drifted": true,
+   "source": "art_groupby20:q5",
+   "operator": "replace",
+   "replaced": "art.image_genre",
+   "by": "art.composition",
+   "novel_features": [
+    "composition@group",
+    "composition@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q7.5",
+   "sql": "SELECT marriage, COUNT(*) AS artist_count FROM art WHERE marriage <> '' GROUP BY marriage HAVING COUNT(*) >= 10",
+   "drifted": true,
+   "source": "art_agg20:q7",
+   "operator": "replace",
+   "replaced": "art.image_genre",
+   "by": "art.marriage",
+   "novel_features": [
+    "marriage@group",
+    "marriage@select",
+    "marriage@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q17.6",
+   "sql": "SELECT genre, COUNT(*) AS artist_count, AVG(age) AS avg_age, MAX(awards) AS max_awards FROM art WHERE genre IN ('Abstract', 'Landscape', 'Portrait', 'Figurative', 'Portrait||Landscape', 'Landscape||Portrait', 'Surrealism', 'Avant-garde') AND age BETWEEN 25 AND 105 GROUP BY genre",
+   "drifted": true,
+   "source": "art_multiagg20:q17",
+   "operator": "replace",
+   "replaced": "art.style",
+   "by": "art.genre",
+   "novel_features": [
+    "genre@group",
+    "genre@select",
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q5.4",
+   "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone <> '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count FROM art WHERE image_genre = 'Portrait' AND object IN ('Geometric Shapes', 'Human Figure', 'Human Figures', 'Shapes') GROUP BY tone_family",
+   "drifted": true,
+   "source": "art_filter20:q5",
+   "operator": "replace",
+   "replaced": "art.color",
+   "by": "art.object",
+   "novel_features": [
+    "object@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q18.0",
+   "sql": "SELECT death_city, AVG(awards) AS avg_awards FROM art WHERE death_city <> '' GROUP BY death_city HAVING COUNT(*) >= 15",
+   "drifted": true,
+   "source": "art_agg20:q18",
+   "operator": "replace",
+   "replaced": "art.style",
+   "by": "art.death_city",
+   "novel_features": [
+    "death_city@group",
+    "death_city@select",
+    "death_city@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q19.7",
+   "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE name LIKE '%shahn%' AND century <> '' GROUP BY century",
+   "drifted": true,
+   "source": "art_filter20:q19",
+   "operator": "replace",
+   "replaced": "art.composition",
+   "by": "art.name",
+   "novel_features": [
+    "name@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q3.4",
+   "sql": "SELECT genre, AVG(age) AS avg_age FROM art WHERE awards >= 1 AND age BETWEEN 25 AND 105 AND genre <> '' GROUP BY genre",
+   "drifted": true,
+   "source": "art_filter20:q3",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.genre",
+   "novel_features": [
+    "genre@group",
+    "genre@select",
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q10.4",
+   "sql": "SELECT CASE WHEN art_movement IN ('Surrealism', 'Abstract Expressionism', 'Realism', 'Pop Art', 'Impressionism', 'Contemporary', 'Abstract') THEN art_movement WHEN art_movement <> '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count, AVG(age) AS avg_age, MAX(awards) AS max_awards FROM art WHERE art_movement <> '' AND age BETWEEN 25 AND 105 GROUP BY color_family HAVING COUNT(*) >= 10",
+   "drifted": true,
+   "source": "art_multiagg20:q10",
+   "operator": "replace",
+   "replaced": "art.color",
+   "by": "art.art_movement",
+   "novel_features": [
+    "art_movement@group",
+    "art_movement@select",
+    "art_movement@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q8.6",
+   "sql": "SELECT zodiac, COUNT(*) AS artist_count FROM art WHERE zodiac <> '' GROUP BY zodiac HAVING COUNT(*) >= 15",
+   "drifted": true,
+   "source": "art_agg20:q8",
+   "operator": "replace",
+   "replaced": "art.style",
+   "by": "art.zodiac",
+   "novel_features": [
+    "zodiac@group",
+    "zodiac@select",
+    "zodiac@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q7.1",
+   "sql": "SELECT composition, CASE WHEN nationality = 'American' THEN 'American' WHEN nationality <> '' THEN 'non_American' END AS nationality_group, COUNT(*) AS artist_count FROM art WHERE composition <> '' AND nationality <> '' GROUP BY composition, nationality_group",
+   "drifted": true,
+   "source": "art_groupby20:q7",
+   "operator": "replace",
+   "replaced": "art.century",
+   "by": "art.composition",
+   "novel_features": [
+    "composition@group",
+    "composition@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q14.2",
+   "sql": "SELECT genre, COUNT(*) AS artist_count FROM art WHERE death_country <> '' AND death_country <> birth_country AND genre <> '' GROUP BY genre",
+   "drifted": true,
+   "source": "art_filter20:q14",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.genre",
+   "novel_features": [
+    "genre@group",
+    "genre@select",
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q5.2",
+   "sql": "SELECT zodiac, AVG(age) AS avg_age FROM art WHERE zodiac <> '' AND age BETWEEN 25 AND 105 GROUP BY zodiac",
+   "drifted": true,
+   "source": "art_agg20:q5",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.zodiac",
+   "novel_features": [
+    "zodiac@group",
+    "zodiac@select",
+    "zodiac@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q17.3",
+   "sql": "SELECT CASE WHEN birth_city IN ('Paris', 'London', 'New York City', 'New York') THEN birth_city WHEN birth_city <> '' THEN 'Other' END AS tone_family, AVG(age) AS avg_age FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract') AND age BETWEEN 25 AND 105 GROUP BY tone_family",
+   "drifted": true,
+   "source": "art_filter20:q17",
+   "operator": "replace",
+   "replaced": "art.tone",
+   "by": "art.birth_city",
+   "novel_features": [
+    "birth_city@group",
+    "birth_city@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q12.3",
+   "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE birth_city IN ('Paris', 'London', 'New York City', 'New York', 'Philadelphia') AND field <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "art_filter20:q12",
+   "operator": "replace",
+   "replaced": "art.birth_country",
+   "by": "art.birth_city",
+   "novel_features": [
+    "birth_city@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q17.6",
+   "sql": "SELECT century, CASE WHEN art_movement <> '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count FROM art WHERE century <> '' GROUP BY century, institution_status",
+   "drifted": true,
+   "source": "art_groupby20:q17",
+   "operator": "replace",
+   "replaced": "art.art_institution",
+   "by": "art.art_movement",
+   "novel_features": [
+    "art_movement@group",
+    "art_movement@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q13.3",
+   "sql": "SELECT CASE WHEN art_movement IN ('Surrealism', 'Abstract Expressionism', 'Realism') THEN art_movement ELSE 'Other' END AS continent_group, COUNT(*) AS artist_count, AVG(awards) AS avg_awards, MAX(awards) AS max_awards, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE art_movement <> '' GROUP BY continent_group",
+   "drifted": true,
+   "source": "art_multiagg20:q13",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.art_movement",
+   "novel_features": [
+    "art_movement@group",
+    "art_movement@select",
+    "art_movement@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q15.0",
+   "sql": "SELECT art_movement, COUNT(*) AS artist_count FROM art WHERE art_movement <> '' GROUP BY art_movement HAVING COUNT(*) >= 10",
+   "drifted": true,
+   "source": "art_agg20:q15",
+   "operator": "replace",
+   "replaced": "art.nationality",
+   "by": "art.art_movement",
+   "novel_features": [
+    "art_movement@group",
+    "art_movement@select",
+    "art_movement@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q10.2",
+   "sql": "SELECT CASE WHEN zodiac IN ('Aries', 'Taurus', 'Pisces', 'Gemini') THEN zodiac WHEN zodiac <> '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count FROM art WHERE zodiac <> '' GROUP BY tone_family",
+   "drifted": true,
+   "source": "art_agg20:q10",
+   "operator": "replace",
+   "replaced": "art.tone",
+   "by": "art.zodiac",
+   "novel_features": [
+    "zodiac@group",
+    "zodiac@select",
+    "zodiac@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q3.0",
+   "sql": "SELECT CASE WHEN object LIKE '%geometric%' THEN 'Painting' WHEN object LIKE '%human%' THEN 'Sculpture' WHEN object LIKE '%figures%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE object <> '' AND age BETWEEN 25 AND 105 GROUP BY field_family",
+   "drifted": true,
+   "source": "art_multiagg20:q3",
+   "operator": "replace",
+   "replaced": "art.field",
+   "by": "art.object",
+   "novel_features": [
+    "object@group",
+    "object@select",
+    "object@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q16.2",
+   "sql": "SELECT image_genre, CASE WHEN genre IN ('Abstract', 'Landscape', 'Portrait', 'Figurative') THEN genre ELSE 'Other' END AS color_group, COUNT(*) AS artist_count FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract') AND genre <> '' GROUP BY image_genre, color_group",
+   "drifted": true,
+   "source": "art_groupby20:q16",
+   "operator": "replace",
+   "replaced": "art.color",
+   "by": "art.genre",
+   "novel_features": [
+    "genre@group",
+    "genre@select",
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q15.3",
+   "sql": "SELECT CASE WHEN zodiac IN ('Aries', 'Taurus') THEN zodiac ELSE 'Other' END AS continent_group, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE zodiac <> '' GROUP BY continent_group, award_status",
+   "drifted": true,
+   "source": "art_groupby20:q15",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.zodiac",
+   "novel_features": [
+    "zodiac@group",
+    "zodiac@select",
+    "zodiac@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q10.5",
+   "sql": "SELECT century, AVG(awards) AS avg_awards FROM art WHERE zodiac <> '' AND century <> '' GROUP BY century",
+   "drifted": true,
+   "source": "art_filter20:q10",
+   "operator": "replace",
+   "replaced": "art.art_institution",
+   "by": "art.zodiac",
+   "novel_features": [
+    "zodiac@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q13.6",
+   "sql": "SELECT CASE WHEN death_city LIKE '%paris%' THEN 'Painting' WHEN death_city LIKE '%york%' THEN 'Sculpture' WHEN death_city LIKE '%london%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN age < 60 THEN 'under_60' ELSE '60_or_older' END AS age_band, COUNT(*) AS artist_count FROM art WHERE death_city <> '' AND age BETWEEN 25 AND 105 GROUP BY field_family, age_band",
+   "drifted": true,
+   "source": "art_groupby20:q13",
+   "operator": "replace",
+   "replaced": "art.field",
+   "by": "art.death_city",
+   "novel_features": [
+    "death_city@group",
+    "death_city@select",
+    "death_city@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q5.5",
+   "sql": "SELECT composition, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS awarded_count FROM art WHERE composition <> '' AND age BETWEEN 25 AND 105 GROUP BY composition HAVING COUNT(*) >= 12",
+   "drifted": true,
+   "source": "art_multiagg20:q5",
+   "operator": "replace",
+   "replaced": "art.style",
+   "by": "art.composition",
+   "novel_features": [
+    "composition@group",
+    "composition@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q19.3",
+   "sql": "SELECT art_movement, MIN(age) AS youngest FROM art WHERE art_movement <> '' AND age BETWEEN 25 AND 105 GROUP BY art_movement",
+   "drifted": true,
+   "source": "art_agg20:q19",
+   "operator": "replace",
+   "replaced": "art.century",
+   "by": "art.art_movement",
+   "novel_features": [
+    "art_movement@group",
+    "art_movement@select",
+    "art_movement@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q4.6",
+   "sql": "SELECT CASE WHEN awards = 0 THEN 'no_awards' WHEN awards = 1 THEN 'one_award' ELSE 'multiple_awards' END AS award_band, teaching, COUNT(*) AS artist_count, death_city FROM art WHERE NOT teaching IS NULL AND NOT awards IS NULL GROUP BY award_band, teaching, death_city",
+   "drifted": true,
+   "source": "art_groupby20:q4",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "art.death_city",
+   "novel_features": [
+    "death_city@group",
+    "death_city@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q10.6",
+   "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone <> '' THEN 'Other' END AS tone_family, zodiac, COUNT(*) AS artist_count FROM art WHERE tone <> '' AND zodiac IN ('Aries', 'Taurus', 'Pisces', 'Gemini') GROUP BY tone_family, zodiac",
+   "drifted": true,
+   "source": "art_groupby20:q10",
+   "operator": "replace",
+   "replaced": "art.image_genre",
+   "by": "art.zodiac",
+   "novel_features": [
+    "zodiac@group",
+    "zodiac@select",
+    "zodiac@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q8.5",
+   "sql": "SELECT zodiac, COUNT(*) AS artist_count, MIN(age) AS youngest, MAX(age) AS oldest, AVG(awards) AS avg_awards FROM art WHERE zodiac <> '' AND age BETWEEN 25 AND 105 GROUP BY zodiac",
+   "drifted": true,
+   "source": "art_multiagg20:q8",
+   "operator": "replace",
+   "replaced": "art.century",
+   "by": "art.zodiac",
+   "novel_features": [
+    "zodiac@group",
+    "zodiac@select",
+    "zodiac@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q6.6",
+   "sql": "SELECT CASE WHEN object LIKE '%geometric%' THEN 'Painting' WHEN object LIKE '%human%' THEN 'Sculpture' WHEN object LIKE '%figures%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE object <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "art_agg20:q6",
+   "operator": "replace",
+   "replaced": "art.field",
+   "by": "art.object",
+   "novel_features": [
+    "object@group",
+    "object@select",
+    "object@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q1.4",
+   "sql": "SELECT birth_city, COUNT(*) AS artist_count FROM art WHERE awards >= 1 AND birth_city <> '' GROUP BY birth_city",
+   "drifted": true,
+   "source": "art_filter20:q1",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.birth_city",
+   "novel_features": [
+    "birth_city@group",
+    "birth_city@select",
+    "birth_city@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q7.1",
+   "sql": "SELECT teaching, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards, MAX(awards) AS max_awards FROM art WHERE (NOT teaching IS NULL AND age BETWEEN 25 AND 105) AND genre = 'Abstract' GROUP BY teaching",
+   "drifted": true,
+   "source": "art_multiagg20:q7",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "art.genre",
+   "novel_features": [
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q9.3",
+   "sql": "SELECT death_city, century, COUNT(*) AS artist_count FROM art WHERE death_city IN ('Paris', 'New York', 'London', 'New York City', 'Mexico City', 'Philadelphia') AND century <> '' GROUP BY death_city, century",
+   "drifted": true,
+   "source": "art_groupby20:q9",
+   "operator": "replace",
+   "replaced": "art.style",
+   "by": "art.death_city",
+   "novel_features": [
+    "death_city@group",
+    "death_city@select",
+    "death_city@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q12.7",
+   "sql": "SELECT CASE WHEN death_country <> '' AND death_country <> name THEN 'died_abroad' WHEN death_country <> '' THEN 'died_in_birth_country' ELSE 'death_country_unknown' END AS death_place, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE age BETWEEN 25 AND 105 GROUP BY death_place",
+   "drifted": true,
+   "source": "art_multiagg20:q12",
+   "operator": "replace",
+   "replaced": "art.birth_country",
+   "by": "art.name",
+   "novel_features": [
+    "name@group",
+    "name@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q2.6",
+   "sql": "SELECT genre, CASE WHEN age < 50 THEN 'under_50' WHEN age < 75 THEN '50_to_74' ELSE '75_or_older' END AS age_band, COUNT(*) AS artist_count FROM art WHERE genre <> '' AND age BETWEEN 25 AND 105 GROUP BY genre, age_band",
+   "drifted": true,
+   "source": "art_groupby20:q2",
+   "operator": "replace",
+   "replaced": "art.century",
+   "by": "art.genre",
+   "novel_features": [
+    "genre@group",
+    "genre@select",
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q3.6",
+   "sql": "SELECT birth_continent, CASE WHEN genre IN ('Abstract', 'Landscape', 'Portrait', 'Figurative') THEN genre WHEN genre <> '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count FROM art WHERE birth_continent <> '' AND genre <> '' GROUP BY birth_continent, tone_family",
+   "drifted": true,
+   "source": "art_groupby20:q3",
+   "operator": "replace",
+   "replaced": "art.tone",
+   "by": "art.genre",
+   "novel_features": [
+    "genre@group",
+    "genre@select",
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q4.7",
+   "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE genre IN ('Abstract', 'Landscape', 'Portrait', 'Figurative') AND age BETWEEN 40 AND 90 AND century <> '' GROUP BY century",
+   "drifted": true,
+   "source": "art_filter20:q4",
+   "operator": "replace",
+   "replaced": "art.nationality",
+   "by": "art.genre",
+   "novel_features": [
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q9.1",
+   "sql": "SELECT CASE WHEN composition IN ('Balanced', 'Asymmetrical', 'Centralized', 'Dynamic', 'Symmetrical', 'Central Focus', 'Geometric') THEN composition WHEN composition <> '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE composition <> '' GROUP BY color_family",
+   "drifted": true,
+   "source": "art_agg20:q9",
+   "operator": "replace",
+   "replaced": "art.color",
+   "by": "art.composition",
+   "novel_features": [
+    "composition@group",
+    "composition@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q0.5",
+   "sql": "SELECT CASE WHEN death_city LIKE '%paris%' THEN 'Painting' WHEN death_city LIKE '%york%' THEN 'Sculpture' WHEN death_city LIKE '%london%' THEN 'Photography' ELSE 'Other' END AS field_family, century, COUNT(*) AS artist_count FROM art WHERE death_city <> '' AND century <> '' GROUP BY field_family, century",
+   "drifted": true,
+   "source": "art_groupby20:q0",
+   "operator": "replace",
+   "replaced": "art.field",
+   "by": "art.death_city",
+   "novel_features": [
+    "death_city@group",
+    "death_city@select",
+    "death_city@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q8.7",
+   "sql": "SELECT art_movement, CASE WHEN death_country <> '' AND death_country <> birth_country THEN 'died_abroad' WHEN death_country <> '' THEN 'died_in_birth_country' ELSE 'death_country_unknown' END AS death_place, COUNT(*) AS artist_count FROM art WHERE art_movement <> '' GROUP BY art_movement, death_place",
+   "drifted": true,
+   "source": "art_groupby20:q8",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.art_movement",
+   "novel_features": [
+    "art_movement@group",
+    "art_movement@select",
+    "art_movement@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q16.4",
+   "sql": "SELECT teaching, COUNT(*) AS artist_count, genre FROM art WHERE age >= 80 AND age <= 105 AND NOT teaching IS NULL GROUP BY teaching, genre",
+   "drifted": true,
+   "source": "art_filter20:q16",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "art.genre",
+   "novel_features": [
+    "genre@group",
+    "genre@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q1.1",
+   "sql": "SELECT genre, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(awards) AS total_awards FROM art WHERE genre <> '' AND age BETWEEN 25 AND 105 GROUP BY genre HAVING COUNT(*) >= 5",
+   "drifted": true,
+   "source": "art_multiagg20:q1",
+   "operator": "replace",
+   "replaced": "art.birth_continent",
+   "by": "art.genre",
+   "novel_features": [
+    "genre@group",
+    "genre@select",
+    "genre@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q0.4",
+   "sql": "SELECT birth_city, COUNT(*) AS artist_count, AVG(age) AS avg_age, MAX(awards) AS max_awards FROM art WHERE birth_city <> '' AND age BETWEEN 25 AND 105 GROUP BY birth_city",
+   "drifted": true,
+   "source": "art_multiagg20:q0",
+   "operator": "replace",
+   "replaced": "art.century",
+   "by": "art.birth_city",
+   "novel_features": [
+    "birth_city@group",
+    "birth_city@select",
+    "birth_city@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q2.4",
+   "sql": "SELECT marriage, COUNT(*) AS artist_count FROM art WHERE teaching = 1 AND marriage <> '' GROUP BY marriage",
+   "drifted": true,
+   "source": "art_filter20:q2",
+   "operator": "replace",
+   "replaced": "art.century",
+   "by": "art.marriage",
+   "novel_features": [
+    "marriage@group",
+    "marriage@select",
+    "marriage@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q14.0",
+   "sql": "SELECT marriage, COUNT(*) AS artist_count, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS awarded_count, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count, AVG(age) AS avg_age FROM art WHERE marriage <> '' AND age BETWEEN 25 AND 105 GROUP BY marriage",
+   "drifted": true,
+   "source": "art_multiagg20:q14",
+   "operator": "replace",
+   "replaced": "art.century",
+   "by": "art.marriage",
+   "novel_features": [
+    "marriage@group",
+    "marriage@select",
+    "marriage@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_groupby20.q19.3",
+   "sql": "SELECT marriage, CASE WHEN tone IN ('Neutral', 'Bright', 'Dark') THEN tone ELSE 'Other' END AS tone_group, COUNT(*) AS artist_count FROM art WHERE marriage IN ('Married', 'Unmarried', 'Remarried', 'Divorced', 'Widowed') AND tone <> '' GROUP BY marriage, tone_group",
+   "drifted": true,
+   "source": "art_groupby20:q19",
+   "operator": "replace",
+   "replaced": "art.style",
+   "by": "art.marriage",
+   "novel_features": [
+    "marriage@group",
+    "marriage@select",
+    "marriage@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q18.4",
+   "sql": "SELECT art_movement, COUNT(*) AS artist_count FROM art WHERE awards >= 2 AND art_movement <> '' GROUP BY art_movement HAVING COUNT(*) >= 2",
+   "drifted": true,
+   "source": "art_filter20:q18",
+   "operator": "replace",
+   "replaced": "art.nationality",
+   "by": "art.art_movement",
+   "novel_features": [
+    "art_movement@group",
+    "art_movement@select",
+    "art_movement@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_agg20.q16.7",
+   "sql": "SELECT composition, COUNT(*) AS artist_count FROM art WHERE composition <> '' GROUP BY composition HAVING COUNT(*) >= 10",
+   "drifted": true,
+   "source": "art_agg20:q16",
+   "operator": "replace",
+   "replaced": "art.birth_country",
+   "by": "art.composition",
+   "novel_features": [
+    "composition@group",
+    "composition@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q16.7",
+   "sql": "SELECT object, COUNT(*) AS artist_count, MIN(age) AS youngest, MAX(age) AS oldest, SUM(awards) AS total_awards FROM art WHERE object IN ('Geometric Shapes', 'Human Figure', 'Human Figures', 'Shapes', 'Geometric Forms') AND age BETWEEN 25 AND 105 GROUP BY object",
+   "drifted": true,
+   "source": "art_multiagg20:q16",
+   "operator": "replace",
+   "replaced": "art.image_genre",
+   "by": "art.object",
+   "novel_features": [
+    "object@group",
+    "object@select",
+    "object@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q6.7",
+   "sql": "SELECT CASE WHEN composition IN ('Balanced', 'Asymmetrical', 'Centralized', 'Dynamic') THEN composition WHEN composition <> '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards FROM art WHERE composition <> '' AND age BETWEEN 25 AND 105 GROUP BY tone_family",
+   "drifted": true,
+   "source": "art_multiagg20:q6",
+   "operator": "replace",
+   "replaced": "art.tone",
+   "by": "art.composition",
+   "novel_features": [
+    "composition@group",
+    "composition@select"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q15.6",
+   "sql": "SELECT CASE WHEN death_date LIKE '%1905/5/13%' THEN 'Painting' WHEN death_date LIKE '%1905/6/3%' THEN 'Sculpture' WHEN death_date LIKE '%1905/7/7%' THEN 'Photography' ELSE 'Other' END AS field_family, century, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards FROM art WHERE death_date <> '' AND century <> '' AND age BETWEEN 25 AND 105 GROUP BY field_family, century HAVING COUNT(*) >= 5",
+   "drifted": true,
+   "source": "art_multiagg20:q15",
+   "operator": "replace",
+   "replaced": "art.field",
+   "by": "art.death_date",
+   "novel_features": [
+    "death_date@group",
+    "death_date@select",
+    "death_date@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q2.4",
+   "sql": "SELECT object, COUNT(*) AS artist_count, AVG(awards) AS avg_awards, MAX(awards) AS max_awards FROM art WHERE object <> '' GROUP BY object HAVING COUNT(*) >= 8",
+   "drifted": true,
+   "source": "art_multiagg20:q2",
+   "operator": "replace",
+   "replaced": "art.nationality",
+   "by": "art.object",
+   "novel_features": [
+    "object@group",
+    "object@select",
+    "object@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_filter20.q13.4",
+   "sql": "SELECT object, COUNT(*) AS artist_count FROM art WHERE tone IN ('Bright', 'Dark') AND object <> '' GROUP BY object HAVING COUNT(*) >= 5",
+   "drifted": true,
+   "source": "art_filter20:q13",
+   "operator": "replace",
+   "replaced": "art.style",
+   "by": "art.object",
+   "novel_features": [
+    "object@group",
+    "object@select",
+    "object@where"
+   ]
+  },
+  {
+   "query_id": "art_drift:art_multiagg20.q19.7",
+   "sql": "SELECT birth_continent, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN birth_city <> '' AND birth_city <> birth_country THEN 1 ELSE 0 END) AS died_abroad_count, MAX(awards) AS max_awards FROM art WHERE birth_continent <> '' AND age BETWEEN 25 AND 105 GROUP BY birth_continent HAVING COUNT(*) >= 5",
+   "drifted": true,
+   "source": "art_multiagg20:q19",
+   "operator": "replace",
+   "replaced": "art.death_country",
+   "by": "art.birth_city",
+   "novel_features": [
+    "birth_city@select"
+   ]
+  }
+ ]
+}

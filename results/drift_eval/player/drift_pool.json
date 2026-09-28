@@ -1,0 +1,2784 @@
+[
+ {
+  "query_id": "player_drift:player_groupby20.q2.0",
+  "source": "player_groupby20:q2",
+  "sql": "SELECT CAST(olympic_gold_medals / 5 AS INTEGER) * 5 AS draft_cohort, position, COUNT(*) AS player_count FROM player WHERE olympic_gold_medals > 0 AND position IN ('Frontcourt', 'Backcourt') GROUP BY draft_cohort, position",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q2.1",
+  "source": "player_groupby20:q2",
+  "sql": "SELECT CAST(fiba_world_cup / 5 AS INTEGER) * 5 AS draft_cohort, position, COUNT(*) AS player_count FROM player WHERE fiba_world_cup > 0 AND position IN ('Frontcourt', 'Backcourt') GROUP BY draft_cohort, position",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q11.0",
+  "source": "player_filterjoin20:q11",
+  "sql": "SELECT p.position, AVG(p.mvp_awards) AS avg_mvp, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.mvp_awards >= 1 AND t.founded_year < 1980 AND p.position IN ('Frontcourt', 'Backcourt') GROUP BY p.position, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 7
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q9.0",
+  "source": "docetl_Player_v7:q9",
+  "sql": "SELECT college, COUNT(*) AS champion_count FROM player WHERE (nba_championships >= 1 AND college <> '') AND name LIKE '%aaron%' GROUP BY college",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q5.0",
+  "source": "player_multiagg20:q5",
+  "sql": "SELECT position, COUNT(*) AS player_count, AVG(mvp_awards) AS avg_mvp, AVG(nba_championships) AS avg_titles FROM player WHERE (position IN ('Frontcourt', 'Backcourt') AND NOT mvp_awards IS NULL AND NOT nba_championships IS NULL) AND name LIKE '%aaron%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.125,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q5.1",
+  "source": "player_multiagg20:q5",
+  "sql": "SELECT position, COUNT(*) AS player_count, AVG(mvp_awards) AS avg_mvp, AVG(nba_championships) AS avg_titles FROM player WHERE (position IN ('Frontcourt', 'Backcourt') AND NOT mvp_awards IS NULL AND NOT nba_championships IS NULL) AND birth_date LIKE '%1919/3/23%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.125,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q10.0",
+  "source": "player_groupby20:q10",
+  "sql": "SELECT position, CASE WHEN olympic_gold_medals >= 0 THEN 'has_championship' WHEN olympic_gold_medals = 0 THEN 'no_championship' ELSE 'unknown' END AS championship_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, championship_status",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "nba_championships",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q10.1",
+  "source": "player_groupby20:q10",
+  "sql": "SELECT position, CASE WHEN fiba_world_cup >= 0 THEN 'has_championship' WHEN fiba_world_cup = 0 THEN 'no_championship' ELSE 'unknown' END AS championship_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, championship_status",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "nba_championships",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q10.2",
+  "source": "player_groupby20:q10",
+  "sql": "SELECT position, CASE WHEN nba_championships >= 1 THEN 'has_championship' WHEN nba_championships = 0 THEN 'no_championship' ELSE 'unknown' END AS championship_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND name LIKE '%aaron%' GROUP BY position, championship_status",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q10.3",
+  "source": "player_groupby20:q10",
+  "sql": "SELECT position, CASE WHEN nba_championships >= 1 THEN 'has_championship' WHEN nba_championships = 0 THEN 'no_championship' ELSE 'unknown' END AS championship_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND birth_date LIKE '%1919/3/23%' GROUP BY position, championship_status",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q1.0",
+  "source": "docetl_Player_v7:q1",
+  "sql": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE nationality <> '' AND name LIKE '%aaron%' GROUP BY nationality",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q1.1",
+  "source": "docetl_Player_v7:q1",
+  "sql": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE nationality <> '' AND birth_date LIKE '%1919/3/23%' GROUP BY nationality",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q10.0",
+  "source": "player_multiagg20:q10",
+  "sql": "SELECT state_name, COUNT(*) AS city_count, AVG(population) AS avg_population, MAX(population) AS max_population, SUM(gdp) AS total_area FROM city WHERE state_name <> '' AND NOT population IS NULL AND NOT gdp IS NULL GROUP BY state_name HAVING COUNT(*) >= 2",
+  "operator": "replace",
+  "table": "city",
+  "replaced": "area",
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 3
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q10.1",
+  "source": "player_multiagg20:q10",
+  "sql": "SELECT state_name, COUNT(*) AS city_count, AVG(gdp) AS avg_population, MAX(gdp) AS max_population, SUM(area) AS total_area FROM city WHERE state_name <> '' AND NOT gdp IS NULL AND NOT area IS NULL GROUP BY state_name HAVING COUNT(*) >= 2",
+  "operator": "replace",
+  "table": "city",
+  "replaced": "population",
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 3
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q10.2",
+  "source": "player_multiagg20:q10",
+  "sql": "SELECT state_name, COUNT(*) AS city_count, AVG(population) AS avg_population, MAX(population) AS max_population, SUM(area) AS total_area FROM city WHERE (state_name <> '' AND NOT population IS NULL AND NOT area IS NULL) AND gdp >= 362000 GROUP BY state_name HAVING COUNT(*) >= 2",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.125,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q15.0",
+  "source": "docetl_Player_v7:q15",
+  "sql": "SELECT location, AVG(championship) AS avg_championships FROM team WHERE (championship >= 1 AND location <> '') AND ownership LIKE '%atlanta%' GROUP BY location",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q15.1",
+  "source": "docetl_Player_v7:q15",
+  "sql": "SELECT location, AVG(championship) AS avg_championships FROM team WHERE (championship >= 1 AND location <> '') AND team_name LIKE '%atlanta%' GROUP BY location",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "team_name",
+  "kind": "categorical",
+  "novel_features": [
+   "team_name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q18.0",
+  "source": "player_multiagg20:q18",
+  "sql": "SELECT CAST(olympic_gold_medals / 10 AS INTEGER) * 10 AS draft_decade, COUNT(*) AS player_count, AVG(draft_pick) AS avg_pick, MIN(draft_pick) AS best_pick, MAX(draft_pick) AS latest_pick FROM player WHERE olympic_gold_medals > 0 AND draft_pick > 0 GROUP BY draft_decade HAVING COUNT(*) >= 2",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q18.1",
+  "source": "player_multiagg20:q18",
+  "sql": "SELECT CAST(fiba_world_cup / 10 AS INTEGER) * 10 AS draft_decade, COUNT(*) AS player_count, AVG(draft_pick) AS avg_pick, MIN(draft_pick) AS best_pick, MAX(draft_pick) AS latest_pick FROM player WHERE fiba_world_cup > 0 AND draft_pick > 0 GROUP BY draft_decade HAVING COUNT(*) >= 2",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q13.0",
+  "source": "player_multiagg20:q13",
+  "sql": "SELECT t.ownership, COUNT(*) AS player_count, AVG(p.nba_championships) AS avg_player_titles, SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) AS fiba_winner_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE t.ownership <> '' AND NOT p.nba_championships IS NULL AND NOT p.fiba_world_cup IS NULL GROUP BY t.ownership HAVING SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) >= 1",
+  "operator": "replace",
+  "table": "team",
+  "replaced": "location",
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select",
+   "ownership@where"
+  ],
+  "novel_share": 0.429,
+  "gold_rows": 10
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q13.1",
+  "source": "player_multiagg20:q13",
+  "sql": "SELECT t.location, COUNT(*) AS player_count, AVG(p.nba_championships) AS avg_player_titles, SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) AS fiba_winner_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE t.location <> '' AND NOT p.nba_championships IS NULL AND NOT p.fiba_world_cup IS NULL GROUP BY t.location, t.ownership HAVING SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) >= 1",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.222,
+  "gold_rows": 13
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q13.2",
+  "source": "player_multiagg20:q13",
+  "sql": "SELECT t.location, COUNT(*) AS player_count, AVG(p.nba_championships) AS avg_player_titles, SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) AS fiba_winner_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE (t.location <> '' AND NOT p.nba_championships IS NULL AND NOT p.fiba_world_cup IS NULL) AND p.name LIKE '%aaron%' GROUP BY t.location HAVING SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) >= 1",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.125,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q10.0",
+  "source": "docetl_Player_v7:q10",
+  "sql": "SELECT p.team, SUM(p.fiba_world_cup) AS total_fiba_titles, t.ownership FROM player AS p JOIN team AS t ON p.team = t.team_name WHERE p.fiba_world_cup >= 1 GROUP BY p.team, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 13
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q10.1",
+  "source": "docetl_Player_v7:q10",
+  "sql": "SELECT p.team, SUM(p.fiba_world_cup) AS total_fiba_titles FROM player AS p JOIN team AS t ON p.team = t.team_name WHERE p.fiba_world_cup >= 1 AND p.name LIKE '%aaron%' GROUP BY p.team",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q15.0",
+  "source": "player_groupby20:q15",
+  "sql": "SELECT p.team, p.nationality, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.nationality <> '' AND p.name LIKE '%aaron%' GROUP BY p.team, p.nationality",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q15.1",
+  "source": "player_groupby20:q15",
+  "sql": "SELECT p.team, p.nationality, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.nationality <> '' GROUP BY p.team, p.nationality, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 36
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q16.0",
+  "source": "player_groupby20:q16",
+  "sql": "SELECT t.ownership, p.position, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.position IN ('Frontcourt', 'Backcourt') AND t.ownership <> '' GROUP BY t.ownership, p.position",
+  "operator": "replace",
+  "table": "team",
+  "replaced": "location",
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select",
+   "ownership@where"
+  ],
+  "novel_share": 0.5,
+  "gold_rows": 20
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q16.1",
+  "source": "player_groupby20:q16",
+  "sql": "SELECT t.location, p.position, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.position IN ('Frontcourt', 'Backcourt') AND t.location <> '' GROUP BY t.location, p.position, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 27
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q16.2",
+  "source": "player_groupby20:q16",
+  "sql": "SELECT t.location, p.position, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE (p.position IN ('Frontcourt', 'Backcourt') AND t.location <> '') AND p.name LIKE '%aaron%' GROUP BY t.location, p.position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q12.0",
+  "source": "player_multiagg20:q12",
+  "sql": "SELECT t.ownership, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, MAX(t.championship) AS team_titles FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.ownership) GROUP BY t.ownership HAVING COUNT(*) >= 2",
+  "operator": "replace",
+  "table": "team",
+  "replaced": "team_name",
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q12.1",
+  "source": "player_multiagg20:q12",
+  "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, MAX(t.championship) AS team_titles, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name, t.ownership HAVING COUNT(*) >= 2",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q5.0",
+  "source": "player_groupby20:q5",
+  "sql": "SELECT position, CASE WHEN olympic_gold_medals BETWEEN 0 AND 0 THEN 'lottery' WHEN olympic_gold_medals BETWEEN 0 AND 0 THEN 'later_first_round' WHEN olympic_gold_medals > 0 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, draft_band",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_pick",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 4
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q5.1",
+  "source": "player_groupby20:q5",
+  "sql": "SELECT position, CASE WHEN fiba_world_cup BETWEEN 0 AND 0 THEN 'lottery' WHEN fiba_world_cup BETWEEN 0 AND 0 THEN 'later_first_round' WHEN fiba_world_cup > 0 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, draft_band",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_pick",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 4
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q5.2",
+  "source": "player_groupby20:q5",
+  "sql": "SELECT position, CASE WHEN draft_pick BETWEEN 1 AND 14 THEN 'lottery' WHEN draft_pick BETWEEN 15 AND 30 THEN 'later_first_round' WHEN draft_pick > 30 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND birth_date LIKE '%1919/3/23%' GROUP BY position, draft_band",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q5.3",
+  "source": "player_groupby20:q5",
+  "sql": "SELECT position, CASE WHEN draft_pick BETWEEN 1 AND 14 THEN 'lottery' WHEN draft_pick BETWEEN 15 AND 30 THEN 'later_first_round' WHEN draft_pick > 30 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND name LIKE '%aaron%' GROUP BY position, draft_band",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q12.0",
+  "source": "player_filterjoin20:q12",
+  "sql": "SELECT p.position, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE t.championship = 0 AND p.draft_year > 2000 AND p.position IN ('Frontcourt', 'Backcourt') GROUP BY p.position, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 3
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q16.0",
+  "source": "player_multiagg20:q16",
+  "sql": "SELECT p.position, c.state_name, COUNT(*) AS player_count, AVG(p.draft_pick) AS avg_pick, MIN(p.draft_year) AS earliest_draft, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.position IN ('Frontcourt', 'Backcourt') AND p.draft_pick > 0 AND c.state_name <> '' GROUP BY p.position, c.state_name, t.ownership HAVING COUNT(*) >= 2",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.182,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q16.1",
+  "source": "player_multiagg20:q16",
+  "sql": "SELECT p.position, c.state_name, COUNT(*) AS player_count, AVG(p.draft_pick) AS avg_pick, MIN(p.draft_year) AS earliest_draft FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (p.position IN ('Frontcourt', 'Backcourt') AND p.draft_pick > 0 AND c.state_name <> '') AND c.gdp >= 362000 GROUP BY p.position, c.state_name HAVING COUNT(*) >= 2",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.1,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_join20.q17.0",
+  "source": "player_join20:q17",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.gdp >= 362000 GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_join20.q17.1",
+  "source": "player_join20:q17",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND o.nba_team LIKE '%brooklyn%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q17.2",
+  "source": "player_join20:q17",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count, o.nba_team FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 13
+ },
+ {
+  "query_id": "player_drift:player_join20.q17.3",
+  "source": "player_join20:q17",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 13
+ },
+ {
+  "query_id": "player_drift:player_join20.q17.4",
+  "source": "player_join20:q17",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND p.name LIKE '%aaron%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q10.0",
+  "source": "player_join20:q10",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 24
+ },
+ {
+  "query_id": "player_drift:player_join20.q10.1",
+  "source": "player_join20:q10",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND p.name LIKE '%aaron%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q10.2",
+  "source": "player_join20:q10",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.gdp >= 362000 GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_join20.q1.0",
+  "source": "player_join20:q1",
+  "sql": "SELECT t.ownership, AVG(p.age) AS avg_player_age FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.ownership",
+  "operator": "replace",
+  "table": "team",
+  "replaced": "location",
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.667,
+  "gold_rows": 19
+ },
+ {
+  "query_id": "player_drift:player_join20.q1.1",
+  "source": "player_join20:q1",
+  "sql": "SELECT t.location, AVG(p.age) AS avg_player_age FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.name LIKE '%aaron%' GROUP BY t.location",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q1.2",
+  "source": "player_join20:q1",
+  "sql": "SELECT t.location, AVG(p.age) AS avg_player_age, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.location, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 24
+ },
+ {
+  "query_id": "player_drift:player_join20.q12.0",
+  "source": "player_join20:q12",
+  "sql": "SELECT c.city_name, SUM(p.mvp_awards) AS total_mvp FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.mvp_awards >= 1 AND c.gdp >= 362000 GROUP BY c.city_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 7
+ },
+ {
+  "query_id": "player_drift:player_join20.q12.1",
+  "source": "player_join20:q12",
+  "sql": "SELECT c.city_name, SUM(p.mvp_awards) AS total_mvp, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.mvp_awards >= 1 GROUP BY c.city_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 9
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q16.0",
+  "source": "player_filterjoin20:q16",
+  "sql": "SELECT t.team_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.birth_date <> '' AND p.mvp_awards = 0 AND p.nba_championships >= 1 GROUP BY t.team_name",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "college",
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q16.1",
+  "source": "player_filterjoin20:q16",
+  "sql": "SELECT t.team_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.name <> '' AND p.mvp_awards = 0 AND p.nba_championships >= 1 GROUP BY t.team_name",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "college",
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q16.2",
+  "source": "player_filterjoin20:q16",
+  "sql": "SELECT t.team_name, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.college <> '' AND p.mvp_awards = 0 AND p.nba_championships >= 1 GROUP BY t.team_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q16.3",
+  "source": "player_filterjoin20:q16",
+  "sql": "SELECT t.team_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE (p.college <> '' AND p.mvp_awards = 0 AND p.nba_championships >= 1) AND p.name LIKE '%aaron%' GROUP BY t.team_name",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q16.4",
+  "source": "player_filterjoin20:q16",
+  "sql": "SELECT t.team_name, COUNT(*) AS player_count, o.nba_team FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.college <> '' AND p.mvp_awards = 0 AND p.nba_championships >= 1 GROUP BY t.team_name, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q0.0",
+  "source": "player_filterjoin20:q0",
+  "sql": "SELECT position, COUNT(*) AS player_count FROM player WHERE (age >= 30 AND nba_championships >= 1 AND position IN ('Frontcourt', 'Backcourt')) AND name LIKE '%aaron%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q9.0",
+  "source": "player_groupby20:q9",
+  "sql": "SELECT team, COUNT(*) AS player_count FROM player WHERE team <> '' AND birth_date LIKE '%1919/3/23%' GROUP BY team",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q9.1",
+  "source": "player_groupby20:q9",
+  "sql": "SELECT team, COUNT(*) AS player_count FROM player WHERE team <> '' AND name LIKE '%aaron%' GROUP BY team",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q6.0",
+  "source": "player_join20:q6",
+  "sql": "SELECT c.state_name, AVG(t.championship) AS avg_titles FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.gdp >= 362000 GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 21
+ },
+ {
+  "query_id": "player_drift:player_join20.q6.1",
+  "source": "player_join20:q6",
+  "sql": "SELECT c.state_name, AVG(t.championship) AS avg_titles FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND t.ownership LIKE '%atlanta%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q6.2",
+  "source": "player_join20:q6",
+  "sql": "SELECT c.state_name, AVG(t.championship) AS avg_titles FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.city_name LIKE '%atlanta%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "city_name",
+  "kind": "categorical",
+  "novel_features": [
+   "city_name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q6.3",
+  "source": "player_join20:q6",
+  "sql": "SELECT c.state_name, AVG(t.championship) AS avg_titles FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND t.team_name LIKE '%atlanta%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "team_name",
+  "kind": "categorical",
+  "novel_features": [
+   "team_name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q13.0",
+  "source": "player_join20:q13",
+  "sql": "SELECT c.state_name, MIN(p.draft_pick) AS earliest_pick, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.draft_pick > 0 AND c.state_name <> '' GROUP BY c.state_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 19
+ },
+ {
+  "query_id": "player_drift:player_join20.q13.1",
+  "source": "player_join20:q13",
+  "sql": "SELECT c.state_name, MIN(p.draft_pick) AS earliest_pick FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (p.draft_pick > 0 AND c.state_name <> '') AND c.gdp >= 362000 GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 13
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q8.0",
+  "source": "docetl_Player_v7:q8",
+  "sql": "SELECT position, AVG(olympic_gold_medals) AS avg_olympic_golds FROM player WHERE (olympic_gold_medals >= 1 AND position IN ('Frontcourt', 'Backcourt')) AND name LIKE '%aaron%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q7.0",
+  "source": "player_groupby20:q7",
+  "sql": "SELECT olympic_gold_medals, COUNT(*) AS player_count FROM player WHERE olympic_gold_medals BETWEEN 0 AND 0 GROUP BY olympic_gold_medals",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q7.1",
+  "source": "player_groupby20:q7",
+  "sql": "SELECT fiba_world_cup, COUNT(*) AS player_count FROM player WHERE fiba_world_cup BETWEEN 0 AND 0 GROUP BY fiba_world_cup",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q19.0",
+  "source": "player_groupby20:q19",
+  "sql": "SELECT o.name, p.position, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.position IN ('Frontcourt', 'Backcourt') AND o.name <> '' GROUP BY o.name, p.position",
+  "operator": "replace",
+  "table": "owner",
+  "replaced": "nationality",
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q19.1",
+  "source": "player_groupby20:q19",
+  "sql": "SELECT o.nationality, p.position, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE (p.position IN ('Frontcourt', 'Backcourt') AND o.nationality <> '') AND p.name LIKE '%aaron%' GROUP BY o.nationality, p.position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q19.2",
+  "source": "player_groupby20:q19",
+  "sql": "SELECT o.nationality, p.position, COUNT(*) AS player_count, o.nba_team FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.position IN ('Frontcourt', 'Backcourt') AND o.nationality <> '' GROUP BY o.nationality, p.position, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q19.3",
+  "source": "player_groupby20:q19",
+  "sql": "SELECT o.nationality, p.position, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.position IN ('Frontcourt', 'Backcourt') AND o.nationality <> '' GROUP BY o.nationality, p.position, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q3.0",
+  "source": "player_multiagg20:q3",
+  "sql": "SELECT fiba_world_cup, COUNT(*) AS player_count, AVG(draft_pick) AS avg_pick, MIN(draft_pick) AS best_pick FROM player WHERE fiba_world_cup > 0 AND draft_pick > 0 GROUP BY fiba_world_cup",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q3.1",
+  "source": "player_multiagg20:q3",
+  "sql": "SELECT olympic_gold_medals, COUNT(*) AS player_count, AVG(draft_pick) AS avg_pick, MIN(draft_pick) AS best_pick FROM player WHERE olympic_gold_medals > 0 AND draft_pick > 0 GROUP BY olympic_gold_medals",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 4
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q14.0",
+  "source": "player_multiagg20:q14",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count, AVG(p.age) AS avg_age, MAX(p.mvp_awards) AS max_mvp FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.gdp >= 362000 GROUP BY c.state_name HAVING COUNT(*) >= 3",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q14.1",
+  "source": "player_multiagg20:q14",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count, AVG(p.age) AS avg_age, MAX(p.mvp_awards) AS max_mvp, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name, t.ownership HAVING COUNT(*) >= 3",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 13
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q4.0",
+  "source": "player_groupby20:q4",
+  "sql": "SELECT t.team_name, p.position, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.position IN ('Frontcourt', 'Backcourt') AND p.name LIKE '%aaron%' GROUP BY t.team_name, p.position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q4.1",
+  "source": "player_groupby20:q4",
+  "sql": "SELECT t.team_name, p.position, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.position IN ('Frontcourt', 'Backcourt') GROUP BY t.team_name, p.position, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 27
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q18.0",
+  "source": "player_filterjoin20:q18",
+  "sql": "SELECT p.position, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (c.state_name IN ('California', 'Texas', 'New York', 'Florida') AND p.age BETWEEN 22 AND 34 AND p.position IN ('Frontcourt', 'Backcourt')) AND c.gdp >= 362000 GROUP BY p.position",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q18.1",
+  "source": "player_filterjoin20:q18",
+  "sql": "SELECT p.position, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name IN ('California', 'Texas', 'New York', 'Florida') AND p.age BETWEEN 22 AND 34 AND p.position IN ('Frontcourt', 'Backcourt') GROUP BY p.position, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 4
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q5.0",
+  "source": "player_filterjoin20:q5",
+  "sql": "SELECT position, AVG(age) AS avg_age FROM player WHERE name <> '' AND nba_championships = 0 AND position IN ('Frontcourt', 'Backcourt') GROUP BY position",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "college",
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q5.1",
+  "source": "player_filterjoin20:q5",
+  "sql": "SELECT position, AVG(age) AS avg_age FROM player WHERE birth_date <> '' AND nba_championships = 0 AND position IN ('Frontcourt', 'Backcourt') GROUP BY position",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "college",
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q5.2",
+  "source": "player_filterjoin20:q5",
+  "sql": "SELECT position, AVG(age) AS avg_age FROM player WHERE (college <> '' AND nba_championships = 0 AND position IN ('Frontcourt', 'Backcourt')) AND birth_date LIKE '%1919/3/23%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q12.0",
+  "source": "docetl_Player_v7:q12",
+  "sql": "SELECT location, MAX(championship) AS max_championships FROM team WHERE location <> '' AND ownership LIKE '%atlanta%' GROUP BY location",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q12.1",
+  "source": "docetl_Player_v7:q12",
+  "sql": "SELECT location, MAX(championship) AS max_championships FROM team WHERE location <> '' AND team_name LIKE '%atlanta%' GROUP BY location",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "team_name",
+  "kind": "categorical",
+  "novel_features": [
+   "team_name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q16.0",
+  "source": "player_join20:q16",
+  "sql": "SELECT o.name, MAX(p.nba_championships) AS max_player_titles FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) WHERE p.name LIKE '%aaron%' GROUP BY o.name",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q16.1",
+  "source": "player_join20:q16",
+  "sql": "SELECT o.name, MAX(p.nba_championships) AS max_player_titles, t.ownership FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) GROUP BY o.name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_join20.q16.2",
+  "source": "player_join20:q16",
+  "sql": "SELECT o.name, MAX(p.nba_championships) AS max_player_titles FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) WHERE o.name LIKE '%clay%' GROUP BY o.name",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q16.3",
+  "source": "player_join20:q16",
+  "sql": "SELECT o.name, MAX(p.nba_championships) AS max_player_titles, o.nba_team FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) GROUP BY o.name, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_join20.q16.4",
+  "source": "player_join20:q16",
+  "sql": "SELECT o.name, MAX(p.nba_championships) AS max_player_titles FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) WHERE o.nba_team LIKE '%brooklyn%' GROUP BY o.name",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q3.0",
+  "source": "player_join20:q3",
+  "sql": "SELECT t.championship, AVG(p.mvp_awards) AS avg_mvp FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.name LIKE '%aaron%' GROUP BY t.championship",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q3.1",
+  "source": "player_join20:q3",
+  "sql": "SELECT t.championship, AVG(p.mvp_awards) AS avg_mvp, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.championship, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 22
+ },
+ {
+  "query_id": "player_drift:player_join20.q19.0",
+  "source": "player_join20:q19",
+  "sql": "SELECT c.state_name, AVG(p.olympic_gold_medals) AS avg_olympic_golds FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (p.olympic_gold_medals >= 1 AND c.state_name <> '') AND p.name LIKE '%aaron%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q19.1",
+  "source": "player_join20:q19",
+  "sql": "SELECT c.state_name, AVG(p.olympic_gold_medals) AS avg_olympic_golds, o.nba_team FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.olympic_gold_medals >= 1 AND c.state_name <> '' GROUP BY c.state_name, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 6
+ },
+ {
+  "query_id": "player_drift:player_join20.q19.2",
+  "source": "player_join20:q19",
+  "sql": "SELECT c.state_name, AVG(p.olympic_gold_medals) AS avg_olympic_golds, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.olympic_gold_medals >= 1 AND c.state_name <> '' GROUP BY c.state_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 6
+ },
+ {
+  "query_id": "player_drift:player_join20.q19.3",
+  "source": "player_join20:q19",
+  "sql": "SELECT c.state_name, AVG(p.olympic_gold_medals) AS avg_olympic_golds FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (p.olympic_gold_medals >= 1 AND c.state_name <> '') AND c.gdp >= 362000 GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 3
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q0.0",
+  "source": "player_groupby20:q0",
+  "sql": "SELECT position, CASE WHEN olympic_gold_medals < 0 THEN 'under_30' WHEN olympic_gold_medals < 0 THEN '30s' ELSE '40_or_older' END AS age_band, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND NOT olympic_gold_medals IS NULL GROUP BY position, age_band",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "age",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q0.1",
+  "source": "player_groupby20:q0",
+  "sql": "SELECT position, CASE WHEN fiba_world_cup < 0 THEN 'under_30' WHEN fiba_world_cup < 0 THEN '30s' ELSE '40_or_older' END AS age_band, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND NOT fiba_world_cup IS NULL GROUP BY position, age_band",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "age",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q0.2",
+  "source": "player_groupby20:q0",
+  "sql": "SELECT position, CASE WHEN age < 30 THEN 'under_30' WHEN age < 40 THEN '30s' ELSE '40_or_older' END AS age_band, COUNT(*) AS player_count FROM player WHERE (position IN ('Frontcourt', 'Backcourt') AND NOT age IS NULL) AND name LIKE '%aaron%' GROUP BY position, age_band",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q0.3",
+  "source": "player_groupby20:q0",
+  "sql": "SELECT position, CASE WHEN age < 30 THEN 'under_30' WHEN age < 40 THEN '30s' ELSE '40_or_older' END AS age_band, COUNT(*) AS player_count FROM player WHERE (position IN ('Frontcourt', 'Backcourt') AND NOT age IS NULL) AND birth_date LIKE '%1919/3/23%' GROUP BY position, age_band",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q18.0",
+  "source": "docetl_Player_v7:q18",
+  "sql": "SELECT state_name, AVG(population) AS avg_population FROM city WHERE state_name <> '' AND gdp >= 362000 GROUP BY state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 21
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q18.1",
+  "source": "docetl_Player_v7:q18",
+  "sql": "SELECT state_name, AVG(population) AS avg_population FROM city WHERE state_name <> '' AND city_name LIKE '%atlanta%' GROUP BY state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "city_name",
+  "kind": "categorical",
+  "novel_features": [
+   "city_name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q0.0",
+  "source": "player_multiagg20:q0",
+  "sql": "SELECT position, COUNT(*) AS player_count, AVG(age) AS avg_age, MAX(age) AS max_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND name LIKE '%aaron%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q0.1",
+  "source": "player_multiagg20:q0",
+  "sql": "SELECT position, COUNT(*) AS player_count, AVG(age) AS avg_age, MAX(age) AS max_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND birth_date LIKE '%1919/3/23%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q7.0",
+  "source": "docetl_Player_v7:q7",
+  "sql": "SELECT p.team, MIN(p.draft_pick) AS earliest_draft_pick, t.ownership FROM player AS p JOIN team AS t ON p.team = t.team_name WHERE p.draft_pick > 0 GROUP BY p.team, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 19
+ },
+ {
+  "query_id": "player_drift:player_join20.q14.0",
+  "source": "player_join20:q14",
+  "sql": "SELECT o.name, COUNT(p.id) AS player_count FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) WHERE o.name LIKE '%clay%' GROUP BY o.name",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q14.1",
+  "source": "player_join20:q14",
+  "sql": "SELECT o.name, COUNT(p.id) AS player_count FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) WHERE o.nba_team LIKE '%brooklyn%' GROUP BY o.name",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q14.2",
+  "source": "player_join20:q14",
+  "sql": "SELECT o.name, COUNT(p.id) AS player_count, o.nba_team FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) GROUP BY o.name, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_join20.q14.3",
+  "source": "player_join20:q14",
+  "sql": "SELECT o.name, COUNT(p.id) AS player_count, t.ownership FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) GROUP BY o.name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_join20.q14.4",
+  "source": "player_join20:q14",
+  "sql": "SELECT o.name, COUNT(p.id) AS player_count FROM owner AS o LEFT JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) WHERE p.name LIKE '%aaron%' GROUP BY o.name",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q19.0",
+  "source": "player_filterjoin20:q19",
+  "sql": "SELECT t.team_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE (o.own_year >= 2000 AND p.draft_year >= 2000 AND p.draft_pick > 0 AND p.draft_pick <= 30) AND o.nba_team LIKE '%brooklyn%' GROUP BY t.team_name",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q19.1",
+  "source": "player_filterjoin20:q19",
+  "sql": "SELECT t.team_name, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.own_year >= 2000 AND p.draft_year >= 2000 AND p.draft_pick > 0 AND p.draft_pick <= 30 GROUP BY t.team_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 7
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q19.2",
+  "source": "player_filterjoin20:q19",
+  "sql": "SELECT t.team_name, COUNT(*) AS player_count, o.nba_team FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.own_year >= 2000 AND p.draft_year >= 2000 AND p.draft_pick > 0 AND p.draft_pick <= 30 GROUP BY t.team_name, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 7
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q6.0",
+  "source": "player_groupby20:q6",
+  "sql": "SELECT position, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND name LIKE '%aaron%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q6.1",
+  "source": "player_groupby20:q6",
+  "sql": "SELECT position, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND birth_date LIKE '%1919/3/23%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q2.0",
+  "source": "docetl_Player_v7:q2",
+  "sql": "SELECT p.team, AVG(p.nba_championships) AS avg_championships FROM player AS p JOIN team AS t ON p.team = t.team_name WHERE p.name LIKE '%aaron%' GROUP BY p.team",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q2.1",
+  "source": "docetl_Player_v7:q2",
+  "sql": "SELECT p.team, AVG(p.nba_championships) AS avg_championships, t.ownership FROM player AS p JOIN team AS t ON p.team = t.team_name GROUP BY p.team, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 24
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q11.0",
+  "source": "player_groupby20:q11",
+  "sql": "SELECT CAST(founded_year / 10 AS INTEGER) * 10 AS founded_decade, CASE WHEN championship >= 1 THEN 'has_title' ELSE 'no_title' END AS title_status, COUNT(*) AS team_count FROM team WHERE founded_year > 0 AND ownership LIKE '%atlanta%' GROUP BY founded_decade, title_status",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q11.1",
+  "source": "player_groupby20:q11",
+  "sql": "SELECT CAST(founded_year / 10 AS INTEGER) * 10 AS founded_decade, CASE WHEN championship >= 1 THEN 'has_title' ELSE 'no_title' END AS title_status, COUNT(*) AS team_count FROM team WHERE founded_year > 0 AND team_name LIKE '%atlanta%' GROUP BY founded_decade, title_status",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "team_name",
+  "kind": "categorical",
+  "novel_features": [
+   "team_name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q16.0",
+  "source": "docetl_Player_v7:q16",
+  "sql": "SELECT nationality, AVG(age) AS avg_age FROM owner WHERE name LIKE '%clay%' GROUP BY nationality",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q16.1",
+  "source": "docetl_Player_v7:q16",
+  "sql": "SELECT nationality, AVG(age) AS avg_age FROM owner WHERE nba_team LIKE '%brooklyn%' GROUP BY nationality",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q18.0",
+  "source": "player_join20:q18",
+  "sql": "SELECT o.name, c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE o.name <> '' AND c.state_name <> '' GROUP BY o.name, c.state_name",
+  "operator": "replace",
+  "table": "owner",
+  "replaced": "nationality",
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 13
+ },
+ {
+  "query_id": "player_drift:player_join20.q18.1",
+  "source": "player_join20:q18",
+  "sql": "SELECT o.nationality, c.state_name, COUNT(*) AS player_count, o.nba_team FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE o.nationality <> '' AND c.state_name <> '' GROUP BY o.nationality, c.state_name, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 13
+ },
+ {
+  "query_id": "player_drift:player_join20.q18.2",
+  "source": "player_join20:q18",
+  "sql": "SELECT o.nationality, c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (o.nationality <> '' AND c.state_name <> '') AND o.nba_team LIKE '%brooklyn%' GROUP BY o.nationality, c.state_name",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q18.3",
+  "source": "player_join20:q18",
+  "sql": "SELECT o.nationality, c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (o.nationality <> '' AND c.state_name <> '') AND p.name LIKE '%aaron%' GROUP BY o.nationality, c.state_name",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q18.4",
+  "source": "player_join20:q18",
+  "sql": "SELECT o.nationality, c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (o.nationality <> '' AND c.state_name <> '') AND c.gdp >= 362000 GROUP BY o.nationality, c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 9
+ },
+ {
+  "query_id": "player_drift:player_join20.q18.5",
+  "source": "player_join20:q18",
+  "sql": "SELECT o.nationality, c.state_name, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE o.nationality <> '' AND c.state_name <> '' GROUP BY o.nationality, c.state_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 13
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q18.0",
+  "source": "player_groupby20:q18",
+  "sql": "SELECT c.state_name, CASE WHEN p.olympic_gold_medals BETWEEN 0 AND 0 THEN 'lottery' WHEN p.olympic_gold_medals BETWEEN 0 AND 0 THEN 'later_first_round' WHEN p.olympic_gold_medals > 0 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name, draft_band",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_pick",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 24
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q18.1",
+  "source": "player_groupby20:q18",
+  "sql": "SELECT c.state_name, CASE WHEN p.fiba_world_cup BETWEEN 0 AND 0 THEN 'lottery' WHEN p.fiba_world_cup BETWEEN 0 AND 0 THEN 'later_first_round' WHEN p.fiba_world_cup > 0 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name, draft_band",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_pick",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 26
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q18.2",
+  "source": "player_groupby20:q18",
+  "sql": "SELECT c.state_name, CASE WHEN p.draft_pick BETWEEN 1 AND 14 THEN 'lottery' WHEN p.draft_pick BETWEEN 15 AND 30 THEN 'later_first_round' WHEN p.draft_pick > 30 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.gdp >= 362000 GROUP BY c.state_name, draft_band",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 30
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q18.3",
+  "source": "player_groupby20:q18",
+  "sql": "SELECT c.state_name, CASE WHEN p.draft_pick BETWEEN 1 AND 14 THEN 'lottery' WHEN p.draft_pick BETWEEN 15 AND 30 THEN 'later_first_round' WHEN p.draft_pick > 30 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name, draft_band, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 47
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q18.4",
+  "source": "player_groupby20:q18",
+  "sql": "SELECT c.state_name, CASE WHEN p.draft_pick BETWEEN 1 AND 14 THEN 'lottery' WHEN p.draft_pick BETWEEN 15 AND 30 THEN 'later_first_round' WHEN p.draft_pick > 30 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND p.name LIKE '%aaron%' GROUP BY c.state_name, draft_band",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q8.0",
+  "source": "player_multiagg20:q8",
+  "sql": "SELECT c.state_name, COUNT(*) AS team_count, AVG(t.championship) AS avg_titles, MAX(t.championship) AS max_titles, MIN(t.founded_year) AS earliest_founded FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.city_name LIKE '%atlanta%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "city_name",
+  "kind": "categorical",
+  "novel_features": [
+   "city_name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q8.1",
+  "source": "player_multiagg20:q8",
+  "sql": "SELECT c.state_name, COUNT(*) AS team_count, AVG(t.championship) AS avg_titles, MAX(t.championship) AS max_titles, MIN(t.founded_year) AS earliest_founded FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND t.ownership LIKE '%atlanta%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q8.2",
+  "source": "player_multiagg20:q8",
+  "sql": "SELECT c.state_name, COUNT(*) AS team_count, AVG(t.championship) AS avg_titles, MAX(t.championship) AS max_titles, MIN(t.founded_year) AS earliest_founded FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND t.team_name LIKE '%atlanta%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "team_name",
+  "kind": "categorical",
+  "novel_features": [
+   "team_name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q8.3",
+  "source": "player_multiagg20:q8",
+  "sql": "SELECT c.state_name, COUNT(*) AS team_count, AVG(t.championship) AS avg_titles, MAX(t.championship) AS max_titles, MIN(t.founded_year) AS earliest_founded FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.gdp >= 362000 GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 21
+ },
+ {
+  "query_id": "player_drift:player_join20.q2.0",
+  "source": "player_join20:q2",
+  "sql": "SELECT t.founded_year, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.founded_year, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.5,
+  "gold_rows": 24
+ },
+ {
+  "query_id": "player_drift:player_join20.q2.1",
+  "source": "player_join20:q2",
+  "sql": "SELECT t.founded_year, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.name LIKE '%aaron%' GROUP BY t.founded_year",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q4.0",
+  "source": "player_join20:q4",
+  "sql": "SELECT p.position, COUNT(DISTINCT t.team_name) AS titled_team_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.position IN ('Frontcourt', 'Backcourt') AND t.championship >= 1 GROUP BY p.position, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 19
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q5.0",
+  "source": "docetl_Player_v7:q5",
+  "sql": "SELECT nationality, MAX(nba_championships) AS max_championships FROM player WHERE (nba_championships >= 1 AND nationality <> '') AND name LIKE '%aaron%' GROUP BY nationality",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q6.0",
+  "source": "docetl_Player_v7:q6",
+  "sql": "SELECT olympic_gold_medals, COUNT(*) AS player_count FROM player WHERE olympic_gold_medals > 0 GROUP BY olympic_gold_medals",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 5
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q6.1",
+  "source": "docetl_Player_v7:q6",
+  "sql": "SELECT fiba_world_cup, COUNT(*) AS player_count FROM player WHERE fiba_world_cup > 0 GROUP BY fiba_world_cup",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 3
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q19.0",
+  "source": "docetl_Player_v7:q19",
+  "sql": "SELECT state_name, MAX(gdp) AS max_gdp FROM city WHERE (population > 1000000 AND state_name <> '') AND gdp >= 362000 GROUP BY state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 6
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q19.0",
+  "source": "player_multiagg20:q19",
+  "sql": "SELECT c.state_name, COUNT(DISTINCT t.ownership) AS team_count, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.ownership) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name HAVING COUNT(*) >= 2",
+  "operator": "replace",
+  "table": "team",
+  "replaced": "team_name",
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@select"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 6
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q19.1",
+  "source": "player_multiagg20:q19",
+  "sql": "SELECT c.state_name, COUNT(DISTINCT t.team_name) AS team_count, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name, t.ownership HAVING COUNT(*) >= 2",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q19.2",
+  "source": "player_multiagg20:q19",
+  "sql": "SELECT c.state_name, COUNT(DISTINCT t.team_name) AS team_count, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.gdp >= 362000 GROUP BY c.state_name HAVING COUNT(*) >= 2",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 10
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q3.0",
+  "source": "player_groupby20:q3",
+  "sql": "SELECT CASE WHEN TRIM(nationality) = 'American' THEN 'American' ELSE 'International' END AS nationality_group, CAST(olympic_gold_medals / 10 AS INTEGER) * 10 AS draft_decade, COUNT(*) AS player_count FROM player WHERE nationality <> '' AND olympic_gold_medals > 0 GROUP BY nationality_group, draft_decade",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q3.1",
+  "source": "player_groupby20:q3",
+  "sql": "SELECT CASE WHEN TRIM(nationality) = 'American' THEN 'American' ELSE 'International' END AS nationality_group, CAST(fiba_world_cup / 10 AS INTEGER) * 10 AS draft_decade, COUNT(*) AS player_count FROM player WHERE nationality <> '' AND fiba_world_cup > 0 GROUP BY nationality_group, draft_decade",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q10.0",
+  "source": "player_filterjoin20:q10",
+  "sql": "SELECT p.team, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) WHERE t.championship >= 3 AND p.age < 30 GROUP BY p.team, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_join20.q0.0",
+  "source": "player_join20:q0",
+  "sql": "SELECT t.ownership, COUNT(p.id) AS player_count FROM team AS t LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.ownership) GROUP BY t.ownership",
+  "operator": "replace",
+  "table": "team",
+  "replaced": "team_name",
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.667,
+  "gold_rows": 25
+ },
+ {
+  "query_id": "player_drift:player_join20.q0.1",
+  "source": "player_join20:q0",
+  "sql": "SELECT t.team_name, COUNT(p.id) AS player_count FROM team AS t LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) WHERE t.team_name LIKE '%atlanta%' GROUP BY t.team_name",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "team_name",
+  "kind": "categorical",
+  "novel_features": [
+   "team_name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q0.2",
+  "source": "player_join20:q0",
+  "sql": "SELECT t.team_name, COUNT(p.id) AS player_count FROM team AS t LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) WHERE t.ownership LIKE '%atlanta%' GROUP BY t.team_name",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q0.3",
+  "source": "player_join20:q0",
+  "sql": "SELECT t.team_name, COUNT(p.id) AS player_count, t.ownership FROM team AS t LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.4,
+  "gold_rows": 30
+ },
+ {
+  "query_id": "player_drift:player_join20.q0.4",
+  "source": "player_join20:q0",
+  "sql": "SELECT t.team_name, COUNT(p.id) AS player_count FROM team AS t LEFT JOIN player AS p ON TRIM(p.team) = TRIM(t.team_name) WHERE p.name LIKE '%aaron%' GROUP BY t.team_name",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q0.0",
+  "source": "docetl_Player_v7:q0",
+  "sql": "SELECT position, AVG(age) AS avg_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND name LIKE '%aaron%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:docetl_Player_v7.q0.1",
+  "source": "docetl_Player_v7:q0",
+  "sql": "SELECT position, AVG(age) AS avg_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND birth_date LIKE '%1919/3/23%' GROUP BY position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q15.0",
+  "source": "player_filterjoin20:q15",
+  "sql": "SELECT o.name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.olympic_gold_medals >= 1 AND o.own_year >= 1990 AND o.name <> '' GROUP BY o.name",
+  "operator": "replace",
+  "table": "owner",
+  "replaced": "nationality",
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 5
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q15.1",
+  "source": "player_filterjoin20:q15",
+  "sql": "SELECT o.nationality, COUNT(*) AS player_count, o.nba_team FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.olympic_gold_medals >= 1 AND o.own_year >= 1990 AND o.nationality <> '' GROUP BY o.nationality, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 5
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q15.2",
+  "source": "player_filterjoin20:q15",
+  "sql": "SELECT o.nationality, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.olympic_gold_medals >= 1 AND o.own_year >= 1990 AND o.nationality <> '' GROUP BY o.nationality, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 5
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q15.3",
+  "source": "player_filterjoin20:q15",
+  "sql": "SELECT o.nationality, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner AS o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE (p.olympic_gold_medals >= 1 AND o.own_year >= 1990 AND o.nationality <> '') AND p.name LIKE '%aaron%' GROUP BY o.nationality",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q17.0",
+  "source": "player_groupby20:q17",
+  "sql": "SELECT c.state_name, p.position, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (p.position IN ('Frontcourt', 'Backcourt') AND c.state_name <> '') AND c.gdp >= 362000 GROUP BY c.state_name, p.position",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 17
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q17.1",
+  "source": "player_groupby20:q17",
+  "sql": "SELECT c.state_name, p.position, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (p.position IN ('Frontcourt', 'Backcourt') AND c.state_name <> '') AND p.name LIKE '%aaron%' GROUP BY c.state_name, p.position",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.143,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q17.2",
+  "source": "player_groupby20:q17",
+  "sql": "SELECT c.state_name, p.position, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.position IN ('Frontcourt', 'Backcourt') AND c.state_name <> '' GROUP BY c.state_name, p.position, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 27
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q13.0",
+  "source": "player_filterjoin20:q13",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.gdp > 362000 AND p.nba_championships >= 1 AND c.state_name <> '' GROUP BY c.state_name",
+  "operator": "replace",
+  "table": "city",
+  "replaced": "population",
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q13.1",
+  "source": "player_filterjoin20:q13",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count, t.ownership FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.population > 1000000 AND p.nba_championships >= 1 AND c.state_name <> '' GROUP BY c.state_name, t.ownership",
+  "operator": "add_group",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@group",
+   "ownership@select"
+  ],
+  "novel_share": 0.286,
+  "gold_rows": 8
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q13.2",
+  "source": "player_filterjoin20:q13",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (c.population > 1000000 AND p.nba_championships >= 1 AND c.state_name <> '') AND p.name LIKE '%aaron%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q13.3",
+  "source": "player_filterjoin20:q13",
+  "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE (c.population > 1000000 AND p.nba_championships >= 1 AND c.state_name <> '') AND c.gdp >= 362000 GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 5
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q13.0",
+  "source": "player_groupby20:q13",
+  "sql": "SELECT position, CASE WHEN olympic_gold_medals >= 0 THEN 'mvp_winner' ELSE 'no_mvp' END AS mvp_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, mvp_status",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "mvp_awards",
+  "by": "olympic_gold_medals",
+  "kind": "numeric",
+  "novel_features": [
+   "olympic_gold_medals@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q13.1",
+  "source": "player_groupby20:q13",
+  "sql": "SELECT position, CASE WHEN fiba_world_cup >= 0 THEN 'mvp_winner' ELSE 'no_mvp' END AS mvp_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, mvp_status",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "mvp_awards",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 2
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q13.2",
+  "source": "player_groupby20:q13",
+  "sql": "SELECT position, CASE WHEN mvp_awards >= 1 THEN 'mvp_winner' ELSE 'no_mvp' END AS mvp_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND birth_date LIKE '%1919/3/23%' GROUP BY position, mvp_status",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "birth_date",
+  "kind": "categorical",
+  "novel_features": [
+   "birth_date@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_groupby20.q13.3",
+  "source": "player_groupby20:q13",
+  "sql": "SELECT position, CASE WHEN mvp_awards >= 1 THEN 'mvp_winner' ELSE 'no_mvp' END AS mvp_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND name LIKE '%aaron%' GROUP BY position, mvp_status",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q9.0",
+  "source": "player_filterjoin20:q9",
+  "sql": "SELECT CAST(own_year / 10 AS INTEGER) * 10 AS acquisition_decade, COUNT(*) AS owner_count FROM owner WHERE own_year >= 2000 AND nba_team LIKE '%brooklyn%' GROUP BY acquisition_decade",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q9.1",
+  "source": "player_filterjoin20:q9",
+  "sql": "SELECT CAST(own_year / 10 AS INTEGER) * 10 AS acquisition_decade, COUNT(*) AS owner_count FROM owner WHERE own_year >= 2000 AND name LIKE '%clay%' GROUP BY acquisition_decade",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q5.0",
+  "source": "player_join20:q5",
+  "sql": "SELECT c.state_name, COUNT(*) AS team_count FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND t.team_name LIKE '%atlanta%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "team_name",
+  "kind": "categorical",
+  "novel_features": [
+   "team_name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q5.1",
+  "source": "player_join20:q5",
+  "sql": "SELECT c.state_name, COUNT(*) AS team_count FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND t.ownership LIKE '%atlanta%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "team",
+  "replaced": null,
+  "by": "ownership",
+  "kind": "categorical",
+  "novel_features": [
+   "ownership@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q5.2",
+  "source": "player_join20:q5",
+  "sql": "SELECT c.state_name, COUNT(*) AS team_count FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.city_name LIKE '%atlanta%' GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "city_name",
+  "kind": "categorical",
+  "novel_features": [
+   "city_name@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_join20.q5.3",
+  "source": "player_join20:q5",
+  "sql": "SELECT c.state_name, COUNT(*) AS team_count FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' AND c.gdp >= 362000 GROUP BY c.state_name",
+  "operator": "add_filter",
+  "table": "city",
+  "replaced": null,
+  "by": "gdp",
+  "kind": "numeric",
+  "novel_features": [
+   "gdp@where"
+  ],
+  "novel_share": 0.25,
+  "gold_rows": 21
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q11.0",
+  "source": "player_multiagg20:q11",
+  "sql": "SELECT CAST(o.own_year / 10 AS INTEGER) * 10 AS acquisition_decade, COUNT(*) AS owner_count, AVG(t.championship) AS avg_team_titles, MIN(o.own_year) AS earliest_acquisition, MAX(o.own_year) AS latest_acquisition FROM owner AS o JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.own_year > 0 AND o.nba_team LIKE '%brooklyn%' GROUP BY acquisition_decade",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q11.1",
+  "source": "player_multiagg20:q11",
+  "sql": "SELECT CAST(o.own_year / 10 AS INTEGER) * 10 AS acquisition_decade, COUNT(*) AS owner_count, AVG(t.championship) AS avg_team_titles, MIN(o.own_year) AS earliest_acquisition, MAX(o.own_year) AS latest_acquisition FROM owner AS o JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.own_year > 0 AND o.name LIKE '%clay%' GROUP BY acquisition_decade",
+  "operator": "add_filter",
+  "table": "owner",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q11.2",
+  "source": "player_multiagg20:q11",
+  "sql": "SELECT CAST(o.own_year / 10 AS INTEGER) * 10 AS acquisition_decade, COUNT(*) AS owner_count, AVG(t.championship) AS avg_team_titles, MIN(o.own_year) AS earliest_acquisition, MAX(o.own_year) AS latest_acquisition, o.nba_team FROM owner AS o JOIN team AS t ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.own_year > 0 GROUP BY acquisition_decade, o.nba_team",
+  "operator": "add_group",
+  "table": "owner",
+  "replaced": null,
+  "by": "nba_team",
+  "kind": "categorical",
+  "novel_features": [
+   "nba_team@group",
+   "nba_team@select"
+  ],
+  "novel_share": 0.333,
+  "gold_rows": 16
+ },
+ {
+  "query_id": "player_drift:player_filterjoin20.q4.0",
+  "source": "player_filterjoin20:q4",
+  "sql": "SELECT CAST(fiba_world_cup / 10 AS INTEGER) * 10 AS draft_decade, COUNT(*) AS player_count FROM player WHERE olympic_gold_medals >= 1 AND draft_pick BETWEEN 1 AND 5 AND fiba_world_cup > 0 GROUP BY draft_decade",
+  "operator": "replace",
+  "table": "player",
+  "replaced": "draft_year",
+  "by": "fiba_world_cup",
+  "kind": "numeric",
+  "novel_features": [
+   "fiba_world_cup@group"
+  ],
+  "novel_share": 0.2,
+  "gold_rows": 1
+ },
+ {
+  "query_id": "player_drift:player_multiagg20.q17.0",
+  "source": "player_multiagg20:q17",
+  "sql": "SELECT nationality, COUNT(*) AS player_count, AVG(olympic_gold_medals) AS avg_golds, SUM(olympic_gold_medals) AS total_golds, MAX(olympic_gold_medals) AS max_golds FROM player WHERE (olympic_gold_medals >= 1 AND nationality <> '') AND name LIKE '%aaron%' GROUP BY nationality",
+  "operator": "add_filter",
+  "table": "player",
+  "replaced": null,
+  "by": "name",
+  "kind": "categorical",
+  "novel_features": [
+   "name@where"
+  ],
+  "novel_share": 0.167,
+  "gold_rows": 1
+ }
+]

@@ -1,0 +1,1058 @@
+{
+ "level": 1.0,
+ "queries": 79,
+ "drifted": 79,
+ "short_of_pool": 0,
+ "cliffguard_delta": 0.12992,
+ "novel_feature_share": 0.4609,
+ "novelty_test_p": 0.0,
+ "sha256": "b71cc04d5886e8eeb1315e5754750fa122a30283e0270d37f709bf24fe52ab4f",
+ "rows": [
+  {
+   "query_id": "med_drift:med_filterjoin20.q13.4",
+   "sql": "SELECT CASE WHEN LOWER(dr.pharmaceutical_form) LIKE '%tablet%' THEN 'tablet' WHEN LOWER(dr.pharmaceutical_form) LIKE '%injection%' THEN 'injection' WHEN LOWER(dr.pharmaceutical_form) LIKE '%capsule%' THEN 'capsule' WHEN dr.pharmaceutical_form <> '' THEN 'other' END AS form_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.dosage_frequency <> '' AND dr.pharmaceutical_form <> '' GROUP BY form_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q13",
+   "operator": "replace",
+   "replaced": "drug.manufacturer",
+   "by": "drug.dosage_frequency",
+   "novel_features": [
+    "dosage_frequency@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q18.7",
+   "sql": "SELECT CASE WHEN key_technologies <> '' THEN 'funding_recorded' ELSE 'funding_unknown' END AS funding_status, COUNT(*) AS institution_count FROM institution GROUP BY funding_status",
+   "drifted": true,
+   "source": "med_agg20:q18",
+   "operator": "replace",
+   "replaced": "institution.funding_sources",
+   "by": "institution.key_technologies",
+   "novel_features": [
+    "key_technologies@group"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q5.0",
+   "sql": "SELECT CASE WHEN LOWER(i.research_fields) LIKE '%oncology%' THEN 'oncology' WHEN LOWER(i.research_fields) LIKE '%neuroscience%' THEN 'neuroscience' WHEN LOWER(i.research_fields) LIKE '%immunology%' OR LOWER(i.research_fields) LIKE '%microbiology%' THEN 'immuno_micro' WHEN LOWER(i.research_fields) LIKE '%clinical_research%' THEN 'clinical_research' WHEN i.research_fields <> '' THEN 'other' END AS field_family, CASE WHEN i.funding_sources LIKE '%government%' THEN 'USA' WHEN i.funding_sources <> '' THEN 'outside_USA' END AS country_family, COUNT(*) AS institution_count FROM institution AS i WHERE i.research_fields <> '' AND i.funding_sources <> '' GROUP BY field_family, country_family",
+   "drifted": true,
+   "source": "med_groupby20:q5",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.funding_sources",
+   "novel_features": [
+    "funding_sources@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q1.3",
+   "sql": "SELECT CASE WHEN LOWER(dr.unsuitable_population) LIKE '%patients%' THEN 'tablet' WHEN LOWER(dr.unsuitable_population) LIKE '%allergic%' THEN 'injection' WHEN LOWER(dr.unsuitable_population) LIKE '%allergy%' THEN 'capsule' WHEN dr.unsuitable_population <> '' THEN 'other' END AS form_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.unsuitable_population <> '' GROUP BY form_family",
+   "drifted": true,
+   "source": "med_join20:q1",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.unsuitable_population",
+   "novel_features": [
+    "unsuitable_population@group",
+    "unsuitable_population@select",
+    "unsuitable_population@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q9.5",
+   "sql": "SELECT CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route <> '' THEN 'non_oral' END AS route_family, COUNT(DISTINCT dr.id) AS drug_count, COUNT(DISTINCT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN dr.id END) AS infectious_count, COUNT(DISTINCT CASE WHEN dr.unsuitable_population LIKE '%patients%' THEN dr.id END) AS rx_only_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.administration_route <> '' GROUP BY route_family",
+   "drifted": true,
+   "source": "med_multiagg20:q9",
+   "operator": "replace",
+   "replaced": "drug.prescription_status",
+   "by": "drug.unsuitable_population",
+   "novel_features": [
+    "unsuitable_population@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q18.3",
+   "sql": "SELECT CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route <> '' THEN 'non_oral' END AS route_family, CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, COUNT(DISTINCT dr.id) AS drug_count, COUNT(DISTINCT CASE WHEN dr.dosage_frequency <> '' THEN dr.id END) AS known_mfr_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.administration_route <> '' AND d.disease_type <> '' GROUP BY route_family, type_family HAVING COUNT(DISTINCT dr.id) >= 2",
+   "drifted": true,
+   "source": "med_multiagg20:q18",
+   "operator": "replace",
+   "replaced": "drug.manufacturer",
+   "by": "drug.dosage_frequency",
+   "novel_features": [
+    "dosage_frequency@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q6.1",
+   "sql": "SELECT CASE WHEN activation_conditions LIKE '%special%' THEN 'prescription_only' WHEN activation_conditions <> '' THEN 'other' END AS rx_status, COUNT(*) AS drug_count FROM drug WHERE activation_conditions <> '' GROUP BY rx_status",
+   "drifted": true,
+   "source": "med_agg20:q6",
+   "operator": "replace",
+   "replaced": "drug.prescription_status",
+   "by": "drug.activation_conditions",
+   "novel_features": [
+    "activation_conditions@group",
+    "activation_conditions@select",
+    "activation_conditions@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q13.5",
+   "sql": "SELECT CASE WHEN LOWER(i.institution_name) LIKE '%massachusetts%' THEN 'oncology' WHEN LOWER(i.institution_name) LIKE '%microbiome%' THEN 'neuroscience' WHEN LOWER(i.institution_name) LIKE '%adventhealth%' OR LOWER(i.institution_name) LIKE '%allegiance%' THEN 'immuno_micro' WHEN LOWER(i.institution_name) LIKE '%institute%' THEN 'clinical_research' WHEN i.institution_name <> '' THEN 'other' END AS field_family, CASE WHEN LOWER(d.treatments) LIKE '%oral_medication%' THEN 'oral_treatment' ELSE 'other_treatment' END AS treatment_group, COUNT(DISTINCT d.id) AS disease_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.institution_name <> '' AND d.treatments <> '' GROUP BY field_family, treatment_group",
+   "drifted": true,
+   "source": "med_groupby20:q13",
+   "operator": "replace",
+   "replaced": "institution.research_fields",
+   "by": "institution.institution_name",
+   "novel_features": [
+    "institution_name@group",
+    "institution_name@select",
+    "institution_name@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q0.2",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, COUNT(*) AS disease_count, SUM(CASE WHEN LOWER(d.common_symptoms) LIKE '%yellow%' THEN 1 ELSE 0 END) AS oral_treatment_count, SUM(CASE WHEN LOWER(d.diagnostic_methods) LIKE '%clinical_evaluation%' THEN 1 ELSE 0 END) AS clinical_dx_count FROM disease AS d WHERE d.disease_type <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_multiagg20:q0",
+   "operator": "replace",
+   "replaced": "disease.treatments",
+   "by": "disease.common_symptoms",
+   "novel_features": [
+    "common_symptoms@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q17.7",
+   "sql": "SELECT CASE WHEN LOWER(d.treatment_challenges) LIKE '%side%' THEN 'infectious' WHEN LOWER(d.treatment_challenges) LIKE '%late%' THEN 'neoplastic' WHEN LOWER(d.treatment_challenges) LIKE '%current%' THEN 'inflammatory' WHEN LOWER(d.treatment_challenges) LIKE '%difficult%' THEN 'psychiatric' WHEN d.treatment_challenges <> '' THEN 'other' END AS type_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE d.treatment_challenges <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_join20:q17",
+   "operator": "replace",
+   "replaced": "disease.disease_type",
+   "by": "disease.treatment_challenges",
+   "novel_features": [
+    "treatment_challenges@group",
+    "treatment_challenges@select",
+    "treatment_challenges@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q17.6",
+   "sql": "SELECT CASE WHEN LOWER(dr.dosage_frequency) LIKE '%once%' THEN 'tablet' WHEN LOWER(dr.dosage_frequency) LIKE '%twice%' THEN 'injection' WHEN LOWER(dr.dosage_frequency) LIKE '%every%' THEN 'capsule' WHEN dr.dosage_frequency <> '' THEN 'other' END AS form_family, CASE WHEN LOWER(i.research_fields) LIKE '%oncology%' THEN 'oncology' WHEN LOWER(i.research_fields) LIKE '%neuroscience%' THEN 'neuroscience' WHEN LOWER(i.research_fields) LIKE '%immunology%' OR LOWER(i.research_fields) LIKE '%microbiology%' THEN 'immuno_micro' WHEN LOWER(i.research_fields) LIKE '%clinical_research%' THEN 'clinical_research' WHEN i.research_fields <> '' THEN 'other' END AS field_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.dosage_frequency <> '' AND i.research_fields <> '' GROUP BY form_family, field_family",
+   "drifted": true,
+   "source": "med_groupby20:q17",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.dosage_frequency",
+   "novel_features": [
+    "dosage_frequency@group",
+    "dosage_frequency@select",
+    "dosage_frequency@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q10.3",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, CASE WHEN LOWER(dr.brand_name) LIKE '%savella%' THEN 'tablet' WHEN LOWER(dr.brand_name) LIKE '%aplactin%' THEN 'injection' WHEN LOWER(dr.brand_name) LIKE '%abreva%' THEN 'capsule' WHEN dr.brand_name <> '' THEN 'other' END AS form_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE d.disease_type <> '' AND dr.brand_name <> '' GROUP BY type_family, form_family",
+   "drifted": true,
+   "source": "med_groupby20:q10",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.brand_name",
+   "novel_features": [
+    "brand_name@group",
+    "brand_name@select",
+    "brand_name@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q7.5",
+   "sql": "SELECT CASE WHEN single_dose <> '' THEN 'mechanism_recorded' ELSE 'mechanism_unknown' END AS moa_status, COUNT(*) AS drug_count FROM drug GROUP BY moa_status",
+   "drifted": true,
+   "source": "med_agg20:q7",
+   "operator": "replace",
+   "replaced": "drug.mechanism_of_action",
+   "by": "drug.single_dose",
+   "novel_features": [
+    "single_dose@group",
+    "single_dose@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q12.6",
+   "sql": "SELECT CASE WHEN i.international_collaboration LIKE '%world%' THEN 'USA' WHEN i.international_collaboration <> '' THEN 'outside_USA' END AS country_family, CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, COUNT(DISTINCT d.id) AS disease_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.international_collaboration <> '' AND d.disease_type <> '' GROUP BY country_family, type_family",
+   "drifted": true,
+   "source": "med_groupby20:q12",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.international_collaboration",
+   "novel_features": [
+    "international_collaboration@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q11.6",
+   "sql": "SELECT CASE WHEN LOWER(i.institution_type) LIKE '%university%' THEN 'university_affiliated' WHEN LOWER(i.institution_type) LIKE '%public%' THEN 'public' WHEN i.institution_type <> '' THEN 'other' END AS inst_type, COUNT(DISTINCT i.id) AS institution_count, COUNT(DISTINCT CASE WHEN d.sequelae <> '' THEN d.id END) AS dx_recorded_count, COUNT(DISTINCT CASE WHEN d.prognosis <> '' THEN d.id END) AS prognosis_recorded_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.institution_type <> '' GROUP BY inst_type",
+   "drifted": true,
+   "source": "med_multiagg20:q11",
+   "operator": "replace",
+   "replaced": "disease.diagnostic_methods",
+   "by": "disease.sequelae",
+   "novel_features": [
+    "sequelae@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q18.0",
+   "sql": "SELECT CASE WHEN i.funding_sources LIKE '%government%' THEN 'USA' WHEN i.funding_sources <> '' THEN 'outside_USA' END AS country_family, CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route <> '' THEN 'non_oral' END AS route_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.funding_sources <> '' AND dr.administration_route <> '' GROUP BY country_family, route_family",
+   "drifted": true,
+   "source": "med_join20:q18",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.funding_sources",
+   "novel_features": [
+    "funding_sources@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q12.5",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE LOWER(dr.administration_route) LIKE '%oral%' AND LOWER(dr.indication) LIKE '%chronic%' AND d.disease_type <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q12",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.indication",
+   "novel_features": [
+    "indication@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q4.1",
+   "sql": "SELECT CASE WHEN prescription_status LIKE '%prescription_only%' THEN 'prescription_only' ELSE 'other' END AS rx_status, COUNT(*) AS drug_count FROM drug WHERE LOWER(disease_name) LIKE '%fibromyalgia%' AND prescription_status <> '' GROUP BY rx_status",
+   "drifted": true,
+   "source": "med_filterjoin20:q4",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.disease_name",
+   "novel_features": [
+    "disease_name@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q1.7",
+   "sql": "SELECT CASE WHEN LOWER(dr.indication) LIKE '%chronic%' THEN 'tablet' WHEN LOWER(dr.indication) LIKE '%acute%' THEN 'injection' WHEN LOWER(dr.indication) LIKE '%alcohol%' THEN 'capsule' WHEN dr.indication <> '' THEN 'other' END AS form_family, COUNT(*) AS drug_count FROM drug AS dr WHERE LOWER(dr.administration_route) LIKE '%oral%' AND dr.indication <> '' GROUP BY form_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q1",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.indication",
+   "novel_features": [
+    "indication@group",
+    "indication@select",
+    "indication@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q9.5",
+   "sql": "SELECT CASE WHEN i.key_technologies LIKE '%herpes%' THEN 'USA' WHEN i.key_technologies <> '' THEN 'outside_USA' END AS country_family, COUNT(*) AS institution_count FROM institution AS i WHERE i.key_technologies <> '' GROUP BY country_family",
+   "drifted": true,
+   "source": "med_agg20:q9",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.key_technologies",
+   "novel_features": [
+    "key_technologies@group",
+    "key_technologies@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q11.2",
+   "sql": "SELECT CASE WHEN LOWER(i.leadership) LIKE '%abdulraheem%' THEN 'oncology' WHEN LOWER(i.leadership) LIKE '%abraham%' THEN 'neuroscience' WHEN LOWER(i.leadership) LIKE '%arjun%' OR LOWER(i.leadership) LIKE '%arnon%' THEN 'immuno_micro' WHEN LOWER(i.leadership) LIKE '%alexis%' THEN 'clinical_research' WHEN i.leadership <> '' THEN 'other' END AS field_family, COUNT(DISTINCT i.id) AS institution_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.institution_country LIKE '%USA%' AND i.leadership <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q11",
+   "operator": "replace",
+   "replaced": "institution.research_fields",
+   "by": "institution.leadership",
+   "novel_features": [
+    "leadership@group",
+    "leadership@select",
+    "leadership@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q15.4",
+   "sql": "SELECT CASE WHEN institution_city <> '' THEN 'has_collaboration' ELSE 'no_collaboration_recorded' END AS collab_status, COUNT(*) AS institution_count FROM institution GROUP BY collab_status",
+   "drifted": true,
+   "source": "med_agg20:q15",
+   "operator": "replace",
+   "replaced": "institution.international_collaboration",
+   "by": "institution.institution_city",
+   "novel_features": [
+    "institution_city@group",
+    "institution_city@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q8.2",
+   "sql": "SELECT CASE WHEN LOWER(d.etiology) LIKE '%astrazeneca%' THEN 'infectious' WHEN LOWER(d.etiology) LIKE '%clinical%' THEN 'neoplastic' WHEN LOWER(d.etiology) LIKE '%hmbs%' THEN 'inflammatory' WHEN LOWER(d.etiology) LIKE '%infected%' THEN 'psychiatric' WHEN d.etiology <> '' THEN 'other' END AS type_family, COUNT(DISTINCT i.id) AS institution_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE d.etiology <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_join20:q8",
+   "operator": "replace",
+   "replaced": "disease.disease_type",
+   "by": "disease.etiology",
+   "novel_features": [
+    "etiology@group",
+    "etiology@select",
+    "etiology@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q0.0",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, CASE WHEN LOWER(d.risk_factors) LIKE '%genetic_predisposition%' THEN 'oral_medication' ELSE 'other_treatment' END AS treatment_group, COUNT(*) AS disease_count FROM disease AS d WHERE d.disease_type <> '' AND d.risk_factors <> '' GROUP BY type_family, treatment_group",
+   "drifted": true,
+   "source": "med_groupby20:q0",
+   "operator": "replace",
+   "replaced": "disease.treatments",
+   "by": "disease.risk_factors",
+   "novel_features": [
+    "risk_factors@group",
+    "risk_factors@select",
+    "risk_factors@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q8.2",
+   "sql": "SELECT CASE WHEN LOWER(i.institution_name) LIKE '%massachusetts%' THEN 'university_affiliated' WHEN LOWER(i.institution_name) LIKE '%microbiome%' THEN 'public' WHEN i.institution_name <> '' THEN 'other' END AS inst_type, COUNT(*) AS institution_count FROM institution AS i WHERE i.institution_name <> '' GROUP BY inst_type",
+   "drifted": true,
+   "source": "med_agg20:q8",
+   "operator": "replace",
+   "replaced": "institution.institution_type",
+   "by": "institution.institution_name",
+   "novel_features": [
+    "institution_name@group",
+    "institution_name@select",
+    "institution_name@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q13.2",
+   "sql": "SELECT CASE WHEN i.institution_country LIKE '%USA%' THEN 'USA' WHEN i.institution_country <> '' THEN 'outside_USA' END AS country_family, COUNT(DISTINCT dr.id) AS drug_count, COUNT(DISTINCT CASE WHEN LOWER(dr.single_dose) LIKE '%adults%' THEN dr.id END) AS oral_count, COUNT(DISTINCT CASE WHEN LOWER(dr.pharmaceutical_form) LIKE '%tablet%' THEN dr.id END) AS tablet_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.institution_country <> '' GROUP BY country_family",
+   "drifted": true,
+   "source": "med_multiagg20:q13",
+   "operator": "replace",
+   "replaced": "drug.administration_route",
+   "by": "drug.single_dose",
+   "novel_features": [
+    "single_dose@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q12.7",
+   "sql": "SELECT CASE WHEN LOWER(i.research_fields) LIKE '%oncology%' THEN 'oncology' WHEN LOWER(i.research_fields) LIKE '%neuroscience%' THEN 'neuroscience' WHEN LOWER(i.research_fields) LIKE '%immunology%' OR LOWER(i.research_fields) LIKE '%microbiology%' THEN 'immuno_micro' WHEN LOWER(i.research_fields) LIKE '%clinical_research%' THEN 'clinical_research' WHEN i.research_fields <> '' THEN 'other' END AS field_family, COUNT(DISTINCT i.id) AS institution_count, COUNT(DISTINCT CASE WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN i.id END) AS neoplastic_count, COUNT(DISTINCT CASE WHEN i.parent_organization LIKE '%emory%' THEN i.id END) AS usa_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.research_fields <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "med_multiagg20:q12",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.parent_organization",
+   "novel_features": [
+    "parent_organization@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q5.6",
+   "sql": "SELECT CASE WHEN i.leadership LIKE '%abdulraheem%' THEN 'USA' WHEN i.leadership <> '' THEN 'outside_USA' END AS country_family, COUNT(DISTINCT i.id) AS institution_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.leadership <> '' GROUP BY country_family",
+   "drifted": true,
+   "source": "med_join20:q5",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.leadership",
+   "novel_features": [
+    "leadership@group",
+    "leadership@select",
+    "leadership@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q3.5",
+   "sql": "SELECT CASE WHEN LOWER(d.diagnosis_challenges) LIKE '%nonspecific%' THEN 'oral_treatment_disease' ELSE 'other_treatment_disease' END AS treatment_group, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE d.diagnosis_challenges <> '' GROUP BY treatment_group",
+   "drifted": true,
+   "source": "med_join20:q3",
+   "operator": "replace",
+   "replaced": "disease.treatments",
+   "by": "disease.diagnosis_challenges",
+   "novel_features": [
+    "diagnosis_challenges@group",
+    "diagnosis_challenges@select",
+    "diagnosis_challenges@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q1.1",
+   "sql": "SELECT CASE WHEN LOWER(drugs) LIKE '%antibiotics%' THEN 'high_mortality' WHEN LOWER(drugs) LIKE '%alpha-blockers%' THEN 'chronic' ELSE 'other' END AS prognosis_group, COUNT(*) AS disease_count, SUM(CASE WHEN LOWER(treatments) LIKE '%injection%' THEN 1 ELSE 0 END) AS injection_count, SUM(CASE WHEN quality_of_life_impact <> '' THEN 1 ELSE 0 END) AS qol_recorded_count FROM disease WHERE drugs <> '' GROUP BY prognosis_group",
+   "drifted": true,
+   "source": "med_multiagg20:q1",
+   "operator": "replace",
+   "replaced": "disease.prognosis",
+   "by": "disease.drugs",
+   "novel_features": [
+    "drugs@group",
+    "drugs@select",
+    "drugs@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q3.1",
+   "sql": "SELECT CASE WHEN prescription_status LIKE '%prescription_only%' THEN 'prescription_only' ELSE 'other' END AS rx_status, CASE WHEN LOWER(recommended_usage) LIKE '%other%' THEN 'room_temperature' ELSE 'other_storage' END AS storage_group, COUNT(*) AS drug_count FROM drug WHERE prescription_status <> '' AND recommended_usage <> '' GROUP BY rx_status, storage_group",
+   "drifted": true,
+   "source": "med_groupby20:q3",
+   "operator": "replace",
+   "replaced": "drug.storage_conditions",
+   "by": "drug.recommended_usage",
+   "novel_features": [
+    "recommended_usage@group",
+    "recommended_usage@select",
+    "recommended_usage@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q19.3",
+   "sql": "SELECT CASE WHEN LOWER(complications) LIKE '%abdominal%' THEN 'mentions_screening' WHEN complications <> '' THEN 'other_prevention' END AS prevention_group, COUNT(*) AS disease_count FROM disease WHERE complications <> '' GROUP BY prevention_group",
+   "drifted": true,
+   "source": "med_agg20:q19",
+   "operator": "replace",
+   "replaced": "disease.preventive_measures",
+   "by": "disease.complications",
+   "novel_features": [
+    "complications@group",
+    "complications@select",
+    "complications@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q18.1",
+   "sql": "SELECT CASE WHEN LOWER(etiology) LIKE '%astrazeneca%' THEN 'bacterial' WHEN LOWER(etiology) LIKE '%clinical%' THEN 'viral' WHEN etiology <> '' THEN 'other' END AS path_group, CASE WHEN LOWER(treatments) LIKE '%oral_medication%' THEN 'oral_medication' ELSE 'other_treatment' END AS treatment_group, COUNT(*) AS disease_count FROM disease WHERE etiology <> '' AND treatments <> '' GROUP BY path_group, treatment_group",
+   "drifted": true,
+   "source": "med_groupby20:q18",
+   "operator": "replace",
+   "replaced": "disease.pathogenesis",
+   "by": "disease.etiology",
+   "novel_features": [
+    "etiology@group",
+    "etiology@select",
+    "etiology@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q1.6",
+   "sql": "SELECT CASE WHEN LOWER(treatment_challenges) LIKE '%side%' THEN 'clinical_evaluation' ELSE 'other_methods' END AS dx_group, CASE WHEN LOWER(prognosis) LIKE '%high_mortality%' THEN 'high_mortality' WHEN prognosis <> '' THEN 'other_prognosis' END AS prognosis_group, COUNT(*) AS disease_count FROM disease WHERE treatment_challenges <> '' AND prognosis <> '' GROUP BY dx_group, prognosis_group",
+   "drifted": true,
+   "source": "med_groupby20:q1",
+   "operator": "replace",
+   "replaced": "disease.diagnostic_methods",
+   "by": "disease.treatment_challenges",
+   "novel_features": [
+    "treatment_challenges@group",
+    "treatment_challenges@select",
+    "treatment_challenges@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q16.4",
+   "sql": "SELECT CASE WHEN LOWER(affected_organs) LIKE '%lungs%' THEN 'qol_decline' WHEN affected_organs <> '' THEN 'other_impact' END AS qol_group, COUNT(*) AS disease_count FROM disease WHERE affected_organs <> '' GROUP BY qol_group",
+   "drifted": true,
+   "source": "med_agg20:q16",
+   "operator": "replace",
+   "replaced": "disease.quality_of_life_impact",
+   "by": "disease.affected_organs",
+   "novel_features": [
+    "affected_organs@group",
+    "affected_organs@select",
+    "affected_organs@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q19.7",
+   "sql": "SELECT CASE WHEN LOWER(i.leadership) LIKE '%abdulraheem%' THEN 'oncology' WHEN LOWER(i.leadership) LIKE '%abraham%' THEN 'neuroscience' WHEN LOWER(i.leadership) LIKE '%arjun%' OR LOWER(i.leadership) LIKE '%arnon%' THEN 'immuno_micro' WHEN LOWER(i.leadership) LIKE '%alexis%' THEN 'clinical_research' WHEN i.leadership <> '' THEN 'other' END AS field_family, COUNT(DISTINCT dr.id) AS drug_count, COUNT(DISTINCT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN dr.id END) AS infectious_count, COUNT(DISTINCT CASE WHEN i.institution_country LIKE '%USA%' THEN dr.id END) AS usa_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.leadership <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "med_multiagg20:q19",
+   "operator": "replace",
+   "replaced": "institution.research_fields",
+   "by": "institution.leadership",
+   "novel_features": [
+    "leadership@group",
+    "leadership@select",
+    "leadership@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q19.5",
+   "sql": "SELECT CASE WHEN LOWER(i.key_achievements) LIKE '%crohn__%' THEN 'oncology' WHEN LOWER(i.key_achievements) LIKE '%demonstrated%' THEN 'neuroscience' WHEN LOWER(i.key_achievements) LIKE '%developed%' OR LOWER(i.key_achievements) LIKE '%discovery%' THEN 'immuno_micro' WHEN LOWER(i.key_achievements) LIKE '%reversibility%' THEN 'clinical_research' WHEN i.key_achievements <> '' THEN 'other' END AS field_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.key_achievements <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "med_join20:q19",
+   "operator": "replace",
+   "replaced": "institution.research_fields",
+   "by": "institution.key_achievements",
+   "novel_features": [
+    "key_achievements@group",
+    "key_achievements@select",
+    "key_achievements@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q6.3",
+   "sql": "SELECT CASE WHEN i.institution_country LIKE '%USA%' THEN 'USA' WHEN i.institution_country <> '' THEN 'outside_USA' END AS country_family, COUNT(*) AS institution_count, SUM(CASE WHEN LOWER(i.institution_name) LIKE '%massachusetts%' THEN 1 ELSE 0 END) AS university_count, SUM(CASE WHEN i.key_technologies <> '' THEN 1 ELSE 0 END) AS tech_recorded_count FROM institution AS i WHERE i.institution_country <> '' GROUP BY country_family",
+   "drifted": true,
+   "source": "med_multiagg20:q6",
+   "operator": "replace",
+   "replaced": "institution.institution_type",
+   "by": "institution.institution_name",
+   "novel_features": [
+    "institution_name@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q6.0",
+   "sql": "SELECT CASE WHEN LOWER(dr.dosage_frequency) LIKE '%once%' THEN 'oral' WHEN dr.dosage_frequency <> '' THEN 'non_oral' END AS route_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE LOWER(d.disease_type) LIKE '%infectious%' AND dr.dosage_frequency <> '' GROUP BY route_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q6",
+   "operator": "replace",
+   "replaced": "drug.administration_route",
+   "by": "drug.dosage_frequency",
+   "novel_features": [
+    "dosage_frequency@group",
+    "dosage_frequency@select",
+    "dosage_frequency@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q15.1",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.indication <> '' AND d.disease_type <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q15",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.indication",
+   "novel_features": [
+    "indication@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q0.4",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, COUNT(*) AS disease_count FROM disease AS d WHERE LOWER(d.etiology) LIKE '%astrazeneca%' AND d.disease_type <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q0",
+   "operator": "replace",
+   "replaced": "disease.treatments",
+   "by": "disease.etiology",
+   "novel_features": [
+    "etiology@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q16.2",
+   "sql": "SELECT CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route <> '' THEN 'non_oral' END AS route_family, CASE WHEN LOWER(i.international_collaboration) LIKE '%world%' THEN 'university_affiliated' WHEN LOWER(i.international_collaboration) LIKE '%abbott%' THEN 'public' WHEN i.international_collaboration <> '' THEN 'other' END AS inst_type, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.administration_route <> '' AND i.international_collaboration <> '' GROUP BY route_family, inst_type",
+   "drifted": true,
+   "source": "med_groupby20:q16",
+   "operator": "replace",
+   "replaced": "institution.institution_type",
+   "by": "institution.international_collaboration",
+   "novel_features": [
+    "international_collaboration@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q8.1",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.recommended_usage LIKE '%other%' AND d.disease_type <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q8",
+   "operator": "replace",
+   "replaced": "drug.prescription_status",
+   "by": "drug.recommended_usage",
+   "novel_features": [
+    "recommended_usage@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q9.3",
+   "sql": "SELECT CASE WHEN LOWER(d.common_symptoms) LIKE '%yellow%' THEN 'clinical_evaluation' ELSE 'other_methods' END AS dx_group, COUNT(DISTINCT d.id) AS disease_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE d.common_symptoms <> '' GROUP BY dx_group",
+   "drifted": true,
+   "source": "med_join20:q9",
+   "operator": "replace",
+   "replaced": "disease.diagnostic_methods",
+   "by": "disease.common_symptoms",
+   "novel_features": [
+    "common_symptoms@group",
+    "common_symptoms@select",
+    "common_symptoms@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q0.2",
+   "sql": "SELECT CASE WHEN LOWER(d.affected_organs) LIKE '%lungs%' THEN 'infectious' WHEN LOWER(d.affected_organs) LIKE '%respiratory%' THEN 'neoplastic' WHEN LOWER(d.affected_organs) LIKE '%skin%' THEN 'inflammatory' WHEN LOWER(d.affected_organs) LIKE '%abdomen%' THEN 'psychiatric' WHEN d.affected_organs <> '' THEN 'other' END AS type_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE d.affected_organs <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_join20:q0",
+   "operator": "replace",
+   "replaced": "disease.disease_type",
+   "by": "disease.affected_organs",
+   "novel_features": [
+    "affected_organs@group",
+    "affected_organs@select",
+    "affected_organs@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q7.3",
+   "sql": "SELECT CASE WHEN LOWER(i.institution_name) LIKE '%massachusetts%' THEN 'oncology' WHEN LOWER(i.institution_name) LIKE '%microbiome%' THEN 'neuroscience' WHEN LOWER(i.institution_name) LIKE '%adventhealth%' OR LOWER(i.institution_name) LIKE '%allegiance%' THEN 'immuno_micro' WHEN LOWER(i.institution_name) LIKE '%institute%' THEN 'clinical_research' WHEN i.institution_name <> '' THEN 'other' END AS field_family, COUNT(DISTINCT i.id) AS institution_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.institution_name <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "med_join20:q7",
+   "operator": "replace",
+   "replaced": "institution.research_fields",
+   "by": "institution.institution_name",
+   "novel_features": [
+    "institution_name@group",
+    "institution_name@select",
+    "institution_name@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q5.4",
+   "sql": "SELECT CASE WHEN LOWER(i.key_technologies) LIKE '%herpes%' THEN 'oncology' WHEN LOWER(i.key_technologies) LIKE '%model%' THEN 'neuroscience' WHEN LOWER(i.key_technologies) LIKE '%angiogram%' OR LOWER(i.key_technologies) LIKE '%bh3-mimetic%' THEN 'immuno_micro' WHEN LOWER(i.key_technologies) LIKE '%99mtc-3,3-diphosphono-1,2-propanodicarboxylic%' THEN 'clinical_research' WHEN i.key_technologies <> '' THEN 'other' END AS field_family, COUNT(*) AS institution_count, SUM(CASE WHEN i.institution_country LIKE '%USA%' THEN 1 ELSE 0 END) AS usa_count, SUM(CASE WHEN i.funding_sources <> '' THEN 1 ELSE 0 END) AS funding_count FROM institution AS i WHERE i.key_technologies <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "med_multiagg20:q5",
+   "operator": "replace",
+   "replaced": "institution.research_fields",
+   "by": "institution.key_technologies",
+   "novel_features": [
+    "key_technologies@group",
+    "key_technologies@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q17.4",
+   "sql": "SELECT CASE WHEN LOWER(i.research_fields) LIKE '%oncology%' THEN 'oncology' WHEN LOWER(i.research_fields) LIKE '%neuroscience%' THEN 'neuroscience' WHEN LOWER(i.research_fields) LIKE '%immunology%' OR LOWER(i.research_fields) LIKE '%microbiology%' THEN 'immuno_micro' WHEN LOWER(i.research_fields) LIKE '%clinical_research%' THEN 'clinical_research' WHEN i.research_fields <> '' THEN 'other' END AS field_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE LOWER(dr.activation_conditions) LIKE '%special%' AND i.research_fields <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q17",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.activation_conditions",
+   "novel_features": [
+    "activation_conditions@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q1.2",
+   "sql": "SELECT CASE WHEN LOWER(common_symptoms) LIKE '%yellow%' THEN 'uses_oral_medication' WHEN common_symptoms <> '' THEN 'no_oral_medication' END AS treatment_group, COUNT(*) AS disease_count FROM disease WHERE common_symptoms <> '' GROUP BY treatment_group",
+   "drifted": true,
+   "source": "med_agg20:q1",
+   "operator": "replace",
+   "replaced": "disease.treatments",
+   "by": "disease.common_symptoms",
+   "novel_features": [
+    "common_symptoms@group",
+    "common_symptoms@select",
+    "common_symptoms@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q4.1",
+   "sql": "SELECT CASE WHEN LOWER(i.technology_application) LIKE '%at-home%' THEN 'university_affiliated' WHEN LOWER(i.technology_application) LIKE '%ctdna%' THEN 'public' WHEN i.technology_application <> '' THEN 'other' END AS inst_type, COUNT(*) AS institution_count, SUM(CASE WHEN i.institution_country LIKE '%USA%' THEN 1 ELSE 0 END) AS usa_count, SUM(CASE WHEN i.international_collaboration <> '' THEN 1 ELSE 0 END) AS collab_count FROM institution AS i WHERE i.technology_application <> '' GROUP BY inst_type",
+   "drifted": true,
+   "source": "med_multiagg20:q4",
+   "operator": "replace",
+   "replaced": "institution.institution_type",
+   "by": "institution.technology_application",
+   "novel_features": [
+    "technology_application@group",
+    "technology_application@select",
+    "technology_application@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q2.0",
+   "sql": "SELECT CASE WHEN LOWER(i.institution_type) LIKE '%university%' THEN 'university_affiliated' WHEN LOWER(i.institution_type) LIKE '%public%' THEN 'public' WHEN i.institution_type <> '' THEN 'other' END AS inst_type, COUNT(*) AS institution_count FROM institution AS i WHERE i.leadership LIKE '%abdulraheem%' AND i.institution_type <> '' GROUP BY inst_type",
+   "drifted": true,
+   "source": "med_filterjoin20:q2",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.leadership",
+   "novel_features": [
+    "leadership@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q11.5",
+   "sql": "SELECT CASE WHEN LOWER(dr.active_ingredients) LIKE '%milnacipran%' THEN 'tablet' WHEN LOWER(dr.active_ingredients) LIKE '%5-fluorouracil%' THEN 'injection' WHEN LOWER(dr.active_ingredients) LIKE '%6-mercaptopurine%' THEN 'capsule' WHEN dr.active_ingredients <> '' THEN 'other' END AS form_family, CASE WHEN LOWER(d.treatments) LIKE '%oral_medication%' THEN 'oral_treatment_disease' ELSE 'other_treatment_disease' END AS treatment_group, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.active_ingredients <> '' AND d.treatments <> '' GROUP BY form_family, treatment_group",
+   "drifted": true,
+   "source": "med_join20:q11",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.active_ingredients",
+   "novel_features": [
+    "active_ingredients@group",
+    "active_ingredients@select",
+    "active_ingredients@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q2.0",
+   "sql": "SELECT CASE WHEN LOWER(dr.active_ingredients) LIKE '%milnacipran%' THEN 'tablet' WHEN LOWER(dr.active_ingredients) LIKE '%5-fluorouracil%' THEN 'injection' WHEN LOWER(dr.active_ingredients) LIKE '%6-mercaptopurine%' THEN 'capsule' WHEN dr.active_ingredients <> '' THEN 'other' END AS form_family, CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route <> '' THEN 'non_oral' END AS route_family, COUNT(*) AS drug_count FROM drug AS dr WHERE dr.active_ingredients <> '' AND dr.administration_route <> '' GROUP BY form_family, route_family",
+   "drifted": true,
+   "source": "med_groupby20:q2",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.active_ingredients",
+   "novel_features": [
+    "active_ingredients@group",
+    "active_ingredients@select",
+    "active_ingredients@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q0.1",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_name) LIKE '%absence%' THEN 'infectious' WHEN LOWER(d.disease_name) LIKE '%acne%' THEN 'neoplastic' WHEN LOWER(d.disease_name) LIKE '%acute%' THEN 'inflammatory' WHEN LOWER(d.disease_name) LIKE '%bacterial%' THEN 'psychiatric' WHEN d.disease_name <> '' THEN 'other' END AS type_family, COUNT(*) AS disease_count FROM disease AS d WHERE d.disease_name <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_agg20:q0",
+   "operator": "replace",
+   "replaced": "disease.disease_type",
+   "by": "disease.disease_name",
+   "novel_features": [
+    "disease_name@group",
+    "disease_name@select",
+    "disease_name@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q3.2",
+   "sql": "SELECT CASE WHEN LOWER(prognosis) LIKE '%high_mortality%' THEN 'high_mortality' ELSE 'other_prognosis' END AS prognosis_group, COUNT(*) AS disease_count FROM disease WHERE LOWER(treatment_challenges) LIKE '%side%' AND prognosis <> '' GROUP BY prognosis_group",
+   "drifted": true,
+   "source": "med_filterjoin20:q3",
+   "operator": "replace",
+   "replaced": "disease.diagnostic_methods",
+   "by": "disease.treatment_challenges",
+   "novel_features": [
+    "treatment_challenges@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q19.6",
+   "sql": "SELECT CASE WHEN LOWER(d.risk_factors) LIKE '%genetic_predisposition%' THEN 'infectious' WHEN LOWER(d.risk_factors) LIKE '%infection%' THEN 'neoplastic' WHEN LOWER(d.risk_factors) LIKE '%stress%' THEN 'inflammatory' WHEN LOWER(d.risk_factors) LIKE '%chronic_disease%' THEN 'psychiatric' WHEN d.risk_factors <> '' THEN 'other' END AS type_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE LOWER(i.institution_type) LIKE '%university%' AND d.risk_factors <> '' GROUP BY type_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q19",
+   "operator": "replace",
+   "replaced": "disease.disease_type",
+   "by": "disease.risk_factors",
+   "novel_features": [
+    "risk_factors@group",
+    "risk_factors@select",
+    "risk_factors@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q10.1",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, CASE WHEN LOWER(dr.generic_name) LIKE '%milnacipran%' THEN 'oral' WHEN dr.generic_name <> '' THEN 'non_oral' END AS route_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE d.disease_type <> '' AND dr.generic_name <> '' GROUP BY type_family, route_family",
+   "drifted": true,
+   "source": "med_join20:q10",
+   "operator": "replace",
+   "replaced": "drug.administration_route",
+   "by": "drug.generic_name",
+   "novel_features": [
+    "generic_name@group",
+    "generic_name@select",
+    "generic_name@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q10.2",
+   "sql": "SELECT CASE WHEN LOWER(i.parent_organization) LIKE '%emory%' THEN 'oncology' WHEN LOWER(i.parent_organization) LIKE '%allegheny%' THEN 'neuroscience' WHEN LOWER(i.parent_organization) LIKE '%baystate%' OR LOWER(i.parent_organization) LIKE '%benha%' THEN 'immuno_micro' WHEN LOWER(i.parent_organization) LIKE '%wadia%' THEN 'clinical_research' WHEN i.parent_organization <> '' THEN 'other' END AS field_family, COUNT(*) AS institution_count FROM institution AS i WHERE i.parent_organization <> '' GROUP BY field_family",
+   "drifted": true,
+   "source": "med_agg20:q10",
+   "operator": "replace",
+   "replaced": "institution.research_fields",
+   "by": "institution.parent_organization",
+   "novel_features": [
+    "parent_organization@group",
+    "parent_organization@select",
+    "parent_organization@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q5.7",
+   "sql": "SELECT CASE WHEN LOWER(dr.active_ingredients) LIKE '%milnacipran%' THEN 'oral' WHEN dr.active_ingredients <> '' THEN 'non_oral' END AS route_family, COUNT(*) AS drug_count FROM drug AS dr WHERE dr.active_ingredients <> '' GROUP BY route_family",
+   "drifted": true,
+   "source": "med_agg20:q5",
+   "operator": "replace",
+   "replaced": "drug.administration_route",
+   "by": "drug.active_ingredients",
+   "novel_features": [
+    "active_ingredients@group",
+    "active_ingredients@select",
+    "active_ingredients@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q14.0",
+   "sql": "SELECT CASE WHEN i.key_achievements LIKE '%crohn__%' THEN 'USA' WHEN i.key_achievements <> '' THEN 'outside_USA' END AS country_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE LOWER(dr.administration_route) LIKE '%oral%' AND i.key_achievements <> '' GROUP BY country_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q14",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.key_achievements",
+   "novel_features": [
+    "key_achievements@group",
+    "key_achievements@select",
+    "key_achievements@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q2.5",
+   "sql": "SELECT CASE WHEN LOWER(affected_organs) LIKE '%lungs%' THEN 'clinical_evaluation' WHEN affected_organs <> '' THEN 'other_methods' END AS dx_group, COUNT(*) AS disease_count FROM disease WHERE affected_organs <> '' GROUP BY dx_group",
+   "drifted": true,
+   "source": "med_agg20:q2",
+   "operator": "replace",
+   "replaced": "disease.diagnostic_methods",
+   "by": "disease.affected_organs",
+   "novel_features": [
+    "affected_organs@group",
+    "affected_organs@select",
+    "affected_organs@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q14.7",
+   "sql": "SELECT CASE WHEN i.key_achievements LIKE '%crohn__%' THEN 'USA' WHEN i.key_achievements <> '' THEN 'outside_USA' END AS country_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.key_achievements <> '' GROUP BY country_family",
+   "drifted": true,
+   "source": "med_join20:q14",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.key_achievements",
+   "novel_features": [
+    "key_achievements@group",
+    "key_achievements@select",
+    "key_achievements@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q4.5",
+   "sql": "SELECT CASE WHEN LOWER(i.international_collaboration) LIKE '%world%' THEN 'university_affiliated' WHEN LOWER(i.international_collaboration) LIKE '%abbott%' THEN 'public' WHEN i.international_collaboration <> '' THEN 'other' END AS inst_type, CASE WHEN i.institution_country LIKE '%USA%' THEN 'USA' WHEN i.institution_country <> '' THEN 'outside_USA' END AS country_family, COUNT(*) AS institution_count FROM institution AS i WHERE i.international_collaboration <> '' AND i.institution_country <> '' GROUP BY inst_type, country_family",
+   "drifted": true,
+   "source": "med_groupby20:q4",
+   "operator": "replace",
+   "replaced": "institution.institution_type",
+   "by": "institution.international_collaboration",
+   "novel_features": [
+    "international_collaboration@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_agg20.q12.6",
+   "sql": "SELECT CASE WHEN LOWER(affected_organs) LIKE '%lungs%' THEN 'uses_injection' WHEN affected_organs <> '' THEN 'no_injection' END AS treatment_group, COUNT(*) AS disease_count FROM disease WHERE affected_organs <> '' GROUP BY treatment_group",
+   "drifted": true,
+   "source": "med_agg20:q12",
+   "operator": "replace",
+   "replaced": "disease.treatments",
+   "by": "disease.affected_organs",
+   "novel_features": [
+    "affected_organs@group",
+    "affected_organs@select",
+    "affected_organs@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q2.2",
+   "sql": "SELECT CASE WHEN LOWER(dr.recommended_usage) LIKE '%other%' THEN 'oral' WHEN dr.recommended_usage <> '' THEN 'non_oral' END AS route_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.recommended_usage <> '' GROUP BY route_family",
+   "drifted": true,
+   "source": "med_join20:q2",
+   "operator": "replace",
+   "replaced": "drug.administration_route",
+   "by": "drug.recommended_usage",
+   "novel_features": [
+    "recommended_usage@group",
+    "recommended_usage@select",
+    "recommended_usage@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q6.0",
+   "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type <> '' THEN 'other' END AS type_family, CASE WHEN LOWER(d.treatment_challenges) LIKE '%side%' THEN 'infectious_pathogenesis' WHEN d.treatment_challenges <> '' THEN 'other_pathogenesis' END AS path_group, COUNT(*) AS disease_count FROM disease AS d WHERE d.disease_type <> '' AND d.treatment_challenges <> '' GROUP BY type_family, path_group",
+   "drifted": true,
+   "source": "med_groupby20:q6",
+   "operator": "replace",
+   "replaced": "disease.pathogenesis",
+   "by": "disease.treatment_challenges",
+   "novel_features": [
+    "treatment_challenges@group",
+    "treatment_challenges@select",
+    "treatment_challenges@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q13.4",
+   "sql": "SELECT CASE WHEN LOWER(i.institution_name) LIKE '%massachusetts%' THEN 'university_affiliated' WHEN LOWER(i.institution_name) LIKE '%microbiome%' THEN 'public' WHEN i.institution_name <> '' THEN 'other' END AS inst_type, CASE WHEN LOWER(i.research_fields) LIKE '%oncology%' THEN 'oncology' WHEN LOWER(i.research_fields) LIKE '%neuroscience%' THEN 'neuroscience' WHEN LOWER(i.research_fields) LIKE '%immunology%' OR LOWER(i.research_fields) LIKE '%microbiology%' THEN 'immuno_micro' WHEN LOWER(i.research_fields) LIKE '%clinical_research%' THEN 'clinical_research' WHEN i.research_fields <> '' THEN 'other' END AS field_family, COUNT(DISTINCT i.id) AS institution_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.institution_name <> '' AND i.research_fields <> '' GROUP BY inst_type, field_family",
+   "drifted": true,
+   "source": "med_join20:q13",
+   "operator": "replace",
+   "replaced": "institution.institution_type",
+   "by": "institution.institution_name",
+   "novel_features": [
+    "institution_name@group",
+    "institution_name@select",
+    "institution_name@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q16.7",
+   "sql": "SELECT CASE WHEN LOWER(complications) LIKE '%abdominal%' THEN 'lab_test' WHEN complications <> '' THEN 'other_methods' END AS dx_group, COUNT(*) AS disease_count, SUM(CASE WHEN LOWER(treatments) LIKE '%oral_medication%' THEN 1 ELSE 0 END) AS oral_count, SUM(CASE WHEN LOWER(treatments) LIKE '%surgery%' THEN 1 ELSE 0 END) AS surgery_count FROM disease WHERE complications <> '' GROUP BY dx_group",
+   "drifted": true,
+   "source": "med_multiagg20:q16",
+   "operator": "replace",
+   "replaced": "disease.diagnostic_methods",
+   "by": "disease.complications",
+   "novel_features": [
+    "complications@group",
+    "complications@select",
+    "complications@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q3.3",
+   "sql": "SELECT CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route <> '' THEN 'non_oral' END AS route_family, COUNT(*) AS drug_count, SUM(CASE WHEN dr.brand_name LIKE '%savella%' THEN 1 ELSE 0 END) AS rx_only_count, SUM(CASE WHEN LOWER(dr.storage_conditions) LIKE '%room temperature%' THEN 1 ELSE 0 END) AS room_temp_count FROM drug AS dr WHERE dr.administration_route <> '' GROUP BY route_family",
+   "drifted": true,
+   "source": "med_multiagg20:q3",
+   "operator": "replace",
+   "replaced": "drug.prescription_status",
+   "by": "drug.brand_name",
+   "novel_features": [
+    "brand_name@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q10.6",
+   "sql": "SELECT CASE WHEN i.institution_country LIKE '%USA%' THEN 'USA' WHEN i.institution_country <> '' THEN 'outside_USA' END AS country_family, COUNT(DISTINCT d.id) AS disease_count, COUNT(DISTINCT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN d.id END) AS infectious_count, COUNT(DISTINCT CASE WHEN LOWER(d.treatment_challenges) LIKE '%side%' THEN d.id END) AS oral_treatment_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.institution_country <> '' GROUP BY country_family",
+   "drifted": true,
+   "source": "med_multiagg20:q10",
+   "operator": "replace",
+   "replaced": "disease.treatments",
+   "by": "disease.treatment_challenges",
+   "novel_features": [
+    "treatment_challenges@select"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q14.0",
+   "sql": "SELECT CASE WHEN LOWER(i.institution_type) LIKE '%university%' THEN 'university_affiliated' WHEN LOWER(i.institution_type) LIKE '%public%' THEN 'public' WHEN i.institution_type <> '' THEN 'other' END AS inst_type, CASE WHEN LOWER(d.risk_factors) LIKE '%genetic_predisposition%' THEN 'uses_imaging' WHEN d.risk_factors <> '' THEN 'no_imaging' END AS imaging_status, COUNT(DISTINCT d.id) AS disease_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.institution_type <> '' AND d.risk_factors <> '' GROUP BY inst_type, imaging_status",
+   "drifted": true,
+   "source": "med_groupby20:q14",
+   "operator": "replace",
+   "replaced": "disease.diagnostic_methods",
+   "by": "disease.risk_factors",
+   "novel_features": [
+    "risk_factors@group",
+    "risk_factors@select",
+    "risk_factors@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q18.7",
+   "sql": "SELECT CASE WHEN LOWER(preventive_measures) LIKE '%screening%' THEN 'mentions_screening' ELSE 'other_prevention' END AS prevention_group, COUNT(*) AS disease_count FROM disease WHERE LOWER(complications) LIKE '%abdominal%' AND preventive_measures <> '' GROUP BY prevention_group",
+   "drifted": true,
+   "source": "med_filterjoin20:q18",
+   "operator": "replace",
+   "replaced": "disease.treatments",
+   "by": "disease.complications",
+   "novel_features": [
+    "complications@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_groupby20.q19.5",
+   "sql": "SELECT CASE WHEN i.leadership LIKE '%abdulraheem%' THEN 'USA' WHEN i.leadership <> '' THEN 'outside_USA' END AS country_family, CASE WHEN i.funding_sources <> '' THEN 'funding_recorded' ELSE 'funding_unknown' END AS funding_status, COUNT(DISTINCT i.id) AS institution_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.leadership <> '' GROUP BY country_family, funding_status",
+   "drifted": true,
+   "source": "med_groupby20:q19",
+   "operator": "replace",
+   "replaced": "institution.institution_country",
+   "by": "institution.leadership",
+   "novel_features": [
+    "leadership@group",
+    "leadership@select",
+    "leadership@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q4.6",
+   "sql": "SELECT CASE WHEN dr.recommended_usage LIKE '%other%' THEN 'prescription_only' WHEN dr.recommended_usage <> '' THEN 'other' END AS rx_status, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.recommended_usage <> '' GROUP BY rx_status",
+   "drifted": true,
+   "source": "med_join20:q4",
+   "operator": "replace",
+   "replaced": "drug.prescription_status",
+   "by": "drug.recommended_usage",
+   "novel_features": [
+    "recommended_usage@group",
+    "recommended_usage@select",
+    "recommended_usage@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q16.5",
+   "sql": "SELECT CASE WHEN LOWER(dr.indication) LIKE '%chronic%' THEN 'oral' WHEN dr.indication <> '' THEN 'non_oral' END AS route_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE dr.indication <> '' GROUP BY route_family",
+   "drifted": true,
+   "source": "med_join20:q16",
+   "operator": "replace",
+   "replaced": "drug.administration_route",
+   "by": "drug.indication",
+   "novel_features": [
+    "indication@group",
+    "indication@select",
+    "indication@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q9.5",
+   "sql": "SELECT CASE WHEN i.institution_country LIKE '%USA%' THEN 'USA' WHEN i.institution_country <> '' THEN 'outside_USA' END AS country_family, COUNT(DISTINCT i.id) AS institution_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE LOWER(d.drugs) LIKE '%antibiotics%' AND i.institution_country <> '' GROUP BY country_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q9",
+   "operator": "replace",
+   "replaced": "disease.disease_type",
+   "by": "disease.drugs",
+   "novel_features": [
+    "drugs@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_filterjoin20.q7.6",
+   "sql": "SELECT CASE WHEN LOWER(dr.manufacturer) LIKE '%bayer%' THEN 'tablet' WHEN LOWER(dr.manufacturer) LIKE '%akebia%' THEN 'injection' WHEN LOWER(dr.manufacturer) LIKE '%alfasigma%' THEN 'capsule' WHEN dr.manufacturer <> '' THEN 'other' END AS form_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE LOWER(d.treatments) LIKE '%oral_medication%' AND dr.manufacturer <> '' GROUP BY form_family",
+   "drifted": true,
+   "source": "med_filterjoin20:q7",
+   "operator": "replace",
+   "replaced": "drug.pharmaceutical_form",
+   "by": "drug.manufacturer",
+   "novel_features": [
+    "manufacturer@group"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_join20.q6.1",
+   "sql": "SELECT CASE WHEN LOWER(i.technology_application) LIKE '%at-home%' THEN 'university_affiliated' WHEN LOWER(i.technology_application) LIKE '%ctdna%' THEN 'public' WHEN i.technology_application <> '' THEN 'other' END AS inst_type, COUNT(DISTINCT i.id) AS institution_count FROM institution AS i JOIN disease AS d ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.technology_application <> '' GROUP BY inst_type",
+   "drifted": true,
+   "source": "med_join20:q6",
+   "operator": "replace",
+   "replaced": "institution.institution_type",
+   "by": "institution.technology_application",
+   "novel_features": [
+    "technology_application@group",
+    "technology_application@select",
+    "technology_application@where"
+   ]
+  },
+  {
+   "query_id": "med_drift:med_multiagg20.q14.7",
+   "sql": "SELECT CASE WHEN LOWER(i.funding_sources) LIKE '%government%' THEN 'university_affiliated' WHEN LOWER(i.funding_sources) LIKE '%philanthropy%' THEN 'public' WHEN i.funding_sources <> '' THEN 'other' END AS inst_type, COUNT(DISTINCT dr.id) AS drug_count, COUNT(DISTINCT CASE WHEN dr.prescription_status LIKE '%prescription_only%' THEN dr.id END) AS rx_only_count, COUNT(DISTINCT CASE WHEN d.treatments <> '' THEN d.id END) AS treatment_recorded_count FROM drug AS dr JOIN disease AS d ON (LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') JOIN institution AS i ON (LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%') WHERE i.funding_sources <> '' GROUP BY inst_type",
+   "drifted": true,
+   "source": "med_multiagg20:q14",
+   "operator": "replace",
+   "replaced": "institution.institution_type",
+   "by": "institution.funding_sources",
+   "novel_features": [
+    "funding_sources@where"
+   ]
+  }
+ ]
+}

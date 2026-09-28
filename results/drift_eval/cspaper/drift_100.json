@@ -1,0 +1,846 @@
+{
+ "level": 1.0,
+ "queries": 64,
+ "drifted": 64,
+ "short_of_pool": 0,
+ "cliffguard_delta": 0.38007,
+ "novel_feature_share": 0.3562,
+ "novelty_test_p": 0.0,
+ "sha256": "8839e338bdadaab7c5e0086d20ff49dbc4ceacfddb77c350e599bc71168d9c44",
+ "rows": [
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q6.6",
+   "sql": "SELECT use_agent, multi_turn_retrieval, COUNT(*) AS paper_count FROM cspaper WHERE (use_agent IN ('Yes', 'No') AND multi_turn_retrieval IN ('Yes', 'No')) AND evaluation_metric LIKE '%accuracy%' GROUP BY use_agent, multi_turn_retrieval",
+   "drifted": true,
+   "source": "cspaper_groupby20:q6",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_metric",
+   "novel_features": [
+    "evaluation_metric@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q10.0",
+   "sql": "SELECT generator_model, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE generator_model IN ('GPT-4o', 'GPT-4') AND NOT baseline_amount IS NULL GROUP BY generator_model",
+   "drifted": true,
+   "source": "cspaper_agg20:q10",
+   "operator": "replace",
+   "replaced": "cspaper.uses_reranker",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q5.7",
+   "sql": "SELECT CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality <> '' THEN 'Other' END AS modality_family, reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE (data_modality <> '' AND reasoning_depth IN ('single-hop', 'multi-hop')) AND baseline LIKE '%0-shot%' GROUP BY modality_family, reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_groupby20:q5",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q16.3",
+   "sql": "SELECT CASE WHEN generator_model LIKE '%gpt-4o%' THEN 'Hybrid' WHEN generator_model LIKE '%gpt-4%' THEN 'Graph-based' WHEN generator_model LIKE '%gpt-3.5%' THEN 'Dense' WHEN generator_model LIKE '%llama-2-7b%' THEN 'Sparse' WHEN generator_model LIKE '%qwen2.5-7b-instruct%' THEN 'Web Search' WHEN generator_model <> '' THEN 'Other' END AS retrieval_family, COUNT(*) AS paper_count FROM cspaper WHERE application_domain LIKE '%General%' AND generator_model <> '' GROUP BY retrieval_family",
+   "drifted": true,
+   "source": "cspaper_filter20:q16",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q9.0",
+   "sql": "SELECT generator_model, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE generator_model IN ('GPT-4o', 'GPT-4') AND NOT baseline_amount IS NULL GROUP BY generator_model",
+   "drifted": true,
+   "source": "cspaper_agg20:q9",
+   "operator": "replace",
+   "replaced": "cspaper.use_agent",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q0.7",
+   "sql": "SELECT reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth IN ('single-hop', 'multi-hop') AND evaluation_dataset LIKE '%hotpotqa%' GROUP BY reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_agg20:q0",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_dataset",
+   "novel_features": [
+    "evaluation_dataset@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q19.3",
+   "sql": "SELECT CASE WHEN performance_on_NQ LIKE '%bleu-1%' OR performance_on_NQ LIKE '%budgetleak-p%' OR performance_on_NQ LIKE '%accuracy%' OR performance_on_NQ LIKE '%54.0%' THEN 'multimodal_or_structured' WHEN performance_on_NQ LIKE '%sd-ra-it%' THEN 'text_only' WHEN performance_on_NQ <> '' THEN 'Other' END AS modality_family, COUNT(*) AS paper_count FROM cspaper WHERE retrieval_method LIKE '%Hybrid%' AND performance_on_NQ <> '' GROUP BY modality_family",
+   "drifted": true,
+   "source": "cspaper_filter20:q19",
+   "operator": "replace",
+   "replaced": "cspaper.data_modality",
+   "by": "cspaper.performance_on_NQ",
+   "novel_features": [
+    "performance_on_NQ@group",
+    "performance_on_NQ@select",
+    "performance_on_NQ@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q15.2",
+   "sql": "SELECT CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality <> '' THEN 'Other' END AS modality_family, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, SUM(CASE WHEN generator_model = 'GPT-4' THEN 1 ELSE 0 END) AS multi_turn_count FROM cspaper WHERE data_modality <> '' AND NOT baseline_amount IS NULL GROUP BY modality_family",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q15",
+   "operator": "replace",
+   "replaced": "cspaper.multi_turn_retrieval",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@select"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q1.0",
+   "sql": "SELECT generator_model, COUNT(*) AS paper_count FROM cspaper WHERE generator_model IN ('GPT-4o', 'GPT-4') GROUP BY generator_model",
+   "drifted": true,
+   "source": "cspaper_agg20:q1",
+   "operator": "replace",
+   "replaced": "cspaper.uses_reranker",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q6.0",
+   "sql": "SELECT uses_knowledge_graph, COUNT(*) AS paper_count FROM cspaper WHERE evaluation_metric LIKE '%accuracy%' AND uses_knowledge_graph IN ('Yes', 'No') GROUP BY uses_knowledge_graph",
+   "drifted": true,
+   "source": "cspaper_filter20:q6",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.evaluation_metric",
+   "novel_features": [
+    "evaluation_metric@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q1.3",
+   "sql": "SELECT uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE (uses_knowledge_graph = 'Yes' AND uses_reranker IN ('Yes', 'No')) AND evaluation_metric LIKE '%accuracy%' GROUP BY uses_reranker",
+   "drifted": true,
+   "source": "cspaper_filter20:q1",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_metric",
+   "novel_features": [
+    "evaluation_metric@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q19.6",
+   "sql": "SELECT CASE WHEN performance_on_NQ LIKE '%sd-ra-it%' THEN 'Hybrid' WHEN performance_on_NQ LIKE '%54.0%' THEN 'Graph-based' WHEN performance_on_NQ LIKE '%accuracy%' THEN 'Dense' WHEN performance_on_NQ LIKE '%bleu-1%' THEN 'Sparse' WHEN performance_on_NQ LIKE '%budgetleak-p%' THEN 'Web Search' WHEN performance_on_NQ <> '' THEN 'Other' END AS retrieval_family, reasoning_depth, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS reranker_count FROM cspaper WHERE performance_on_NQ <> '' AND reasoning_depth IN ('single-hop', 'multi-hop') AND NOT baseline_amount IS NULL GROUP BY retrieval_family, reasoning_depth HAVING COUNT(*) >= 3",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q19",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.performance_on_NQ",
+   "novel_features": [
+    "performance_on_NQ@group",
+    "performance_on_NQ@select",
+    "performance_on_NQ@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q2.4",
+   "sql": "SELECT multi_turn_retrieval, COUNT(*) AS paper_count, generator_model FROM cspaper WHERE use_agent = 'Yes' AND multi_turn_retrieval IN ('Yes', 'No') GROUP BY multi_turn_retrieval, generator_model",
+   "drifted": true,
+   "source": "cspaper_filter20:q2",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q8.1",
+   "sql": "SELECT agent_framework, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE (agent_framework IN ('CoT', 'ToT', 'Multi-Agent Collaboration', 'Other') AND NOT baseline_amount IS NULL) AND baseline LIKE '%0-shot%' GROUP BY agent_framework",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q8",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q0.3",
+   "sql": "SELECT reasoning_depth, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE (reasoning_depth IN ('single-hop', 'multi-hop') AND NOT baseline_amount IS NULL) AND generator_model = 'GPT-3.5' GROUP BY reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q0",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q3.1",
+   "sql": "SELECT CASE WHEN performance_on_hotpotqa LIKE '%sd-ra-it%' THEN 'Medical' WHEN performance_on_hotpotqa LIKE '%accuracy%' THEN 'Education' WHEN performance_on_hotpotqa LIKE '%~0.62%' THEN 'Finance' WHEN performance_on_hotpotqa LIKE '%compression%' THEN 'Academic' WHEN performance_on_hotpotqa LIKE '%conflict%' THEN 'General' WHEN performance_on_hotpotqa <> '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS agent_count FROM cspaper WHERE performance_on_hotpotqa <> '' AND NOT baseline_amount IS NULL GROUP BY domain_family",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q3",
+   "operator": "replace",
+   "replaced": "cspaper.application_domain",
+   "by": "cspaper.performance_on_hotpotqa",
+   "novel_features": [
+    "performance_on_hotpotqa@group",
+    "performance_on_hotpotqa@select",
+    "performance_on_hotpotqa@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q9.5",
+   "sql": "SELECT CASE WHEN performance_on_hotpotqa LIKE '%sd-ra-it%' THEN 'Medical' WHEN performance_on_hotpotqa LIKE '%accuracy%' THEN 'Education' WHEN performance_on_hotpotqa LIKE '%~0.62%' THEN 'Finance' WHEN performance_on_hotpotqa LIKE '%compression%' THEN 'Academic' WHEN performance_on_hotpotqa LIKE '%conflict%' THEN 'General' WHEN performance_on_hotpotqa <> '' THEN 'Other' END AS domain_family, uses_knowledge_graph, COUNT(*) AS paper_count FROM cspaper WHERE performance_on_hotpotqa <> '' AND uses_knowledge_graph IN ('Yes', 'No') GROUP BY domain_family, uses_knowledge_graph",
+   "drifted": true,
+   "source": "cspaper_groupby20:q9",
+   "operator": "replace",
+   "replaced": "cspaper.application_domain",
+   "by": "cspaper.performance_on_hotpotqa",
+   "novel_features": [
+    "performance_on_hotpotqa@group",
+    "performance_on_hotpotqa@select",
+    "performance_on_hotpotqa@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q11.0",
+   "sql": "SELECT generator_model, reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE generator_model IN ('GPT-4o', 'GPT-4', 'GPT-3.5', 'LLaMA-2-7B') AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY generator_model, reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_groupby20:q11",
+   "operator": "replace",
+   "replaced": "cspaper.agent_framework",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q1.5",
+   "sql": "SELECT uses_reranker, multi_turn_retrieval, COUNT(*) AS paper_count FROM cspaper WHERE (uses_reranker IN ('Yes', 'No') AND multi_turn_retrieval IN ('Yes', 'No')) AND evaluation_metric LIKE '%accuracy%' GROUP BY uses_reranker, multi_turn_retrieval",
+   "drifted": true,
+   "source": "cspaper_groupby20:q1",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_metric",
+   "novel_features": [
+    "evaluation_metric@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q12.1",
+   "sql": "SELECT uses_reranker, generator_model, COUNT(*) AS paper_count FROM cspaper WHERE uses_reranker IN ('Yes', 'No') AND generator_model IN ('GPT-4o', 'GPT-4') GROUP BY uses_reranker, generator_model",
+   "drifted": true,
+   "source": "cspaper_groupby20:q12",
+   "operator": "replace",
+   "replaced": "cspaper.use_agent",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q8.1",
+   "sql": "SELECT reasoning_depth, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE (reasoning_depth IN ('single-hop', 'multi-hop') AND NOT baseline_amount IS NULL) AND baseline LIKE '%0-shot%' GROUP BY reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_agg20:q8",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q3.1",
+   "sql": "SELECT CASE WHEN baseline LIKE '%0-shot%' THEN 'Medical' WHEN baseline LIKE '%asrbaseline%' THEN 'Education' WHEN baseline LIKE '%bert-cls%' THEN 'Finance' WHEN baseline LIKE '%bert-based%' THEN 'Academic' WHEN baseline LIKE '%bert%' THEN 'General' WHEN baseline <> '' THEN 'Other' END AS domain_family, use_agent, COUNT(*) AS paper_count FROM cspaper WHERE baseline <> '' AND use_agent IN ('Yes', 'No') GROUP BY domain_family, use_agent",
+   "drifted": true,
+   "source": "cspaper_groupby20:q3",
+   "operator": "replace",
+   "replaced": "cspaper.application_domain",
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@group",
+    "baseline@select",
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q14.1",
+   "sql": "SELECT CASE WHEN performance_on_NQ LIKE '%sd-ra-it%' THEN 'Hybrid' WHEN performance_on_NQ LIKE '%54.0%' THEN 'Graph-based' WHEN performance_on_NQ LIKE '%accuracy%' THEN 'Dense' WHEN performance_on_NQ LIKE '%bleu-1%' THEN 'Sparse' WHEN performance_on_NQ LIKE '%budgetleak-p%' THEN 'Web Search' WHEN performance_on_NQ <> '' THEN 'Other' END AS retrieval_family, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, SUM(CASE WHEN uses_knowledge_graph = 'Yes' THEN 1 ELSE 0 END) AS kg_count FROM cspaper WHERE performance_on_NQ <> '' AND NOT baseline_amount IS NULL GROUP BY retrieval_family HAVING COUNT(*) >= 5",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q14",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.performance_on_NQ",
+   "novel_features": [
+    "performance_on_NQ@group",
+    "performance_on_NQ@select",
+    "performance_on_NQ@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q17.4",
+   "sql": "SELECT CASE WHEN performance_on_NQ LIKE '%sd-ra-it%' THEN 'Hybrid' WHEN performance_on_NQ LIKE '%54.0%' THEN 'Graph-based' WHEN performance_on_NQ LIKE '%accuracy%' THEN 'Dense' WHEN performance_on_NQ LIKE '%bleu-1%' THEN 'Sparse' WHEN performance_on_NQ LIKE '%budgetleak-p%' THEN 'Web Search' WHEN performance_on_NQ <> '' THEN 'Other' END AS retrieval_family, use_agent, COUNT(*) AS paper_count FROM cspaper WHERE performance_on_NQ <> '' AND use_agent IN ('Yes', 'No') GROUP BY retrieval_family, use_agent",
+   "drifted": true,
+   "source": "cspaper_groupby20:q17",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.performance_on_NQ",
+   "novel_features": [
+    "performance_on_NQ@group",
+    "performance_on_NQ@select",
+    "performance_on_NQ@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q12.0",
+   "sql": "SELECT uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE generator_model LIKE '%gpt-4o%' AND uses_reranker IN ('Yes', 'No') GROUP BY uses_reranker",
+   "drifted": true,
+   "source": "cspaper_filter20:q12",
+   "operator": "replace",
+   "replaced": "cspaper.data_modality",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q13.0",
+   "sql": "SELECT CASE WHEN generator_model LIKE '%gpt-4o%' THEN 'Medical' WHEN generator_model LIKE '%gpt-4%' THEN 'Education' WHEN generator_model LIKE '%gpt-3.5%' THEN 'Finance' WHEN generator_model LIKE '%llama-2-7b%' THEN 'Academic' WHEN generator_model LIKE '%qwen2.5-7b-instruct%' THEN 'General' WHEN generator_model <> '' THEN 'Other' END AS domain_family, multi_turn_retrieval, COUNT(*) AS paper_count FROM cspaper WHERE generator_model <> '' AND multi_turn_retrieval IN ('Yes', 'No') GROUP BY domain_family, multi_turn_retrieval",
+   "drifted": true,
+   "source": "cspaper_groupby20:q13",
+   "operator": "replace",
+   "replaced": "cspaper.application_domain",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q7.2",
+   "sql": "SELECT multi_turn_retrieval, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS agent_count FROM cspaper WHERE (multi_turn_retrieval IN ('Yes', 'No') AND NOT baseline_amount IS NULL) AND baseline LIKE '%0-shot%' GROUP BY multi_turn_retrieval",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q7",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q15.0",
+   "sql": "SELECT generator_model, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE generator_model IN ('GPT-4o', 'GPT-4') AND NOT baseline_amount IS NULL GROUP BY generator_model",
+   "drifted": true,
+   "source": "cspaper_agg20:q15",
+   "operator": "replace",
+   "replaced": "cspaper.uses_knowledge_graph",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q5.6",
+   "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method <> '' THEN 'Other' END AS retrieval_family, COUNT(*) AS paper_count FROM cspaper WHERE retrieval_method <> '' AND evaluation_metric LIKE '%accuracy%' GROUP BY retrieval_family",
+   "drifted": true,
+   "source": "cspaper_agg20:q5",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_metric",
+   "novel_features": [
+    "evaluation_metric@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q3.2",
+   "sql": "SELECT CASE WHEN generator_model LIKE '%gpt-4o%' THEN 'Hybrid' WHEN generator_model LIKE '%gpt-4%' THEN 'Graph-based' WHEN generator_model LIKE '%gpt-3.5%' THEN 'Dense' WHEN generator_model LIKE '%llama-2-7b%' THEN 'Sparse' WHEN generator_model LIKE '%qwen2.5-7b-instruct%' THEN 'Web Search' WHEN generator_model <> '' THEN 'Other' END AS retrieval_family, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth = 'multi-hop' AND generator_model <> '' GROUP BY retrieval_family",
+   "drifted": true,
+   "source": "cspaper_filter20:q3",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q15.0",
+   "sql": "SELECT CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality <> '' THEN 'Other' END AS modality_family, generator_model, COUNT(*) AS paper_count FROM cspaper WHERE data_modality <> '' AND generator_model IN ('GPT-4o', 'GPT-4') GROUP BY modality_family, generator_model",
+   "drifted": true,
+   "source": "cspaper_groupby20:q15",
+   "operator": "replace",
+   "replaced": "cspaper.uses_reranker",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q7.3",
+   "sql": "SELECT CASE WHEN performance_on_NQ LIKE '%bleu-1%' OR performance_on_NQ LIKE '%budgetleak-p%' OR performance_on_NQ LIKE '%accuracy%' OR performance_on_NQ LIKE '%54.0%' THEN 'multimodal_or_structured' WHEN performance_on_NQ LIKE '%sd-ra-it%' THEN 'text_only' WHEN performance_on_NQ <> '' THEN 'Other' END AS modality_family, COUNT(*) AS paper_count FROM cspaper WHERE performance_on_NQ <> '' GROUP BY modality_family",
+   "drifted": true,
+   "source": "cspaper_agg20:q7",
+   "operator": "replace",
+   "replaced": "cspaper.data_modality",
+   "by": "cspaper.performance_on_NQ",
+   "novel_features": [
+    "performance_on_NQ@group",
+    "performance_on_NQ@select",
+    "performance_on_NQ@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q5.4",
+   "sql": "SELECT CASE WHEN performance_on_hotpotqa LIKE '%sd-ra-it%' THEN 'Medical' WHEN performance_on_hotpotqa LIKE '%accuracy%' THEN 'Education' WHEN performance_on_hotpotqa LIKE '%~0.62%' THEN 'Finance' WHEN performance_on_hotpotqa LIKE '%compression%' THEN 'Academic' WHEN performance_on_hotpotqa LIKE '%conflict%' THEN 'General' WHEN performance_on_hotpotqa <> '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count FROM cspaper WHERE uses_reranker = 'Yes' AND performance_on_hotpotqa <> '' GROUP BY domain_family",
+   "drifted": true,
+   "source": "cspaper_filter20:q5",
+   "operator": "replace",
+   "replaced": "cspaper.application_domain",
+   "by": "cspaper.performance_on_hotpotqa",
+   "novel_features": [
+    "performance_on_hotpotqa@group",
+    "performance_on_hotpotqa@select",
+    "performance_on_hotpotqa@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q18.5",
+   "sql": "SELECT use_agent, SUM(baseline_amount) AS total_baselines FROM cspaper WHERE (use_agent IN ('Yes', 'No') AND NOT baseline_amount IS NULL) AND performance_on_NQ LIKE '%sd-ra-it%' GROUP BY use_agent",
+   "drifted": true,
+   "source": "cspaper_agg20:q18",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.performance_on_NQ",
+   "novel_features": [
+    "performance_on_NQ@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q12.0",
+   "sql": "SELECT CASE WHEN generator_model LIKE '%gpt-4o%' THEN 'Hybrid' WHEN generator_model LIKE '%gpt-4%' THEN 'Graph-based' WHEN generator_model LIKE '%gpt-3.5%' THEN 'Dense' WHEN generator_model LIKE '%llama-2-7b%' THEN 'Sparse' WHEN generator_model LIKE '%qwen2.5-7b-instruct%' THEN 'Web Search' WHEN generator_model <> '' THEN 'Other' END AS retrieval_family, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE generator_model <> '' AND NOT baseline_amount IS NULL GROUP BY retrieval_family",
+   "drifted": true,
+   "source": "cspaper_agg20:q12",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q17.3",
+   "sql": "SELECT uses_knowledge_graph, COUNT(*) AS paper_count FROM cspaper WHERE (reasoning_depth = 'multi-hop' AND use_agent = 'Yes' AND uses_knowledge_graph IN ('Yes', 'No')) AND evaluation_dataset LIKE '%hotpotqa%' GROUP BY uses_knowledge_graph",
+   "drifted": true,
+   "source": "cspaper_filter20:q17",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_dataset",
+   "novel_features": [
+    "evaluation_dataset@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q2.6",
+   "sql": "SELECT CASE WHEN baseline LIKE '%0-shot%' THEN 'Hybrid' WHEN baseline LIKE '%asrbaseline%' THEN 'Graph-based' WHEN baseline LIKE '%bert-cls%' THEN 'Dense' WHEN baseline LIKE '%bert-based%' THEN 'Sparse' WHEN baseline LIKE '%bert%' THEN 'Web Search' WHEN baseline <> '' THEN 'Other' END AS retrieval_family, reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE baseline <> '' AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY retrieval_family, reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_groupby20:q2",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@group",
+    "baseline@select",
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q16.0",
+   "sql": "SELECT uses_knowledge_graph, generator_model, COUNT(*) AS paper_count FROM cspaper WHERE uses_knowledge_graph IN ('Yes', 'No') AND generator_model IN ('GPT-4o', 'GPT-4') GROUP BY uses_knowledge_graph, generator_model",
+   "drifted": true,
+   "source": "cspaper_groupby20:q16",
+   "operator": "replace",
+   "replaced": "cspaper.reasoning_depth",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q18.4",
+   "sql": "SELECT uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE (baseline_amount >= 5 AND uses_reranker IN ('Yes', 'No')) AND evaluation_metric LIKE '%accuracy%' GROUP BY uses_reranker",
+   "drifted": true,
+   "source": "cspaper_filter20:q18",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_metric",
+   "novel_features": [
+    "evaluation_metric@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q12.3",
+   "sql": "SELECT CASE WHEN baseline_amount <= 2 THEN '1_to_2' WHEN baseline_amount <= 5 THEN '3_to_5' ELSE '6_or_more' END AS baseline_band, COUNT(*) AS paper_count, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS agent_count, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS reranker_count FROM cspaper WHERE NOT baseline_amount IS NULL AND evaluation_dataset LIKE '%hotpotqa%' GROUP BY baseline_band",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q12",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_dataset",
+   "novel_features": [
+    "evaluation_dataset@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q16.7",
+   "sql": "SELECT topic, COUNT(*) AS paper_count FROM cspaper WHERE topic <> '' AND baseline LIKE '%0-shot%' GROUP BY topic",
+   "drifted": true,
+   "source": "cspaper_agg20:q16",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q1.0",
+   "sql": "SELECT generator_model, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS reranker_count FROM cspaper WHERE generator_model IN ('GPT-4o', 'GPT-4') AND NOT baseline_amount IS NULL GROUP BY generator_model",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q1",
+   "operator": "replace",
+   "replaced": "cspaper.use_agent",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q4.2",
+   "sql": "SELECT reasoning_depth, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE (baseline_amount >= 4 AND reasoning_depth IN ('single-hop', 'multi-hop')) AND baseline LIKE '%0-shot%' GROUP BY reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_filter20:q4",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q0.6",
+   "sql": "SELECT reasoning_depth, use_agent, COUNT(*) AS paper_count FROM cspaper WHERE (reasoning_depth IN ('single-hop', 'multi-hop') AND use_agent IN ('Yes', 'No')) AND generator_model = 'GPT-3.5' GROUP BY reasoning_depth, use_agent",
+   "drifted": true,
+   "source": "cspaper_groupby20:q0",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q10.4",
+   "sql": "SELECT CASE WHEN performance_on_NQ LIKE '%sd-ra-it%' THEN 'Hybrid' WHEN performance_on_NQ LIKE '%54.0%' THEN 'Graph-based' WHEN performance_on_NQ LIKE '%accuracy%' THEN 'Dense' WHEN performance_on_NQ LIKE '%bleu-1%' THEN 'Sparse' WHEN performance_on_NQ LIKE '%budgetleak-p%' THEN 'Web Search' WHEN performance_on_NQ <> '' THEN 'Other' END AS retrieval_family, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE uses_reranker = 'No' AND NOT baseline_amount IS NULL AND performance_on_NQ <> '' GROUP BY retrieval_family",
+   "drifted": true,
+   "source": "cspaper_filter20:q10",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.performance_on_NQ",
+   "novel_features": [
+    "performance_on_NQ@group",
+    "performance_on_NQ@select",
+    "performance_on_NQ@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q2.6",
+   "sql": "SELECT use_agent, COUNT(*) AS paper_count FROM cspaper WHERE use_agent IN ('Yes', 'No') AND baseline LIKE '%0-shot%' GROUP BY use_agent",
+   "drifted": true,
+   "source": "cspaper_agg20:q2",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q5.4",
+   "sql": "SELECT uses_knowledge_graph, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE (uses_knowledge_graph IN ('Yes', 'No') AND NOT baseline_amount IS NULL) AND evaluation_metric LIKE '%accuracy%' GROUP BY uses_knowledge_graph",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q5",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_metric",
+   "novel_features": [
+    "evaluation_metric@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q13.3",
+   "sql": "SELECT use_agent, reasoning_depth, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE (use_agent IN ('Yes', 'No') AND reasoning_depth IN ('single-hop', 'multi-hop') AND NOT baseline_amount IS NULL) AND performance_on_hotpotqa LIKE '%sd-ra-it%' GROUP BY use_agent, reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q13",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.performance_on_hotpotqa",
+   "novel_features": [
+    "performance_on_hotpotqa@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q2.7",
+   "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method <> '' THEN 'Other' END AS retrieval_family, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, MAX(baseline_amount) AS max_baselines, generator_model FROM cspaper WHERE retrieval_method <> '' AND NOT baseline_amount IS NULL GROUP BY retrieval_family, generator_model HAVING COUNT(*) >= 5",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q2",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q4.1",
+   "sql": "SELECT generator_model, uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE generator_model IN ('GPT-4o', 'GPT-4') AND uses_reranker IN ('Yes', 'No') GROUP BY generator_model, uses_reranker",
+   "drifted": true,
+   "source": "cspaper_groupby20:q4",
+   "operator": "replace",
+   "replaced": "cspaper.uses_knowledge_graph",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q7.4",
+   "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method <> '' THEN 'Other' END AS retrieval_family, generator_model, COUNT(*) AS paper_count FROM cspaper WHERE retrieval_method <> '' AND generator_model IN ('GPT-4o', 'GPT-4') GROUP BY retrieval_family, generator_model",
+   "drifted": true,
+   "source": "cspaper_groupby20:q7",
+   "operator": "replace",
+   "replaced": "cspaper.uses_reranker",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q19.3",
+   "sql": "SELECT CASE WHEN performance_on_NQ LIKE '%sd-ra-it%' THEN 'Hybrid' WHEN performance_on_NQ LIKE '%54.0%' THEN 'Graph-based' WHEN performance_on_NQ LIKE '%accuracy%' THEN 'Dense' WHEN performance_on_NQ LIKE '%bleu-1%' THEN 'Sparse' WHEN performance_on_NQ LIKE '%budgetleak-p%' THEN 'Web Search' WHEN performance_on_NQ <> '' THEN 'Other' END AS retrieval_family, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE performance_on_NQ <> '' AND NOT baseline_amount IS NULL GROUP BY retrieval_family",
+   "drifted": true,
+   "source": "cspaper_agg20:q19",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.performance_on_NQ",
+   "novel_features": [
+    "performance_on_NQ@group",
+    "performance_on_NQ@select",
+    "performance_on_NQ@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q10.3",
+   "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method <> '' THEN 'Other' END AS retrieval_family, COUNT(*) AS paper_count, SUM(CASE WHEN generator_model = 'GPT-4' THEN 1 ELSE 0 END) AS agent_count, SUM(CASE WHEN multi_turn_retrieval = 'Yes' THEN 1 ELSE 0 END) AS multi_turn_count FROM cspaper WHERE retrieval_method <> '' GROUP BY retrieval_family HAVING COUNT(*) >= 5",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q10",
+   "operator": "replace",
+   "replaced": "cspaper.use_agent",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@select"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q10.4",
+   "sql": "SELECT CASE WHEN baseline LIKE '%0-shot%' THEN 'Hybrid' WHEN baseline LIKE '%asrbaseline%' THEN 'Graph-based' WHEN baseline LIKE '%bert-cls%' THEN 'Dense' WHEN baseline LIKE '%bert-based%' THEN 'Sparse' WHEN baseline LIKE '%bert%' THEN 'Web Search' WHEN baseline <> '' THEN 'Other' END AS retrieval_family, CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality <> '' THEN 'Other' END AS modality_family, COUNT(*) AS paper_count FROM cspaper WHERE baseline <> '' AND data_modality <> '' GROUP BY retrieval_family, modality_family",
+   "drifted": true,
+   "source": "cspaper_groupby20:q10",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@group",
+    "baseline@select",
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q18.6",
+   "sql": "SELECT CASE WHEN baseline LIKE '%0-shot%' THEN 'Medical' WHEN baseline LIKE '%asrbaseline%' THEN 'Education' WHEN baseline LIKE '%bert-cls%' THEN 'Finance' WHEN baseline LIKE '%bert-based%' THEN 'Academic' WHEN baseline LIKE '%bert%' THEN 'General' WHEN baseline <> '' THEN 'Other' END AS domain_family, CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality <> '' THEN 'Other' END AS modality_family, COUNT(*) AS paper_count FROM cspaper WHERE baseline <> '' AND data_modality <> '' GROUP BY domain_family, modality_family",
+   "drifted": true,
+   "source": "cspaper_groupby20:q18",
+   "operator": "replace",
+   "replaced": "cspaper.application_domain",
+   "by": "cspaper.baseline",
+   "novel_features": [
+    "baseline@group",
+    "baseline@select",
+    "baseline@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q6.3",
+   "sql": "SELECT CASE WHEN generator_model LIKE '%llama-2-7b%' OR generator_model LIKE '%qwen2.5-7b-instruct%' OR generator_model LIKE '%gpt-3.5%' OR generator_model LIKE '%gpt-4%' THEN 'multimodal_or_structured' WHEN generator_model LIKE '%gpt-4o%' THEN 'text_only' WHEN generator_model <> '' THEN 'Other' END AS modality_family, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS reranker_count FROM cspaper WHERE generator_model <> '' AND NOT baseline_amount IS NULL GROUP BY modality_family",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q6",
+   "operator": "replace",
+   "replaced": "cspaper.data_modality",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@group",
+    "generator_model@select",
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q14.6",
+   "sql": "SELECT reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE performance_on_hotpotqa LIKE '%sd-ra-it%' AND uses_knowledge_graph = 'No' AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_filter20:q14",
+   "operator": "replace",
+   "replaced": "cspaper.retrieval_method",
+   "by": "cspaper.performance_on_hotpotqa",
+   "novel_features": [
+    "performance_on_hotpotqa@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_agg20.q6.6",
+   "sql": "SELECT CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%General%' THEN 'General' WHEN application_domain <> '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count FROM cspaper WHERE application_domain <> '' AND performance_on_NQ LIKE '%sd-ra-it%' GROUP BY domain_family",
+   "drifted": true,
+   "source": "cspaper_agg20:q6",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.performance_on_NQ",
+   "novel_features": [
+    "performance_on_NQ@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q19.6",
+   "sql": "SELECT CASE WHEN baseline_amount <= 3 THEN 'few_baselines' ELSE 'many_baselines' END AS baseline_band, uses_reranker, multi_turn_retrieval, COUNT(*) AS paper_count FROM cspaper WHERE (NOT baseline_amount IS NULL AND uses_reranker IN ('Yes', 'No') AND multi_turn_retrieval IN ('Yes', 'No')) AND performance_on_hotpotqa LIKE '%sd-ra-it%' GROUP BY baseline_band, uses_reranker, multi_turn_retrieval",
+   "drifted": true,
+   "source": "cspaper_groupby20:q19",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.performance_on_hotpotqa",
+   "novel_features": [
+    "performance_on_hotpotqa@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_groupby20.q8.5",
+   "sql": "SELECT CASE WHEN baseline_amount <= 2 THEN '1_to_2' WHEN baseline_amount <= 5 THEN '3_to_5' ELSE '6_or_more' END AS baseline_band, reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE (NOT baseline_amount IS NULL AND reasoning_depth IN ('single-hop', 'multi-hop')) AND evaluation_dataset LIKE '%hotpotqa%' GROUP BY baseline_band, reasoning_depth",
+   "drifted": true,
+   "source": "cspaper_groupby20:q8",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.evaluation_dataset",
+   "novel_features": [
+    "evaluation_dataset@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q16.4",
+   "sql": "SELECT uses_reranker, uses_knowledge_graph, COUNT(*) AS paper_count, AVG(baseline_amount) AS avg_baselines, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE (uses_reranker IN ('Yes', 'No') AND uses_knowledge_graph IN ('Yes', 'No') AND NOT baseline_amount IS NULL) AND generator_model = 'GPT-4o' GROUP BY uses_reranker, uses_knowledge_graph HAVING COUNT(*) >= 3",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q16",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q0.0",
+   "sql": "SELECT use_agent, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth = 'multi-hop' AND generator_model IN ('GPT-4o', 'GPT-4') AND use_agent IN ('Yes', 'No') GROUP BY use_agent",
+   "drifted": true,
+   "source": "cspaper_filter20:q0",
+   "operator": "replace",
+   "replaced": "cspaper.uses_reranker",
+   "by": "cspaper.generator_model",
+   "novel_features": [
+    "generator_model@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_multiagg20.q17.3",
+   "sql": "SELECT CASE WHEN performance_on_hotpotqa LIKE '%sd-ra-it%' THEN 'Medical' WHEN performance_on_hotpotqa LIKE '%accuracy%' THEN 'Education' WHEN performance_on_hotpotqa LIKE '%~0.62%' THEN 'Finance' WHEN performance_on_hotpotqa LIKE '%compression%' THEN 'Academic' WHEN performance_on_hotpotqa LIKE '%conflict%' THEN 'General' WHEN performance_on_hotpotqa <> '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count, SUM(CASE WHEN reasoning_depth = 'multi-hop' THEN 1 ELSE 0 END) AS multi_hop_count, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS agent_count, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE performance_on_hotpotqa <> '' AND NOT baseline_amount IS NULL GROUP BY domain_family",
+   "drifted": true,
+   "source": "cspaper_multiagg20:q17",
+   "operator": "replace",
+   "replaced": "cspaper.application_domain",
+   "by": "cspaper.performance_on_hotpotqa",
+   "novel_features": [
+    "performance_on_hotpotqa@group",
+    "performance_on_hotpotqa@select",
+    "performance_on_hotpotqa@where"
+   ]
+  },
+  {
+   "query_id": "cspaper_drift:cspaper_filter20.q13.3",
+   "sql": "SELECT CASE WHEN performance_on_hotpotqa LIKE '%sd-ra-it%' THEN 'Medical' WHEN performance_on_hotpotqa LIKE '%accuracy%' THEN 'Education' WHEN performance_on_hotpotqa LIKE '%~0.62%' THEN 'Finance' WHEN performance_on_hotpotqa LIKE '%compression%' THEN 'Academic' WHEN performance_on_hotpotqa LIKE '%conflict%' THEN 'General' WHEN performance_on_hotpotqa <> '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count FROM cspaper WHERE baseline_amount BETWEEN 2 AND 6 AND performance_on_hotpotqa <> '' GROUP BY domain_family",
+   "drifted": true,
+   "source": "cspaper_filter20:q13",
+   "operator": "replace",
+   "replaced": "cspaper.application_domain",
+   "by": "cspaper.performance_on_hotpotqa",
+   "novel_features": [
+    "performance_on_hotpotqa@group",
+    "performance_on_hotpotqa@select",
+    "performance_on_hotpotqa@where"
+   ]
+  }
+ ]
+}

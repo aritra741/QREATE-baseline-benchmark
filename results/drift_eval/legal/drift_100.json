@@ -1,0 +1,842 @@
+{
+ "level": 1.0,
+ "queries": 64,
+ "drifted": 64,
+ "short_of_pool": 0,
+ "cliffguard_delta": 0.32691,
+ "novel_feature_share": 0.3853,
+ "novelty_test_p": 0.0,
+ "sha256": "192ae3280531cf005c70931ad3ecad9bcc36d96db0f453dbf0bccfd8bd80c241",
+ "rows": [
+  {
+   "query_id": "legal_drift:legal_groupby20.q10.0",
+   "sql": "SELECT CASE WHEN defendant IN ('Minister for Immigration and Citizenship', 'Minister for Immigration and Multicultural Affairs', 'Minister for Immigration and Multicultural and Indigenous Affairs', 'Commissioner of Taxation') THEN defendant WHEN defendant <> '' THEN 'Other' END AS applicant_nation, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE defendant <> '' GROUP BY applicant_nation, verdict_family",
+   "drifted": true,
+   "source": "legal_groupby20:q10",
+   "operator": "replace",
+   "replaced": "legal.nationality_for_applicant",
+   "by": "legal.defendant",
+   "novel_features": [
+    "defendant@group",
+    "defendant@select",
+    "defendant@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q1.5",
+   "sql": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE plaintiff = 'Cadbury Schweppes Pty Ltd' AND case_number >= 3 GROUP BY verdict_family",
+   "drifted": true,
+   "source": "legal_filter20:q1",
+   "operator": "replace",
+   "replaced": "legal.case_type",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q3.2",
+   "sql": "SELECT CASE WHEN counsel_for_respondent IN ('Mr T Reilly', 'Ms V McWilliam', 'C Golvan SC || S Ricketson', 'G Kennett') THEN counsel_for_respondent WHEN counsel_for_respondent <> '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE counsel_for_respondent <> '' AND NOT case_number IS NULL GROUP BY applicant_nation",
+   "drifted": true,
+   "source": "legal_multiagg20:q3",
+   "operator": "replace",
+   "replaced": "legal.nationality_for_applicant",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select",
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q14.5",
+   "sql": "SELECT judgment_year, COUNT(*) AS case_count FROM legal WHERE counsel_for_respondent = 'C Golvan SC || S Ricketson' AND legal_basis_num >= 2 AND judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+   "drifted": true,
+   "source": "legal_filter20:q14",
+   "operator": "replace",
+   "replaced": "legal.case_type",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q15.7",
+   "sql": "SELECT CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END AS precedent_band, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, SUM(CASE WHEN first_judge = 1 THEN 1 ELSE 0 END) AS first_judge_count FROM legal WHERE NOT case_number IS NULL AND legal_fees >= 2800 GROUP BY precedent_band",
+   "drifted": true,
+   "source": "legal_multiagg20:q15",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q1.2",
+   "sql": "SELECT CASE WHEN plaintiff IN ('Australian Competition and Consumer Commission', 'Australian Securities and Investments Commission', 'Cadbury Schweppes Pty Ltd') THEN plaintiff ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal GROUP BY verdict_family",
+   "drifted": true,
+   "source": "legal_agg20:q1",
+   "operator": "replace",
+   "replaced": "legal.verdict",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q2.1",
+   "sql": "SELECT defendant, COUNT(*) AS case_count FROM legal WHERE defendant BETWEEN 'Minister for Immigration and Multicultural Affairs' AND 'Minister for Immigration and Multicultural and Indigenous Affairs' GROUP BY defendant",
+   "drifted": true,
+   "source": "legal_agg20:q2",
+   "operator": "replace",
+   "replaced": "legal.judgment_year",
+   "by": "legal.defendant",
+   "novel_features": [
+    "defendant@group",
+    "defendant@select",
+    "defendant@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q3.3",
+   "sql": "SELECT first_judge, COUNT(*) AS case_count FROM legal WHERE case_type = 'Civil Case' AND plaintiff BETWEEN 'Australian Competition and Consumer Commission' AND 'Australian Competition and Consumer Commission' GROUP BY first_judge",
+   "drifted": true,
+   "source": "legal_filter20:q3",
+   "operator": "replace",
+   "replaced": "legal.judgment_year",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q4.2",
+   "sql": "SELECT CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END AS precedent_band, defendant, COUNT(*) AS case_count FROM legal WHERE defendant IN ('Minister for Immigration and Citizenship', 'Minister for Immigration and Multicultural Affairs', 'Minister for Immigration and Multicultural and Indigenous Affairs') AND NOT case_number IS NULL GROUP BY precedent_band, defendant",
+   "drifted": true,
+   "source": "legal_groupby20:q4",
+   "operator": "replace",
+   "replaced": "legal.case_type",
+   "by": "legal.defendant",
+   "novel_features": [
+    "defendant@group",
+    "defendant@select",
+    "defendant@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q4.3",
+   "sql": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count FROM legal WHERE counsel_for_respondent = 'Ms V McWilliam' AND verdict = 'Dismissed' AND nationality_for_applicant <> '' GROUP BY applicant_nation",
+   "drifted": true,
+   "source": "legal_filter20:q4",
+   "operator": "replace",
+   "replaced": "legal.case_type",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q18.1",
+   "sql": "SELECT legal_fees, AVG(case_number) AS avg_precedents FROM legal WHERE NOT legal_fees IS NULL AND NOT case_number IS NULL GROUP BY legal_fees",
+   "drifted": true,
+   "source": "legal_agg20:q18",
+   "operator": "replace",
+   "replaced": "legal.evidence",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@group",
+    "legal_fees@select",
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q6.7",
+   "sql": "SELECT hearing_year, CASE WHEN legal_basis_num <= 1 THEN '0_or_1' WHEN legal_basis_num <= 3 THEN '2_or_3' ELSE '4_or_more' END AS statute_band, COUNT(*) AS case_count, defendant FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 GROUP BY hearing_year, statute_band, defendant",
+   "drifted": true,
+   "source": "legal_groupby20:q6",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "legal.defendant",
+   "novel_features": [
+    "defendant@group",
+    "defendant@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q6.4",
+   "sql": "SELECT judge_name, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(legal_fees) AS avg_precedents FROM legal WHERE judge_name <> '' AND NOT legal_fees IS NULL GROUP BY judge_name HAVING COUNT(*) >= 10",
+   "drifted": true,
+   "source": "legal_multiagg20:q6",
+   "operator": "replace",
+   "replaced": "legal.case_number",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@select",
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q2.2",
+   "sql": "SELECT judgment_year, COUNT(*) AS case_count, AVG(fine_amount) AS avg_statutes, AVG(case_number) AS avg_precedents, SUM(CASE WHEN evidence = 1 THEN 1 ELSE 0 END) AS evidence_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 AND NOT case_number IS NULL GROUP BY judgment_year",
+   "drifted": true,
+   "source": "legal_multiagg20:q2",
+   "operator": "replace",
+   "replaced": "legal.legal_basis_num",
+   "by": "legal.fine_amount",
+   "novel_features": [
+    "fine_amount@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q7.0",
+   "sql": "SELECT CASE WHEN counsel_for_respondent IN ('Mr T Reilly', 'Ms V McWilliam', 'C Golvan SC || S Ricketson') THEN counsel_for_respondent WHEN counsel_for_respondent <> '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count FROM legal WHERE counsel_for_respondent <> '' GROUP BY defendant_family",
+   "drifted": true,
+   "source": "legal_agg20:q7",
+   "operator": "replace",
+   "replaced": "legal.defendant_current_status",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select",
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q5.2",
+   "sql": "SELECT evidence, COUNT(*) AS case_count FROM legal WHERE NOT evidence IS NULL AND counsel_for_applicant LIKE '%azzi%' GROUP BY evidence",
+   "drifted": true,
+   "source": "legal_agg20:q5",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.counsel_for_applicant",
+   "novel_features": [
+    "counsel_for_applicant@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q18.4",
+   "sql": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END AS applicant_nation, legal_fees, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant <> '' AND NOT legal_fees IS NULL GROUP BY applicant_nation, legal_fees",
+   "drifted": true,
+   "source": "legal_groupby20:q18",
+   "operator": "replace",
+   "replaced": "legal.evidence",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@group",
+    "legal_fees@select",
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q15.0",
+   "sql": "SELECT CASE WHEN plaintiff IN ('Australian Competition and Consumer Commission', 'Australian Securities and Investments Commission', 'Cadbury Schweppes Pty Ltd', 'Commissioner of Taxation') THEN plaintiff WHEN plaintiff <> '' THEN 'Other' END AS applicant_nation, AVG(case_number) AS avg_precedents FROM legal WHERE plaintiff <> '' AND NOT case_number IS NULL GROUP BY applicant_nation",
+   "drifted": true,
+   "source": "legal_agg20:q15",
+   "operator": "replace",
+   "replaced": "legal.nationality_for_applicant",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select",
+    "plaintiff@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q0.3",
+   "sql": "SELECT CASE WHEN counsel_for_respondent IN ('Mr T Reilly', 'Ms V McWilliam', 'C Golvan SC || S Ricketson') THEN counsel_for_respondent ELSE 'Other' END AS case_family, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal GROUP BY case_family, verdict_family",
+   "drifted": true,
+   "source": "legal_groupby20:q0",
+   "operator": "replace",
+   "replaced": "legal.case_type",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q10.6",
+   "sql": "SELECT judgment_year, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 AND legal_fees >= 2800 GROUP BY judgment_year",
+   "drifted": true,
+   "source": "legal_agg20:q10",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q19.3",
+   "sql": "SELECT judgment_year, MAX(fine_amount) AS max_statutes FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+   "drifted": true,
+   "source": "legal_agg20:q19",
+   "operator": "replace",
+   "replaced": "legal.legal_basis_num",
+   "by": "legal.fine_amount",
+   "novel_features": [
+    "fine_amount@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q7.7",
+   "sql": "SELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status <> '' THEN 'Individual_or_other' END AS plaintiff_family, COUNT(*) AS case_count, AVG(case_number) AS avg_precedents, SUM(CASE WHEN counsel_for_respondent = 'Mr T Reilly' THEN 1 ELSE 0 END) AS approved_count FROM legal WHERE plaintiff_current_status <> '' AND NOT case_number IS NULL GROUP BY plaintiff_family",
+   "drifted": true,
+   "source": "legal_multiagg20:q7",
+   "operator": "replace",
+   "replaced": "legal.verdict",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q8.2",
+   "sql": "SELECT judgment_year, CASE WHEN defendant = 'Minister for Immigration and Multicultural and Indigenous Affairs' THEN 'Dismissed' ELSE 'not_dismissed' END AS dismissal_status, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year, dismissal_status",
+   "drifted": true,
+   "source": "legal_groupby20:q8",
+   "operator": "replace",
+   "replaced": "legal.verdict",
+   "by": "legal.defendant",
+   "novel_features": [
+    "defendant@group",
+    "defendant@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q2.1",
+   "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, legal_fees, COUNT(*) AS case_count FROM legal WHERE NOT legal_fees IS NULL GROUP BY case_family, legal_fees",
+   "drifted": true,
+   "source": "legal_groupby20:q2",
+   "operator": "replace",
+   "replaced": "legal.evidence",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@group",
+    "legal_fees@select",
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q16.1",
+   "sql": "SELECT CASE WHEN plaintiff IN ('Australian Competition and Consumer Commission', 'Australian Securities and Investments Commission', 'Cadbury Schweppes Pty Ltd') THEN plaintiff WHEN plaintiff <> '' THEN 'Individual_or_other' END AS plaintiff_family, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE plaintiff <> '' GROUP BY plaintiff_family, verdict_family",
+   "drifted": true,
+   "source": "legal_groupby20:q16",
+   "operator": "replace",
+   "replaced": "legal.plaintiff_current_status",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select",
+    "plaintiff@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q11.0",
+   "sql": "SELECT legal_fees, first_judge, COUNT(*) AS case_count FROM legal WHERE NOT legal_fees IS NULL AND NOT first_judge IS NULL GROUP BY legal_fees, first_judge",
+   "drifted": true,
+   "source": "legal_groupby20:q11",
+   "operator": "replace",
+   "replaced": "legal.evidence",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@group",
+    "legal_fees@select",
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q6.3",
+   "sql": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant <> '' AND counsel_for_applicant LIKE '%azzi%' GROUP BY applicant_nation",
+   "drifted": true,
+   "source": "legal_agg20:q6",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.counsel_for_applicant",
+   "novel_features": [
+    "counsel_for_applicant@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q12.5",
+   "sql": "SELECT CASE WHEN plaintiff IN ('Australian Competition and Consumer Commission', 'Australian Securities and Investments Commission', 'Cadbury Schweppes Pty Ltd', 'Commissioner of Taxation') THEN plaintiff WHEN plaintiff <> '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE plaintiff <> '' GROUP BY applicant_nation",
+   "drifted": true,
+   "source": "legal_multiagg20:q12",
+   "operator": "replace",
+   "replaced": "legal.nationality_for_applicant",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select",
+    "plaintiff@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q12.1",
+   "sql": "SELECT CASE WHEN plaintiff IN ('Australian Competition and Consumer Commission', 'Australian Securities and Investments Commission', 'Cadbury Schweppes Pty Ltd') THEN plaintiff WHEN plaintiff <> '' THEN 'Other' END AS defendant_family, CASE WHEN legal_basis_num >= 3 THEN 'statute_heavy' ELSE 'statute_light' END AS statute_band, COUNT(*) AS case_count FROM legal WHERE plaintiff <> '' GROUP BY defendant_family, statute_band",
+   "drifted": true,
+   "source": "legal_groupby20:q12",
+   "operator": "replace",
+   "replaced": "legal.defendant_current_status",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select",
+    "plaintiff@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q16.6",
+   "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count, SUM(CASE WHEN legal_fees = 2800 THEN 1 ELSE 0 END) AS evidence_count, AVG(legal_basis_num) AS avg_statutes FROM legal GROUP BY case_family",
+   "drifted": true,
+   "source": "legal_multiagg20:q16",
+   "operator": "replace",
+   "replaced": "legal.evidence",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q12.0",
+   "sql": "SELECT counsel_for_respondent, COUNT(*) AS case_count FROM legal WHERE counsel_for_respondent <> '' GROUP BY counsel_for_respondent HAVING COUNT(*) >= 10",
+   "drifted": true,
+   "source": "legal_agg20:q12",
+   "operator": "replace",
+   "replaced": "legal.judge_name",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select",
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q17.5",
+   "sql": "SELECT CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num <= 2 THEN '1_or_2' ELSE '3_or_more' END AS statute_band, CASE WHEN case_number = 0 THEN 'no_precedents' ELSE 'has_precedents' END AS precedent_status, COUNT(*) AS case_count FROM legal WHERE NOT case_number IS NULL AND counsel_for_respondent = 'Mr T Reilly' GROUP BY statute_band, precedent_status",
+   "drifted": true,
+   "source": "legal_groupby20:q17",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q5.7",
+   "sql": "SELECT CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count, counsel_for_respondent FROM legal WHERE legal_basis_num >= 3 AND defendant_current_status <> '' GROUP BY defendant_family, counsel_for_respondent",
+   "drifted": true,
+   "source": "legal_filter20:q5",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q19.6",
+   "sql": "SELECT judgment_year, CASE WHEN case_type = 'Administrative Case' THEN 'Administrative' ELSE 'non_administrative' END AS case_group, COUNT(*) AS case_count, plaintiff FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year, case_group, plaintiff",
+   "drifted": true,
+   "source": "legal_groupby20:q19",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q17.6",
+   "sql": "SELECT judge_name, COUNT(*) AS case_count, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count, AVG(legal_fees) AS avg_precedents FROM legal WHERE judge_name IN ('Flick', 'Tracey', 'Greenwood', 'Marshall', 'Moore', 'Heerey', 'Spender', 'Rares') AND NOT legal_fees IS NULL GROUP BY judge_name",
+   "drifted": true,
+   "source": "legal_multiagg20:q17",
+   "operator": "replace",
+   "replaced": "legal.case_number",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@select",
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q10.0",
+   "sql": "SELECT counsel_for_respondent, COUNT(*) AS case_count FROM legal WHERE case_type = 'Administrative Case' AND verdict = 'Dismissed' GROUP BY counsel_for_respondent HAVING COUNT(*) >= 5",
+   "drifted": true,
+   "source": "legal_filter20:q10",
+   "operator": "replace",
+   "replaced": "legal.judge_name",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q12.7",
+   "sql": "SELECT evidence, COUNT(*) AS case_count FROM legal WHERE (legal_basis_num BETWEEN 2 AND 5 AND case_number >= 4) AND defendant = 'Minister for Immigration and Citizenship' GROUP BY evidence",
+   "drifted": true,
+   "source": "legal_filter20:q12",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.defendant",
+   "novel_features": [
+    "defendant@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q8.7",
+   "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, AVG(legal_basis_num) AS avg_statutes, counsel_for_respondent FROM legal GROUP BY case_family, counsel_for_respondent",
+   "drifted": true,
+   "source": "legal_agg20:q8",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q0.6",
+   "sql": "SELECT evidence, COUNT(*) AS case_count FROM legal WHERE (case_type = 'Administrative Case' AND verdict = 'Dismissed' AND judgment_year BETWEEN 2007 AND 2008) AND counsel_for_respondent = 'Mr T Reilly' GROUP BY evidence",
+   "drifted": true,
+   "source": "legal_filter20:q0",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q16.6",
+   "sql": "SELECT CASE WHEN legal_basis_num = 0 THEN 'none' WHEN legal_basis_num = 1 THEN 'one' WHEN legal_basis_num <= 3 THEN 'two_or_three' ELSE 'four_or_more' END AS statute_band, COUNT(*) AS case_count FROM legal WHERE counsel_for_respondent = 'Ms V McWilliam' GROUP BY statute_band",
+   "drifted": true,
+   "source": "legal_agg20:q16",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q18.3",
+   "sql": "SELECT CASE WHEN legal_fees >= 2800 THEN 'statute_heavy' ELSE 'statute_light' END AS statute_band, COUNT(*) AS case_count FROM legal WHERE case_type IN ('Civil Case', 'Commercial Case') GROUP BY statute_band",
+   "drifted": true,
+   "source": "legal_filter20:q18",
+   "operator": "replace",
+   "replaced": "legal.legal_basis_num",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@group",
+    "legal_fees@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q3.4",
+   "sql": "SELECT CASE WHEN plaintiff IN ('Australian Competition and Consumer Commission', 'Australian Securities and Investments Commission', 'Cadbury Schweppes Pty Ltd', 'Commissioner of Taxation') THEN plaintiff WHEN plaintiff <> '' THEN 'Other' END AS applicant_nation, CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE plaintiff <> '' GROUP BY applicant_nation, case_family",
+   "drifted": true,
+   "source": "legal_groupby20:q3",
+   "operator": "replace",
+   "replaced": "legal.nationality_for_applicant",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select",
+    "plaintiff@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q9.1",
+   "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, defendant, COUNT(*) AS case_count FROM legal WHERE NOT defendant IS NULL GROUP BY case_family, defendant",
+   "drifted": true,
+   "source": "legal_groupby20:q9",
+   "operator": "replace",
+   "replaced": "legal.first_judge",
+   "by": "legal.defendant",
+   "novel_features": [
+    "defendant@group",
+    "defendant@select",
+    "defendant@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q1.3",
+   "sql": "SELECT CASE WHEN plaintiff IN ('Australian Competition and Consumer Commission', 'Australian Securities and Investments Commission', 'Cadbury Schweppes Pty Ltd') THEN plaintiff ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, MAX(case_number) AS max_precedents FROM legal WHERE NOT case_number IS NULL GROUP BY verdict_family",
+   "drifted": true,
+   "source": "legal_multiagg20:q1",
+   "operator": "replace",
+   "replaced": "legal.verdict",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q16.7",
+   "sql": "SELECT first_judge, AVG(case_number) AS avg_precedents FROM legal WHERE (hearing_year >= 2007 AND hearing_year <= 2009 AND NOT case_number IS NULL) AND charges LIKE '%judicial%' GROUP BY first_judge",
+   "drifted": true,
+   "source": "legal_filter20:q16",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.charges",
+   "novel_features": [
+    "charges@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q17.7",
+   "sql": "SELECT CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count FROM legal WHERE (verdict IN ('Approved', 'Others') AND defendant_current_status <> '') AND charges LIKE '%judicial%' GROUP BY defendant_family",
+   "drifted": true,
+   "source": "legal_filter20:q17",
+   "operator": "add_filter",
+   "replaced": null,
+   "by": "legal.charges",
+   "novel_features": [
+    "charges@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q13.4",
+   "sql": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END AS applicant_nation, AVG(legal_fees) AS avg_statutes FROM legal WHERE case_type = 'Administrative Case' AND nationality_for_applicant <> '' GROUP BY applicant_nation",
+   "drifted": true,
+   "source": "legal_filter20:q13",
+   "operator": "replace",
+   "replaced": "legal.legal_basis_num",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q19.2",
+   "sql": "SELECT CASE WHEN counsel_for_respondent IN ('Mr T Reilly', 'Ms V McWilliam', 'C Golvan SC || S Ricketson') THEN counsel_for_respondent ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE evidence = 0 AND first_judge = 1 GROUP BY case_family",
+   "drifted": true,
+   "source": "legal_filter20:q19",
+   "operator": "replace",
+   "replaced": "legal.case_type",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q9.0",
+   "sql": "SELECT CASE WHEN counsel_for_respondent IN ('Mr T Reilly', 'Ms V McWilliam', 'C Golvan SC || S Ricketson') THEN counsel_for_respondent ELSE 'Other' END AS verdict_family, AVG(case_number) AS avg_precedents FROM legal WHERE NOT case_number IS NULL GROUP BY verdict_family",
+   "drifted": true,
+   "source": "legal_agg20:q9",
+   "operator": "replace",
+   "replaced": "legal.verdict",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q5.1",
+   "sql": "SELECT CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END AS defendant_family, CASE WHEN counsel_for_respondent IN ('Mr T Reilly', 'Ms V McWilliam', 'C Golvan SC || S Ricketson') THEN counsel_for_respondent ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE defendant_current_status <> '' GROUP BY defendant_family, verdict_family",
+   "drifted": true,
+   "source": "legal_groupby20:q5",
+   "operator": "replace",
+   "replaced": "legal.verdict",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q15.2",
+   "sql": "SELECT legal_fees, judgment_year, COUNT(*) AS case_count FROM legal WHERE legal_fees BETWEEN 1200 AND 5000 AND judgment_year BETWEEN 2006 AND 2009 GROUP BY legal_fees, judgment_year",
+   "drifted": true,
+   "source": "legal_groupby20:q15",
+   "operator": "replace",
+   "replaced": "legal.hearing_year",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@group",
+    "legal_fees@select",
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q19.4",
+   "sql": "SELECT hearing_year, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, MAX(case_number) AS max_precedents, SUM(CASE WHEN defendant = 'Minister for Immigration and Multicultural and Indigenous Affairs' THEN 1 ELSE 0 END) AS approved_count FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 AND NOT case_number IS NULL GROUP BY hearing_year",
+   "drifted": true,
+   "source": "legal_multiagg20:q19",
+   "operator": "replace",
+   "replaced": "legal.verdict",
+   "by": "legal.defendant",
+   "novel_features": [
+    "defendant@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q7.1",
+   "sql": "SELECT CASE WHEN counsel_for_respondent IN ('Mr T Reilly', 'Ms V McWilliam', 'C Golvan SC || S Ricketson') THEN counsel_for_respondent WHEN counsel_for_respondent <> '' THEN 'Individual_or_other' END AS plaintiff_family, CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count FROM legal WHERE counsel_for_respondent <> '' AND defendant_current_status <> '' GROUP BY plaintiff_family, defendant_family",
+   "drifted": true,
+   "source": "legal_groupby20:q7",
+   "operator": "replace",
+   "replaced": "legal.plaintiff_current_status",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select",
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q0.1",
+   "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count, AVG(fine_amount) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE NOT case_number IS NULL GROUP BY case_family",
+   "drifted": true,
+   "source": "legal_multiagg20:q0",
+   "operator": "replace",
+   "replaced": "legal.legal_basis_num",
+   "by": "legal.fine_amount",
+   "novel_features": [
+    "fine_amount@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q1.2",
+   "sql": "SELECT plaintiff, first_judge, COUNT(*) AS case_count FROM legal WHERE plaintiff BETWEEN 'Australian Competition and Consumer Commission' AND 'Australian Competition and Consumer Commission' AND NOT first_judge IS NULL GROUP BY plaintiff, first_judge",
+   "drifted": true,
+   "source": "legal_groupby20:q1",
+   "operator": "replace",
+   "replaced": "legal.judgment_year",
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select",
+    "plaintiff@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q2.6",
+   "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count, counsel_for_respondent FROM legal WHERE nationality_for_applicant IN ('Australia', 'China', 'India') GROUP BY case_family, counsel_for_respondent",
+   "drifted": true,
+   "source": "legal_filter20:q2",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_filter20.q6.0",
+   "sql": "SELECT judgment_year, COUNT(*) AS case_count FROM legal WHERE first_judge = 1 AND legal_fees = 2800 AND judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year",
+   "drifted": true,
+   "source": "legal_filter20:q6",
+   "operator": "replace",
+   "replaced": "legal.evidence",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q8.5",
+   "sql": "SELECT evidence, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(fine_amount) AS avg_precedents, MAX(fine_amount) AS max_precedents FROM legal WHERE NOT evidence IS NULL AND NOT fine_amount IS NULL GROUP BY evidence",
+   "drifted": true,
+   "source": "legal_multiagg20:q8",
+   "operator": "replace",
+   "replaced": "legal.case_number",
+   "by": "legal.fine_amount",
+   "novel_features": [
+    "fine_amount@select",
+    "fine_amount@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_agg20.q0.6",
+   "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count, plaintiff FROM legal GROUP BY case_family, plaintiff",
+   "drifted": true,
+   "source": "legal_agg20:q0",
+   "operator": "add_group",
+   "replaced": null,
+   "by": "legal.plaintiff",
+   "novel_features": [
+    "plaintiff@group",
+    "plaintiff@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q10.5",
+   "sql": "SELECT hearing_year, COUNT(*) AS case_count, MIN(legal_fees) AS min_statutes, MAX(legal_fees) AS max_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE hearing_year BETWEEN 2006 AND 2009 AND NOT case_number IS NULL GROUP BY hearing_year",
+   "drifted": true,
+   "source": "legal_multiagg20:q10",
+   "operator": "replace",
+   "replaced": "legal.legal_basis_num",
+   "by": "legal.legal_fees",
+   "novel_features": [
+    "legal_fees@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q13.3",
+   "sql": "SELECT CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status <> '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count, AVG(case_number) AS avg_precedents, SUM(CASE WHEN fine_amount = 20000 THEN 1 ELSE 0 END) AS evidence_count FROM legal WHERE defendant_current_status <> '' AND NOT case_number IS NULL GROUP BY defendant_family",
+   "drifted": true,
+   "source": "legal_multiagg20:q13",
+   "operator": "replace",
+   "replaced": "legal.evidence",
+   "by": "legal.fine_amount",
+   "novel_features": [
+    "fine_amount@select"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q5.1",
+   "sql": "SELECT CASE WHEN counsel_for_respondent IN ('Mr T Reilly', 'Ms V McWilliam', 'C Golvan SC || S Ricketson') THEN counsel_for_respondent WHEN counsel_for_respondent <> '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, MAX(legal_basis_num) AS max_statutes FROM legal WHERE counsel_for_respondent <> '' GROUP BY defendant_family",
+   "drifted": true,
+   "source": "legal_multiagg20:q5",
+   "operator": "replace",
+   "replaced": "legal.defendant_current_status",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select",
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_multiagg20.q14.4",
+   "sql": "SELECT judgment_year, counsel_for_respondent, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 AND NOT counsel_for_respondent IS NULL AND NOT case_number IS NULL GROUP BY judgment_year, counsel_for_respondent",
+   "drifted": true,
+   "source": "legal_multiagg20:q14",
+   "operator": "replace",
+   "replaced": "legal.first_judge",
+   "by": "legal.counsel_for_respondent",
+   "novel_features": [
+    "counsel_for_respondent@group",
+    "counsel_for_respondent@select",
+    "counsel_for_respondent@where"
+   ]
+  },
+  {
+   "query_id": "legal_drift:legal_groupby20.q13.5",
+   "sql": "SELECT defendant, CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END AS dismissal_status, COUNT(*) AS case_count FROM legal WHERE defendant IN ('Minister for Immigration and Citizenship', 'Minister for Immigration and Multicultural Affairs', 'Minister for Immigration and Multicultural and Indigenous Affairs', 'Commissioner of Taxation', 'Repatriation Commission', 'Construction, Forestry, Mining and Energy Union') GROUP BY defendant, dismissal_status",
+   "drifted": true,
+   "source": "legal_groupby20:q13",
+   "operator": "replace",
+   "replaced": "legal.judge_name",
+   "by": "legal.defendant",
+   "novel_features": [
+    "defendant@group",
+    "defendant@select",
+    "defendant@where"
+   ]
+  }
+ ]
+}
