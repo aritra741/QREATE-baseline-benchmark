@@ -22,3 +22,18 @@ Protocol: the build reads W0 columns only; a query with a new column gets its de
 | finan | attribute/100 | 89.03M (5.4x) | 0.83 | 1.00 | 0.88 | 0.19 | 0.00 | 24.71 |
 | finan | combined/100 | 96.09M (5.9x) | 0.85 | 1.00 | 0.59 | 0.12 | 0.00 | 24.98 |
 | finan | attribute/gradual | 84.75M (5.2x) | 0.83 | 1.00 | 0.82 | 0.15 | 0.00 | 32.08 |
+
+## Three checks (cost model and stored values; no calls) — `checks.py`, `chk_<corpus>.json`
+
+**Cost law.** Over 45 streams per corpus (3 axes × 5 levels × 3 seeds), patch tokens under lazy augmentation against the stream's characterization:
+
+| Corpus | r(tokens, unseen feature mass) | r(tokens, attribute novelty) | r(tokens, constant novelty) |
+|---|---:|---:|---:|
+| CSPaper | 0.78 | 0.75 | 0.29 |
+| Art | 0.91 | 0.89 | −0.10 |
+| Legal | 0.87 | 0.87 | −0.07 |
+| Player | 0.86 | 0.87 | −0.19 |
+
+**Shape transfer.** Share of value-drift literal parts (equality values and LIKE cores) whose Potter's-Wheel shape is among the shapes of W0's literals for the column: CSPaper 0.95, Player 0.88, Art 0.71, Legal 0.65. Misses are semantic columns (Art style, color; Legal defendant names).
+
+**Scope soundness.** Pushdown on raw stored values vs on the online representation, single-table value-drift queries: identical on CSPaper, Legal and Player; on Art the representation keeps 306 documents that raw values wrongly pruned and halves the queries pruned to nothing (15 → 7 of 59). Queries pruned to nothing on every view (CSPaper 30/77, Legal 14/53) are extraction misses: no stored value matches the literal.
