@@ -10,7 +10,7 @@ raw extraction untouched and derives a view in four tiers, cheapest first:
   own confident rewrites. Free.
 * **T2 model** (``llm``): residual distinct values rewritten by the model, batched and memoized; its
   cost scales with distinct values, not rows or documents. Budgeted by ``router``; in ``cascade`` mode
-  the model labels one representative per uncovered pattern class and programs generalize.
+  the model labels two representatives per uncovered pattern class and programs generalize.
 * **Entity resolution** (``resolve``): join columns share one domain (entity side spelling), raw
   grouping columns merge folded duplicates.
 
@@ -45,6 +45,7 @@ class Config:
     er: bool = True
     er_model: bool = False
     group: bool = True
+    demos: bool = True  # the model sees the column's own rewrites as demonstrations
 
     @property
     def name(self) -> str:
@@ -55,7 +56,18 @@ class Config:
             n += f"+t2_{self.t2}" + (f"@{self.budget}" if self.budget is not None else "")
         if self.er_model:
             n += "+er_model"
+        if self.t2 != "none" and not self.demos:
+            n += "+nodemo"
         return n
+
+
+def demos(s: dict[str, Any]) -> list[tuple[str, str]]:
+    """The column's own rewrites (T0 examples, then T1 outputs) as demonstrations for the model."""
+
+    from quwarts.core.represent.llm import demonstrations
+
+    t1 = [(p, n) for p, n in s["map"].items() if s["tier"].get(p) == "t1"]
+    return demonstrations(list(s["examples"]) + t1)
 
 
 def _cells(conn, table: str, column: str) -> list[tuple[int, str]]:
@@ -94,12 +106,13 @@ def build(raw_db: Path, dest: Path, spec, fields: dict[str, Any], queries: dict[
 
     # T1: programs from T0's examples, per column.
     for key, s in state.items():
-        progs = T1.learn(s["examples"]) if config.t1 else {}
-        got = T1.apply(progs, list(s["residual"]), tg[key]) if progs else {}
+        s["keep"] = keep = T1.frequent_tokens(s["raw_parts"])
+        progs = T1.learn(s["examples"], keep) if config.t1 else {}
+        got = T1.apply(progs, list(s["residual"]), tg[key], keep) if progs else {}
         for p, new in got.items():
             s["map"][p], s["tier"][p] = new, "t1"
         s["programs"] = {c: [p.i, p.j, p.case] for c, p in progs.items()}
-        s["coverage"] = T1.coverage(list(s["residual"]), progs)
+        s["coverage"] = T1.coverage(list(s["residual"]), progs, keep)
 
     # T2: router over columns, then the model on residual values.
     t2_stats: dict[str, Any] = {}
@@ -110,13 +123,13 @@ def build(raw_db: Path, dest: Path, spec, fields: dict[str, Any], queries: dict[
             if config.t2 == "cascade":
                 classes = defaultdict(list)
                 for p in sorted(left, key=lambda p: -s["residual"][p]):
-                    classes[T1.pattern_class(p)].append(p)
-                reps = [ms[0] for ms in classes.values()]
+                    classes[T1.pattern_class(p, s["keep"])].append(p)
+                reps = [m for ms in classes.values() for m in ms[:T1.SUPPORT]]  # enough labels to learn a class program
                 pending[key] = (left, reps, classes)
-                cost = estimate_tokens(tg[key], reps)
+                cost = estimate_tokens(tg[key], reps, demos(s) if config.demos else None)
             else:
                 pending[key] = (left, left, None)
-                cost = estimate_tokens(tg[key], left)
+                cost = estimate_tokens(tg[key], left, demos(s) if config.demos else None)
             rows = len(s["cells"])
             off_rows = sum(1 for _r, v in s["cells"] if any(q in left for q in parts(v)))
             plans.append(ColumnPlan(key, tg[key].uses, off_rows, rows, len(left), cost))
@@ -125,16 +138,16 @@ def build(raw_db: Path, dest: Path, spec, fields: dict[str, Any], queries: dict[
         for key in sorted(chosen):
             s = state[key]
             left, first, classes = pending[key]
-            got, st = t2_normalize(tg[key], first, caller, journal)
+            got, st = t2_normalize(tg[key], first, caller, journal, examples=demos(s) if config.demos else None)
             t2_stats["spent"] += st["tokens"]
             t2_stats["calls"] += st["calls"]
             for p, new in got.items():
                 s["map"][p], s["tier"][p] = new, "t2"
             if classes is not None:  # cascade: programs from the model's labels generalize within a class
                 ex = [(p, got[p]) for p in first if p in got and got[p].casefold() in p.casefold()]
-                progs = T1.learn(ex)
+                progs = T1.learn(ex + s["examples"], s["keep"])
                 rest = [p for p in left if p not in s["map"]]
-                for p, new in T1.apply(progs, rest, tg[key]).items():
+                for p, new in T1.apply(progs, rest, tg[key], s["keep"]).items():
                     s["map"][p], s["tier"][p] = new, "t2_program"
                 s["cascade_programs"] = len(progs)
             s["t2"] = st

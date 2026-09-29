@@ -1,19 +1,19 @@
 {
  "corpus": "player",
  "mode": "frozen",
- "config": "t0+t1",
+ "config": "t0+er+group+t2_all",
  "manifest": {
   "config": {
    "t0": true,
-   "t1": true,
-   "t2": "none",
+   "t1": false,
+   "t2": "all",
    "budget": null,
-   "er": false,
+   "er": true,
    "er_model": false,
-   "group": false,
+   "group": true,
    "demos": true
   },
-  "name": "t0+t1",
+  "name": "t0+er+group+t2_all",
   "columns": {
    "player.position": {
     "uses": 96,
@@ -282,9 +282,50 @@
     "cascade_programs": null
    }
   },
-  "joins": [],
+  "joins": [
+   {
+    "entity": [
+     "team",
+     "team_name"
+    ],
+    "reference": [
+     "player",
+     "team"
+    ],
+    "queries": 35,
+    "mapped_surfaces": 0,
+    "cells_changed": 0,
+    "no_candidate": 24,
+    "exact": 23,
+    "asked": 0,
+    "unresolved": 9,
+    "model": {}
+   },
+   {
+    "entity": [
+     "team",
+     "team_name"
+    ],
+    "reference": [
+     "owner",
+     "nba_team"
+    ],
+    "queries": 10,
+    "mapped_surfaces": 0,
+    "cells_changed": 0,
+    "exact": 16,
+    "asked": 0,
+    "unresolved": 0,
+    "model": {}
+   }
+  ],
   "groups": {},
-  "t2": {},
+  "t2": {
+   "planned_tokens": 0,
+   "chosen": [],
+   "spent": 0,
+   "calls": 0
+  },
   "cells_changed": {
    "t0": 1
   }

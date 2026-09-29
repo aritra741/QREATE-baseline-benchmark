@@ -1,19 +1,19 @@
 {
  "corpus": "finan",
  "mode": "frozen",
- "config": "t0+t1+er+group",
+ "config": "t0+t1+er+group+t2_all",
  "manifest": {
   "config": {
    "t0": true,
    "t1": true,
-   "t2": "none",
+   "t2": "all",
    "budget": null,
    "er": true,
    "er_model": false,
    "group": true,
    "demos": true
   },
-  "name": "t0+t1+er+group",
+  "name": "t0+t1+er+group+t2_all",
   "columns": {
    "finance.exchange_code": {
     "uses": 236,
@@ -25,11 +25,12 @@
     "distinct_parts": 69,
     "residual_after_t0": 15,
     "residual_after_t1": 15,
-    "residual_final": 15,
+    "residual_final": 14,
     "off_share_before": 0.093,
-    "off_share_after": 0.075,
+    "off_share_after": 0.071,
     "cells_changed": {
-     "t0": 63
+     "t0": 62,
+     "t0+t2": 1
     },
     "coverage": {
      "distinct": 15,
@@ -38,7 +39,14 @@
      "redundancy": 1.07
     },
     "programs": {},
-    "t2": null,
+    "t2": {
+     "calls": 0,
+     "replayed": 1,
+     "tokens": 396,
+     "new_tokens": 0,
+     "accepted": 1,
+     "rejected": 14
+    },
     "cascade_programs": null
    },
    "finance.major_equity_changes": {
@@ -136,15 +144,31 @@
      "redundancy": 1.21
     },
     "programs": {},
-    "t2": null,
+    "t2": {
+     "calls": 0,
+     "replayed": 1,
+     "tokens": 657,
+     "new_tokens": 0,
+     "accepted": 0,
+     "rejected": 29
+    },
     "cascade_programs": null
    }
   },
   "joins": [],
   "groups": {},
-  "t2": {},
+  "t2": {
+   "planned_tokens": 1314,
+   "chosen": [
+    "finance.auditor",
+    "finance.exchange_code"
+   ],
+   "spent": 1053,
+   "calls": 0
+  },
   "cells_changed": {
-   "t0": 114
+   "t0": 113,
+   "t0+t2": 1
   }
  },
  "benchmark": {

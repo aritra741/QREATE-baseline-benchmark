@@ -1,19 +1,19 @@
 {
  "corpus": "legal",
  "mode": "frozen",
- "config": "t0+t1",
+ "config": "t0+er+group+t2_all+nodemo",
  "manifest": {
   "config": {
    "t0": true,
-   "t1": true,
-   "t2": "none",
+   "t1": false,
+   "t2": "all",
    "budget": null,
-   "er": false,
+   "er": true,
    "er_model": false,
-   "group": false,
-   "demos": true
+   "group": true,
+   "demos": false
   },
-  "name": "t0+t1",
+  "name": "t0+er+group+t2_all+nodemo",
   "columns": {
    "legal.case_type": {
     "uses": 66,
@@ -62,7 +62,14 @@
      "redundancy": 3.0
     },
     "programs": {},
-    "t2": null,
+    "t2": {
+     "calls": 0,
+     "replayed": 1,
+     "tokens": 278,
+     "new_tokens": 0,
+     "accepted": 0,
+     "rejected": 9
+    },
     "cascade_programs": null
    },
    "legal.verdict": {
@@ -98,33 +105,29 @@
     "rows": 570,
     "distinct_parts": 162,
     "residual_after_t0": 118,
-    "residual_after_t1": 42,
-    "residual_final": 42,
+    "residual_after_t1": 118,
+    "residual_final": 85,
     "off_share_before": 0.888,
-    "off_share_after": 0.104,
+    "off_share_after": 0.467,
     "cells_changed": {
-     "t0": 149,
-     "t1": 316
+     "t0": 162,
+     "t2": 109
     },
     "coverage": {
      "distinct": 118,
      "classes": 20,
-     "covered_share": 0.644,
+     "covered_share": 0.0,
      "redundancy": 5.9
     },
-    "programs": {
-     "Aa j": [
-      0,
-      1,
-      "id"
-     ],
-     "justice Aa": [
-      1,
-      2,
-      "id"
-     ]
+    "programs": {},
+    "t2": {
+     "calls": 0,
+     "replayed": 3,
+     "tokens": 4613,
+     "new_tokens": 0,
+     "accepted": 30,
+     "rejected": 88
     },
-    "t2": null,
     "cascade_programs": null
    },
    "legal.defendant_current_status": {
@@ -150,7 +153,14 @@
      "redundancy": 1.0
     },
     "programs": {},
-    "t2": null,
+    "t2": {
+     "calls": 0,
+     "replayed": 1,
+     "tokens": 188,
+     "new_tokens": 0,
+     "accepted": 0,
+     "rejected": 1
+    },
     "cascade_programs": null
    },
    "legal.plaintiff_current_status": {
@@ -163,11 +173,12 @@
     "distinct_parts": 52,
     "residual_after_t0": 20,
     "residual_after_t1": 20,
-    "residual_final": 20,
+    "residual_final": 13,
     "off_share_before": 0.42,
-    "off_share_after": 0.059,
+    "off_share_after": 0.039,
     "cells_changed": {
-     "t0": 133
+     "t0": 131,
+     "t2": 7
     },
     "coverage": {
      "distinct": 20,
@@ -175,23 +186,40 @@
      "covered_share": 0.0,
      "redundancy": 1.67
     },
-    "programs": {
-     "a": [
-      0,
-      1,
-      "title"
-     ]
+    "programs": {},
+    "t2": {
+     "calls": 0,
+     "replayed": 1,
+     "tokens": 514,
+     "new_tokens": 0,
+     "accepted": 7,
+     "rejected": 13
     },
-    "t2": null,
     "cascade_programs": null
    }
   },
   "joins": [],
-  "groups": {},
-  "t2": {},
+  "groups": {
+   "legal.judge_name": {
+    "merged_surfaces": 1,
+    "cells_changed": 1
+   }
+  },
+  "t2": {
+   "planned_tokens": 4047,
+   "chosen": [
+    "legal.defendant_current_status",
+    "legal.judge_name",
+    "legal.nationality_for_applicant",
+    "legal.plaintiff_current_status"
+   ],
+   "spent": 5593,
+   "calls": 0
+  },
   "cells_changed": {
-   "t0": 402,
-   "t1": 316
+   "t0": 413,
+   "t2": 116,
+   "group": 1
   }
  },
  "benchmark": {
@@ -199,7 +227,7 @@
   "legal_multiagg20:q3": 0.2667,
   "legal_filter20:q3": 0.0,
   "legal_groupby20:q10": 0.7095,
-  "legal_filter20:q10": 0.0123,
+  "legal_filter20:q10": 0.0097,
   "legal_groupby20:q15": 0.5926,
   "legal_agg20:q8": 0.25,
   "legal_groupby20:q6": 0.5833,
@@ -212,7 +240,7 @@
   "legal_groupby20:q2": 0.4786,
   "legal_multiagg20:q2": 0.3125,
   "legal_filter20:q5": 0.5,
-  "legal_groupby20:q16": 0.955,
+  "legal_groupby20:q16": 0.8913,
   "legal_multiagg20:q16": 0.4375,
   "legal_agg20:q1": 1.0,
   "legal_multiagg20:q10": 0.4375,
@@ -241,7 +269,7 @@
   "legal_agg20:q9": 0.0,
   "legal_groupby20:q12": 0.875,
   "legal_filter20:q1": 0.0,
-  "legal_multiagg20:q6": 0.4156,
+  "legal_multiagg20:q6": 0.2501,
   "legal_groupby20:q18": 0.463,
   "legal_agg20:q10": 0.25,
   "legal_groupby20:q8": 0.75,
@@ -256,7 +284,7 @@
   "legal_groupby20:q4": 0.3209,
   "legal_groupby20:q1": 0.0,
   "legal_groupby20:q5": 0.8913,
-  "legal_agg20:q12": 0.669,
+  "legal_agg20:q12": 0.3622,
   "legal_multiagg20:q17": 0.625,
   "legal_multiagg20:q8": 0.0,
   "legal_multiagg20:q4": 0.0,
@@ -281,7 +309,7 @@
   "legal_multiagg20:q3": 0.2667,
   "legal_filter20:q3": 0.0,
   "legal_groupby20:q10": 0.7095,
-  "legal_filter20:q10": 0.0123,
+  "legal_filter20:q10": 0.0097,
   "legal_groupby20:q15": 0.5926,
   "legal_agg20:q8": 0.25,
   "legal_groupby20:q6": 0.5833,
@@ -294,7 +322,7 @@
   "legal_groupby20:q2": 0.4786,
   "legal_multiagg20:q2": 0.3125,
   "legal_filter20:q5": 0.5,
-  "legal_groupby20:q16": 0.955,
+  "legal_groupby20:q16": 0.8913,
   "legal_multiagg20:q16": 0.4375,
   "legal_agg20:q1": 1.0,
   "legal_multiagg20:q10": 0.4375,
@@ -323,7 +351,7 @@
   "legal_agg20:q9": 0.0,
   "legal_groupby20:q12": 0.875,
   "legal_filter20:q1": 0.0,
-  "legal_multiagg20:q6": 0.4346,
+  "legal_multiagg20:q6": 0.2627,
   "legal_groupby20:q18": 0.463,
   "legal_agg20:q10": 0.25,
   "legal_groupby20:q8": 0.75,
@@ -338,7 +366,7 @@
   "legal_groupby20:q4": 0.3209,
   "legal_groupby20:q1": 0.0,
   "legal_groupby20:q5": 0.8913,
-  "legal_agg20:q12": 0.669,
+  "legal_agg20:q12": 0.3622,
   "legal_multiagg20:q17": 0.625,
   "legal_multiagg20:q8": 0.0,
   "legal_multiagg20:q4": 0.0,
@@ -371,8 +399,8 @@
   },
   "legal.judge_name": {
    "n": 570,
-   "exact": 0.83,
-   "tolerant": 0.837
+   "exact": 0.491,
+   "tolerant": 0.498
   },
   "legal.nationality_for_applicant": {
    "n": 303,
@@ -381,8 +409,8 @@
   },
   "legal.plaintiff_current_status": {
    "n": 314,
-   "exact": 0.382,
-   "tolerant": 0.382
+   "exact": 0.392,
+   "tolerant": 0.392
   },
   "legal.verdict": {
    "n": 570,

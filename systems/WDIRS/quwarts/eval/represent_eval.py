@@ -33,7 +33,7 @@ SCRATCH = Path.home() / "quwarts_scratch" / "representation"
 GOLD_KEY = {"player": "id", "art": "id", "legal": "id", "cspaper": "pdf_filename", "med": "id"}
 CONFIGS = {
     "base": [Config(t0=False), Config(t1=False, er=False, group=False), Config(er=False, group=False), Config()],
-    "model": [Config(t2="all"), Config(t2="cascade"), Config(t1=False, t2="all")],
+    "model": [Config(t2="all"), Config(t2="cascade"), Config(t1=False, t2="all"), Config(t1=False, t2="all", demos=False)],
 }
 
 

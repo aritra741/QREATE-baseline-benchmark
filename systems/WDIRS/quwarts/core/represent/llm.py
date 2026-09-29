@@ -4,8 +4,10 @@ Its cost is linear in the number of distinct residual values, not in rows or doc
 1,000 cells and 40 distinct off-form values costs one call. No document is read. Calls are memoized in a
 journal keyed by the prompt's hash (the same memo discipline as the read journal), so a replay is free.
 
-Answers are validated against the column's target: a value in the vocabulary, or one that fits the
-literals' shape family. Anything else (including ``null``) leaves the value as T0/T1 left it.
+Answers are validated against the column's target: a value in the vocabulary, or a value that fits the
+literals' shape family and is grounded in the source value (every word of it occurs there: the model may
+shorten, reorder or re-case, not invent; RULES.md rule 15 for reads). Anything else (including ``null``)
+leaves the value as T0/T1 left it.
 """
 
 from __future__ import annotations
@@ -24,7 +26,23 @@ BATCH = 40
 _lock = threading.Lock()
 
 
-def prompt(target: Target, values: list[str]) -> str:
+def demonstrations(examples: list[tuple[str, str]], k: int = 8) -> list[tuple[str, str]]:
+    """Up to ``k`` of the column's own rewrites (T0/T1), one per pattern class first: the model is shown
+    the workload's form instead of guessing it."""
+
+    from quwarts.core.represent.programs import pattern_class
+
+    seen, first, rest = set(), [], []
+    for a, b in examples:
+        if a == b:
+            continue
+        c = pattern_class(a)
+        (rest if c in seen else first).append((a, b))
+        seen.add(c)
+    return (first + rest)[:k]
+
+
+def prompt(target: Target, values: list[str], examples: list[tuple[str, str]] | None = None) -> str:
     lines = [f"Column: {target.table}.{target.column}"]
     if target.description:
         lines.append(f"Meaning: {target.description}")
@@ -40,6 +58,8 @@ def prompt(target: Target, values: list[str]) -> str:
         style.append("as short as the listed values")
     if style:
         lines.append("Form of a value: " + ", ".join(style) + ".")
+    if examples:
+        lines.append("Examples of standardized values: " + "; ".join(f"{a!r} -> {b!r}" for a, b in examples))
     lines += [
         "",
         "For each numbered value below, give the standardized value:",
@@ -72,6 +92,16 @@ def _parse(text: str, n: int) -> dict[int, Any]:
     return out
 
 
+def grounded(source: str, answer: str, target: Target) -> bool:
+    """A rewrite is kept if it is a vocabulary value, or if every word of it occurs in the source value
+    (the model may shorten, reorder or re-case what the extraction says, not invent a new value)."""
+
+    if answer in target.vocabulary:
+        return True
+    words = lambda t: set(re.findall(r"[a-z0-9]+", t.casefold()))  # noqa: E731
+    return bool(words(answer)) and words(answer) <= words(source)
+
+
 class Journal:
     def __init__(self, path: Path):
         self.path = path
@@ -93,7 +123,7 @@ class Journal:
                 handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def estimate_tokens(target: Target, values: list[str]) -> int:
+def estimate_tokens(target: Target, values: list[str], examples: list[tuple[str, str]] | None = None) -> int:
     """Prompt and answer tokens of normalizing these values (for the router, before any call)."""
 
     from quwarts.core.retrieve_extract.tokens import count_tokens
@@ -101,22 +131,22 @@ def estimate_tokens(target: Target, values: list[str]) -> int:
     total = 0
     for start in range(0, len(values), BATCH):
         batch = values[start:start + BATCH]
-        total += count_tokens(prompt(target, batch)) + 30 + sum(len(v) // 3 + 8 for v in batch)
+        total += count_tokens(prompt(target, batch, examples)) + 30 + sum(len(v) // 3 + 8 for v in batch)
     return total
 
 
 def normalize(target: Target, values: list[str], caller: Callable | None, journal: Journal,
-              workers: int = 8) -> tuple[dict[str, str], dict[str, int]]:
+              workers: int = 8, examples: list[tuple[str, str]] | None = None) -> tuple[dict[str, str], dict[str, int]]:
     """Residual value -> validated model rewrite; stats (calls made, replayed, tokens spent)."""
 
     from concurrent.futures import ThreadPoolExecutor
 
-    stats = {"calls": 0, "replayed": 0, "tokens": 0, "accepted": 0, "rejected": 0}
+    stats = {"calls": 0, "replayed": 0, "tokens": 0, "new_tokens": 0, "accepted": 0, "rejected": 0}
     batches = [values[i:i + BATCH] for i in range(0, len(values), BATCH)]
     out: dict[str, str] = {}
 
     def run(batch: list[str]) -> None:
-        text = prompt(target, batch)
+        text = prompt(target, batch, examples)
         sha = hashlib.sha256((SYSTEM + "\n" + text).encode()).hexdigest()
         row = journal.get(sha)
         if row is None:
@@ -129,14 +159,16 @@ def normalize(target: Target, values: list[str], caller: Callable | None, journa
             journal.put(row)
             with _lock:
                 stats["calls"] += 1
-                stats["tokens"] += row["tokens"]
+                stats["new_tokens"] += row["tokens"]
         else:
             with _lock:
                 stats["replayed"] += 1
+        with _lock:
+            stats["tokens"] += row["tokens"]  # the cost of this result, spent now or when first computed
         parsed = _parse(row["response"], len(batch))
         for i, v in enumerate(batch, 1):
             new = parsed.get(i)
-            if isinstance(new, str) and new.strip() and status(new.strip(), target) != "off":
+            if isinstance(new, str) and new.strip() and status(new.strip(), target) != "off" and grounded(v, new.strip(), target):
                 with _lock:
                     out[v] = new.strip()
                     stats["accepted"] += 1
@@ -153,7 +185,7 @@ def verify_matches(pairs: list[tuple[str, list[str]]], context: str, caller: Cal
                    ) -> tuple[dict[str, str], dict[str, int]]:
     """Entity resolution questions: for each surface, which candidate (if any) names the same entity."""
 
-    stats = {"calls": 0, "replayed": 0, "tokens": 0}
+    stats = {"calls": 0, "replayed": 0, "tokens": 0, "new_tokens": 0}
     out: dict[str, str] = {}
     for start in range(0, len(pairs), 25):
         batch = pairs[start:start + 25]
@@ -173,9 +205,10 @@ def verify_matches(pairs: list[tuple[str, list[str]]], context: str, caller: Cal
             row = {"sha": sha, "context": context, "pairs": batch, "response": answer, "tokens": caller.ledger.spent - before}
             journal.put(row)
             stats["calls"] += 1
-            stats["tokens"] += row["tokens"]
+            stats["new_tokens"] += row["tokens"]
         else:
             stats["replayed"] += 1
+        stats["tokens"] += row["tokens"]
         parsed = _parse(row["response"], len(batch))
         for i, (surface, cands) in enumerate(batch, 1):
             got = parsed.get(i)

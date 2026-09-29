@@ -1,23 +1,23 @@
 {
  "corpus": "art",
- "mode": "frozen",
- "config": "t0",
+ "mode": "online",
+ "config": "t0+t1+er+group",
  "manifest": {
   "config": {
    "t0": true,
-   "t1": false,
+   "t1": true,
    "t2": "none",
    "budget": null,
-   "er": false,
+   "er": true,
    "er_model": false,
-   "group": false,
+   "group": true,
    "demos": true
   },
-  "name": "t0",
+  "name": "t0+t1+er+group",
   "columns": {
    "art.century": {
-    "uses": 50,
-    "exact_uses": 34,
+    "uses": 65,
+    "exact_uses": 44,
     "vocabulary": 2,
     "declared": false,
     "multi": false,
@@ -42,8 +42,8 @@
     "cascade_programs": null
    },
    "art.style": {
-    "uses": 45,
-    "exact_uses": 37,
+    "uses": 49,
+    "exact_uses": 41,
     "vocabulary": 8,
     "declared": false,
     "multi": false,
@@ -63,12 +63,18 @@
      "covered_share": 0.0,
      "redundancy": 5.22
     },
-    "programs": {},
+    "programs": {
+     "a": [
+      0,
+      1,
+      "title"
+     ]
+    },
     "t2": null,
     "cascade_programs": null
    },
    "art.field": {
-    "uses": 63,
+    "uses": 64,
     "exact_uses": 9,
     "vocabulary": 16,
     "declared": true,
@@ -94,8 +100,8 @@
     "cascade_programs": null
    },
    "art.birth_continent": {
-    "uses": 44,
-    "exact_uses": 29,
+    "uses": 48,
+    "exact_uses": 32,
     "vocabulary": 6,
     "declared": true,
     "multi": false,
@@ -126,26 +132,59 @@
     "rows": 410,
     "distinct_parts": 239,
     "residual_after_t0": 141,
-    "residual_after_t1": 141,
-    "residual_final": 130,
+    "residual_after_t1": 91,
+    "residual_final": 81,
     "off_share_before": 0.9,
-    "off_share_after": 0.355,
+    "off_share_after": 0.225,
     "cells_changed": {
-     "t0": 352
+     "t0": 304,
+     "t1": 52,
+     "t0+t1": 2
     },
     "coverage": {
      "distinct": 141,
      "classes": 40,
-     "covered_share": 0.0,
+     "covered_share": 0.355,
      "redundancy": 3.52
     },
-    "programs": {},
+    "programs": {
+     "Aa and neutral": [
+      2,
+      3,
+      "title"
+     ],
+     "a and neutral": [
+      2,
+      3,
+      "title"
+     ],
+     "Aa and a": [
+      0,
+      1,
+      "id"
+     ],
+     "neutral and a": [
+      0,
+      1,
+      "title"
+     ],
+     "a and a": [
+      0,
+      1,
+      "title"
+     ],
+     "Aa and dramatic": [
+      0,
+      1,
+      "id"
+     ]
+    },
     "t2": null,
     "cascade_programs": null
    },
    "art.image_genre": {
-    "uses": 38,
-    "exact_uses": 32,
+    "uses": 44,
+    "exact_uses": 36,
     "vocabulary": 6,
     "declared": false,
     "multi": false,
@@ -165,13 +204,19 @@
      "covered_share": 0.0,
      "redundancy": 2.73
     },
-    "programs": {},
+    "programs": {
+     "a": [
+      0,
+      1,
+      "title"
+     ]
+    },
     "t2": null,
     "cascade_programs": null
    },
    "art.art_institution": {
-    "uses": 5,
-    "exact_uses": 3,
+    "uses": 7,
+    "exact_uses": 4,
     "vocabulary": 0,
     "declared": false,
     "multi": false,
@@ -196,8 +241,8 @@
     "cascade_programs": null
    },
    "art.color": {
-    "uses": 47,
-    "exact_uses": 36,
+    "uses": 59,
+    "exact_uses": 45,
     "vocabulary": 7,
     "declared": false,
     "multi": false,
@@ -214,10 +259,21 @@
     "coverage": {
      "distinct": 97,
      "classes": 67,
-     "covered_share": 0.0,
+     "covered_share": 0.01,
      "redundancy": 1.45
     },
-    "programs": {},
+    "programs": {
+     "a": [
+      0,
+      1,
+      "title"
+     ],
+     "black and a": [
+      0,
+      3,
+      "title"
+     ]
+    },
     "t2": null,
     "cascade_programs": null
    },
@@ -256,20 +312,27 @@
     "rows": 992,
     "distinct_parts": 113,
     "residual_after_t0": 30,
-    "residual_after_t1": 30,
-    "residual_final": 26,
+    "residual_after_t1": 20,
+    "residual_final": 18,
     "off_share_before": 0.042,
-    "off_share_after": 0.035,
+    "off_share_after": 0.027,
     "cells_changed": {
-     "t0": 80
+     "t0": 78,
+     "t1": 10
     },
     "coverage": {
      "distinct": 30,
      "classes": 6,
-     "covered_share": 0.0,
+     "covered_share": 0.333,
      "redundancy": 5.0
     },
-    "programs": {},
+    "programs": {
+     "Aa american": [
+      1,
+      2,
+      "id"
+     ]
+    },
     "t2": null,
     "cascade_programs": null
    },
@@ -300,8 +363,8 @@
     "cascade_programs": null
    },
    "art.birth_country": {
-    "uses": 17,
-    "exact_uses": 13,
+    "uses": 27,
+    "exact_uses": 21,
     "vocabulary": 5,
     "declared": false,
     "multi": false,
@@ -324,13 +387,49 @@
     "programs": {},
     "t2": null,
     "cascade_programs": null
+   },
+   "art.genre": {
+    "uses": 3,
+    "exact_uses": 3,
+    "vocabulary": 3,
+    "declared": false,
+    "multi": false,
+    "rows": 0,
+    "distinct_parts": 0,
+    "residual_after_t0": 0,
+    "residual_after_t1": 0,
+    "residual_final": 0,
+    "off_share_before": 0.0,
+    "off_share_after": 0.0,
+    "cells_changed": {},
+    "coverage": {
+     "distinct": 0,
+     "classes": 0,
+     "covered_share": 0.0,
+     "redundancy": 0.0
+    },
+    "programs": {},
+    "t2": null,
+    "cascade_programs": null
    }
   },
   "joins": [],
-  "groups": {},
+  "groups": {
+   "art.style": {
+    "merged_surfaces": 21,
+    "cells_changed": 35
+   },
+   "art.image_genre": {
+    "merged_surfaces": 8,
+    "cells_changed": 29
+   }
+  },
   "t2": {},
   "cells_changed": {
-   "t0": 3612
+   "t0": 3562,
+   "t1": 62,
+   "t0+t1": 2,
+   "group": 29
   }
  },
  "benchmark": {
@@ -340,7 +439,7 @@
   "art_groupby20:q10": 0.2118,
   "art_filter20:q10": 0.0,
   "art_groupby20:q15": 1.0,
-  "art_agg20:q8": 0.1709,
+  "art_agg20:q8": 0.1627,
   "art_groupby20:q6": 0.5814,
   "art_groupby20:q17": 0.1693,
   "art_filter20:q19": 0.1875,
@@ -356,7 +455,7 @@
   "art_agg20:q1": 0.1581,
   "art_multiagg20:q10": 0.1852,
   "art_groupby20:q13": 0.875,
-  "art_agg20:q18": 0.3419,
+  "art_agg20:q18": 0.3255,
   "art_multiagg20:q7": 0.1786,
   "art_agg20:q19": 0.1581,
   "art_filter20:q0": 0.25,
@@ -365,8 +464,8 @@
   "art_filter20:q13": 0.0,
   "art_multiagg20:q1": 0.5556,
   "art_filter20:q12": 1.0,
-  "art_agg20:q7": 0.1788,
-  "art_multiagg20:q5": 0.1945,
+  "art_agg20:q7": 0.1905,
+  "art_multiagg20:q5": 0.1758,
   "art_agg20:q2": 0.0,
   "art_agg20:q16": 0.6602,
   "art_filter20:q16": 0.1786,
@@ -390,7 +489,7 @@
   "art_filter20:q17": 0.0,
   "art_multiagg20:q15": 0.3958,
   "art_multiagg20:q19": 0.6667,
-  "art_filter20:q6": 0.0535,
+  "art_filter20:q6": 0.0581,
   "art_filter20:q14": 0.8333,
   "art_groupby20:q4": 0.4274,
   "art_groupby20:q1": 0.9,
@@ -398,7 +497,7 @@
   "art_agg20:q12": 0.543,
   "art_multiagg20:q17": 0.5417,
   "art_multiagg20:q8": 0.1581,
-  "art_multiagg20:q4": 0.2075,
+  "art_multiagg20:q4": 0.2227,
   "art_filter20:q9": 0.6787,
   "art_filter20:q7": 0.3383,
   "art_multiagg20:q11": 0.0,
@@ -408,7 +507,7 @@
   "art_agg20:q11": 1.0,
   "art_multiagg20:q9": 0.5325,
   "art_agg20:q13": 0.0,
-  "art_agg20:q17": 0.2264,
+  "art_agg20:q17": 0.2429,
   "art_filter20:q8": 0.0,
   "art_filter20:q11": 0.0,
   "art_filter20:q15": 0.0,
@@ -538,6 +637,11 @@
    "exact": 0.293,
    "tolerant": 0.434
   },
+  "art.genre": {
+   "n": 680,
+   "exact": 0.0,
+   "tolerant": 0.0
+  },
   "art.image_genre": {
    "n": 883,
    "exact": 0.168,
@@ -545,13 +649,13 @@
   },
   "art.nationality": {
    "n": 989,
-   "exact": 0.755,
-   "tolerant": 0.755
+   "exact": 0.754,
+   "tolerant": 0.754
   },
   "art.style": {
    "n": 957,
-   "exact": 0.17,
-   "tolerant": 0.187
+   "exact": 0.169,
+   "tolerant": 0.189
   },
   "art.tone": {
    "n": 953,

@@ -1,19 +1,19 @@
 {
  "corpus": "med",
  "mode": "frozen",
- "config": "t0+t1+er+group",
+ "config": "t0+t1+er+group+t2_cascade",
  "manifest": {
   "config": {
    "t0": true,
    "t1": true,
-   "t2": "none",
+   "t2": "cascade",
    "budget": null,
    "er": true,
    "er_model": false,
    "group": true,
    "demos": true
   },
-  "name": "t0+t1+er+group",
+  "name": "t0+t1+er+group+t2_cascade",
   "columns": {
    "drug.manufacturer": {
     "uses": 2,
@@ -627,7 +627,12 @@
    }
   ],
   "groups": {},
-  "t2": {},
+  "t2": {
+   "planned_tokens": 0,
+   "chosen": [],
+   "spent": 0,
+   "calls": 0
+  },
   "cells_changed": {
    "t0": 432,
    "er": 46

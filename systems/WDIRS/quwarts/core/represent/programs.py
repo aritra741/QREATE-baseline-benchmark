@@ -8,8 +8,8 @@ title, lower, upper). Because a class fixes the number of tokens, a span is unam
 
 Examples come for free from T0: every value T0 mapped to a vocabulary value that occurs inside it
 (``Justice Flick`` -> ``Flick``, ``MARSHALL J`` -> ``Marshall``). The version space of a class is the
-set of programs consistent with all of its examples; the simplest survivor (shortest span, identity case
-first) is applied to the class's residual values that no vocabulary value explains
+set of programs consistent with all of its examples; with at least two examples, the simplest survivor
+(shortest span, identity case first) is applied to the class's residual values that no vocabulary value explains
 (``Justice Bennett`` -> ``Bennett``). Its output must fit the column's target (vocabulary or the
 literals' shape family); otherwise the value stays residual for the model tier.
 
@@ -36,8 +36,25 @@ def tokens(text: str) -> list[re.Match]:
     return list(TOKEN.finditer(text))
 
 
-def pattern_class(text: str) -> str:
-    return " ".join(shape(m.group(0)) for m in tokens(text)) or "∅"
+def pattern_class(text: str, keep: frozenset[str] = frozenset()) -> str:
+    """Token signature; tokens in ``keep`` (the column's frequent tokens: ``Justice``, ``J``, ``Mr``) stay
+    literal, as FlashFill's conditionals test constant tokens, so ``Justice Heerey`` (``Justice Aa``) and
+    ``Heerey J`` (``Aa J``) fall in different classes with different programs."""
+
+    return " ".join(m.group(0).casefold() if m.group(0).casefold() in keep else shape(m.group(0))
+                    for m in tokens(text)) or "∅"
+
+
+def frequent_tokens(values: Iterable[str], share: float = 0.05, minimum: int = 3) -> frozenset[str]:
+    """Tokens that occur in at least ``share`` of a column's distinct values (and ``minimum`` of them)."""
+
+    values = list(values)
+    counts: dict[str, int] = defaultdict(int)
+    for v in values:
+        for t in {m.group(0).casefold() for m in tokens(v)}:
+            counts[t] += 1
+    need = max(minimum, share * len(values))
+    return frozenset(t for t, n in counts.items() if n >= need and not t.isdigit())
 
 
 @dataclass(frozen=True)
@@ -71,23 +88,32 @@ def candidates(source: str, output: str) -> set[Program]:
     return out
 
 
-def learn(examples: Iterable[tuple[str, str]]) -> dict[str, Program]:
-    """One program per pattern class: the simplest consistent with every example of the class."""
+SUPPORT = 2
+
+
+def learn(examples: Iterable[tuple[str, str]], keep: frozenset[str] = frozenset(), support: int = SUPPORT) -> dict[str, Program]:
+    """One program per pattern class: the simplest consistent with every example of the class, for classes
+    with at least ``support`` distinct examples. One example cannot tell a syntactic rule (take the
+    surname) from a coincidence of meaning (``dark and dramatic`` -> ``Dark`` does not make ``calm and
+    serene`` -> ``Calm``); two agreeing examples can."""
 
     space: dict[str, set[Program] | None] = {}
-    for source, output in examples:
-        c = pattern_class(source)
+    count: dict[str, int] = defaultdict(int)
+    for source, output in dict(examples).items():
+        c = pattern_class(source, keep)
         cands = candidates(source, output)
+        count[c] += 1
         space[c] = cands if c not in space else (space[c] & cands if space[c] is not None else None)
-    return {c: min(ps, key=lambda p: p.cost) for c, ps in space.items() if ps}
+    return {c: min(ps, key=lambda p: p.cost) for c, ps in space.items() if ps and count[c] >= support}
 
 
-def apply(programs: dict[str, Program], residual: Iterable[str], target: Target) -> dict[str, str]:
+def apply(programs: dict[str, Program], residual: Iterable[str], target: Target,
+          keep: frozenset[str] = frozenset()) -> dict[str, str]:
     """Residual value -> program output, where a class program exists and its output fits the target."""
 
     out = {}
     for value in residual:
-        p = programs.get(pattern_class(value))
+        p = programs.get(pattern_class(value, keep))
         if p is None:
             continue
         new = p.run(value)
@@ -96,11 +122,11 @@ def apply(programs: dict[str, Program], residual: Iterable[str], target: Target)
     return out
 
 
-def coverage(residual: Iterable[str], programs: dict[str, Program]) -> dict[str, float]:
+def coverage(residual: Iterable[str], programs: dict[str, Program], keep: frozenset[str] = frozenset()) -> dict[str, float]:
     residual = list(residual)
     classes = defaultdict(int)
     for v in residual:
-        classes[pattern_class(v)] += 1
+        classes[pattern_class(v, keep)] += 1
     covered = sum(n for c, n in classes.items() if c in programs)
     return {"distinct": len(residual), "classes": len(classes),
             "covered_share": round(covered / len(residual), 3) if residual else 0.0,
