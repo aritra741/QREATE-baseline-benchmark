@@ -207,16 +207,43 @@ def column_tokens(values: dict[str, Counter]) -> dict[str, Counter]:
     return out
 
 
+def matched(rng: random.Random, pool: list[tuple[str, int]], target: int) -> str:
+    """A candidate drawn uniformly among those whose gold count is within a factor of two of ``target``
+    (the replaced constant's count); the nearest candidates in log count when none is."""
+
+    import math
+
+    target = max(1, target)
+    dist = [(abs(math.log(max(1, n) / target)), v) for v, n in pool]
+    band = sorted(v for d, v in dist if d <= math.log(2))
+    if not band:
+        best = min(d for d, _v in dist)
+        band = sorted(v for d, v in dist if d <= best + 1e-9)
+    return band[rng.randrange(len(band))]
+
+
+def cells_with(counts: Counter, core: str) -> int:
+    """Gold cells of a column whose value contains ``core`` (case-folded)."""
+
+    c = core.casefold()
+    return sum(n for v, n in counts.items() if c in v.casefold())
+
+
 def value_variants(corpus: str, rows: list[dict], build: list[dict], seed: int) -> list[dict]:
     """Re-instantiate queries with constants that no build query uses (validated on gold), up to
     ``VARIANTS_PER_QUERY`` per source query, returned round-robin over sources (first variants of every
     source, then second variants), so a stream draws from as many sources as possible.
 
     * equality constants (``=``, ``!=``, ``IN``): every one is replaced by a gold value of its column that no
-      build query compares it with (drawn by frequency; distinct within an ``IN`` list)
+      build query compares it with (distinct within an ``IN`` list)
     * pattern constants (``LIKE '%core%'``): one site per variant gets a new core, a word of the column's
       gold values that no build query's pattern uses; when the pattern selects a ``CASE`` branch whose label
       is the old core, the label becomes the new core (a new value family, as an analyst adds one)
+
+    Replacements are selectivity-matched: drawn uniformly among the candidates that occur in about as many
+    gold cells as the replaced constant (within a factor of two; the nearest ones when none is), so a
+    variant changes the constant, not how many rows it selects. (Drawing by frequency favoured common
+    values, which select more rows and are extracted correctly more often, and made value drift easier.)
     """
 
     import sqlite3
@@ -269,7 +296,7 @@ def value_variants(corpus: str, rows: list[dict], build: list[dict], seed: int) 
                 if not pool:
                     ok = False
                     break
-                v = rng.choices([p[0] for p in pool], weights=[p[1] for p in pool])[0]
+                v = matched(rng, pool, values.get(col, Counter()).get(lit.this, 0))
                 chosen[id(node)].add(v)
                 lit.replace(exp.Literal.string(v))
                 replaced += 1
@@ -294,7 +321,7 @@ def value_variants(corpus: str, rows: list[dict], build: list[dict], seed: int) 
                 pool = [(w, n) for w, n in tokens.get(col, Counter()).items()
                         if w.casefold() not in used_core.get(col, set()) and w.casefold() not in cores]
                 if pool:
-                    w = rng.choices([p[0] for p in pool], weights=[p[1] for p in pool])[0]
+                    w = matched(rng, pool, tokens.get(col, Counter()).get(core, 0) or cells_with(values.get(col, Counter()), core))
                     # keep the old core's case (a lower-case pattern under LOWER(col) must stay lower case)
                     w = w.lower() if core.islower() else w.upper() if core.isupper() else w
                     branch = lit.find_ancestor(exp.If)

@@ -117,3 +117,6 @@ QuWARTS should read the whole schema at build time and keep the controller as th
 - A corpus where R/L is large, to exercise the lean branch.
 - Real (non-replayed) patches on a sample.
 - A test–retest read to separate sampling noise from prompt effects.
+
+## Value-drift constants re-sampled (selectivity-matched)
+Value-drift variants first drew their new constants by gold frequency, which favoured common values and made value drift easier. They are now drawn uniformly among constants that occur in about as many gold cells as the replaced one (within a factor of two). W0, T0 and the attribute pools are unchanged, so the build reads stand. Value and combined streams were regenerated and replayed; the old ones are in `_superseded_value_sampling/`. On the full read, value variants now score close to their test queries on CSPaper, Player, Art, Med and Legal. Finan's variants still score 0.404 against 0.169 for its test queries. Their source queries also score high (0.259), so the remaining gap comes from which queries can be re-instantiated (those with string constants), not from the constants. `RESULTS.md` has the regenerated numbers. The rebuild-quality test (`REBUILD_QUALITY.md`) used the old seed-0 value stream.
