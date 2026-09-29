@@ -15,16 +15,17 @@ Outputs:
   - every statement in the benchmark's query files (`Query/<Dataset>/**`: Select, Filter, Agg, Mixed, Join, Expanded, Variations, Subsample, Splits and the rest);
   - the case80 analytical workloads.
 - **Normalization:** statements are normalized and de-duplicated.
+- **Row keys are left out:** a query that reads a table's `id` is dropped (Med 52, Legal 5, Player 2 queries). The key only maps a gold row to its document; it is not in the documents.
 - **What a query needs to be kept:** it must be *scorable* (an aggregation query, the only kind the metric scores) and *valid* (it runs on gold and returns at least one non-NULL row). Non-aggregation Select/Filter queries are left out; they have only the benchmark's official accuracy, not our metric.
 
 | Corpus | Scorable, valid queries | Attributes | Largest sources |
 |---|---:|---:|---|
-| Med | 227 | 37 | Splits 105, case80 99, Mixed 13, Agg 10 |
+| Med | 175 | 34 | Splits 105, case80 47, Mixed 13, Agg 10 |
 | Finan | 165 | 25 | Splits 64, case80 80, Agg 10, Variations 6, Mixed 5 |
-| Legal | 156 | 18 | Splits 60, case80 80, Agg 10, Mixed 6 |
+| Legal | 151 | 17 | Splits 55, case80 80, Agg 10, Mixed 6 |
 | Art | 156 | 21 | Splits 60, case80 80, Agg 10, Mixed 6 |
 | CSPaper | 141 | 15 | Splits 47, case80 80, Agg 10, Mixed 4 |
-| Player | 340 | 29 | Splits 131, case80 100, Expanded 59, Mixed 27, Variations 11, Agg 10 |
+| Player | 338 | 28 | Splits 131, case80 98, Expanded 59, Mixed 27, Variations 11, Agg 10 |
 
 ## 2. Build workload (the new "train")
 - **Attribute focus:**
@@ -38,12 +39,12 @@ Outputs:
 
 | Corpus | Focus (share of attributes) | Cut share | W0 | T0 | Attribute-drift pool | Value-drift pool |
 |---|---:|---:|---:|---:|---:|---:|
-| Med | 20 of 37 (0.54) | 0.22 | 71 | 48 | 108 | 218 |
+| Med | 17 of 34 (0.50) | 0.23 | 53 | 36 | 86 | 117 |
 | Finan | 14 of 25 (0.56) | 0.38 | 49 | 33 | 83 | 116 |
-| Legal | 13 of 18 (0.72) | 0.33 | 43 | 29 | 84 | 85 |
+| Legal | 10 of 17 (0.59) | 0.35 | 46 | 30 | 75 | 53 |
 | Art | 16 of 21 (0.76) | 0.39 | 46 | 31 | 79 | 59 |
 | CSPaper | 11 of 15 (0.73) | 0.39 | 43 | 29 | 69 | 80 |
-| Player | 13 of 29 (0.45) | 0.28 | 96 | 64 | 180 | 153 |
+| Player | 13 of 28 (0.46) | 0.28 | 96 | 64 | 178 | 153 |
 
 ## 3. Drift axes
 Each axis is varied separately, because each asks something different of the system.

@@ -9,7 +9,8 @@ Sources, per corpus:
 Each statement is normalized (sqlglot, sqlite dialect) and de-duplicated. A query is *scorable* if the
 benchmark metric covers it (an aggregation query; the product of structure F2 and cell F1 is defined
 only for those) and *valid* if it executes on the gold tables with at least one row that is not all
-NULL. Recorded per query: its source, QB5000 template (constants removed), CliffGuard (column, clause)
+NULL. Queries that read a table's row key (``id``: it maps a gold row to its document and is not in the
+documents) are left out. Recorded per query: its source, QB5000 template (constants removed), CliffGuard (column, clause)
 features, the attributes of each table it reads, and its string literals per column.
 
     python -m quwarts.eval.drift_pool --corpus art
@@ -30,6 +31,7 @@ from quwarts.core.router.registry import PROJECT, RESULTS
 CORPORA = ["med", "finan", "legal", "art", "cspaper", "player"]
 FOLDER = {"med": "Med", "finan": "Finan", "legal": "Legal", "art": "Art", "cspaper": "CSPaper", "player": "Player"}
 ROOT = RESULTS / "drift_design"
+ROW_KEYS = {"cspaper": {"id", "pdf_filename"}}  # every other corpus: "id"
 
 
 def statements(path: Path) -> list[str]:
@@ -118,6 +120,13 @@ def pool(corpus: str) -> dict[str, Any]:
         unknown = [f"{t}.{a}" for t, attrs in rec["attributes"].items() for a in attrs if a.lower() not in {c.lower() for c in schema.get(t, set())}]
         if unknown:
             rec["reason"] = "unknown attributes " + ", ".join(unknown[:4])
+            out.append(rec)
+            continue
+        # A gold table's row key maps the row to its document; it is not in the documents, so no query can
+        # ask for it.
+        keyed = [f"{t}.{a}" for t, attrs in rec["attributes"].items() for a in attrs if a.lower() in ROW_KEYS.get(corpus, {"id"})]
+        if keyed:
+            rec["reason"] = "row key " + ", ".join(keyed[:4])
             out.append(rec)
             continue
         try:
