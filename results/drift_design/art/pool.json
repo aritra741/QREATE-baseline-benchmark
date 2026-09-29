@@ -1,0 +1,6883 @@
+[
+ {
+  "id": "Agg/agg_queries_Art.sql#1",
+  "sql": "/* Query 1: aggregation (art) */ SELECT teaching, MAX(awards) AS max_awards FROM art GROUP BY teaching",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 1: aggregation (art) */ SELECT teaching, MAX(awards) FROM art GROUP BY teaching",
+  "features": [
+   "awards@select",
+   "teaching@group",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "Agg/agg_queries_Art.sql#2",
+  "sql": "/* Query 2: aggregation (art) */ SELECT zodiac, COUNT(name) AS count_name FROM art GROUP BY zodiac",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 2: aggregation (art) */ SELECT zodiac, COUNT(name) FROM art GROUP BY zodiac",
+  "features": [
+   "name@select",
+   "zodiac@group",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "name",
+    "zodiac"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "Agg/agg_queries_Art.sql#3",
+  "sql": "/* Query 3: aggregation (art) */ SELECT image_genre, AVG(age) AS avg_age FROM art GROUP BY image_genre",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 3: aggregation (art) */ SELECT image_genre, AVG(age) FROM art GROUP BY image_genre",
+  "features": [
+   "age@select",
+   "image_genre@group",
+   "image_genre@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "image_genre"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 68,
+  "reason": ""
+ },
+ {
+  "id": "Agg/agg_queries_Art.sql#4",
+  "sql": "/* Query 4: aggregation (art) */ SELECT color, AVG(age) AS avg_age FROM art GROUP BY color",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 4: aggregation (art) */ SELECT color, AVG(age) FROM art GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 255,
+  "reason": ""
+ },
+ {
+  "id": "Agg/agg_queries_Art.sql#5",
+  "sql": "/* Query 5: aggregation (art) */ SELECT zodiac, COUNT(art_institution) AS count_art_institution FROM art GROUP BY zodiac",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 5: aggregation (art) */ SELECT zodiac, COUNT(art_institution) FROM art GROUP BY zodiac",
+  "features": [
+   "art_institution@select",
+   "zodiac@group",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "zodiac"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "Agg/agg_queries_Art.sql#6",
+  "sql": "/* Query 6: aggregation (art) */ SELECT teaching, MIN(age) AS min_age FROM art GROUP BY teaching",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 6: aggregation (art) */ SELECT teaching, MIN(age) FROM art GROUP BY teaching",
+  "features": [
+   "age@select",
+   "teaching@group",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "Agg/agg_queries_Art.sql#7",
+  "sql": "/* Query 7: aggregation (art) */ SELECT color, MAX(age) AS max_age FROM art GROUP BY color",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 7: aggregation (art) */ SELECT color, MAX(age) FROM art GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 255,
+  "reason": ""
+ },
+ {
+  "id": "Agg/agg_queries_Art.sql#8",
+  "sql": "/* Query 8: aggregation (art) */ SELECT birth_continent, SUM(age) AS sum_age FROM art GROUP BY birth_continent",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 8: aggregation (art) */ SELECT birth_continent, SUM(age) FROM art GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "birth_continent@group",
+   "birth_continent@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Agg/agg_queries_Art.sql#9",
+  "sql": "/* Query 9: aggregation (art) */ SELECT birth_continent, MIN(age) AS min_age FROM art GROUP BY birth_continent",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 9: aggregation (art) */ SELECT birth_continent, MIN(age) FROM art GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "birth_continent@group",
+   "birth_continent@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Agg/agg_queries_Art.sql#10",
+  "sql": "/* Query 10: aggregation (art) */ SELECT color, MIN(age) AS min_age FROM art GROUP BY color",
+  "sources": [
+   "benchmark:Agg/agg_queries_Art.sql"
+  ],
+  "template": "/* Query 10: aggregation (art) */ SELECT color, MIN(age) FROM art GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 255,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#1",
+  "sql": "/* Query 1: 1 (art) */ SELECT death_city, color, birth_date FROM art WHERE field <> 'Sculpture'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 1: 1 (art) */ SELECT death_city, color, birth_date FROM art WHERE field <> $s",
+  "features": [
+   "birth_date@select",
+   "color@select",
+   "death_city@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_date",
+    "color",
+    "death_city",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Sculpture"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 976,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#2",
+  "sql": "/* Query 2: 1 (art) */ SELECT death_country, death_date, image_genre FROM art WHERE zodiac = 'Libra'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 2: 1 (art) */ SELECT death_country, death_date, image_genre FROM art WHERE zodiac = $s",
+  "features": [
+   "death_country@select",
+   "death_date@select",
+   "image_genre@select",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "death_country",
+    "death_date",
+    "image_genre",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.zodiac": [
+    "Libra"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 62,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#3",
+  "sql": "/* Query 3: 1 (art) */ SELECT composition, field, nationality FROM art WHERE nationality <> 'Russian'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 3: 1 (art) */ SELECT composition, field, nationality FROM art WHERE nationality <> $s",
+  "features": [
+   "composition@select",
+   "field@select",
+   "nationality@select",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "composition",
+    "field",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.nationality": [
+    "Russian"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 983,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#4",
+  "sql": "/* Query 4: 1 (art) */ SELECT zodiac, art_movement, object FROM art WHERE birth_country = 'Bulgaria'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 4: 1 (art) */ SELECT zodiac, art_movement, object FROM art WHERE birth_country = $s",
+  "features": [
+   "art_movement@select",
+   "birth_country@where",
+   "object@select",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_movement",
+    "birth_country",
+    "object",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "Bulgaria"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#5",
+  "sql": "/* Query 5: 1 (art) */ SELECT theme, tone, birth_date FROM art WHERE birth_date = '1905/4/15'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 5: 1 (art) */ SELECT theme, tone, birth_date FROM art WHERE birth_date = $s",
+  "features": [
+   "birth_date@select",
+   "birth_date@where",
+   "theme@select",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_date",
+    "theme",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.birth_date": [
+    "1905/4/15"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "unknown attributes art.theme"
+ },
+ {
+  "id": "Filter/filter_queries.sql#6",
+  "sql": "/* Query 6: 1 (art) */ SELECT art_institution, style, marriage FROM art WHERE art_movement = 'Pop art'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 6: 1 (art) */ SELECT art_institution, style, marriage FROM art WHERE art_movement = $s",
+  "features": [
+   "art_institution@select",
+   "art_movement@where",
+   "marriage@select",
+   "style@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "art_movement",
+    "marriage",
+    "style"
+   ]
+  },
+  "literals": {
+   "art.art_movement": [
+    "Pop art"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "empty on gold"
+ },
+ {
+  "id": "Filter/filter_queries.sql#7",
+  "sql": "/* Query 7: 1 (art) */ SELECT marriage, theme, object FROM art WHERE birth_city = 'Boston'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 7: 1 (art) */ SELECT marriage, theme, object FROM art WHERE birth_city = $s",
+  "features": [
+   "birth_city@where",
+   "marriage@select",
+   "object@select",
+   "theme@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "marriage",
+    "object",
+    "theme"
+   ]
+  },
+  "literals": {
+   "art.birth_city": [
+    "Boston"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "unknown attributes art.theme"
+ },
+ {
+  "id": "Filter/filter_queries.sql#8",
+  "sql": "/* Query 8: 1 (art) */ SELECT awards, zodiac, object FROM art WHERE death_country = 'Italy'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 8: 1 (art) */ SELECT awards, zodiac, object FROM art WHERE death_country = $s",
+  "features": [
+   "awards@select",
+   "death_country@where",
+   "object@select",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "death_country",
+    "object",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.death_country": [
+    "Italy"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 32,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#9",
+  "sql": "/* Query 9: 1 (art) */ SELECT birth_date, birth_country, tone FROM art WHERE art_institution = ''",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 9: 1 (art) */ SELECT birth_date, birth_country, tone FROM art WHERE art_institution = $s",
+  "features": [
+   "art_institution@where",
+   "birth_country@select",
+   "birth_date@select",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "birth_country",
+    "birth_date",
+    "tone"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 294,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#10",
+  "sql": "/* Query 10: 1 (art) */ SELECT genre, style, age FROM art WHERE name <> 'Christiaan Karel Appel'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 10: 1 (art) */ SELECT genre, style, age FROM art WHERE name <> $s",
+  "features": [
+   "age@select",
+   "genre@select",
+   "name@where",
+   "style@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "genre",
+    "name",
+    "style"
+   ]
+  },
+  "literals": {
+   "art.name": [
+    "Christiaan Karel Appel"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1002,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#11",
+  "sql": "/* Query 11: 2 (art) */ SELECT marriage, color, nationality FROM art WHERE genre <> 'Expressionist' AND age >= 74",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 11: 2 (art) */ SELECT marriage, color, nationality FROM art WHERE genre <> $s AND age >= $n",
+  "features": [
+   "age@where",
+   "color@select",
+   "genre@where",
+   "marriage@select",
+   "nationality@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color",
+    "genre",
+    "marriage",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.genre": [
+    "Expressionist"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 630,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#12",
+  "sql": "/* Query 12: 2 (art) */ SELECT theme, object, zodiac FROM art WHERE birth_continent = 'Australia' AND art_institution = 'Northwestern University'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 12: 2 (art) */ SELECT theme, object, zodiac FROM art WHERE birth_continent = $s AND art_institution = $s",
+  "features": [
+   "art_institution@where",
+   "birth_continent@where",
+   "object@select",
+   "theme@select",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "birth_continent",
+    "object",
+    "theme",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.birth_continent": [
+    "Australia"
+   ],
+   "art.art_institution": [
+    "Northwestern University"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "unknown attributes art.theme"
+ },
+ {
+  "id": "Filter/filter_queries.sql#13",
+  "sql": "/* Query 13: 2 (art) */ SELECT color, birth_continent, birth_country FROM art WHERE field <> 'Teaching' AND birth_continent = 'Oceania'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 13: 2 (art) */ SELECT color, birth_continent, birth_country FROM art WHERE field <> $s AND birth_continent = $s",
+  "features": [
+   "birth_continent@select",
+   "birth_continent@where",
+   "birth_country@select",
+   "color@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "birth_country",
+    "color",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Teaching"
+   ],
+   "art.birth_continent": [
+    "Oceania"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 14,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#14",
+  "sql": "/* Query 14: 2 (art) */ SELECT genre, birth_date, art_institution FROM art WHERE zodiac <> 'Cancer' AND death_city = 'Saint Petersburg'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 14: 2 (art) */ SELECT genre, birth_date, art_institution FROM art WHERE zodiac <> $s AND death_city = $s",
+  "features": [
+   "art_institution@select",
+   "birth_date@select",
+   "death_city@where",
+   "genre@select",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "birth_date",
+    "death_city",
+    "genre",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.zodiac": [
+    "Cancer"
+   ],
+   "art.death_city": [
+    "Saint Petersburg"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#15",
+  "sql": "/* Query 15: 2 (art) */ SELECT birth_date, style, theme FROM art WHERE birth_date <> '1905/4/27' AND art_movement <> 'Cubism'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 15: 2 (art) */ SELECT birth_date, style, theme FROM art WHERE birth_date <> $s AND art_movement <> $s",
+  "features": [
+   "art_movement@where",
+   "birth_date@select",
+   "birth_date@where",
+   "style@select",
+   "theme@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_movement",
+    "birth_date",
+    "style",
+    "theme"
+   ]
+  },
+  "literals": {
+   "art.birth_date": [
+    "1905/4/27"
+   ],
+   "art.art_movement": [
+    "Cubism"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "unknown attributes art.theme"
+ },
+ {
+  "id": "Filter/filter_queries.sql#16",
+  "sql": "/* Query 16: 2 (art) */ SELECT composition, death_country, birth_date FROM art WHERE birth_date <> '1905/3/12' AND death_country = 'Nigeria'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 16: 2 (art) */ SELECT composition, death_country, birth_date FROM art WHERE birth_date <> $s AND death_country = $s",
+  "features": [
+   "birth_date@select",
+   "birth_date@where",
+   "composition@select",
+   "death_country@select",
+   "death_country@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_date",
+    "composition",
+    "death_country"
+   ]
+  },
+  "literals": {
+   "art.birth_date": [
+    "1905/3/12"
+   ],
+   "art.death_country": [
+    "Nigeria"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#17",
+  "sql": "/* Query 17: 2 (art) */ SELECT genre, century, birth_continent FROM art WHERE death_date <> '1943/1/13' AND birth_city = 'Bucharest'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 17: 2 (art) */ SELECT genre, century, birth_continent FROM art WHERE death_date <> $s AND birth_city = $s",
+  "features": [
+   "birth_city@where",
+   "birth_continent@select",
+   "century@select",
+   "death_date@where",
+   "genre@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "birth_continent",
+    "century",
+    "death_date",
+    "genre"
+   ]
+  },
+  "literals": {
+   "art.death_date": [
+    "1943/1/13"
+   ],
+   "art.birth_city": [
+    "Bucharest"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#18",
+  "sql": "/* Query 18: 2 (art) */ SELECT death_city, marriage, genre FROM art WHERE zodiac = 'Cancer' AND birth_city <> 'San Francisco'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 18: 2 (art) */ SELECT death_city, marriage, genre FROM art WHERE zodiac = $s AND birth_city <> $s",
+  "features": [
+   "birth_city@where",
+   "death_city@select",
+   "genre@select",
+   "marriage@select",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "death_city",
+    "genre",
+    "marriage",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.zodiac": [
+    "Cancer"
+   ],
+   "art.birth_city": [
+    "San Francisco"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 59,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#19",
+  "sql": "/* Query 19: 2 (art) */ SELECT color, genre, art_institution FROM art WHERE genre <> 'Surrealist' AND teaching < 0",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 19: 2 (art) */ SELECT color, genre, art_institution FROM art WHERE genre <> $s AND teaching < $n",
+  "features": [
+   "art_institution@select",
+   "color@select",
+   "genre@select",
+   "genre@where",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "color",
+    "genre",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.genre": [
+    "Surrealist"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "empty on gold"
+ },
+ {
+  "id": "Filter/filter_queries.sql#20",
+  "sql": "/* Query 20: 2 (art) */ SELECT death_city, birth_continent, style FROM art WHERE birth_date = '1905/3/12' AND marriage = 'Separated'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 20: 2 (art) */ SELECT death_city, birth_continent, style FROM art WHERE birth_date = $s AND marriage = $s",
+  "features": [
+   "birth_continent@select",
+   "birth_date@where",
+   "death_city@select",
+   "marriage@where",
+   "style@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "birth_date",
+    "death_city",
+    "marriage",
+    "style"
+   ]
+  },
+  "literals": {
+   "art.birth_date": [
+    "1905/3/12"
+   ],
+   "art.marriage": [
+    "Separated"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "empty on gold"
+ },
+ {
+  "id": "Filter/filter_queries.sql#21",
+  "sql": "/* Query 21: 3 (art) */ SELECT birth_city, death_date, composition FROM art WHERE death_date <> '1943/1/13' OR birth_city <> 'Buenos Aires'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 21: 3 (art) */ SELECT birth_city, death_date, composition FROM art WHERE death_date <> $s OR birth_city <> $s",
+  "features": [
+   "birth_city@select",
+   "birth_city@where",
+   "composition@select",
+   "death_date@select",
+   "death_date@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "composition",
+    "death_date"
+   ]
+  },
+  "literals": {
+   "art.death_date": [
+    "1943/1/13"
+   ],
+   "art.birth_city": [
+    "Buenos Aires"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#22",
+  "sql": "/* Query 22: 3 (art) */ SELECT color, zodiac, genre FROM art WHERE marriage <> 'Cohabiting' OR art_institution <> 'Slade School of art'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 22: 3 (art) */ SELECT color, zodiac, genre FROM art WHERE marriage <> $s OR art_institution <> $s",
+  "features": [
+   "art_institution@where",
+   "color@select",
+   "genre@select",
+   "marriage@where",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "color",
+    "genre",
+    "marriage",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.marriage": [
+    "Cohabiting"
+   ],
+   "art.art_institution": [
+    "Slade School of art"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#23",
+  "sql": "/* Query 23: 3 (art) */ SELECT teaching, death_date, tone FROM art WHERE teaching <> 0 OR age <> 90",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 23: 3 (art) */ SELECT teaching, death_date, tone FROM art WHERE teaching <> $n OR age <> $n",
+  "features": [
+   "age@where",
+   "death_date@select",
+   "teaching@select",
+   "teaching@where",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "death_date",
+    "teaching",
+    "tone"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 991,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#24",
+  "sql": "/* Query 24: 3 (art) */ SELECT art_movement, birth_date, style FROM art WHERE art_movement = 'Generaci\u00f3n de la Ruptura' OR death_country <> 'Brazil'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 24: 3 (art) */ SELECT art_movement, birth_date, style FROM art WHERE art_movement = $s OR death_country <> $s",
+  "features": [
+   "art_movement@select",
+   "art_movement@where",
+   "birth_date@select",
+   "death_country@where",
+   "style@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_movement",
+    "birth_date",
+    "death_country",
+    "style"
+   ]
+  },
+  "literals": {
+   "art.art_movement": [
+    "Generaci\u00f3n de la Ruptura"
+   ],
+   "art.death_country": [
+    "Brazil"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 996,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#25",
+  "sql": "/* Query 25: 3 (art) */ SELECT teaching, color, death_city FROM art WHERE field = 'Drawing' OR death_country <> 'France'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 25: 3 (art) */ SELECT teaching, color, death_city FROM art WHERE field = $s OR death_country <> $s",
+  "features": [
+   "color@select",
+   "death_city@select",
+   "death_country@where",
+   "field@where",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "color",
+    "death_city",
+    "death_country",
+    "field",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Drawing"
+   ],
+   "art.death_country": [
+    "France"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 900,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#26",
+  "sql": "/* Query 26: 3 (art) */ SELECT composition, awards, century FROM art WHERE century <> '20th-21st' OR name <> 'George Dawe'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 26: 3 (art) */ SELECT composition, awards, century FROM art WHERE century <> $s OR name <> $s",
+  "features": [
+   "awards@select",
+   "century@select",
+   "century@where",
+   "composition@select",
+   "name@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "century",
+    "composition",
+    "name"
+   ]
+  },
+  "literals": {
+   "art.century": [
+    "20th-21st"
+   ],
+   "art.name": [
+    "George Dawe"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#27",
+  "sql": "/* Query 27: 3 (art) */ SELECT tone, genre, zodiac FROM art WHERE zodiac <> 'Cancer' OR death_city = 'Stockholm'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 27: 3 (art) */ SELECT tone, genre, zodiac FROM art WHERE zodiac <> $s OR death_city = $s",
+  "features": [
+   "death_city@where",
+   "genre@select",
+   "tone@select",
+   "zodiac@select",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "death_city",
+    "genre",
+    "tone",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.zodiac": [
+    "Cancer"
+   ],
+   "art.death_city": [
+    "Stockholm"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 944,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#28",
+  "sql": "/* Query 28: 3 (art) */ SELECT death_country, style, teaching FROM art WHERE art_movement = 'arte Povera' OR name <> 'Raoul De Keyser'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 28: 3 (art) */ SELECT death_country, style, teaching FROM art WHERE art_movement = $s OR name <> $s",
+  "features": [
+   "art_movement@where",
+   "death_country@select",
+   "name@where",
+   "style@select",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_movement",
+    "death_country",
+    "name",
+    "style",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.art_movement": [
+    "arte Povera"
+   ],
+   "art.name": [
+    "Raoul De Keyser"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1002,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#29",
+  "sql": "/* Query 29: 3 (art) */ SELECT genre, death_city, death_country FROM art WHERE zodiac <> 'Cancer' OR teaching <> 0",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 29: 3 (art) */ SELECT genre, death_city, death_country FROM art WHERE zodiac <> $s OR teaching <> $n",
+  "features": [
+   "death_city@select",
+   "death_country@select",
+   "genre@select",
+   "teaching@where",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "death_city",
+    "death_country",
+    "genre",
+    "teaching",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.zodiac": [
+    "Cancer"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 953,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#30",
+  "sql": "/* Query 30: 3 (art) */ SELECT composition, death_country, age FROM art WHERE death_country = 'Ethiopia' OR birth_date = '1908/12/22'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 30: 3 (art) */ SELECT composition, death_country, age FROM art WHERE death_country = $s OR birth_date = $s",
+  "features": [
+   "age@select",
+   "birth_date@where",
+   "composition@select",
+   "death_country@select",
+   "death_country@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_date",
+    "composition",
+    "death_country"
+   ]
+  },
+  "literals": {
+   "art.death_country": [
+    "Ethiopia"
+   ],
+   "art.birth_date": [
+    "1908/12/22"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#31",
+  "sql": "/* Query 31: 4 (art) */ SELECT field, color, genre FROM art WHERE field = 'Lithography' AND art_institution <> 'Ecole des Beaux-arts' AND death_city <> 'New York' AND death_country <> 'Russia'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 31: 4 (art) */ SELECT field, color, genre FROM art WHERE field = $s AND art_institution <> $s AND death_city <> $s AND death_country <> $s",
+  "features": [
+   "art_institution@where",
+   "color@select",
+   "death_city@where",
+   "death_country@where",
+   "field@select",
+   "field@where",
+   "genre@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "color",
+    "death_city",
+    "death_country",
+    "field",
+    "genre"
+   ]
+  },
+  "literals": {
+   "art.death_country": [
+    "Russia"
+   ],
+   "art.death_city": [
+    "New York"
+   ],
+   "art.field": [
+    "Lithography"
+   ],
+   "art.art_institution": [
+    "Ecole des Beaux-arts"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#32",
+  "sql": "/* Query 32: 4 (art) */ SELECT nationality, tone, art_institution FROM art WHERE awards > 1 AND awards >= 0 AND age = 90 AND awards <= 0",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 32: 4 (art) */ SELECT nationality, tone, art_institution FROM art WHERE awards > $n AND awards >= $n AND age = $n AND awards <= $n",
+  "features": [
+   "age@where",
+   "art_institution@select",
+   "awards@where",
+   "nationality@select",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "art_institution",
+    "awards",
+    "nationality",
+    "tone"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "empty on gold"
+ },
+ {
+  "id": "Filter/filter_queries.sql#33",
+  "sql": "/* Query 33: 4 (art) */ SELECT zodiac, composition, teaching FROM art WHERE zodiac = 'Virgo' AND century <> '19th-20th' AND teaching >= 0 AND death_country <> 'South Africa'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 33: 4 (art) */ SELECT zodiac, composition, teaching FROM art WHERE zodiac = $s AND century <> $s AND teaching >= $n AND death_country <> $s",
+  "features": [
+   "century@where",
+   "composition@select",
+   "death_country@where",
+   "teaching@select",
+   "teaching@where",
+   "zodiac@select",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "composition",
+    "death_country",
+    "teaching",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.death_country": [
+    "South Africa"
+   ],
+   "art.zodiac": [
+    "Virgo"
+   ],
+   "art.century": [
+    "19th-20th"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 39,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#34",
+  "sql": "/* Query 34: 4 (art) */ SELECT death_city, composition, death_country FROM art WHERE death_city = 'Copenhagen' AND art_institution = 'Royal College of art' AND death_country <> 'Hungary' AND death_date = '1969/3/14'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 34: 4 (art) */ SELECT death_city, composition, death_country FROM art WHERE death_city = $s AND art_institution = $s AND death_country <> $s AND death_date = $s",
+  "features": [
+   "art_institution@where",
+   "composition@select",
+   "death_city@select",
+   "death_city@where",
+   "death_country@select",
+   "death_country@where",
+   "death_date@where"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "composition",
+    "death_city",
+    "death_country",
+    "death_date"
+   ]
+  },
+  "literals": {
+   "art.death_date": [
+    "1969/3/14"
+   ],
+   "art.death_country": [
+    "Hungary"
+   ],
+   "art.death_city": [
+    "Copenhagen"
+   ],
+   "art.art_institution": [
+    "Royal College of art"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "empty on gold"
+ },
+ {
+  "id": "Filter/filter_queries.sql#35",
+  "sql": "/* Query 35: 4 (art) */ SELECT art_movement, style, death_city FROM art WHERE birth_date <> '1905/4/25' AND art_institution = 'Claremont Graduate University' AND zodiac = 'Pisces' AND death_city = 'London'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 35: 4 (art) */ SELECT art_movement, style, death_city FROM art WHERE birth_date <> $s AND art_institution = $s AND zodiac = $s AND death_city = $s",
+  "features": [
+   "art_institution@where",
+   "art_movement@select",
+   "birth_date@where",
+   "death_city@select",
+   "death_city@where",
+   "style@select",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "art_movement",
+    "birth_date",
+    "death_city",
+    "style",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.death_city": [
+    "London"
+   ],
+   "art.zodiac": [
+    "Pisces"
+   ],
+   "art.birth_date": [
+    "1905/4/25"
+   ],
+   "art.art_institution": [
+    "Claremont Graduate University"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "empty on gold"
+ },
+ {
+  "id": "Filter/filter_queries.sql#36",
+  "sql": "/* Query 36: 4 (art) */ SELECT genre, death_city, birth_city FROM art WHERE age <= 83 AND death_city <> 'Stuttgart' AND birth_date = '1905/4/4' AND genre = 'Still life'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 36: 4 (art) */ SELECT genre, death_city, birth_city FROM art WHERE age <= $n AND death_city <> $s AND birth_date = $s AND genre = $s",
+  "features": [
+   "age@where",
+   "birth_city@select",
+   "birth_date@where",
+   "death_city@select",
+   "death_city@where",
+   "genre@select",
+   "genre@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_city",
+    "birth_date",
+    "death_city",
+    "genre"
+   ]
+  },
+  "literals": {
+   "art.genre": [
+    "Still life"
+   ],
+   "art.birth_date": [
+    "1905/4/4"
+   ],
+   "art.death_city": [
+    "Stuttgart"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "empty on gold"
+ },
+ {
+  "id": "Filter/filter_queries.sql#37",
+  "sql": "/* Query 37: 4 (art) */ SELECT tone, century, awards FROM art WHERE awards >= 1 AND awards <= 0 AND birth_city <> 'Stockholm' AND death_country = 'Switzerland'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 37: 4 (art) */ SELECT tone, century, awards FROM art WHERE awards >= $n AND awards <= $n AND birth_city <> $s AND death_country = $s",
+  "features": [
+   "awards@select",
+   "awards@where",
+   "birth_city@where",
+   "century@select",
+   "death_country@where",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_city",
+    "century",
+    "death_country",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.death_country": [
+    "Switzerland"
+   ],
+   "art.birth_city": [
+    "Stockholm"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "empty on gold"
+ },
+ {
+  "id": "Filter/filter_queries.sql#38",
+  "sql": "/* Query 38: 4 (art) */ SELECT death_city, style, art_movement FROM art WHERE name <> 'Eduardo Chillida Juantegui' AND age > 90 AND birth_continent <> 'Africa' AND birth_country = 'United States'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 38: 4 (art) */ SELECT death_city, style, art_movement FROM art WHERE name <> $s AND age > $n AND birth_continent <> $s AND birth_country = $s",
+  "features": [
+   "age@where",
+   "art_movement@select",
+   "birth_continent@where",
+   "birth_country@where",
+   "death_city@select",
+   "name@where",
+   "style@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "art_movement",
+    "birth_continent",
+    "birth_country",
+    "death_city",
+    "name",
+    "style"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "United States"
+   ],
+   "art.birth_continent": [
+    "Africa"
+   ],
+   "art.name": [
+    "Eduardo Chillida Juantegui"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 93,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#39",
+  "sql": "/* Query 39: 4 (art) */ SELECT birth_city, zodiac, tone FROM art WHERE birth_city = 'Addis Ababa' AND death_city <> 'Tigre' AND birth_country = 'Switzerland' AND teaching < 0",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 39: 4 (art) */ SELECT birth_city, zodiac, tone FROM art WHERE birth_city = $s AND death_city <> $s AND birth_country = $s AND teaching < $n",
+  "features": [
+   "birth_city@select",
+   "birth_city@where",
+   "birth_country@where",
+   "death_city@where",
+   "teaching@where",
+   "tone@select",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "birth_country",
+    "death_city",
+    "teaching",
+    "tone",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "Switzerland"
+   ],
+   "art.birth_city": [
+    "Addis Ababa"
+   ],
+   "art.death_city": [
+    "Tigre"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "empty on gold"
+ },
+ {
+  "id": "Filter/filter_queries.sql#40",
+  "sql": "/* Query 40: 4 (art) */ SELECT marriage, object, awards FROM art WHERE birth_country <> 'Spain' AND nationality <> 'Canadian' AND teaching >= 0 AND teaching <= 0",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 40: 4 (art) */ SELECT marriage, object, awards FROM art WHERE birth_country <> $s AND nationality <> $s AND teaching >= $n AND teaching <= $n",
+  "features": [
+   "awards@select",
+   "birth_country@where",
+   "marriage@select",
+   "nationality@where",
+   "object@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_country",
+    "marriage",
+    "nationality",
+    "object",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "Spain"
+   ],
+   "art.nationality": [
+    "Canadian"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 792,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#41",
+  "sql": "/* Query 41: 5 (art) */ SELECT death_city, genre, death_country FROM art WHERE zodiac <> 'Cancer' OR birth_date = '1905/4/4' OR art_institution <> 'Hunter College' OR awards = 1",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 41: 5 (art) */ SELECT death_city, genre, death_country FROM art WHERE zodiac <> $s OR birth_date = $s OR art_institution <> $s OR awards = $n",
+  "features": [
+   "art_institution@where",
+   "awards@where",
+   "birth_date@where",
+   "death_city@select",
+   "death_country@select",
+   "genre@select",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "awards",
+    "birth_date",
+    "death_city",
+    "death_country",
+    "genre",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.art_institution": [
+    "Hunter College"
+   ],
+   "art.zodiac": [
+    "Cancer"
+   ],
+   "art.birth_date": [
+    "1905/4/4"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#42",
+  "sql": "/* Query 42: 5 (art) */ SELECT art_institution, nationality, genre FROM art WHERE century = '19th-20th' OR birth_date <> '1905/5/12' OR birth_country = 'Chile' OR birth_continent <> 'Australia'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 42: 5 (art) */ SELECT art_institution, nationality, genre FROM art WHERE century = $s OR birth_date <> $s OR birth_country = $s OR birth_continent <> $s",
+  "features": [
+   "art_institution@select",
+   "birth_continent@where",
+   "birth_country@where",
+   "birth_date@where",
+   "century@where",
+   "genre@select",
+   "nationality@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "birth_continent",
+    "birth_country",
+    "birth_date",
+    "century",
+    "genre",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.birth_continent": [
+    "Australia"
+   ],
+   "art.birth_country": [
+    "Chile"
+   ],
+   "art.century": [
+    "19th-20th"
+   ],
+   "art.birth_date": [
+    "1905/5/12"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#43",
+  "sql": "/* Query 43: 5 (art) */ SELECT tone, birth_city, nationality FROM art WHERE awards = 0 OR birth_city = 'Brussels' OR zodiac <> 'Aries' OR age >= 90",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 43: 5 (art) */ SELECT tone, birth_city, nationality FROM art WHERE awards = $n OR birth_city = $s OR zodiac <> $s OR age >= $n",
+  "features": [
+   "age@where",
+   "awards@where",
+   "birth_city@select",
+   "birth_city@where",
+   "nationality@select",
+   "tone@select",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "birth_city",
+    "nationality",
+    "tone",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.zodiac": [
+    "Aries"
+   ],
+   "art.birth_city": [
+    "Brussels"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 993,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#44",
+  "sql": "/* Query 44: 5 (art) */ SELECT marriage, genre, death_date FROM art WHERE century <> '19th' OR name <> 'Oswald Achenbach' OR art_institution = 'National Academy of Design' OR teaching > 0",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 44: 5 (art) */ SELECT marriage, genre, death_date FROM art WHERE century <> $s OR name <> $s OR art_institution = $s OR teaching > $n",
+  "features": [
+   "art_institution@where",
+   "century@where",
+   "death_date@select",
+   "genre@select",
+   "marriage@select",
+   "name@where",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "century",
+    "death_date",
+    "genre",
+    "marriage",
+    "name",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.art_institution": [
+    "National Academy of Design"
+   ],
+   "art.century": [
+    "19th"
+   ],
+   "art.name": [
+    "Oswald Achenbach"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#45",
+  "sql": "/* Query 45: 5 (art) */ SELECT birth_city, genre, awards FROM art WHERE zodiac = 'Leo' OR marriage <> 'Cohabiting' OR name <> 'Roy Fox Lichtenstein' OR death_city <> 'Stockholm'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 45: 5 (art) */ SELECT birth_city, genre, awards FROM art WHERE zodiac = $s OR marriage <> $s OR name <> $s OR death_city <> $s",
+  "features": [
+   "awards@select",
+   "birth_city@select",
+   "death_city@where",
+   "genre@select",
+   "marriage@where",
+   "name@where",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_city",
+    "death_city",
+    "genre",
+    "marriage",
+    "name",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.death_city": [
+    "Stockholm"
+   ],
+   "art.name": [
+    "Roy Fox Lichtenstein"
+   ],
+   "art.zodiac": [
+    "Leo"
+   ],
+   "art.marriage": [
+    "Cohabiting"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#46",
+  "sql": "/* Query 46: 5 (art) */ SELECT object, death_country, age FROM art WHERE death_country <> 'United Kingdom' OR field <> 'Design' OR nationality <> 'Australian' OR awards >= 1",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 46: 5 (art) */ SELECT object, death_country, age FROM art WHERE death_country <> $s OR field <> $s OR nationality <> $s OR awards >= $n",
+  "features": [
+   "age@select",
+   "awards@where",
+   "death_country@select",
+   "death_country@where",
+   "field@where",
+   "nationality@where",
+   "object@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "death_country",
+    "field",
+    "nationality",
+    "object"
+   ]
+  },
+  "literals": {
+   "art.nationality": [
+    "Australian"
+   ],
+   "art.death_country": [
+    "United Kingdom"
+   ],
+   "art.field": [
+    "Design"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#47",
+  "sql": "/* Query 47: 5 (art) */ SELECT color, name, age FROM art WHERE field <> 'Writer' OR birth_city = 'Paris' OR nationality <> 'Indian' OR awards <= 1",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 47: 5 (art) */ SELECT color, name, age FROM art WHERE field <> $s OR birth_city = $s OR nationality <> $s OR awards <= $n",
+  "features": [
+   "age@select",
+   "awards@where",
+   "birth_city@where",
+   "color@select",
+   "field@where",
+   "name@select",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "birth_city",
+    "color",
+    "field",
+    "name",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.nationality": [
+    "Indian"
+   ],
+   "art.field": [
+    "Writer"
+   ],
+   "art.birth_city": [
+    "Paris"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#48",
+  "sql": "/* Query 48: 5 (art) */ SELECT field, teaching, style FROM art WHERE birth_date <> '1905/4/15' OR nationality <> 'Irish' OR birth_city <> 'Warsaw' OR age >= 74",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 48: 5 (art) */ SELECT field, teaching, style FROM art WHERE birth_date <> $s OR nationality <> $s OR birth_city <> $s OR age >= $n",
+  "features": [
+   "age@where",
+   "birth_city@where",
+   "birth_date@where",
+   "field@select",
+   "nationality@where",
+   "style@select",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_city",
+    "birth_date",
+    "field",
+    "nationality",
+    "style",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.birth_city": [
+    "Warsaw"
+   ],
+   "art.birth_date": [
+    "1905/4/15"
+   ],
+   "art.nationality": [
+    "Irish"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#49",
+  "sql": "/* Query 49: 5 (art) */ SELECT object, birth_date, death_country FROM art WHERE birth_city = 'Dublin' OR marriage <> 'Married' OR teaching <> 0 OR birth_city = 'Paris'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 49: 5 (art) */ SELECT object, birth_date, death_country FROM art WHERE birth_city = $s OR marriage <> $s OR teaching <> $n OR birth_city = $s",
+  "features": [
+   "birth_city@where",
+   "birth_date@select",
+   "death_country@select",
+   "marriage@where",
+   "object@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "birth_date",
+    "death_country",
+    "marriage",
+    "object",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.birth_city": [
+    "Dublin",
+    "Paris"
+   ],
+   "art.marriage": [
+    "Married"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 878,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#50",
+  "sql": "/* Query 50: 5 (art) */ SELECT name, marriage, composition FROM art WHERE marriage <> 'Cohabiting' OR field = 'Painting' OR art_movement = 'art Nouveau' OR field = 'Music'",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 50: 5 (art) */ SELECT name, marriage, composition FROM art WHERE marriage <> $s OR field = $s OR art_movement = $s OR field = $s",
+  "features": [
+   "art_movement@where",
+   "composition@select",
+   "field@where",
+   "marriage@select",
+   "marriage@where",
+   "name@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_movement",
+    "composition",
+    "field",
+    "marriage",
+    "name"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Music",
+    "Painting"
+   ],
+   "art.art_movement": [
+    "art Nouveau"
+   ],
+   "art.marriage": [
+    "Cohabiting"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1001,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#51",
+  "sql": "/* Query 51: 6 (art) */ SELECT birth_country, genre, age FROM art WHERE (age >= 61 AND age = 61) OR (death_city <> 'Leningrad' AND field <> 'Installation art')",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 51: 6 (art) */ SELECT birth_country, genre, age FROM art WHERE (age >= $n AND age = $n) OR (death_city <> $s AND field <> $s)",
+  "features": [
+   "age@select",
+   "age@where",
+   "birth_country@select",
+   "death_city@where",
+   "field@where",
+   "genre@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_country",
+    "death_city",
+    "field",
+    "genre"
+   ]
+  },
+  "literals": {
+   "art.death_city": [
+    "Leningrad"
+   ],
+   "art.field": [
+    "Installation art"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1000,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#52",
+  "sql": "/* Query 52: 6 (art) */ SELECT composition, age, name FROM art WHERE (age > 90 AND genre <> 'Nature') OR (death_city = 'Paris' AND zodiac <> 'Aries')",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 52: 6 (art) */ SELECT composition, age, name FROM art WHERE (age > $n AND genre <> $s) OR (death_city = $s AND zodiac <> $s)",
+  "features": [
+   "age@select",
+   "age@where",
+   "composition@select",
+   "death_city@where",
+   "genre@where",
+   "name@select",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "composition",
+    "death_city",
+    "genre",
+    "name",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.genre": [
+    "Nature"
+   ],
+   "art.death_city": [
+    "Paris"
+   ],
+   "art.zodiac": [
+    "Aries"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 363,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#53",
+  "sql": "/* Query 53: 6 (art) */ SELECT teaching, genre, death_country FROM art WHERE (zodiac = 'Aquarius' AND field = 'Video') OR (teaching <> 0 AND birth_city <> 'Los Angeles')",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 53: 6 (art) */ SELECT teaching, genre, death_country FROM art WHERE (zodiac = $s AND field = $s) OR (teaching <> $n AND birth_city <> $s)",
+  "features": [
+   "birth_city@where",
+   "death_country@select",
+   "field@where",
+   "genre@select",
+   "teaching@select",
+   "teaching@where",
+   "zodiac@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "death_country",
+    "field",
+    "genre",
+    "teaching",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.zodiac": [
+    "Aquarius"
+   ],
+   "art.field": [
+    "Video"
+   ],
+   "art.birth_city": [
+    "Los Angeles"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 187,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#54",
+  "sql": "/* Query 54: 6 (art) */ SELECT death_date, nationality, color FROM art WHERE (marriage = 'Cohabiting' AND birth_continent <> 'Australia') OR (nationality = 'Russian' AND death_country <> 'Venezuela')",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 54: 6 (art) */ SELECT death_date, nationality, color FROM art WHERE (marriage = $s AND birth_continent <> $s) OR (nationality = $s AND death_country <> $s)",
+  "features": [
+   "birth_continent@where",
+   "color@select",
+   "death_country@where",
+   "death_date@select",
+   "marriage@where",
+   "nationality@select",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "color",
+    "death_country",
+    "death_date",
+    "marriage",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.marriage": [
+    "Cohabiting"
+   ],
+   "art.birth_continent": [
+    "Australia"
+   ],
+   "art.nationality": [
+    "Russian"
+   ],
+   "art.death_country": [
+    "Venezuela"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 22,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#55",
+  "sql": "/* Query 55: 6 (art) */ SELECT style, genre, zodiac FROM art WHERE (birth_date = '1924/2/9' AND genre <> 'Geometric') OR (teaching <> 0 AND birth_city = 'Dublin')",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 55: 6 (art) */ SELECT style, genre, zodiac FROM art WHERE (birth_date = $s AND genre <> $s) OR (teaching <> $n AND birth_city = $s)",
+  "features": [
+   "birth_city@where",
+   "birth_date@where",
+   "genre@select",
+   "genre@where",
+   "style@select",
+   "teaching@where",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "birth_date",
+    "genre",
+    "style",
+    "teaching",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.birth_date": [
+    "1924/2/9"
+   ],
+   "art.genre": [
+    "Geometric"
+   ],
+   "art.birth_city": [
+    "Dublin"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#56",
+  "sql": "/* Query 56: 6 (art) */ SELECT age, style, century FROM art WHERE (birth_date <> '1905/5/14' AND death_date = '1962/1/16') OR (awards <= 1 AND century <> '20th-21st')",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 56: 6 (art) */ SELECT age, style, century FROM art WHERE (birth_date <> $s AND death_date = $s) OR (awards <= $n AND century <> $s)",
+  "features": [
+   "age@select",
+   "awards@where",
+   "birth_date@where",
+   "century@select",
+   "century@where",
+   "death_date@where",
+   "style@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "birth_date",
+    "century",
+    "death_date",
+    "style"
+   ]
+  },
+  "literals": {
+   "art.birth_date": [
+    "1905/5/14"
+   ],
+   "art.death_date": [
+    "1962/1/16"
+   ],
+   "art.century": [
+    "20th-21st"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 788,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#57",
+  "sql": "/* Query 57: 6 (art) */ SELECT color, death_city, teaching FROM art WHERE (field <> 'Draughtsmanship' AND awards < 1) OR (name <> 'Sir Henry Raeburn' AND name = 'Oscar Agust\u00edn Alejandro Schulz Solari')",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 57: 6 (art) */ SELECT color, death_city, teaching FROM art WHERE (field <> $s AND awards < $n) OR (name <> $s AND name = $s)",
+  "features": [
+   "awards@where",
+   "color@select",
+   "death_city@select",
+   "field@where",
+   "name@where",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "color",
+    "death_city",
+    "field",
+    "name",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Draughtsmanship"
+   ],
+   "art.name": [
+    "Oscar Agust\u00edn Alejandro Schulz Solari",
+    "Sir Henry Raeburn"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 838,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#58",
+  "sql": "/* Query 58: 6 (art) */ SELECT style, birth_country, theme FROM art WHERE (art_movement <> 'Abstract' AND birth_continent <> 'South America') OR (death_country <> 'Jordan' AND birth_date <> '1924/2/9')",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 58: 6 (art) */ SELECT style, birth_country, theme FROM art WHERE (art_movement <> $s AND birth_continent <> $s) OR (death_country <> $s AND birth_date <> $s)",
+  "features": [
+   "art_movement@where",
+   "birth_continent@where",
+   "birth_country@select",
+   "birth_date@where",
+   "death_country@where",
+   "style@select",
+   "theme@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_movement",
+    "birth_continent",
+    "birth_country",
+    "birth_date",
+    "death_country",
+    "style",
+    "theme"
+   ]
+  },
+  "literals": {
+   "art.art_movement": [
+    "Abstract"
+   ],
+   "art.birth_continent": [
+    "South America"
+   ],
+   "art.death_country": [
+    "Jordan"
+   ],
+   "art.birth_date": [
+    "1924/2/9"
+   ]
+  },
+  "scorable": false,
+  "valid": false,
+  "gold_rows": 0,
+  "reason": "unknown attributes art.theme"
+ },
+ {
+  "id": "Filter/filter_queries.sql#59",
+  "sql": "/* Query 59: 6 (art) */ SELECT field, tone, nationality FROM art WHERE (field <> 'Playwriting' AND birth_city = 'New York City') OR (art_institution = 'Ecole des Beaux-arts' AND teaching >= 0)",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 59: 6 (art) */ SELECT field, tone, nationality FROM art WHERE (field <> $s AND birth_city = $s) OR (art_institution = $s AND teaching >= $n)",
+  "features": [
+   "art_institution@where",
+   "birth_city@where",
+   "field@select",
+   "field@where",
+   "nationality@select",
+   "teaching@where",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "birth_city",
+    "field",
+    "nationality",
+    "teaching",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Playwriting"
+   ],
+   "art.birth_city": [
+    "New York City"
+   ],
+   "art.art_institution": [
+    "Ecole des Beaux-arts"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 16,
+  "reason": ""
+ },
+ {
+  "id": "Filter/filter_queries.sql#60",
+  "sql": "/* Query 60: 6 (art) */ SELECT birth_city, awards, color FROM art WHERE (field = 'Illustration' AND nationality <> 'Russian') OR (death_date = '1962/1/16' AND awards <> 0)",
+  "sources": [
+   "benchmark:Filter/filter_queries.sql"
+  ],
+  "template": "/* Query 60: 6 (art) */ SELECT birth_city, awards, color FROM art WHERE (field = $s AND nationality <> $s) OR (death_date = $s AND awards <> $n)",
+  "features": [
+   "awards@select",
+   "awards@where",
+   "birth_city@select",
+   "color@select",
+   "death_date@where",
+   "field@where",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_city",
+    "color",
+    "death_date",
+    "field",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Illustration"
+   ],
+   "art.nationality": [
+    "Russian"
+   ],
+   "art.death_date": [
+    "1962/1/16"
+   ]
+  },
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "Mixed/mixed_queries.sql#1",
+  "sql": "/* Query 1: filter1_agg1 (art) */ SELECT field, AVG(age) AS avg_age FROM art WHERE century = '19th-20th' GROUP BY field",
+  "sources": [
+   "benchmark:Mixed/mixed_queries.sql"
+  ],
+  "template": "/* Query 1: filter1_agg1 (art) */ SELECT field, AVG(age) FROM art WHERE century = $s GROUP BY field",
+  "features": [
+   "age@select",
+   "century@where",
+   "field@group",
+   "field@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.century": [
+    "19th-20th"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 161,
+  "reason": ""
+ },
+ {
+  "id": "Mixed/mixed_queries.sql#2",
+  "sql": "/* Query 2: filter2_agg1 (art) */ SELECT nationality, COUNT(birth_continent) AS count_birth_continent FROM art WHERE nationality = 'Japanese' AND birth_continent <> 'Australia' GROUP BY nationality",
+  "sources": [
+   "benchmark:Mixed/mixed_queries.sql"
+  ],
+  "template": "/* Query 2: filter2_agg1 (art) */ SELECT nationality, COUNT(birth_continent) FROM art WHERE nationality = $s AND birth_continent <> $s GROUP BY nationality",
+  "features": [
+   "birth_continent@select",
+   "birth_continent@where",
+   "nationality@group",
+   "nationality@select",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.nationality": [
+    "Japanese"
+   ],
+   "art.birth_continent": [
+    "Australia"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 1,
+  "reason": ""
+ },
+ {
+  "id": "Mixed/mixed_queries.sql#3",
+  "sql": "/* Query 3: filter3_agg1 (art) */ SELECT genre, AVG(age) AS avg_age FROM art WHERE birth_country = 'British India' OR teaching <> 0 GROUP BY genre",
+  "sources": [
+   "benchmark:Mixed/mixed_queries.sql"
+  ],
+  "template": "/* Query 3: filter3_agg1 (art) */ SELECT genre, AVG(age) FROM art WHERE birth_country = $s OR teaching <> $n GROUP BY genre",
+  "features": [
+   "age@select",
+   "birth_country@where",
+   "genre@group",
+   "genre@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_country",
+    "genre",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "British India"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 96,
+  "reason": ""
+ },
+ {
+  "id": "Mixed/mixed_queries.sql#4",
+  "sql": "/* Query 4: filter4_agg1 (art) */ SELECT image_genre, MAX(awards) AS max_awards FROM art WHERE art_institution <> 'National Academy of Design' AND name <> 'Emma Amos' AND birth_date = '1905/5/11' GROUP BY image_genre",
+  "sources": [
+   "benchmark:Mixed/mixed_queries.sql"
+  ],
+  "template": "/* Query 4: filter4_agg1 (art) */ SELECT image_genre, MAX(awards) FROM art WHERE art_institution <> $s AND name <> $s AND birth_date = $s GROUP BY image_genre",
+  "features": [
+   "art_institution@where",
+   "awards@select",
+   "birth_date@where",
+   "image_genre@group",
+   "image_genre@select",
+   "name@where"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "awards",
+    "birth_date",
+    "image_genre",
+    "name"
+   ]
+  },
+  "literals": {
+   "art.birth_date": [
+    "1905/5/11"
+   ],
+   "art.art_institution": [
+    "National Academy of Design"
+   ],
+   "art.name": [
+    "Emma Amos"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "Mixed/mixed_queries.sql#5",
+  "sql": "/* Query 5: filter5_agg1 (art) */ SELECT color, MAX(awards) AS max_awards FROM art WHERE awards > 0 OR birth_country = 'Kingdom of Hungary' OR birth_country = 'Italy' GROUP BY color",
+  "sources": [
+   "benchmark:Mixed/mixed_queries.sql"
+  ],
+  "template": "/* Query 5: filter5_agg1 (art) */ SELECT color, MAX(awards) FROM art WHERE awards > $n OR birth_country = $s OR birth_country = $s GROUP BY color",
+  "features": [
+   "awards@select",
+   "awards@where",
+   "birth_country@where",
+   "color@group",
+   "color@select"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_country",
+    "color"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "Italy",
+    "Kingdom of Hungary"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 67,
+  "reason": ""
+ },
+ {
+  "id": "Mixed/mixed_queries.sql#6",
+  "sql": "/* Query 6: filter6_agg1 (art) */ SELECT nationality, COUNT(nationality) AS count_nationality FROM art WHERE (nationality = 'German-American' AND teaching = 1) OR (birth_continent <> 'Australia' AND birth_date = '1905/5/15') GROUP BY nationality",
+  "sources": [
+   "benchmark:Mixed/mixed_queries.sql"
+  ],
+  "template": "/* Query 6: filter6_agg1 (art) */ SELECT nationality, COUNT(nationality) FROM art WHERE (nationality = $s AND teaching = $n) OR (birth_continent <> $s AND birth_date = $s) GROUP BY nationality",
+  "features": [
+   "birth_continent@where",
+   "birth_date@where",
+   "nationality@group",
+   "nationality@select",
+   "nationality@where",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "birth_date",
+    "nationality",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.nationality": [
+    "German-American"
+   ],
+   "art.birth_continent": [
+    "Australia"
+   ],
+   "art.birth_date": [
+    "1905/5/15"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#1",
+  "sql": "/* Query 1: select (art) */ SELECT Color FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 1: select (art) */ SELECT Color FROM art",
+  "features": [
+   "Color@select"
+  ],
+  "attributes": {
+   "art": [
+    "Color"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#2",
+  "sql": "/* Query 2: select (art) */ SELECT composition, name FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 2: select (art) */ SELECT composition, name FROM art",
+  "features": [
+   "composition@select",
+   "name@select"
+  ],
+  "attributes": {
+   "art": [
+    "composition",
+    "name"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#3",
+  "sql": "/* Query 3: select (art) */ SELECT nationality FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 3: select (art) */ SELECT nationality FROM art",
+  "features": [
+   "nationality@select"
+  ],
+  "attributes": {
+   "art": [
+    "nationality"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#4",
+  "sql": "/* Query 4: select (art) */ SELECT nationality FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 4: select (art) */ SELECT nationality FROM art",
+  "features": [
+   "nationality@select"
+  ],
+  "attributes": {
+   "art": [
+    "nationality"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#5",
+  "sql": "/* Query 5: select (art) */ SELECT composition, art_institution FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 5: select (art) */ SELECT composition, art_institution FROM art",
+  "features": [
+   "art_institution@select",
+   "composition@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "composition"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#6",
+  "sql": "/* Query 6: select (art) */ SELECT name, death_city, Color FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 6: select (art) */ SELECT name, death_city, Color FROM art",
+  "features": [
+   "Color@select",
+   "death_city@select",
+   "name@select"
+  ],
+  "attributes": {
+   "art": [
+    "Color",
+    "death_city",
+    "name"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#7",
+  "sql": "/* Query 7: select (art) */ SELECT name, tone, birth_city FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 7: select (art) */ SELECT name, tone, birth_city FROM art",
+  "features": [
+   "birth_city@select",
+   "name@select",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "name",
+    "tone"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#8",
+  "sql": "/* Query 8: select (art) */ SELECT nationality, marriage, image_genre FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 8: select (art) */ SELECT nationality, marriage, image_genre FROM art",
+  "features": [
+   "image_genre@select",
+   "marriage@select",
+   "nationality@select"
+  ],
+  "attributes": {
+   "art": [
+    "image_genre",
+    "marriage",
+    "nationality"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#9",
+  "sql": "/* Query 9: select (art) */ SELECT century, teaching, style FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 9: select (art) */ SELECT century, teaching, style FROM art",
+  "features": [
+   "century@select",
+   "style@select",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "style",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Select/select_queries.sql#10",
+  "sql": "/* Query 10: select (art) */ SELECT style, birth_city, death_city FROM art",
+  "sources": [
+   "benchmark:Select/select_queries.sql"
+  ],
+  "template": "/* Query 10: select (art) */ SELECT style, birth_city, death_city FROM art",
+  "features": [
+   "birth_city@select",
+   "death_city@select",
+   "style@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_city",
+    "death_city",
+    "style"
+   ]
+  },
+  "literals": {},
+  "scorable": false,
+  "valid": true,
+  "gold_rows": 1003,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#1",
+  "sql": "/* Query 1: dev (agg_only) id=agg_only_art_gen_2 */ SELECT birth_continent, MAX(age) AS max_age FROM art GROUP BY birth_continent",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 1: dev (agg_only) id=agg_only_art_gen_2 */ SELECT birth_continent, MAX(age) FROM art GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "birth_continent@group",
+   "birth_continent@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#2",
+  "sql": "/* Query 2: dev (agg_only) id=agg_only_art_gen_42 */ SELECT field, MAX(age) AS max_age FROM art GROUP BY field",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 2: dev (agg_only) id=agg_only_art_gen_42 */ SELECT field, MAX(age) FROM art GROUP BY field",
+  "features": [
+   "age@select",
+   "field@group",
+   "field@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 464,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#3",
+  "sql": "/* Query 3: dev (agg_only) id=agg_queries_Art_4 */ SELECT color, AVG(age) AS avg_age FROM art GROUP BY color",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 3: dev (agg_only) id=agg_queries_Art_4 */ SELECT color, AVG(age) FROM art GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 255,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#4",
+  "sql": "/* Query 4: dev (agg_only) id=agg_only_art_gen_39 */ SELECT art_movement, SUM(age) AS sum_age FROM art GROUP BY art_movement",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 4: dev (agg_only) id=agg_only_art_gen_39 */ SELECT art_movement, SUM(age) FROM art GROUP BY art_movement",
+  "features": [
+   "age@select",
+   "art_movement@group",
+   "art_movement@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "art_movement"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 472,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#5",
+  "sql": "/* Query 5: dev (agg_only) id=agg_only_art_gen_36 */ SELECT art_movement, MIN(age) AS min_age FROM art GROUP BY art_movement",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 5: dev (agg_only) id=agg_only_art_gen_36 */ SELECT art_movement, MIN(age) FROM art GROUP BY art_movement",
+  "features": [
+   "age@select",
+   "art_movement@group",
+   "art_movement@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "art_movement"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 472,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#6",
+  "sql": "/* Query 6: dev (agg_filter) id=agg_filter_art_gen_698 */ SELECT nationality, MIN(age) AS min_age FROM art WHERE century = '20th' GROUP BY nationality",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 6: dev (agg_filter) id=agg_filter_art_gen_698 */ SELECT nationality, MIN(age) FROM art WHERE century = $s GROUP BY nationality",
+  "features": [
+   "age@select",
+   "century@where",
+   "nationality@group",
+   "nationality@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.century": [
+    "20th"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 66,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#7",
+  "sql": "/* Query 7: dev (agg_filter) id=agg_filter_art_gen_1067 */ SELECT color, MIN(age) AS min_age FROM art WHERE teaching = 1 GROUP BY color",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 7: dev (agg_filter) id=agg_filter_art_gen_1067 */ SELECT color, MIN(age) FROM art WHERE teaching = $n GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 74,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#8",
+  "sql": "/* Query 8: dev (agg_filter) id=agg_filter_art_gen_1043 */ SELECT field, SUM(age) AS sum_age FROM art WHERE age > 0 GROUP BY field",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 8: dev (agg_filter) id=agg_filter_art_gen_1043 */ SELECT field, SUM(age) FROM art WHERE age > $n GROUP BY field",
+  "features": [
+   "age@select",
+   "age@where",
+   "field@group",
+   "field@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 452,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#9",
+  "sql": "/* Query 9: dev (agg_filter) id=agg_filter_art_gen_623 */ SELECT style, MAX(age) AS max_age FROM art WHERE age > 0 GROUP BY style",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 9: dev (agg_filter) id=agg_filter_art_gen_623 */ SELECT style, MAX(age) FROM art WHERE age > $n GROUP BY style",
+  "features": [
+   "age@select",
+   "age@where",
+   "style@group",
+   "style@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "style"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 112,
+  "reason": ""
+ },
+ {
+  "id": "Splits/dev.sql#10",
+  "sql": "/* Query 10: dev (agg_filter) id=agg_filter_art_gen_193 */ SELECT zodiac, MAX(age) AS max_age FROM art WHERE teaching = 1 GROUP BY zodiac",
+  "sources": [
+   "benchmark:Splits/dev.sql"
+  ],
+  "template": "/* Query 10: dev (agg_filter) id=agg_filter_art_gen_193 */ SELECT zodiac, MAX(age) FROM art WHERE teaching = $n GROUP BY zodiac",
+  "features": [
+   "age@select",
+   "teaching@where",
+   "zodiac@group",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "teaching",
+    "zodiac"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#1",
+  "sql": "/* Query 1: test (agg_only) id=agg_only_art_gen_14 */ SELECT century, SUM(age) AS sum_age FROM art GROUP BY century",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 1: test (agg_only) id=agg_only_art_gen_14 */ SELECT century, SUM(age) FROM art GROUP BY century",
+  "features": [
+   "age@select",
+   "century@group",
+   "century@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#2",
+  "sql": "/* Query 2: test (agg_only) id=agg_only_art_gen_51 */ SELECT marriage, MIN(age) AS min_age FROM art GROUP BY marriage",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 2: test (agg_only) id=agg_only_art_gen_51 */ SELECT marriage, MIN(age) FROM art GROUP BY marriage",
+  "features": [
+   "age@select",
+   "marriage@group",
+   "marriage@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "marriage"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#3",
+  "sql": "/* Query 3: test (agg_only) id=agg_queries_Art_8 */ SELECT birth_continent, SUM(age) AS sum_age FROM art GROUP BY birth_continent",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 3: test (agg_only) id=agg_queries_Art_8 */ SELECT birth_continent, SUM(age) FROM art GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "birth_continent@group",
+   "birth_continent@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#4",
+  "sql": "/* Query 4: test (agg_only) id=agg_queries_Art_7 */ SELECT color, MAX(age) AS max_age FROM art GROUP BY color",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 4: test (agg_only) id=agg_queries_Art_7 */ SELECT color, MAX(age) FROM art GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 255,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#5",
+  "sql": "/* Query 5: test (agg_only) id=agg_only_art_gen_43 */ SELECT field, AVG(age) AS avg_age FROM art GROUP BY field",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 5: test (agg_only) id=agg_only_art_gen_43 */ SELECT field, AVG(age) FROM art GROUP BY field",
+  "features": [
+   "age@select",
+   "field@group",
+   "field@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 464,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#6",
+  "sql": "/* Query 6: test (agg_filter) id=agg_filter_art_gen_199 */ SELECT zodiac, MAX(age) AS max_age FROM art WHERE age > 0 GROUP BY zodiac",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 6: test (agg_filter) id=agg_filter_art_gen_199 */ SELECT zodiac, MAX(age) FROM art WHERE age > $n GROUP BY zodiac",
+  "features": [
+   "age@select",
+   "age@where",
+   "zodiac@group",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "zodiac"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#7",
+  "sql": "/* Query 7: test (agg_filter) id=agg_filter_art_gen_70 */ SELECT birth_continent, MIN(age) AS min_age FROM art WHERE teaching = 1 GROUP BY birth_continent",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 7: test (agg_filter) id=agg_filter_art_gen_70 */ SELECT birth_continent, MIN(age) FROM art WHERE teaching = $n GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "birth_continent@group",
+   "birth_continent@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 6,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#8",
+  "sql": "/* Query 8: test (agg_filter) id=agg_filter_art_gen_95 */ SELECT birth_continent, MAX(age) AS max_age FROM art WHERE teaching = 1 GROUP BY birth_continent",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 8: test (agg_filter) id=agg_filter_art_gen_95 */ SELECT birth_continent, MAX(age) FROM art WHERE teaching = $n GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "birth_continent@group",
+   "birth_continent@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 6,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#9",
+  "sql": "/* Query 9: test (agg_filter) id=agg_filter_art_gen_947 */ SELECT field, MIN(age) AS min_age FROM art WHERE teaching = 1 GROUP BY field",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 9: test (agg_filter) id=agg_filter_art_gen_947 */ SELECT field, MIN(age) FROM art WHERE teaching = $n GROUP BY field",
+  "features": [
+   "age@select",
+   "field@group",
+   "field@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 105,
+  "reason": ""
+ },
+ {
+  "id": "Splits/test.sql#10",
+  "sql": "/* Query 10: test (agg_filter) id=agg_filter_art_gen_919 */ SELECT art_movement, SUM(age) AS sum_age FROM art WHERE marriage = 'Married' GROUP BY art_movement",
+  "sources": [
+   "benchmark:Splits/test.sql"
+  ],
+  "template": "/* Query 10: test (agg_filter) id=agg_filter_art_gen_919 */ SELECT art_movement, SUM(age) FROM art WHERE marriage = $s GROUP BY art_movement",
+  "features": [
+   "age@select",
+   "art_movement@group",
+   "art_movement@select",
+   "marriage@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "art_movement",
+    "marriage"
+   ]
+  },
+  "literals": {
+   "art.marriage": [
+    "Married"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 129,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#1",
+  "sql": "/* Query 1: train (agg_only) id=agg_only_art_gen_37 */ SELECT art_movement, MAX(age) AS max_age FROM art GROUP BY art_movement",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 1: train (agg_only) id=agg_only_art_gen_37 */ SELECT art_movement, MAX(age) FROM art GROUP BY art_movement",
+  "features": [
+   "age@select",
+   "art_movement@group",
+   "art_movement@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "art_movement"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 472,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#2",
+  "sql": "/* Query 2: train (agg_only) id=agg_queries_Art_10 */ SELECT color, MIN(age) AS min_age FROM art GROUP BY color",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 2: train (agg_only) id=agg_queries_Art_10 */ SELECT color, MIN(age) FROM art GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 255,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#3",
+  "sql": "/* Query 3: train (agg_only) id=agg_only_art_gen_53 */ SELECT marriage, AVG(age) AS avg_age FROM art GROUP BY marriage",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 3: train (agg_only) id=agg_only_art_gen_53 */ SELECT marriage, AVG(age) FROM art GROUP BY marriage",
+  "features": [
+   "age@select",
+   "marriage@group",
+   "marriage@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "marriage"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#4",
+  "sql": "/* Query 4: train (agg_only) id=agg_only_art_gen_10 */ SELECT century, COUNT(name) AS count_artists FROM art GROUP BY century",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 4: train (agg_only) id=agg_only_art_gen_10 */ SELECT century, COUNT(name) FROM art GROUP BY century",
+  "features": [
+   "century@group",
+   "century@select",
+   "name@select"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "name"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#5",
+  "sql": "/* Query 5: train (agg_only) id=agg_only_art_gen_50 */ SELECT marriage, COUNT(name) AS count_artists FROM art GROUP BY marriage",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 5: train (agg_only) id=agg_only_art_gen_50 */ SELECT marriage, COUNT(name) FROM art GROUP BY marriage",
+  "features": [
+   "marriage@group",
+   "marriage@select",
+   "name@select"
+  ],
+  "attributes": {
+   "art": [
+    "marriage",
+    "name"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#6",
+  "sql": "/* Query 6: train (agg_only) id=agg_only_art_gen_35 */ SELECT art_movement, COUNT(name) AS count_artists FROM art GROUP BY art_movement",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 6: train (agg_only) id=agg_only_art_gen_35 */ SELECT art_movement, COUNT(name) FROM art GROUP BY art_movement",
+  "features": [
+   "art_movement@group",
+   "art_movement@select",
+   "name@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_movement",
+    "name"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 472,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#7",
+  "sql": "/* Query 7: train (agg_only) id=agg_only_art_gen_49 */ SELECT color, SUM(age) AS sum_age FROM art GROUP BY color",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 7: train (agg_only) id=agg_only_art_gen_49 */ SELECT color, SUM(age) FROM art GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 255,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#8",
+  "sql": "/* Query 8: train (agg_only) id=agg_only_art_gen_44 */ SELECT field, SUM(age) AS sum_age FROM art GROUP BY field",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 8: train (agg_only) id=agg_only_art_gen_44 */ SELECT field, SUM(age) FROM art GROUP BY field",
+  "features": [
+   "age@select",
+   "field@group",
+   "field@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 464,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#9",
+  "sql": "/* Query 9: train (agg_only) id=agg_only_art_gen_13 */ SELECT century, AVG(age) AS avg_age FROM art GROUP BY century",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 9: train (agg_only) id=agg_only_art_gen_13 */ SELECT century, AVG(age) FROM art GROUP BY century",
+  "features": [
+   "age@select",
+   "century@group",
+   "century@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#10",
+  "sql": "/* Query 10: train (agg_only) id=agg_queries_Art_9 */ SELECT birth_continent, MIN(age) AS min_age FROM art GROUP BY birth_continent",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 10: train (agg_only) id=agg_queries_Art_9 */ SELECT birth_continent, MIN(age) FROM art GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "birth_continent@group",
+   "birth_continent@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#11",
+  "sql": "/* Query 11: train (agg_only) id=agg_only_art_gen_11 */ SELECT century, MIN(age) AS min_age FROM art GROUP BY century",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 11: train (agg_only) id=agg_only_art_gen_11 */ SELECT century, MIN(age) FROM art GROUP BY century",
+  "features": [
+   "age@select",
+   "century@group",
+   "century@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#12",
+  "sql": "/* Query 12: train (agg_only) id=agg_only_art_gen_12 */ SELECT century, MAX(age) AS max_age FROM art GROUP BY century",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 12: train (agg_only) id=agg_only_art_gen_12 */ SELECT century, MAX(age) FROM art GROUP BY century",
+  "features": [
+   "age@select",
+   "century@group",
+   "century@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#13",
+  "sql": "/* Query 13: train (agg_only) id=agg_only_art_gen_41 */ SELECT field, MIN(age) AS min_age FROM art GROUP BY field",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 13: train (agg_only) id=agg_only_art_gen_41 */ SELECT field, MIN(age) FROM art GROUP BY field",
+  "features": [
+   "age@select",
+   "field@group",
+   "field@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 464,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#14",
+  "sql": "/* Query 14: train (agg_only) id=agg_only_art_gen_45 */ SELECT color, COUNT(name) AS count_artists FROM art GROUP BY color",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 14: train (agg_only) id=agg_only_art_gen_45 */ SELECT color, COUNT(name) FROM art GROUP BY color",
+  "features": [
+   "color@group",
+   "color@select",
+   "name@select"
+  ],
+  "attributes": {
+   "art": [
+    "color",
+    "name"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 255,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#15",
+  "sql": "/* Query 15: train (agg_only) id=agg_only_art_gen_40 */ SELECT field, COUNT(name) AS count_artists FROM art GROUP BY field",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 15: train (agg_only) id=agg_only_art_gen_40 */ SELECT field, COUNT(name) FROM art GROUP BY field",
+  "features": [
+   "field@group",
+   "field@select",
+   "name@select"
+  ],
+  "attributes": {
+   "art": [
+    "field",
+    "name"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 464,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#16",
+  "sql": "/* Query 16: train (agg_only) id=agg_only_art_gen_3 */ SELECT birth_continent, AVG(age) AS avg_age FROM art GROUP BY birth_continent",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 16: train (agg_only) id=agg_only_art_gen_3 */ SELECT birth_continent, AVG(age) FROM art GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "birth_continent@group",
+   "birth_continent@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#17",
+  "sql": "/* Query 17: train (agg_only) id=agg_only_art_gen_38 */ SELECT art_movement, AVG(age) AS avg_age FROM art GROUP BY art_movement",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 17: train (agg_only) id=agg_only_art_gen_38 */ SELECT art_movement, AVG(age) FROM art GROUP BY art_movement",
+  "features": [
+   "age@select",
+   "art_movement@group",
+   "art_movement@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "art_movement"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 472,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#18",
+  "sql": "/* Query 18: train (agg_only) id=agg_queries_Art_3 */ SELECT image_genre, AVG(age) AS avg_age FROM art GROUP BY image_genre",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 18: train (agg_only) id=agg_queries_Art_3 */ SELECT image_genre, AVG(age) FROM art GROUP BY image_genre",
+  "features": [
+   "age@select",
+   "image_genre@group",
+   "image_genre@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "image_genre"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 68,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#19",
+  "sql": "/* Query 19: train (agg_only) id=agg_only_art_gen_52 */ SELECT marriage, MAX(age) AS max_age FROM art GROUP BY marriage",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 19: train (agg_only) id=agg_only_art_gen_52 */ SELECT marriage, MAX(age) FROM art GROUP BY marriage",
+  "features": [
+   "age@select",
+   "marriage@group",
+   "marriage@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "marriage"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#20",
+  "sql": "/* Query 20: train (agg_only) id=agg_only_art_gen_0 */ SELECT birth_continent, COUNT(name) AS count_artists FROM art GROUP BY birth_continent",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 20: train (agg_only) id=agg_only_art_gen_0 */ SELECT birth_continent, COUNT(name) FROM art GROUP BY birth_continent",
+  "features": [
+   "birth_continent@group",
+   "birth_continent@select",
+   "name@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "name"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#21",
+  "sql": "/* Query 21: train (agg_filter) id=agg_filter_art_gen_1152 */ SELECT color, SUM(age) AS sum_age FROM art WHERE tone = 'Warm' GROUP BY color",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 21: train (agg_filter) id=agg_filter_art_gen_1152 */ SELECT color, SUM(age) FROM art WHERE tone = $s GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select",
+   "tone@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.tone": [
+    "Warm"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#22",
+  "sql": "/* Query 22: train (agg_filter) id=agg_filter_art_gen_179 */ SELECT zodiac, MAX(age) AS max_age FROM art WHERE birth_continent = 'Europe' GROUP BY zodiac",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 22: train (agg_filter) id=agg_filter_art_gen_179 */ SELECT zodiac, MAX(age) FROM art WHERE birth_continent = $s GROUP BY zodiac",
+  "features": [
+   "age@select",
+   "birth_continent@where",
+   "zodiac@group",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.birth_continent": [
+    "Europe"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#23",
+  "sql": "/* Query 23: train (agg_filter) id=agg_filter_art_gen_426 */ SELECT tone, AVG(age) AS avg_age FROM art WHERE age > 0 GROUP BY tone",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 23: train (agg_filter) id=agg_filter_art_gen_426 */ SELECT tone, AVG(age) FROM art WHERE age > $n GROUP BY tone",
+  "features": [
+   "age@select",
+   "age@where",
+   "tone@group",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "tone"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 28,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#24",
+  "sql": "/* Query 24: train (agg_filter) id=mixed_queries_2 */ SELECT nationality, COUNT(birth_continent) AS count_birth_continent FROM art WHERE nationality = 'Japanese' AND birth_continent <> 'Australia' GROUP BY nationality",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 24: train (agg_filter) id=mixed_queries_2 */ SELECT nationality, COUNT(birth_continent) FROM art WHERE nationality = $s AND birth_continent <> $s GROUP BY nationality",
+  "features": [
+   "birth_continent@select",
+   "birth_continent@where",
+   "nationality@group",
+   "nationality@select",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.nationality": [
+    "Japanese"
+   ],
+   "art.birth_continent": [
+    "Australia"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 1,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#25",
+  "sql": "/* Query 25: train (agg_filter) id=agg_filter_art_gen_479 */ SELECT teaching, MIN(age) AS min_age FROM art WHERE age > 0 GROUP BY teaching",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 25: train (agg_filter) id=agg_filter_art_gen_479 */ SELECT teaching, MIN(age) FROM art WHERE age > $n GROUP BY teaching",
+  "features": [
+   "age@select",
+   "age@where",
+   "teaching@group",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#26",
+  "sql": "/* Query 26: train (agg_filter) id=agg_filter_art_gen_217 */ SELECT zodiac, AVG(age) AS avg_age FROM art WHERE teaching = 1 GROUP BY zodiac",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 26: train (agg_filter) id=agg_filter_art_gen_217 */ SELECT zodiac, AVG(age) FROM art WHERE teaching = $n GROUP BY zodiac",
+  "features": [
+   "age@select",
+   "teaching@where",
+   "zodiac@group",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "teaching",
+    "zodiac"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#27",
+  "sql": "/* Query 27: train (agg_filter) id=agg_filter_art_gen_1092 */ SELECT color, MAX(age) AS max_age FROM art WHERE tone = 'Warm' GROUP BY color",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 27: train (agg_filter) id=agg_filter_art_gen_1092 */ SELECT color, MAX(age) FROM art WHERE tone = $s GROUP BY color",
+  "features": [
+   "age@select",
+   "color@group",
+   "color@select",
+   "tone@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "color",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.tone": [
+    "Warm"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#28",
+  "sql": "/* Query 28: train (agg_filter) id=agg_filter_art_gen_1187 */ SELECT marriage, MIN(age) AS min_age FROM art WHERE teaching = 1 GROUP BY marriage",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 28: train (agg_filter) id=agg_filter_art_gen_1187 */ SELECT marriage, MIN(age) FROM art WHERE teaching = $n GROUP BY marriage",
+  "features": [
+   "age@select",
+   "marriage@group",
+   "marriage@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "marriage",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 7,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#29",
+  "sql": "/* Query 29: train (agg_filter) id=mixed_queries_5 */ SELECT color, MAX(awards) AS max_awards FROM art WHERE awards > 0 OR birth_country = 'Kingdom of Hungary' OR birth_country = 'Italy' GROUP BY color",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 29: train (agg_filter) id=mixed_queries_5 */ SELECT color, MAX(awards) FROM art WHERE awards > $n OR birth_country = $s OR birth_country = $s GROUP BY color",
+  "features": [
+   "awards@select",
+   "awards@where",
+   "birth_country@where",
+   "color@group",
+   "color@select"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_country",
+    "color"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "Italy",
+    "Kingdom of Hungary"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 67,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#30",
+  "sql": "/* Query 30: train (agg_filter) id=mixed_queries_3 */ SELECT genre, AVG(age) AS avg_age FROM art WHERE birth_country = 'British India' OR teaching <> 0 GROUP BY genre",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 30: train (agg_filter) id=mixed_queries_3 */ SELECT genre, AVG(age) FROM art WHERE birth_country = $s OR teaching <> $n GROUP BY genre",
+  "features": [
+   "age@select",
+   "birth_country@where",
+   "genre@group",
+   "genre@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_country",
+    "genre",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "British India"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 96,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#31",
+  "sql": "/* Query 31: train (agg_filter) id=agg_filter_art_gen_510 */ SELECT teaching, MAX(age) AS max_age FROM art WHERE age < 50 GROUP BY teaching",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 31: train (agg_filter) id=agg_filter_art_gen_510 */ SELECT teaching, MAX(age) FROM art WHERE age < $n GROUP BY teaching",
+  "features": [
+   "age@select",
+   "age@where",
+   "teaching@group",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#32",
+  "sql": "/* Query 32: train (agg_filter) id=agg_filter_art_gen_538 */ SELECT teaching, AVG(age) AS avg_age FROM art WHERE age < 50 GROUP BY teaching",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 32: train (agg_filter) id=agg_filter_art_gen_538 */ SELECT teaching, AVG(age) FROM art WHERE age < $n GROUP BY teaching",
+  "features": [
+   "age@select",
+   "age@where",
+   "teaching@group",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#33",
+  "sql": "/* Query 33: train (agg_filter) id=agg_filter_art_gen_1037 */ SELECT field, SUM(age) AS sum_age FROM art WHERE teaching = 1 GROUP BY field",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 33: train (agg_filter) id=agg_filter_art_gen_1037 */ SELECT field, SUM(age) FROM art WHERE teaching = $n GROUP BY field",
+  "features": [
+   "age@select",
+   "field@group",
+   "field@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 105,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#34",
+  "sql": "/* Query 34: train (agg_filter) id=agg_filter_art_gen_799 */ SELECT nationality, SUM(age) AS sum_age FROM art WHERE marriage = 'Married' GROUP BY nationality",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 34: train (agg_filter) id=agg_filter_art_gen_799 */ SELECT nationality, SUM(age) FROM art WHERE marriage = $s GROUP BY nationality",
+  "features": [
+   "age@select",
+   "marriage@where",
+   "nationality@group",
+   "nationality@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "marriage",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.marriage": [
+    "Married"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 69,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#35",
+  "sql": "/* Query 35: train (agg_filter) id=agg_filter_art_gen_420 */ SELECT tone, AVG(age) AS avg_age FROM art WHERE teaching = 1 GROUP BY tone",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 35: train (agg_filter) id=agg_filter_art_gen_420 */ SELECT tone, AVG(age) FROM art WHERE teaching = $n GROUP BY tone",
+  "features": [
+   "age@select",
+   "teaching@where",
+   "tone@group",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "teaching",
+    "tone"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 11,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#36",
+  "sql": "/* Query 36: train (agg_filter) id=agg_filter_art_gen_482 */ SELECT teaching, MIN(age) AS min_age FROM art WHERE age < 50 GROUP BY teaching",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 36: train (agg_filter) id=agg_filter_art_gen_482 */ SELECT teaching, MIN(age) FROM art WHERE age < $n GROUP BY teaching",
+  "features": [
+   "age@select",
+   "age@where",
+   "teaching@group",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#37",
+  "sql": "/* Query 37: train (agg_filter) id=agg_filter_art_gen_247 */ SELECT zodiac, SUM(age) AS sum_age FROM art WHERE age > 0 GROUP BY zodiac",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 37: train (agg_filter) id=agg_filter_art_gen_247 */ SELECT zodiac, SUM(age) FROM art WHERE age > $n GROUP BY zodiac",
+  "features": [
+   "age@select",
+   "age@where",
+   "zodiac@group",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "zodiac"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#38",
+  "sql": "/* Query 38: train (agg_filter) id=agg_filter_art_gen_475 */ SELECT teaching, MIN(age) AS min_age FROM art WHERE marriage = 'Married' GROUP BY teaching",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 38: train (agg_filter) id=agg_filter_art_gen_475 */ SELECT teaching, MIN(age) FROM art WHERE marriage = $s GROUP BY teaching",
+  "features": [
+   "age@select",
+   "marriage@where",
+   "teaching@group",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "marriage",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.marriage": [
+    "Married"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#39",
+  "sql": "/* Query 39: train (agg_filter) id=agg_filter_art_gen_219 */ SELECT zodiac, AVG(age) AS avg_age FROM art WHERE marriage = 'Married' GROUP BY zodiac",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 39: train (agg_filter) id=agg_filter_art_gen_219 */ SELECT zodiac, AVG(age) FROM art WHERE marriage = $s GROUP BY zodiac",
+  "features": [
+   "age@select",
+   "marriage@where",
+   "zodiac@group",
+   "zodiac@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "marriage",
+    "zodiac"
+   ]
+  },
+  "literals": {
+   "art.marriage": [
+    "Married"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "Splits/train.sql#40",
+  "sql": "/* Query 40: train (agg_filter) id=agg_filter_art_gen_942 */ SELECT field, MIN(age) AS min_age FROM art WHERE tone = 'Warm' GROUP BY field",
+  "sources": [
+   "benchmark:Splits/train.sql"
+  ],
+  "template": "/* Query 40: train (agg_filter) id=agg_filter_art_gen_942 */ SELECT field, MIN(age) FROM art WHERE tone = $s GROUP BY field",
+  "features": [
+   "age@select",
+   "field@group",
+   "field@select",
+   "tone@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.tone": [
+    "Warm"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 18,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q9",
+  "sql": "SELECT style, century, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Romanticism', 'Impressionism', 'Realism', 'Surrealism', 'Abstract Expressionism') AND century != '' GROUP BY style, century",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT style, century, COUNT(*) FROM art WHERE style IN ($s_list) AND century <> $s GROUP BY style, century",
+  "features": [
+   "century@group",
+   "century@select",
+   "century@where",
+   "style@group",
+   "style@select",
+   "style@where"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "style"
+   ]
+  },
+  "literals": {
+   "art.style": [
+    "Abstract Expressionism",
+    "Expressionism",
+    "Impressionism",
+    "Realism",
+    "Romanticism",
+    "Surrealism"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 19,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q3",
+  "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE field != '' AND age BETWEEN 25 AND 105 GROUP BY field_family",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, COUNT(*), AVG(age), SUM(CASE WHEN teaching = $n THEN $n ELSE $n END) FROM art WHERE field <> $s AND age BETWEEN $n AND $n GROUP BY CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END",
+  "features": [
+   "age@select",
+   "age@where",
+   "field@group",
+   "field@select",
+   "field@where",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Painting",
+    "Photography",
+    "Sculpture"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q3",
+  "sql": "SELECT birth_continent, AVG(age) AS avg_age FROM art WHERE awards >= 1 AND age BETWEEN 25 AND 105 AND birth_continent != '' GROUP BY birth_continent",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT birth_continent, AVG(age) FROM art WHERE awards >= $n AND age BETWEEN $n AND $n AND birth_continent <> $s GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@where",
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 6,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q10",
+  "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, image_genre, COUNT(*) AS artist_count FROM art WHERE tone != '' AND image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract') GROUP BY tone_family, image_genre",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END, image_genre, COUNT(*) FROM art WHERE tone <> $s AND image_genre IN ($s_list) GROUP BY CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END, image_genre",
+  "features": [
+   "image_genre@group",
+   "image_genre@select",
+   "image_genre@where",
+   "tone@group",
+   "tone@select",
+   "tone@where"
+  ],
+  "attributes": {
+   "art": [
+    "image_genre",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.image_genre": [
+    "Abstract",
+    "Landscape",
+    "Portrait",
+    "Still Life"
+   ],
+   "art.tone": [
+    "Bright",
+    "Dark",
+    "Neutral",
+    "Warm"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 20,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q10",
+  "sql": "SELECT century, AVG(awards) AS avg_awards FROM art WHERE art_institution != '' AND century != '' GROUP BY century",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT century, AVG(awards) FROM art WHERE art_institution <> $s AND century <> $s GROUP BY century",
+  "features": [
+   "art_institution@where",
+   "awards@select",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "awards",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q15",
+  "sql": "SELECT CASE WHEN birth_continent IN ('Europe', 'North America') THEN birth_continent ELSE 'Other' END AS continent_group, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' GROUP BY continent_group, award_status",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT CASE WHEN birth_continent IN ($s_list) THEN birth_continent ELSE $s END, CASE WHEN awards >= $n THEN $s ELSE $s END, COUNT(*) FROM art WHERE birth_continent <> $s GROUP BY CASE WHEN birth_continent IN ($s_list) THEN birth_continent ELSE $s END, CASE WHEN awards >= $n THEN $s ELSE $s END",
+  "features": [
+   "awards@group",
+   "awards@select",
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_continent"
+   ]
+  },
+  "literals": {
+   "art.birth_continent": [
+    "Europe",
+    "North America"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 6,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q8",
+  "sql": "SELECT style, COUNT(*) AS artist_count FROM art WHERE style != '' GROUP BY style HAVING COUNT(*) >= 15",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT style, COUNT(*) FROM art WHERE style <> $s GROUP BY style HAVING COUNT(*) >= $n",
+  "features": [
+   "style@group",
+   "style@select",
+   "style@where"
+  ],
+  "attributes": {
+   "art": [
+    "style"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 17,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q6",
+  "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color != '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE field != '' AND color != '' GROUP BY field_family, color_family",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, CASE WHEN color IN ($s_list) THEN color WHEN color <> $s THEN $s END, COUNT(*) FROM art WHERE field <> $s AND color <> $s GROUP BY CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, CASE WHEN color IN ($s_list) THEN color WHEN color <> $s THEN $s END",
+  "features": [
+   "color@group",
+   "color@select",
+   "color@where",
+   "field@group",
+   "field@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "color",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Painting",
+    "Photography",
+    "Sculpture"
+   ],
+   "art.color": [
+    "Black And White",
+    "Blue",
+    "Brown",
+    "Earth Tones",
+    "Green",
+    "Red",
+    "Yellow"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 27,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q17",
+  "sql": "SELECT century, CASE WHEN art_institution != '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count FROM art WHERE century != '' GROUP BY century, institution_status",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT century, CASE WHEN art_institution <> $s THEN $s ELSE $s END, COUNT(*) FROM art WHERE century <> $s GROUP BY century, CASE WHEN art_institution <> $s THEN $s ELSE $s END",
+  "features": [
+   "art_institution@group",
+   "art_institution@select",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q19",
+  "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE composition LIKE '%Asymmetrical%' AND century != '' GROUP BY century",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT century, COUNT(*) FROM art WHERE composition LIKE $s AND century <> $s GROUP BY century",
+  "features": [
+   "century@group",
+   "century@select",
+   "century@where",
+   "composition@where"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "composition"
+   ]
+  },
+  "literals": {
+   "art.composition": [
+    "Asymmetrical"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q15",
+  "sql": "SELECT nationality, COUNT(*) AS artist_count FROM art WHERE nationality != '' GROUP BY nationality HAVING COUNT(*) >= 10",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT nationality, COUNT(*) FROM art WHERE nationality <> $s GROUP BY nationality HAVING COUNT(*) >= $n",
+  "features": [
+   "nationality@group",
+   "nationality@select",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "nationality"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 16,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q12",
+  "sql": "SELECT CASE WHEN death_country != '' AND death_country != birth_country THEN 'died_abroad' WHEN death_country != '' THEN 'died_in_birth_country' ELSE 'death_country_unknown' END AS death_place, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE age BETWEEN 25 AND 105 GROUP BY death_place",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT CASE WHEN death_country <> $s AND death_country <> birth_country THEN $s WHEN death_country <> $s THEN $s ELSE $s END, COUNT(*), AVG(age), SUM(CASE WHEN teaching = $n THEN $n ELSE $n END) FROM art WHERE age BETWEEN $n AND $n GROUP BY CASE WHEN death_country <> $s AND death_country <> birth_country THEN $s WHEN death_country <> $s THEN $s ELSE $s END",
+  "features": [
+   "age@select",
+   "age@where",
+   "birth_country@group",
+   "birth_country@select",
+   "death_country@group",
+   "death_country@select",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_country",
+    "death_country",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q19",
+  "sql": "SELECT style, CASE WHEN tone IN ('Neutral', 'Bright', 'Dark') THEN tone ELSE 'Other' END AS tone_group, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Romanticism', 'Impressionism', 'Realism', 'Surrealism') AND tone != '' GROUP BY style, tone_group",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT style, CASE WHEN tone IN ($s_list) THEN tone ELSE $s END, COUNT(*) FROM art WHERE style IN ($s_list) AND tone <> $s GROUP BY style, CASE WHEN tone IN ($s_list) THEN tone ELSE $s END",
+  "features": [
+   "style@group",
+   "style@select",
+   "style@where",
+   "tone@group",
+   "tone@select",
+   "tone@where"
+  ],
+  "attributes": {
+   "art": [
+    "style",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.style": [
+    "Expressionism",
+    "Impressionism",
+    "Realism",
+    "Romanticism",
+    "Surrealism"
+   ],
+   "art.tone": [
+    "Bright",
+    "Dark",
+    "Neutral"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 20,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q18",
+  "sql": "SELECT nationality, COUNT(*) AS artist_count FROM art WHERE awards >= 2 AND nationality != '' GROUP BY nationality HAVING COUNT(*) >= 2",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT nationality, COUNT(*) FROM art WHERE awards >= $n AND nationality <> $s GROUP BY nationality HAVING COUNT(*) >= $n",
+  "features": [
+   "awards@where",
+   "nationality@group",
+   "nationality@select",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "nationality"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 10,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q2",
+  "sql": "SELECT century, CASE WHEN age < 50 THEN 'under_50' WHEN age < 75 THEN '50_to_74' ELSE '75_or_older' END AS age_band, COUNT(*) AS artist_count FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century, age_band",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT century, CASE WHEN age < $n THEN $s WHEN age < $n THEN $s ELSE $s END, COUNT(*) FROM art WHERE century <> $s AND age BETWEEN $n AND $n GROUP BY century, CASE WHEN age < $n THEN $s WHEN age < $n THEN $s ELSE $s END",
+  "features": [
+   "age@group",
+   "age@select",
+   "age@where",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q2",
+  "sql": "SELECT nationality, COUNT(*) AS artist_count, AVG(awards) AS avg_awards, MAX(awards) AS max_awards FROM art WHERE nationality != '' GROUP BY nationality HAVING COUNT(*) >= 8",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT nationality, COUNT(*), AVG(awards), MAX(awards) FROM art WHERE nationality <> $s GROUP BY nationality HAVING COUNT(*) >= $n",
+  "features": [
+   "awards@select",
+   "nationality@group",
+   "nationality@select",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "nationality"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 20,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q5",
+  "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count FROM art WHERE image_genre = 'Portrait' AND color IN ('Earth Tones', 'Blue', 'Red', 'Black And White') GROUP BY tone_family",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END, COUNT(*) FROM art WHERE image_genre = $s AND color IN ($s_list) GROUP BY CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END",
+  "features": [
+   "color@where",
+   "image_genre@where",
+   "tone@group",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "color",
+    "image_genre",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.image_genre": [
+    "Portrait"
+   ],
+   "art.color": [
+    "Black And White",
+    "Blue",
+    "Earth Tones",
+    "Red"
+   ],
+   "art.tone": [
+    "Bright",
+    "Dark",
+    "Neutral",
+    "Warm"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q16",
+  "sql": "SELECT image_genre, CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red') THEN color ELSE 'Other' END AS color_group, COUNT(*) AS artist_count FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract') AND color != '' GROUP BY image_genre, color_group",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT image_genre, CASE WHEN color IN ($s_list) THEN color ELSE $s END, COUNT(*) FROM art WHERE image_genre IN ($s_list) AND color <> $s GROUP BY image_genre, CASE WHEN color IN ($s_list) THEN color ELSE $s END",
+  "features": [
+   "color@group",
+   "color@select",
+   "color@where",
+   "image_genre@group",
+   "image_genre@select",
+   "image_genre@where"
+  ],
+  "attributes": {
+   "art": [
+    "color",
+    "image_genre"
+   ]
+  },
+  "literals": {
+   "art.image_genre": [
+    "Abstract",
+    "Landscape",
+    "Portrait",
+    "Still Life"
+   ],
+   "art.color": [
+    "Blue",
+    "Earth Tones",
+    "Green",
+    "Red"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 19,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q16",
+  "sql": "SELECT image_genre, COUNT(*) AS artist_count, MIN(age) AS youngest, MAX(age) AS oldest, SUM(awards) AS total_awards FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract', 'Sculpture') AND age BETWEEN 25 AND 105 GROUP BY image_genre",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT image_genre, COUNT(*), MIN(age), MAX(age), SUM(awards) FROM art WHERE image_genre IN ($s_list) AND age BETWEEN $n AND $n GROUP BY image_genre",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "image_genre@group",
+   "image_genre@select",
+   "image_genre@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "image_genre"
+   ]
+  },
+  "literals": {
+   "art.image_genre": [
+    "Abstract",
+    "Landscape",
+    "Portrait",
+    "Sculpture",
+    "Still Life"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q1",
+  "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE century != '' GROUP BY century",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT century, COUNT(*) FROM art WHERE century <> $s GROUP BY century",
+  "features": [
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q10",
+  "sql": "SELECT CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color != '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count, AVG(age) AS avg_age, MAX(awards) AS max_awards FROM art WHERE color != '' AND age BETWEEN 25 AND 105 GROUP BY color_family HAVING COUNT(*) >= 10",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT CASE WHEN color IN ($s_list) THEN color WHEN color <> $s THEN $s END, COUNT(*), AVG(age), MAX(awards) FROM art WHERE color <> $s AND age BETWEEN $n AND $n GROUP BY CASE WHEN color IN ($s_list) THEN color WHEN color <> $s THEN $s END HAVING COUNT(*) >= $n",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "color@group",
+   "color@select",
+   "color@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "color"
+   ]
+  },
+  "literals": {
+   "art.color": [
+    "Black And White",
+    "Blue",
+    "Brown",
+    "Earth Tones",
+    "Green",
+    "Red",
+    "Yellow"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q13",
+  "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN age < 60 THEN 'under_60' ELSE '60_or_older' END AS age_band, COUNT(*) AS artist_count FROM art WHERE field != '' AND age BETWEEN 25 AND 105 GROUP BY field_family, age_band",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, CASE WHEN age < $n THEN $s ELSE $s END, COUNT(*) FROM art WHERE field <> $s AND age BETWEEN $n AND $n GROUP BY CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, CASE WHEN age < $n THEN $s ELSE $s END",
+  "features": [
+   "age@group",
+   "age@select",
+   "age@where",
+   "field@group",
+   "field@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Painting",
+    "Photography",
+    "Sculpture"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q18",
+  "sql": "SELECT style, AVG(awards) AS avg_awards FROM art WHERE style != '' GROUP BY style HAVING COUNT(*) >= 15",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT style, AVG(awards) FROM art WHERE style <> $s GROUP BY style HAVING COUNT(*) >= $n",
+  "features": [
+   "awards@select",
+   "style@group",
+   "style@select",
+   "style@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "style"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 17,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q7",
+  "sql": "SELECT teaching, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards, MAX(awards) AS max_awards FROM art WHERE teaching IS NOT NULL AND age BETWEEN 25 AND 105 GROUP BY teaching",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT teaching, COUNT(*), AVG(age), AVG(awards), MAX(awards) FROM art WHERE NOT teaching IS NULL AND age BETWEEN $n AND $n GROUP BY teaching",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "teaching@group",
+   "teaching@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q19",
+  "sql": "SELECT century, MIN(age) AS youngest FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT century, MIN(age) FROM art WHERE century <> $s AND age BETWEEN $n AND $n GROUP BY century",
+  "features": [
+   "age@select",
+   "age@where",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q0",
+  "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE century IN ('20th', '20th-21st') AND field != '' GROUP BY field_family",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, COUNT(*) FROM art WHERE century IN ($s_list) AND field <> $s GROUP BY CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END",
+  "features": [
+   "century@where",
+   "field@group",
+   "field@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.century": [
+    "20th",
+    "20th-21st"
+   ],
+   "art.field": [
+    "Painting",
+    "Photography",
+    "Sculpture"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q3",
+  "sql": "SELECT birth_continent, CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' AND tone != '' GROUP BY birth_continent, tone_family",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT birth_continent, CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END, COUNT(*) FROM art WHERE birth_continent <> $s AND tone <> $s GROUP BY birth_continent, CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END",
+  "features": [
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where",
+   "tone@group",
+   "tone@select",
+   "tone@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.tone": [
+    "Bright",
+    "Dark",
+    "Neutral",
+    "Warm"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 29,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q7",
+  "sql": "SELECT century, CASE WHEN nationality = 'American' THEN 'American' WHEN nationality != '' THEN 'non_American' END AS nationality_group, COUNT(*) AS artist_count FROM art WHERE century != '' AND nationality != '' GROUP BY century, nationality_group",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT century, CASE WHEN nationality = $s THEN $s WHEN nationality <> $s THEN $s END, COUNT(*) FROM art WHERE century <> $s AND nationality <> $s GROUP BY century, CASE WHEN nationality = $s THEN $s WHEN nationality <> $s THEN $s END",
+  "features": [
+   "century@group",
+   "century@select",
+   "century@where",
+   "nationality@group",
+   "nationality@select",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.nationality": [
+    "American"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q13",
+  "sql": "SELECT style, COUNT(*) AS artist_count FROM art WHERE tone IN ('Bright', 'Dark') AND style != '' GROUP BY style HAVING COUNT(*) >= 5",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT style, COUNT(*) FROM art WHERE tone IN ($s_list) AND style <> $s GROUP BY style HAVING COUNT(*) >= $n",
+  "features": [
+   "style@group",
+   "style@select",
+   "style@where",
+   "tone@where"
+  ],
+  "attributes": {
+   "art": [
+    "style",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.tone": [
+    "Bright",
+    "Dark"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 23,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q1",
+  "sql": "SELECT birth_continent, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(awards) AS total_awards FROM art WHERE birth_continent != '' AND age BETWEEN 25 AND 105 GROUP BY birth_continent HAVING COUNT(*) >= 5",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT birth_continent, COUNT(*), AVG(age), SUM(awards) FROM art WHERE birth_continent <> $s AND age BETWEEN $n AND $n GROUP BY birth_continent HAVING COUNT(*) >= $n",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 6,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q12",
+  "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND field != '' GROUP BY field_family",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, COUNT(*) FROM art WHERE birth_country IN ($s_list) AND field <> $s GROUP BY CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END",
+  "features": [
+   "birth_country@where",
+   "field@group",
+   "field@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_country",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "France",
+    "Germany",
+    "Italy",
+    "United Kingdom",
+    "United States"
+   ],
+   "art.field": [
+    "Painting",
+    "Photography",
+    "Sculpture"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q7",
+  "sql": "SELECT image_genre, COUNT(*) AS artist_count FROM art WHERE image_genre != '' GROUP BY image_genre HAVING COUNT(*) >= 10",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT image_genre, COUNT(*) FROM art WHERE image_genre <> $s GROUP BY image_genre HAVING COUNT(*) >= $n",
+  "features": [
+   "image_genre@group",
+   "image_genre@select",
+   "image_genre@where"
+  ],
+  "attributes": {
+   "art": [
+    "image_genre"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 13,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q5",
+  "sql": "SELECT style, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS awarded_count FROM art WHERE style != '' AND age BETWEEN 25 AND 105 GROUP BY style HAVING COUNT(*) >= 12",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT style, COUNT(*), AVG(age), SUM(CASE WHEN awards >= $n THEN $n ELSE $n END) FROM art WHERE style <> $s AND age BETWEEN $n AND $n GROUP BY style HAVING COUNT(*) >= $n",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "style@group",
+   "style@select",
+   "style@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "style"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 13,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q2",
+  "sql": "SELECT CASE WHEN art_institution != '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count FROM art GROUP BY institution_status",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT CASE WHEN art_institution <> $s THEN $s ELSE $s END, COUNT(*) FROM art GROUP BY CASE WHEN art_institution <> $s THEN $s ELSE $s END",
+  "features": [
+   "art_institution@group",
+   "art_institution@select"
+  ],
+  "attributes": {
+   "art": [
+    "art_institution"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q16",
+  "sql": "SELECT birth_country, COUNT(*) AS artist_count FROM art WHERE birth_country != '' GROUP BY birth_country HAVING COUNT(*) >= 10",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT birth_country, COUNT(*) FROM art WHERE birth_country <> $s GROUP BY birth_country HAVING COUNT(*) >= $n",
+  "features": [
+   "birth_country@group",
+   "birth_country@select",
+   "birth_country@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_country"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 21,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q16",
+  "sql": "SELECT teaching, COUNT(*) AS artist_count FROM art WHERE age >= 80 AND age <= 105 AND teaching IS NOT NULL GROUP BY teaching",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT teaching, COUNT(*) FROM art WHERE age >= $n AND age <= $n AND NOT teaching IS NULL GROUP BY teaching",
+  "features": [
+   "age@where",
+   "teaching@group",
+   "teaching@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q2",
+  "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE teaching = 1 AND century != '' GROUP BY century",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT century, COUNT(*) FROM art WHERE teaching = $n AND century <> $s GROUP BY century",
+  "features": [
+   "century@group",
+   "century@select",
+   "century@where",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q0",
+  "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, century, COUNT(*) AS artist_count FROM art WHERE field != '' AND century != '' GROUP BY field_family, century",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, century, COUNT(*) FROM art WHERE field <> $s AND century <> $s GROUP BY CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, century",
+  "features": [
+   "century@group",
+   "century@select",
+   "century@where",
+   "field@group",
+   "field@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Painting",
+    "Photography",
+    "Sculpture"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 15,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q4",
+  "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE nationality IN ('American', 'French', 'British', 'German') AND age BETWEEN 40 AND 90 AND century != '' GROUP BY century",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT century, COUNT(*) FROM art WHERE nationality IN ($s_list) AND age BETWEEN $n AND $n AND century <> $s GROUP BY century",
+  "features": [
+   "age@where",
+   "century@group",
+   "century@select",
+   "century@where",
+   "nationality@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century",
+    "nationality"
+   ]
+  },
+  "literals": {
+   "art.nationality": [
+    "American",
+    "British",
+    "French",
+    "German"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q5",
+  "sql": "SELECT birth_continent, AVG(age) AS avg_age FROM art WHERE birth_continent != '' AND age BETWEEN 25 AND 105 GROUP BY birth_continent",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT birth_continent, AVG(age) FROM art WHERE birth_continent <> $s AND age BETWEEN $n AND $n GROUP BY birth_continent",
+  "features": [
+   "age@select",
+   "age@where",
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 7,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q6",
+  "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE field != '' GROUP BY field_family",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, COUNT(*) FROM art WHERE field <> $s GROUP BY CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END",
+  "features": [
+   "field@group",
+   "field@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "field"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Painting",
+    "Photography",
+    "Sculpture"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q0",
+  "sql": "SELECT century, COUNT(*) AS artist_count, AVG(age) AS avg_age, MAX(awards) AS max_awards FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT century, COUNT(*), AVG(age), MAX(awards) FROM art WHERE century <> $s AND age BETWEEN $n AND $n GROUP BY century",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q13",
+  "sql": "SELECT CASE WHEN birth_continent IN ('Europe', 'North America', 'Asia') THEN birth_continent ELSE 'Other' END AS continent_group, COUNT(*) AS artist_count, AVG(awards) AS avg_awards, MAX(awards) AS max_awards, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE birth_continent != '' GROUP BY continent_group",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT CASE WHEN birth_continent IN ($s_list) THEN birth_continent ELSE $s END, COUNT(*), AVG(awards), MAX(awards), SUM(CASE WHEN teaching = $n THEN $n ELSE $n END) FROM art WHERE birth_continent <> $s GROUP BY CASE WHEN birth_continent IN ($s_list) THEN birth_continent ELSE $s END",
+  "features": [
+   "awards@select",
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_continent",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.birth_continent": [
+    "Asia",
+    "Europe",
+    "North America"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q9",
+  "sql": "SELECT CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color != '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE color != '' GROUP BY color_family",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT CASE WHEN color IN ($s_list) THEN color WHEN color <> $s THEN $s END, COUNT(*) FROM art WHERE color <> $s GROUP BY CASE WHEN color IN ($s_list) THEN color WHEN color <> $s THEN $s END",
+  "features": [
+   "color@group",
+   "color@select",
+   "color@where"
+  ],
+  "attributes": {
+   "art": [
+    "color"
+   ]
+  },
+  "literals": {
+   "art.color": [
+    "Black And White",
+    "Blue",
+    "Brown",
+    "Earth Tones",
+    "Green",
+    "Red",
+    "Yellow"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q12",
+  "sql": "SELECT birth_country, century, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND century != '' GROUP BY birth_country, century",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT birth_country, century, COUNT(*) FROM art WHERE birth_country IN ($s_list) AND century <> $s GROUP BY birth_country, century",
+  "features": [
+   "birth_country@group",
+   "birth_country@select",
+   "birth_country@where",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_country",
+    "century"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "France",
+    "Germany",
+    "Italy",
+    "United Kingdom",
+    "United States"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 20,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q1",
+  "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE awards >= 1 AND birth_continent != '' GROUP BY birth_continent",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT birth_continent, COUNT(*) FROM art WHERE awards >= $n AND birth_continent <> $s GROUP BY birth_continent",
+  "features": [
+   "awards@where",
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 6,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q6",
+  "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards FROM art WHERE tone != '' AND age BETWEEN 25 AND 105 GROUP BY tone_family",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END, COUNT(*), AVG(age), AVG(awards) FROM art WHERE tone <> $s AND age BETWEEN $n AND $n GROUP BY CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "tone@group",
+   "tone@select",
+   "tone@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.tone": [
+    "Bright",
+    "Dark",
+    "Neutral",
+    "Warm"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q18",
+  "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE field != '' GROUP BY field_family, award_status",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, CASE WHEN awards >= $n THEN $s ELSE $s END, COUNT(*) FROM art WHERE field <> $s GROUP BY CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, CASE WHEN awards >= $n THEN $s ELSE $s END",
+  "features": [
+   "awards@group",
+   "awards@select",
+   "field@group",
+   "field@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Painting",
+    "Photography",
+    "Sculpture"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q10",
+  "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count FROM art WHERE tone != '' GROUP BY tone_family",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END, COUNT(*) FROM art WHERE tone <> $s GROUP BY CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END",
+  "features": [
+   "tone@group",
+   "tone@select",
+   "tone@where"
+  ],
+  "attributes": {
+   "art": [
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.tone": [
+    "Bright",
+    "Dark",
+    "Neutral",
+    "Warm"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q8",
+  "sql": "SELECT birth_continent, CASE WHEN death_country != '' AND death_country != birth_country THEN 'died_abroad' WHEN death_country != '' THEN 'died_in_birth_country' ELSE 'death_country_unknown' END AS death_place, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' GROUP BY birth_continent, death_place",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT birth_continent, CASE WHEN death_country <> $s AND death_country <> birth_country THEN $s WHEN death_country <> $s THEN $s ELSE $s END, COUNT(*) FROM art WHERE birth_continent <> $s GROUP BY birth_continent, CASE WHEN death_country <> $s AND death_country <> birth_country THEN $s WHEN death_country <> $s THEN $s ELSE $s END",
+  "features": [
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where",
+   "birth_country@group",
+   "birth_country@select",
+   "death_country@group",
+   "death_country@select"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "birth_country",
+    "death_country"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 19,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q0",
+  "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' GROUP BY birth_continent",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT birth_continent, COUNT(*) FROM art WHERE birth_continent <> $s GROUP BY birth_continent",
+  "features": [
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 7,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q11",
+  "sql": "SELECT style, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Romanticism', 'Impressionism', 'Realism', 'Surrealism', 'Abstract Expressionism') AND teaching IS NOT NULL GROUP BY style, teaching_status",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT style, CASE WHEN teaching = $n THEN $s ELSE $s END, COUNT(*) FROM art WHERE style IN ($s_list) AND NOT teaching IS NULL GROUP BY style, CASE WHEN teaching = $n THEN $s ELSE $s END",
+  "features": [
+   "style@group",
+   "style@select",
+   "style@where",
+   "teaching@group",
+   "teaching@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "style",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.style": [
+    "Abstract Expressionism",
+    "Expressionism",
+    "Impressionism",
+    "Realism",
+    "Romanticism",
+    "Surrealism"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q14",
+  "sql": "SELECT century, COUNT(*) AS artist_count, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS awarded_count, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count, AVG(age) AS avg_age FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT century, COUNT(*), SUM(CASE WHEN awards >= $n THEN $n ELSE $n END), SUM(CASE WHEN teaching = $n THEN $n ELSE $n END), AVG(age) FROM art WHERE century <> $s AND age BETWEEN $n AND $n GROUP BY century",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "century@group",
+   "century@select",
+   "century@where",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "century",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q17",
+  "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, AVG(age) AS avg_age FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract') AND age BETWEEN 25 AND 105 GROUP BY tone_family",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END, AVG(age) FROM art WHERE image_genre IN ($s_list) AND age BETWEEN $n AND $n GROUP BY CASE WHEN tone IN ($s_list) THEN tone WHEN tone <> $s THEN $s END",
+  "features": [
+   "age@select",
+   "age@where",
+   "image_genre@where",
+   "tone@group",
+   "tone@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "image_genre",
+    "tone"
+   ]
+  },
+  "literals": {
+   "art.image_genre": [
+    "Abstract",
+    "Landscape",
+    "Portrait",
+    "Still Life"
+   ],
+   "art.tone": [
+    "Bright",
+    "Dark",
+    "Neutral",
+    "Warm"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 5,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q15",
+  "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, century, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards FROM art WHERE field != '' AND century != '' AND age BETWEEN 25 AND 105 GROUP BY field_family, century HAVING COUNT(*) >= 5",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, century, COUNT(*), AVG(age), AVG(awards) FROM art WHERE field <> $s AND century <> $s AND age BETWEEN $n AND $n GROUP BY CASE WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s WHEN field LIKE $s THEN $s ELSE $s END, century HAVING COUNT(*) >= $n",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "century@group",
+   "century@select",
+   "century@where",
+   "field@group",
+   "field@select",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "century",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Painting",
+    "Photography",
+    "Sculpture"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 13,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q19",
+  "sql": "SELECT birth_continent, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN death_country != '' AND death_country != birth_country THEN 1 ELSE 0 END) AS died_abroad_count, MAX(awards) AS max_awards FROM art WHERE birth_continent != '' AND age BETWEEN 25 AND 105 GROUP BY birth_continent HAVING COUNT(*) >= 5",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT birth_continent, COUNT(*), AVG(age), SUM(CASE WHEN death_country <> $s AND death_country <> birth_country THEN $n ELSE $n END), MAX(awards) FROM art WHERE birth_continent <> $s AND age BETWEEN $n AND $n GROUP BY birth_continent HAVING COUNT(*) >= $n",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where",
+   "birth_country@select",
+   "death_country@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "birth_continent",
+    "birth_country",
+    "death_country"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 6,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q6",
+  "sql": "SELECT image_genre, COUNT(*) AS artist_count FROM art WHERE teaching = 1 AND awards = 0 AND image_genre != '' GROUP BY image_genre HAVING COUNT(*) >= 3",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT image_genre, COUNT(*) FROM art WHERE teaching = $n AND awards = $n AND image_genre <> $s GROUP BY image_genre HAVING COUNT(*) >= $n",
+  "features": [
+   "awards@where",
+   "image_genre@group",
+   "image_genre@select",
+   "image_genre@where",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "image_genre",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 9,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q14",
+  "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE death_country != '' AND death_country != birth_country AND birth_continent != '' GROUP BY birth_continent",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT birth_continent, COUNT(*) FROM art WHERE death_country <> $s AND death_country <> birth_country AND birth_continent <> $s GROUP BY birth_continent",
+  "features": [
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where",
+   "birth_country@where",
+   "death_country@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "birth_country",
+    "death_country"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 6,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q4",
+  "sql": "SELECT CASE WHEN awards = 0 THEN 'no_awards' WHEN awards = 1 THEN 'one_award' ELSE 'multiple_awards' END AS award_band, teaching, COUNT(*) AS artist_count FROM art WHERE teaching IS NOT NULL AND awards IS NOT NULL GROUP BY award_band, teaching",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT CASE WHEN awards = $n THEN $s WHEN awards = $n THEN $s ELSE $s END, teaching, COUNT(*) FROM art WHERE NOT teaching IS NULL AND NOT awards IS NULL GROUP BY CASE WHEN awards = $n THEN $s WHEN awards = $n THEN $s ELSE $s END, teaching",
+  "features": [
+   "awards@group",
+   "awards@select",
+   "awards@where",
+   "teaching@group",
+   "teaching@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 7,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q1",
+  "sql": "SELECT birth_continent, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' AND teaching IS NOT NULL GROUP BY birth_continent, teaching_status",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT birth_continent, CASE WHEN teaching = $n THEN $s ELSE $s END, COUNT(*) FROM art WHERE birth_continent <> $s AND NOT teaching IS NULL GROUP BY birth_continent, CASE WHEN teaching = $n THEN $s ELSE $s END",
+  "features": [
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where",
+   "teaching@group",
+   "teaching@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_continent",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 13,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q5",
+  "sql": "SELECT image_genre, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract', 'Sculpture', 'Figurative') GROUP BY image_genre, award_status",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT image_genre, CASE WHEN awards >= $n THEN $s ELSE $s END, COUNT(*) FROM art WHERE image_genre IN ($s_list) GROUP BY image_genre, CASE WHEN awards >= $n THEN $s ELSE $s END",
+  "features": [
+   "awards@group",
+   "awards@select",
+   "image_genre@group",
+   "image_genre@select",
+   "image_genre@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "image_genre"
+   ]
+  },
+  "literals": {
+   "art.image_genre": [
+    "Abstract",
+    "Figurative",
+    "Landscape",
+    "Portrait",
+    "Sculpture",
+    "Still Life"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 12,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q12",
+  "sql": "SELECT birth_continent, MAX(awards) AS max_awards FROM art WHERE birth_continent != '' GROUP BY birth_continent",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT birth_continent, MAX(awards) FROM art WHERE birth_continent <> $s GROUP BY birth_continent",
+  "features": [
+   "awards@select",
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_continent"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 7,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q17",
+  "sql": "SELECT style, COUNT(*) AS artist_count, AVG(age) AS avg_age, MAX(awards) AS max_awards FROM art WHERE style IN ('Expressionism', 'Romanticism', 'Impressionism', 'Realism', 'Surrealism', 'Abstract Expressionism', 'Pop Art', 'Minimalism') AND age BETWEEN 25 AND 105 GROUP BY style",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT style, COUNT(*), AVG(age), MAX(awards) FROM art WHERE style IN ($s_list) AND age BETWEEN $n AND $n GROUP BY style",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "style@group",
+   "style@select",
+   "style@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "style"
+   ]
+  },
+  "literals": {
+   "art.style": [
+    "Abstract Expressionism",
+    "Expressionism",
+    "Impressionism",
+    "Minimalism",
+    "Pop Art",
+    "Realism",
+    "Romanticism",
+    "Surrealism"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q8",
+  "sql": "SELECT century, COUNT(*) AS artist_count, MIN(age) AS youngest, MAX(age) AS oldest, AVG(awards) AS avg_awards FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT century, COUNT(*), MIN(age), MAX(age), AVG(awards) FROM art WHERE century <> $s AND age BETWEEN $n AND $n GROUP BY century",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q4",
+  "sql": "SELECT image_genre, COUNT(*) AS artist_count, AVG(awards) AS avg_awards, MAX(age) AS oldest FROM art WHERE image_genre != '' AND age BETWEEN 25 AND 105 GROUP BY image_genre HAVING COUNT(*) >= 10",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT image_genre, COUNT(*), AVG(awards), MAX(age) FROM art WHERE image_genre <> $s AND age BETWEEN $n AND $n GROUP BY image_genre HAVING COUNT(*) >= $n",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "image_genre@group",
+   "image_genre@select",
+   "image_genre@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "image_genre"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 11,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q9",
+  "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE field LIKE '%Painting%' AND age BETWEEN 50 AND 90 AND birth_continent != '' GROUP BY birth_continent",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT birth_continent, COUNT(*) FROM art WHERE field LIKE $s AND age BETWEEN $n AND $n AND birth_continent <> $s GROUP BY birth_continent",
+  "features": [
+   "age@where",
+   "birth_continent@group",
+   "birth_continent@select",
+   "birth_continent@where",
+   "field@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "birth_continent",
+    "field"
+   ]
+  },
+  "literals": {
+   "art.field": [
+    "Painting"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 7,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q7",
+  "sql": "SELECT CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color != '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Impressionism', 'Surrealism', 'Realism') AND color != '' GROUP BY color_family",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT CASE WHEN color IN ($s_list) THEN color WHEN color <> $s THEN $s END, COUNT(*) FROM art WHERE style IN ($s_list) AND color <> $s GROUP BY CASE WHEN color IN ($s_list) THEN color WHEN color <> $s THEN $s END",
+  "features": [
+   "color@group",
+   "color@select",
+   "color@where",
+   "style@where"
+  ],
+  "attributes": {
+   "art": [
+    "color",
+    "style"
+   ]
+  },
+  "literals": {
+   "art.style": [
+    "Expressionism",
+    "Impressionism",
+    "Realism",
+    "Surrealism"
+   ],
+   "art.color": [
+    "Black And White",
+    "Blue",
+    "Brown",
+    "Earth Tones",
+    "Green",
+    "Red",
+    "Yellow"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 8,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q11",
+  "sql": "SELECT CASE WHEN art_institution != '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards FROM art WHERE age BETWEEN 25 AND 105 GROUP BY institution_status",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT CASE WHEN art_institution <> $s THEN $s ELSE $s END, COUNT(*), AVG(age), AVG(awards) FROM art WHERE age BETWEEN $n AND $n GROUP BY CASE WHEN art_institution <> $s THEN $s ELSE $s END",
+  "features": [
+   "age@select",
+   "age@where",
+   "art_institution@group",
+   "art_institution@select",
+   "awards@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "art_institution",
+    "awards"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q18",
+  "sql": "SELECT CASE WHEN awards = 0 THEN 'no_awards' WHEN awards = 1 THEN 'one_award' ELSE 'multiple_awards' END AS award_band, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE awards IS NOT NULL AND age BETWEEN 25 AND 105 GROUP BY award_band",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT CASE WHEN awards = $n THEN $s WHEN awards = $n THEN $s ELSE $s END, COUNT(*), AVG(age), SUM(CASE WHEN teaching = $n THEN $n ELSE $n END) FROM art WHERE NOT awards IS NULL AND age BETWEEN $n AND $n GROUP BY CASE WHEN awards = $n THEN $s WHEN awards = $n THEN $s ELSE $s END",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@group",
+   "awards@select",
+   "awards@where",
+   "teaching@select"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q4",
+  "sql": "SELECT century, AVG(age) AS avg_age FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT century, AVG(age) FROM art WHERE century <> $s AND age BETWEEN $n AND $n GROUP BY century",
+  "features": [
+   "age@select",
+   "age@where",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_groupby20:q14",
+  "sql": "SELECT birth_country, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND teaching IS NOT NULL GROUP BY birth_country, teaching_status",
+  "sources": [
+   "case80:art_groupby20"
+  ],
+  "template": "SELECT birth_country, CASE WHEN teaching = $n THEN $s ELSE $s END, COUNT(*) FROM art WHERE birth_country IN ($s_list) AND NOT teaching IS NULL GROUP BY birth_country, CASE WHEN teaching = $n THEN $s ELSE $s END",
+  "features": [
+   "birth_country@group",
+   "birth_country@select",
+   "birth_country@where",
+   "teaching@group",
+   "teaching@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "birth_country",
+    "teaching"
+   ]
+  },
+  "literals": {
+   "art.birth_country": [
+    "France",
+    "Germany",
+    "Italy",
+    "United Kingdom",
+    "United States"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 10,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q11",
+  "sql": "SELECT CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE awards IS NOT NULL GROUP BY award_status",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT CASE WHEN awards >= $n THEN $s ELSE $s END, COUNT(*) FROM art WHERE NOT awards IS NULL GROUP BY CASE WHEN awards >= $n THEN $s ELSE $s END",
+  "features": [
+   "awards@group",
+   "awards@select",
+   "awards@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 2,
+  "reason": ""
+ },
+ {
+  "id": "art_multiagg20:q9",
+  "sql": "SELECT birth_country, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(awards) AS total_awards FROM art WHERE birth_country != '' AND age BETWEEN 25 AND 105 GROUP BY birth_country HAVING COUNT(*) >= 8",
+  "sources": [
+   "case80:art_multiagg20"
+  ],
+  "template": "SELECT birth_country, COUNT(*), AVG(age), SUM(awards) FROM art WHERE birth_country <> $s AND age BETWEEN $n AND $n GROUP BY birth_country HAVING COUNT(*) >= $n",
+  "features": [
+   "age@select",
+   "age@where",
+   "awards@select",
+   "birth_country@group",
+   "birth_country@select",
+   "birth_country@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "awards",
+    "birth_country"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 20,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q13",
+  "sql": "SELECT century, SUM(awards) AS total_awards FROM art WHERE century != '' GROUP BY century",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT century, SUM(awards) FROM art WHERE century <> $s GROUP BY century",
+  "features": [
+   "awards@select",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "century"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q17",
+  "sql": "SELECT image_genre, AVG(age) AS avg_age FROM art WHERE image_genre != '' AND age BETWEEN 25 AND 105 GROUP BY image_genre HAVING COUNT(*) >= 10",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT image_genre, AVG(age) FROM art WHERE image_genre <> $s AND age BETWEEN $n AND $n GROUP BY image_genre HAVING COUNT(*) >= $n",
+  "features": [
+   "age@select",
+   "age@where",
+   "image_genre@group",
+   "image_genre@select",
+   "image_genre@where"
+  ],
+  "attributes": {
+   "art": [
+    "age",
+    "image_genre"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 11,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q8",
+  "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE awards >= 1 AND teaching = 1 AND century != '' GROUP BY century",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT century, COUNT(*) FROM art WHERE awards >= $n AND teaching = $n AND century <> $s GROUP BY century",
+  "features": [
+   "awards@where",
+   "century@group",
+   "century@select",
+   "century@where",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "century",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q11",
+  "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE birth_continent = 'Europe' AND awards >= 1 AND century != '' GROUP BY century",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT century, COUNT(*) FROM art WHERE birth_continent = $s AND awards >= $n AND century <> $s GROUP BY century",
+  "features": [
+   "awards@where",
+   "birth_continent@where",
+   "century@group",
+   "century@select",
+   "century@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "birth_continent",
+    "century"
+   ]
+  },
+  "literals": {
+   "art.birth_continent": [
+    "Europe"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_filter20:q15",
+  "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE genre IN ('Abstract', 'Landscape', 'Portrait') AND century != '' GROUP BY century",
+  "sources": [
+   "case80:art_filter20"
+  ],
+  "template": "SELECT century, COUNT(*) FROM art WHERE genre IN ($s_list) AND century <> $s GROUP BY century",
+  "features": [
+   "century@group",
+   "century@select",
+   "century@where",
+   "genre@where"
+  ],
+  "attributes": {
+   "art": [
+    "century",
+    "genre"
+   ]
+  },
+  "literals": {
+   "art.genre": [
+    "Abstract",
+    "Landscape",
+    "Portrait"
+   ]
+  },
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 4,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q3",
+  "sql": "SELECT teaching, COUNT(*) AS artist_count FROM art WHERE teaching IS NOT NULL GROUP BY teaching",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT teaching, COUNT(*) FROM art WHERE NOT teaching IS NULL GROUP BY teaching",
+  "features": [
+   "teaching@group",
+   "teaching@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ },
+ {
+  "id": "art_agg20:q14",
+  "sql": "SELECT teaching, AVG(awards) AS avg_awards FROM art WHERE teaching IS NOT NULL GROUP BY teaching",
+  "sources": [
+   "case80:art_agg20"
+  ],
+  "template": "SELECT teaching, AVG(awards) FROM art WHERE NOT teaching IS NULL GROUP BY teaching",
+  "features": [
+   "awards@select",
+   "teaching@group",
+   "teaching@select",
+   "teaching@where"
+  ],
+  "attributes": {
+   "art": [
+    "awards",
+    "teaching"
+   ]
+  },
+  "literals": {},
+  "scorable": true,
+  "valid": true,
+  "gold_rows": 3,
+  "reason": ""
+ }
+]
