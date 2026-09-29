@@ -127,7 +127,8 @@ REGISTRY: dict[str, CorpusSpec] = {
             ("institution", "institution", SOURCE / "Healthcare" / "institutes_small"),
         ],
         [QUERY / "Med" / "Med_attributes.json"],
-        RESULTS / "quwarts_med_repair80" / "artifacts" / "databases" / "ab189be670f0c82c.db",
+        # No incumbent: the earlier repair80 database has rows for only 70/70/75 of the 100/98/99 documents,
+        # and its empty join-key __canonical columns made every rewritten join return nothing.
     ),
     "finan": _spec(
         "finan",

@@ -7,8 +7,10 @@ QuWARTS only, on the design in `README.md`.
 
 Queries that read a table's `id` were removed (Med 52, Legal 5, Player 2): the key maps a gold row to its document and is not in the documents. The first run, which still had them, is in `_superseded_id_queries/`.
 
+**Med correction (2026-09-29, after the first version of this file).** Med's databases were built on an old incumbent database from an earlier repair experiment, with rows for only 70/70/75 of the 100/98/99 documents. Its empty join-key `__canonical` columns also made every rewritten join return nothing. The registry no longer names an incumbent for Med, so Med is now built from its documents like Art, CSPaper and Player. No model calls were needed. Med's drift results were replayed and the numbers above updated; the old run is in `_superseded_med_incumbent/`. The Med rebuild-quality rows in `REBUILD_QUALITY.md` predate the fix.
+
 ## In one paragraph
-When queries start asking about columns the build never extracted, a build that does not adapt breaks, and the controller recovers it: at 100% attribute drift, the mean over six corpora is 0.031 for static and 0.238 for adaptive. Reading a document costs about the same whether the prompt asks for 10 fields or 25. So extracting every schema column up front costs 1.06–1.57× the minimal build, while going back to the documents for a missing column costs almost a second read. Under attribute drift:
+When queries start asking about columns the build never extracted, a build that does not adapt breaks, and the controller recovers it: at 100% attribute drift, the mean over six corpora is 0.028 for static and 0.249 for adaptive. Reading a document costs about the same whether the prompt asks for 10 fields or 25. So extracting every schema column up front costs 1.06–1.57× the minimal build, while going back to the documents for a missing column costs almost a second read. Under attribute drift:
 - robust build + controller: **1.02×** the clairvoyant build;
 - lean build + controller: **1.64×**.
 
@@ -39,12 +41,12 @@ QuWARTS should read the whole schema at build time and keep the controller as th
 | CSPaper | 0.028 | 0.184 | +0.156 [+0.100, +0.217] |
 | Player | 0.035 | 0.409 | +0.374 [+0.310, +0.437] |
 | Art | 0.053 | 0.233 | +0.180 [+0.128, +0.238] |
-| Med | 0.054 | 0.174 | +0.120 [+0.064, +0.180] |
+| Med | 0.036 | 0.238 | +0.202 [+0.135, +0.273] |
 | Legal | 0.011 | 0.224 | +0.214 [+0.169, +0.261] |
 | Finan | 0.006 | 0.205 | +0.198 [+0.144, +0.255] |
 
-- On the combined axis the mean gap is +0.106. The tolerant metric agrees (+0.158 to +0.387).
-- On gradual streams, the last quarter of the attribute axis is at 0.012–0.109 for static and 0.19–0.41 for adaptive.
+- On the combined axis the mean gap is +0.111. The tolerant metric agrees (+0.169 to +0.387).
+- On gradual streams, the last quarter of the attribute axis is at 0.012–0.109 for static and 0.20–0.41 for adaptive.
 
 **2. Build robust, not lean.**
 - **Cost ratio R/L.** The robust read costs this multiple of the lean read:

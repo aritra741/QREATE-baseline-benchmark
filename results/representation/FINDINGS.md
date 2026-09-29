@@ -1,3 +1,10 @@
+> **Med correction (2026-09-29).** Every Med number below was computed on an old incumbent database with rows for only 70% of Med's documents. Its empty join-key columns made all 52 Med join queries score 0. Rebuilt from every document, from the same protocol read with no model calls:
+> - Med raw, all queries: 0.187 → 0.262. Join queries: 0.000 → 0.103; single-table queries: 0.395 → 0.438.
+> - Free tiers (T0+T1+ER): 0.310 on all queries (+0.047 [0.025, 0.073] over raw, from entity resolution on the join keys). Held-out: 0.334, against DocETL's 0.298.
+> - Held-out macro over six corpora: raw 0.293, free tiers 0.311, DocETL 0.198.
+>
+> The old Med databases and reports are in `results/quwarts_router_v3/med_chain/superseded_incumbent_70pct/`.
+
 # Representation layer and tolerant evaluator (branch `representation`, 2026-09-29)
 
 Code:

@@ -1,8 +1,8 @@
 | Corpus | Mode | budget | tokens planned | tokens spent | columns chosen | all bench | all tolerant | held-out bench |
 |---|---|---:|---:|---:|---|---:|---:|---:|
-| med | all | ∞ | 0 | 0 | 0 | 0.187 | 0.269 | 0.273 |
-| med | cascade | ∞ | 0 | 0 | 0 | 0.187 | 0.269 | 0.273 |
-| med | free | 0 | 0 | 0 | 0 | 0.187 | 0.269 | 0.273 |
+| med | all | ∞ | 0 | 0 | 0 | 0.310 | 0.309 | 0.334 |
+| med | cascade | ∞ | 0 | 0 | 0 | 0.310 | 0.309 | 0.334 |
+| med | free | 0 | 0 | 0 | 0 | 0.310 | 0.309 | 0.334 |
 | finan | all | ∞ | 1,314 | 1,053 | 2 | 0.313 | 0.333 | 0.275 |
 | finan | cascade | ∞ | 1,314 | 823 | 2 | 0.313 | 0.333 | 0.275 |
 | finan | free | 0 | 0 | 0 | 0 | 0.313 | 0.333 | 0.275 |
