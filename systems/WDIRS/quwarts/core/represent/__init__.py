@@ -46,6 +46,7 @@ class Config:
     er_model: bool = False
     group: bool = True
     demos: bool = True  # the model sees the column's own rewrites as demonstrations
+    cardinality: bool = True  # equality-only use of a declared multi-valued column reads it as single-valued
 
     @property
     def name(self) -> str:
@@ -58,6 +59,8 @@ class Config:
             n += "+er_model"
         if self.t2 != "none" and not self.demos:
             n += "+nodemo"
+        if not self.cardinality:
+            n += "+declared_cardinality"
         return n
 
 
@@ -82,7 +85,7 @@ def build(raw_db: Path, dest: Path, spec, fields: dict[str, Any], queries: dict[
     if not config.t0:
         return manifest
     uses = grammar(spec, queries)
-    tg = {k: t for k, t in targets(uses, fields).items() if not t.numeric and t.uses > 0}
+    tg = {k: t for k, t in targets(uses, fields, config.cardinality).items() if not t.numeric and t.uses > 0}
     conn = sqlite3.connect(dest)
     tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
     tg = {k: t for k, t in tg.items() if k[0] in tables and k[1] in {r[1] for r in conn.execute(f'PRAGMA table_info("{k[0]}")')}}

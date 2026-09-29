@@ -72,7 +72,7 @@ class Target:
         return {self.fold(v): v for v in self.vocabulary}
 
 
-def targets(uses: dict[tuple[str, str], ColumnUse], fields: dict[str, Any]) -> dict[tuple[str, str], Target]:
+def targets(uses: dict[tuple[str, str], ColumnUse], fields: dict[str, Any], cardinality: bool = True) -> dict[tuple[str, str], Target]:
     out = {}
     for key, u in uses.items():
         f = fields.get(f"{key[0]}.{key[1]}")
@@ -82,7 +82,7 @@ def targets(uses: dict[tuple[str, str], ColumnUse], fields: dict[str, Any]) -> d
         declared_multi = bool(f and (f.value_type.startswith("multi") or f.multi_choice))
         # The workload's operators imply cardinality: a column it only ever compares with constants by
         # equality or IN (never LIKE) is read as one value per row, whatever the declaration allows.
-        multi = declared_multi and not (u.equality and not u.like)
+        multi = declared_multi and not (cardinality and u.equality and not u.like)
         out[key] = Target(key[0], key[1], getattr(f, "description", "") or "", vocab, bool(choices),
                           sorted(x for x in u.like if x), u.case_convention, u.separator, u.shapes,
                           multi, numeric, u.exact_uses,
