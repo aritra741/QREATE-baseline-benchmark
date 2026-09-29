@@ -75,7 +75,7 @@ Gold is used only as a query generator uses it: to validate queries and draw con
   - The controller's novelty test, which counts unseen features, tracks the design.
 - **QB5000 templates** keep column names and are nearly unique per query. The structural axis is therefore reported as an operator profile (join, group, having, case, in, like, comparisons, aggregates, ...).
 
-## 6. Runs this design needs (not started)
+## 6. Runs this design needs (done: see `FINDINGS.md` and `RESULTS.md`)
 **Leakage in the existing reads.** Every read we have was prompted with "Workload use" phrases from the old 80% train split. They include literal examples ("compared with specific values, for example 'Frontcourt', ..."). That split overlaps the new drift pools. Replaying those reads would give the build knowledge of future queries, so the experiment needs a read informed by W0 alone.
 
 **One read per corpus covers every policy.**

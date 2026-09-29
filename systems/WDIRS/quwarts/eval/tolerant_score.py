@@ -142,10 +142,13 @@ def _unresolved_signatures(conn) -> bool:
     return True
 
 
-def normalized_copy(src: str | Path, dest: Path) -> Path:
+def normalized_copy(src: str | Path, dest: Path, columns: set[str] | None = None) -> Path:
     """A copy of a predicted database with every attribute cell normalized (signature and internal
     columns untouched). The signature rewrite of the benchmark scorer is a no-op when every signature is
-    unresolved; that is checked, since the tolerant path runs the query directly."""
+    unresolved; that is checked, since the tolerant path runs the query directly.
+
+    ``columns`` (lower-case names): normalize only these; a query's score depends only on the columns it
+    references, so scoring a few queries needs only theirs."""
 
     import shutil
     import sqlite3
@@ -158,7 +161,8 @@ def normalized_copy(src: str | Path, dest: Path) -> Path:
         raise NotImplementedError(f"{src}: resolved signature columns; the tolerant path would differ")
     for (table,) in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall():
         cols = [r[1] for r in conn.execute(f'PRAGMA table_info("{table}")')
-                if r[1] != "doc_id" and not r[1].startswith(("sig_", "__")) and not r[1].endswith("__canonical")]
+                if r[1] != "doc_id" and not r[1].startswith(("sig_", "__")) and not r[1].endswith("__canonical")
+                and (columns is None or r[1].lower() in columns)]
         for col in cols:
             rows_ = conn.execute(f'SELECT rowid, "{col}" FROM "{table}" WHERE typeof("{col}") = \'text\'').fetchall()
             updates = [(cell(v), rowid) for rowid, v in rows_ if cell(v) != v]
