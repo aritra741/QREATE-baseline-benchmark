@@ -2,6 +2,25 @@
 
     QUWARTS_DRIFT_DESIGN=drift_paired python -m quwarts.eval.drift_live --corpus art --run --deadline 165
     QUWARTS_DRIFT_DESIGN=drift_paired python -m quwarts.eval.drift_live --report
+    # a local model (e.g. on a CHPC GPU node; see scripts/chpc/README.md), no deadline:
+    QUWARTS_LLM=ollama QUWARTS_DRIFT_DESIGN=drift_paired python -m quwarts.eval.drift_live --corpus art --run \
+        --streams fixed --deadline 0 --workers 8
+
+Backends (QUWARTS_LLM): ``openrouter`` (default; results in ``results/drift_live``) or ``ollama`` (a local
+server, ``core/llm/ollama.py``; results in ``results/drift_live_ollama``, so answers of the two never mix: the
+build is read again with the local model). For Ollama, ``cost_usd`` is what the same tokens would cost at the
+OpenRouter list price, for comparison; what the run really spends is GPU time (``runtime_s``).
+
+Fixed-question drift levels (``--streams fixed``). The paired streams change the questions between levels
+(each drifted query swaps a column), so a level's score mixes drift with question difficulty. Here the test
+questions are the same at every level: the queries of the ``attribute/100`` stream (``--axes`` adds ``value``
+and ``combined``). What changes is how much of them the build anticipated. At level p, a seeded, nested p% of
+the test queries is withheld and the rest joins the build workload (their columns are read at build time, with
+their descriptions and usage phrases); the stream then answers every test query in order, reading on arrival
+whatever the build did not anticipate. Level 100 is the W0 build (the run above); level 0 anticipates all of
+them. This is the usual design for workload drift: fixed test queries, a varying share of them represented in
+the workload the system was built for (Negi et al., VLDB 2023, train on some templates and test on held-out
+ones; CliffGuard, a design for the past workload evaluated on the shifted one).
 
 What is real here. The replay (``drift_run``) answered every drifted query from a full read made before the
 stream, so drift could not hurt QuWARTS's data. Here nothing is read ahead:
@@ -45,11 +64,16 @@ from quwarts.core.adapt import controller as C
 from quwarts.eval import drift_run as R
 
 CORPORA = ["cspaper", "art", "legal", "player", "med"]
+ALL_CORPORA = CORPORA + ["finan"]
+FIXED_LEVELS = (100, 0, 50, 25, 75)  # 100 first: it is the W0 build, shared with the paired streams
+FIXED_SEED = 0
 ORDER = ["attribute/100", "combined/100", "value/100", "attribute/0", "attribute/50", "combined/50",
          "attribute/25", "attribute/75", "combined/0", "combined/25", "combined/75", "value/0", "value/25",
          "value/50", "value/75", "attribute/gradual", "combined/gradual", "value/gradual"]
 HEADLINE = ["attribute/100", "value/100", "attribute/0", "combined/0", "value/0"]
-WORKERS = 24
+WORKERS = int(os.environ.get("QUWARTS_WORKERS", 24))
+BACKEND = os.environ.get("QUWARTS_LLM", "openrouter")
+assert BACKEND in ("openrouter", "ollama"), BACKEND
 PRICE = {"input": 0.10 / 1e6, "output": 0.20 / 1e6}  # OpenRouter list price of qwen/qwen-2.5-7b-instruct
 # Ablations of the patch prompt (QUWARTS_LIVE_VARIANT): ``no_literals`` keeps a patched column's usage phrase but
 # drops the example constants from the queries; ``no_usage`` gives a patched column no usage phrase. The build is
@@ -58,9 +82,11 @@ PRICE = {"input": 0.10 / 1e6, "output": 0.20 / 1e6}  # OpenRouter list price of 
 # the known fields give the model the context the build's prompt had. Only the missing columns are written.
 VARIANT = os.environ.get("QUWARTS_LIVE_VARIANT", "")
 assert VARIANT in ("", "no_literals", "no_usage", "with_known"), VARIANT
-BASE = R.RESULTS / "drift_live"
+BASE = Path(os.environ["QUWARTS_LIVE_ROOT"]) if os.environ.get("QUWARTS_LIVE_ROOT") else \
+    R.RESULTS / ("drift_live" if BACKEND == "openrouter" else "drift_live_ollama")  # the override is for tests
 LIVE = BASE / "variants" / VARIANT if VARIANT else BASE
-SCRATCH = Path.home() / "quwarts_scratch" / ("drift_live" + (f"_{VARIANT}" if VARIANT else ""))
+SCRATCH = Path(os.environ.get("QUWARTS_SCRATCH") or Path.home() / "quwarts_scratch") / (
+    ("drift_live" if BACKEND == "openrouter" else "drift_live_ollama") + (f"_{VARIANT}" if VARIANT else ""))
 
 
 def sha(text: str) -> str:
@@ -100,6 +126,31 @@ class Usage:
 
 
 def make_caller(usage: Usage, max_tokens: int = 700):
+    """The backend's caller, every call's input/output tokens and cost recorded in ``usage``."""
+
+    if BACKEND == "ollama":
+        return ollama_caller(usage, max_tokens)
+    return openrouter_caller(usage, max_tokens)
+
+
+def ollama_caller(usage: Usage, max_tokens: int):
+    from quwarts.core.llm import ollama
+
+    models = ollama.ping()  # fail early when the server is not up
+    model = os.environ.get("OLLAMA_MODEL") or ollama.DEFAULT_MODEL
+    if not any(m == model or m.split(":latest")[0] == model for m in models):
+        raise RuntimeError(f"Ollama at {ollama.base_url()} does not have {model} (has {models}); run `ollama pull {model}`")
+
+    def on_usage(prompt: str, u: dict) -> None:
+        usage.add({"sha": sha(prompt), "input": u["input"], "output": u["output"],
+                   "cost": u["input"] * PRICE["input"] + u["output"] * PRICE["output"], "reported_cost": False,
+                   "seconds": u["seconds"], "backend": "ollama", "model": u["model"], "num_ctx": u["num_ctx"],
+                   "maybe_truncated": u["maybe_truncated"]})
+
+    return ollama.make_caller(model=model, max_tokens=max_tokens, on_usage=on_usage)
+
+
+def openrouter_caller(usage: Usage, max_tokens: int):
     """``openrouter.make_caller`` with the prompt/completion split and OpenRouter's cost recorded."""
 
     from openai import APIConnectionError, APIStatusError, APITimeoutError, RateLimitError
@@ -245,6 +296,12 @@ class Incomplete(Exception):
     pass
 
 
+def left_of(stop_at: float) -> float | None:
+    """Seconds left before ``stop_at`` for ``run_reads`` (None: no deadline)."""
+
+    return None if stop_at == float("inf") else stop_at - time.monotonic()
+
+
 def patch_variant(ctx, seen, fields):
     """The patch prompt's ablation for columns outside the build (the build's own fields are unchanged)."""
 
@@ -282,42 +339,75 @@ def all_fields(ctx) -> dict:
     return {**ctx.fields, **ctx.lean_fields}
 
 
-def prepare(corpus: str, caller, deadline: float) -> dict[str, Any] | None:
-    """The build read (reusing the recorded W0-description read), the build database and the static view."""
+class Build:
+    """A build: the workload it was made for, its field specs and reads, and where its databases live.
+    ``w0`` is the build of the build workload (the paired streams and fixed level 100 start from it)."""
 
-    from quwarts.core.represent import Config, build
+    def __init__(self, corpus: str, name: str, workload: dict[str, str]):
+        ctx = R.context(corpus)
+        self.corpus, self.name, self.workload = corpus, name, dict(workload)
+        if name == "w0":
+            self.fields, self.reads = ctx.lean_fields, ctx.lean_reads
+            self.dir, self.meta = scratch(corpus), folder(corpus) / "build.json"
+        else:
+            self.fields, self.reads = C.design(ctx.spec, self.workload)
+            self.dir, self.meta = scratch(corpus) / "builds" / name, folder(corpus) / "builds" / f"{name}.json"
+        self.db, self.static = self.dir / "build.db", self.dir / "static.db"
+
+    def all_fields(self) -> dict:
+        return {**R.context(self.corpus).fields, **self.fields}
+
+    def columns(self) -> list[str]:
+        return sorted(f"{r.table}.{a}" for r in self.reads for a in r.attributes)
+
+
+def w0_build(corpus: str) -> Build:
+    return Build(corpus, "w0", R.context(corpus).w0)
+
+
+def prepare(corpus: str, caller, deadline: float | None, build: Build | None = None) -> dict[str, Any] | None:
+    """The build read, the build database and the static view (the build as it is, representation frozen at
+    its workload). With OpenRouter the W0 build reuses the recorded W0-description read; any missing call is
+    made now and paid. None when stopped by the deadline."""
+
+    from quwarts.core.represent import Config, build as represent
     from quwarts.core.router.executor import run_reads
     from quwarts.eval.router_provenance import build as builder
 
     ctx = R.context(corpus)
-    f, s = folder(corpus), scratch(corpus)
+    b = build or w0_build(corpus)
+    f = folder(corpus)
     f.mkdir(parents=True, exist_ok=True)
-    s.mkdir(parents=True, exist_ok=True)
-    done = f / "build.json"
-    if done.exists() and (s / "build.db").exists() and (s / "static.db").exists():
-        return json.loads(done.read_text())
+    b.dir.mkdir(parents=True, exist_ok=True)
+    if b.meta.exists() and b.db.exists() and b.static.exists():
+        return json.loads(b.meta.read_text())
     j = build_journal(corpus)
-    if not j.exists():
+    if not j.exists() and BACKEND == "openrouter":
         base = BASE / corpus
         shutil.copy2(base / "build_reads.jsonl" if VARIANT and (base / "build_reads.jsonl").exists() else old_read(corpus), j)
         if VARIANT and (base / "usage.jsonl").exists() and not (f / "usage.jsonl").exists():
             shutil.copy2(base / "usage.jsonl", f / "usage.jsonl")  # recorded usage of the shared build calls
-    stats = run_reads(ctx.spec, ctx.lean_reads, {}, ctx.lean_fields, caller, j, 12, long_documents="chain", deadline=deadline)
+    t_start, calls_before = time.monotonic(), len(caller.usage.new)
+    ticker = Ticker(f"{corpus} build {b.name}", caller.usage)
+    try:
+        stats = run_reads(ctx.spec, b.reads, {}, b.fields, caller, j, WORKERS, long_documents="chain", deadline=deadline)
+    finally:
+        ticker.stop()
     if stats.get("stopped_at_deadline"):
         return None
     rows = rows_of(j)
     grouped, shas, missing = {}, [], []
-    for r in ctx.lean_reads:
-        vals, used = values_and_shas(ctx.docs[r.table], r.table, list(r.attributes), ctx.lean_fields, rows)
+    for r in b.reads:
+        vals, used = values_and_shas(ctx.docs[r.table], r.table, list(r.attributes), b.fields, rows)
         shas += used
         missing += [f"{r.table}/{d}" for d in ctx.docs[r.table] if d not in vals]
         for d, v in vals.items():
             grouped.setdefault((r.table, C.SHARED), {})[d] = v
     columns = {f"__schema__:{r.table}": f'SELECT {", ".join(chr(34) + a + chr(34) for a in r.attributes)} FROM "{r.table}"'
                for r in ctx.reads}
-    tmp = s / "build.tmp.db"
-    builder(ctx.spec, ctx.lean_reads, grouped, all_fields(ctx), {**ctx.catalog, **columns}, tmp)
-    keep = {(r.table, a) for r in ctx.lean_reads for a in r.attributes}
+    tmp = b.dir / "build.tmp.db"
+    builder(ctx.spec, b.reads, grouped, b.all_fields(), {**ctx.catalog, **columns}, tmp)
+    keep = {(r.table, a) for r in b.reads for a in r.attributes}
     conn = sqlite3.connect(tmp)
     with conn:
         for r in ctx.reads:
@@ -329,16 +419,72 @@ def prepare(corpus: str, caller, deadline: float) -> dict[str, Any] | None:
                         pass
     conn.close()
     R.complete(corpus, tmp)
-    shutil.move(str(tmp), s / "build.db")
-    build(s / "build.db", s / "static.db", ctx.spec, all_fields(ctx), ctx.w0, Config())
-    usage = caller.usage
-    cost = charge(shas, usage, rows)
-    out = {"corpus": corpus, "calls": cost["calls"], "input": cost["input"], "output": cost["output"],
-           "tokens": cost["input"] + cost["output"], "cost": round(cost["cost"], 4),
-           "estimated_split_calls": cost["estimated_calls"], "calls_made_now": stats.get("planned_calls", 0) + stats.get("chunk_calls", 0),
-           "documents_missing": missing, "w0_columns": sorted(f"{t}.{a}" for t, a in keep)}
-    done.write_text(json.dumps(out, indent=1))
+    shutil.move(str(tmp), b.db)
+    represent(b.db, b.static, ctx.spec, b.all_fields(), b.workload, Config())
+    cost = charge(shas, caller.usage, rows)
+    out = {"corpus": corpus, "build": b.name, "backend": BACKEND, "calls": cost["calls"], "input": cost["input"],
+           "output": cost["output"], "tokens": cost["input"] + cost["output"], "cost": round(cost["cost"], 4),
+           "estimated_split_calls": cost["estimated_calls"], "calls_made_now": len(caller.usage.new) - calls_before,
+           "runtime_s": round(time.monotonic() - t_start, 1), "documents_missing": missing,
+           "workload_queries": len(b.workload), "w0_columns" if b.name == "w0" else "columns": b.columns(),
+           "maybe_truncated_calls": sum(bool(caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas)}
+    b.meta.parent.mkdir(parents=True, exist_ok=True)
+    b.meta.write_text(json.dumps(out, indent=1))
     return out
+
+
+class Ticker:
+    """A progress line every minute while a long read runs (calls made, tokens, seconds)."""
+
+    def __init__(self, label: str, usage: "Usage", every: float = 60.0):
+        self.label, self.usage, self.start, self.n0 = label, usage, time.monotonic(), len(usage.new)
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, args=(every,), daemon=True)
+        self._thread.start()
+
+    def _run(self, every: float) -> None:
+        while not self._stop.wait(every):
+            new = self.usage.new[self.n0:]
+            print(f"  {self.label}: {len(new)} calls, {sum(u['input'] for u in new) / 1e6:.2f}M in / "
+                  f"{sum(u['output'] for u in new) / 1e3:.0f}k out, {time.monotonic() - self.start:.0f}s", flush=True)
+
+    def stop(self) -> None:
+        self._stop.set()
+
+
+def fixed_design(corpus: str, axis: str = "attribute") -> dict[str, Any]:
+    """The fixed test queries of an axis and, per level, the withheld queries (nested as the level grows)."""
+
+    import random
+
+    ctx = R.context(corpus)
+    path = folder(corpus) / f"fixed_{axis}_design.json"
+    if path.exists():
+        return json.loads(path.read_text())
+    test = ctx.designs[0]["streams"][f"{axis}/100"]
+    order = list(dict.fromkeys(test))
+    random.Random(FIXED_SEED).shuffle(order)
+    levels = {}
+    for p in sorted(FIXED_LEVELS):
+        withheld = order[:round(p / 100 * len(order))]
+        workload = {**ctx.w0, **{q: ctx.catalog[q] for q in order if q not in withheld}}
+        new_cols = sorted({f"{t}.{a}" for r in C.design(ctx.spec, workload)[1] for t, a in [(r.table, x) for x in r.attributes]}
+                          - {f"{r.table}.{a}" for r in ctx.lean_reads for a in r.attributes})
+        levels[str(p)] = {"withheld": withheld, "anticipated": [q for q in order if q not in withheld],
+                          "extra_build_columns": new_cols}
+    out = {"corpus": corpus, "axis": axis, "seed": FIXED_SEED, "test": test, "levels": levels,
+           "note": "level p: p% of the test queries withheld from the build workload; the rest are in it"}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(out, indent=1))
+    return out
+
+
+def fixed_build(corpus: str, axis: str, p: int) -> Build:
+    ctx = R.context(corpus)
+    lvl = fixed_design(corpus, axis)["levels"][str(p)]
+    if not lvl["anticipated"]:
+        return w0_build(corpus)  # nothing anticipated: the W0 build itself
+    return Build(corpus, f"fixed_{axis}_{p}", {**ctx.w0, **{q: ctx.catalog[q] for q in lvl["anticipated"]}})
 
 
 # ------------------------------------------------------------------------------------------ one stream
@@ -346,21 +492,22 @@ def prepare(corpus: str, caller, deadline: float) -> dict[str, Any] | None:
 class Stream:
     """The controller on one stream, from the build, with real reads. Resumable after every query."""
 
-    def __init__(self, corpus: str, key: str, caller):
+    def __init__(self, corpus: str, key: str, caller, build: Build | None = None, stream: list[str] | None = None):
         self.corpus, self.key, self.caller = corpus, key, caller
         self.ctx = R.context(corpus)
+        self.build = build or w0_build(corpus)
         self.dir = scratch(corpus) / key.replace("/", "_")
         self.state_path = folder(corpus) / "state" / f"{key.replace('/', '_')}.json"
         self.journal = folder(corpus) / "patch_reads.jsonl"
-        self.stream = self.ctx.designs[0]["streams"][key]
+        self.stream = stream or self.ctx.designs[0]["streams"][key]
         self.t0 = set(self.ctx.designs[0]["in_distribution"])
         if self.state_path.exists():
             self.st = json.loads(self.state_path.read_text())
         else:
             self.dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(scratch(corpus) / "build.db", self.dir / "master.db")
+            shutil.copy2(self.build.db, self.dir / "master.db")
             self.st = {"pos": 0, "seen": {}, "records": [], "partial": None,
-                       "mat": [[r.table, a, sorted(self.ctx.names[r.table])] for r in self.ctx.lean_reads for a in r.attributes]}
+                       "mat": [[r.table, a, sorted(self.ctx.names[r.table])] for r in self.build.reads for a in r.attributes]}
         self.mat = {(t, a): set(d) for t, a, d in self.st["mat"]}
 
     def save(self) -> None:
@@ -403,11 +550,11 @@ class Stream:
         ctx, pos = self.ctx, self.st["pos"]
         qid = self.stream[pos]
         sql = ctx.catalog[qid]
-        seen = {**ctx.w0, **self.st["seen"], qid: sql}
-        fields_seen, reads_seen = C.design(ctx.spec, seen)  # W0 and the queries so far: descriptions and usage phrases
+        seen = {**self.build.workload, **self.st["seen"], qid: sql}
+        fields_seen, reads_seen = C.design(ctx.spec, seen)  # the build's workload and the queries so far
         if VARIANT in ("no_literals", "no_usage"):
             fields_seen = patch_variant(ctx, seen, fields_seen)
-        F = {**all_fields(ctx), **fields_seen}
+        F = {**self.build.all_fields(), **fields_seen}
         need = C.query_attributes(ctx.spec, qid, sql, seen)
         views = self.dir / "views"
         pre = views / f"{pos:03d}.db"
@@ -447,11 +594,11 @@ class Stream:
                 read = C.Read(t, "patch:" + ",".join(asked), asked)
                 vspec, root = view_spec(ctx.spec, ctx.docs, t, docs)
                 try:
-                    left = stop_at - time.monotonic()
-                    if left < 10:
+                    left = left_of(stop_at)
+                    if left is not None and left < 10:
                         raise Incomplete()
                     stats = run_reads(vspec, [read], {}, fields_seen, self.caller, self.journal, WORKERS,
-                                      long_documents="chain", deadline=left - 8)
+                                      long_documents="chain", deadline=None if left is None else left - 8)
                 finally:
                     shutil.rmtree(root, ignore_errors=True)
                 if stats.get("stopped_at_deadline"):
@@ -487,11 +634,13 @@ class Stream:
         paid["calls"] = partial["paid"]["calls"] + len(new)
         charged = charge(shas, self.caller.usage, rows_of(self.journal)) if shas else {"calls": 0, "input": 0, "output": 0, "cost": 0.0}
         self.st["records"].append({
-            "pos": pos, "qid": qid, "drift": qid not in self.t0, "action": "patch" if missing else "answer",
+            "pos": pos, "qid": qid, "drift": qid not in self.t0, "anticipated": qid in self.build.workload,
+            "action": "patch" if missing else "answer",
             "missing": missing, "scope_docs": sum(len(v) for v in scope.values()), "docs_read": read_docs,
             "fetched": fetched, "runtime_s": round(seconds, 2),
             "calls": charged["calls"], "input_tokens": charged["input"], "output_tokens": charged["output"],
             "cost_usd": round(charged["cost"], 6), "paid": {k: (round(v, 6) if k == "cost" else v) for k, v in paid.items()},
+            "maybe_truncated_calls": sum(bool(self.caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas),
             "view": str(pre), "digest": R.digest(pre, sql)})
         self.st["seen"][qid] = sql
         self.st["pos"] = pos + 1
@@ -513,56 +662,92 @@ def bar(done: int, total: int, width: int = 20) -> str:
     return "[" + "#" * k + "-" * (width - k) + f"] {done}/{total}"
 
 
-def run(corpus: str, deadline: float, which: str = "headline") -> dict[str, Any]:
+def plan(corpus: str, which: str, axes: list[str]) -> list[tuple[str, Build | None, list[str] | None]]:
+    """(stream key, build, stream) in run order. Paired streams start from the W0 build; fixed levels from
+    their own build (built when first reached)."""
+
+    ctx = R.context(corpus)
+    out = []
+    if which in ("fixed", "fixed+headline", "everything"):
+        for axis in axes:
+            if f"{axis}/100" not in ctx.designs[0]["streams"]:
+                continue
+            test = fixed_design(corpus, axis)["test"]
+            out += [(f"fixed-{axis}/{p}", None, test) for p in FIXED_LEVELS]
+    if which in ("headline", "all", "fixed+headline", "everything"):
+        keys = HEADLINE if which in ("headline", "fixed+headline") else ORDER
+        out += [(k, None, None) for k in ORDER if k in keys and k in ctx.designs[0]["streams"]]
+    return out
+
+
+def run(corpus: str, deadline: float, which: str = "headline", axes: list[str] | None = None) -> dict[str, Any]:
+    """Every planned stream of a corpus; resumable. ``deadline`` <= 0: no deadline (a batch job)."""
+
     t0 = time.monotonic()
-    stop_at = t0 + deadline
+    stop_at = float("inf") if deadline <= 0 else t0 + deadline
     stop = lambda: time.monotonic() > stop_at - 12  # noqa: E731
     usage = Usage(folder(corpus) / "usage.jsonl")
     caller = make_caller(usage)
     caller.usage = usage
-    b = prepare(corpus, caller, deadline - 20)
-    if b is None:
+    if prepare(corpus, caller, left_of(stop_at) if stop_at == float("inf") else stop_at - time.monotonic() - 20) is None:
         return {"corpus": corpus, "status": "build read in progress"}
     ctx = R.context(corpus)
     scorer = LiveScorer(corpus)
-    streams = [k for k in ORDER if k in ctx.designs[0]["streams"] and (which == "all" or k in HEADLINE)]
+    streams = plan(corpus, which, axes or ["attribute"])
     out_dir = folder(corpus) / "streams"
     out_dir.mkdir(parents=True, exist_ok=True)
-    static = scratch(corpus) / "static.db"
     lines = []
-    for key in streams:
+    for key, _b, stream in streams:
         final = out_dir / f"{key.replace('/', '_')}.jsonl"
         if final.exists():
             continue
-        s = Stream(corpus, key, caller)
+        if key.startswith("fixed-"):
+            axis, p = key[len("fixed-"):].split("/")
+            build = fixed_build(corpus, axis, int(p))
+            if prepare(corpus, caller, left_of(stop_at), build) is None:
+                lines.append(f"{corpus:8s} {key:22s} build read in progress")
+                break
+        else:
+            build = w0_build(corpus)
+        s = Stream(corpus, key, caller, build, stream)
         n = len(s.stream)
         try:
             while s.st["pos"] < n:
                 if time.monotonic() > stop_at - 25:
                     raise Incomplete()
                 s.step(stop_at)
+                r = s.st["records"][-1]
+                tot = s.st["records"]
+                print(f"{corpus:8s} {key:22s} {bar(len(tot), n)}  {r['action']:6s} docs {r['docs_read']:4d}  "
+                      f"{(r['input_tokens'] + r['output_tokens']) / 1e3:7.1f}k tok  {r['runtime_s']:6.1f}s  | stream "
+                      f"{sum(x['input_tokens'] + x['output_tokens'] for x in tot) / 1e6:.2f}M tok ${sum(x['cost_usd'] for x in tot):.3f}",
+                      flush=True)
         except Incomplete:
             s.save()
-            lines.append(f"{corpus:8s} {key:18s} queries {bar(s.st['pos'], n)}")
+            lines.append(f"{corpus:8s} {key:22s} queries {bar(s.st['pos'], n)}")
             break
+        static = build.static
         items = [(r["qid"], r["digest"], Path(r["view"])) for r in s.st["records"]]
         items += [(q, R.digest(static, ctx.catalog[q]), static) for q in dict.fromkeys(s.stream)]
         if not scorer.run(items, stop):
-            lines.append(f"{corpus:8s} {key:18s} queries {bar(n, n)} scoring")
+            lines.append(f"{corpus:8s} {key:22s} queries {bar(n, n)} scoring")
             break
         recs = []
         for r in s.st["records"]:
             sd = R.digest(static, ctx.catalog[r["qid"]])
-            recs.append({**{k: v for k, v in r.items() if k not in ("view",)},
+            recs.append({**{k: v for k, v in r.items() if k not in ("view",)}, "build": build.name, "backend": BACKEND,
                          "benchmark": scorer.get("benchmark", r["qid"], r["digest"]),
                          "tolerant": scorer.get("tolerant", r["qid"], r["digest"]),
                          "static_benchmark": scorer.get("benchmark", r["qid"], sd),
                          "static_tolerant": scorer.get("tolerant", r["qid"], sd)})
         final.write_text("".join(json.dumps(r) + "\n" for r in recs))
         shutil.rmtree(s.dir, ignore_errors=True)
-    done = sum((out_dir / f"{k.replace('/', '_')}.jsonl").exists() for k in streams)
+        m = sum(r["benchmark"] for r in recs) / len(recs)
+        print(f"{corpus:8s} {key:22s} done: accuracy {m:.3f}, patches {sum(r['action'] == 'patch' for r in recs)}", flush=True)
+    done = sum((out_dir / f"{k.replace('/', '_')}.jsonl").exists() for k, _b, _s in streams)
     spent = sum(u["cost"] for u in usage.by_sha.values())
-    head = f"{corpus:8s} streams {bar(done, len(streams))}  paid so far ${spent:.3f}, {sum(u['input'] for u in usage.by_sha.values())/1e6:.2f}M in / {sum(u['output'] for u in usage.by_sha.values())/1e6:.2f}M out"
+    head = (f"{corpus:8s} streams {bar(done, len(streams))}  {BACKEND}: {'list-price equivalent ' if BACKEND == 'ollama' else 'paid '}"
+            f"${spent:.3f}, {sum(u['input'] for u in usage.by_sha.values())/1e6:.2f}M in / {sum(u['output'] for u in usage.by_sha.values())/1e6:.2f}M out")
     return {"corpus": corpus, "status": "complete" if done == len(streams) else "running", "progress": [head] + lines,
             "elapsed": round(time.monotonic() - t0, 1)}
 
@@ -575,12 +760,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--deadline", type=float, default=165)
     ap.add_argument("--report", action="store_true")
-    ap.add_argument("--streams", default="headline", choices=["headline", "all"])
+    ap.add_argument("--streams", default="headline", choices=["headline", "all", "fixed", "fixed+headline", "everything"])
+    ap.add_argument("--axes", default="attribute", help="fixed levels: comma list of attribute, value, combined")
+    ap.add_argument("--workers", type=int, help="concurrent model calls (default QUWARTS_WORKERS or 24)")
     a = ap.parse_args(argv)
+    if a.workers:
+        global WORKERS
+        WORKERS = a.workers
     if a.run:
-        out = run(a.corpus, a.deadline, a.streams)
-        print("\n".join(out.pop("progress", [])))
-        print(json.dumps(out))
+        corpora = (ALL_CORPORA if BACKEND == "ollama" else CORPORA) if a.corpus == "all" else a.corpus.split(",")
+        for corpus in corpora:
+            out = run(corpus, a.deadline, a.streams, a.axes.split(","))
+            print("\n".join(out.pop("progress", [])))
+            print(json.dumps(out), flush=True)
     if a.report:
         from quwarts.eval import drift_live_report
         print(drift_live_report.write())
