@@ -53,3 +53,23 @@ art.field is now read (16% of cells right on arrival vs 45% read ahead with ever
 cspaper's gap is not a parse error: the patch prompt over-answers (agent_framework "Other" for 95/200 papers, gold 27).
 Ablation prepared (QUWARTS_LIVE_VARIANT=no_literals | no_usage: the patch prompt without the example constants from
 the queries, or without a usage phrase); not run: OpenRouter returned 402 (insufficient credits).
+
+## cspaper: patch-prompt ablation (attribute/100; $0.46; results/drift_live/variants/)
+Cell accuracy against gold of the columns the stream adds, and the stream's mean benchmark score:
+
+| Patch prompt | agent_framework | reasoning_depth | use_agent | Stream score | Patch tokens |
+|---|---|---|---|---|---|
+| as is (usage phrase with the queries' example values) | 0.47 | 0.51 | 0.83 | 0.108 | 1.15M |
+| no example values | 0.35 | 0.52 | 0.83 | 0.100 | 1.13M |
+| no usage phrase | 0.55 | 0.43 | 0.82 | 0.151 | 1.12M |
+| also ask every known column of the table | 0.67 | 0.64 | 0.89 | 0.111 | 2.36M |
+| read ahead with every column (reference) | 0.74 | 0.69 | 0.85 | 0.215 | - |
+
+* The anchoring hypothesis is rejected: dropping the example values makes agent_framework worse.
+* Asking the known columns alongside recovers about two thirds of the per-cell gap (the model sees the same context
+  as the build), at 2.1x the patch tokens on cspaper (short documents, so the field list is a large part of the prompt).
+* The query score still does not recover: the queries that lose count papers by reasoning_depth, and a remaining
+  skew toward "multi-hop" keeps the counts off by more than 20%.
+* agent_framework's benchmark metadata contradicts itself ("never null" and "leave it empty if no agent"); it is the
+  only such field in the six corpora, so no rule was added for it.
+Nothing adopted as the default: no variant improves query accuracy beyond noise, and the one that helps cells doubles cost.

@@ -53,9 +53,11 @@ WORKERS = 24
 PRICE = {"input": 0.10 / 1e6, "output": 0.20 / 1e6}  # OpenRouter list price of qwen/qwen-2.5-7b-instruct
 # Ablations of the patch prompt (QUWARTS_LIVE_VARIANT): ``no_literals`` keeps a patched column's usage phrase but
 # drops the example constants from the queries; ``no_usage`` gives a patched column no usage phrase. The build is
-# the same read in every variant.
+# the same read in every variant. ``with_known``: a patch prompt also lists every column already known for the table
+# (the build's and earlier queries'); a read costs about the document's length whatever the number of fields, and
+# the known fields give the model the context the build's prompt had. Only the missing columns are written.
 VARIANT = os.environ.get("QUWARTS_LIVE_VARIANT", "")
-assert VARIANT in ("", "no_literals", "no_usage"), VARIANT
+assert VARIANT in ("", "no_literals", "no_usage", "with_known"), VARIANT
 BASE = R.RESULTS / "drift_live"
 LIVE = BASE / "variants" / VARIANT if VARIANT else BASE
 SCRATCH = Path.home() / "quwarts_scratch" / ("drift_live" + (f"_{VARIANT}" if VARIANT else ""))
@@ -403,7 +405,7 @@ class Stream:
         sql = ctx.catalog[qid]
         seen = {**ctx.w0, **self.st["seen"], qid: sql}
         fields_seen, reads_seen = C.design(ctx.spec, seen)  # W0 and the queries so far: descriptions and usage phrases
-        if VARIANT:
+        if VARIANT in ("no_literals", "no_usage"):
             fields_seen = patch_variant(ctx, seen, fields_seen)
         F = {**all_fields(ctx), **fields_seen}
         need = C.query_attributes(ctx.spec, qid, sql, seen)
@@ -438,8 +440,11 @@ class Stream:
                 attrs = tuple(a for a in batch if d not in self.mat.get((t, a), set()))
                 if attrs:
                     groups.setdefault(attrs, []).append(d)
+            known_t = sorted(a for r in reads_seen if r.table == t for a in r.attributes
+                             if self.fully(t, a) and f"{t}.{a}" in fields_seen) if VARIANT == "with_known" else []
             for attrs, docs in groups.items():
-                read = C.Read(t, "patch:" + ",".join(attrs), attrs)
+                asked = tuple(sorted(set(attrs) | set(known_t)))
+                read = C.Read(t, "patch:" + ",".join(asked), asked)
                 vspec, root = view_spec(ctx.spec, ctx.docs, t, docs)
                 try:
                     left = stop_at - time.monotonic()
@@ -452,7 +457,7 @@ class Stream:
                 if stats.get("stopped_at_deadline"):
                     raise Incomplete()
                 by = rows_of(self.journal)
-                vals, used = values_and_shas({d: ctx.docs[t][d] for d in docs}, t, list(attrs), fields_seen, by)
+                vals, used = values_and_shas({d: ctx.docs[t][d] for d in docs}, t, list(asked), fields_seen, by)
                 shas += used
                 read_docs += len(docs)
                 conn = sqlite3.connect(self.dir / "master.db")
