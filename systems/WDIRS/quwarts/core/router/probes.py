@@ -110,7 +110,7 @@ def _scalar_token(raw: str) -> Any:
     if not token:
         return None
     low = token.lower()
-    if low in ("null", "none"):
+    if low.strip("\"' ") in ("null", "none"):  # also a stray quote: ``null"``
         return None
     if low in ("true", "false"):
         return low == "true"
@@ -193,11 +193,40 @@ def parse_fields(text: str, names: list[str] | None = None) -> dict[str, Any]:
             payload = None
         if isinstance(payload, dict):
             if isinstance(payload.get("fields"), dict):
-                return payload["fields"]
-            return payload
+                return align_keys(payload["fields"], names)
+            return align_keys(payload, names)
     if names:
-        return lenient_fields(body, list(names))
+        return align_keys(lenient_fields(body, list(names)), names)
     return {}
+
+
+def align_keys(answer: dict[str, Any], names: list[str] | None) -> dict[str, Any]:
+    """Answer keys that are not the requested field names, matched to them when the match is unambiguous.
+
+    The model sometimes keys an answer by something other than the field's name: another capitalization, or the
+    field's description (a field literally named ``field`` collides with the ``"<field>"`` placeholder of the
+    answer template). A key that equals a requested name ignoring case and spacing is that field; then, if exactly
+    one requested field is still missing and exactly one key is unrecognized, the key is that field. Anything
+    more ambiguous is left as it is (the field reads as missing)."""
+
+    if not names:
+        return answer
+    wanted = list(names)
+    out = {k: v for k, v in answer.items() if k in wanted}
+    extra = [k for k in answer if k not in wanted]
+    canon = lambda k: re.sub(r"[\s_-]+", "", str(k).lower())  # noqa: E731
+    by_canon = {canon(n): n for n in wanted}
+    for k in list(extra):
+        n = by_canon.get(canon(k))
+        if n is not None and n not in out:
+            out[n] = answer[k]
+            extra.remove(k)
+    missing = [n for n in wanted if n not in out]
+    if len(missing) == 1 and len(extra) == 1:
+        out[missing[0]] = answer[extra.pop()]
+    for k in extra:
+        out[k] = answer[k]
+    return out
 
 
 def _as_number(value: Any) -> float | None:

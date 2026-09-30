@@ -41,3 +41,15 @@ every corpus (attribute: cspaper -0.026, art +0.048, legal -0.069, player +0.074
 What is left is the difference between reading a column when its query arrives (a short, focused prompt) and reading
 it ahead with every column: it goes both ways (better on player, worse on cspaper's agent_framework). 9-20 pairs kept
 per corpus; on the value axis many kept pairs score 0 on both sides and say little.
+
+## Parser fix (probes.parse_fields / align_keys)
+Answers keyed by something other than the field name are matched when unambiguous (same name ignoring case and
+spacing; or exactly one missing field and one unrecognized key), and `null"` (a stray quote) reads as null.
+Tests: tests/test_router_probes.py. Across every journal in results/ (45,418 rows) 1,224 rows parse differently:
+art 895 and cspaper 276 in drift_live, at most 15 in any other folder, so earlier results are unaffected in practice.
+Art and cspaper streams were re-derived from the same reads (no new calls; previous outputs in _superseded_parser/).
+art.field is now read (16% of cells right on arrival vs 45% read ahead with every column); its one query moves
+0.000 -> 0.004, and every stream score is unchanged to three decimals.
+cspaper's gap is not a parse error: the patch prompt over-answers (agent_framework "Other" for 95/200 papers, gold 27).
+Ablation prepared (QUWARTS_LIVE_VARIANT=no_literals | no_usage: the patch prompt without the example constants from
+the queries, or without a usage phrase); not run: OpenRouter returned 402 (insufficient credits).

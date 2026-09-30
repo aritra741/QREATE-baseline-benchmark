@@ -130,3 +130,21 @@ def test_lenient_parse_recovers_unquoted_values():
     got = parse_fields(nested, ["a", "b"])
     assert got["a"]["value"] == "Yes" and got["a"]["evidence"] == "we use a reranker" and got["b"]["value"] == 3
     assert parse_fields("no json here", ["a"]) == {}
+
+
+def test_parse_fields_aligns_unambiguous_keys():
+    from quwarts.core.router.probes import parse_fields
+
+    # A field named "field" answered under its description: the one unrecognized key is the one missing field.
+    got = parse_fields('{"fields": {"primary artistic field": "Painting", "nationality": "US"}}', ["field", "nationality"])
+    assert got["field"] == "Painting" and got["nationality"] == "US"
+    # Capitalization and spacing of a requested name.
+    assert parse_fields('{"fields": {"Agent Framework": "CoT"}}', ["agent_framework"])["agent_framework"] == "CoT"
+    # Ambiguous: two unrecognized keys, one missing field -> left missing.
+    assert "z" not in parse_fields('{"fields": {"x": 1, "y": 2}}', ["z"])
+
+
+def test_scalar_null_with_stray_quote():
+    from quwarts.core.router.probes import parse_fields
+
+    assert parse_fields('{"fields": {"a": null"}}', ["a"])["a"] is None

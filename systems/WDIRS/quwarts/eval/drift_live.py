@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import sqlite3
 import sys
@@ -50,8 +51,14 @@ ORDER = ["attribute/100", "combined/100", "value/100", "attribute/0", "attribute
 HEADLINE = ["attribute/100", "value/100", "attribute/0", "combined/0", "value/0"]
 WORKERS = 24
 PRICE = {"input": 0.10 / 1e6, "output": 0.20 / 1e6}  # OpenRouter list price of qwen/qwen-2.5-7b-instruct
-LIVE = R.RESULTS / "drift_live"
-SCRATCH = Path.home() / "quwarts_scratch" / "drift_live"
+# Ablations of the patch prompt (QUWARTS_LIVE_VARIANT): ``no_literals`` keeps a patched column's usage phrase but
+# drops the example constants from the queries; ``no_usage`` gives a patched column no usage phrase. The build is
+# the same read in every variant.
+VARIANT = os.environ.get("QUWARTS_LIVE_VARIANT", "")
+assert VARIANT in ("", "no_literals", "no_usage"), VARIANT
+BASE = R.RESULTS / "drift_live"
+LIVE = BASE / "variants" / VARIANT if VARIANT else BASE
+SCRATCH = Path.home() / "quwarts_scratch" / ("drift_live" + (f"_{VARIANT}" if VARIANT else ""))
 
 
 def sha(text: str) -> str:
@@ -236,6 +243,25 @@ class Incomplete(Exception):
     pass
 
 
+def patch_variant(ctx, seen, fields):
+    """The patch prompt's ablation for columns outside the build (the build's own fields are unchanged)."""
+
+    from dataclasses import replace
+
+    from quwarts.core.router.workload_features import usage_phrase, workload_features
+
+    uses = workload_features(ctx.spec, seen)["attributes"] if VARIANT == "no_literals" else {}
+    out = {}
+    for k, f in fields.items():
+        if k in ctx.lean_fields:
+            out[k] = f
+        elif VARIANT == "no_usage":
+            out[k] = replace(f, usage="")
+        else:
+            out[k] = replace(f, usage=usage_phrase(replace(uses[k], literals=()))) if k in uses else f
+    return out
+
+
 # ------------------------------------------------------------------------------------------ build
 
 def build_journal(corpus: str) -> Path:
@@ -270,7 +296,10 @@ def prepare(corpus: str, caller, deadline: float) -> dict[str, Any] | None:
         return json.loads(done.read_text())
     j = build_journal(corpus)
     if not j.exists():
-        shutil.copy2(old_read(corpus), j)
+        base = BASE / corpus
+        shutil.copy2(base / "build_reads.jsonl" if VARIANT and (base / "build_reads.jsonl").exists() else old_read(corpus), j)
+        if VARIANT and (base / "usage.jsonl").exists() and not (f / "usage.jsonl").exists():
+            shutil.copy2(base / "usage.jsonl", f / "usage.jsonl")  # recorded usage of the shared build calls
     stats = run_reads(ctx.spec, ctx.lean_reads, {}, ctx.lean_fields, caller, j, 12, long_documents="chain", deadline=deadline)
     if stats.get("stopped_at_deadline"):
         return None
@@ -374,6 +403,8 @@ class Stream:
         sql = ctx.catalog[qid]
         seen = {**ctx.w0, **self.st["seen"], qid: sql}
         fields_seen, reads_seen = C.design(ctx.spec, seen)  # W0 and the queries so far: descriptions and usage phrases
+        if VARIANT:
+            fields_seen = patch_variant(ctx, seen, fields_seen)
         F = {**all_fields(ctx), **fields_seen}
         need = C.query_attributes(ctx.spec, qid, sql, seen)
         views = self.dir / "views"
