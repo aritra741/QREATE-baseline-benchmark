@@ -36,7 +36,8 @@ Both scripts take options as environment variables:
 
 - `OLLAMA_MODEL` (default `qwen2.5:7b-instruct`);
 - `AXES` (default `attribute`; e.g. `attribute,value,combined`);
-- `OLLAMA_NUM_PARALLEL` (default 8);
+- `OLLAMA_NUM_PARALLEL` (default 8; concurrent calls per corpus);
+- `CORPUS_JOBS` (default: all corpora at once, one process each on the shared server; each job adds `OLLAMA_NUM_PARALLEL` slots, about 7 GB of KV cache at a 16k context, so set 1 on a 16 GB GPU);
 - `OLLAMA_NUM_CTX` (default 16384);
 - `VENV`, `OLLAMA_DIR` and `OLLAMA_MODELS`.
 
