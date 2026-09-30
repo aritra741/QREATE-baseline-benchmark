@@ -39,8 +39,9 @@ W0's columns keep W0's usage phrases at every level; ``rebuild_quality`` found t
 workload changes no score beyond noise. What remains between levels is how a drifted column is read: ahead,
 in the shared build read, or on arrival, with only the columns its query lacks and a usage phrase from the
 queries seen so far. That is the drift effect on accuracy; it can go either way (a short on-arrival prompt
-can extract a column better). The cost of drift is the on-arrival reading. A level's build is charged the
-whole shared supplement read (listing the columns it does not keep adds a few prompt tokens per document).
+can extract a column better). The cost of drift is the on-arrival reading. A level's build is charged what one
+shared read of W0's and its kept columns would cost (W0's read as measured plus the kept fields' prompt lines and
+answers per call), not the separate supplement read, which exists only to hold values fixed across levels.
 """
 
 from __future__ import annotations
@@ -143,7 +144,8 @@ def ollama_caller(usage: Usage, max_tokens: int):
         usage.add({"sha": sha(prompt), "input": u["input"], "output": u["output"],
                    "cost": u["input"] * PRICE["input"] + u["output"] * PRICE["output"], "reported_cost": False,
                    "seconds": u["seconds"], "backend": "ollama", "model": u["model"], "num_ctx": u["num_ctx"],
-                   "maybe_truncated": u["maybe_truncated"]})
+                   "ollama_prompt_eval_count": u["ollama_prompt_eval_count"],
+                   "maybe_truncated": u["maybe_truncated"], "cut_off": u["cut_off"]})
 
     return ollama.make_caller(model=model, max_tokens=max_tokens, on_usage=on_usage)
 
@@ -439,7 +441,8 @@ def prepare(corpus: str, caller, deadline: float | None, build: Build | None = N
            "estimated_split_calls": cost["estimated_calls"], "calls_made_now": len(caller.usage.new) - calls_before,
            "runtime_s": round(time.monotonic() - t_start, 1), "documents_missing": missing,
            "workload_queries": len(b.workload), "w0_columns" if b.name == "w0" else "columns": b.columns(),
-           "maybe_truncated_calls": sum(bool(caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas)}
+           "maybe_truncated_calls": sum(bool(caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas),
+           "cut_off_calls": sum(bool(caller.usage.by_sha.get(x, {}).get("cut_off")) for x in shas)}
     b.meta.parent.mkdir(parents=True, exist_ok=True)
     b.meta.write_text(json.dumps(out, indent=1))
     return out
@@ -476,7 +479,9 @@ def prepare_supplement(corpus: str, caller, deadline: float | None, b: "Build") 
 
     ctx = R.context(corpus)
     if b.meta.exists() and b.db.exists() and b.static.exists():
-        return json.loads(b.meta.read_text())
+        meta = json.loads(b.meta.read_text())
+        if "measured_tokens" in meta:  # older metadata lacks the one-shared-read cost: recomputed from the journal
+            return meta
     w0 = prepare(corpus, caller, deadline)
     if w0 is None:
         return None
@@ -505,15 +510,29 @@ def prepare_supplement(corpus: str, caller, deadline: float | None, b: "Build") 
     shutil.move(str(tmp), b.db)
     represent(b.db, b.static, ctx.spec, b.all_fields(), b.workload, Config())
     cost = charge(shas, caller.usage, rows)
+    # What the build would cost as one shared read of W0's and the kept columns (how a system that anticipated
+    # them would read them): W0's read as measured, plus, per W0 call on a table, the kept fields' lines in the
+    # prompt and their answers. The separate supplement read exists only to keep values identical across levels.
+    from quwarts.core.retrieve_extract.tokens import count_tokens
+
+    extra = 0
+    for r in ctx.lean_reads:
+        if r.table in keep:
+            _v, w0_shas = values_and_shas(ctx.docs[r.table], r.table, list(r.attributes), ctx.lean_fields, rows)
+            lines = "\n".join(b.fields[f"{r.table}.{a}"].line() for a in keep[r.table])
+            extra += len(w0_shas) * (count_tokens(lines) + 1 + C.Costs.ANSWER_PER_FIELD * len(keep[r.table]))
     out = {"corpus": corpus, "build": b.name, "backend": BACKEND, "design": FIXED,
            "w0_tokens": w0["tokens"], "supplement_calls": cost["calls"], "supplement_input": cost["input"],
            "supplement_output": cost["output"], "supplement_tokens": cost["input"] + cost["output"],
-           "tokens": w0["tokens"] + cost["input"] + cost["output"], "cost": round(w0["cost"] + cost["cost"], 4),
+           "tokens": w0["tokens"] + extra, "tokens_as": "one shared read of W0's and the kept columns (estimated)",
+           "measured_tokens": w0["tokens"] + cost["input"] + cost["output"],
+           "cost": round((w0["tokens"] + extra) / max(1, w0["tokens"]) * w0["cost"], 4),
            "calls_made_now": len(caller.usage.new) - calls_before, "runtime_s": round(time.monotonic() - t_start, 1),
            "documents_missing": missing, "workload_queries": len(b.workload),
            "supplement_columns": sorted(f"{r.table}.{a}" for r in b.supplement for a in r.attributes),
            "shared_read_columns": sorted(f"{r.table}.{a}" for r in b.read_all for a in r.attributes),
-           "maybe_truncated_calls": sum(bool(caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas)}
+           "maybe_truncated_calls": sum(bool(caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas),
+           "cut_off_calls": sum(bool(caller.usage.by_sha.get(x, {}).get("cut_off")) for x in shas)}
     b.meta.parent.mkdir(parents=True, exist_ok=True)
     b.meta.write_text(json.dumps(out, indent=1))
     return out
@@ -743,6 +762,7 @@ class Stream:
             "calls": charged["calls"], "input_tokens": charged["input"], "output_tokens": charged["output"],
             "cost_usd": round(charged["cost"], 6), "paid": {k: (round(v, 6) if k == "cost" else v) for k, v in paid.items()},
             "maybe_truncated_calls": sum(bool(self.caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas),
+            "cut_off_calls": sum(bool(self.caller.usage.by_sha.get(x, {}).get("cut_off")) for x in shas),
             "view": str(pre), "digest": R.digest(pre, sql)})
         self.st["seen"][qid] = sql
         self.st["pos"] = pos + 1
@@ -791,7 +811,7 @@ def run(corpus: str, deadline: float, which: str = "headline", axes: list[str] |
     usage = Usage(folder(corpus) / "usage.jsonl")
     caller = make_caller(usage)
     caller.usage = usage
-    if prepare(corpus, caller, left_of(stop_at) if stop_at == float("inf") else stop_at - time.monotonic() - 20) is None:
+    if prepare(corpus, caller, left_of(stop_at) if stop_at == float("inf") else max(5.0, stop_at - time.monotonic() - 20)) is None:
         return {"corpus": corpus, "status": "build read in progress"}
     ctx = R.context(corpus)
     scorer = LiveScorer(corpus)
@@ -843,7 +863,8 @@ def run(corpus: str, deadline: float, which: str = "headline", axes: list[str] |
                          "static_benchmark": scorer.get("benchmark", r["qid"], sd),
                          "static_tolerant": scorer.get("tolerant", r["qid"], sd)})
         final.write_text("".join(json.dumps(r) + "\n" for r in recs))
-        shutil.rmtree(s.dir, ignore_errors=True)
+        if not os.environ.get("QUWARTS_KEEP_VIEWS"):  # kept for audits
+            shutil.rmtree(s.dir, ignore_errors=True)
         m = sum(r["benchmark"] for r in recs) / len(recs)
         print(f"{corpus:8s} {key:22s} done: accuracy {m:.3f}, patches {sum(r['action'] == 'patch' for r in recs)}", flush=True)
     done = sum((out_dir / f"{k.replace('/', '_')}.jsonl").exists() for k, _b, _s in streams)

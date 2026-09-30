@@ -21,9 +21,11 @@ import time
 from typing import Any, Callable
 
 from quwarts.core.ledger import BudgetedCaller, TokenLedger
+from quwarts.core.retrieve_extract.tokens import count_tokens
 
 DEFAULT_MODEL = "qwen2.5:7b-instruct"
 DEFAULT_SYSTEM = "Extract only facts stated in the document. Return JSON."
+CHAT_TEMPLATE_TOKENS = 13  # Qwen 2.5's <|im_start|>/<|im_end|> markers for a system and a user turn and the reply
 
 
 def base_url(host: str | None = None) -> str:
@@ -85,14 +87,19 @@ def make_caller(
                 time.sleep(delay)
                 delay = min(delay * 2, 120)
         text = ((data.get("message") or {}).get("content") or "").strip()
-        pin = int(data.get("prompt_eval_count") or 0)
+        evaluated = int(data.get("prompt_eval_count") or 0)
         pout = int(data.get("eval_count") or 0)
-        if pin <= 0:  # a fully cached prompt can report 0 evaluated tokens
-            pin = max(1, len(prompt) // 4)
+        # Ollama reports only the prompt tokens it evaluated: a prefix reused from its cache (the system prompt and
+        # instructions, or a document a slot has just read) is not counted. The prompt is counted here with the
+        # exact Qwen 2.5 tokenizer instead (plus the chat template's role markers), and the larger count is kept.
+        counted = count_tokens(body["messages"][0]["content"]) + count_tokens(prompt) + CHAT_TEMPLATE_TOKENS
+        pin = max(evaluated, counted)
         if on_usage is not None:
-            on_usage(prompt, {"input": pin, "output": pout, "num_ctx": num_ctx,
-                              # Ollama keeps the last num_ctx tokens of a longer prompt: flag any call at the limit
-                              "maybe_truncated": pin + max_tokens >= num_ctx,
+            on_usage(prompt, {"input": pin, "output": pout, "ollama_prompt_eval_count": evaluated, "num_ctx": num_ctx,
+                              # Ollama drops the start of a prompt longer than its window, without an error
+                              "maybe_truncated": counted + max_tokens > num_ctx,
+                              # the answer hit num_predict: its JSON may be cut off
+                              "cut_off": data.get("done_reason") == "length",
                               "seconds": round(time.monotonic() - start, 2), "model": body["model"]})
         return text, pin + pout
 

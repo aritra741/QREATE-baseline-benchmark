@@ -73,6 +73,14 @@ Every call is also logged in `usage.jsonl`. `maybe_truncated` flags prompts that
 
 Commit `results/drift_live_ollama/` and push, or `rsync` it back. `RESULTS.md` has the fixed-level tables, and `fixed_levels.csv` has one row per corpus, axis and level.
 
+## Before a long run: the audit (no GPU, minutes)
+
+```bash
+bash systems/WDIRS/quwarts/scripts/chpc/audit_oracle.sh cspaper,player
+```
+
+This runs the fixed levels against a stand-in extractor whose answers never depend on the prompt. Every level must score the same; any query whose data differs is listed with its cause. After a real run, `python -m quwarts.eval.drift_live_audit --levels cspaper,player` (with `QUWARTS_LLM=ollama`) lists which queries differ between levels and why. See `eval/DRIFT_LIVE_AUDIT.md`.
+
 ## Checking the wiring without a GPU
 
 `tests/mock_ollama.py` is a stand-in server. It answers from recorded responses by prompt hash, and returns every field as null otherwise. Run through the Ollama client, the cspaper W0 build plus the attribute/100 stream reproduces the OpenRouter run exactly (0.108, 6 patches).
