@@ -21,17 +21,26 @@ not anticipate. Level 100 is the W0 build; level 0 anticipates all of them. This
 workload drift: fixed test queries, a varying share of them represented in the workload the system was built
 for (Negi et al., VLDB 2023; CliffGuard).
 
-Only drift may differ between levels (design version 2, keys ``fixed2-<axis>/<p>``). Every level starts from
-the same W0 build read, so W0's columns hold the same values at every level; a level's build adds one
-build-time read of the anticipated extra columns only (their descriptions and usage phrases from the
-anticipated queries). Version 1 re-read every column for each level with a different field list, so all
-columns, drifted or not, came out of a fresh extraction and levels differed by extraction noise (a query
-needing no new column moved by up to 0.4 between levels). W0's columns keep W0's usage phrases at every level;
-``rebuild_quality`` found that re-phrasing them from a new workload changes no score beyond noise. What remains
-between levels is how a drifted column is read: ahead, together with the other anticipated columns, or on
-arrival, with only the columns its query lacks. That difference is the drift effect on accuracy, and it can go
-either way (a short on-arrival prompt can extract a column better than a longer build prompt); the cost of
-drift is the on-arrival reading.
+Only drift may differ between levels (design version 3, keys ``fixed3-<axis>/<p>``):
+* W0's columns: every level starts from the same W0 build read, so they hold the same values at every level.
+* The anticipated extra columns: one build-time read of all of them (the 0% list) is made once per corpus and
+  axis, and each level keeps only the columns its anticipated queries need (the others stay empty until a
+  query needs them and they are read on arrival). An anticipated column therefore has the same value at every
+  level where it is anticipated. A 7B model's answer for one field depends on which other fields share the
+  prompt, so per-level reads (version 2) gave an anticipated column different values at different levels:
+  noise, not drift.
+* No leak: each extra column's usage phrase comes only from the test queries that use it and are anticipated
+  at the highest level where the column is still anticipated; the levels are nested, so those queries are
+  anticipated at every level that keeps the column. The shared prompt also lists the columns a level does not
+  keep; their values are discarded.
+* Version 1 re-read every column per level; version 2 read each level's extra columns separately. Their outputs
+  (``fixed-*``, ``fixed2-*``) are kept and never reused or reported.
+W0's columns keep W0's usage phrases at every level; ``rebuild_quality`` found that re-phrasing them from a new
+workload changes no score beyond noise. What remains between levels is how a drifted column is read: ahead,
+in the shared build read, or on arrival, with only the columns its query lacks and a usage phrase from the
+queries seen so far. That is the drift effect on accuracy; it can go either way (a short on-arrival prompt
+can extract a column better). The cost of drift is the on-arrival reading. A level's build is charged the
+whole shared supplement read (listing the columns it does not keep adds a few prompt tokens per document).
 """
 
 from __future__ import annotations
@@ -55,7 +64,7 @@ CORPORA = ["cspaper", "art", "legal", "player", "med"]
 ALL_CORPORA = CORPORA + ["finan"]
 FIXED_LEVELS = (100, 0, 50, 25, 75)  # 100 first: it is the W0 build, shared with the paired streams
 FIXED_SEED = 0
-FIXED = "fixed2"  # design version 2 (see the module docstring); version 1's outputs are kept, never reused
+FIXED = "fixed3"  # design version 3 (see the module docstring); earlier versions' outputs are kept, never reused
 ORDER = ["attribute/100", "combined/100", "value/100", "attribute/0", "attribute/50", "combined/50",
          "attribute/25", "attribute/75", "combined/0", "combined/25", "combined/75", "value/0", "value/25",
          "value/50", "value/75", "attribute/gradual", "combined/gradual", "value/gradual"]
@@ -332,21 +341,22 @@ class Build:
     """A build: the workload it was made for, its field specs and reads, and where its databases live.
     ``w0`` is the build of the build workload (the paired streams and fixed level 100 start from it)."""
 
-    def __init__(self, corpus: str, name: str, workload: dict[str, str]):
+    def __init__(self, corpus: str, name: str, workload: dict[str, str], axis: str | None = None, level: int | None = None):
         ctx = R.context(corpus)
         self.corpus, self.name, self.workload = corpus, name, dict(workload)
-        self.supplement: list = []  # reads of the anticipated columns beyond W0's (fixed levels)
+        self.supplement: list = []  # the anticipated columns beyond W0's this build keeps (fixed levels)
+        self.read_all: list = []    # the shared build-time read they come from (all extra columns of the axis)
         if name == "w0":
             self.fields, self.reads = ctx.lean_fields, ctx.lean_reads
             self.dir, self.meta = scratch(corpus), folder(corpus) / "build.json"
         else:
-            # W0's read as it is, plus the columns the anticipated queries need beyond it, with their descriptions
-            # and usage phrases from the build workload.
-            wf, wr = C.design(ctx.spec, self.workload)
-            w0 = {(r.table, a) for r in ctx.lean_reads for a in r.attributes}
-            extra = {r.table: tuple(a for a in r.attributes if (r.table, a) not in w0) for r in wr}
-            self.supplement = [C.Read(t, "supplement", attrs) for t, attrs in sorted(extra.items()) if attrs]
-            self.fields = {**ctx.lean_fields, **{f"{r.table}.{a}": wf[f"{r.table}.{a}"] for r in self.supplement for a in r.attributes}}
+            spec = supplement_spec(corpus, axis)
+            keep = spec["kept"][level]
+            self.read_all = spec["reads"]
+            self.supplement = [C.Read(r.table, "supplement", tuple(a for a in r.attributes if (r.table, a) in keep))
+                               for r in self.read_all]
+            self.supplement = [r for r in self.supplement if r.attributes]
+            self.fields = {**ctx.lean_fields, **spec["fields"]}
             by_table = {r.table: list(r.attributes) for r in ctx.lean_reads}
             for r in self.supplement:
                 by_table.setdefault(r.table, []).extend(r.attributes)
@@ -475,7 +485,7 @@ def prepare_supplement(corpus: str, caller, deadline: float | None, b: "Build") 
     t_start, calls_before = time.monotonic(), len(caller.usage.new)
     ticker = Ticker(f"{corpus} build {b.name} (anticipated columns)", caller.usage)
     try:
-        stats = run_reads(ctx.spec, b.supplement, {}, b.fields, caller, j, WORKERS, long_documents="chain", deadline=deadline) \
+        stats = run_reads(ctx.spec, b.read_all, {}, b.fields, caller, j, WORKERS, long_documents="chain", deadline=deadline) \
             if b.supplement else {}
     finally:
         ticker.stop()
@@ -484,11 +494,14 @@ def prepare_supplement(corpus: str, caller, deadline: float | None, b: "Build") 
     tmp = b.dir / "build.tmp.db"
     shutil.copy2(w0_build(corpus).db, tmp)
     rows, shas, missing = rows_of(j), [], []
-    for r in b.supplement:
+    keep = {r.table: r.attributes for r in b.supplement}
+    for r in b.read_all if b.supplement else []:
+        if r.table not in keep:
+            continue
         vals, used = values_and_shas(ctx.docs[r.table], r.table, list(r.attributes), b.fields, rows)
         shas += used
         missing += [f"{r.table}/{d}" for d in ctx.docs[r.table] if d not in vals]
-        write_values(tmp, r.table, list(ctx.docs[r.table]), r.attributes, vals, b.fields)
+        write_values(tmp, r.table, list(ctx.docs[r.table]), keep[r.table], vals, b.fields)
     shutil.move(str(tmp), b.db)
     represent(b.db, b.static, ctx.spec, b.all_fields(), b.workload, Config())
     cost = charge(shas, caller.usage, rows)
@@ -499,6 +512,7 @@ def prepare_supplement(corpus: str, caller, deadline: float | None, b: "Build") 
            "calls_made_now": len(caller.usage.new) - calls_before, "runtime_s": round(time.monotonic() - t_start, 1),
            "documents_missing": missing, "workload_queries": len(b.workload),
            "supplement_columns": sorted(f"{r.table}.{a}" for r in b.supplement for a in r.attributes),
+           "shared_read_columns": sorted(f"{r.table}.{a}" for r in b.read_all for a in r.attributes),
            "maybe_truncated_calls": sum(bool(caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas)}
     b.meta.parent.mkdir(parents=True, exist_ok=True)
     b.meta.write_text(json.dumps(out, indent=1))
@@ -551,12 +565,43 @@ def fixed_design(corpus: str, axis: str = "attribute") -> dict[str, Any]:
     return out
 
 
+_SUPPLEMENT: dict = {}
+
+
+def supplement_spec(corpus: str, axis: str) -> dict[str, Any]:
+    """The shared build-time read of an axis's extra columns: its reads, each column's field spec, and the
+    columns each level keeps (``{level: {(table, attr)}}``)."""
+
+    key = (corpus, axis)
+    if key in _SUPPLEMENT:
+        return _SUPPLEMENT[key]
+    ctx = R.context(corpus)
+    d = fixed_design(corpus, axis)
+    w0 = {(r.table, a) for r in ctx.lean_reads for a in r.attributes}
+    kept = {}
+    for p, lvl in d["levels"].items():
+        _f, reads = C.design(ctx.spec, {**ctx.w0, **{q: ctx.catalog[q] for q in lvl["anticipated"]}})
+        kept[int(p)] = {(r.table, a) for r in reads for a in r.attributes} - w0
+    every = set().union(*kept.values())
+    fields = {}
+    for t, a in sorted(every):
+        top = max(p for p, cols in kept.items() if (t, a) in cols)  # anticipated at every level up to here
+        anticipated = d["levels"][str(top)]["anticipated"]
+        users = {q: ctx.catalog[q] for q in anticipated
+                 if a in C.query_attributes(ctx.spec, q, ctx.catalog[q], {**ctx.w0, q: ctx.catalog[q]}).get(t, set())}
+        wf, _r = C.design(ctx.spec, {**ctx.w0, **(users or {q: ctx.catalog[q] for q in anticipated})})
+        fields[f"{t}.{a}"] = wf[f"{t}.{a}"]
+    reads = [C.Read(t, "supplement", tuple(sorted(a for tt, a in every if tt == t))) for t in sorted({t for t, _a in every})]
+    _SUPPLEMENT[key] = {"reads": reads, "fields": fields, "kept": kept}
+    return _SUPPLEMENT[key]
+
+
 def fixed_build(corpus: str, axis: str, p: int) -> Build:
     ctx = R.context(corpus)
     lvl = fixed_design(corpus, axis)["levels"][str(p)]
     if not lvl["anticipated"]:
         return w0_build(corpus)  # nothing anticipated: the W0 build itself
-    return Build(corpus, f"{FIXED}_{axis}_{p}", {**ctx.w0, **{q: ctx.catalog[q] for q in lvl["anticipated"]}})
+    return Build(corpus, f"{FIXED}_{axis}_{p}", {**ctx.w0, **{q: ctx.catalog[q] for q in lvl["anticipated"]}}, axis, p)
 
 
 # ------------------------------------------------------------------------------------------ one stream
