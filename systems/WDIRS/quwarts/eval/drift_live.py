@@ -14,7 +14,7 @@ OpenRouter list price, for comparison; what the run really spends is GPU time (`
 Fixed-question drift levels (``--streams fixed``). The paired streams change the questions between levels
 (each drifted query swaps a column), so a level's score mixes drift with question difficulty. Here the test
 questions are the same at every level: the queries of the ``attribute/100`` stream (``--axes`` adds ``value``
-and ``combined``). What changes is how much of them the build anticipated. At level p, a seeded, nested p% of
+and ``combined``; ``attribute_pool`` takes every valid attribute-drift variant instead, 2-4x as many queries). What changes is how much of them the build anticipated. At level p, a seeded, nested p% of
 the test queries is withheld; the columns the other (anticipated) test queries need beyond W0's are read at
 build time, and the stream then answers every test query in order, reading on arrival whatever the build did
 not anticipate. Level 100 is the W0 build; level 0 anticipates all of them. This is the usual design for
@@ -566,7 +566,14 @@ def fixed_design(corpus: str, axis: str = "attribute") -> dict[str, Any]:
     path = folder(corpus) / f"fixed_{axis}_design.json"
     if path.exists():
         return json.loads(path.read_text())
-    test = ctx.designs[0]["streams"][f"{axis}/100"]
+    if axis == "attribute_pool":
+        # Every valid attribute-drift variant of the paired design (up to 3 per base query), not only the one per
+        # base query in the attribute/100 stream: 2-4x the test queries, so one query weighs less. They arrive in a
+        # seeded random order.
+        test = list(dict.fromkeys(ctx.designs[0]["attribute_pool"]))
+        random.Random(FIXED_SEED + 1).shuffle(test)
+    else:
+        test = ctx.designs[0]["streams"][f"{axis}/100"]
     order = list(dict.fromkeys(test))
     random.Random(FIXED_SEED).shuffle(order)
     levels = {}
@@ -792,7 +799,7 @@ def plan(corpus: str, which: str, axes: list[str]) -> list[tuple[str, Build | No
     out = []
     if which in ("fixed", "fixed+headline", "everything"):
         for axis in axes:
-            if f"{axis}/100" not in ctx.designs[0]["streams"]:
+            if axis != "attribute_pool" and f"{axis}/100" not in ctx.designs[0]["streams"]:
                 continue
             test = fixed_design(corpus, axis)["test"]
             out += [(f"{FIXED}-{axis}/{p}", None, test) for p in FIXED_LEVELS]

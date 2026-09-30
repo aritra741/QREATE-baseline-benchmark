@@ -96,8 +96,8 @@ def design() -> int:
     problems = 0
     for c in L.ALL_CORPORA:
         ctx = R.context(c)
-        for axis in ("attribute", "value", "combined"):
-            if f"{axis}/100" not in ctx.designs[0]["streams"]:
+        for axis in ("attribute", "attribute_pool", "value", "combined"):
+            if axis != "attribute_pool" and f"{axis}/100" not in ctx.designs[0]["streams"]:
                 continue
             d = L.fixed_design(c, axis)
             ps = sorted(int(p) for p in d["levels"])

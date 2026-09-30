@@ -138,7 +138,29 @@ def fixed(corpus: str, axis: str) -> dict | None:
     return out or None
 
 
-def fixed_report(axes=("attribute", "value", "combined")) -> list[str]:
+def base_of(qid: str) -> str:
+    """The base query a drifted variant was made from (``attr:<base>:<digest>``)."""
+
+    return qid.split(":", 1)[1].rsplit(":", 1)[0] if qid.startswith(("attr:", "value:", "comb:")) else qid
+
+
+def ci_cluster(pairs: list[tuple[str, float]], n: int = 2000, seed: int = 0) -> tuple[float, float]:
+    """95% bootstrap interval of a mean difference, resampling base queries (their variants move together)."""
+
+    groups: dict[str, list[float]] = {}
+    for b, d in pairs:
+        groups.setdefault(b, []).append(d)
+    keys = list(groups)
+    rng = random.Random(seed)
+    ms = []
+    for _ in range(n):
+        xs = [x for k in (rng.choice(keys) for _ in keys) for x in groups[k]]
+        ms.append(sum(xs) / len(xs))
+    ms.sort()
+    return ms[int(0.025 * n)], ms[int(0.975 * n)]
+
+
+def fixed_report(axes=("attribute", "attribute_pool", "value", "combined")) -> list[str]:
     L_ = []
     for axis in axes:
         rows = []
@@ -148,15 +170,19 @@ def fixed_report(axes=("attribute", "value", "combined")) -> list[str]:
                 continue
             base = f.get(0)
             for p, v in f.items():
-                d = [v["per_query"][q] - base["per_query"][q] for q in v["per_query"] if base and q in base["per_query"]]
-                change = f"{mean(d):+.3f} [{ci(d)[0]:+.3f}, {ci(d)[1]:+.3f}]" if d and p else "-"
+                pairs = [(base_of(q), v["per_query"][q] - base["per_query"][q]) for q in v["per_query"]
+                         if base and q in base["per_query"]]
+                d = [x for _b, x in pairs]
+                lo, hi = ci_cluster(pairs) if d and p else (0, 0)
+                change = f"{mean(d):+.3f} [{lo:+.3f}, {hi:+.3f}]" if d and p else "-"
                 bt = f"{v['build_tokens'] / 1e6:.2f}M" if v["build_tokens"] else "-"
                 rows.append(f"| {c} | {p}% | {v['n']} | {v['unanticipated']} | {v['patched']} | {v['accuracy']:.3f} | {change} | {v['static']:.3f} | "
                             f"{bt} | {v['patch_input'] / 1e6:.2f}M / {v['patch_output'] / 1e3:.0f}k | ${v['patch_cost']:.3f} | {v['runtime_s']:.0f}s |")
         if rows:
             L_ += ["", f"## Fixed questions, {axis} axis (same test queries at every level)", "",
                    "Level p: p% of the test queries were withheld from the build workload; the rest were in it (their columns read "
-                   "at build time). Change: each query's score minus its score at 0% (same question), mean and 95% CI.", "",
+                   "at build time). Change: each query's score minus its score at 0% (same question), mean and 95% CI (bootstrap "
+                   "over base queries: variants of one base query are resampled together).", "",
                    "| Corpus | Drift | Queries | Unanticipated | Patched | QuWARTS | Change vs 0% [95% CI] | Static | Build tokens | Patch tokens (in / out) | Patch cost | Runtime |",
                    "|---|---|---|---|---|---|---|---|---|---|---|---|"] + rows
     return L_
@@ -164,7 +190,7 @@ def fixed_report(axes=("attribute", "value", "combined")) -> list[str]:
 
 def fixed_csv() -> str:
     lines = ["backend,corpus,axis,level,queries,unanticipated,patched,accuracy,tolerant,static,build_tokens,patch_input,patch_output,patch_cost_usd,runtime_s"]
-    for axis in ("attribute", "value", "combined"):
+    for axis in ("attribute", "attribute_pool", "value", "combined"):
         for c in L.ALL_CORPORA:
             f = fixed(c, axis) if (L.folder(c) / "streams").exists() else None
             for p, v in (f or {}).items():
