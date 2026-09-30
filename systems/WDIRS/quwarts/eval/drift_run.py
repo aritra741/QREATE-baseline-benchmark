@@ -42,6 +42,7 @@ import argparse
 import functools
 import hashlib
 import json
+import os
 import random
 import shutil
 import sqlite3
@@ -54,8 +55,12 @@ from typing import Any
 from quwarts.core.adapt import controller as C
 from quwarts.core.router.registry import RESULTS
 
-ROOT = RESULTS / "drift_design"
-SCRATCH = Path.home() / "quwarts_scratch" / "drift_run"
+ROOT = RESULTS / "drift_design"  # build workloads, build reads and the audit
+# Streams, runs and reports: ``drift_design`` (pooled streams) or ``drift_paired`` (template-paired streams,
+# ``eval/drift_paired.py``), chosen with QUWARTS_DRIFT_DESIGN.
+DESIGN = os.environ.get("QUWARTS_DRIFT_DESIGN", "drift_design")
+DROOT = RESULTS / DESIGN
+SCRATCH = Path.home() / "quwarts_scratch" / ("drift_run" if DESIGN == "drift_design" else f"drift_run_{DESIGN}")
 CORPORA = ["cspaper", "player", "art", "med", "legal", "finan"]
 SEEDS = (0, 1, 2)
 COST_POLICIES = ["patch", "onlinept", "eager", "drift", "drift_observed"]
@@ -131,7 +136,7 @@ def context(corpus: str) -> SimpleNamespace:
     _memoize_table_attributes()
     spec, _train, _test, _run, docs = MS.context(corpus)
     w0 = dict(json.loads((ROOT / corpus / "build.json").read_text())["build"])
-    designs = {s: json.loads((ROOT / corpus / f"design_seed{s}.json").read_text()) for s in SEEDS}
+    designs = {s: json.loads((DROOT / corpus / f"design_seed{s}.json").read_text()) for s in SEEDS}
     records: dict[str, dict] = {}
     for d in designs.values():
         records.update(d["queries"])
@@ -142,7 +147,7 @@ def context(corpus: str) -> SimpleNamespace:
     names = {t: sorted(d) for t, d in docs.items()}
     return SimpleNamespace(corpus=corpus, spec=spec, docs=docs, names=names, w0=w0, designs=designs, records=records,
                            catalog=catalog, fields=fields, reads=reads, lean_fields=lean_fields, lean_reads=lean_reads,
-                           costs=costs, folder=ROOT / corpus / "run", scratch=SCRATCH / corpus)
+                           costs=costs, folder=DROOT / corpus / "run", scratch=SCRATCH / corpus)
 
 
 def read_cost(ctx, fields, reads) -> int:
@@ -708,7 +713,7 @@ def report() -> str:
         docs = ", ".join(f"{t} {n}" for t, n in a["documents"].items())
         lines.append(f"| {c} | {docs} | " + " | ".join(cells) + " |")
     text = "\n".join(lines)
-    (ROOT / "RESULTS.md").write_text(text + "\n")
+    (DROOT / "RESULTS.md").write_text(text + "\n")
     return text
 
 
