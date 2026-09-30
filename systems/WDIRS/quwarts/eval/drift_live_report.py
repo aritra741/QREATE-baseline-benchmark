@@ -91,6 +91,30 @@ def paired(corpus: str, axis: str) -> dict | None:
     return {"n": len(live), "live": live, "reference": ref, "static": static}
 
 
+def matched(corpus: str, axis: str, tol: float = 0.05) -> dict | None:
+    """Difficulty-matched pairs: a drifted query and its source whose no-drift scores (the reference, which read
+    every column before the stream) differ by at most ``tol``. The pair's difference in QuWARTS's live score is then
+    not explained by one question being easier than the other. Gold is used only to build the evaluation set."""
+
+    hi, lo = records(corpus, f"{axis}/100"), records(corpus, f"{axis}/0")
+    rh, rl = reference(corpus, f"{axis}/100"), reference(corpus, f"{axis}/0")
+    if not (hi and lo and rh and rl):
+        return None
+    pairs = R.context(corpus).designs[0]["pairs"][f"{axis}/100"]
+    base = {r["qid"]: (r, rl["benchmark"][i]) for i, r in enumerate(lo)}
+    out = {"n": 0, "of": 0, "source": [], "drifted": [], "ref_source": [], "ref_drifted": []}
+    for i, r in enumerate(hi):
+        s, rs = base[pairs[r["qid"]]]
+        if r["qid"] == s["qid"]:
+            continue
+        out["of"] += 1
+        if abs(rh["benchmark"][i] - rs) <= tol + 1e-9:
+            out["n"] += 1
+            out["source"].append(s["benchmark"]); out["drifted"].append(r["benchmark"])
+            out["ref_source"].append(rs); out["ref_drifted"].append(rh["benchmark"][i])
+    return out
+
+
 def report() -> str:
     S = summary()
     L_ = ["# Real drift runs (template-paired streams, seed 0)", "",
@@ -128,6 +152,18 @@ def report() -> str:
         if p and p["n"]:
             lc, rc = ci(p["live"]), ci(p["reference"])
             L_.append(f"| {c} | {p['n']} | {mean(p['live']):+.3f} [{lc[0]:+.3f}, {lc[1]:+.3f}] | {mean(p['reference']):+.3f} [{rc[0]:+.3f}, {rc[1]:+.3f}] | {mean(p['static']):+.3f} |")
+    for axis in ("attribute", "value"):
+        L_ += ["", f"## Difficulty-matched pairs ({axis} axis, no-drift scores within 0.05)", "",
+               "Only pairs whose source and drifted query score the same (within 0.05) when every column was read before the "
+               "stream, so neither question is easier. QuWARTS's live score at 0% (the sources) and 100% (the drifted queries).", "",
+               "| Corpus | Pairs kept | QuWARTS 0% | QuWARTS 100% | Change [95% CI] | No-drift 0% | No-drift 100% |", "|---|---|---|---|---|---|---|"]
+        for c in S:
+            m = matched(c, axis)
+            if m and m["n"]:
+                d = [b - a for a, b in zip(m["source"], m["drifted"])]
+                lo_, hi_ = ci(d)
+                L_.append(f"| {c} | {m['n']}/{m['of']} | {mean(m['source']):.3f} | {mean(m['drifted']):.3f} | {mean(d):+.3f} [{lo_:+.3f}, {hi_:+.3f}] | "
+                          f"{mean(m['ref_source']):.3f} | {mean(m['ref_drifted']):.3f} |")
     return "\n".join(L_)
 
 

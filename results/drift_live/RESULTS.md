@@ -66,3 +66,27 @@ Each attribute/100 query minus its base query in attribute/0, so query difficult
 | legal | 14 | -0.042 [-0.132, +0.052] | -0.031 [-0.155, +0.095] | -0.208 |
 | player | 28 | +0.123 [-0.012, +0.268] | +0.089 [-0.036, +0.225] | -0.283 |
 | med | 26 | +0.010 [-0.021, +0.045] | -0.019 [-0.047, +0.004] | -0.029 |
+
+## Difficulty-matched pairs (attribute axis, no-drift scores within 0.05)
+
+Only pairs whose source and drifted query score the same (within 0.05) when every column was read before the stream, so neither question is easier. QuWARTS's live score at 0% (the sources) and 100% (the drifted queries).
+
+| Corpus | Pairs kept | QuWARTS 0% | QuWARTS 100% | Change [95% CI] | No-drift 0% | No-drift 100% |
+|---|---|---|---|---|---|---|
+| cspaper | 13/21 | 0.091 | 0.064 | -0.026 [-0.069, +0.000] | 0.090 | 0.084 |
+| art | 9/21 | 0.068 | 0.116 | +0.048 [-0.003, +0.115] | 0.105 | 0.104 |
+| legal | 8/14 | 0.190 | 0.121 | -0.069 [-0.168, +0.041] | 0.159 | 0.167 |
+| player | 14/28 | 0.349 | 0.423 | +0.074 [-0.012, +0.226] | 0.363 | 0.359 |
+| med | 20/26 | 0.046 | 0.052 | +0.007 [-0.003, +0.020] | 0.061 | 0.059 |
+
+## Difficulty-matched pairs (value axis, no-drift scores within 0.05)
+
+Only pairs whose source and drifted query score the same (within 0.05) when every column was read before the stream, so neither question is easier. QuWARTS's live score at 0% (the sources) and 100% (the drifted queries).
+
+| Corpus | Pairs kept | QuWARTS 0% | QuWARTS 100% | Change [95% CI] | No-drift 0% | No-drift 100% |
+|---|---|---|---|---|---|---|
+| cspaper | 7/14 | 0.006 | 0.000 | -0.006 [-0.018, +0.000] | 0.006 | 0.000 |
+| art | 5/13 | 0.003 | 0.058 | +0.055 [-0.003, +0.167] | 0.088 | 0.085 |
+| legal | 3/5 | 0.000 | 0.000 | +0.000 [+0.000, +0.000] | 0.000 | 0.000 |
+| player | 12/18 | 0.339 | 0.424 | +0.085 [+0.000, +0.253] | 0.351 | 0.353 |
+| med | 11/14 | 0.138 | 0.108 | -0.030 [-0.076, +0.000] | 0.167 | 0.167 |

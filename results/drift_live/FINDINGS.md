@@ -30,3 +30,14 @@ column before the stream, which the protocol does not allow) and with the static
      reasoning_depth skews to multi-hop (148/200 live, 112 robust, 109 gold). This explains most of cspaper's gap.
 5. Level-0 streams have no drift cost but still trail the reference on med (-0.046) and art (-0.038 value/0):
    the build read (W0's fields only) and the robust read (all fields) extract W0's columns differently.
+
+## Difficulty-matched pairs (why the raw 0% -> 100% curve can rise)
+The 0% and 100% points score different questions (each drifted query swaps one column), and some swapped-in columns
+are easier (player.fiba_world_cup: most players have none). Matching on role, type and distinct count does not control
+that. Matched pairs keep only drifted queries whose no-drift score (the reference, every column read before the stream)
+is within 0.05 of their source's; gold is used only to build the evaluation set, never by the system.
+After matching the no-drift scores are flat by construction, and QuWARTS's change from 0% to 100% is within noise on
+every corpus (attribute: cspaper -0.026, art +0.048, legal -0.069, player +0.074, med +0.007; all 95% CIs cover 0).
+What is left is the difference between reading a column when its query arrives (a short, focused prompt) and reading
+it ahead with every column: it goes both ways (better on player, worse on cspaper's agent_framework). 9-20 pairs kept
+per corpus; on the value axis many kept pairs score 0 on both sides and say little.
