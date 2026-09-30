@@ -122,7 +122,7 @@ def fixed(corpus: str, axis: str) -> dict | None:
 
     out = {}
     for p in sorted(L.FIXED_LEVELS):
-        rs = records(corpus, f"fixed-{axis}/{p}")
+        rs = records(corpus, f"{L.FIXED}-{axis}/{p}")
         if rs is None:
             continue
         bmeta = L.fixed_build(corpus, axis, p).meta

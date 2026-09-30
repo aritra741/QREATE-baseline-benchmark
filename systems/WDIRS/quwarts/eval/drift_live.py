@@ -15,35 +15,23 @@ Fixed-question drift levels (``--streams fixed``). The paired streams change the
 (each drifted query swaps a column), so a level's score mixes drift with question difficulty. Here the test
 questions are the same at every level: the queries of the ``attribute/100`` stream (``--axes`` adds ``value``
 and ``combined``). What changes is how much of them the build anticipated. At level p, a seeded, nested p% of
-the test queries is withheld and the rest joins the build workload (their columns are read at build time, with
-their descriptions and usage phrases); the stream then answers every test query in order, reading on arrival
-whatever the build did not anticipate. Level 100 is the W0 build (the run above); level 0 anticipates all of
-them. This is the usual design for workload drift: fixed test queries, a varying share of them represented in
-the workload the system was built for (Negi et al., VLDB 2023, train on some templates and test on held-out
-ones; CliffGuard, a design for the past workload evaluated on the shifted one).
+the test queries is withheld; the columns the other (anticipated) test queries need beyond W0's are read at
+build time, and the stream then answers every test query in order, reading on arrival whatever the build did
+not anticipate. Level 100 is the W0 build; level 0 anticipates all of them. This is the usual design for
+workload drift: fixed test queries, a varying share of them represented in the workload the system was built
+for (Negi et al., VLDB 2023; CliffGuard).
 
-What is real here. The replay (``drift_run``) answered every drifted query from a full read made before the
-stream, so drift could not hurt QuWARTS's data. Here nothing is read ahead:
-
-* Build. One shared read of every document with the build workload's (W0's) columns, descriptions and usage
-  phrases only (the ``old`` read of ``rebuild_quality``; any missing call is made now and paid).
-* Stream. Queries arrive in order and are answered in order. For each query the system
-  1. adds the query's literals to the online representation (the query itself, never its answer),
-  2. finds the columns it needs that are not yet extracted for every document,
-  3. narrows the documents to those that can affect the answer (WHERE conjuncts over complete columns,
-     evaluated on the served view),
-  4. reads those documents now, with the new column's description and a usage phrase from the queries seen
-     so far that use it; a document being read also gets every other known column it still lacks (a read
-     costs about the document's length, whatever the number of fields),
-  5. answers from the served view. No rebuild: once a column is fetched, it is reused for free.
-* Every call's input and output tokens and OpenRouter's reported cost are recorded. Each stream starts from
-  the build, so its patch cost is its own; calls whose exact prompt an earlier stream already made are
-  reused from the journal and charged to the stream at their recorded usage ("charged"), and "paid" counts
-  only calls made for the first time.
-
-Baselines, per position: ``static`` (the build as it is, representation frozen at W0: what a per-build
-extractor serves), and the replay's ``reference`` (the same controller on a full read of every column made
-before the stream: the accuracy with no drift cost).
+Only drift may differ between levels (design version 2, keys ``fixed2-<axis>/<p>``). Every level starts from
+the same W0 build read, so W0's columns hold the same values at every level; a level's build adds one
+build-time read of the anticipated extra columns only (their descriptions and usage phrases from the
+anticipated queries). Version 1 re-read every column for each level with a different field list, so all
+columns, drifted or not, came out of a fresh extraction and levels differed by extraction noise (a query
+needing no new column moved by up to 0.4 between levels). W0's columns keep W0's usage phrases at every level;
+``rebuild_quality`` found that re-phrasing them from a new workload changes no score beyond noise. What remains
+between levels is how a drifted column is read: ahead, together with the other anticipated columns, or on
+arrival, with only the columns its query lacks. That difference is the drift effect on accuracy, and it can go
+either way (a short on-arrival prompt can extract a column better than a longer build prompt); the cost of
+drift is the on-arrival reading.
 """
 
 from __future__ import annotations
@@ -67,6 +55,7 @@ CORPORA = ["cspaper", "art", "legal", "player", "med"]
 ALL_CORPORA = CORPORA + ["finan"]
 FIXED_LEVELS = (100, 0, 50, 25, 75)  # 100 first: it is the W0 build, shared with the paired streams
 FIXED_SEED = 0
+FIXED = "fixed2"  # design version 2 (see the module docstring); version 1's outputs are kept, never reused
 ORDER = ["attribute/100", "combined/100", "value/100", "attribute/0", "attribute/50", "combined/50",
          "attribute/25", "attribute/75", "combined/0", "combined/25", "combined/75", "value/0", "value/25",
          "value/50", "value/75", "attribute/gradual", "combined/gradual", "value/gradual"]
@@ -346,11 +335,22 @@ class Build:
     def __init__(self, corpus: str, name: str, workload: dict[str, str]):
         ctx = R.context(corpus)
         self.corpus, self.name, self.workload = corpus, name, dict(workload)
+        self.supplement: list = []  # reads of the anticipated columns beyond W0's (fixed levels)
         if name == "w0":
             self.fields, self.reads = ctx.lean_fields, ctx.lean_reads
             self.dir, self.meta = scratch(corpus), folder(corpus) / "build.json"
         else:
-            self.fields, self.reads = C.design(ctx.spec, self.workload)
+            # W0's read as it is, plus the columns the anticipated queries need beyond it, with their descriptions
+            # and usage phrases from the build workload.
+            wf, wr = C.design(ctx.spec, self.workload)
+            w0 = {(r.table, a) for r in ctx.lean_reads for a in r.attributes}
+            extra = {r.table: tuple(a for a in r.attributes if (r.table, a) not in w0) for r in wr}
+            self.supplement = [C.Read(t, "supplement", attrs) for t, attrs in sorted(extra.items()) if attrs]
+            self.fields = {**ctx.lean_fields, **{f"{r.table}.{a}": wf[f"{r.table}.{a}"] for r in self.supplement for a in r.attributes}}
+            by_table = {r.table: list(r.attributes) for r in ctx.lean_reads}
+            for r in self.supplement:
+                by_table.setdefault(r.table, []).extend(r.attributes)
+            self.reads = [C.Read(t, C.SHARED, tuple(sorted(a))) for t, a in sorted(by_table.items())]
             self.dir, self.meta = scratch(corpus) / "builds" / name, folder(corpus) / "builds" / f"{name}.json"
         self.db, self.static = self.dir / "build.db", self.dir / "static.db"
 
@@ -376,6 +376,8 @@ def prepare(corpus: str, caller, deadline: float | None, build: Build | None = N
 
     ctx = R.context(corpus)
     b = build or w0_build(corpus)
+    if b.name != "w0":
+        return prepare_supplement(corpus, caller, deadline, b)
     f = folder(corpus)
     f.mkdir(parents=True, exist_ok=True)
     b.dir.mkdir(parents=True, exist_ok=True)
@@ -433,6 +435,76 @@ def prepare(corpus: str, caller, deadline: float | None, build: Build | None = N
     return out
 
 
+def write_values(db: Path, table: str, docs, attrs, vals: dict, fields: dict) -> None:
+    """Commit read values of ``attrs`` for ``docs`` into ``db`` (columns added as needed)."""
+
+    from quwarts.core.router.executor import commit_value
+
+    conn = sqlite3.connect(db)
+    with conn:
+        have = {r[1].lower() for r in conn.execute(f'PRAGMA table_info("{table}")')}
+        for a in attrs:
+            if a.lower() not in have:
+                kind = "REAL" if fields[f"{table}.{a}"].value_type in ("int", "float") else "TEXT"
+                conn.execute(f'ALTER TABLE "{table}" ADD COLUMN "{a}" {kind}')
+        ids = {C._doc_name(r[0]): r[0] for r in conn.execute(f'SELECT doc_id FROM "{table}"')}
+        for d in docs:
+            got = vals.get(d)
+            if got is None or d not in ids:
+                continue
+            for a in attrs:
+                conn.execute(f'UPDATE "{table}" SET "{a}" = ? WHERE doc_id = ?',
+                             (commit_value(got.get(a), fields[f"{table}.{a}"]), ids[d]))
+    conn.close()
+
+
+def prepare_supplement(corpus: str, caller, deadline: float | None, b: "Build") -> dict[str, Any] | None:
+    """A fixed level's build: the W0 build's database plus one build-time read of the anticipated extra columns."""
+
+    from quwarts.core.represent import Config, build as represent
+    from quwarts.core.router.executor import run_reads
+
+    ctx = R.context(corpus)
+    if b.meta.exists() and b.db.exists() and b.static.exists():
+        return json.loads(b.meta.read_text())
+    w0 = prepare(corpus, caller, deadline)
+    if w0 is None:
+        return None
+    b.dir.mkdir(parents=True, exist_ok=True)
+    j = build_journal(corpus)
+    t_start, calls_before = time.monotonic(), len(caller.usage.new)
+    ticker = Ticker(f"{corpus} build {b.name} (anticipated columns)", caller.usage)
+    try:
+        stats = run_reads(ctx.spec, b.supplement, {}, b.fields, caller, j, WORKERS, long_documents="chain", deadline=deadline) \
+            if b.supplement else {}
+    finally:
+        ticker.stop()
+    if stats.get("stopped_at_deadline"):
+        return None
+    tmp = b.dir / "build.tmp.db"
+    shutil.copy2(w0_build(corpus).db, tmp)
+    rows, shas, missing = rows_of(j), [], []
+    for r in b.supplement:
+        vals, used = values_and_shas(ctx.docs[r.table], r.table, list(r.attributes), b.fields, rows)
+        shas += used
+        missing += [f"{r.table}/{d}" for d in ctx.docs[r.table] if d not in vals]
+        write_values(tmp, r.table, list(ctx.docs[r.table]), r.attributes, vals, b.fields)
+    shutil.move(str(tmp), b.db)
+    represent(b.db, b.static, ctx.spec, b.all_fields(), b.workload, Config())
+    cost = charge(shas, caller.usage, rows)
+    out = {"corpus": corpus, "build": b.name, "backend": BACKEND, "design": FIXED,
+           "w0_tokens": w0["tokens"], "supplement_calls": cost["calls"], "supplement_input": cost["input"],
+           "supplement_output": cost["output"], "supplement_tokens": cost["input"] + cost["output"],
+           "tokens": w0["tokens"] + cost["input"] + cost["output"], "cost": round(w0["cost"] + cost["cost"], 4),
+           "calls_made_now": len(caller.usage.new) - calls_before, "runtime_s": round(time.monotonic() - t_start, 1),
+           "documents_missing": missing, "workload_queries": len(b.workload),
+           "supplement_columns": sorted(f"{r.table}.{a}" for r in b.supplement for a in r.attributes),
+           "maybe_truncated_calls": sum(bool(caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas)}
+    b.meta.parent.mkdir(parents=True, exist_ok=True)
+    b.meta.write_text(json.dumps(out, indent=1))
+    return out
+
+
 class Ticker:
     """A progress line every minute while a long read runs (calls made, tokens, seconds)."""
 
@@ -484,7 +556,7 @@ def fixed_build(corpus: str, axis: str, p: int) -> Build:
     lvl = fixed_design(corpus, axis)["levels"][str(p)]
     if not lvl["anticipated"]:
         return w0_build(corpus)  # nothing anticipated: the W0 build itself
-    return Build(corpus, f"fixed_{axis}_{p}", {**ctx.w0, **{q: ctx.catalog[q] for q in lvl["anticipated"]}})
+    return Build(corpus, f"{FIXED}_{axis}_{p}", {**ctx.w0, **{q: ctx.catalog[q] for q in lvl["anticipated"]}})
 
 
 # ------------------------------------------------------------------------------------------ one stream
@@ -607,22 +679,7 @@ class Stream:
                 vals, used = values_and_shas({d: ctx.docs[t][d] for d in docs}, t, list(asked), fields_seen, by)
                 shas += used
                 read_docs += len(docs)
-                conn = sqlite3.connect(self.dir / "master.db")
-                with conn:
-                    have = {r[1].lower() for r in conn.execute(f'PRAGMA table_info("{t}")')}
-                    for a in attrs:
-                        if a.lower() not in have:
-                            kind = "REAL" if fields_seen[f"{t}.{a}"].value_type in ("int", "float") else "TEXT"
-                            conn.execute(f'ALTER TABLE "{t}" ADD COLUMN "{a}" {kind}')
-                    ids = {C._doc_name(r[0]): r[0] for r in conn.execute(f'SELECT doc_id FROM "{t}"')}
-                    for d in docs:
-                        got = vals.get(d)
-                        if got is None or d not in ids:
-                            continue
-                        for a in attrs:
-                            conn.execute(f'UPDATE "{t}" SET "{a}" = ? WHERE doc_id = ?',
-                                         (commit_value(got.get(a), fields_seen[f"{t}.{a}"]), ids[d]))
-                conn.close()
+                write_values(self.dir / "master.db", t, docs, attrs, vals, fields_seen)
                 for a in attrs:
                     self.mat.setdefault((t, a), set()).update(d for d in docs if d in vals)
                     fetched[f"{t}.{a}"] = fetched.get(f"{t}.{a}", 0) + sum(d in vals for d in docs)
@@ -673,7 +730,7 @@ def plan(corpus: str, which: str, axes: list[str]) -> list[tuple[str, Build | No
             if f"{axis}/100" not in ctx.designs[0]["streams"]:
                 continue
             test = fixed_design(corpus, axis)["test"]
-            out += [(f"fixed-{axis}/{p}", None, test) for p in FIXED_LEVELS]
+            out += [(f"{FIXED}-{axis}/{p}", None, test) for p in FIXED_LEVELS]
     if which in ("headline", "all", "fixed+headline", "everything"):
         keys = HEADLINE if which in ("headline", "fixed+headline") else ORDER
         out += [(k, None, None) for k in ORDER if k in keys and k in ctx.designs[0]["streams"]]
@@ -701,8 +758,8 @@ def run(corpus: str, deadline: float, which: str = "headline", axes: list[str] |
         final = out_dir / f"{key.replace('/', '_')}.jsonl"
         if final.exists():
             continue
-        if key.startswith("fixed-"):
-            axis, p = key[len("fixed-"):].split("/")
+        if key.startswith(FIXED + "-"):
+            axis, p = key[len(FIXED) + 1:].split("/")
             build = fixed_build(corpus, axis, int(p))
             if prepare(corpus, caller, left_of(stop_at), build) is None:
                 lines.append(f"{corpus:8s} {key:22s} build read in progress")
