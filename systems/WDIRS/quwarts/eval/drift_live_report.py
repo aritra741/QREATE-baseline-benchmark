@@ -127,7 +127,10 @@ def fixed(corpus: str, axis: str) -> dict | None:
             continue
         bmeta = L.fixed_build(corpus, axis, p).meta
         b = json.loads(bmeta.read_text()) if bmeta.exists() else {}
+        lvl = L.fixed_design(corpus, axis)["levels"][str(p)]
         out[p] = {"n": len(rs), "accuracy": mean([r["benchmark"] for r in rs]), "tolerant": mean([r["tolerant"] for r in rs]),
+                  "columns_missing": lvl.get("columns_missing_share"), "queries_unanticipated": lvl.get("queries_unanticipated_share"),
+                  "missing_list": lvl.get("missing_columns", []),
                   "static": mean([r["static_benchmark"] for r in rs]),
                   "unanticipated": sum(not r["anticipated"] for r in rs), "patched": sum(r["action"] == "patch" for r in rs),
                   "build_tokens": b.get("tokens"), "build_runtime_s": b.get("runtime_s"),
@@ -176,25 +179,26 @@ def fixed_report(axes=("attribute", "attribute_pool", "value", "combined")) -> l
                 lo, hi = ci_cluster(pairs) if d and p else (0, 0)
                 change = f"{mean(d):+.3f} [{lo:+.3f}, {hi:+.3f}]" if d and p else "-"
                 bt = f"{v['build_tokens'] / 1e6:.2f}M" if v["build_tokens"] else "-"
-                rows.append(f"| {c} | {p}% | {v['n']} | {v['unanticipated']} | {v['patched']} | {v['accuracy']:.3f} | {change} | {v['static']:.3f} | "
+                rows.append(f"| {c} | {p}% | {100 * (v['columns_missing'] or 0):.0f}% ({len(v['missing_list'])}) | {100 * (v['queries_unanticipated'] or 0):.0f}% | {v['n']} | {v['patched']} | {v['accuracy']:.3f} | {change} | {v['static']:.3f} | "
                             f"{bt} | {v['patch_input'] / 1e6:.2f}M / {v['patch_output'] / 1e3:.0f}k | ${v['patch_cost']:.3f} | {v['runtime_s']:.0f}s |")
         if rows:
             L_ += ["", f"## Fixed questions, {axis} axis (same test queries at every level)", "",
-                   "Level p: p% of the test queries were withheld from the build workload; the rest were in it (their columns read "
-                   "at build time). Change: each query's score minus its score at 0% (same question), mean and 95% CI (bootstrap "
+                   "Level p: a nested set of the new columns is left out of the build, and the test queries that use them are "
+                   "unanticipated; the other test queries are in the build workload (their columns read at build time). The x-axis "
+                   "is the real drift of each level: the share of new columns missing (their number) and of test queries unanticipated. Change: each query's score minus its score at 0% (same question), mean and 95% CI (bootstrap "
                    "over base queries: variants of one base query are resampled together).", "",
-                   "| Corpus | Drift | Queries | Unanticipated | Patched | QuWARTS | Change vs 0% [95% CI] | Static | Build tokens | Patch tokens (in / out) | Patch cost | Runtime |",
-                   "|---|---|---|---|---|---|---|---|---|---|---|---|"] + rows
+                   "| Corpus | Level | Columns missing | Queries unanticipated | Queries | Patched | QuWARTS | Change vs 0% [95% CI] | Static | Build tokens | Patch tokens (in / out) | Patch cost | Runtime |",
+                   "|---|---|---|---|---|---|---|---|---|---|---|---|---|"] + rows
     return L_
 
 
 def fixed_csv() -> str:
-    lines = ["backend,corpus,axis,level,queries,unanticipated,patched,accuracy,tolerant,static,build_tokens,patch_input,patch_output,patch_cost_usd,runtime_s"]
+    lines = ["backend,corpus,axis,level,columns_missing,queries_unanticipated,queries,unanticipated,patched,accuracy,tolerant,static,build_tokens,patch_input,patch_output,patch_cost_usd,runtime_s"]
     for axis in ("attribute", "attribute_pool", "value", "combined"):
         for c in L.ALL_CORPORA:
             f = fixed(c, axis) if (L.folder(c) / "streams").exists() else None
             for p, v in (f or {}).items():
-                lines.append(",".join(str(x) for x in [L.BACKEND, c, axis, p, v["n"], v["unanticipated"], v["patched"],
+                lines.append(",".join(str(x) for x in [L.BACKEND, c, axis, p, v["columns_missing"], v["queries_unanticipated"], v["n"], v["unanticipated"], v["patched"],
                                                        round(v["accuracy"], 4), round(v["tolerant"], 4), round(v["static"], 4),
                                                        v["build_tokens"], v["patch_input"], v["patch_output"], round(v["patch_cost"], 4),
                                                        round(v["runtime_s"], 1)]))

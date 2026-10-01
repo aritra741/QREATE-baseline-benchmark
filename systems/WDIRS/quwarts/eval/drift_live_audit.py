@@ -21,6 +21,7 @@ import json
 import re
 import sqlite3
 
+from quwarts.core.adapt import controller as C
 from quwarts.eval import drift_live as L
 from quwarts.eval import drift_run as R
 
@@ -96,9 +97,7 @@ def design() -> int:
     problems = 0
     for c in L.ALL_CORPORA:
         ctx = R.context(c)
-        for axis in ("attribute", "attribute_pool", "value", "combined"):
-            if axis != "attribute_pool" and f"{axis}/100" not in ctx.designs[0]["streams"]:
-                continue
+        for axis in ("attribute", "attribute_pool"):  # the axes with column levels (see drift_live.plan)
             d = L.fixed_design(c, axis)
             ps = sorted(int(p) for p in d["levels"])
             ant = {p: set(d["levels"][str(p)]["anticipated"]) for p in ps}
@@ -110,6 +109,22 @@ def design() -> int:
                 issues.append("kept columns do not shrink with the level")
             if spec["kept"][100]:
                 issues.append("level 100 keeps extra columns")
+            new = {tuple(x.split(".", 1)) for x in d.get("new_columns", [])}
+            shares = []
+            for p in ps:
+                lvl = d["levels"][str(p)]
+                missing = {tuple(x.split(".", 1)) for x in lvl.get("missing_columns", [])}
+                if new and spec["kept"][p] != new - missing:
+                    issues.append(f"level {p}: build keeps {len(spec['kept'][p])} columns, design says {len(new - missing)}")
+                if not {tuple(x.split(".", 1)) for x in lvl.get("withheld_columns", [])} <= missing:
+                    issues.append(f"level {p}: a withheld column is still in the build")
+                # every unanticipated query uses a missing column, and no anticipated query does
+                uses = lambda q: {(t, a) for t, aa in C.query_attributes(ctx.spec, q, ctx.catalog[q], {**ctx.w0, q: ctx.catalog[q]}).items() for a in aa}  # noqa: E731
+                if any(not (uses(q) & missing) for q in lvl["withheld"]) or any(uses(q) & missing for q in lvl["anticipated"]):
+                    issues.append(f"level {p}: anticipated/unanticipated split disagrees with the missing columns")
+                shares.append(f"{p}%: {len(missing)}/{len(new)} cols, {100 * lvl.get('queries_unanticipated_share', 0):.0f}% queries")
+            if len({s.split(': ')[1] for s in shares}) < len(shares):
+                issues.append("two levels have the same drift")
             norm = lambda x: re.sub(r"[^a-z0-9]+", "", x.lower())  # noqa: E731
             for key, f in spec["fields"].items():
                 t, a = key.split(".")
@@ -123,8 +138,8 @@ def design() -> int:
                     if norm(lit) not in allowed:
                         issues.append(f"{key}: usage phrase constant {lit!r} not from a query anticipated wherever it is kept")
             problems += bool(issues)
-            print(f"{c:8s} {axis:9s} test {len(d['test']):2d}, extra columns {len(spec['fields']):2d}: "
-                  + ("ok" if not issues else "; ".join(issues)))
+            print(f"{c:8s} {axis:14s} test {len(d['test']):3d}, new columns {len(spec['fields']):2d}: "
+                  + ("ok" if not issues else "; ".join(issues)) + "\n      " + " | ".join(shares))
     print("design problems:", problems)
     return problems
 

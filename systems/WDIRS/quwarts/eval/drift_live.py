@@ -21,7 +21,10 @@ not anticipate. Level 100 is the W0 build; level 0 anticipates all of them. This
 workload drift: fixed test queries, a varying share of them represented in the workload the system was built
 for (Negi et al., VLDB 2023; CliffGuard).
 
-Only drift may differ between levels (design version 3, keys ``fixed3-<axis>/<p>``):
+Levels are defined by columns (design version 4, keys ``fixed4-<axis>/<p>``; see ``fixed_design``): at level p a
+nested set of the new columns is left out of the build, and the test queries using them are unanticipated.
+Versions 1-3 withheld queries, which left almost every column in the build (many queries share a column).
+Only drift may differ between levels (unchanged from version 3):
 * W0's columns: every level starts from the same W0 build read, so they hold the same values at every level.
 * The anticipated extra columns: one build-time read of all of them (the 0% list) is made once per corpus and
   axis, and each level keeps only the columns its anticipated queries need (the others stay empty until a
@@ -65,7 +68,7 @@ CORPORA = ["cspaper", "art", "legal", "player", "med"]
 ALL_CORPORA = CORPORA + ["finan"]
 FIXED_LEVELS = (100, 0, 50, 25, 75)  # 100 first: it is the W0 build, shared with the paired streams
 FIXED_SEED = 0
-FIXED = "fixed3"  # design version 3 (see the module docstring); earlier versions' outputs are kept, never reused
+FIXED = "fixed4"  # design version 4 (see the module docstring and fixed_design); earlier outputs are kept, never reused
 ORDER = ["attribute/100", "combined/100", "value/100", "attribute/0", "attribute/50", "combined/50",
          "attribute/25", "attribute/75", "combined/0", "combined/25", "combined/75", "value/0", "value/25",
          "value/50", "value/75", "attribute/gradual", "combined/gradual", "value/gradual"]
@@ -558,12 +561,23 @@ class Ticker:
 
 
 def fixed_design(corpus: str, axis: str = "attribute") -> dict[str, Any]:
-    """The fixed test queries of an axis and, per level, the withheld queries (nested as the level grows)."""
+    """The fixed test queries of an axis and, per level, which new columns the build does not anticipate.
 
+    Drift is in columns, not queries (design v4). The new columns are those the test queries need beyond W0's.
+    At level p a nested set of them is left out of the build, and every test query that uses one of them is
+    unanticipated (outside the build workload), so nothing pulls the column back in; every other test query is
+    anticipated. (Withholding queries instead, as v1-v3 did, left almost every column in the build: a column is
+    missing only if all the queries using it are withheld, and many queries share a column, so 25-75% of the
+    queries withheld still meant 0-1 of 7 columns missing on player.) The withheld columns are prefixes of one
+    order of the new columns, so the levels are nested; among seeded candidate orders (all of them when there are
+    at most 7 columns), the one whose prefixes put the share of unanticipated queries closest to 25/50/75% is
+    used. Each level records its real shares (columns missing, queries unanticipated): they are the x-axis."""
+
+    import itertools
     import random
 
     ctx = R.context(corpus)
-    path = folder(corpus) / f"fixed_{axis}_design.json"
+    path = folder(corpus) / f"{FIXED}_{axis}_design.json"
     if path.exists():
         return json.loads(path.read_text())
     if axis == "attribute_pool":
@@ -574,18 +588,56 @@ def fixed_design(corpus: str, axis: str = "attribute") -> dict[str, Any]:
         random.Random(FIXED_SEED + 1).shuffle(test)
     else:
         test = ctx.designs[0]["streams"][f"{axis}/100"]
-    order = list(dict.fromkeys(test))
-    random.Random(FIXED_SEED).shuffle(order)
+    queries = list(dict.fromkeys(test))
+    w0 = {(r.table, a) for r in ctx.lean_reads for a in r.attributes}
+
+    def columns(workload: dict[str, str]) -> set:
+        return {(r.table, a) for r in C.design(ctx.spec, {**ctx.w0, **workload})[1] for a in r.attributes} - w0
+
+    uses = {q: columns({q: ctx.catalog[q]}) for q in queries}
+    new = sorted(set().union(*uses.values()))
+
+    def unanticipated(withheld: set) -> list[str]:
+        return [q for q in queries if uses[q] & withheld]
+
+    targets = [25, 50, 75]
+    rng = random.Random(FIXED_SEED)
+    if len(new) <= 7:
+        orders = [list(o) for o in itertools.permutations(new)]
+    else:
+        orders = []
+        for _ in range(5000):
+            o = list(new)
+            rng.shuffle(o)
+            orders.append(o)
+    best = None
+    for o in orders:
+        share = [100 * len(unanticipated(set(o[:k]))) / len(queries) for k in range(len(o) + 1)]
+        ks, k0, cost = [], 0, 0.0
+        for t in targets:  # the prefix closest to the target, never shorter than the previous level's
+            k = min(range(k0, len(o) + 1), key=lambda j: (abs(share[j] - t), j))
+            ks.append(k)
+            k0 = k
+            cost += abs(share[k] - t)
+        if best is None or cost < best[0] - 1e-9:
+            best = (cost, o, ks)
+    _cost, order, ks = best
+    prefix = {0: 0, **dict(zip(targets, ks)), 100: len(order)}
     levels = {}
     for p in sorted(FIXED_LEVELS):
-        withheld = order[:round(p / 100 * len(order))]
-        workload = {**ctx.w0, **{q: ctx.catalog[q] for q in order if q not in withheld}}
-        new_cols = sorted({f"{t}.{a}" for r in C.design(ctx.spec, workload)[1] for t, a in [(r.table, x) for x in r.attributes]}
-                          - {f"{r.table}.{a}" for r in ctx.lean_reads for a in r.attributes})
-        levels[str(p)] = {"withheld": withheld, "anticipated": [q for q in order if q not in withheld],
-                          "extra_build_columns": new_cols}
-    out = {"corpus": corpus, "axis": axis, "seed": FIXED_SEED, "test": test, "levels": levels,
-           "note": "level p: p% of the test queries withheld from the build workload; the rest are in it"}
+        withheld_cols = set(order[:prefix[p]])
+        out_q = unanticipated(withheld_cols)
+        anticipated = [q for q in queries if q not in out_q]
+        missing = set(new) - columns({q: ctx.catalog[q] for q in anticipated})  # the columns the build really lacks
+        levels[str(p)] = {"withheld_columns": sorted(f"{t}.{a}" for t, a in withheld_cols),
+                          "missing_columns": sorted(f"{t}.{a}" for t, a in missing),
+                          "columns_missing_share": round(len(missing) / len(new), 3) if new else 0.0,
+                          "queries_unanticipated_share": round(len(out_q) / len(queries), 3),
+                          "withheld": out_q, "anticipated": anticipated}
+    out = {"corpus": corpus, "axis": axis, "design": FIXED, "seed": FIXED_SEED, "test": test,
+           "new_columns": [f"{t}.{a}" for t, a in order], "levels": levels,
+           "note": "level p: a nested set of the new columns is left out of the build; test queries using one of "
+                   "them are unanticipated. The shares are the real drift of each level."}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out, indent=1))
     return out
@@ -799,7 +851,10 @@ def plan(corpus: str, which: str, axes: list[str]) -> list[tuple[str, Build | No
     out = []
     if which in ("fixed", "fixed+headline", "everything"):
         for axis in axes:
-            if axis != "attribute_pool" and f"{axis}/100" not in ctx.designs[0]["streams"]:
+            if axis not in ("attribute", "attribute_pool"):
+                # Levels are sets of new columns left out of the build; value drift adds no column (new constants on
+                # known columns) and the combined streams mix in such queries, so neither has column levels.
+                print(f"{corpus}: no fixed levels for the {axis} axis (drift in constants, not columns); skipped", flush=True)
                 continue
             test = fixed_design(corpus, axis)["test"]
             out += [(f"{FIXED}-{axis}/{p}", None, test) for p in FIXED_LEVELS]
