@@ -22,7 +22,7 @@ def server(name: str) -> str:
 def shared_read(sid: str, tag: str, model: str | None = None, deps: list[str] | None = None, extra: str = "") -> dict:
     env = (f"OLLAMA_MODEL={model} " if model else "") + extra
     return {
-        "id": sid, "lane": "gpu", "deps": deps or [],
+        "id": sid, "lane": "gpu", "deps": (deps or []) + ["G0-prompt-guard"],
         "cmd": PRE + server(SERVER_OF.get(model, "main")) + env +
                f"python -u -m quwarts.eval.router_shared_read_run --corpus player --variant protocol --blank-base "
                f"--tag {tag} --reads --score --workers 8",
@@ -38,7 +38,7 @@ def stream(sid: str, corpus: str, mode: str, key: str = "fixed4-attribute_pool/1
     env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_LIVE_ONLY={key} QUWARTS_KEEP_VIEWS=1 "
            + (f"OLLAMA_MODEL={model} " if model else "") + extra)
     return {
-        "id": sid, "lane": "gpu", "deps": deps or [],
+        "id": sid, "lane": "gpu", "deps": (deps or []) + ["G0-prompt-guard"],
         "cmd": PRE + f"python ../../{EXP}/clone.py --mode {mode} --corpus {corpus} --root {root} --scratch {scratch} && "
                + server(SERVER_OF.get(model, "main")) + env +
                f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams fixed --axes attribute_pool "
@@ -79,7 +79,7 @@ def policy(name: str, corpus: str) -> dict:
     env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_BUDGET_POLICY={name} "
            f"QUWARTS_BUDGET_ORACLE=$OLDPWD/results/experiments/E2.2-patches/{corpus}/patches.csv ")
     return {
-        "id": sid, "lane": "gpu", "deps": [f"E2.2-patches-{corpus}"],
+        "id": sid, "lane": "gpu", "deps": [f"E2.2-patches-{corpus}", "G0-prompt-guard"],
         "cmd": PRE + f"python ../../{EXP}/clone.py --mode policy --corpus {corpus} --root {root} --scratch {scratch} && "
                + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams budget "
                f"--axes attribute_pool --deadline 0 --workers 8",
@@ -89,6 +89,9 @@ def policy(name: str, corpus: str) -> dict:
 
 
 STEPS = [
+    # ---- GPU lane, first: the default prompts still match the recorded runs (see prompt_guard.sh)
+    {"id": "G0-prompt-guard", "lane": "gpu", "retries": 0, "cmd": f"bash {EXP}/prompt_guard.sh",
+     "outputs": ["results/experiments/G0-prompt-guard/result.json"], "skip_if_outputs": False},
     # ---- GPU lane: Phase 1 (is it real?)
     {"id": "P1-pull-fp16", "lane": "gpu",
      "cmd": PRE + server("fp16") + f"ollama pull {FP16} && ollama list | grep -q '{FP16}' && "
@@ -110,7 +113,7 @@ STEPS = [
     stream("E7c-stream-contradicted-cspaper", "cspaper", "fresh", key="fixed4-attribute_pool/0,fixed4-attribute_pool/100",
            extra="QUWARTS_NULLABLE_CONTRADICTED=1 "),
     # ---- GPU lane: E2.1b prompt width (RQ2): the same columns read 1, 3, 6 or 12 at a time on a fixed sample
-    *[{"id": f"E2.1b-width-{c}", "lane": "gpu", "retries": 2,
+    *[{"id": f"E2.1b-width-{c}", "lane": "gpu", "retries": 2, "deps": ["G0-prompt-guard"],
        "cmd": PRE + server("main") + f"python -u -m quwarts.eval.exp_width --corpus {c} --docs {n} --workers 8",
        "outputs": [f"results/experiments/E2.1b-width/{c}/summary.json"], "skip_if_outputs": False}
       for c, n in [("player", 141), ("art", 100), ("legal", 60), ("cspaper", 40), ("med", 40)]],

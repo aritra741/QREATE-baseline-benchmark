@@ -1,7 +1,8 @@
-# Experiment status (2026-10-02T11:17:53-06:00)
+# Experiment status (2026-10-02T12:38:50-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
+| G0-prompt-guard | gpu | pending | 0 |  |  |
 | P1-pull-fp16 | gpu | done | 2 | ok 2026-10-01T20:46:53-06:00 |  |
 | E1.2-sr-fp16 | gpu | done | 2 | ok 2026-10-01T20:56:34-06:00 |  |
 | E1.1-sr-rep1 | gpu | done | 1 | ok 2026-10-01T21:11:45-06:00 |  |
@@ -10,20 +11,20 @@
 | E1.1-stream-rep-player | gpu | done | 1 | ok 2026-10-01T22:40:53-06:00 |  |
 | E1.2-stream-fp16-player | gpu | done | 1 | ok 2026-10-01T23:21:54-06:00 |  |
 | E7-sr-nullable | gpu | done | 1 | ok 2026-10-01T23:38:33-06:00 |  |
-| E7b-sr-nullhint | gpu | done | 1 | ok 2026-10-02T01:23:11-06:00 |  |
+| E7b-sr-nullhint | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
 | E7-stream-nullable-player | gpu | done | 1 | ok 2026-10-02T01:08:28-06:00 |  |
-| E7-stream-nullable-cspaper | gpu | done | 1 | ok 2026-10-02T02:13:25-06:00 |  |
-| E7c-stream-contradicted-cspaper | gpu | done | 1 | ok 2026-10-02T04:36:15-06:00 |  |
-| E2.1b-width-player | gpu | done | 1 | ok 2026-10-02T03:48:43-06:00 |  |
-| E2.1b-width-art | gpu | done | 1 | ok 2026-10-02T05:28:32-06:00 |  |
-| E2.1b-width-legal | gpu | done | 1 | ok 2026-10-02T06:12:42-06:00 |  |
-| E2.1b-width-cspaper | gpu | done | 1 | ok 2026-10-02T06:34:56-06:00 |  |
-| E2.1b-width-med | gpu | done | 1 | ok 2026-10-02T07:17:30-06:00 |  |
-| E3.2-fragile-legal | gpu | done | 1 | ok 2026-10-02T09:44:57-06:00 |  |
-| E3.2-fragile-med | gpu | done | 1 | ok 2026-10-02T11:17:53-06:00 |  |
-| E3.2-fragile-cspaper | gpu | running-or-interrupted | 1 | start 2026-10-02T11:17:53-06:00 |  |
-| E3.2-oracle-cspaper | gpu | pending | 0 |  |  |
-| E3.2-cap-cspaper | gpu | pending | 0 |  |  |
+| E7-stream-nullable-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E7c-stream-contradicted-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E2.1b-width-player | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E2.1b-width-art | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E2.1b-width-legal | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E2.1b-width-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E2.1b-width-med | gpu | pending | 1 | reset 2026-10-02T12:38:30-06:00 |  |
+| E3.2-fragile-legal | gpu | pending | 1 | reset 2026-10-02T12:38:30-06:00 |  |
+| E3.2-fragile-med | gpu | pending | 1 | reset 2026-10-02T12:38:30-06:00 |  |
+| E3.2-fragile-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:30-06:00 |  |
+| E3.2-oracle-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:30-06:00 |  |
+| E3.2-cap-cspaper | gpu | running-or-interrupted | 1 | reset 2026-10-02T12:38:30-06:00 |  |
 | E3.2-pace-cspaper | gpu | pending | 0 |  |  |
 | E3.2-oracle-legal | gpu | pending | 0 |  |  |
 | E3.2-cap-legal | gpu | pending | 0 |  |  |
@@ -72,6 +73,7 @@
 | E2.3-order-legal | cpu | done | 1 | ok 2026-10-01T23:41:32-06:00 |  |
 | E2.1-columns-legal | cpu | done | 1 | ok 2026-10-01T23:41:36-06:00 |  |
 | E2.4-components-legal | cpu | done | 1 | ok 2026-10-01T23:42:21-06:00 |  |
+| E9-query-types | cpu | pending | 0 |  |  |
 | E1-reads-analysis | cpu | done | 1 | ok 2026-10-01T23:42:23-06:00 |  |
 | E1-variance-analysis | cpu | done | 1 | ok 2026-10-01T23:42:25-06:00 |  |
 

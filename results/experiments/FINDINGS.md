@@ -1,5 +1,15 @@
 # Experiment findings (running log)
 
+> **Erratum (2026-10-02 13:20).** From 2026-10-01 23:40 to 2026-10-02 13:20 a code edit for E7b dropped the line
+> "Answer No unless the document indicates Yes." from the prompt of every never-null yes/no field, even with no
+> experiment variables set. Runs that started in that window and made new reads are invalid and are being re-run:
+> E7b, E7 and E7c on cspaper, all five prompt-width runs (E2.1b), and the `fragile` policy runs (E3.3); their
+> sections are marked below. Everything else (Phase 1, all replays and per-corpus analyses, E8, E9, the E7 shared read
+> and the E7 player stream, the latter checked by a no-call replay) is unaffected. Found because the cspaper
+> `fragile` control, which has nothing to skip, did not reproduce the recorded sweep; details and the quarantined
+> outputs are in `_invalid_promptbug/README.md`. A guard step now replays a recorded stream with model calls refused
+> before any GPU step runs.
+
 Results of the experiment plan (`results/drift_design/EXPERIMENT_PLAN.md`), newest last. Every number links to the
 file it comes from; step status is in `results/experiments/STATUS.md`. Model: Qwen 2.5 7B on local Ollama (4-bit
 unless stated). Scores are per-query structure F2 × cell F1@0.20, averaged.
@@ -402,6 +412,8 @@ remaining 219 queries finish.
 Slightly negative on player (more queries down than up, by amounts near the stream noise of ±0.002): letting text
 fields be empty loses some values gold has, more than it removes invented ones. cspaper, art and med streams follow.
 
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
+
 **E7b: a field-level null instruction makes it worse.** Text fields relaxed as in E7, plus on each text field's line
 "If the document does not state it, answer null; do not guess from the allowed values" (player shared read, 4-bit;
 `results/quwarts_router_v3/player_ollama_nullhint/`):
@@ -422,6 +434,8 @@ values for missed ones, and a missed value (above all a join key) costs more tha
 improves the score. The never-null confound is real in the benchmark's metadata, but it is not fixable through the
 prompt; it bounds every system given the same attribute files.
 
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
+
 **cspaper drift streams with "Never null" dropped for text fields** (`E7-stream-nullable-cspaper/`):
 
 | Drift | Recorded | Never-null dropped | Paired difference | Queries up / down |
@@ -437,6 +451,8 @@ description names an empty case ("leave it empty"); across the five corpora that
 `cspaper.agent_framework`.
 
 ## E2.1b: prompt width (RQ2) — player
+
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
 The same 12 player columns read on all 141 players, 1, 3, 6 or 12 columns per read (fixed column order, first
 window of each document), scored on the values as committed (absence values of never-null counts applied)
@@ -458,8 +474,10 @@ and med follow.
 (An earlier version of this table scored raw responses and showed width-1 reads missing far more values; that was a
 measurement error: narrow reads answer `null` for a "0 if none" count, which the database stores as 0.)
 
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
+
 **E7c: relaxing only `cspaper.agent_framework`** (the one text field whose description names an empty case;
-`E7c-stream-contradicted-cspaper/`):
+`_invalid_promptbug/E7c-stream-contradicted-cspaper/`):
 
 | Drift | Recorded | E7 (all text relaxed) | E7c (agent_framework only) |
 |---|---|---|---|
@@ -472,6 +490,8 @@ contradictory column alone is a small effect (+0.011 at 0%, none at 100%). This 
 `agent_framework` explains the cspaper budget anomaly in score terms: it explains the specific query examined, and
 the false fills, but its effect on the stream mean is small. Overall, the E7 family moves scores by −0.06 to +0.02
 depending on corpus and variant; null handling is not a lever worth carrying into the system.
+
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
 **E2.1b width — art** (12 columns, 100 artists; `E2.1b-width/art/`):
 
@@ -487,6 +507,8 @@ The opposite of player: on art **wider reads are better** (+3.7 points exact, +4
 gold-empty cells; asked for twelve, for 61%. A single-field prompt seems to push the model to produce *some* value.
 So prompt width has no single best setting; it trades false fills (narrow reads) against misses (wide reads), and
 the balance depends on how often the corpus's gold is empty.
+
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
 **E2.1b width — legal** (12 columns, 60 cases; `E2.1b-width/legal/`):
 
@@ -507,15 +529,21 @@ either way. A width policy would have to depend on how often a column is expecte
 cannot observe directly; at 3–10× the tokens, narrow reads are not a default worth taking. This partly supports RQ2
 (a patch's narrow prompt can extract better), but only for columns that are usually present.
 
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
+
 **E2.1b width — cspaper** (12 columns, 40 papers; `E2.1b-width/cspaper/`): flat. Exact agreement 0.572 / 0.567 /
 0.565 / 0.569 at 1 / 3 / 6 / 12 columns per read (lenient 0.644 / 0.677 / 0.674 / 0.681); false fills 0.43 at width 1
 vs 0.15–0.33 wider; tokens 530k vs 83k. Width does not matter on cspaper except for cost.
+
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
 **E2.1b width — med** (disease table, 12 free-text columns, 40 diseases; `E2.1b-width/med/`): exact agreement is
 near zero at every width (0.034 / 0.052 / 0.093 / 0.095 at 1 / 3 / 6 / 12), lenient flat (0.527 / 0.528 / 0.533 /
 0.481); false fills 0.75–0.84 throughout; tokens 4.0M vs 0.40M.
 
 ### Prompt width: summary over the five corpora (RQ2)
+
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
 | Corpus | Exact, 1 col/read | Exact, 12 cols/read | Difference | Token ratio (1 vs 12) |
 |---|---|---|---|---|
@@ -531,7 +559,9 @@ model:** patch reads are not systematically more accurate because they ask for f
 small rises under drift (cspaper +0.02, player +0.01) are better explained by the order and scope effects found in
 E2.3 (which documents get read, which values a narrower scope leaves empty) than by prompt width.
 
-## E3.3: the `fragile` budget policy (skip patches for MIN/MAX-over-text queries) — legal
+## E3.3: the `fragile` budget policy
+
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only. (skip patches for MIN/MAX-over-text queries) — legal
 
 All 25 budgeted streams (5 budgets × 5 drift levels), same budgets as the recorded first-come-first-served sweep,
 reads reused from the journals (`E3.2-fragile/live/legal/`, comparison in `E3-policies/legal/summary.json`):
@@ -553,6 +583,8 @@ budget. The cost: at large budgets the policy saturates just below unlimited (0.
 Also visible: at 25% and 50% drift, the **10% budget beats unlimited** (0.130 vs 0.122 / 0.127) under both policies.
 The same over-reading effect as on cspaper (reading a column for every document hurts some later queries) shows up
 on legal too.
+
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
 **`fragile` policy — med** (30 of 76 test queries are MIN/MAX over text; `E3-policies/med/summary.json`):
 
@@ -611,6 +643,8 @@ zeroes the whole query.
 **Filters and predicates:** numeric-only filters score highest (0.449, n=13); string equality / IN 0.255 (n=167); no
 filter 0.187 (n=143). Queries with HAVING / ORDER / LIMIT / CASE score higher (0.405 vs 0.214), mostly because they
 are concentrated on player.
+
+> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
 **`fragile` policy — cspaper (control, no such queries):** mean 0.1459 vs 0.1453, tokens 7.9M in both; the policy is a
 no-op where there is nothing to skip, as it should be.
