@@ -1,4 +1,4 @@
-# Experiment status (2026-10-01T22:10:11-06:00)
+# Experiment status (2026-10-01T22:40:53-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -7,13 +7,18 @@
 | E1.1-sr-rep1 | gpu | done | 1 | ok 2026-10-01T21:11:45-06:00 |  |
 | E1.1-sr-rep2 | gpu | done | 1 | ok 2026-10-01T21:28:11-06:00 |  |
 | E1.1-stream-rep-cspaper | gpu | done | 1 | ok 2026-10-01T21:50:29-06:00 |  |
-| E1.1-stream-rep-player | gpu | running-or-interrupted | 1 | start 2026-10-01T21:50:29-06:00 |  |
-| E1.2-stream-fp16-player | gpu | pending | 0 |  |  |
+| E1.1-stream-rep-player | gpu | done | 1 | ok 2026-10-01T22:40:53-06:00 |  |
+| E1.2-stream-fp16-player | gpu | running-or-interrupted | 1 | start 2026-10-01T22:40:53-06:00 |  |
 | E7-sr-nullable | gpu | pending | 0 |  |  |
 | E7-stream-nullable-player | gpu | pending | 0 |  |  |
 | E7-stream-nullable-cspaper | gpu | pending | 0 |  |  |
 | E7-stream-nullable-med | gpu | pending | 0 |  |  |
 | E7-stream-nullable-art | gpu | pending | 0 |  |  |
+| E2.1b-width-player | gpu | pending | 0 |  |  |
+| E2.1b-width-art | gpu | pending | 0 |  |  |
+| E2.1b-width-legal | gpu | pending | 0 |  |  |
+| E2.1b-width-cspaper | gpu | pending | 0 |  |  |
+| E2.1b-width-med | gpu | pending | 0 |  |  |
 | E3.2-oracle-cspaper | gpu | pending | 0 |  |  |
 | E3.2-cap-cspaper | gpu | pending | 0 |  |  |
 | E3.2-pace-cspaper | gpu | pending | 0 |  |  |

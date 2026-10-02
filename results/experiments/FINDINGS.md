@@ -265,5 +265,5 @@ The unlimited stream at 100% drift, re-run with every patch read again (fresh pa
 About a quarter to a third of patch responses differ between identical runs (mostly formatting and wording; on
 player, different values also change which documents later patches are scoped to, so 256 prompts differ), but the
 stream score moves by at most 0.002. **Stream-level noise is two orders of magnitude below the drift effects
-(static vs adaptive: 0.15–0.35) and the budget effects (0.02–0.25) reported earlier**; budget gaps of a few
-thousandths (e.g. med 0.081 vs 0.086) are within it only on single queries, not on the curves.
+(static vs adaptive: 0.15–0.35) and the budget effects (0.02–0.25) reported earlier**. Gaps of about 0.005 (e.g.
+med's 100% budget 0.081 vs unlimited 0.086) are above this noise but still small enough to call marginal.
