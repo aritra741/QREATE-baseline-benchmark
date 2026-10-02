@@ -251,3 +251,19 @@ the workload, never compared with a constant, so the workload gives no vocabular
 (`marriage = 'Married'`), the rewrites are mostly case changes the scorer already ignores; and extra list items are
 not removed by mapping. The form gap is in *output labels the system has no way to know* (gold's label set for a
 `GROUP BY` column) and in list membership (which items gold counts), not in spellings of known constants.
+
+## Run-to-run variance of a whole drift stream (E1.1)
+
+The unlimited stream at 100% drift, re-run with every patch read again (fresh patch journal; same builds, same
+4-bit server; `E1-variance/summary.json`):
+
+| Corpus | Recorded | Repeat | Repeat − recorded (95% CI over queries) | Queries changed | Patch reads | Same prompt as recorded | Identical response |
+|---|---|---|---|---|---|---|---|
+| cspaper | 0.1533 | 0.1533 | 0.000 (0.000 – 0.000) | 0 of 59 | 1,009 | 1,009 | 786 (78%) |
+| player | 0.3870 | 0.3885 | +0.0015 (−0.0019 – +0.0065) | 8 of 118 | 1,098 | 842 | 552 of 842 (66%) |
+
+About a quarter to a third of patch responses differ between identical runs (mostly formatting and wording; on
+player, different values also change which documents later patches are scoped to, so 256 prompts differ), but the
+stream score moves by at most 0.002. **Stream-level noise is two orders of magnitude below the drift effects
+(static vs adaptive: 0.15–0.35) and the budget effects (0.02–0.25) reported earlier**; budget gaps of a few
+thousandths (e.g. med 0.081 vs 0.086) are within it only on single queries, not on the curves.
