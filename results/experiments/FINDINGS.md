@@ -372,3 +372,21 @@ Their patches do feed some later queries: on legal, 8.0M of their 12.0M tokens b
 the 5.3 summed later gain; on med, 3.5M of 8.6M bought nothing but they carry 1.4 of 3.2. **Experiment E3.3
 (queued):** a `fragile` budget policy that never patches for such a query (a later query that needs the same columns
 patches them itself), at every budget on legal and med, with cspaper as a control (no such queries).
+
+## DocETL on the drift queries (interim, run still in progress)
+
+DocETL (0.2.6, same local 4-bit model, one map per query and table with the fair prompt) has scored 107 of the 326
+drift test queries so far (`results/docetl_drift_ollama/<corpus>/per_query.json`). On those queries, at 100% drift:
+
+| Corpus | Queries | DocETL | Ours, adaptive | Ours, static | DocETL tokens (per query) | Ours: patches on these queries + one shared build |
+|---|---|---|---|---|---|---|
+| cspaper | 36 of 59 | 0.089 | 0.114 | 0.010 | 13.0M (362k) | 1.16M + 0.40M |
+| player | 36 of 118 | 0.095 | 0.444 | 0.038 | 64.2M (1.78M) | 3.73M + 2.04M |
+| art | 9 of 43 | 0.069 | 0.137 | 0.000 | 12.3M (1.37M) | 4.07M + 2.43M |
+| med | 25 of 76 | 0.066 | 0.105 | 0.033 | 55.6M (2.23M) | 13.95M + 2.54M |
+| legal | 1 of 30 | 0.118 | 0.185 | 0.000 | 17.9M | 4.01M + 4.56M |
+
+Interim reading: adaptive patching scores above DocETL on every corpus so far, at a fraction of its tokens (DocETL
+re-reads every document for each query; our build is shared and patches read only missing columns). DocETL is above
+our static build everywhere, as expected when the static build lacks the drifted columns. Numbers will change as the
+remaining 219 queries finish.
