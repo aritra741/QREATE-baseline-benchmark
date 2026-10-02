@@ -5,6 +5,8 @@
   replay  everything but the stream states and outputs: every read is in the journals, so the streams re-run
           with no model calls (run with QUWARTS_LIVE_REPLAY=1, which refuses any call) and can keep their views.
   fresh   the designs only: the builds and patches are read anew (e.g. with another model).
+  policy  as replay, plus the recorded unlimited streams (their outputs and states): budgeted streams under another
+          budget policy then get the same budgets, and reuse every read already in the journals.
 
 The original run is never written to. Idempotent: a finished clone (its ``.cloned`` marker) is left as it is.
 
@@ -27,7 +29,7 @@ DESIGNS = ["fixed4_attribute_pool_design.json", "fixed_attribute_pool_design.jso
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["repeat", "replay", "fresh"], required=True)
+    ap.add_argument("--mode", choices=["repeat", "replay", "fresh", "policy"], required=True)
     ap.add_argument("--corpus", required=True)
     ap.add_argument("--root", required=True, help="the new QUWARTS_LIVE_ROOT")
     ap.add_argument("--scratch", required=True, help="the new QUWARTS_SCRATCH")
@@ -42,16 +44,22 @@ def main() -> int:
     dst.mkdir(parents=True, exist_ok=True)
     sdst.mkdir(parents=True, exist_ok=True)
     files = list(DESIGNS)
-    if a.mode in ("repeat", "replay"):
+    if a.mode in ("repeat", "replay", "policy"):
         files += ["build.json", "build_reads.jsonl", "usage.jsonl", "scores.json"]
-    if a.mode == "replay":
+    if a.mode in ("replay", "policy"):
         files += ["patch_reads.jsonl"]
     copied = []
     for f in files:
         if (src / f).exists():
             shutil.copy2(src / f, dst / f)
             copied.append(f)
-    if a.mode in ("repeat", "replay"):
+    if a.mode == "policy":
+        for d in ("streams", "state"):
+            (dst / d).mkdir(exist_ok=True)
+            for f in sorted((src / d).glob("fixed4-attribute_pool_*")):
+                shutil.copy2(f, dst / d / f.name)
+        copied += ["unlimited fixed4 streams and states"]
+    if a.mode in ("repeat", "replay", "policy"):
         shutil.copytree(src / "builds", dst / "builds", dirs_exist_ok=True)
         for f in ("build.db", "static.db"):
             shutil.copy2(SRC_SCRATCH / a.corpus / f, sdst / f)

@@ -694,6 +694,36 @@ def fixed_build(corpus: str, axis: str, p: int) -> Build:
     return Build(corpus, f"{FIXED}_{axis}_{p}", {**ctx.w0, **{q: ctx.catalog[q] for q in lvl["anticipated"]}}, axis, p)
 
 
+# ------------------------------------------------------------------------------------------ budget policies
+
+# QUWARTS_BUDGET_POLICY (budgeted streams only; the budget itself is never exceeded):
+#   fcfs    any patch that fits the remaining budget (the default)
+#   cap     also skip a patch estimated above QUWARTS_BUDGET_CAP (default 0.25) of the whole budget
+#   pace    spend no faster than the stream advances: after query k of n, at most budget * (k / n + 0.25)
+#   oracle  hindsight reference, not a policy: skip a query whose patch bought nothing in the unlimited stream at the
+#           same level (QUWARTS_BUDGET_ORACLE: the E2.2 patches.csv), so the budget goes to patches that paid off
+POLICY = os.environ.get("QUWARTS_BUDGET_POLICY", "fcfs")
+assert POLICY in ("fcfs", "cap", "pace", "oracle"), POLICY
+_ORACLE: dict[str, set] = {}
+
+
+def policy_allows(corpus: str, key: str, qid: str, pos: int, n: int, est: int, spent: int, budget: int) -> bool:
+    if POLICY == "cap":
+        return est <= float(os.environ.get("QUWARTS_BUDGET_CAP", 0.25)) * budget
+    if POLICY == "pace":
+        return spent + est <= budget * ((pos + 1) / n + 0.25)
+    if POLICY == "oracle":
+        level = key.split("/")[1]
+        if level not in _ORACLE:
+            import csv
+
+            rows = csv.DictReader(open(os.environ["QUWARTS_BUDGET_ORACLE"]))
+            _ORACLE[level] = {r["qid"] for r in rows
+                              if r["budget"] == "" and r["level"] == level and r["no_value"] == "True"}
+        return qid not in _ORACLE[level]
+    return True
+
+
 # ------------------------------------------------------------------------------------------ one stream
 
 class Stream:
@@ -802,7 +832,8 @@ class Stream:
             # Over the remaining budget the patch is skipped: the query is answered from what is extracted, and
             # later (cheaper) patches may still fit.
             spent = sum(r["input_tokens"] + r["output_tokens"] for r in self.st["records"])
-            if spent + est > self.budget:
+            if spent + est > self.budget or not policy_allows(self.corpus, self.key, qid, pos, len(self.stream),
+                                                              est, spent, self.budget):
                 skipped, missing = missing, {}
         shas, read_docs, fetched = [], 0, {}
         for t in missing:

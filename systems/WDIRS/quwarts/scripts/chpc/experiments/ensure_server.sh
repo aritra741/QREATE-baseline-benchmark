@@ -19,12 +19,23 @@ if [ -f "$INFO" ]; then
   HOST=$(python -c "import json; d = json.load(open('$INFO')); print(d['host'] if d['node'] == '$(hostname)' else '')")
   if [ -n "$HOST" ] && up "$HOST"; then echo "export OLLAMA_HOST=$HOST"; exit 0; fi
 fi
+# One extra server at a time beside main (GPU memory): stop any other non-main server this node started.
+for f in "$DIR"/*.json; do
+  [ -e "$f" ] || continue
+  other=$(basename "$f" .json); [ "$other" = main ] || [ "$other" = "$NAME" ] && continue
+  read -r opid onode < <(python -c "import json; d = json.load(open('$f')); print(d['pid'], d['node'])")
+  if [ "$onode" = "$(hostname)" ] && kill -0 "$opid" 2> /dev/null; then
+    echo "$(date -Is) stopping server $other (pid $opid) to start $NAME" >> "$REPO/results/experiments/logs/ollama_$other.log"
+    kill "$opid"; sleep 5
+  fi
+  rm -f "$f"
+done
 PORT=$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')
 LOG=$REPO/results/experiments/logs/ollama_$NAME.log
 echo "$(date -Is) starting server $NAME on port $PORT (models in $OLLAMA_MODELS)" >> "$LOG"
-# Slots: 16 as in the recorded runs; the 16-bit model (15 GB) gets 8, since Ollama sizes 16 slots at 32k beyond the
+# Slots: 16 as in the recorded runs (main); any other server gets 8, since Ollama sizes 16 slots at 32k beyond the
 # GPU memory left beside the main server, and would put the rest on the CPU.
-PARALLEL=16; [ "$NAME" = fp16 ] && PARALLEL=8
+PARALLEL=16; [ "$NAME" != main ] && PARALLEL=8
 OLLAMA_HOST=127.0.0.1:$PORT OLLAMA_NUM_PARALLEL=$PARALLEL OLLAMA_CONTEXT_LENGTH=32768 OLLAMA_MAX_LOADED_MODELS=1 \
   OLLAMA_KEEP_ALIVE=72h OLLAMA_MODELS=$OLLAMA_MODELS setsid nohup ollama serve >> "$LOG" 2>&1 < /dev/null &
 PID=$!
