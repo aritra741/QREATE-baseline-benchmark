@@ -105,9 +105,7 @@ STEPS = [
     shared_read("E7b-sr-nullhint", "ollama_nullhint", extra="QUWARTS_NULLABLE_TEXT=1 QUWARTS_NULL_HINT=1 "),
     *[stream(f"E7-stream-nullable-{c}", c, "fresh", key=k, extra="QUWARTS_NULLABLE_TEXT=1 ")
       for c, k in [("player", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
-                   ("cspaper", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
-                   ("med", "fixed4-attribute_pool/0"),
-                   ("art", "fixed4-attribute_pool/0,fixed4-attribute_pool/100")]],
+                   ("cspaper", "fixed4-attribute_pool/0,fixed4-attribute_pool/100")]],
     # ---- GPU lane: E2.1b prompt width (RQ2): the same columns read 1, 3, 6 or 12 at a time on a fixed sample
     *[{"id": f"E2.1b-width-{c}", "lane": "gpu", "retries": 2,
        "cmd": PRE + server("main") + f"python -u -m quwarts.eval.exp_width --corpus {c} --docs {n} --workers 8",
@@ -116,6 +114,9 @@ STEPS = [
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "player", "art", "med") for name in ("oracle", "cap", "pace")],
+    # ---- GPU lane: E7 on med and art (after the policies: E7 was slightly negative on player)
+    *[stream(f"E7-stream-nullable-{c}", c, "fresh", key=k, extra="QUWARTS_NULLABLE_TEXT=1 ")
+      for c, k in [("med", "fixed4-attribute_pool/0"), ("art", "fixed4-attribute_pool/0,fixed4-attribute_pool/100")]],
     # ---- GPU lane: Phase 6 other local models (E6.2): shared read, and adaptive vs static at 0% and 100% drift
     *[st for n, m in OTHER_MODELS.items() for st in [
         shared_read(f"E6.2-sr-{n}", f"ollama_{n}", m, deps=[f"P1-pull-{n}"]),
