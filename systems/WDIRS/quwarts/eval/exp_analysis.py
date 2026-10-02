@@ -611,12 +611,57 @@ def canon(corpus: str) -> dict:
     return summary
 
 
+# ------------------------------------------------------------------------------------------ E3 policies
+
+def policies(corpus: str) -> dict:
+    """Budget policies side by side: score and tokens per budget and drift level, for the recorded sweep (fcfs) and
+    every finished E3.2-<policy> run; whether score rises with budget at each level; unlimited and static for scale."""
+
+    src = REPO / "results" / "drift_live_ollama" / corpus / "streams"
+    runs = {"fcfs": src}
+    for d in sorted(EXP.glob("E3.2-*")):
+        runs[d.name.split("-", 1)[1]] = d / "live" / corpus / "streams"
+    out: dict = {}
+
+    def stats(f: Path):
+        rs = [json.loads(line) for line in f.read_text().splitlines() if line.strip()]
+        return round(sum(r["benchmark"] for r in rs) / len(rs), 4), sum(r["input_tokens"] + r["output_tokens"] for r in rs)
+
+    for name, d in runs.items():
+        cells = {}
+        for p in LEVELS:
+            for b in BUDGETS:
+                f = d / f"fixed4b{b:03d}-attribute_pool_{p}.jsonl"
+                if f.exists():
+                    cells[f"{b}@{p}"] = stats(f)
+        if not cells:
+            continue
+        mono = {}
+        for p in LEVELS:
+            ys = [cells[f"{b}@{p}"][0] for b in BUDGETS if f"{b}@{p}" in cells]
+            if len(ys) == len(BUDGETS):
+                mono[p] = all(y2 >= y1 - 0.002 for y1, y2 in zip(ys, ys[1:]))  # within stream noise
+        out[name] = {"cells": cells, "monotone_by_level": mono,
+                     "mean_score": round(sum(v[0] for v in cells.values()) / len(cells), 4),
+                     "total_tokens": sum(v[1] for v in cells.values()), "streams": len(cells)}
+    for p in LEVELS:
+        f = src / f"fixed4-attribute_pool_{p}.jsonl"
+        if f.exists():
+            rs = [json.loads(line) for line in f.read_text().splitlines()]
+            out.setdefault("unlimited", {})[p] = round(sum(r["benchmark"] for r in rs) / len(rs), 4)
+            out.setdefault("static", {})[p] = round(sum(r["static_benchmark"] for r in rs) / len(rs), 4)
+    out_dir = EXP / "E3-policies" / corpus
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "summary.json").write_text(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "reads", "variance"])
+    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "policies", "reads", "variance"])
     ap.add_argument("--corpus")
     a = ap.parse_args(argv)
-    fn = {"components": components, "patches": patches, "order": order, "columns": columns, "canon": canon}.get(a.what)
+    fn = {"components": components, "patches": patches, "order": order, "columns": columns, "canon": canon, "policies": policies}.get(a.what)
     out = fn(a.corpus) if fn else {"reads": reads, "variance": variance}[a.what]()
     print(json.dumps(out, indent=1, default=str)[:4000])
     return 0
