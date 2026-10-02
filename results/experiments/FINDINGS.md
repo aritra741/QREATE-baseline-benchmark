@@ -487,3 +487,22 @@ The opposite of player: on art **wider reads are better** (+3.7 points exact, +4
 gold-empty cells; asked for twelve, for 61%. A single-field prompt seems to push the model to produce *some* value.
 So prompt width has no single best setting; it trades false fills (narrow reads) against misses (wide reads), and
 the balance depends on how often the corpus's gold is empty.
+
+**E2.1b width — legal** (12 columns, 60 cases; `E2.1b-width/legal/`):
+
+| Columns per read | Exact agreement | Lenient agreement | False-fill rate | Miss rate | Tokens |
+|---|---|---|---|---|---|
+| 1 | **0.543** | 0.570 | 0.176 | 0.088 | 3.65M |
+| 3 | 0.504 | 0.560 | 0.135 | 0.135 | 1.25M |
+| 6 | 0.477 | 0.539 | 0.135 | 0.121 | 0.65M |
+| 12 | 0.474 | 0.526 | 0.162 | 0.088 | 0.35M |
+
+On legal narrow reads are clearly better (+6.9 points exact from 12 to 1 column per read), at 10× the tokens.
+False fills stay low at every width (legal's gold is rarely empty on these columns).
+
+**Prompt width across corpora so far** (exact agreement, 1 vs 12 columns per read): player 0.807 vs 0.784 (+2.3),
+legal 0.543 vs 0.474 (+6.9), art 0.451 vs 0.488 (−3.7). Narrow reads help when gold is mostly filled (player, legal);
+they hurt when gold is often empty (art: 98% false fills at width 1), because a single-field prompt pulls out a value
+either way. A width policy would have to depend on how often a column is expected to be empty, which the system
+cannot observe directly; at 3–10× the tokens, narrow reads are not a default worth taking. This partly supports RQ2
+(a patch's narrow prompt can extract better), but only for columns that are usually present.
