@@ -611,3 +611,6 @@ zeroes the whole query.
 **Filters and predicates:** numeric-only filters score highest (0.449, n=13); string equality / IN 0.255 (n=167); no
 filter 0.187 (n=143). Queries with HAVING / ORDER / LIMIT / CASE score higher (0.405 vs 0.214), mostly because they
 are concentrated on player.
+
+**`fragile` policy — cspaper (control, no such queries):** mean 0.1459 vs 0.1453, tokens 7.9M in both; the policy is a
+no-op where there is nothing to skip, as it should be.
