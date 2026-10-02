@@ -300,3 +300,9 @@ Per column (E2.1), med has the strongest false fills (`drug.activation_condition
 `disease.diagnostic_methods` 0.06 / 0.94). **Med's free-text columns are compared and grouped as exact strings,
 which no extraction matches**; this, with the list-valued join keys, bounds what any system can score on med.
 Order effects: 94 answers differ across budgets at the same level, 17 higher with a budget (15 without their own patch).
+
+### 16-bit on a whole drift stream (E1.2)
+The player unlimited stream at 100% drift, built and patched entirely with `qwen2.5:7b-instruct-fp16` (fresh build
+read, 2.04M tokens; patches 5.68M): **0.392** (95% CI 0.332–0.453), against 0.387 and 0.3885 for the two 4-bit runs;
+static 0.0402 vs 0.0399 (`E1-variance/summary.json`). Quantization moves the drift stream by about +0.004, far less
+than on the shared read (+0.03 held-out). The drift conclusions do not depend on the 4-bit model.
