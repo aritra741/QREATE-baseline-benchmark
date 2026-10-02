@@ -1,4 +1,4 @@
-# Experiment status (2026-10-01T23:04:04-06:00)
+# Experiment status (2026-10-01T23:42:25-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -8,9 +8,10 @@
 | E1.1-sr-rep2 | gpu | done | 1 | ok 2026-10-01T21:28:11-06:00 |  |
 | E1.1-stream-rep-cspaper | gpu | done | 1 | ok 2026-10-01T21:50:29-06:00 |  |
 | E1.1-stream-rep-player | gpu | done | 1 | ok 2026-10-01T22:40:53-06:00 |  |
-| E1.2-stream-fp16-player | gpu | running-or-interrupted | 1 | start 2026-10-01T22:40:53-06:00 |  |
-| E7-sr-nullable | gpu | pending | 0 |  |  |
-| E7-stream-nullable-player | gpu | pending | 0 |  |  |
+| E1.2-stream-fp16-player | gpu | done | 1 | ok 2026-10-01T23:21:54-06:00 |  |
+| E7-sr-nullable | gpu | done | 1 | ok 2026-10-01T23:38:33-06:00 |  |
+| E7b-sr-nullhint | gpu | pending | 0 |  |  |
+| E7-stream-nullable-player | gpu | running-or-interrupted | 1 | start 2026-10-01T23:38:33-06:00 |  |
 | E7-stream-nullable-cspaper | gpu | pending | 0 |  |  |
 | E7-stream-nullable-med | gpu | pending | 0 |  |  |
 | E7-stream-nullable-art | gpu | pending | 0 |  |  |
@@ -62,12 +63,12 @@
 | E2.3-order-med | cpu | done | 1 | ok 2026-10-01T23:02:36-06:00 |  |
 | E2.1-columns-med | cpu | done | 1 | ok 2026-10-01T23:02:41-06:00 |  |
 | E2.4-components-med | cpu | done | 1 | ok 2026-10-01T23:04:04-06:00 |  |
-| E2-replay-legal | cpu | running-or-interrupted | 1 | start 2026-10-01T23:04:04-06:00 |  |
-| E2.2-patches-legal | cpu | pending | 0 |  |  |
-| E2.3-order-legal | cpu | pending | 0 |  |  |
-| E2.1-columns-legal | cpu | pending | 0 |  |  |
-| E2.4-components-legal | cpu | pending | 0 |  |  |
-| E1-reads-analysis | cpu | pending | 0 |  |  |
-| E1-variance-analysis | cpu | pending | 0 |  |  |
+| E2-replay-legal | cpu | done | 1 | ok 2026-10-01T23:41:23-06:00 |  |
+| E2.2-patches-legal | cpu | done | 1 | ok 2026-10-01T23:41:28-06:00 |  |
+| E2.3-order-legal | cpu | done | 1 | ok 2026-10-01T23:41:32-06:00 |  |
+| E2.1-columns-legal | cpu | done | 1 | ok 2026-10-01T23:41:36-06:00 |  |
+| E2.4-components-legal | cpu | done | 1 | ok 2026-10-01T23:42:21-06:00 |  |
+| E1-reads-analysis | cpu | done | 1 | ok 2026-10-01T23:42:23-06:00 |  |
+| E1-variance-analysis | cpu | done | 1 | ok 2026-10-01T23:42:25-06:00 |  |
 
 Logs: `results/experiments/logs/<step>.log`. Events: `results/experiments/status.jsonl`.

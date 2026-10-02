@@ -700,11 +700,33 @@ def fixed_build(corpus: str, axis: str, p: int) -> Build:
 #   fcfs    any patch that fits the remaining budget (the default)
 #   cap     also skip a patch estimated above QUWARTS_BUDGET_CAP (default 0.25) of the whole budget
 #   pace    spend no faster than the stream advances: after query k of n, at most budget * (k / n + 0.25)
+#   fragile skip a query whose answer is MIN/MAX over a text column (one extreme string per group: across the five
+#           corpora these 45 queries score 0.03 on average yet take a third of the patch tokens); a later query that
+#           needs the same columns patches them itself
 #   oracle  hindsight reference, not a policy: skip a query whose patch bought nothing in the unlimited stream at the
 #           same level (QUWARTS_BUDGET_ORACLE: the E2.2 patches.csv), so the budget goes to patches that paid off
 POLICY = os.environ.get("QUWARTS_BUDGET_POLICY", "fcfs")
-assert POLICY in ("fcfs", "cap", "pace", "oracle"), POLICY
+assert POLICY in ("fcfs", "cap", "pace", "oracle", "fragile"), POLICY
 _ORACLE: dict[str, set] = {}
+
+
+def fragile_query(corpus: str, qid: str) -> bool:
+    """MIN or MAX over a text column (by the field's SQL-derived type)."""
+
+    import sqlglot
+    from sqlglot import exp
+
+    ctx = R.context(corpus)
+    try:
+        tree = sqlglot.parse_one(ctx.catalog[qid], read="sqlite")
+    except Exception:  # noqa: BLE001
+        return False
+    for f in tree.find_all(exp.Min, exp.Max):
+        for col in f.find_all(exp.Column):
+            q = [k for k in ctx.fields if k.split(".", 1)[1] == col.name]
+            if q and ctx.fields[q[0]].value_type not in ("int", "float"):
+                return True
+    return False
 
 
 def policy_allows(corpus: str, key: str, qid: str, pos: int, n: int, est: int, spent: int, budget: int) -> bool:
@@ -712,6 +734,8 @@ def policy_allows(corpus: str, key: str, qid: str, pos: int, n: int, est: int, s
         return est <= float(os.environ.get("QUWARTS_BUDGET_CAP", 0.25)) * budget
     if POLICY == "pace":
         return spent + est <= budget * ((pos + 1) / n + 0.25)
+    if POLICY == "fragile":
+        return not fragile_query(corpus, qid)
     if POLICY == "oracle":
         level = key.split("/")[1]
         if level not in _ORACLE:

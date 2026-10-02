@@ -322,3 +322,53 @@ run-to-run noise measured above. The instruction was not what drove the false fi
 for 61 of the 65 players whose gold is empty (65 before). The field's description ("choose one from ['Frontcourt',
 'Backcourt']") and its allowed values still invite a guess. **E7b** (queued) adds a field-level instruction to answer
 null when the document does not state the value and not to guess from the allowed values.
+
+## legal
+
+**Replay reproduces the recorded run** (`E2-replay/live/legal/verify.json`). Cost estimates: median estimated/actual
+1.000 (10th–90th 0.999–1.001). Patch tokens with no value, unlimited streams: 50% at 25% drift, 33% at 50%, 40% at
+75%, 39% at 100% (of 29.9M); at 100% drift the 50% budget wastes **55%** of its patch tokens, the 25% budget 0%.
+
+| System | Structure F2 | Cell F1@0.20 | No rows / structure / values / fully right |
+|---|---|---|---|
+| Static, 100% drift | 0.396 | 0.013 | 9 / 12 / 9 / 0 |
+| 10% budget, 100% drift | 0.561 | 0.081 | 5 / 16 / 9 / 0 |
+| 25% budget, 100% drift | 0.636 | 0.167 | 3 / 17 / 10 / 0 |
+| 50% budget, 100% drift | 0.607 | 0.102 | 3 / 18 / 9 / 0 |
+| 75% budget / unlimited, 100% drift | 0.758 | 0.168 | 1 / 17 / 12 / 0 |
+
+### The "25% beats 50%" anomaly, patch by patch (E2.2)
+Patches at 100% drift (position, tokens, gain on its own query, later queries using its columns, their summed gain):
+
+| Stream | Patches |
+|---|---|
+| Unlimited | 0: 4.0M, +0.19, 5 later (+0.36) · **1: 4.0M, 0, 1 later (0)** · **2: 4.0M, 0, 1 later (0)** · 4: 3.9M, +0.22, 7 later (+1.37) · 7: 0.1M, +0.33 · 8: 2.3M · 10: 3.8M, 7 later (+1.09) · 11 · 16 · 23 · ... |
+| 50% budget | 0 · **1 · 2** · 8 · 26, then the budget is spent: 4, 10, 16 are skipped |
+| 25% budget | 0 · 8 (12 later, +2.31) · 25 (4 later, +1.39) · 26 (3 later, +1.21); 1 and 2 do not fit, so they are skipped |
+
+The 50% budget spends 8M of its 14.5M on patches 1 and 2, which help nothing; the 25% budget cannot afford them,
+so it saves its budget for patches 8, 25 and 26, which feed 19 later queries.
+
+**Why patches 1 and 2 buy nothing (qualitative).** Both read a counsel column for all 570 cases to answer
+`SELECT first_judge, MIN(counsel_for_respondent) ... GROUP BY first_judge` (and the same with
+`counsel_for_applicant` by `evidence`). The answer is one alphabetically-first name per group, so any extra name in a
+cell changes it; and the model's notion of "counsel" differs from gold's: gold records the barrister (`Mr T
+Reilly`), the model often the firm (`Australian Government Solicitor`, `Clayton Utz`) or "The applicant appeared
+in person".
+
+## Across corpora: MIN/MAX over a text column is nearly unwinnable and expensive
+
+Queries whose answer is `MIN` or `MAX` of a text column, unlimited streams at 100% drift:
+
+| Corpus | Such queries | Their mean score | Other queries' mean score | Patch tokens they trigger |
+|---|---|---|---|---|
+| med | 30 of 76 | 0.000 | 0.142 | 8.6M of 19.9M |
+| legal | 12 of 30 | 0.000 | 0.191 | 12.0M of 29.9M |
+| player | 3 of 118 | 0.444 | 0.386 | 0 |
+| cspaper, art | 0 | — | — | — |
+| **All** | **45 of 326** | **0.03** | **0.265** | **20.5M of 62.8M (33%)** |
+
+Their patches do feed some later queries: on legal, 8.0M of their 12.0M tokens bought nothing and they carry 0.3 of
+the 5.3 summed later gain; on med, 3.5M of 8.6M bought nothing but they carry 1.4 of 3.2. **Experiment E3.3
+(queued):** a `fragile` budget policy that never patches for such a query (a later query that needs the same columns
+patches them itself), at every budget on legal and med, with cspaper as a control (no such queries).

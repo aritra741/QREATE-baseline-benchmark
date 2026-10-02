@@ -114,6 +114,7 @@ STEPS = [
        "outputs": [f"results/experiments/E2.1b-width/{c}/summary.json"], "skip_if_outputs": False}
       for c, n in [("player", 141), ("art", 100), ("legal", 60), ("cspaper", 40), ("med", 40)]],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
+    *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "player", "art", "med") for name in ("oracle", "cap", "pace")],
     # ---- GPU lane: Phase 6 other local models (E6.2): shared read, and adaptive vs static at 0% and 100% drift
     *[st for n, m in OTHER_MODELS.items() for st in [
