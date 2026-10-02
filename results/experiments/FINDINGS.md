@@ -390,3 +390,14 @@ Interim reading: adaptive patching scores above DocETL on every corpus so far, a
 re-reads every document for each query; our build is shared and patches read only missing columns). DocETL is above
 our static build everywhere, as expected when the static build lacks the drifted columns. Numbers will change as the
 remaining 219 queries finish.
+
+**Player drift streams with "Never null" dropped for text fields** (fresh build and patches, 4-bit;
+`E7-stream-nullable-player/`):
+
+| Drift | Recorded | Never-null dropped | Paired difference | Queries up / down |
+|---|---|---|---|---|
+| 0% | 0.3794 | 0.3734 | −0.006 | 12 / 24 |
+| 100% | 0.3870 | 0.3843 | −0.003 | 16 / 22 |
+
+Slightly negative on player (more queries down than up, by amounts near the stream noise of ±0.002): letting text
+fields be empty loses some values gold has, more than it removes invented ones. cspaper, art and med streams follow.
