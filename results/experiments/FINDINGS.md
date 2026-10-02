@@ -553,3 +553,19 @@ budget. The cost: at large budgets the policy saturates just below unlimited (0.
 Also visible: at 25% and 50% drift, the **10% budget beats unlimited** (0.130 vs 0.122 / 0.127) under both policies.
 The same over-reading effect as on cspaper (reading a column for every document hurts some later queries) shows up
 on legal too.
+
+**`fragile` policy — med** (30 of 76 test queries are MIN/MAX over text; `E3-policies/med/summary.json`):
+
+| Drift | Policy | 10% | 25% | 50% | 75% | 100% | Unlimited (tokens) |
+|---|---|---|---|---|---|---|---|
+| 50% | fcfs | 0.078 | 0.075 | 0.088 | 0.093 | 0.093 | 0.0935 (11.1M) |
+| 50% | fragile | 0.076 | 0.094 | **0.098** (7.3M) | 0.098 | 0.098 | |
+| 75% | fcfs | 0.057 | 0.057 | 0.072 | 0.081 | 0.081 | 0.0809 (14.6M) |
+| 75% | fragile | 0.057 | 0.071 | 0.080 | **0.085** (10.8M) | 0.085 | |
+| 100% | fcfs | 0.051 | 0.055 | 0.060 | 0.075 | 0.081 | 0.0858 (19.9M) |
+| 100% | fragile | 0.051 | 0.071 | 0.080 | **0.087** (12.7M) | 0.087 | |
+
+Over the 25 streams: mean **0.0847 vs 0.0797**, tokens **130M vs 154M (−16%)**, and score rises with budget at every
+drift level (fcfs is non-monotone at 50% drift). On med the policy **beats unlimited patching** at every drift level
+from 50% up, with about two thirds of its tokens (100% drift: 0.087 at 12.7M vs 0.0858 at 19.9M). Unlike legal, the
+skipped patches' columns are picked up by later queries' own patches, so nothing is lost at large budgets.
