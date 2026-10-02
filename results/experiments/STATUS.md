@@ -1,4 +1,4 @@
-# Experiment status (2026-10-01T21:43:42-06:00)
+# Experiment status (2026-10-01T22:10:11-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -6,8 +6,8 @@
 | E1.2-sr-fp16 | gpu | done | 2 | ok 2026-10-01T20:56:34-06:00 |  |
 | E1.1-sr-rep1 | gpu | done | 1 | ok 2026-10-01T21:11:45-06:00 |  |
 | E1.1-sr-rep2 | gpu | done | 1 | ok 2026-10-01T21:28:11-06:00 |  |
-| E1.1-stream-rep-cspaper | gpu | running-or-interrupted | 1 | start 2026-10-01T21:28:11-06:00 |  |
-| E1.1-stream-rep-player | gpu | pending | 0 |  |  |
+| E1.1-stream-rep-cspaper | gpu | done | 1 | ok 2026-10-01T21:50:29-06:00 |  |
+| E1.1-stream-rep-player | gpu | running-or-interrupted | 1 | start 2026-10-01T21:50:29-06:00 |  |
 | E1.2-stream-fp16-player | gpu | pending | 0 |  |  |
 | E7-sr-nullable | gpu | pending | 0 |  |  |
 | E7-stream-nullable-player | gpu | pending | 0 |  |  |
@@ -47,12 +47,12 @@
 | E2.3-order-player | cpu | done | 1 | ok 2026-10-01T21:41:56-06:00 |  |
 | E2.1-columns-player | cpu | done | 1 | ok 2026-10-01T21:41:59-06:00 |  |
 | E2.4-components-player | cpu | done | 1 | ok 2026-10-01T21:43:32-06:00 |  |
-| E2-replay-art | cpu | running-or-interrupted | 1 | start 2026-10-01T21:43:32-06:00 |  |
-| E2.2-patches-art | cpu | pending | 0 |  |  |
-| E2.3-order-art | cpu | pending | 0 |  |  |
-| E2.1-columns-art | cpu | pending | 0 |  |  |
-| E2.4-components-art | cpu | pending | 0 |  |  |
-| E2-replay-med | cpu | pending | 0 |  |  |
+| E2-replay-art | cpu | done | 1 | ok 2026-10-01T22:04:08-06:00 |  |
+| E2.2-patches-art | cpu | done | 1 | ok 2026-10-01T22:04:12-06:00 |  |
+| E2.3-order-art | cpu | done | 1 | ok 2026-10-01T22:04:18-06:00 |  |
+| E2.1-columns-art | cpu | done | 1 | ok 2026-10-01T22:04:23-06:00 |  |
+| E2.4-components-art | cpu | done | 1 | ok 2026-10-01T22:10:11-06:00 |  |
+| E2-replay-med | cpu | running-or-interrupted | 1 | start 2026-10-01T22:10:11-06:00 |  |
 | E2.2-patches-med | cpu | pending | 0 |  |  |
 | E2.3-order-med | cpu | pending | 0 |  |  |
 | E2.1-columns-med | cpu | pending | 0 |  |  |

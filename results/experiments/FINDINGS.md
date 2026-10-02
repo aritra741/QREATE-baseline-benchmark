@@ -189,3 +189,47 @@ invented value scores worse than an empty one.
 This is a benchmark-protocol confound that affects every system given the attribute files. **Experiment E7** (queued)
 drops "Never null" for text fields (numeric "0 if none" counts and 0/1 flags keep it) and re-runs the player shared
 read and the player, cspaper, art (0% and 100% drift) and med (0%) streams on the same 4-bit server.
+
+## art
+
+**Replay reproduces the recorded run** (`E2-replay/live/art/verify.json`). Cost estimates: median estimated/actual
+0.997 (10th–90th 0.996–1.005). Patch tokens with no value: 0% at 25–75% drift, 16% at 100% (`E2.2-patches/art/`).
+
+| System | Structure F2 | Cell F1@0.20 | No rows / structure / values / fully right |
+|---|---|---|---|
+| Static, 100% drift | 0.256 | 0.035 | 8 / 35 / 0 / 0 |
+| 10% budget, 100% drift | 0.369 | 0.190 | 2 / 40 / 1 / 0 |
+| 25% budget, 100% drift | 0.387 | 0.230 | 2 / 40 / 1 / 0 |
+| 50% budget, 100% drift | 0.385 | 0.246 | 2 / 40 / 1 / 0 |
+| Unlimited, 100% drift | 0.527 | 0.340 | 0 / 42 / 1 / 0 |
+
+On art the budget buys back both structure (0.37 → 0.53) and cells; no query is fully right in any stream.
+Order effects: 155 answers differ between a budgeted and the unlimited stream; the budgeted one is higher in 8
+(`E2.3-order/art/summary.json`).
+
+Never-null columns over-filled (E2.1): `marriage` (gold empty 71%, filled in 55% of those), `genre` (32%, 99%),
+`century` (29%, 99%), `age` (25%, 98%), `zodiac` (14%, 75%).
+
+## Across corpora: values are often right in substance but differ in form
+
+Exact agreement (normalized strings, numbers within 20%) understates value quality for list-valued and free-text
+columns. A lenient check (any shared list item; case, dashes and spacing unified) on the cells where both prediction
+and gold have a value (`E2.1-columns/<corpus>/columns.csv`):
+
+| Column | Exact | Lenient | Example (gold → prediction) |
+|---|---|---|---|
+| art.field | 0.13 | 0.92 | |
+| art.art_institution | 0.003 | 0.58 | `China Academy of Art` → `China Academy of Art \|\| Académie des Beaux-Arts` |
+| art.genre | 0.05 | 0.56 | `Abstract\|\|Geometric` → `Abstract \|\| Conceptual` |
+| art.art_movement | 0.25 | 0.69 | `Surrealism` → `Surrealist` |
+| art.century | 0.27 | 0.48 | `20th-21st` → `20th–21st` (en dash), or `20th` |
+| art.birth_city | 0.40 | 0.80 | |
+| cspaper.application_domain | 0.36 | 0.82 | |
+| cspaper.data_modality | 0.70 | 0.99 | |
+
+The benchmark's own tolerant score (normalized comparison, recorded on every stream) is only slightly higher than the
+benchmark score at 100% drift, unlimited: cspaper 0.153 → 0.165, player 0.387 → 0.411, art 0.256 → 0.286,
+med 0.086 → 0.095, legal 0.114 → 0.139. So most of these near-misses still break queries: a `GROUP BY` or a
+comparison with a constant needs the exact label, and an extra list item puts a row in the wrong group. **Surface
+form, not facts, is a large share of the remaining error on art and cspaper**, which points at canonicalizing values
+to the workload's vocabulary (the constants the queries use) as a system lever.

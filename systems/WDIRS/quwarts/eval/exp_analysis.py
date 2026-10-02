@@ -373,6 +373,24 @@ def same_value(x, y) -> bool:
     return str(x).strip().lower() == str(y).strip().lower()
 
 
+def parts(v) -> set[str]:
+    """A value's parts, normalized: split on '||' / ';' / ',', lowercased, dashes and spaces unified."""
+
+    import re
+
+    t = str(v).lower().replace("\u2013", "-").replace("\u2014", "-")
+    return {re.sub(r"\s+", " ", p).strip(" .") for p in re.split(r"\|\||;|,", t) if p.strip(" .")}
+
+
+def lenient(x, y) -> bool:
+    """Same value allowing list order, extra or missing list items (any shared part), case, dashes, spacing."""
+
+    if same_value(x, y):
+        return True
+    a, b = parts(x), parts(y)
+    return bool(a & b)
+
+
 def gold_by_doc(corpus: str) -> dict[str, dict[str, dict]]:
     """Gold row of every document, by table: cspaper by ``pdf_filename``, the others by ``id`` (as a number)."""
 
@@ -419,7 +437,7 @@ def columns(corpus: str, key: str = "fixed4-attribute_pool/100") -> dict:
             continue
         got = dict(conn.execute(f'SELECT doc_id, "{a}" FROM "{t}"').fetchall())
         got = {(k if str(k).endswith(".txt") or t not in ("cspaper",) else k): v for k, v in got.items()}
-        n = gn = pn = ff = miss = both = agree = 0
+        n = gn = pn = ff = miss = both = agree = loose = 0
         for d in docs:
             g = gold[t].get(d)
             if g is None or a not in g:
@@ -436,11 +454,14 @@ def columns(corpus: str, key: str = "fixed4-attribute_pool/100") -> dict:
             elif not gnull and not pnull:
                 both += 1
                 agree += same_value(v, g[a])
+                loose += lenient(v, g[a])
         if n:
             rows.append({"column": f"{t}.{a}", "source": "patch" if f"{t}.{a}" in patched else "build",
                          "docs_matched": n, "gold_null_share": round(gn / n, 3), "pred_null_share": round(pn / n, 3),
                          "false_fill_rate": round(ff / gn, 3) if gn else None, "miss_rate": round(miss / (n - gn), 3) if n - gn else None,
-                         "agree_when_both": round(agree / both, 3) if both else None, "gold_null": gn, "false_fills": ff})
+                         "agree_when_both": round(agree / both, 3) if both else None,
+                         "lenient_agree_when_both": round(loose / both, 3) if both else None,
+                         "gold_null": gn, "false_fills": ff})
     conn.close()
     with (out_dir / "columns.csv").open("w", newline="") as h:
         w = csv.DictWriter(h, fieldnames=list(rows[0]) if rows else ["column"])
