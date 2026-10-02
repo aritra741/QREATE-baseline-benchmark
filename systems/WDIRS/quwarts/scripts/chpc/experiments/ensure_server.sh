@@ -22,7 +22,10 @@ fi
 PORT=$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')
 LOG=$REPO/results/experiments/logs/ollama_$NAME.log
 echo "$(date -Is) starting server $NAME on port $PORT (models in $OLLAMA_MODELS)" >> "$LOG"
-OLLAMA_HOST=127.0.0.1:$PORT OLLAMA_NUM_PARALLEL=16 OLLAMA_CONTEXT_LENGTH=32768 OLLAMA_MAX_LOADED_MODELS=1 \
+# Slots: 16 as in the recorded runs; the 16-bit model (15 GB) gets 8, since Ollama sizes 16 slots at 32k beyond the
+# GPU memory left beside the main server, and would put the rest on the CPU.
+PARALLEL=16; [ "$NAME" = fp16 ] && PARALLEL=8
+OLLAMA_HOST=127.0.0.1:$PORT OLLAMA_NUM_PARALLEL=$PARALLEL OLLAMA_CONTEXT_LENGTH=32768 OLLAMA_MAX_LOADED_MODELS=1 \
   OLLAMA_KEEP_ALIVE=72h OLLAMA_MODELS=$OLLAMA_MODELS setsid nohup ollama serve >> "$LOG" 2>&1 < /dev/null &
 PID=$!
 for _ in $(seq 1 90); do up "127.0.0.1:$PORT" && break; sleep 1; done
@@ -32,7 +35,7 @@ awk -v p="$PORT" 'index($0, "starting server '"$NAME"' on port " p) {on = 1} on'
 python - << EOF
 import json
 json.dump({"name": "$NAME", "host": "127.0.0.1:$PORT", "pid": $PID, "node": "$(hostname)",
-           "slurm_job": "${SLURM_JOB_ID:-}", "models_dir": "$OLLAMA_MODELS", "started": "$(date -Is)"},
+           "slurm_job": "${SLURM_JOB_ID:-}", "num_parallel": $PARALLEL, "models_dir": "$OLLAMA_MODELS", "started": "$(date -Is)"},
           open("$INFO", "w"), indent=1)
 EOF
 echo "export OLLAMA_HOST=127.0.0.1:$PORT"

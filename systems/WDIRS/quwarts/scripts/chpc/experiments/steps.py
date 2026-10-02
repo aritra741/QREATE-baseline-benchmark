@@ -82,8 +82,7 @@ STEPS = [
     stream("E1.1-stream-rep-player", "player", "repeat"),
     stream("E1.2-stream-fp16-player", "player", "fresh", model=FP16, deps=["P1-pull-fp16"]),
     # ---- CPU lane: Phase 2 replays (no model calls), the base of the per-query and per-patch analyses
-    *[replay(c) for c in CORPORA],
-    *[analysis(what, c) for c in CORPORA for what in ("patches", "order", "components")],
+    *[st for c in CORPORA for st in [replay(c)] + [analysis(w, c) for w in ("patches", "order", "components")]],
     {"id": "E1-reads-analysis", "lane": "cpu", "deps": ["E1.2-sr-fp16", "E1.1-sr-rep1", "E1.1-sr-rep2"],
      "cmd": PRE + "python -u -m quwarts.eval.exp_analysis reads", "outputs": ["results/experiments/E1-reads/summary.json"],
      "skip_if_outputs": False},
