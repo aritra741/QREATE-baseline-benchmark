@@ -1,0 +1,28 @@
+corpus=player router-v3 expected loss/query: point=0.072 upper=0.296 planned=3,813,678/5,297,212 probe=1,117,738 theta=6,414,950 own-context cost=12,250,214 plan=08db25deb29d
+  table city: open ['__canonical__', 'player_filterjoin20:q14', 'player_join20:q11']
+  table owner: open ['docetl_Player_v7:q17', 'player_join20:q15', 'player_multiagg20:q15']
+  table player: open ['docetl_Player_v7:q11', 'docetl_Player_v7:q3', 'player_filterjoin20:q1']
+  table team: open ['__canonical__', 'player_filterjoin20:q17', 'player_filterjoin20:q6']
+  city.city_name                           canonical<-3q | player_filterjoin20:q14<-1q | player_join20:q11<-1q
+  city.population                          canonical<-3q
+  city.state_name                          canonical<-4q | player_filterjoin20:q14<-1q | player_join20:q11<-1q
+  owner.name                               player_multiagg20:q15<-1q
+  owner.nationality                        docetl_Player_v7:q17<-4q | player_join20:q15<-1q
+  owner.nba_team                           player_join20:q15<-4q | player_multiagg20:q15<-1q
+  owner.own_year                           docetl_Player_v7:q17<-2q
+  player.age                               incumbent<-1q | docetl_Player_v7:q11<-4q
+  player.college                           docetl_Player_v7:q3<-1q
+  player.draft_pick                        player_filterjoin20:q1<-2q
+  player.draft_year                        player_filterjoin20:q1<-1q
+  player.fiba_world_cup                    incumbent<-1q
+  player.mvp_awards                        docetl_Player_v7:q3<-2q
+  player.nationality                       docetl_Player_v7:q11<-1q
+  player.nba_championships                 incumbent<-2q
+  player.olympic_gold_medals               incumbent<-1q
+  player.position                          player_filterjoin20:q1<-2q
+  player.team                              incumbent<-6q
+  team.championship                        canonical<-1q | player_filterjoin20:q6<-4q
+  team.founded_year                        canonical<-2q | player_filterjoin20:q6<-1q
+  team.location                            canonical<-3q | incumbent<-1q | player_filterjoin20:q17<-1q | player_filterjoin20:q6<-1q
+  team.ownership                           incumbent<-1q
+  team.team_name                           canonical<-6q | incumbent<-1q | player_filterjoin20:q17<-1q

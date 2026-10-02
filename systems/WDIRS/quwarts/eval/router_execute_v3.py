@@ -77,11 +77,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--score", action="store_true")
     parser.add_argument("--policy", choices=["fill", "replace"], default="fill")
     parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--out", type=Path, default=None, help="output folder (default quwarts_router_v3/<corpus>/execute)")
     args = parser.parse_args(argv)
 
     spec = get_corpus(args.corpus)
     queries = spec.queries()
-    root = RESULTS / "quwarts_router_v3" / spec.name / ("incumbent_only" if args.incumbent_only else "execute")
+    root = args.out or RESULTS / "quwarts_router_v3" / spec.name / ("incumbent_only" if args.incumbent_only else "execute")
     root.mkdir(parents=True, exist_ok=True)
     if args.incumbent_only:
         plan = incumbent_only_plan(spec)
@@ -96,12 +97,11 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps({"reads": [r.__dict__ for r in reads]}, default=list))
 
     if args.reads:
-        from quwarts.core.llm.openrouter import load_env_file, make_caller
+        from quwarts.eval.router_plan_v3 import llm_caller
 
-        load_env_file(PROJECT / ".env")
         spent_before = sum(json.loads(l)["tokens"] for l in journal.read_text().splitlines()) if journal.exists() else 0
         ledger = TokenLedger(theta=max(0, int(plan["budget"]["available"]) - spent_before))
-        caller = make_caller(ledger, max_tokens=280)
+        caller = llm_caller(ledger, max_tokens=280)
         stats = run_reads(spec, reads, queries, fields, caller, journal, args.workers)
         stats["spent_this_run"] = ledger.spent
         stats["spent_total"] = spent_before + ledger.spent

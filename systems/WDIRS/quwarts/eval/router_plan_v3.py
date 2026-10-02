@@ -24,6 +24,21 @@ from quwarts.core.router.plan_v3 import build_plan_v3, summarize_v3
 from quwarts.core.router.registry import PROJECT, RESULTS, get_corpus
 
 
+def llm_caller(ledger: TokenLedger, max_tokens: int):
+    """OpenRouter by default; the local Ollama server when ``QUWARTS_LLM=ollama`` (same model, Qwen 2.5 7B)."""
+
+    import os
+
+    if os.environ.get("QUWARTS_LLM", "openrouter") == "ollama":
+        from quwarts.core.llm import ollama
+
+        return ollama.make_caller(ledger, max_tokens=max_tokens)
+    from quwarts.core.llm.openrouter import load_env_file, make_caller
+
+    load_env_file(PROJECT / ".env")
+    return make_caller(ledger, max_tokens=max_tokens)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", required=True)
@@ -45,11 +60,8 @@ def main(argv: list[str] | None = None) -> int:
 
     caller = ledger = observations = None
     if args.probe:
-        from quwarts.core.llm.openrouter import load_env_file, make_caller
-
-        load_env_file(PROJECT / ".env")
         ledger = TokenLedger(theta=theta)
-        caller = make_caller(ledger, max_tokens=280)
+        caller = llm_caller(ledger, max_tokens=280)
         journal = out / "probe_journal.jsonl"
         if journal.exists():
             parser.error(f"{journal} exists; use --replay or remove it")

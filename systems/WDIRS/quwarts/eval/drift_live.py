@@ -68,6 +68,9 @@ CORPORA = ["cspaper", "art", "legal", "player", "med"]
 ALL_CORPORA = CORPORA + ["finan"]
 FIXED_LEVELS = (100, 0, 50, 25, 75)  # 100 first: it is the W0 build, shared with the paired streams
 FIXED_SEED = 0
+# Patch budgets (``--streams budget``): % of the patch tokens the unlimited stream spends at 100% drift on that corpus
+# and axis; 0% is the static build (recorded on every stream) and the unlimited stream is the fixed level itself.
+BUDGETS = (10, 25, 50, 75, 100)
 FIXED = "fixed4"  # design version 4 (see the module docstring and fixed_design); earlier outputs are kept, never reused
 ORDER = ["attribute/100", "combined/100", "value/100", "attribute/0", "attribute/50", "combined/50",
          "attribute/25", "attribute/75", "combined/0", "combined/25", "combined/75", "value/0", "value/25",
@@ -130,6 +133,15 @@ class Usage:
 def make_caller(usage: Usage, max_tokens: int = 700):
     """The backend's caller, every call's input/output tokens and cost recorded in ``usage``."""
 
+    if os.environ.get("QUWARTS_LIVE_REPLAY"):
+        # A replay re-runs streams from the journals only: every read must already be recorded. A call means the
+        # replay diverged from the recorded run, so it stops instead of reading (and paying) anew.
+        from quwarts.core.ledger import BudgetedCaller, TokenLedger
+
+        def refuse(prompt: str, metadata: dict[str, Any]) -> tuple[str, int]:
+            raise RuntimeError(f"replay made a model call (prompt sha {sha(prompt)[:12]}): not in the journal")
+
+        return BudgetedCaller(TokenLedger(theta=10**13), refuse)
     if BACKEND == "ollama":
         return ollama_caller(usage, max_tokens)
     return openrouter_caller(usage, max_tokens)
@@ -687,8 +699,10 @@ def fixed_build(corpus: str, axis: str, p: int) -> Build:
 class Stream:
     """The controller on one stream, from the build, with real reads. Resumable after every query."""
 
-    def __init__(self, corpus: str, key: str, caller, build: Build | None = None, stream: list[str] | None = None):
+    def __init__(self, corpus: str, key: str, caller, build: Build | None = None, stream: list[str] | None = None,
+                 budget: int | None = None):
         self.corpus, self.key, self.caller = corpus, key, caller
+        self.budget = budget  # patch tokens the stream may spend (None: unlimited)
         self.ctx = R.context(corpus)
         self.build = build or w0_build(corpus)
         self.dir = scratch(corpus) / key.replace("/", "_")
@@ -773,6 +787,23 @@ class Stream:
             todo = [d for d in docs if any(d not in self.mat.get((t, a), set()) for a in lacking)]
             if todo:
                 missing[t], scope[t] = sorted(lacking), todo
+        skipped = {}
+        # The patch's estimated cost (the controller's per-document read estimate, the columns it would ask for),
+        # recorded on every patch so estimates can be checked against the tokens charged.
+        est = 0
+        for t in missing:
+            batch = sorted({a for r in reads_seen if r.table == t for a in r.attributes
+                            if not self.fully(t, a) and f"{t}.{a}" in fields_seen})
+            for d in scope[t]:
+                attrs = [a for a in batch if d not in self.mat.get((t, a), set())]
+                if attrs:
+                    est += ctx.costs.read(t, d, [fields_seen[f"{t}.{a}"] for a in attrs])
+        if missing and self.budget is not None:
+            # Over the remaining budget the patch is skipped: the query is answered from what is extracted, and
+            # later (cheaper) patches may still fit.
+            spent = sum(r["input_tokens"] + r["output_tokens"] for r in self.st["records"])
+            if spent + est > self.budget:
+                skipped, missing = missing, {}
         shas, read_docs, fetched = [], 0, {}
         for t in missing:
             batch = sorted({a for r in reads_seen if r.table == t for a in r.attributes
@@ -815,8 +846,8 @@ class Stream:
         charged = charge(shas, self.caller.usage, rows_of(self.journal)) if shas else {"calls": 0, "input": 0, "output": 0, "cost": 0.0}
         self.st["records"].append({
             "pos": pos, "qid": qid, "drift": qid not in self.t0, "anticipated": qid in self.build.workload,
-            "action": "patch" if missing else "answer",
-            "missing": missing, "scope_docs": sum(len(v) for v in scope.values()), "docs_read": read_docs,
+            "action": "patch" if missing else ("skipped" if skipped else "answer"),
+            "missing": missing or skipped, "est_tokens": est, "scope_docs": sum(len(v) for v in scope.values()), "docs_read": read_docs,
             "fetched": fetched, "runtime_s": round(seconds, 2),
             "calls": charged["calls"], "input_tokens": charged["input"], "output_tokens": charged["output"],
             "cost_usd": round(charged["cost"], 6), "paid": {k: (round(v, 6) if k == "cost" else v) for k, v in paid.items()},
@@ -858,9 +889,17 @@ def plan(corpus: str, which: str, axes: list[str]) -> list[tuple[str, Build | No
                 continue
             test = fixed_design(corpus, axis)["test"]
             out += [(f"{FIXED}-{axis}/{p}", None, test) for p in FIXED_LEVELS]
+    if which == "budget":
+        for axis in axes:
+            if axis in ("attribute", "attribute_pool"):
+                test = fixed_design(corpus, axis)["test"]
+                out += [(f"{FIXED}b{b:03d}-{axis}/{p}", None, test) for b in BUDGETS for p in FIXED_LEVELS]
     if which in ("headline", "all", "fixed+headline", "everything"):
         keys = HEADLINE if which in ("headline", "fixed+headline") else ORDER
         out += [(k, None, None) for k in ORDER if k in keys and k in ctx.designs[0]["streams"]]
+    only = [k for k in os.environ.get("QUWARTS_LIVE_ONLY", "").split(",") if k]  # e.g. fixed4-attribute_pool/100
+    if only:
+        out = [o for o in out if o[0] in only]
     return out
 
 
@@ -885,15 +924,24 @@ def run(corpus: str, deadline: float, which: str = "headline", axes: list[str] |
         final = out_dir / f"{key.replace('/', '_')}.jsonl"
         if final.exists():
             continue
-        if key.startswith(FIXED + "-"):
-            axis, p = key[len(FIXED) + 1:].split("/")
+        budget = None
+        if key.startswith(FIXED + "-") or key.startswith(FIXED + "b"):
+            head, p = key.split("/")
+            name, axis = head.split("-", 1)
             build = fixed_build(corpus, axis, int(p))
             if prepare(corpus, caller, left_of(stop_at), build) is None:
                 lines.append(f"{corpus:8s} {key:22s} build read in progress")
                 break
+            if name != FIXED:  # a budgeted stream: % of the unlimited stream's patch tokens at 100% drift
+                full = out_dir / f"{FIXED}-{axis}_100.jsonl"
+                if not full.exists():
+                    lines.append(f"{corpus:8s} {key:22s} needs {full.name} (run --streams fixed first)")
+                    break
+                spend = sum(r["input_tokens"] + r["output_tokens"] for r in map(json.loads, full.read_text().splitlines()))
+                budget = round(int(name[len(FIXED) + 1:]) / 100 * spend)
         else:
             build = w0_build(corpus)
-        s = Stream(corpus, key, caller, build, stream)
+        s = Stream(corpus, key, caller, build, stream, budget)
         n = len(s.stream)
         try:
             while s.st["pos"] < n:
@@ -945,7 +993,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--deadline", type=float, default=165)
     ap.add_argument("--report", action="store_true")
-    ap.add_argument("--streams", default="headline", choices=["headline", "all", "fixed", "fixed+headline", "everything"])
+    ap.add_argument("--streams", default="headline", choices=["headline", "all", "fixed", "fixed+headline", "everything", "budget"])
     ap.add_argument("--axes", default="attribute", help="fixed levels: comma list of attribute, value, combined")
     ap.add_argument("--workers", type=int, help="concurrent model calls (default QUWARTS_WORKERS or 24)")
     a = ap.parse_args(argv)

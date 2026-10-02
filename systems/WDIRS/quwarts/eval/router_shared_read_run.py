@@ -425,12 +425,11 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps({"input_queries": len(train), "held_out_queries": len(test),
                       "reads": [{"table": r.table, "attributes": list(r.attributes)} for r in reads]}))
     if args.reads:
-        from quwarts.core.llm.openrouter import load_env_file, make_caller
+        from quwarts.eval.router_plan_v3 import llm_caller
 
-        load_env_file(PROJECT / ".env")
         ledger = TokenLedger(theta=10**12)
         seeded = seed_journal(spec, args.variant, journal) if LONG == "chain" else 0
-        caller = make_caller(ledger, max_tokens=600 if LONG == "chain" else 400)
+        caller = llm_caller(ledger, max_tokens=600 if LONG == "chain" else 400)
         stats = run_reads(spec, reads, {r["query_id"]: r["sql"] for r in train}, fields, caller, journal, args.workers,
                           long_documents=LONG, deadline=args.deadline)
         stats["seeded_from_head_run"] = seeded
