@@ -8,7 +8,14 @@ from its journals. Adding a step here takes effect the next time the runner pick
 EXP = "systems/WDIRS/quwarts/scripts/chpc/experiments"
 SCRATCH = "/scratch/general/vast/u1592362/quwarts_exp"
 FP16 = "qwen2.5:7b-instruct-fp16"
-OTHER_MODELS = {"llama8b": "llama3.1:8b", "qwen14b": "qwen2.5:14b-instruct"}  # E6.2, each on its own server
+# E6.2, each on its own server. qwen32b replaced qwen14b (2026-10-02, before any 14B step ran): 4-bit, 4 slots at a
+# 16k context (see ensure_server.sh), about 4-5x slower than 7B, so it runs fewer streams.
+OTHER_MODELS = {"llama8b": "llama3.1:8b", "qwen32b": "qwen2.5:32b-instruct"}
+MODEL_ENV = {"qwen32b": "OLLAMA_NUM_CTX=16384 "}  # the 32B server's context; requests must match it
+MODEL_STREAMS = {"llama8b": [("player", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
+                             ("cspaper", "fixed4-attribute_pool/0,fixed4-attribute_pool/100")],
+                 "qwen32b": [("cspaper", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
+                             ("player", "fixed4-attribute_pool/100")]}
 SERVER_OF = {FP16: "fp16", **{m: n for n, m in OTHER_MODELS.items()}}
 PRE = ("source ~/venvs/quwarts/quwarts.env && cd systems/WDIRS && export PYTHONPATH=$PWD QUWARTS_LLM=ollama "
        "OLLAMA_NUM_CTX=32768 QUWARTS_DRIFT_DESIGN=drift_paired && ")
@@ -119,15 +126,17 @@ STEPS = [
       for c, n in [("player", 141), ("art", 100), ("legal", 60), ("cspaper", 40), ("med", 40)]],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
-    *[policy(name, c) for c in ("cspaper", "legal", "player", "art", "med") for name in ("oracle", "cap", "pace")],
+    *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],
+    # ---- GPU lane: Phase 6 other local models (E6.2): shared read, and adaptive vs static at 0% and 100% drift
+    *[st for n, m in OTHER_MODELS.items() for st in [
+        shared_read(f"E6.2-sr-{n}", f"ollama_{n}", m, deps=[f"P1-pull-{n}"], extra=MODEL_ENV.get(n, "")),
+        *[stream(f"E6.2-stream-{n}-{c}", c, "fresh", key=k, model=m, deps=[f"P1-pull-{n}"], extra=MODEL_ENV.get(n, ""))
+          for c, k in MODEL_STREAMS[n]]]],
+    # ---- GPU lane: policies on player and art (no budget anomalies there; after the other models)
+    *[policy(name, c) for c in ("player", "art") for name in ("oracle", "cap", "pace")],
     # ---- GPU lane: E7 on med and art (after the policies: E7 was slightly negative on player)
     *[stream(f"E7-stream-nullable-{c}", c, "fresh", key=k, extra="QUWARTS_NULLABLE_TEXT=1 ")
       for c, k in [("med", "fixed4-attribute_pool/0"), ("art", "fixed4-attribute_pool/0,fixed4-attribute_pool/100")]],
-    # ---- GPU lane: Phase 6 other local models (E6.2): shared read, and adaptive vs static at 0% and 100% drift
-    *[st for n, m in OTHER_MODELS.items() for st in [
-        shared_read(f"E6.2-sr-{n}", f"ollama_{n}", m, deps=[f"P1-pull-{n}"]),
-        *[stream(f"E6.2-stream-{n}-{c}", c, "fresh", key="fixed4-attribute_pool/0,fixed4-attribute_pool/100", model=m,
-                 deps=[f"P1-pull-{n}"]) for c in ("player", "cspaper")]]],
     # ---- CPU lane: model downloads (network, no GPU), to /scratch/general/vast/u1592362/ollama_models
     *[{"id": f"P1-pull-{n}", "lane": "cpu", "retries": 3,
        "cmd": PRE + server("main") + f"ollama pull {m} && ollama list | grep -q '{m.split(':')[0]}'", "outputs": []}
