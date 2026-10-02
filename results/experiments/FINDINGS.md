@@ -106,6 +106,36 @@ Same 216 reads of player (one per document and table, every column the 80 input 
 | Ollama 16-bit `qwen2.5:7b-instruct-fp16` | 0.590 | 0.880 | 0.639 | 0.490 |
 | Ollama 4-bit `qwen2.5:7b-instruct` (Q4_K_M) | 0.560 | 0.868 | 0.615 | 0.482 |
 
-Quantization accounts for about 0.03 of the 0.049 held-out gap and 0.008 of the 0.035 gap on all 100 queries.
-Whether these gaps exceed run-to-run noise is the next check (two 4-bit repeats, E1.1).
+With three 4-bit runs (the recorded one and two repeats, E1.1), same prompts every time:
+
+| Run | Held-out 20 | All 100 (95% CI over queries) |
+|---|---|---|
+| 4-bit, recorded | 0.560 | 0.482 (0.422–0.542) |
+| 4-bit, repeat 1 | 0.548 | 0.483 (0.423–0.544) |
+| 4-bit, repeat 2 | 0.552 | 0.473 (0.412–0.533) |
+| 16-bit | 0.590 | 0.490 (0.429–0.551) |
+| OpenRouter | 0.609 | 0.517 (0.454–0.578) |
+
+Share of extracted cells (2,035 per run) that are identical between two runs:
+
+| | 4-bit rep 1 | 4-bit rep 2 | 16-bit | OpenRouter |
+|---|---|---|---|---|
+| 4-bit recorded | 0.949 | 0.955 | 0.885 | 0.871 |
+| 4-bit rep 1 | | 0.957 | 0.888 | 0.881 |
+| 4-bit rep 2 | | | 0.890 | 0.874 |
+| 16-bit | | | | 0.913 |
+
+**Reading:**
+- **Run-to-run noise is real but small.** At temperature 0.1, about 5% of cells change between identical 4-bit
+  runs, and the held-out score moves by up to 0.012 (all 100 queries: up to 0.010). Gaps below about 0.015 on 20
+  queries are noise.
+- **Quantization is a real, larger effect.** 4-bit vs 16-bit changes about 11% of cells, twice the run-to-run
+  rate, and 16-bit scores above all three 4-bit runs (held-out +0.03 to +0.04).
+- **16-bit is closer to OpenRouter than 4-bit is** (91% vs 87–88% identical cells), and the remaining gap
+  (0.019 held-out, 0.027 on all 100) is about one to two noise widths. OpenRouter's serving stack (likely 16-bit
+  or 8-bit, a different runtime) is not observable, so the rest is not attributed.
+- **Implication for the paper:** results from the 4-bit server are slightly pessimistic; comparisons between systems
+  run on the same server are unaffected in direction. The 95% CIs over queries (±0.06 on 100 queries) are much wider
+  than the backend gaps, so per-query paired comparisons, not unpaired means, are needed to resolve gaps this size.
+(`E1-reads/summary.json`, `E1-reads/openrouter_vs_ollama_cells.csv`)
 (`results/quwarts_router_v3/player{,_ollama,_ollama_fp16}/shared_read_protocol/score_blank.json`)
