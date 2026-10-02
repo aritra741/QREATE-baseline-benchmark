@@ -510,3 +510,23 @@ cannot observe directly; at 3–10× the tokens, narrow reads are not a default 
 **E2.1b width — cspaper** (12 columns, 40 papers; `E2.1b-width/cspaper/`): flat. Exact agreement 0.572 / 0.567 /
 0.565 / 0.569 at 1 / 3 / 6 / 12 columns per read (lenient 0.644 / 0.677 / 0.674 / 0.681); false fills 0.43 at width 1
 vs 0.15–0.33 wider; tokens 530k vs 83k. Width does not matter on cspaper except for cost.
+
+**E2.1b width — med** (disease table, 12 free-text columns, 40 diseases; `E2.1b-width/med/`): exact agreement is
+near zero at every width (0.034 / 0.052 / 0.093 / 0.095 at 1 / 3 / 6 / 12), lenient flat (0.527 / 0.528 / 0.533 /
+0.481); false fills 0.75–0.84 throughout; tokens 4.0M vs 0.40M.
+
+### Prompt width: summary over the five corpora (RQ2)
+
+| Corpus | Exact, 1 col/read | Exact, 12 cols/read | Difference | Token ratio (1 vs 12) |
+|---|---|---|---|---|
+| legal | 0.543 | 0.474 | **+0.069** | 10× |
+| player | 0.807 | 0.784 | +0.023 | 10× |
+| cspaper | 0.572 | 0.569 | +0.003 | 6× |
+| med | 0.034 | 0.095 | −0.061 (lenient +0.046) | 10× |
+| art | 0.451 | 0.488 | −0.037 | 6× |
+
+There is no general prompt-width effect. A one-column read is never cheaper and is better on two corpora, worse on
+two, and flat on one; it invents more values where gold is often empty (art 98%, med 84%). **Answer to RQ2 on this
+model:** patch reads are not systematically more accurate because they ask for fewer columns; the adaptive curve's
+small rises under drift (cspaper +0.02, player +0.01) are better explained by the order and scope effects found in
+E2.3 (which documents get read, which values a narrower scope leaves empty) than by prompt width.
