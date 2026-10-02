@@ -457,3 +457,18 @@ and med follow.
 
 (An earlier version of this table scored raw responses and showed width-1 reads missing far more values; that was a
 measurement error: narrow reads answer `null` for a "0 if none" count, which the database stores as 0.)
+
+**E7c: relaxing only `cspaper.agent_framework`** (the one text field whose description names an empty case;
+`E7c-stream-contradicted-cspaper/`):
+
+| Drift | Recorded | E7 (all text relaxed) | E7c (agent_framework only) |
+|---|---|---|---|
+| 0% | 0.1341 | 0.1473 (+0.013; 9 up / 8 down) | 0.1452 (+0.011; 7 up / 4 down) |
+| 100% | 0.1533 | 0.1712 (+0.018; 10 / 5) | 0.1514 (−0.002; 9 / 5) |
+
+At 100% drift `agent_framework` false fills fall from 108 to 68 of 151 (E7: 48), yet the score does not rise. So
+**E7's +0.018 at 100% does not come mainly from `agent_framework`** but from the other relaxed columns, and fixing the
+contradictory column alone is a small effect (+0.011 at 0%, none at 100%). This corrects the reading above that
+`agent_framework` explains the cspaper budget anomaly in score terms: it explains the specific query examined, and
+the false fills, but its effect on the stream mean is small. Overall, the E7 family moves scores by −0.06 to +0.02
+depending on corpus and variant; null handling is not a lever worth carrying into the system.
