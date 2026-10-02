@@ -446,22 +446,25 @@ has: `baseline` misses 18 → 57 of 188, `evaluation_dataset` 88 → 109 of 193.
 and +0.018 at 100%; the 0% result changed sign with the prompt fix.) E7c, relaxing only `agent_framework`, is being
 re-run.
 
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
-
-**E7c: relaxing only `cspaper.agent_framework`** (the one text field whose description names an empty case;
-`_invalid_promptbug/E7c-stream-contradicted-cspaper/`):
+**E7c: relaxing only `cspaper.agent_framework`** (the one text field whose description names an empty case; re-run
+with the fixed prompts, 2026-10-02; `E7c-stream-contradicted-cspaper/`):
 
 | Drift | Recorded | E7 (all text relaxed) | E7c (agent_framework only) |
 |---|---|---|---|
-| 0% | 0.1341 | 0.1473 (+0.013; 9 up / 8 down) | 0.1452 (+0.011; 7 up / 4 down) |
-| 100% | 0.1533 | 0.1712 (+0.018; 10 / 5) | 0.1514 (−0.002; 9 / 5) |
+| 0% | 0.1341 | 0.1214 (−0.013; 4 up / 11 down) | 0.1315 (−0.003; 7 / 7) |
+| 100% | 0.1533 | 0.1730 (+0.020; 8 / 4) | 0.1380 (**−0.015**; 6 / 8) |
 
-At 100% drift `agent_framework` false fills fall from 108 to 68 of 151 (E7: 48), yet the score does not rise. So
-**E7's +0.018 at 100% does not come mainly from `agent_framework`** but from the other relaxed columns, and fixing the
-contradictory column alone is a small effect (+0.011 at 0%, none at 100%). This corrects the reading above that
-`agent_framework` explains the cspaper budget anomaly in score terms: it explains the specific query examined, and
-the false fills, but its effect on the stream mean is small. Overall, the E7 family moves scores by −0.06 to +0.02
-depending on corpus and variant; null handling is not a lever worth carrying into the system.
+At 100% drift E7c leaves the other columns as recorded (`baseline` misses 20 of 188, `evaluation_dataset` 89 of 193)
+and cuts `agent_framework` false fills from 108 to 74 of 151 (misses 9 → 16 of 49), yet the stream score *falls*.
+So the gain of E7 at 100% does not come from `agent_framework`; it comes from the other relaxed columns (where gold
+is often empty and leaving cells empty changes which rows a filter or group keeps). The contradictory column
+explains the specific query examined above and the false fills, but fixing it does not help the stream.
+
+**Conclusion on null handling (E7, E7b, E7c; all with the fixed prompts):** dropping "Never null" moves scores by
+−0.013 to +0.020 depending on corpus and drift level, a field-level null hint costs −0.053, and fixing the one
+contradictory field costs up to −0.015. On this 7B model, prompt-level control of empty answers trades invented values
+for missed ones, with no consistent gain. It is not a lever worth carrying into the system; the never-null confound in
+the benchmark's metadata bounds every system given the same attribute files.
 
 > **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
