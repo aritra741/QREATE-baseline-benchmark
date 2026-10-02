@@ -1,4 +1,4 @@
-# Experiment status (2026-10-02T14:33:54-06:00)
+# Experiment status (2026-10-02T16:07:35-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -15,8 +15,8 @@
 | E7-stream-nullable-player | gpu | done | 1 | ok 2026-10-02T01:08:28-06:00 |  |
 | E7-stream-nullable-cspaper | gpu | done | 4 | ok 2026-10-02T13:44:39-06:00 |  |
 | E7c-stream-contradicted-cspaper | gpu | done | 2 | ok 2026-10-02T14:33:54-06:00 |  |
-| E2.1b-width-player | gpu | running-or-interrupted | 2 | start 2026-10-02T14:33:54-06:00 |  |
-| E2.1b-width-art | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E2.1b-width-player | gpu | done | 2 | ok 2026-10-02T16:07:35-06:00 |  |
+| E2.1b-width-art | gpu | running-or-interrupted | 2 | start 2026-10-02T16:07:35-06:00 |  |
 | E2.1b-width-legal | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
 | E2.1b-width-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
 | E2.1b-width-med | gpu | pending | 1 | reset 2026-10-02T12:38:30-06:00 |  |
