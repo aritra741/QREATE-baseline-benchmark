@@ -886,6 +886,45 @@ def accounting() -> dict:
     lines += ["", f"**Total:** {total['calls']:,} calls, {total['input'] / 1e6:.1f}M input tokens, {total['output'] / 1e6:.2f}M output tokens.",
               "(Recorded drift runs include every stream and budget of the recorded sweeps; experiment roots count only",
               "their new calls.)"]
+    # Tokens charged per stream: what each stream would pay run alone (cached reads counted as if made), from the
+    # per-query records; this is the cost the budgets and the cost charts use.
+    streams_rows = []
+    roots = [("recorded", REPO / "results" / "drift_live_ollama")] + [
+        (d.name, d / "live") for d in sorted(EXP.glob("E*")) if (d / "live").exists() and not d.name.startswith("E2-replay")]
+    for label, root in roots:
+        for f in sorted(root.glob("*/streams/fixed4*-attribute_pool_*.jsonl")):
+            rs = [json.loads(line) for line in f.read_text().splitlines() if line.strip()]
+            import re
+
+            m = re.fullmatch(r"fixed4(?:b(\d{3}))?-attribute_pool_(\d+)", f.stem)
+            if not m:
+                continue
+            budget = f"{int(m.group(1))}%" if m.group(1) else "unlimited"
+            streams_rows.append({"run": label, "corpus": f.parts[-3], "level": m.group(2), "budget": budget,
+                                 "queries": len(rs), "patches": sum(r["action"] == "patch" for r in rs),
+                                 "input": sum(r["input_tokens"] for r in rs), "output": sum(r["output_tokens"] for r in rs),
+                                 "runtime_s": round(sum(r["runtime_s"] for r in rs)),
+                                 "score": round(sum(r["benchmark"] for r in rs) / len(rs), 4)})
+    with (EXP / "accounting_streams.csv").open("w", newline="") as h:
+        w = csv.DictWriter(h, fieldnames=list(streams_rows[0]))
+        w.writeheader()
+        w.writerows(streams_rows)
+    lines += ["", "## Tokens charged per stream", "",
+              "Every drift stream (corpus × drift level × budget, per run): tokens it would pay run alone, counting reads",
+              "reused from the journal as if made (the cost the budgets and cost charts use), its patches, summed per-query",
+              "runtime, and score. Build reads are charged separately (`build.json` per corpus and level). Full table:",
+              "`accounting_streams.csv`.", "",
+              "| Run | Corpus | Budget | Drift 0% | 25% | 50% | 75% | 100% |", "|---|---|---|---|---|---|---|---|"]
+    grid: dict = {}
+    for r in streams_rows:
+        grid.setdefault((r["run"], r["corpus"], r["budget"]), {})[r["level"]] = r
+    order = {"10%": 0, "25%": 1, "50%": 2, "75%": 3, "100%": 4, "unlimited": 5}
+    for (run, corpus, budget), cells in sorted(grid.items(), key=lambda kv: (kv[0][0] != "recorded", kv[0][0], kv[0][1],
+                                                                              order.get(kv[0][2], 9))):
+        def cell(p):
+            r = cells.get(str(p))
+            return f"{(r['input'] + r['output']) / 1e6:.2f}M" if r else ""
+        lines.append(f"| {run} | {corpus} | {budget} | " + " | ".join(cell(p) for p in LEVELS) + " |")
     (EXP / "ACCOUNTING.md").write_text("\n".join(lines) + "\n")
     return total
 

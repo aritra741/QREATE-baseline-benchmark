@@ -16,7 +16,7 @@ so it exceeds wall-clock time.
 | E1.1-stream-rep-cspaper — cspaper | 1,009 | 1.14M | 19,941 | 9.79 / 9.01 / 17.76 | 9,882 | 1,338 |
 | E1.1-stream-rep-player — player | 1,098 | 5.63M | 40,689 | 19.96 / 19.38 / 36.56 | 21,914 | 3,024 |
 | E1.2-stream-fp16-player — player | 1,420 | 7.65M | 66,312 | 12.54 / 13.6 / 25.57 | 17,802 | 2,461 |
-| E7-stream-nullable-cspaper — cspaper | 419 | 0.62M | 28,540 | 19.65 / 18.85 / 33.15 | 8,232 | 3,014 |
+| E7-stream-nullable-cspaper — cspaper | 496 | 0.71M | 30,316 | 18.56 / 17.14 / 32.88 | 9,206 | 3,014 |
 | E7-stream-nullable-player — player | 1,742 | 9.62M | 85,895 | 22.55 / 22.14 / 39.7 | 39,288 | 5,395 |
 | shared read player (OpenRouter) | 216 | 1.28M | 19,856 |  |  |  |
 | shared read player_ollama | 216 | 1.28M | 20,819 |  |  |  |
@@ -38,6 +38,50 @@ so it exceeds wall-clock time.
 | DocETL drift (med, 57 queries so far) | 10,050 | 127.12M | 0.82M | 1416.2 per query | 80,722 |  |
 | DocETL drift (legal, 6 queries so far) | 13,802 | 86.54M | 0.53M | 11096.6 per query | 66,579 |  |
 
-**Total:** 136,717 calls, 619.4M input tokens, 6.82M output tokens.
+**Total:** 136,794 calls, 619.4M input tokens, 6.82M output tokens.
 (Recorded drift runs include every stream and budget of the recorded sweeps; experiment roots count only
 their new calls.)
+
+## Tokens charged per stream
+
+Every drift stream (corpus × drift level × budget, per run): tokens it would pay run alone, counting reads
+reused from the journal as if made (the cost the budgets and cost charts use), its patches, summed per-query
+runtime, and score. Build reads are charged separately (`build.json` per corpus and level). Full table:
+`accounting_streams.csv`.
+
+| Run | Corpus | Budget | Drift 0% | 25% | 50% | 75% | 100% |
+|---|---|---|---|---|---|---|---|
+| recorded | art | 10% | 0.00M | 0.56M | 0.56M | 0.55M | 0.55M |
+| recorded | art | 25% | 0.00M | 1.49M | 1.49M | 1.49M | 1.49M |
+| recorded | art | 50% | 0.00M | 2.04M | 2.53M | 2.98M | 2.51M |
+| recorded | art | 75% | 0.00M | 2.04M | 2.53M | 3.51M | 4.56M |
+| recorded | art | 100% | 0.00M | 2.04M | 2.53M | 3.51M | 5.11M |
+| recorded | art | unlimited | 0.00M | 2.04M | 2.53M | 3.51M | 6.08M |
+| recorded | cspaper | 10% | 0.00M | 0.07M | 0.07M | 0.11M | 0.10M |
+| recorded | cspaper | 25% | 0.00M | 0.23M | 0.29M | 0.29M | 0.29M |
+| recorded | cspaper | 50% | 0.00M | 0.23M | 0.48M | 0.47M | 0.57M |
+| recorded | cspaper | 75% | 0.00M | 0.23M | 0.48M | 0.69M | 0.72M |
+| recorded | cspaper | 100% | 0.00M | 0.23M | 0.48M | 0.69M | 1.16M |
+| recorded | cspaper | unlimited | 0.00M | 0.23M | 0.48M | 0.69M | 1.16M |
+| recorded | legal | 10% | 0.00M | 2.32M | 2.55M | 2.58M | 2.59M |
+| recorded | legal | 25% | 0.00M | 6.28M | 7.22M | 7.30M | 7.35M |
+| recorded | legal | 50% | 0.00M | 7.99M | 11.97M | 14.51M | 14.52M |
+| recorded | legal | 75% | 0.00M | 7.99M | 11.97M | 19.97M | 22.29M |
+| recorded | legal | 100% | 0.00M | 7.99M | 11.97M | 19.97M | 29.93M |
+| recorded | legal | unlimited | 0.00M | 7.99M | 11.97M | 19.97M | 29.93M |
+| recorded | med | 10% | 0.00M | 1.31M | 1.35M | 1.34M | 1.34M |
+| recorded | med | 25% | 0.00M | 4.45M | 4.79M | 4.80M | 4.80M |
+| recorded | med | 50% | 0.00M | 5.38M | 9.18M | 9.55M | 9.89M |
+| recorded | med | 75% | 0.00M | 5.38M | 11.07M | 14.56M | 14.91M |
+| recorded | med | 100% | 0.00M | 5.38M | 11.07M | 14.56M | 18.99M |
+| recorded | med | unlimited | 0.00M | 5.38M | 11.07M | 14.56M | 19.92M |
+| recorded | player | 10% | 0.00M | 0.55M | 0.55M | 0.55M | 0.55M |
+| recorded | player | 25% | 0.00M | 0.93M | 0.94M | 0.94M | 1.41M |
+| recorded | player | 50% | 0.00M | 1.48M | 2.41M | 2.79M | 2.80M |
+| recorded | player | 75% | 0.00M | 1.48M | 3.34M | 3.34M | 4.20M |
+| recorded | player | 100% | 0.00M | 1.48M | 3.34M | 4.27M | 5.65M |
+| recorded | player | unlimited | 0.00M | 1.48M | 3.34M | 4.27M | 5.67M |
+| E1.1-stream-rep-cspaper | cspaper | unlimited |  |  |  |  | 1.16M |
+| E1.1-stream-rep-player | player | unlimited |  |  |  |  | 5.67M |
+| E1.2-stream-fp16-player | player | unlimited |  |  |  |  | 5.68M |
+| E7-stream-nullable-player | player | unlimited | 0.00M |  |  |  | 5.67M |
