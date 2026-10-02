@@ -569,3 +569,44 @@ Over the 25 streams: mean **0.0847 vs 0.0797**, tokens **130M vs 154M (−16%)**
 drift level (fcfs is non-monotone at 50% drift). On med the policy **beats unlimited patching** at every drift level
 from 50% up, with about two thirds of its tokens (100% drift: 0.087 at 12.7M vs 0.0858 at 19.9M). Unlike legal, the
 skipped patches' columns are picked up by later queries' own patches, so nothing is lost at large budgets.
+
+## E9: scores by query type
+
+Every drift test query classified by its SQL (sqlglot): joins, aggregation (MIN/MAX split by text vs numeric
+column), filter kind, number of predicates, extras (HAVING / ORDER / LIMIT / CASE); scores per system at 100% drift
+unless stated; DocETL on the queries it has finished (218 of 326 at the time of writing)
+(`E9-query-types/summary.json`, `per_query.csv`). **All 326 drift test queries have a GROUP BY** (the
+`attribute_pool` test set is built from grouped queries), so grouping is not a usable dimension here.
+
+**Aggregation (all corpora):**
+
+| Aggregation | n | Static | Adaptive 0% | Adaptive 100% | 25% budget | 50% budget | DocETL (n) | Structure F2 | Cell F1 | Patch tokens |
+|---|---|---|---|---|---|---|---|---|---|---|
+| AVG / SUM | 88 | 0.017 | 0.357 | 0.360 | 0.160 | 0.272 | 0.086 (54) | 0.718 | 0.444 | 5.4M |
+| MIN/MAX over numbers | 70 | 0.002 | 0.236 | 0.238 | 0.113 | 0.160 | 0.083 (40) | 0.608 | 0.324 | 17.6M |
+| COUNT only | 123 | 0.052 | 0.206 | 0.211 | 0.166 | 0.172 | 0.120 (99) | 0.568 | 0.279 | 19.2M |
+| MIN/MAX over text | 45 | 0.022 | 0.041 | 0.030 | 0.036 | 0.030 | 0.001 (25) | 0.499 | 0.040 | 20.5M |
+
+Numeric aggregates are the easiest (AVG/SUM 0.36), COUNT is middling, and MIN/MAX over text is unwinnable for every
+system (ours 0.03, DocETL 0.001), with the lowest cell F1 (0.04) while taking the most patch tokens (see E3.3).
+
+**Joins (only player and med have joins; within corpus):**
+
+| Corpus | Joins | n | Adaptive 100% | Static | DocETL (n) |
+|---|---|---|---|---|---|
+| player | 0 | 68 | 0.369 | 0.045 | 0.141 (43) |
+| player | 1 | 26 | 0.438 | 0.065 | 0.038 (19) |
+| player | 2+ | 24 | 0.382 | 0.000 | 0.011 (18) |
+| med | 0 | 39 | 0.090 | 0.031 | 0.070 (29) |
+| med | 1 | 37 | 0.081 | 0.031 | 0.066 (25) |
+
+**DocETL collapses with joins on player (0.141 → 0.038 → 0.011) while ours does not (0.37 → 0.44 → 0.38).** DocETL
+extracts each table with its own per-query map, so join keys extracted for different tables are not made
+consistent; our shared build reads every table's join keys with the same field specs. On med both are flat (its
+joins fail for both, on list-valued keys; see med above). Joins are also the most budget-sensitive: at a 25% budget,
+1-join and 2+-join queries fall to 0.092 and 0.106 (unlimited 0.229 and 0.382), since one missing join-key column
+zeroes the whole query.
+
+**Filters and predicates:** numeric-only filters score highest (0.449, n=13); string equality / IN 0.255 (n=167); no
+filter 0.187 (n=143). Queries with HAVING / ORDER / LIMIT / CASE score higher (0.405 vs 0.214), mostly because they
+are concentrated on player.

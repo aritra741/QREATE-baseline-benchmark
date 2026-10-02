@@ -131,6 +131,9 @@ STEPS = [
       for n, m in OTHER_MODELS.items()],
     # ---- CPU lane: Phase 2 replays (no model calls), the base of the per-query and per-patch analyses
     *[st for c in CORPORA for st in [replay(c)] + [analysis(w, c) for w in ("patches", "order", "columns", "components")]],
+    {"id": "E9-query-types", "lane": "cpu", "deps": [f"E2-replay-{c}" for c in CORPORA],
+     "cmd": PRE + "python -u -m quwarts.eval.exp_analysis querytypes",
+     "outputs": ["results/experiments/E9-query-types/summary.json"], "skip_if_outputs": False},
     {"id": "E1-reads-analysis", "lane": "cpu", "deps": ["E1.2-sr-fp16", "E1.1-sr-rep1", "E1.1-sr-rep2"],
      "cmd": PRE + "python -u -m quwarts.eval.exp_analysis reads", "outputs": ["results/experiments/E1-reads/summary.json"],
      "skip_if_outputs": False},

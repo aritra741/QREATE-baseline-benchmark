@@ -656,13 +656,134 @@ def policies(corpus: str) -> dict:
     return out
 
 
+# ------------------------------------------------------------------------------------------ E9 query types
+
+def query_features(sql: str, fields: dict) -> dict:
+    """Structural features of one query: grouping, joins, aggregations (over text or numbers), filters."""
+
+    import sqlglot
+    from sqlglot import exp
+
+    try:
+        t = sqlglot.parse_one(sql, read="sqlite")
+    except Exception:  # noqa: BLE001
+        return {"parse_error": True}
+    numeric = {k.split(".", 1)[1] for k, f in fields.items() if f.value_type in ("int", "float")}
+    aggs = []
+    for kind, cls in (("count", exp.Count), ("sum", exp.Sum), ("avg", exp.Avg), ("min", exp.Min), ("max", exp.Max)):
+        for node in t.find_all(cls):
+            cols = [c.name for c in node.find_all(exp.Column)]
+            if kind in ("min", "max"):
+                kind2 = f"{kind}_text" if cols and not all(c in numeric for c in cols) else f"{kind}_num"
+            else:
+                kind2 = kind
+            aggs.append(kind2)
+    where = t.find(exp.Where)
+    preds = list(where.find_all(exp.EQ, exp.NEQ, exp.GT, exp.GTE, exp.LT, exp.LTE, exp.In, exp.Like, exp.ILike)) if where else []
+    filt = set()
+    for pr in preds:
+        if isinstance(pr, (exp.Like, exp.ILike)):
+            filt.add("like")
+        elif isinstance(pr, exp.In):
+            filt.add("in")
+        elif any(l.is_string for l in pr.find_all(exp.Literal)):
+            filt.add("string_eq" if isinstance(pr, (exp.EQ, exp.NEQ)) else "string_cmp")
+        else:
+            filt.add("numeric_cmp")
+    return {"group_by": t.find(exp.Group) is not None, "joins": len(list(t.find_all(exp.Join))),
+            "aggs": sorted(set(aggs)), "n_aggs": len(aggs), "filter_kinds": sorted(filt), "n_predicates": len(preds),
+            "having": t.find(exp.Having) is not None, "order_limit": t.find(exp.Order) is not None or t.find(exp.Limit) is not None,
+            "distinct": t.find(exp.Distinct) is not None, "case": t.find(exp.Case) is not None,
+            "n_tables": len({tb.name for tb in t.find_all(exp.Table)})}
+
+
+def query_types(corpora: list[str]) -> dict:
+    """E9: scores by query type (structure F2 and cell F1 from E2.4 where available), per corpus and pooled."""
+
+    out_dir = EXP / "E9-query-types"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for corpus in corpora:
+        ctx = R.context(corpus)
+        src = REPO / "results" / "drift_live_ollama" / corpus / "streams"
+        recs = {p: {r["qid"]: r for r in map(json.loads, (src / f"fixed4-attribute_pool_{p}.jsonl").read_text().splitlines())}
+                for p in (0, 100)}
+        bud = {b: {r["qid"]: r for r in map(json.loads, (src / f"fixed4b{b:03d}-attribute_pool_100.jsonl").read_text().splitlines())}
+               for b in (25, 50)}
+        comp = {}
+        pq = EXP / "E2.4-errors" / corpus / "per_query.csv"
+        if pq.exists():
+            for r in csv.DictReader(pq.open()):
+                comp[(r["system"], r["qid"])] = r
+        docetl_path = REPO / "results" / "docetl_drift_ollama" / corpus / "per_query.json"
+        docetl = json.loads(docetl_path.read_text()) if docetl_path.exists() else {}
+        for qid, r in recs[100].items():
+            f = query_features(ctx.catalog[qid], ctx.fields)
+            c = comp.get(("unlimited@100", qid), {})
+            rows.append({"corpus": corpus, "qid": qid, **f,
+                         "static_100": r["static_benchmark"], "adaptive_0": recs[0].get(qid, {}).get("benchmark"),
+                         "adaptive_100": r["benchmark"], "budget25_100": bud[25].get(qid, {}).get("benchmark"),
+                         "budget50_100": bud[50].get(qid, {}).get("benchmark"),
+                         "docetl": docetl.get(qid, {}).get("benchmark") if isinstance(docetl.get(qid), dict) else None,
+                         "structure_f2_100": float(c["structure_f2"]) if c else None,
+                         "cell_f1_100": float(c["cell_f1_20"]) if c else None,
+                         "patch_tokens_100": r["input_tokens"] + r["output_tokens"] if r["action"] == "patch" else 0})
+
+    def bucket(r: dict) -> dict[str, str]:
+        aggs = r.get("aggs", [])
+        return {
+            "group_by": "GROUP BY" if r.get("group_by") else "no GROUP BY",
+            "joins": {0: "0 joins", 1: "1 join"}.get(r.get("joins", 0), "2+ joins"),
+            "aggregation": ("MIN/MAX over text" if any(a.endswith("_text") for a in aggs) else
+                            "AVG/SUM" if any(a in ("avg", "sum") for a in aggs) else
+                            "MIN/MAX over numbers" if any(a.endswith("_num") for a in aggs) else
+                            "COUNT only" if aggs else "no aggregation"),
+            "filter": ("no filter" if not r.get("filter_kinds") else
+                       "LIKE" if "like" in r["filter_kinds"] else
+                       "string = / IN" if set(r["filter_kinds"]) & {"string_eq", "in"} else "numeric only"),
+            "predicates": {0: "0 predicates", 1: "1 predicate", 2: "2 predicates"}.get(r.get("n_predicates", 0), "3+ predicates"),
+            "extras": "HAVING / ORDER / LIMIT / CASE" if (r.get("having") or r.get("order_limit") or r.get("case")) else "none"}
+
+    metrics = ["static_100", "adaptive_0", "adaptive_100", "budget25_100", "budget50_100", "docetl",
+               "structure_f2_100", "cell_f1_100", "patch_tokens_100"]
+    summary: dict = {}
+    for scope in ["all"] + corpora:
+        sel = [r for r in rows if scope == "all" or r["corpus"] == scope]
+        summary[scope] = {}
+        for dim in ("group_by", "joins", "aggregation", "filter", "predicates", "extras"):
+            groups: dict[str, list] = {}
+            for r in sel:
+                groups.setdefault(bucket(r)[dim], []).append(r)
+            summary[scope][dim] = {}
+            for g, rs in sorted(groups.items()):
+                entry = {"n": len(rs)}
+                for m in metrics:
+                    xs = [r[m] for r in rs if r.get(m) is not None]
+                    if xs:
+                        entry[m] = round(sum(xs) / len(xs), 4) if m != "patch_tokens_100" else round(sum(xs) / 1e6, 2)
+                        if m == "docetl":
+                            entry["docetl_n"] = len(xs)
+                entry["adaptive_100_ci"] = bootstrap([r["adaptive_100"] for r in rs])
+                summary[scope][dim][g] = entry
+    with (out_dir / "per_query.csv").open("w", newline="") as h:
+        keys = sorted({k for r in rows for k in r})
+        w = csv.DictWriter(h, fieldnames=keys)
+        w.writeheader()
+        w.writerows([{k: (json.dumps(v) if isinstance(v, list) else v) for k, v in r.items()} for r in rows])
+    (out_dir / "summary.json").write_text(json.dumps(summary, indent=1))
+    return summary
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "policies", "reads", "variance"])
+    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "policies", "querytypes", "reads", "variance"])
     ap.add_argument("--corpus")
     a = ap.parse_args(argv)
     fn = {"components": components, "patches": patches, "order": order, "columns": columns, "canon": canon, "policies": policies}.get(a.what)
-    out = fn(a.corpus) if fn else {"reads": reads, "variance": variance}[a.what]()
+    if a.what == "querytypes":
+        out = query_types((a.corpus or "cspaper,player,art,med,legal").split(","))
+    else:
+        out = fn(a.corpus) if fn else {"reads": reads, "variance": variance}[a.what]()
     print(json.dumps(out, indent=1, default=str)[:4000])
     return 0
 
