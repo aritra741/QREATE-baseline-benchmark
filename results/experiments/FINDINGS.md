@@ -427,10 +427,7 @@ rise from 110 to 131 (of 816 gold values); most of the increase is the join key 
 left empty), and a missing join key drops a player from every join. `player.position` false fills fall only from 65
 to 52 of 65. (The invalid first run gave −0.062; same conclusion.)
 
-**Conclusion on null handling (E7, E7b):** on this 7B model, prompt-level control of empty answers trades invented
-values for missed ones, and a missed value (above all a join key) costs more than an invented one. Neither variant
-improves the score. The never-null confound is real in the benchmark's metadata, but it is not fixable through the
-prompt; it bounds every system given the same attribute files.
+*(The null-handling conclusion is restated below, after E7c, with all three variants on the fixed prompts.)*
 
 **cspaper drift streams with "Never null" dropped for text fields** (re-run with the fixed prompts, 2026-10-02;
 `E7-stream-nullable-cspaper/`):

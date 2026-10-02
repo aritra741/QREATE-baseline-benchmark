@@ -1,4 +1,4 @@
-# Experiment status (2026-10-02T12:57:09-06:00)
+# Experiment status (2026-10-02T14:33:54-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -13,9 +13,9 @@
 | E7-sr-nullable | gpu | done | 1 | ok 2026-10-01T23:38:33-06:00 |  |
 | E7b-sr-nullhint | gpu | done | 2 | ok 2026-10-02T12:57:09-06:00 |  |
 | E7-stream-nullable-player | gpu | done | 1 | ok 2026-10-02T01:08:28-06:00 |  |
-| E7-stream-nullable-cspaper | gpu | running-or-interrupted | 2 | start 2026-10-02T12:57:09-06:00 |  |
-| E7c-stream-contradicted-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
-| E2.1b-width-player | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E7-stream-nullable-cspaper | gpu | done | 4 | ok 2026-10-02T13:44:39-06:00 |  |
+| E7c-stream-contradicted-cspaper | gpu | done | 2 | ok 2026-10-02T14:33:54-06:00 |  |
+| E2.1b-width-player | gpu | running-or-interrupted | 2 | start 2026-10-02T14:33:54-06:00 |  |
 | E2.1b-width-art | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
 | E2.1b-width-legal | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
 | E2.1b-width-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
@@ -29,25 +29,25 @@
 | E3.2-oracle-legal | gpu | pending | 0 |  |  |
 | E3.2-cap-legal | gpu | pending | 0 |  |  |
 | E3.2-pace-legal | gpu | pending | 0 |  |  |
+| E3.2-oracle-med | gpu | pending | 0 |  |  |
+| E3.2-cap-med | gpu | pending | 0 |  |  |
+| E3.2-pace-med | gpu | pending | 0 |  |  |
+| E6.2-sr-llama8b | gpu | pending | 0 |  |  |
+| E6.2-stream-llama8b-player | gpu | pending | 0 |  |  |
+| E6.2-stream-llama8b-cspaper | gpu | pending | 0 |  |  |
+| E6.2-sr-qwen32b | gpu | pending | 0 |  |  |
+| E6.2-stream-qwen32b-cspaper | gpu | pending | 0 |  |  |
+| E6.2-stream-qwen32b-player | gpu | pending | 0 |  |  |
 | E3.2-oracle-player | gpu | pending | 0 |  |  |
 | E3.2-cap-player | gpu | pending | 0 |  |  |
 | E3.2-pace-player | gpu | pending | 0 |  |  |
 | E3.2-oracle-art | gpu | pending | 0 |  |  |
 | E3.2-cap-art | gpu | pending | 0 |  |  |
 | E3.2-pace-art | gpu | pending | 0 |  |  |
-| E3.2-oracle-med | gpu | pending | 0 |  |  |
-| E3.2-cap-med | gpu | pending | 0 |  |  |
-| E3.2-pace-med | gpu | pending | 0 |  |  |
 | E7-stream-nullable-med | gpu | pending | 0 |  |  |
 | E7-stream-nullable-art | gpu | pending | 0 |  |  |
-| E6.2-sr-llama8b | gpu | pending | 0 |  |  |
-| E6.2-stream-llama8b-player | gpu | pending | 0 |  |  |
-| E6.2-stream-llama8b-cspaper | gpu | pending | 0 |  |  |
-| E6.2-sr-qwen14b | gpu | pending | 0 |  |  |
-| E6.2-stream-qwen14b-player | gpu | pending | 0 |  |  |
-| E6.2-stream-qwen14b-cspaper | gpu | pending | 0 |  |  |
 | P1-pull-llama8b | cpu | done | 1 | ok 2026-10-01T21:38:00-06:00 |  |
-| P1-pull-qwen14b | cpu | done | 1 | ok 2026-10-01T21:40:58-06:00 |  |
+| P1-pull-qwen32b | cpu | done | 1 | ok 2026-10-02T13:36:20-06:00 |  |
 | E2-replay-cspaper | cpu | done | 2 | ok 2026-10-01T20:47:53-06:00 |  |
 | E2.2-patches-cspaper | cpu | done | 1 | ok 2026-10-01T21:41:03-06:00 |  |
 | E2.3-order-cspaper | cpu | done | 1 | ok 2026-10-01T21:41:06-06:00 |  |
@@ -74,6 +74,7 @@
 | E2.1-columns-legal | cpu | done | 1 | ok 2026-10-01T23:41:36-06:00 |  |
 | E2.4-components-legal | cpu | done | 1 | ok 2026-10-01T23:42:21-06:00 |  |
 | E9-query-types | cpu | done | 1 | ok 2026-10-02T12:42:15-06:00 |  |
+| Z-accounting | cpu | done | 1 | ok 2026-10-02T13:36:23-06:00 |  |
 | E1-reads-analysis | cpu | done | 1 | ok 2026-10-01T23:42:23-06:00 |  |
 | E1-variance-analysis | cpu | done | 1 | ok 2026-10-01T23:42:25-06:00 |  |
 
