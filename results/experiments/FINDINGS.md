@@ -600,9 +600,10 @@ system (ours 0.03, DocETL 0.001), with the lowest cell F1 (0.04) while taking th
 | med | 0 | 39 | 0.090 | 0.031 | 0.070 (29) |
 | med | 1 | 37 | 0.081 | 0.031 | 0.066 (25) |
 
-**DocETL collapses with joins on player (0.141 → 0.038 → 0.011) while ours does not (0.37 → 0.44 → 0.38).** DocETL
-extracts each table with its own per-query map, so join keys extracted for different tables are not made
-consistent; our shared build reads every table's join keys with the same field specs. On med both are flat (its
+**DocETL collapses with joins on player (0.141 → 0.038 → 0.011) while ours does not (0.37 → 0.44 → 0.38).** A likely
+cause (not yet checked value by value): DocETL extracts each table with its own per-query map, so join keys
+extracted for different tables need not match, while our shared build reads every table's join keys with the same
+field specs. On med both are flat (its
 joins fail for both, on list-valued keys; see med above). Joins are also the most budget-sensitive: at a 25% budget,
 1-join and 2+-join queries fall to 0.092 and 0.106 (unlimited 0.229 and 0.382), since one missing join-key column
 zeroes the whole query.
