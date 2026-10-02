@@ -16,6 +16,8 @@ the noise floor. Every prompt and raw response is journaled.
 
 from __future__ import annotations
 
+import os
+
 import hashlib
 import json
 import re
@@ -88,7 +90,12 @@ class FieldSpec:
         extra = " Multiple values separated by ' || '." if many else ""
         if self.choices:
             extra += f" Allowed values: {', '.join(self.choices)}."
-        if not self.nullable:
+        # QUWARTS_NULLABLE_TEXT (experiment E7): a text field may be left empty even if the attribute file marks it not
+        # nullable. Of 132 such columns in the five corpora, 69 are empty in at least 5% of gold rows, and the
+        # instruction makes the model invent a value. Numeric never-null fields ("0 if none" counts, 0/1 flags) keep it.
+        relax = os.environ.get("QUWARTS_NULLABLE_TEXT") and self.value_type not in ("int", "float") \
+            and {c.lower() for c in self.choices} != {"yes", "no"}
+        if not self.nullable and not relax:
             extra += " Never null: always give a value."
             if {c.lower() for c in self.choices} == {"yes", "no"}:
                 extra += " Answer No unless the document indicates Yes."

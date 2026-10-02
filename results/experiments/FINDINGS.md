@@ -139,3 +139,53 @@ Share of extracted cells (2,035 per run) that are identical between two runs:
   than the backend gaps, so per-query paired comparisons, not unpaired means, are needed to resolve gaps this size.
 (`E1-reads/summary.json`, `E1-reads/openrouter_vs_ollama_cells.csv`)
 (`results/quwarts_router_v3/player{,_ollama,_ollama_fp16}/shared_read_protocol/score_blank.json`)
+
+## player
+
+**Replay reproduces the recorded run** (all 30 streams identical; `E2-replay/live/player/verify.json`).
+
+**Every patch token paid off (E2.2).** At every drift level, 0% of patch tokens went to patches whose query and
+later users of its columns gained nothing (cspaper: up to 39%). Cost estimates: median estimated/actual 1.005
+(10th–90th percentile 1.005–1.010). This is why player's budget curve is a steady staircase while cspaper's
+saturates at 10%: on player each skipped patch costs score.
+
+**The budget buys back cell values, not structure (E2.4).**
+
+| System | Structure F2 | Cell F1@0.20 | No rows / structure / values / fully right |
+|---|---|---|---|
+| Static, 100% drift | 0.710 | 0.049 | 5 / 90 / 23 / 0 |
+| 10% budget, 100% drift | 0.723 | 0.160 | 3 / 92 / 15 / 8 |
+| 25% budget, 100% drift | 0.719 | 0.205 | 3 / 91 / 14 / 10 |
+| 50% budget, 100% drift | 0.710 | 0.357 | 5 / 90 / 12 / 11 |
+| Unlimited, 100% drift | 0.753 | 0.468 | 0 / 94 / 10 / 14 |
+
+Unlike cspaper (static returns no rows for 40 of 59 queries), player's static database still returns the right
+rows; the withheld columns come back empty, so only cell F1 collapses.
+
+**Order effects are small and one-directional (E2.3).** 329 query answers differ between a budgeted and the unlimited
+stream at the same level; the budgeted one is higher in only 15. No cell ever holds two different values across
+streams (38,028 differing cells are all filled in one and empty in the other).
+
+**Per-column (E2.1):** where both have a value, agreement is high (0.86–1.0 on 15 of 19 columns). Two columns fail
+for metadata reasons:
+- `player.position`: gold is empty for 65 of 141 players; the model fills 63 of them, almost always with
+  "Frontcourt", for players whose documents never mention a position. The field line says *"choose one from
+  ['Frontcourt', 'Backcourt'] ... Never null: always give a value."*
+- `player.team` (a join key): empty in 42% of players who have one in gold. These players played for several teams;
+  gold takes the last one listed (e.g. Jay Vincent: "... Philadelphia 76ers, and Los Angeles Lakers" → Lakers). The
+  field says *"the current NBA team ..., or the last NBA team the player joined"*, but its workload examples are
+  non-NBA clubs ('Bursaspor Basketbol', 'Cedevita Olimpija'), and the model returns nothing.
+
+## Across corpora: "never null" columns whose gold is often empty
+
+The cspaper `agent_framework` and player `position` cases are one pattern. Of the **132** columns the benchmark's
+attribute files mark not nullable, **69 are empty in at least 5% of gold rows, and 57 of those are used by the
+workloads** (`E2.1-columns/never_null_vs_gold.txt`). Med is most affected: `sequelae` is empty in 85% of gold rows,
+`storage_conditions` 81%, `manufacturer` 71%, `activation_conditions` 70%, `diagnosis_challenges` 69%; also cspaper
+`performance_on_hotpotqa` 85%, player `city.gdp` 76%, art `marriage` 71%. For each, the prompt says "Never null:
+always give a value" (the published protocol input), so the model must invent a value where gold has none, and an
+invented value scores worse than an empty one.
+
+This is a benchmark-protocol confound that affects every system given the attribute files. **Experiment E7** (queued)
+drops "Never null" for text fields (numeric "0 if none" counts and 0/1 flags keep it) and re-runs the player shared
+read and the player, cspaper, art (0% and 100% drift) and med (0%) streams on the same 4-bit server.

@@ -19,8 +19,8 @@ def server(name: str) -> str:
     return f'eval "$(bash ../../{EXP}/ensure_server.sh {name})" && '
 
 
-def shared_read(sid: str, tag: str, model: str | None = None, deps: list[str] | None = None) -> dict:
-    env = f"OLLAMA_MODEL={model} " if model else ""
+def shared_read(sid: str, tag: str, model: str | None = None, deps: list[str] | None = None, extra: str = "") -> dict:
+    env = (f"OLLAMA_MODEL={model} " if model else "") + extra
     return {
         "id": sid, "lane": "gpu", "deps": deps or [],
         "cmd": PRE + server(SERVER_OF.get(model, "main")) + env +
@@ -31,12 +31,12 @@ def shared_read(sid: str, tag: str, model: str | None = None, deps: list[str] | 
 
 
 def stream(sid: str, corpus: str, mode: str, key: str = "fixed4-attribute_pool/100", model: str | None = None,
-           deps: list[str] | None = None) -> dict:
+           deps: list[str] | None = None, extra: str = "") -> dict:
     """One drift_live stream in its own root (clone.py ``mode``), never touching the recorded run."""
 
     root, scratch = f"results/experiments/{sid}/live", f"{SCRATCH}/{sid}"
     env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_LIVE_ONLY={key} QUWARTS_KEEP_VIEWS=1 "
-           + (f"OLLAMA_MODEL={model} " if model else ""))
+           + (f"OLLAMA_MODEL={model} " if model else "") + extra)
     return {
         "id": sid, "lane": "gpu", "deps": deps or [],
         "cmd": PRE + f"python ../../{EXP}/clone.py --mode {mode} --corpus {corpus} --root {root} --scratch {scratch} && "
@@ -100,6 +100,13 @@ STEPS = [
     stream("E1.1-stream-rep-cspaper", "cspaper", "repeat"),
     stream("E1.1-stream-rep-player", "player", "repeat"),
     stream("E1.2-stream-fp16-player", "player", "fresh", model=FP16, deps=["P1-pull-fp16"]),
+    # ---- GPU lane: E7, text fields allowed to be empty (drops "Never null" for text; see context_probe.FieldSpec.line)
+    shared_read("E7-sr-nullable", "ollama_nullable", extra="QUWARTS_NULLABLE_TEXT=1 "),
+    *[stream(f"E7-stream-nullable-{c}", c, "fresh", key=k, extra="QUWARTS_NULLABLE_TEXT=1 ")
+      for c, k in [("player", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
+                   ("cspaper", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
+                   ("med", "fixed4-attribute_pool/0"),
+                   ("art", "fixed4-attribute_pool/0,fixed4-attribute_pool/100")]],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy(name, c) for c in ("cspaper", "legal", "player", "art", "med") for name in ("oracle", "cap", "pace")],
     # ---- GPU lane: Phase 6 other local models (E6.2): shared read, and adaptive vs static at 0% and 100% drift

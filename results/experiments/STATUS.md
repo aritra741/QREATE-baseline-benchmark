@@ -1,4 +1,4 @@
-# Experiment status (2026-10-01T21:28:11-06:00)
+# Experiment status (2026-10-01T21:43:42-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -9,6 +9,11 @@
 | E1.1-stream-rep-cspaper | gpu | running-or-interrupted | 1 | start 2026-10-01T21:28:11-06:00 |  |
 | E1.1-stream-rep-player | gpu | pending | 0 |  |  |
 | E1.2-stream-fp16-player | gpu | pending | 0 |  |  |
+| E7-sr-nullable | gpu | pending | 0 |  |  |
+| E7-stream-nullable-player | gpu | pending | 0 |  |  |
+| E7-stream-nullable-cspaper | gpu | pending | 0 |  |  |
+| E7-stream-nullable-med | gpu | pending | 0 |  |  |
+| E7-stream-nullable-art | gpu | pending | 0 |  |  |
 | E3.2-oracle-cspaper | gpu | pending | 0 |  |  |
 | E3.2-cap-cspaper | gpu | pending | 0 |  |  |
 | E3.2-pace-cspaper | gpu | pending | 0 |  |  |
@@ -30,19 +35,19 @@
 | E6.2-sr-qwen14b | gpu | pending | 0 |  |  |
 | E6.2-stream-qwen14b-player | gpu | pending | 0 |  |  |
 | E6.2-stream-qwen14b-cspaper | gpu | pending | 0 |  |  |
-| P1-pull-llama8b | cpu | pending | 0 |  |  |
-| P1-pull-qwen14b | cpu | pending | 0 |  |  |
+| P1-pull-llama8b | cpu | done | 1 | ok 2026-10-01T21:38:00-06:00 |  |
+| P1-pull-qwen14b | cpu | done | 1 | ok 2026-10-01T21:40:58-06:00 |  |
 | E2-replay-cspaper | cpu | done | 2 | ok 2026-10-01T20:47:53-06:00 |  |
-| E2.2-patches-cspaper | cpu | pending | 0 |  |  |
-| E2.3-order-cspaper | cpu | pending | 0 |  |  |
-| E2.1-columns-cspaper | cpu | pending | 0 |  |  |
-| E2.4-components-cspaper | cpu | pending | 0 |  |  |
-| E2-replay-player | cpu | running-or-interrupted | 1 | start 2026-10-01T20:47:53-06:00 |  |
-| E2.2-patches-player | cpu | pending | 0 |  |  |
-| E2.3-order-player | cpu | pending | 0 |  |  |
-| E2.1-columns-player | cpu | pending | 0 |  |  |
-| E2.4-components-player | cpu | pending | 0 |  |  |
-| E2-replay-art | cpu | pending | 0 |  |  |
+| E2.2-patches-cspaper | cpu | done | 1 | ok 2026-10-01T21:41:03-06:00 |  |
+| E2.3-order-cspaper | cpu | done | 1 | ok 2026-10-01T21:41:06-06:00 |  |
+| E2.1-columns-cspaper | cpu | done | 1 | ok 2026-10-01T21:41:09-06:00 |  |
+| E2.4-components-cspaper | cpu | done | 1 | ok 2026-10-01T21:41:44-06:00 |  |
+| E2-replay-player | cpu | done | 1 | ok 2026-10-01T21:36:18-06:00 |  |
+| E2.2-patches-player | cpu | done | 1 | ok 2026-10-01T21:41:49-06:00 |  |
+| E2.3-order-player | cpu | done | 1 | ok 2026-10-01T21:41:56-06:00 |  |
+| E2.1-columns-player | cpu | done | 1 | ok 2026-10-01T21:41:59-06:00 |  |
+| E2.4-components-player | cpu | done | 1 | ok 2026-10-01T21:43:32-06:00 |  |
+| E2-replay-art | cpu | running-or-interrupted | 1 | start 2026-10-01T21:43:32-06:00 |  |
 | E2.2-patches-art | cpu | pending | 0 |  |  |
 | E2.3-order-art | cpu | pending | 0 |  |  |
 | E2.1-columns-art | cpu | pending | 0 |  |  |
