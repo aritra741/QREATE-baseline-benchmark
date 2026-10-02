@@ -32,7 +32,25 @@ def llm_caller(ledger: TokenLedger, max_tokens: int):
     if os.environ.get("QUWARTS_LLM", "openrouter") == "ollama":
         from quwarts.core.llm import ollama
 
-        return ollama.make_caller(ledger, max_tokens=max_tokens)
+        log = os.environ.get("QUWARTS_USAGE_LOG")  # one row per call: input/output tokens, seconds, model
+        on_usage = None
+        if log:
+            import hashlib
+            import json
+            import threading
+            from pathlib import Path
+
+            lock = threading.Lock()
+            Path(log).parent.mkdir(parents=True, exist_ok=True)
+
+            def on_usage(prompt: str, u: dict) -> None:
+                row = {"sha": hashlib.sha256(prompt.encode()).hexdigest(), "input": u["input"], "output": u["output"],
+                       "seconds": u["seconds"], "model": u["model"], "num_ctx": u["num_ctx"],
+                       "maybe_truncated": u["maybe_truncated"], "cut_off": u["cut_off"]}
+                with lock, open(log, "a") as h:
+                    h.write(json.dumps(row) + "\n")
+
+        return ollama.make_caller(ledger, max_tokens=max_tokens, on_usage=on_usage)
     from quwarts.core.llm.openrouter import load_env_file, make_caller
 
     load_env_file(PROJECT / ".env")

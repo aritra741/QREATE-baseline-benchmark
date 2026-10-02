@@ -133,7 +133,9 @@ def run_step(step: dict) -> bool:
     sid = step["id"]
     LOGS.mkdir(parents=True, exist_ok=True)
     log = LOGS / f"{sid.replace('/', '_')}.log"
-    env = {**os.environ, **{k: str(v) for k, v in step.get("env", {}).items()}}
+    env = {**os.environ, **{k: str(v) for k, v in step.get("env", {}).items()},
+           # every model call a step makes through router_plan_v3.llm_caller is logged here (tokens, seconds)
+           "QUWARTS_USAGE_LOG": str(OUT / "usage" / f"{sid.replace('/', '_')}.jsonl")}
     retries = int(step.get("retries", 1))
     for attempt in range(1, retries + 2):
         missing = outputs_ok(step)

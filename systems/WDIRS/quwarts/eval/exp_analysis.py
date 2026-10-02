@@ -30,6 +30,7 @@ from quwarts.eval import drift_run as R
 
 REPO = R.RESULTS.parent
 EXP = REPO / "results" / "experiments"
+STATUS_PATH = EXP / "status.jsonl"
 REPLAY = EXP / "E2-replay" / "live"
 REPLAY_SCRATCH = Path("/scratch/general/vast/u1592362/quwarts_exp/E2-replay/drift_live_ollama")
 LEVELS = (0, 25, 50, 75, 100)
@@ -774,13 +775,130 @@ def query_types(corpora: list[str]) -> dict:
     return summary
 
 
+# ------------------------------------------------------------------------------------------ accounting
+
+def accounting() -> dict:
+    """Every model call of every run: calls, input and output tokens, and latency where it was logged.
+
+    Sources, by what they record:
+      drift_live usage.jsonl (per call: input, output, seconds) — recorded runs and every experiment root; in a cloned
+        root only rows whose prompt is not in the recorded run's usage are new calls of that experiment;
+      read journals with only a total per call (shared reads, prompt width, planner probes and executions):
+        output = the response re-counted with the Qwen 2.5 tokenizer (as the Ollama client counts), input = total − output;
+        no per-call latency (the step's wall-clock time, from status.jsonl, is reported instead);
+      runner usage logs (results/experiments/usage/<step>.jsonl; per call, from 2026-10-02 13:15);
+      DocETL per_query.json (per query: prompt and completion tokens, seconds).
+    """
+
+    from quwarts.core.retrieve_extract.tokens import count_tokens
+
+    def lat(xs: list[float]) -> dict:
+        if not xs:
+            return {}
+        xs = sorted(xs)
+        return {"mean_s": round(sum(xs) / len(xs), 2), "p50_s": round(xs[len(xs) // 2], 2),
+                "p95_s": round(xs[int(0.95 * (len(xs) - 1))], 2), "sum_s": round(sum(xs))}
+
+    def usage_rows(path: Path, skip: int = 0) -> dict:
+        """``skip``: rows copied from the recorded run when the root was cloned (the rest are this run's calls)."""
+        rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
+        rows = rows[skip:]
+        return {"calls": len(rows), "input": sum(r["input"] for r in rows), "output": sum(r["output"] for r in rows),
+                **lat([r["seconds"] for r in rows if r.get("seconds") is not None])}
+
+    def journal_rows(path: Path) -> dict:
+        n = inp = out = 0
+        for line in path.read_text().splitlines() if path.exists() else []:
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            o = count_tokens(r.get("response") or "")
+            n, out, inp = n + 1, out + o, inp + max(0, int(r.get("tokens") or 0) - o)
+        return {"calls": n, "input": inp, "output": out}
+
+    wall = {}
+    if STATUS_PATH.exists():
+        for line in STATUS_PATH.read_text().splitlines():
+            r = json.loads(line)
+            if r["event"] in ("ok", "retry", "fail") and r.get("seconds"):
+                wall[r["step"]] = wall.get(r["step"], 0) + r["seconds"]
+    rows = []
+    rec = REPO / "results" / "drift_live_ollama"
+    recorded_rows = {}
+    for c in ("cspaper", "player", "art", "med", "legal"):
+        u = rec / c / "usage.jsonl"
+        recorded_rows[c] = sum(1 for line in u.read_text().splitlines() if line.strip()) if u.exists() else 0
+        rows.append({"experiment": f"recorded drift runs ({c}; builds, all streams and budgets)", **usage_rows(u)})
+    for d in sorted(EXP.glob("*/live/*/usage.jsonl")):
+        exp_id, c = d.parts[-4], d.parts[-2]
+        if exp_id.startswith(("E2-replay", "G0-")):
+            continue
+        marker = d.parent / ".cloned"
+        copied = marker.exists() and "usage.jsonl" in json.loads(marker.read_text()).get("copied", [])
+        rows.append({"experiment": exp_id, "corpus": c, **usage_rows(d, recorded_rows.get(c, 0) if copied else 0),
+                     "wall_clock_s": wall.get(exp_id)})
+    v3 = REPO / "results" / "quwarts_router_v3"
+    for d in sorted(v3.glob("player*/shared_read_protocol/reads.jsonl")):
+        tag = d.parts[-3]
+        step = {"player": None, "player_ollama": None, "player_ollama_fp16": "E1.2-sr-fp16", "player_ollama_rep1": "E1.1-sr-rep1",
+                "player_ollama_rep2": "E1.1-sr-rep2", "player_ollama_nullable": "E7-sr-nullable",
+                "player_ollama_nullhint": "E7b-sr-nullhint"}.get(tag)
+        rows.append({"experiment": f"shared read {tag}" + (" (OpenRouter)" if tag == "player" else ""), **journal_rows(d),
+                     "wall_clock_s": wall.get(step) if step else None})
+    for d in sorted((EXP / "E2.1b-width").glob("*/reads.jsonl")):
+        rows.append({"experiment": f"E2.1b-width-{d.parts[-2]}", **journal_rows(d), "wall_clock_s": wall.get(f"E2.1b-width-{d.parts[-2]}")})
+    sweep = REPO / "results" / "quwarts_player_budget_sweep_ollama"
+    for f in sorted(sweep.glob("f*")):
+        pj, ej = journal_rows(f / "probe" / "probe_journal.jsonl"), journal_rows(f / "execute" / "reads.jsonl")
+        rows.append({"experiment": f"planner sweep player {f.name} (probes + reads)",
+                     "calls": pj["calls"] + ej["calls"], "input": pj["input"] + ej["input"], "output": pj["output"] + ej["output"]})
+    for d in sorted((EXP / "usage").glob("*.jsonl")):
+        rows.append({"experiment": f"runner log {d.stem}", **usage_rows(d), "wall_clock_s": wall.get(d.stem)})
+    for c in ("cspaper", "player", "art", "med", "legal"):
+        f = REPO / "results" / "docetl_drift_ollama" / c / "per_query.json"
+        if f.exists():
+            q = json.loads(f.read_text())
+            rows.append({"experiment": f"DocETL drift ({c}, {len(q)} queries so far)", "calls": sum(v.get("calls", 0) for v in q.values()),
+                         "input": sum(v.get("prompt_tokens", 0) for v in q.values()),
+                         "output": sum(v.get("completion_tokens", 0) for v in q.values()),
+                         "per_query_mean_s": round(sum(v.get("seconds", 0) for v in q.values()) / max(1, len(q)), 1),
+                         "sum_s": round(sum(v.get("seconds", 0) for v in q.values()))})
+    total = {"calls": sum(r.get("calls", 0) for r in rows), "input": sum(r.get("input", 0) for r in rows),
+             "output": sum(r.get("output", 0) for r in rows)}
+    out = {"rows": rows, "total": total}
+    (EXP / "accounting.json").write_text(json.dumps(out, indent=1))
+    fmt = lambda x: f"{x / 1e6:.2f}M" if isinstance(x, (int, float)) and x >= 1e5 else (f"{x:,}" if isinstance(x, int) else ("" if x is None else str(x)))  # noqa: E731
+    lines = ["# Token and latency accounting", "",
+             "Generated by `python -m quwarts.eval.exp_analysis accounting` from the run logs; see its docstring for sources.",
+             "Latency per call is logged for drift streams, runner-logged steps and DocETL (per query); for journals that",
+             "record only a total per call, input/output are split by re-counting the response, and the step's wall-clock",
+             "time stands in for latency. Summed call time adds up per-call seconds across concurrent calls (8–16 at a time),",
+             "so it exceeds wall-clock time.", "",
+             "| Experiment | Calls | Input tokens | Output tokens | Latency per call (mean / p50 / p95 s) | Summed call time (s) | Step wall-clock (s) |",
+             "|---|---|---|---|---|---|---|"]
+    for r in rows:
+        name = r["experiment"] + (f" — {r['corpus']}" if r.get("corpus") else "")
+        latency = (f"{r['mean_s']} / {r['p50_s']} / {r['p95_s']}" if "mean_s" in r else
+                   (f"{r['per_query_mean_s']} per query" if "per_query_mean_s" in r else ""))
+        wc, cs = r.get("wall_clock_s"), r.get("sum_s")
+        lines.append(f"| {name} | {fmt(r.get('calls', 0))} | {fmt(r.get('input', 0))} | {fmt(r.get('output', 0))} | {latency} | "
+                     f"{fmt(round(cs)) if cs else ''} | {fmt(round(wc)) if wc else ''} |")
+    lines += ["", f"**Total:** {total['calls']:,} calls, {total['input'] / 1e6:.1f}M input tokens, {total['output'] / 1e6:.2f}M output tokens.",
+              "(Recorded drift runs include every stream and budget of the recorded sweeps; experiment roots count only",
+              "their new calls.)"]
+    (EXP / "ACCOUNTING.md").write_text("\n".join(lines) + "\n")
+    return total
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "policies", "querytypes", "reads", "variance"])
+    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "policies", "querytypes", "accounting", "reads", "variance"])
     ap.add_argument("--corpus")
     a = ap.parse_args(argv)
     fn = {"components": components, "patches": patches, "order": order, "columns": columns, "canon": canon, "policies": policies}.get(a.what)
-    if a.what == "querytypes":
+    if a.what == "accounting":
+        out = accounting()
+    elif a.what == "querytypes":
         out = query_types((a.corpus or "cspaper,player,art,med,legal").split(","))
     else:
         out = fn(a.corpus) if fn else {"reads": reads, "variance": variance}[a.what]()
