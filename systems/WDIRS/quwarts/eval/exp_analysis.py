@@ -480,12 +480,143 @@ def columns(corpus: str, key: str = "fixed4-attribute_pool/100") -> dict:
     return out
 
 
+# ------------------------------------------------------------------------------------------ E8 canonicalization
+
+def literals(sql: str) -> dict[str, set[str]]:
+    """String constants each column is compared with (=, IN, LIKE with the % removed), by lowercase column name."""
+
+    import sqlglot
+    from sqlglot import exp
+
+    out: dict[str, set[str]] = {}
+    try:
+        tree = sqlglot.parse_one(sql, read="sqlite")
+    except Exception:  # noqa: BLE001
+        return out
+    for node in tree.find_all(exp.EQ, exp.NEQ, exp.In, exp.Like, exp.ILike):
+        cols = list(node.find_all(exp.Column))
+        lits = [l.this for l in node.find_all(exp.Literal) if l.is_string]
+        if len(cols) == 1 and lits:
+            out.setdefault(cols[0].name.lower(), set()).update(x.strip("%") for x in lits if x.strip("%"))
+    return out
+
+
+def canon_key(v: str) -> str:
+    import re
+
+    t = str(v).lower().replace("\u2013", "-").replace("\u2014", "-")
+    return re.sub(r"[^a-z0-9]+", "", t)
+
+
+def to_vocab(part: str, vocab: list[str]) -> str:
+    """The vocabulary label a value part means: same normalized form, else a close spelling (difflib >= 0.85, or
+    one is a prefix of the other with at least 5 shared characters, e.g. Surrealist / Surrealism); else unchanged."""
+
+    import difflib
+
+    k = canon_key(part)
+    if not k:
+        return part
+    by = {canon_key(x): x for x in vocab}
+    if k in by:
+        return by[k]
+    best = max(vocab, key=lambda x: difflib.SequenceMatcher(None, k, canon_key(x)).ratio(), default=None)
+    if best is not None:
+        bk = canon_key(best)
+        common = len(next((k[:i] for i in range(min(len(k), len(bk)), 0, -1) if k[:i] == bk[:i]), ""))
+        if difflib.SequenceMatcher(None, k, bk).ratio() >= 0.85 or (common >= 5 and common >= min(len(k), len(bk)) - 3):
+            return best
+    return part
+
+
+def canonicalize_view(src: Path, dest: Path, vocab: dict[tuple[str, str], list[str]]) -> int:
+    import shutil
+
+    shutil.copy2(src, dest)
+    conn = sqlite3.connect(dest)
+    n = 0
+    with conn:
+        for (t, c), words in vocab.items():
+            try:
+                rows = conn.execute(f'SELECT rowid, "{c}" FROM "{t}"').fetchall()
+            except sqlite3.OperationalError:
+                continue
+            for rowid, v in rows:
+                if not isinstance(v, str) or not v.strip():
+                    continue
+                new = " || ".join(dict.fromkeys(to_vocab(p.strip(), words) for p in v.split("||")))
+                if new != v:
+                    conn.execute(f'UPDATE "{t}" SET "{c}" = ? WHERE rowid = ?', (new, rowid))
+                    n += 1
+    conn.close()
+    return n
+
+
+def canon(corpus: str) -> dict:
+    """E8: canonicalize each query's served view to the column vocabulary known when the query arrives (declared
+    allowed values + string constants of the build workload and the queries so far), then re-score. Unlimited and
+    10% budget streams at 0% and 100% drift. No model calls."""
+
+    out_dir = EXP / "E8-canon" / corpus
+    out_dir.mkdir(parents=True, exist_ok=True)
+    tmp = REPLAY_SCRATCH.parent / "E8-canon" / corpus
+    tmp.mkdir(parents=True, exist_ok=True)
+    ctx = R.context(corpus)
+    fields = ctx.fields
+    st = streams(corpus)
+    cache_path = out_dir / "components_cache.json"
+    cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
+    summary = {}
+    for key in ("fixed4-attribute_pool/0", "fixed4-attribute_pool/100", "fixed4b010-attribute_pool/100"):
+        if key not in st:
+            continue
+        build_wl = dict(ctx.w0)
+        seen_lits: dict[str, set[str]] = {}
+        for sql in build_wl.values():
+            for c, ls in literals(sql).items():
+                seen_lits.setdefault(c, set()).update(ls)
+        items_raw, items_canon, changed = [], [], 0
+        for r in st[key]:
+            for c, ls in literals(ctx.catalog[r["qid"]]).items():
+                seen_lits.setdefault(c, set()).update(ls)
+            vocab = {}
+            for q, f in fields.items():
+                t, c = q.split(".", 1)
+                words = sorted(set(f.choices or []) | seen_lits.get(c.lower(), set()))
+                if words and f.value_type not in ("int", "float"):
+                    vocab[(t, c)] = words
+            src = view(corpus, key, r["pos"])
+            if not src.exists():
+                continue
+            dest = tmp / f"{key.replace('/', '_')}_{r['pos']:03d}.db"
+            if not dest.exists():
+                changed += canonicalize_view(src, dest, vocab)
+            items_raw.append((r["qid"], src))
+            items_canon.append((r["qid"], dest))
+        score_components(corpus, items_raw + items_canon, cache)
+        cache_path.write_text(json.dumps(cache))
+
+        def mean(items):
+            cs = [cache[f"{q}|{R.digest(db, ctx.catalog[q])}"] for q, db in items]
+            prod = [c["structure_f2"] * c["cell_f1_20"] for c in cs]
+            return {"score": round(sum(prod) / len(prod), 4), "structure_f2": round(sum(c["structure_f2"] for c in cs) / len(cs), 4),
+                    "cell_f1_20": round(sum(c["cell_f1_20"] for c in cs) / len(cs), 4), "per_query": prod}
+
+        a, b = mean(items_raw), mean(items_canon)
+        d = [y - x for x, y in zip(a.pop("per_query"), b.pop("per_query"))]
+        summary[key] = {"raw": a, "canonicalized": b, "cells_rewritten": changed,
+                        "diff_mean": round(sum(d) / len(d), 4), "diff_ci": bootstrap(d),
+                        "queries_up": sum(x > 1e-9 for x in d), "queries_down": sum(x < -1e-9 for x in d)}
+    (out_dir / "summary.json").write_text(json.dumps(summary, indent=1))
+    return summary
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["components", "patches", "order", "columns", "reads", "variance"])
+    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "reads", "variance"])
     ap.add_argument("--corpus")
     a = ap.parse_args(argv)
-    fn = {"components": components, "patches": patches, "order": order, "columns": columns}.get(a.what)
+    fn = {"components": components, "patches": patches, "order": order, "columns": columns, "canon": canon}.get(a.what)
     out = fn(a.corpus) if fn else {"reads": reads, "variance": variance}[a.what]()
     print(json.dumps(out, indent=1, default=str)[:4000])
     return 0

@@ -231,5 +231,23 @@ The benchmark's own tolerant score (normalized comparison, recorded on every str
 benchmark score at 100% drift, unlimited: cspaper 0.153 → 0.165, player 0.387 → 0.411, art 0.256 → 0.286,
 med 0.086 → 0.095, legal 0.114 → 0.139. So most of these near-misses still break queries: a `GROUP BY` or a
 comparison with a constant needs the exact label, and an extra list item puts a row in the wrong group. **Surface
-form, not facts, is a large share of the remaining error on art and cspaper**, which points at canonicalizing values
-to the workload's vocabulary (the constants the queries use) as a system lever.
+form, not facts, is a large share of the remaining error on art and cspaper.**
+
+### Canonicalizing to the workload's vocabulary does not help (E8, negative result)
+Each query's served view was rewritten so that every text value (each list item) maps to the closest label in the
+column's vocabulary known when the query arrives: declared allowed values plus the string constants that the build
+workload and the queries so far compare the column with (same normalized form, else a close spelling), then
+re-scored. No model calls (`E8-canon/<corpus>/summary.json`):
+
+| Stream | Cells rewritten | Score before → after | Queries up / down |
+|---|---|---|---|
+| art, unlimited, 0% drift | 3,492 | 0.2698 → 0.2708 | 1 / 2 |
+| art, unlimited, 100% drift | 3,377 | 0.2557 → 0.2555 | 0 / 2 |
+| art, 10% budget, 100% drift | 3,354 | 0.1408 → 0.1408 | 0 / 0 |
+| cspaper, unlimited, 0% / 100% drift | 162 / 216 | unchanged | 0 / 0 |
+
+Why: the columns with the largest form gaps (`art_movement`, `genre`, `art_institution`) are only grouped by in
+the workload, never compared with a constant, so the workload gives no vocabulary for them; where constants exist
+(`marriage = 'Married'`), the rewrites are mostly case changes the scorer already ignores; and extra list items are
+not removed by mapping. The form gap is in *output labels the system has no way to know* (gold's label set for a
+`GROUP BY` column) and in list membership (which items gold counts), not in spellings of known constants.
