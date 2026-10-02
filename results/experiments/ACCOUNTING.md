@@ -16,7 +16,7 @@ so it exceeds wall-clock time.
 | E1.1-stream-rep-cspaper — cspaper | 1,009 | 1.14M | 19,941 | 9.79 / 9.01 / 17.76 | 9,882 | 1,338 |
 | E1.1-stream-rep-player — player | 1,098 | 5.63M | 40,689 | 19.96 / 19.38 / 36.56 | 21,914 | 3,024 |
 | E1.2-stream-fp16-player — player | 1,420 | 7.65M | 66,312 | 12.54 / 13.6 / 25.57 | 17,802 | 2,461 |
-| E7-stream-nullable-cspaper — cspaper | 496 | 0.71M | 30,316 | 18.56 / 17.14 / 32.88 | 9,206 | 3,014 |
+| E7-stream-nullable-cspaper — cspaper | 1,229 | 1.54M | 47,304 | 13.92 / 12.62 / 27.78 | 17,108 | 3,014 |
 | E7-stream-nullable-player — player | 1,742 | 9.62M | 85,895 | 22.55 / 22.14 / 39.7 | 39,288 | 5,395 |
 | shared read player (OpenRouter) | 216 | 1.28M | 19,856 |  |  |  |
 | shared read player_ollama | 216 | 1.28M | 20,819 |  |  |  |
@@ -32,13 +32,13 @@ so it exceeds wall-clock time.
 | planner sweep player f050 (probes + reads) | 1,132 | 4.64M | 27,803 |  |  |  |
 | planner sweep player f075 (probes + reads) | 1,361 | 5.48M | 33,407 |  |  |  |
 | planner sweep player f100 (probes + reads) | 1,602 | 6.72M | 37,842 |  |  |  |
-| DocETL drift (cspaper, 90 queries so far) | 20,192 | 29.06M | 0.78M | 913.1 per query | 82,180 |  |
-| DocETL drift (player, 88 queries so far) | 15,655 | 142.71M | 0.65M | 929.7 per query | 81,813 |  |
+| DocETL drift (cspaper, 92 queries so far) | 20,592 | 29.63M | 0.79M | 907.3 per query | 83,476 |  |
+| DocETL drift (player, 89 queries so far) | 15,891 | 145.25M | 0.66M | 933.5 per query | 83,078 |  |
 | DocETL drift (art, 21 queries so far) | 21,364 | 27.71M | 0.72M | 3832.4 per query | 80,481 |  |
-| DocETL drift (med, 57 queries so far) | 10,050 | 127.12M | 0.82M | 1416.2 per query | 80,722 |  |
+| DocETL drift (med, 58 queries so far) | 10,289 | 130.04M | 0.84M | 1423.7 per query | 82,573 |  |
 | DocETL drift (legal, 6 queries so far) | 13,802 | 86.54M | 0.53M | 11096.6 per query | 66,579 |  |
 
-**Total:** 136,794 calls, 619.4M input tokens, 6.82M output tokens.
+**Total:** 138,402 calls, 626.3M input tokens, 6.89M output tokens.
 (Recorded drift runs include every stream and budget of the recorded sweeps; experiment roots count only
 their new calls.)
 
@@ -84,4 +84,5 @@ runtime, and score. Build reads are charged separately (`build.json` per corpus 
 | E1.1-stream-rep-cspaper | cspaper | unlimited |  |  |  |  | 1.16M |
 | E1.1-stream-rep-player | player | unlimited |  |  |  |  | 5.67M |
 | E1.2-stream-fp16-player | player | unlimited |  |  |  |  | 5.68M |
+| E7-stream-nullable-cspaper | cspaper | unlimited |  |  |  |  | 1.15M |
 | E7-stream-nullable-player | player | unlimited | 0.00M |  |  |  | 5.67M |

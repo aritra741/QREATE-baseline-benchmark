@@ -432,45 +432,19 @@ values for missed ones, and a missed value (above all a join key) costs more tha
 improves the score. The never-null confound is real in the benchmark's metadata, but it is not fixable through the
 prompt; it bounds every system given the same attribute files.
 
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
-
-**cspaper drift streams with "Never null" dropped for text fields** (`E7-stream-nullable-cspaper/`):
+**cspaper drift streams with "Never null" dropped for text fields** (re-run with the fixed prompts, 2026-10-02;
+`E7-stream-nullable-cspaper/`):
 
 | Drift | Recorded | Never-null dropped | Paired difference | Queries up / down |
 |---|---|---|---|---|
-| 0% | 0.1341 | 0.1473 | +0.013 | 9 / 8 |
-| 100% | 0.1533 | 0.1712 | **+0.018** | 10 / 5 |
+| 0% | 0.1341 | 0.1214 | **−0.013** | 4 / 11 |
+| 100% | 0.1533 | 0.1730 | **+0.020** | 8 / 4 |
 
-Positive on cspaper (unlike player). Cell by cell at 100% drift: `agent_framework` false fills fall from 108 to 48 of
-151 gold-empty papers (misses rise from 9 to 22 of 49), the root cause found above; but other text columns lose values
-gold has: `baseline` misses 18 → 61 of 188, `evaluation_dataset` 88 → 111 of 193. The net gain comes from the one
-contradictory column; elsewhere relaxing costs values. **E7c (queued)** relaxes only text fields whose own
-description names an empty case ("leave it empty"); across the five corpora that is exactly one field,
-`cspaper.agent_framework`.
-
-## E2.1b: prompt width (RQ2) — player
-
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
-
-The same 12 player columns read on all 141 players, 1, 3, 6 or 12 columns per read (fixed column order, first
-window of each document), scored on the values as committed (absence values of never-null counts applied)
-(`E2.1b-width/player/`):
-
-| Columns per read | Exact agreement (both have a value) | False-fill rate | Miss rate | Tokens |
-|---|---|---|---|---|
-| 1 | 0.807 | 0.736 | 0.035 | 6.48M |
-| 3 | 0.794 | 0.769 | 0.055 | 2.23M |
-| 6 | 0.790 | 0.758 | 0.041 | 1.16M |
-| 12 | 0.784 | 0.758 | 0.042 | 0.63M |
-
-Narrower reads are slightly more accurate (+2.3 points from 12 to 1 column per read) at 10× the tokens. Most of the
-gain is one column: `name` (0.67 at width 1, 0.51 at width 12; gold uses the full name, e.g. "Jay Fletcher Vincent").
-The counts and flags are flat (e.g. `nba_championships` 0.96 vs 0.91). On player, **prompt width is a weak lever**:
-it does not explain the drift-curve bumps (RQ2's hypothesis), and the token cost dwarfs the gain. Art, legal, cspaper
-and med follow.
-
-(An earlier version of this table scored raw responses and showed width-1 reads missing far more values; that was a
-measurement error: narrow reads answer `null` for a "0 if none" count, which the database stores as 0.)
+Mixed on cspaper: negative at 0% drift, positive at 100%. Cell by cell at 100% drift: `agent_framework` false fills
+fall from 108 to 50 of 151 gold-empty papers (misses rise from 9 to 24 of 49), but other text columns lose values gold
+has: `baseline` misses 18 → 57 of 188, `evaluation_dataset` 88 → 109 of 193. (The invalid first run gave +0.013 at 0%
+and +0.018 at 100%; the 0% result changed sign with the prompt fix.) E7c, relaxing only `agent_framework`, is being
+re-run.
 
 > **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
