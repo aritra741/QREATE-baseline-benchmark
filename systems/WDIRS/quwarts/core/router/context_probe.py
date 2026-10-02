@@ -97,6 +97,10 @@ class FieldSpec:
             and {c.lower() for c in self.choices} != {"yes", "no"}
         if not self.nullable and not relax:
             extra += " Never null: always give a value."
+        elif os.environ.get("QUWARTS_NULL_HINT") and self.value_type not in ("int", "float"):
+            # E7b: a field-level instruction (the global "use null" line in the prompt head is not enough for a
+            # 7B model when the field lists allowed values).
+            extra += " If the document does not state it, answer null; do not guess from the allowed values."
             if {c.lower() for c in self.choices} == {"yes", "no"}:
                 extra += " Answer No unless the document indicates Yes."
         if self.usage:

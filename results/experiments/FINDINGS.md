@@ -306,3 +306,19 @@ The player unlimited stream at 100% drift, built and patched entirely with `qwen
 read, 2.04M tokens; patches 5.68M): **0.392** (95% CI 0.332–0.453), against 0.387 and 0.3885 for the two 4-bit runs;
 static 0.0402 vs 0.0399 (`E1-variance/summary.json`). Quantization moves the drift stream by about +0.004, far less
 than on the shared read (+0.03 held-out). The drift conclusions do not depend on the 4-bit model.
+
+## E7: letting text fields be empty (dropping "Never null")
+
+**Player shared read, 4-bit, same 216 reads with "Never null" removed from text fields**
+(`QUWARTS_NULLABLE_TEXT=1`; `results/quwarts_router_v3/player_ollama_nullable/`):
+
+| | Held-out 20 | All 100 | Structure F2 (all) | Cell F1 (all) |
+|---|---|---|---|---|
+| Recorded 4-bit | 0.560 | 0.4825 | 0.876 | 0.540 |
+| Never-null dropped | 0.568 | 0.4801 | 0.869 | 0.545 |
+
+Paired over the 100 queries: −0.002 (95% CI −0.022 to +0.016), 24 up and 27 down: **no effect**, and within the
+run-to-run noise measured above. The instruction was not what drove the false fills: `player.position` is still filled
+for 61 of the 65 players whose gold is empty (65 before). The field's description ("choose one from ['Frontcourt',
+'Backcourt']") and its allowed values still invite a guess. **E7b** (queued) adds a field-level instruction to answer
+null when the document does not state the value and not to guess from the allowed values.
