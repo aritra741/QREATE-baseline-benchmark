@@ -267,3 +267,36 @@ player, different values also change which documents later patches are scoped to
 stream score moves by at most 0.002. **Stream-level noise is two orders of magnitude below the drift effects
 (static vs adaptive: 0.15–0.35) and the budget effects (0.02–0.25) reported earlier**. Gaps of about 0.005 (e.g.
 med's 100% budget 0.081 vs unlimited 0.086) are above this noise but still small enough to call marginal.
+
+## med
+
+**Replay reproduces the recorded run** (`E2-replay/live/med/verify.json`). Cost estimates: median estimated/actual
+1.003 (10th–90th 1.002–1.005). **A third of med's patch tokens buy nothing:** 18% at 25% drift, 30–32% at 50–100%
+(of 19.9M patch tokens at 100% drift, 6.3M; `E2.2-patches/med/`).
+
+| System | Structure F2 | Cell F1@0.20 | No rows / structure / values / fully right |
+|---|---|---|---|
+| Static, 100% drift | 0.155 | 0.067 | 14 / 62 / 0 / 0 |
+| 10% budget, 100% drift | 0.196 | 0.103 | 9 / 67 / 0 / 0 |
+| 50% budget, 100% drift | 0.268 | 0.123 | 6 / 70 / 0 / 0 |
+| 100% budget, 100% drift | 0.330 | 0.153 | 4 / 72 / 0 / 0 |
+| Unlimited, 100% drift | 0.335 | 0.157 | 4 / 72 / 0 / 0 |
+
+**On med, structure (rows and groups) is the bottleneck,** not cell values: structure F2 stays at 0.34 with
+unlimited patching, and 72 of 76 queries have the wrong rows. They return **too few** rows, not too many: 61 of 76
+queries have fewer result rows than gold, 8 more (cspaper 36 fewer / 1 more of 59; player 69 / 3 of 118; art 21 / 18
+of 43). So false fills, though frequent, are not what breaks med's queries. The causes seen in the failing queries:
+
+- **Fewer distinct group labels.** `GROUP BY administration_route` or `prescription_status` yields fewer groups than
+  gold (values missing, or several gold labels collapsed into one).
+- **Joins on list-valued keys.** `drug JOIN disease ON drug.disease_name = disease.disease_name`: in gold only 15 of
+  100 drug rows match a disease (both sides hold `a||b||c` lists, and SQL equality on a list rarely matches); in
+  ours 8 of 91. Our extraction also writes lists into `disease.disease_name` itself (e.g. `acute kidney injury ||
+  chronic kidney disease`), so even fewer drug rows can join.
+
+Per column (E2.1), med has the strongest false fills (`drug.activation_conditions`: gold empty 70%, filled in 96%;
+`disease.risk_factors` 91%; `drug.prescription_status` 94%) and very low exact agreement on free-text columns
+(`disease.treatment_challenges` 0.00 exact / 0.10 lenient; `disease.prognosis` 0.02 / 0.70;
+`disease.diagnostic_methods` 0.06 / 0.94). **Med's free-text columns are compared and grouped as exact strings,
+which no extraction matches**; this, with the list-valued join keys, bounds what any system can score on med.
+Order effects: 94 answers differ across budgets at the same level, 17 higher with a budget (15 without their own patch).

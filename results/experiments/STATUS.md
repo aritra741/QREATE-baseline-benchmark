@@ -1,4 +1,4 @@
-# Experiment status (2026-10-01T22:40:53-06:00)
+# Experiment status (2026-10-01T23:04:04-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -57,12 +57,12 @@
 | E2.3-order-art | cpu | done | 1 | ok 2026-10-01T22:04:18-06:00 |  |
 | E2.1-columns-art | cpu | done | 1 | ok 2026-10-01T22:04:23-06:00 |  |
 | E2.4-components-art | cpu | done | 1 | ok 2026-10-01T22:10:11-06:00 |  |
-| E2-replay-med | cpu | running-or-interrupted | 1 | start 2026-10-01T22:10:11-06:00 |  |
-| E2.2-patches-med | cpu | pending | 0 |  |  |
-| E2.3-order-med | cpu | pending | 0 |  |  |
-| E2.1-columns-med | cpu | pending | 0 |  |  |
-| E2.4-components-med | cpu | pending | 0 |  |  |
-| E2-replay-legal | cpu | pending | 0 |  |  |
+| E2-replay-med | cpu | done | 1 | ok 2026-10-01T23:02:25-06:00 |  |
+| E2.2-patches-med | cpu | done | 1 | ok 2026-10-01T23:02:31-06:00 |  |
+| E2.3-order-med | cpu | done | 1 | ok 2026-10-01T23:02:36-06:00 |  |
+| E2.1-columns-med | cpu | done | 1 | ok 2026-10-01T23:02:41-06:00 |  |
+| E2.4-components-med | cpu | done | 1 | ok 2026-10-01T23:04:04-06:00 |  |
+| E2-replay-legal | cpu | running-or-interrupted | 1 | start 2026-10-01T23:04:04-06:00 |  |
 | E2.2-patches-legal | cpu | pending | 0 |  |  |
 | E2.3-order-legal | cpu | pending | 0 |  |  |
 | E2.1-columns-legal | cpu | pending | 0 |  |  |
