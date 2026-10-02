@@ -74,3 +74,38 @@ holds), an unconditional read invents values, and a wrong value costs more than 
 into wrong groups. This explains the budget anomalies better than the patch order alone: a budgeted stream sometimes
 wins by reading *less*. It suggests two system changes to test: read a conditional column only on the documents where
 its condition holds, and an explicit "not applicable" answer in the patch prompt.
+
+**Root cause: the field spec contradicts itself.** The patch prompt's line for the column (from the benchmark's
+attribute file, the published protocol input) reads:
+
+> agent_framework (text): main agent-style reasoning framework used by the system, choose one from [...], **if the
+> system does not use agent, leave it empty**. Allowed values: CoT, ToT, Multi-Agent Collaboration, Other.
+> **Never null: always give a value.** ...
+
+The description says "leave it empty"; the attribute file marks the column not nullable, so the prompt adds "Never
+null". The model follows the stronger instruction and picks a value (usually the catch-all "Other"). Of the 7
+not-nullable columns across the five corpora whose description mentions an empty case, 5 are "use 0 if none" counts
+or flags (consistent: never null, absence value 0); `agent_framework` (and possibly `performance_on_NQ`, cspaper)
+are real contradictions. So this one anomaly is a benchmark-metadata artifact, not a general property of patching;
+whether false fills matter elsewhere is measured per column below (E2.1).
+
+### Per-column accuracy on the documents read (E2.1, unlimited stream at 100% drift)
+On cspaper (`E2.1-columns/cspaper/columns.csv`), two other failure kinds dominate besides false fills:
+- **Missed values deep in the paper.** `performance_on_hotpotqa`: gold has a value, prediction is empty, in 81% of
+  cases; `evaluation_dataset` 46%. These values sit in results tables and evaluation sections.
+- **Lists and derived counts.** `baseline` agrees with gold in 2% of cells where both have a value (gold
+  `GPT-3|| GPT-4|| LLaMA2|| ...`, prediction `None` or a description such as "well-known general-purpose public
+  embedding model"); `baseline_amount` (the count of baselines) 12%, often `0.0`.
+
+## Shared read: 4-bit vs 16-bit vs OpenRouter (E1.2)
+Same 216 reads of player (one per document and table, every column the 80 input queries use), same prompts:
+
+| Backend | Held-out 20: score | Structure F2 | Cell F1@0.20 | All 100 queries |
+|---|---|---|---|---|
+| OpenRouter `qwen/qwen-2.5-7b-instruct` | 0.609 | 0.883 | 0.657 | 0.517 |
+| Ollama 16-bit `qwen2.5:7b-instruct-fp16` | 0.590 | 0.880 | 0.639 | 0.490 |
+| Ollama 4-bit `qwen2.5:7b-instruct` (Q4_K_M) | 0.560 | 0.868 | 0.615 | 0.482 |
+
+Quantization accounts for about 0.03 of the 0.049 held-out gap and 0.008 of the 0.035 gap on all 100 queries.
+Whether these gaps exceed run-to-run noise is the next check (two 4-bit repeats, E1.1).
+(`results/quwarts_router_v3/player{,_ollama,_ollama_fp16}/shared_read_protocol/score_blank.json`)

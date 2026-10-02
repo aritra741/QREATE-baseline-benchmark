@@ -353,12 +353,118 @@ def variance() -> dict:
     return out
 
 
+# ------------------------------------------------------------------------------------------ per-column accuracy
+
+NULLS = {"", "null", "none", "n/a", "na", "nan", "not applicable", "not specified", "unknown", "not mentioned"}
+
+
+def is_null(v) -> bool:
+    return v is None or str(v).strip().lower() in NULLS
+
+
+def same_value(x, y) -> bool:
+    """Equal after normalization; numbers within 20% (as cell F1@0.20)."""
+
+    from quwarts.core.router.comparator import as_number
+
+    a, b = as_number(x), as_number(y)
+    if a is not None and b is not None:
+        return abs(a - b) <= 0.2 * max(abs(a), abs(b)) if (a or b) else True
+    return str(x).strip().lower() == str(y).strip().lower()
+
+
+def gold_by_doc(corpus: str) -> dict[str, dict[str, dict]]:
+    """Gold row of every document, by table: cspaper by ``pdf_filename``, the others by ``id`` (as a number)."""
+
+    gold = R.Scorer(corpus).gold()[0]
+    ctx = R.context(corpus)
+    out = {}
+    for t, rows in gold.items():
+        if t not in ctx.names:
+            continue
+        key = "pdf_filename" if "pdf_filename" in rows[0] else "id"
+
+        def norm(v) -> str:  # a file name without its extension (arXiv names have dots); an id as a number
+            v = str(v).strip()
+            for ext in (".pdf", ".txt"):
+                v = v[: -len(ext)] if v.endswith(ext) else v
+            return str(int(v)) if v.isdigit() else v
+
+        by = {norm(r[key]): r for r in rows if r.get(key) not in (None, "")}
+        out[t] = {d: by[norm(d)] for d in ctx.names[t] if norm(d) in by}
+    return out
+
+
+def columns(corpus: str, key: str = "fixed4-attribute_pool/100") -> dict:
+    """Per column, on the documents the stream read: how often the model fills a value where gold has none
+    (false fill), leaves one empty where gold has one (miss), and agrees with gold where both have one. From the
+    stream's master database (build + patches, raw values) and its record of which documents each column was
+    read for."""
+
+    out_dir = EXP / "E2.1-columns" / corpus
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ctx = R.context(corpus)
+    gold = gold_by_doc(corpus)
+    state = json.loads((REPLAY / corpus / "state" / f"{key.replace('/', '_')}.json").read_text())
+    master = REPLAY_SCRATCH / corpus / key.replace("/", "_") / "master.db"
+    build_cols = {f"{t}.{a}" for t, a, _d in json.loads((REPLAY / corpus / "state" / "fixed4-attribute_pool_0.json")
+                                                         .read_text())["mat"]} if (REPLAY / corpus / "state" /
+                                                         "fixed4-attribute_pool_0.json").exists() else set()
+    patched = {c for r in state["records"] for c in r.get("fetched", {})}
+    conn = sqlite3.connect(master)
+    rows = []
+    for t, a, docs in state["mat"]:
+        have = {r[1] for r in conn.execute(f'PRAGMA table_info("{t}")')}
+        if a not in have or t not in gold:
+            continue
+        got = dict(conn.execute(f'SELECT doc_id, "{a}" FROM "{t}"').fetchall())
+        got = {(k if str(k).endswith(".txt") or t not in ("cspaper",) else k): v for k, v in got.items()}
+        n = gn = pn = ff = miss = both = agree = 0
+        for d in docs:
+            g = gold[t].get(d)
+            if g is None or a not in g:
+                continue
+            v = got.get(d, got.get(d.rsplit(".", 1)[0]))
+            n += 1
+            gnull, pnull = is_null(g[a]), is_null(v)
+            gn += gnull
+            pn += pnull
+            if gnull and not pnull:
+                ff += 1
+            elif pnull and not gnull:
+                miss += 1
+            elif not gnull and not pnull:
+                both += 1
+                agree += same_value(v, g[a])
+        if n:
+            rows.append({"column": f"{t}.{a}", "source": "patch" if f"{t}.{a}" in patched else "build",
+                         "docs_matched": n, "gold_null_share": round(gn / n, 3), "pred_null_share": round(pn / n, 3),
+                         "false_fill_rate": round(ff / gn, 3) if gn else None, "miss_rate": round(miss / (n - gn), 3) if n - gn else None,
+                         "agree_when_both": round(agree / both, 3) if both else None, "gold_null": gn, "false_fills": ff})
+    conn.close()
+    with (out_dir / "columns.csv").open("w", newline="") as h:
+        w = csv.DictWriter(h, fieldnames=list(rows[0]) if rows else ["column"])
+        w.writeheader()
+        w.writerows(rows)
+    tot_gn = sum(r["gold_null"] for r in rows)
+    out = {"stream": key, "columns": len(rows), "gold_null_cells": tot_gn,
+           "false_fill_rate_overall": round(sum(r["false_fills"] for r in rows) / tot_gn, 3) if tot_gn else None,
+           "by_source": {src: {"columns": len([r for r in rows if r["source"] == src]),
+                               "false_fill_rate": round(sum(r["false_fills"] for r in rows if r["source"] == src) /
+                                                        max(1, sum(r["gold_null"] for r in rows if r["source"] == src)), 3),
+                               "agree_when_both_mean": round(sum(r["agree_when_both"] or 0 for r in rows if r["source"] == src) /
+                                                             max(1, len([r for r in rows if r["source"] == src])), 3)}
+                         for src in ("build", "patch")}}
+    (out_dir / "summary.json").write_text(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["components", "patches", "order", "reads", "variance"])
+    ap.add_argument("what", choices=["components", "patches", "order", "columns", "reads", "variance"])
     ap.add_argument("--corpus")
     a = ap.parse_args(argv)
-    fn = {"components": components, "patches": patches, "order": order}.get(a.what)
+    fn = {"components": components, "patches": patches, "order": order, "columns": columns}.get(a.what)
     out = fn(a.corpus) if fn else {"reads": reads, "variance": variance}[a.what]()
     print(json.dumps(out, indent=1, default=str)[:4000])
     return 0
