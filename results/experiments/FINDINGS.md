@@ -482,22 +482,19 @@ run gave +2.3). On player, prompt width is a weak lever.
 (An earlier version of this table scored raw responses and showed width-1 reads missing far more values; that was a
 measurement error: narrow reads answer `null` for a "0 if none" count, which the database stores as 0.)
 
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
-
-**E2.1b width — art** (12 columns, 100 artists; `E2.1b-width/art/`):
+**E2.1b width — art** (re-run with the fixed prompts; 12 columns, 100 artists; `E2.1b-width/art/`):
 
 | Columns per read | Exact agreement | Lenient agreement | False-fill rate | Miss rate | Tokens |
 |---|---|---|---|---|---|
-| 1 | 0.451 | 0.593 | 0.98 | 0.045 | 1.21M |
-| 3 | 0.472 | 0.614 | 0.92 | 0.094 | 0.48M |
-| 6 | 0.466 | 0.618 | 0.84 | 0.122 | 0.29M |
-| 12 | 0.488 | 0.636 | **0.61** | 0.109 | 0.20M |
+| 1 | 0.449 | 0.589 | 0.98 | 0.051 | 1.21M |
+| 3 | 0.467 | 0.612 | 0.92 | 0.092 | 0.48M |
+| 6 | 0.466 | 0.620 | 0.85 | 0.124 | 0.29M |
+| 12 | 0.483 | 0.636 | **0.60** | 0.112 | 0.20M |
 
-The opposite of player: on art **wider reads are better** (+3.7 points exact, +4.3 lenient from 1 to 12 columns) and
-6× cheaper. The clearest difference is false fills: asked for one column, the model fills a value for 98% of
-gold-empty cells; asked for twelve, for 61%. A single-field prompt seems to push the model to produce *some* value.
-So prompt width has no single best setting; it trades false fills (narrow reads) against misses (wide reads), and
-the balance depends on how often the corpus's gold is empty.
+The opposite of player: on art **wider reads are better** (+3.4 points exact, +4.7 lenient from 1 to 12 columns) and
+6× cheaper (the invalid run: +3.7 / +4.3). Asked for one column, the model fills a value for 98% of gold-empty cells;
+asked for twelve, 60%: a single-field prompt pushes the model to produce *some* value. Prompt width trades false
+fills (narrow reads) against misses (wide reads), and the balance depends on how often the corpus's gold is empty.
 
 > **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
