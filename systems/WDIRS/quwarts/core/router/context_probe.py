@@ -95,6 +95,11 @@ class FieldSpec:
         # instruction makes the model invent a value. Numeric never-null fields ("0 if none" counts, 0/1 flags) keep it.
         relax = os.environ.get("QUWARTS_NULLABLE_TEXT") and self.value_type not in ("int", "float") \
             and {c.lower() for c in self.choices} != {"yes", "no"}
+        # E7c: only a text field whose own description names an empty case ("leave it empty") is relaxed.
+        if os.environ.get("QUWARTS_NULLABLE_CONTRADICTED") and self.value_type not in ("int", "float") \
+                and re.search(r"leave (it )?(empty|blank|null)|empty if|null if|if not (mentioned|stated|applicable)",
+                              self.description or "", re.I):
+            relax = True
         if not self.nullable and not relax:
             extra += " Never null: always give a value."
         elif os.environ.get("QUWARTS_NULL_HINT") and self.value_type not in ("int", "float"):

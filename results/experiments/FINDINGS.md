@@ -421,3 +421,17 @@ to 50 of 65.
 values for missed ones, and a missed value (above all a join key) costs more than an invented one. Neither variant
 improves the score. The never-null confound is real in the benchmark's metadata, but it is not fixable through the
 prompt; it bounds every system given the same attribute files.
+
+**cspaper drift streams with "Never null" dropped for text fields** (`E7-stream-nullable-cspaper/`):
+
+| Drift | Recorded | Never-null dropped | Paired difference | Queries up / down |
+|---|---|---|---|---|
+| 0% | 0.1341 | 0.1473 | +0.013 | 9 / 8 |
+| 100% | 0.1533 | 0.1712 | **+0.018** | 10 / 5 |
+
+Positive on cspaper (unlike player). Cell by cell at 100% drift: `agent_framework` false fills fall from 108 to 48 of
+151 gold-empty papers (misses rise from 9 to 22 of 49), the root cause found above; but other text columns lose values
+gold has: `baseline` misses 18 → 61 of 188, `evaluation_dataset` 88 → 111 of 193. The net gain comes from the one
+contradictory column; elsewhere relaxing costs values. **E7c (queued)** relaxes only text fields whose own
+description names an empty case ("leave it empty"); across the five corpora that is exactly one field,
+`cspaper.agent_framework`.

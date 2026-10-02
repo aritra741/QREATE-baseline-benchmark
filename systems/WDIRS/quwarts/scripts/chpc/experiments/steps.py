@@ -106,6 +106,9 @@ STEPS = [
     *[stream(f"E7-stream-nullable-{c}", c, "fresh", key=k, extra="QUWARTS_NULLABLE_TEXT=1 ")
       for c, k in [("player", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
                    ("cspaper", "fixed4-attribute_pool/0,fixed4-attribute_pool/100")]],
+    # ---- GPU lane: E7c, relax only the text fields whose description names an empty case (cspaper agent_framework)
+    stream("E7c-stream-contradicted-cspaper", "cspaper", "fresh", key="fixed4-attribute_pool/0,fixed4-attribute_pool/100",
+           extra="QUWARTS_NULLABLE_CONTRADICTED=1 "),
     # ---- GPU lane: E2.1b prompt width (RQ2): the same columns read 1, 3, 6 or 12 at a time on a fixed sample
     *[{"id": f"E2.1b-width-{c}", "lane": "gpu", "retries": 2,
        "cmd": PRE + server("main") + f"python -u -m quwarts.eval.exp_width --corpus {c} --docs {n} --workers 8",
