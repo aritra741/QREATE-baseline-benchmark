@@ -472,3 +472,18 @@ contradictory column alone is a small effect (+0.011 at 0%, none at 100%). This 
 `agent_framework` explains the cspaper budget anomaly in score terms: it explains the specific query examined, and
 the false fills, but its effect on the stream mean is small. Overall, the E7 family moves scores by −0.06 to +0.02
 depending on corpus and variant; null handling is not a lever worth carrying into the system.
+
+**E2.1b width — art** (12 columns, 100 artists; `E2.1b-width/art/`):
+
+| Columns per read | Exact agreement | Lenient agreement | False-fill rate | Miss rate | Tokens |
+|---|---|---|---|---|---|
+| 1 | 0.451 | 0.593 | 0.98 | 0.045 | 1.21M |
+| 3 | 0.472 | 0.614 | 0.92 | 0.094 | 0.48M |
+| 6 | 0.466 | 0.618 | 0.84 | 0.122 | 0.29M |
+| 12 | 0.488 | 0.636 | **0.61** | 0.109 | 0.20M |
+
+The opposite of player: on art **wider reads are better** (+3.7 points exact, +4.3 lenient from 1 to 12 columns) and
+6× cheaper. The clearest difference is false fills: asked for one column, the model fills a value for 98% of
+gold-empty cells; asked for twelve, for 61%. A single-field prompt seems to push the model to produce *some* value.
+So prompt width has no single best setting; it trades false fills (narrow reads) against misses (wide reads), and
+the balance depends on how often the corpus's gold is empty.
