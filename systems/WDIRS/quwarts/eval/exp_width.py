@@ -4,7 +4,8 @@ For one table per corpus, a fixed set of up to 12 workload columns (the protocol
 workload's usage phrases) is read on a fixed document sample in reads of 1, 3, 6 and 12 columns (columns assigned
 to reads in one fixed shuffled order, so each width partitions the same set). Every document is read from its first
 window (no chaining), the same at every width. Each column's values are then compared with gold on the sampled
-documents: exact and lenient agreement where both have a value, false fills (a value where gold has none) and misses.
+documents: exact and lenient agreement where both have a value, false fills (a value where gold has none) and misses,
+on the values as committed to the database (``commit_value``: absence values of never-null fields applied).
 
 Resumable: reads go to a journal (``results/experiments/E2.1b-width/<corpus>/reads.jsonl``) and are not repeated.
 
@@ -20,7 +21,7 @@ import shutil
 from pathlib import Path
 
 from quwarts.core.ledger import TokenLedger
-from quwarts.core.router.executor import Read, load_values, run_reads
+from quwarts.core.router.executor import Read, commit_value, load_values, run_reads
 from quwarts.eval import drift_run as R
 from quwarts.eval import exp_analysis as A
 from quwarts.eval.drift_live import view_spec
@@ -72,7 +73,8 @@ def main(argv: list[str] | None = None) -> int:
                 for d in docs:
                     if d not in got:
                         continue
-                    g, v = gold[d].get(c), got[d].get(c)
+                    # the value as committed to the database (a never-null count's null becomes its absence value)
+                    g, v = gold[d].get(c), commit_value(got[d].get(c), fields[f"{table}.{c}"])
                     n += 1
                     gnull, pnull = A.is_null(g), A.is_null(v)
                     gn += gnull

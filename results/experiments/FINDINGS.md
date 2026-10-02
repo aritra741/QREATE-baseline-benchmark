@@ -435,3 +435,25 @@ gold has: `baseline` misses 18 → 61 of 188, `evaluation_dataset` 88 → 111 of
 contradictory column; elsewhere relaxing costs values. **E7c (queued)** relaxes only text fields whose own
 description names an empty case ("leave it empty"); across the five corpora that is exactly one field,
 `cspaper.agent_framework`.
+
+## E2.1b: prompt width (RQ2) — player
+
+The same 12 player columns read on all 141 players, 1, 3, 6 or 12 columns per read (fixed column order, first
+window of each document), scored on the values as committed (absence values of never-null counts applied)
+(`E2.1b-width/player/`):
+
+| Columns per read | Exact agreement (both have a value) | False-fill rate | Miss rate | Tokens |
+|---|---|---|---|---|
+| 1 | 0.807 | 0.736 | 0.035 | 6.48M |
+| 3 | 0.794 | 0.769 | 0.055 | 2.23M |
+| 6 | 0.790 | 0.758 | 0.041 | 1.16M |
+| 12 | 0.784 | 0.758 | 0.042 | 0.63M |
+
+Narrower reads are slightly more accurate (+2.3 points from 12 to 1 column per read) at 10× the tokens. Most of the
+gain is one column: `name` (0.67 at width 1, 0.51 at width 12; gold uses the full name, e.g. "Jay Fletcher Vincent").
+The counts and flags are flat (e.g. `nba_championships` 0.96 vs 0.91). On player, **prompt width is a weak lever**:
+it does not explain the drift-curve bumps (RQ2's hypothesis), and the token cost dwarfs the gain. Art, legal, cspaper
+and med follow.
+
+(An earlier version of this table scored raw responses and showed width-1 reads missing far more values; that was a
+measurement error: narrow reads answer `null` for a "0 if none" count, which the database stores as 0.)
