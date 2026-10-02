@@ -107,6 +107,11 @@ STEPS = [
                    ("cspaper", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
                    ("med", "fixed4-attribute_pool/0"),
                    ("art", "fixed4-attribute_pool/0,fixed4-attribute_pool/100")]],
+    # ---- GPU lane: E2.1b prompt width (RQ2): the same columns read 1, 3, 6 or 12 at a time on a fixed sample
+    *[{"id": f"E2.1b-width-{c}", "lane": "gpu", "retries": 2,
+       "cmd": PRE + server("main") + f"python -u -m quwarts.eval.exp_width --corpus {c} --docs {n} --workers 8",
+       "outputs": [f"results/experiments/E2.1b-width/{c}/summary.json"], "skip_if_outputs": False}
+      for c, n in [("player", 141), ("art", 100), ("legal", 60), ("cspaper", 40), ("med", 40)]],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy(name, c) for c in ("cspaper", "legal", "player", "art", "med") for name in ("oracle", "cap", "pace")],
     # ---- GPU lane: Phase 6 other local models (E6.2): shared read, and adaptive vs static at 0% and 100% drift
