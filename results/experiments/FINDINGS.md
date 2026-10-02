@@ -412,22 +412,20 @@ remaining 219 queries finish.
 Slightly negative on player (more queries down than up, by amounts near the stream noise of ±0.002): letting text
 fields be empty loses some values gold has, more than it removes invented ones. cspaper, art and med streams follow.
 
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
-
-**E7b: a field-level null instruction makes it worse.** Text fields relaxed as in E7, plus on each text field's line
-"If the document does not state it, answer null; do not guess from the allowed values" (player shared read, 4-bit;
-`results/quwarts_router_v3/player_ollama_nullhint/`):
+**E7b: a field-level null instruction makes it worse** (re-run with the fixed prompts, 2026-10-02). Text fields
+relaxed as in E7, plus on each text field's line "If the document does not state it, answer null; do not guess from
+the allowed values" (player shared read, 4-bit; `results/quwarts_router_v3/player_ollama_nullhint/`):
 
 | | Held-out 20 | All 100 | Structure F2 | Cell F1 |
 |---|---|---|---|---|
 | Recorded 4-bit | 0.560 | 0.483 | 0.876 | 0.540 |
-| E7b null hint | 0.513 | 0.421 | 0.867 | 0.478 |
+| E7b null hint | 0.531 | 0.430 | 0.872 | 0.487 |
 
-Paired over 100 queries: **−0.062 (95% CI −0.094 to −0.031)**, 17 up / 43 down; far outside the noise. On 10 player
-columns checked cell by cell against gold, false fills drop from 75 to 56 (of about 117 gold-empty cells), but misses
-rise from 110 to 130 (of 816 gold values); most of the increase is the join key `player.team` (37 → 57 of 139 players
+Paired over 100 queries: **−0.053 (95% CI −0.086 to −0.021)**, 21 up / 37 down; far outside the noise. On 10 player
+columns checked cell by cell against gold, false fills drop from 75 to 58 (of about 117 gold-empty cells), but misses
+rise from 110 to 131 (of 816 gold values); most of the increase is the join key `player.team` (37 → 55 of 139 players
 left empty), and a missing join key drops a player from every join. `player.position` false fills fall only from 65
-to 50 of 65.
+to 52 of 65. (The invalid first run gave −0.062; same conclusion.)
 
 **Conclusion on null handling (E7, E7b):** on this 7B model, prompt-level control of empty answers trades invented
 values for missed ones, and a missed value (above all a join key) costs more than an invented one. Neither variant

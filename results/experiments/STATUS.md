@@ -1,8 +1,8 @@
-# Experiment status (2026-10-02T12:38:50-06:00)
+# Experiment status (2026-10-02T12:57:09-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
-| G0-prompt-guard | gpu | pending | 0 |  |  |
+| G0-prompt-guard | gpu | done | 1 | ok 2026-10-02T12:42:33-06:00 |  |
 | P1-pull-fp16 | gpu | done | 2 | ok 2026-10-01T20:46:53-06:00 |  |
 | E1.2-sr-fp16 | gpu | done | 2 | ok 2026-10-01T20:56:34-06:00 |  |
 | E1.1-sr-rep1 | gpu | done | 1 | ok 2026-10-01T21:11:45-06:00 |  |
@@ -11,9 +11,9 @@
 | E1.1-stream-rep-player | gpu | done | 1 | ok 2026-10-01T22:40:53-06:00 |  |
 | E1.2-stream-fp16-player | gpu | done | 1 | ok 2026-10-01T23:21:54-06:00 |  |
 | E7-sr-nullable | gpu | done | 1 | ok 2026-10-01T23:38:33-06:00 |  |
-| E7b-sr-nullhint | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E7b-sr-nullhint | gpu | done | 2 | ok 2026-10-02T12:57:09-06:00 |  |
 | E7-stream-nullable-player | gpu | done | 1 | ok 2026-10-02T01:08:28-06:00 |  |
-| E7-stream-nullable-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
+| E7-stream-nullable-cspaper | gpu | running-or-interrupted | 2 | start 2026-10-02T12:57:09-06:00 |  |
 | E7c-stream-contradicted-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
 | E2.1b-width-player | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
 | E2.1b-width-art | gpu | pending | 1 | reset 2026-10-02T12:38:29-06:00 |  |
@@ -73,7 +73,7 @@
 | E2.3-order-legal | cpu | done | 1 | ok 2026-10-01T23:41:32-06:00 |  |
 | E2.1-columns-legal | cpu | done | 1 | ok 2026-10-01T23:41:36-06:00 |  |
 | E2.4-components-legal | cpu | done | 1 | ok 2026-10-01T23:42:21-06:00 |  |
-| E9-query-types | cpu | pending | 0 |  |  |
+| E9-query-types | cpu | done | 1 | ok 2026-10-02T12:42:15-06:00 |  |
 | E1-reads-analysis | cpu | done | 1 | ok 2026-10-01T23:42:23-06:00 |  |
 | E1-variance-analysis | cpu | done | 1 | ok 2026-10-01T23:42:25-06:00 |  |
 
