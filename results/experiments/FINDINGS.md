@@ -506,3 +506,7 @@ they hurt when gold is often empty (art: 98% false fills at width 1), because a 
 either way. A width policy would have to depend on how often a column is expected to be empty, which the system
 cannot observe directly; at 3–10× the tokens, narrow reads are not a default worth taking. This partly supports RQ2
 (a patch's narrow prompt can extract better), but only for columns that are usually present.
+
+**E2.1b width — cspaper** (12 columns, 40 papers; `E2.1b-width/cspaper/`): flat. Exact agreement 0.572 / 0.567 /
+0.565 / 0.569 at 1 / 3 / 6 / 12 columns per read (lenient 0.644 / 0.677 / 0.674 / 0.681); false fills 0.43 at width 1
+vs 0.15–0.33 wider; tokens 530k vs 83k. Width does not matter on cspaper except for cost.
