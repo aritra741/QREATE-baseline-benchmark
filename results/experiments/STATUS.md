@@ -1,4 +1,4 @@
-# Experiment status (2026-10-03T12:33:25-06:00)
+# Experiment status (2026-10-03T14:14:36-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -30,8 +30,8 @@
 | E3.2-cap-legal | gpu | done | 1 | ok 2026-10-03T05:44:38-06:00 |  |
 | E3.2-pace-legal | gpu | done | 1 | ok 2026-10-03T10:48:51-06:00 |  |
 | E3.2-oracle-med | gpu | done | 1 | ok 2026-10-03T12:33:25-06:00 |  |
-| E3.2-cap-med | gpu | running-or-interrupted | 1 | start 2026-10-03T12:33:25-06:00 |  |
-| E3.2-pace-med | gpu | pending | 0 |  |  |
+| E3.2-cap-med | gpu | done | 1 | ok 2026-10-03T14:14:36-06:00 |  |
+| E3.2-pace-med | gpu | running-or-interrupted | 1 | start 2026-10-03T14:14:36-06:00 |  |
 | E6.2-sr-llama8b | gpu | pending | 0 |  |  |
 | E6.2-stream-llama8b-player | gpu | pending | 0 |  |  |
 | E6.2-stream-llama8b-cspaper | gpu | pending | 0 |  |  |

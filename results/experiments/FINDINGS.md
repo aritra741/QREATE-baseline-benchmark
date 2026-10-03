@@ -688,3 +688,7 @@ Unlimited at 100% drift: 0.153 at 1.16M tokens.
 **Oracle on med** (`E3-policies/med/summary.json`): 0.0797, identical to fcfs, at 130M vs 154M tokens (−16%); the
 `fragile` rule is *better* than this hindsight oracle on med (0.0828 at 130M). The oracle only skips patches that bought
 nothing; the fragile rule also skips patches whose columns later queries read better under their own, narrower scope.
+
+**Cap on med**: 0.0812 at 147M tokens (fcfs 0.0797 at 154M, fragile 0.0828 at 130M); it hurts the 10% budget (0.041 vs
+0.051 at 100% drift) and helps the 25% budget (0.084 vs 0.055). Pace on med, and all policies on player and art, run
+on the next job.
