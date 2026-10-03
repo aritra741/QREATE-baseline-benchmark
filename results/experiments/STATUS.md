@@ -1,4 +1,4 @@
-# Experiment status (2026-10-02T21:17:30-06:00)
+# Experiment status (2026-10-03T12:33:25-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -21,16 +21,16 @@
 | E2.1b-width-cspaper | gpu | done | 2 | ok 2026-10-02T18:07:34-06:00 |  |
 | E2.1b-width-med | gpu | done | 2 | ok 2026-10-02T18:49:17-06:00 |  |
 | E3.2-fragile-legal | gpu | done | 2 | ok 2026-10-02T21:17:30-06:00 |  |
-| E3.2-fragile-med | gpu | running-or-interrupted | 2 | start 2026-10-02T21:17:30-06:00 |  |
-| E3.2-fragile-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:30-06:00 |  |
-| E3.2-oracle-cspaper | gpu | pending | 1 | reset 2026-10-02T12:38:30-06:00 |  |
-| E3.2-cap-cspaper | gpu | running-or-interrupted | 1 | reset 2026-10-02T12:38:30-06:00 |  |
-| E3.2-pace-cspaper | gpu | pending | 0 |  |  |
-| E3.2-oracle-legal | gpu | pending | 0 |  |  |
-| E3.2-cap-legal | gpu | pending | 0 |  |  |
-| E3.2-pace-legal | gpu | pending | 0 |  |  |
-| E3.2-oracle-med | gpu | pending | 0 |  |  |
-| E3.2-cap-med | gpu | pending | 0 |  |  |
+| E3.2-fragile-med | gpu | done | 2 | ok 2026-10-02T22:50:20-06:00 |  |
+| E3.2-fragile-cspaper | gpu | done | 2 | ok 2026-10-02T23:02:02-06:00 |  |
+| E3.2-oracle-cspaper | gpu | done | 2 | ok 2026-10-02T23:20:03-06:00 |  |
+| E3.2-cap-cspaper | gpu | done | 2 | ok 2026-10-03T00:06:21-06:00 |  |
+| E3.2-pace-cspaper | gpu | done | 1 | ok 2026-10-03T01:16:03-06:00 |  |
+| E3.2-oracle-legal | gpu | done | 1 | ok 2026-10-03T03:10:47-06:00 |  |
+| E3.2-cap-legal | gpu | done | 1 | ok 2026-10-03T05:44:38-06:00 |  |
+| E3.2-pace-legal | gpu | done | 1 | ok 2026-10-03T10:48:51-06:00 |  |
+| E3.2-oracle-med | gpu | done | 1 | ok 2026-10-03T12:33:25-06:00 |  |
+| E3.2-cap-med | gpu | running-or-interrupted | 1 | start 2026-10-03T12:33:25-06:00 |  |
 | E3.2-pace-med | gpu | pending | 0 |  |  |
 | E6.2-sr-llama8b | gpu | pending | 0 |  |  |
 | E6.2-stream-llama8b-player | gpu | pending | 0 |  |  |
