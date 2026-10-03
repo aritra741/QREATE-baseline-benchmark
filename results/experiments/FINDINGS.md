@@ -2,9 +2,11 @@
 
 > **Erratum (2026-10-02 13:20).** From 2026-10-01 23:40 to 2026-10-02 13:20 a code edit for E7b dropped the line
 > "Answer No unless the document indicates Yes." from the prompt of every never-null yes/no field, even with no
-> experiment variables set. Runs that started in that window and made new reads are invalid and are being re-run:
-> E7b, E7 and E7c on cspaper, all five prompt-width runs (E2.1b), and the `fragile` policy runs (E3.3); their
-> sections are marked below. Everything else (Phase 1, all replays and per-corpus analyses, E8, E9, the E7 shared read
+> experiment variables set. Runs that started in that window and made new reads were invalid: E7b, E7 and E7c on
+> cspaper, all five prompt-width runs (E2.1b), and the `fragile` policy runs (E3.3). **All have been re-run with the
+> fixed prompts (2026-10-02, 12:42–23:02); their sections below show the re-run numbers and say where they differ
+> from the invalid run** (the E7 cspaper result at 0% drift changed sign; the `fragile` policy on med matches unlimited
+> instead of beating it; the other conclusions held). Everything else (Phase 1, all replays and per-corpus analyses, E8, E9, the E7 shared read
 > and the E7 player stream, the latter checked by a no-call replay) is unaffected. Found because the cspaper
 > `fragile` control, which has nothing to skip, did not reproduce the recorded sweep; details and the quarantined
 > outputs are in `_invalid_promptbug/README.md`. A guard step now replays a recorded stream with model calls refused
@@ -623,7 +625,7 @@ zeroes the whole query.
 filter 0.187 (n=143). Queries with HAVING / ORDER / LIMIT / CASE score higher (0.405 vs 0.214), mostly because they
 are concentrated on player.
 
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
-
-**`fragile` policy — cspaper (control, no such queries):** mean 0.1459 vs 0.1453, tokens 7.9M in both; the policy is a
-no-op where there is nothing to skip, as it should be.
+**`fragile` policy — cspaper (control, no such queries; re-run with the fixed prompts):** all 25 streams identical
+to the recorded sweep (mean 0.1453, 7.87M tokens in both, 0 model calls): the policy is an exact no-op where there
+is nothing to skip. (The invalid first run differed slightly and made 740 calls with changed prompts, which is how
+the prompt bug was found.)
