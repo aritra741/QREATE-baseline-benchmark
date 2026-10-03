@@ -562,23 +562,24 @@ Also visible: at 25% and 50% drift, the **10% budget beats unlimited** (0.130 vs
 The same over-reading effect as on cspaper (reading a column for every document hurts some later queries) shows up
 on legal too.
 
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
-
-**`fragile` policy — med** (30 of 76 test queries are MIN/MAX over text; `E3-policies/med/summary.json`):
+**`fragile` policy — med** (re-run with the fixed prompts, 2026-10-02; 30 of 76 test queries are MIN/MAX over text;
+`E3-policies/med/summary.json`):
 
 | Drift | Policy | 10% | 25% | 50% | 75% | 100% | Unlimited (tokens) |
 |---|---|---|---|---|---|---|---|
 | 50% | fcfs | 0.078 | 0.075 | 0.088 | 0.093 | 0.093 | 0.0935 (11.1M) |
-| 50% | fragile | 0.076 | 0.094 | **0.098** (7.3M) | 0.098 | 0.098 | |
+| 50% | fragile | 0.076 | 0.089 | **0.093** (7.3M) | 0.093 | 0.093 | |
 | 75% | fcfs | 0.057 | 0.057 | 0.072 | 0.081 | 0.081 | 0.0809 (14.6M) |
-| 75% | fragile | 0.057 | 0.071 | 0.080 | **0.085** (10.8M) | 0.085 | |
+| 75% | fragile | 0.057 | 0.066 | 0.075 | **0.080** (10.8M) | 0.080 | |
 | 100% | fcfs | 0.051 | 0.055 | 0.060 | 0.075 | 0.081 | 0.0858 (19.9M) |
-| 100% | fragile | 0.051 | 0.071 | 0.080 | **0.087** (12.7M) | 0.087 | |
+| 100% | fragile | 0.051 | 0.069 | 0.078 | **0.084** (12.7M) | 0.084 | |
 
-Over the 25 streams: mean **0.0847 vs 0.0797**, tokens **130M vs 154M (−16%)**, and score rises with budget at every
-drift level (fcfs is non-monotone at 50% drift). On med the policy **beats unlimited patching** at every drift level
-from 50% up, with about two thirds of its tokens (100% drift: 0.087 at 12.7M vs 0.0858 at 19.9M). Unlike legal, the
-skipped patches' columns are picked up by later queries' own patches, so nothing is lost at large budgets.
+Over the 25 streams: mean **0.0828 vs 0.0797**, tokens **130M vs 154M (−16%)**, and score rises with budget at every
+drift level (fcfs is non-monotone at 50% drift). On med the policy **matches unlimited patching with about two thirds
+of its tokens** (100% drift: 0.084 at 12.7M vs 0.0858 at 19.9M; 50%: 0.093 at 7.3M vs 0.0935 at 11.1M). The skipped
+patches' columns are picked up by later queries' own patches, so little is lost at large budgets.
+**Correction:** the invalid first run showed the policy *beating* unlimited (0.087 at 100% drift, 0.098 at 50%); with
+the fixed prompts it matches unlimited, it does not beat it.
 
 ## E9: scores by query type
 
