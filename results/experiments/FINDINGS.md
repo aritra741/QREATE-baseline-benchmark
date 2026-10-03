@@ -403,6 +403,12 @@ re-reads every document for each query; our build is shared and patches read onl
 our static build everywhere, as expected when the static build lacks the drifted columns. Numbers will change as the
 remaining 219 queries finish.
 
+**Update (2026-10-02 23:10): cspaper, player and med complete.** On all their test queries at 100% drift: cspaper
+DocETL 0.105 vs adaptive 0.153 (static 0.008; 20.7M vs 1.56M tokens incl. our build); player 0.081 vs 0.387 (static
+0.040; 190.6M vs 7.71M); med 0.056 vs 0.086 (static 0.031; 170.6M vs 22.46M). Art 30 of 43 (0.151 vs 0.235), legal 8 of
+30 (0.016 vs 0.137) still running. The player join collapse holds on all 118 queries: DocETL 0.125 / 0.034 / 0.008 for
+0 / 1 / 2+ joins, ours 0.369 / 0.438 / 0.382 (`E9-query-types/summary.json`).
+
 **Player drift streams with "Never null" dropped for text fields** (fresh build and patches, 4-bit;
 `E7-stream-nullable-player/`):
 
