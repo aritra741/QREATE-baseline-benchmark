@@ -508,11 +508,10 @@ fills (narrow reads) against misses (wide reads), and the balance depends on how
 On legal narrow reads are clearly better (+6.8 points exact from 12 to 1 column per read; the invalid run gave
 +6.9), at 10× the tokens. False fills stay low at every width (legal's gold is rarely empty on these columns).
 
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
-
-**E2.1b width — cspaper** (12 columns, 40 papers; `E2.1b-width/cspaper/`): flat. Exact agreement 0.572 / 0.567 /
-0.565 / 0.569 at 1 / 3 / 6 / 12 columns per read (lenient 0.644 / 0.677 / 0.674 / 0.681); false fills 0.43 at width 1
-vs 0.15–0.33 wider; tokens 530k vs 83k. Width does not matter on cspaper except for cost.
+**E2.1b width — cspaper** (re-run with the fixed prompts; 12 columns, 40 papers; `E2.1b-width/cspaper/`): flat.
+Exact agreement 0.572 / 0.581 / 0.575 / 0.580 at 1 / 3 / 6 / 12 columns per read (lenient 0.650 / 0.691 / 0.693 /
+0.694); false fills 0.40 at width 1 vs 0.18–0.21 wider; tokens 531k vs 84k. Width does not matter on cspaper except
+for cost and false fills (the invalid run was also flat).
 
 > **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
 
