@@ -58,7 +58,12 @@ tokens. A `fragile` policy that never patches for them (E3.3):
 | med | 0.0797 → 0.0828 | 154M → 130M (−16%) | monotone in budget; matches unlimited at ⅔ of its tokens |
 | cspaper (control) | 0.1453 → 0.1453 | identical | exact no-op (no such queries) |
 
-Pending: hindsight-oracle, per-patch cap and pacing policies (E3.2), player and art.
+Generic policies (E3.2), mean over 25 streams (cspaper / legal): fcfs 0.1453 / 0.1106; **fragile 0.1453 / 0.1136**;
+hindsight oracle 0.1453 / 0.1129; per-patch cap 0.1398 / 0.0992; pacing **0.1466** / 0.1030. Pacing is best on cspaper
+(and beats unlimited there at high budgets: 0.172 at 0.54M vs 0.153 at 1.16M) but worst-but-one on legal, where it
+delays the useful early patches; the cap hurts small budgets on both. **The SQL-based `fragile` rule is the only
+policy that never hurts**, and on legal it matches the hindsight oracle. Pending: oracle / cap / pace on med, and all
+policies on player and art.
 
 ## RQ4: estimating cost and value
 

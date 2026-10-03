@@ -663,3 +663,24 @@ Unlimited at 100% drift: 0.153 at 1.16M tokens.
   skips the early patches that read a column for every paper (the over-reading found in E2.3), leaving later, scoped
   patches to read fewer documents. It is not monotone in budget (100% drift: 0.132 at 25% vs 0.125 at 50%), so it is
   not yet a policy to recommend on its own; legal and med follow.
+
+## E3.2: budget policies on legal (all five)
+
+(`E3-policies/legal/summary.json`; definitions as for cspaper above.)
+
+| Policy | Mean score (25 streams) | Tokens | 100% drift: 10% / 25% / 50% / 75% / 100% budget |
+|---|---|---|---|
+| fcfs | 0.1106 | 219M | 0.052 / 0.110 / **0.053** / 0.114 / 0.114 |
+| fragile | **0.1136** | **158M** | 0.052 / 0.110 / 0.107 / 0.107 / 0.107 |
+| oracle | 0.1129 | 158M | 0.052 / 0.110 / 0.106 / 0.106 / 0.106 |
+| cap | 0.0992 | 167M | 0.037 / 0.031 / 0.078 / 0.114 / 0.114 |
+| pace | 0.1030 | 177M | 0.032 / 0.073 / 0.079 / 0.101 / 0.109 |
+
+- **fragile matches the hindsight oracle** on legal (0.1136 vs 0.1129, the same 158M tokens): a rule read off the
+  SQL (skip MIN/MAX over text) captures what hindsight about wasted patches captures.
+- **cap** hurts small budgets again (25% budget at 100% drift: 0.031 vs fcfs 0.110).
+- **pace is worse than fcfs on legal** (0.1030 vs 0.1106); it was the best policy on cspaper (0.1466 vs 0.1453).
+  Pacing withholds budget from early patches; on legal the early patches include the useful ones (patches 0 and 4
+  feed 12 later queries, see the patch-by-patch table), so delaying them costs score. **No single generic policy wins
+  on both corpora; the SQL-based `fragile` rule is the only one that never hurts** (legal +0.003, med +0.003,
+  cspaper no-op).
