@@ -513,29 +513,29 @@ Exact agreement 0.572 / 0.581 / 0.575 / 0.580 at 1 / 3 / 6 / 12 columns per read
 0.694); false fills 0.40 at width 1 vs 0.18–0.21 wider; tokens 531k vs 84k. Width does not matter on cspaper except
 for cost and false fills (the invalid run was also flat).
 
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
-
-**E2.1b width — med** (disease table, 12 free-text columns, 40 diseases; `E2.1b-width/med/`): exact agreement is
-near zero at every width (0.034 / 0.052 / 0.093 / 0.095 at 1 / 3 / 6 / 12), lenient flat (0.527 / 0.528 / 0.533 /
-0.481); false fills 0.75–0.84 throughout; tokens 4.0M vs 0.40M.
+**E2.1b width — med** (re-run with the fixed prompts; disease table, 12 free-text columns, 40 diseases;
+`E2.1b-width/med/`): exact agreement is near zero at every width (0.040 / 0.052 / 0.100 / 0.062 at 1 / 3 / 6 / 12),
+lenient 0.518 / 0.535 / 0.542 / 0.458; false fills 0.77–0.85 throughout; tokens 4.0M vs 0.40M.
 
 ### Prompt width: summary over the five corpora (RQ2)
 
-> **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only.
+All five re-run with the fixed prompts (2026-10-02):
 
 | Corpus | Exact, 1 col/read | Exact, 12 cols/read | Difference | Token ratio (1 vs 12) |
 |---|---|---|---|---|
-| legal | 0.543 | 0.474 | **+0.069** | 10× |
-| player | 0.807 | 0.784 | +0.023 | 10× |
-| cspaper | 0.572 | 0.569 | +0.003 | 6× |
-| med | 0.034 | 0.095 | −0.061 (lenient +0.046) | 10× |
-| art | 0.451 | 0.488 | −0.037 | 6× |
+| legal | 0.547 | 0.479 | **+0.068** | 10× |
+| player | 0.806 | 0.780 | +0.026 | 10× |
+| cspaper | 0.572 | 0.580 | −0.008 | 6× |
+| med | 0.040 | 0.062 | −0.022 (lenient +0.060) | 10× |
+| art | 0.449 | 0.483 | −0.034 | 6× |
 
-There is no general prompt-width effect. A one-column read is never cheaper and is better on two corpora, worse on
-two, and flat on one; it invents more values where gold is often empty (art 98%, med 84%). **Answer to RQ2 on this
-model:** patch reads are not systematically more accurate because they ask for fewer columns; the adaptive curve's
-small rises under drift (cspaper +0.02, player +0.01) are better explained by the order and scope effects found in
-E2.3 (which documents get read, which values a narrower scope leaves empty) than by prompt width.
+There is no general prompt-width effect. A one-column read is never cheaper; it is better on two corpora (legal,
+player), worse on one (art), flat on cspaper, and mixed on med (worse exact, better lenient). It invents more values
+where gold is often empty (art 98% false fills at width 1, med 85%). **Answer to RQ2 on this model:** patch reads are
+not systematically more accurate because they ask for fewer columns; the adaptive curve's small rises under drift
+(cspaper +0.02, player +0.01) are better explained by the order and scope effects found in E2.3 (which documents get
+read, which values a narrower scope leaves empty) than by prompt width. The invalid first runs gave the same signs on
+every corpus.
 
 ## E3.3: the `fragile` budget policy
 
