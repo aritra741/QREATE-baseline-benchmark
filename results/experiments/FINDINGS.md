@@ -635,3 +635,31 @@ are concentrated on player.
 to the recorded sweep (mean 0.1453, 7.87M tokens in both, 0 model calls): the policy is an exact no-op where there
 is nothing to skip. (The invalid first run differed slightly and made 740 calls with changed prompts, which is how
 the prompt bug was found.)
+
+## E3.2: budget policies on cspaper (all five)
+
+25 streams per policy (5 budgets × 5 drift levels), same budgets, reads reused from the journals (new reads paid);
+`E3-policies/cspaper/summary.json`. Policies: **fcfs** (recorded: any patch that fits), **fragile** (skip MIN/MAX-
+over-text queries), **oracle** (hindsight reference: skip patches that bought nothing in the unlimited stream),
+**cap** (also skip any patch estimated above 25% of the whole budget), **pace** (spend no faster than the stream
+advances: after query k of n, at most budget × (k/n + 0.25)).
+
+| Policy | Mean score | Tokens | 100% drift: 10% / 25% / 50% / 75% / 100% budget |
+|---|---|---|---|
+| fcfs | 0.1453 | 7.87M | 0.120 / 0.137 / 0.147 / 0.153 / 0.153 |
+| fragile | 0.1453 | 7.87M | identical to fcfs (no such queries) |
+| oracle | 0.1453 | 7.20M (−9%) | 0.120 / 0.137 / 0.147 / 0.153 / 0.153 |
+| cap | 0.1398 | 6.11M (−22%) | 0.027 / 0.129 / 0.128 / 0.156 / 0.153 |
+| pace | **0.1466** | **6.04M (−23%)** | 0.100 / 0.132 / 0.125 / 0.153 / **0.172** (0.54M) |
+
+Unlimited at 100% drift: 0.153 at 1.16M tokens.
+
+- **oracle** confirms the patch accounting: skipping patches that bought nothing saves 9% of tokens and changes no
+  score. It does not remove cspaper's oddities (e.g. the 10% budget beating unlimited at 25% drift), because those come
+  from patches that *do* help their own query but over-read for later ones.
+- **cap** hurts small budgets (at 10% almost every patch exceeds a quarter of the budget: 0.027 at 100% drift).
+- **pace** is the best policy on cspaper: highest mean, 23% fewer tokens, and above unlimited at high budgets (100%
+  drift: 0.172 at 0.54M vs 0.153 at 1.16M; 75% drift: 0.192 at 0.49M vs 0.149 at 0.69M). By spending gradually it
+  skips the early patches that read a column for every paper (the over-reading found in E2.3), leaving later, scoped
+  patches to read fewer documents. It is not monotone in budget (100% drift: 0.132 at 25% vs 0.125 at 50%), so it is
+  not yet a policy to recommend on its own; legal and med follow.
