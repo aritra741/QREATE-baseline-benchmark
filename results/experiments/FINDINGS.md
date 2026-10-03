@@ -684,3 +684,7 @@ Unlimited at 100% drift: 0.153 at 1.16M tokens.
   feed 12 later queries, see the patch-by-patch table), so delaying them costs score. **No single generic policy wins
   on both corpora; the SQL-based `fragile` rule is the only one that never hurts** (legal +0.003, med +0.003,
   cspaper no-op).
+
+**Oracle on med** (`E3-policies/med/summary.json`): 0.0797, identical to fcfs, at 130M vs 154M tokens (−16%); the
+`fragile` rule is *better* than this hindsight oracle on med (0.0828 at 130M). The oracle only skips patches that bought
+nothing; the fragile rule also skips patches whose columns later queries read better under their own, narrower scope.
