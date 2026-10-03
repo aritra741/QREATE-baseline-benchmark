@@ -537,7 +537,30 @@ not systematically more accurate because they ask for fewer columns; the adaptiv
 read, which values a narrower scope leaves empty) than by prompt width. The invalid first runs gave the same signs on
 every corpus.
 
-## E3.3: the `fragile` budget policy
+## E3.3: the `fragile` budget policy (skip patches for MIN/MAX-over-text queries) — legal
+
+Re-run with the fixed prompts (2026-10-02). All 25 budgeted streams (5 budgets × 5 drift levels), same budgets as
+the recorded first-come-first-served (fcfs) sweep, reads reused from the journals (`E3.2-fragile/live/legal/`,
+comparison in `E3-policies/legal/summary.json`):
+
+| Drift | Policy | 10% | 25% | 50% | 75% | 100% | Unlimited |
+|---|---|---|---|---|---|---|---|
+| 50% | fcfs | 0.130 | **0.090** | 0.127 | 0.127 | 0.127 | 0.127 |
+| 50% | fragile | 0.130 | 0.131 | 0.122 | 0.122 | 0.122 | |
+| 75% | fcfs | 0.069 | 0.117 | **0.070** | 0.113 | 0.113 | 0.113 |
+| 75% | fragile | 0.069 | 0.117 | 0.106 | 0.106 | 0.106 | |
+| 100% | fcfs | 0.052 | 0.110 | **0.053** | 0.114 | 0.114 | 0.114 |
+| 100% | fragile | 0.052 | 0.110 | **0.107** | 0.107 | 0.107 | |
+
+Over the 25 streams: mean score **0.1136 vs 0.1106**, tokens **158M vs 219M (−28%)**. The 50%-budget collapses at
+75% and 100% drift (0.070, 0.053) and the 25% dip at 50% drift (0.090) are gone; score no longer falls when the
+budget grows past 25% (it levels off). The cost: at large budgets the policy saturates just below unlimited (0.107 vs
+0.114 at 100% drift; 0.122 vs 0.127 at 50%), because the skipped patches would have helped a few later queries.
+(The invalid first run gave 0.1137 vs 0.1106 and the same −28%.)
+
+Also visible: at 25% and 50% drift, the **10% budget beats unlimited** (0.130 vs 0.122 / 0.127) under both policies.
+The same over-reading effect as on cspaper (reading a column for every document hurts some later queries) shows up
+on legal too.
 
 > **INVALID — prompt bug, being re-run.** This run used prompts that dropped "Answer No unless the document indicates Yes." from never-null yes/no fields (see the erratum at the top). Numbers below are kept for the record only. (skip patches for MIN/MAX-over-text queries) — legal
 
