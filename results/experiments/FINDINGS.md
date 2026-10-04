@@ -992,3 +992,22 @@ column if the chance a query will need it exceeds this):
 up front if there is even a 2% chance a future query will use it; on art and cspaper, 12–13%. Adaptive patching
 remains essential for columns nobody anticipated (static collapses without it), but a system should anticipate
 generously and patch only what it could not foresee.
+
+## Why the planner leaves budget unspent (player sweep)
+
+From the plans (`quwarts_player_budget_sweep_ollama/f*/probe/plan.json`): at 100% of DocETL's tokens the planner had
+10.58M available after probes and planned only 4.86M; reading every need in its own context would have cost 12.25M.
+
+1. **The objective saturates.** The planner's expected loss is disagreement with each query's own read, not error
+   against gold. After a few contexts are opened, almost every need is served by its own read or by one that agrees
+   with it: expected loss 0.027 per query at 100%. By its own measure nothing is left worth buying, so it stops, and
+   more budget cannot lower a loss that is already near zero (the same flaw as in RQ5).
+2. **"Leave unread" is measured as nearly free.** Player has no incumbent database, but the planner still measures the
+   incumbent option against its probe reads; where a query's own read was mostly empty on the probed documents (27 of
+   31 for `player.team` under `player_filterjoin20:q17`), leaving the column empty looks like a 0.13 loss. So 4 needs,
+   including the join key `player.team`, stay unread with 5.7M tokens unspent, and that query zeroes (E5.1).
+
+**Ways to turn the leftover budget into accuracy**, by the evidence so far: build on the shared read with
+descriptions (0.560 at 1.3M, better than any plan) and let the planner only fill its gaps (**E5.4, running**);
+charge an unread column 1.0 when there is no incumbent; re-read hard columns with the 32B model (+0.13 on the shared
+read); read ahead columns a drifting workload may need (E1.4: worth it at a 1.3–13% chance of use).
