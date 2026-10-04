@@ -708,3 +708,17 @@ on the next job.
 The SQL-based `fragile` rule is the best or tied-best on legal and med, a no-op on cspaper, and never below fcfs; it
 matches or beats the hindsight oracle everywhere. Pacing is best on cspaper and second on med but loses on legal;
 the per-patch cap is the weakest overall. Player and art follow.
+
+## E6.2: other local models
+
+**Llama 3.1 8B (4-bit), player shared read** (same 216 reads and prompts; 4 slots at a 16k context on the A800 node;
+0 prompts possibly truncated, 0 answers cut off; `results/quwarts_router_v3/player_ollama_llama8b/`):
+
+| Model | Held-out 20 | Structure F2 | Cell F1 | All 100 queries |
+|---|---|---|---|---|
+| Qwen 2.5 7B, 4-bit | 0.560 | 0.868 | 0.615 | 0.482 |
+| Qwen 2.5 7B, 16-bit | 0.590 | 0.880 | 0.639 | 0.490 |
+| Llama 3.1 8B, 4-bit | 0.466 | 0.781 | 0.565 | 0.468 |
+
+Llama is lower on the held-out queries (−0.094), mostly in structure (0.781 vs 0.868), and close on all 100 (−0.014).
+Drift streams on player and cspaper follow, to test whether adaptive vs static holds across model families.
