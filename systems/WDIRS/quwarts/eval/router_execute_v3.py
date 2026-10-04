@@ -19,7 +19,7 @@ from typing import Any
 
 from quwarts.core.ledger import TokenLedger
 from quwarts.core.pipeline import official_sql
-from quwarts.core.router.context_probe import field_specs
+from quwarts.core.router.context_probe import planner_field_specs
 from quwarts.core.router.executor import load_values, materialize_plan, reads_from_plan, run_reads
 from quwarts.core.router.facility import INCUMBENT
 from quwarts.core.router.needs import workload_needs
@@ -91,7 +91,7 @@ def main(argv: list[str] | None = None) -> int:
         plan = json.loads(plan_path.read_text())
     needs = workload_needs(spec, queries)
     numeric = {q for q, u in workload_features(spec, queries)["attributes"].items() if u.numeric}
-    fields = field_specs(spec, needs, numeric)
+    fields = planner_field_specs(spec, needs, numeric)
     journal = root / "reads.jsonl"
     reads = reads_from_plan(plan)
     print(json.dumps({"reads": [r.__dict__ for r in reads]}, default=list))

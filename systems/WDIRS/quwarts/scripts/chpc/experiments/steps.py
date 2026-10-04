@@ -131,6 +131,17 @@ STEPS = [
     # ---- GPU lane: E5.0, the shared read with the planner's field specs (name and SQL type only, no benchmark
     # descriptions): the fair comparison for the planner, whose reads use field_specs, not the protocol descriptions
     shared_read("E5.0-sr-plain", "ollama_plain", variant="plain"),
+    # ---- GPU lane: E5.2, the planner with the benchmark's descriptions (QUWARTS_FIELDS=protocol), against the
+    # protocol shared read (0.560); fractions of DocETL's player tokens as in the planner sweep
+    *[{"id": f"E5.2-planner-protocol-f{round(f * 100):03d}", "lane": "gpu", "deps": ["G0-prompt-guard"],
+       "cmd": PRE + server("main") + "export QUWARTS_FIELDS=protocol && "
+              f"D=$OLDPWD/results/experiments/E5.2-planner-protocol/f{round(f * 100):03d} && "
+              f"{{ [ -f $D/probe/plan.json ] || {{ rm -f $D/probe/probe_journal.jsonl; "
+              f"python -u -m quwarts.eval.router_plan_v3 --corpus player --fraction {f} --probe --out $D; }}; }} && "
+              f"python -u -m quwarts.eval.router_execute_v3 --corpus player --plan $D/probe/plan.json --reads --score "
+              f"--workers 8 --out $D/execute",
+       "outputs": [f"results/experiments/E5.2-planner-protocol/f{round(f * 100):03d}/execute/score.json"]}
+      for f in (0.25, 0.75)],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],

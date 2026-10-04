@@ -182,6 +182,16 @@ def field_specs(spec: CorpusSpec, needs: list[Need], sql_numeric: set[str]) -> d
     return out
 
 
+def planner_field_specs(spec: CorpusSpec, needs: list[Need], sql_numeric: set[str]) -> dict[str, FieldSpec]:
+    """The planner's field specs: ``field_specs`` (names and SQL types), or with ``QUWARTS_FIELDS=protocol`` the
+    benchmark's published attribute descriptions (``protocol_field_specs``, as the protocol shared read uses), so the
+    planner can be compared with that read on the same input information (experiment E5.2)."""
+
+    if os.environ.get("QUWARTS_FIELDS") == "protocol":
+        return protocol_field_specs(spec, needs)
+    return field_specs(spec, needs, sql_numeric)
+
+
 def protocol_field_specs(spec: CorpusSpec, needs: list[Need]) -> dict[str, FieldSpec]:
     """Fields under the benchmark's published protocol: each needed column's description, value
     type, nullability and declared allowed values come from the benchmark attribute file, as for

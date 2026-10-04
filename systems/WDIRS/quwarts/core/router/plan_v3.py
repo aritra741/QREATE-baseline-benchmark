@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from quwarts.core.ledger import BudgetedCaller
-from quwarts.core.router.context_probe import V3, Observations, contexts_by_table, field_specs, run_context_probe
+from quwarts.core.router.context_probe import V3, Observations, contexts_by_table, planner_field_specs, run_context_probe
 from quwarts.core.router.corpus_features import table_corpus
 from quwarts.core.router.facility import INCUMBENT, combine, need_distances, table_frontier
 from quwarts.core.router.needs import CANONICAL, workload_needs
@@ -74,7 +74,7 @@ def build_plan_v3(
     needs = workload_needs(spec, queries)
     wf = workload_features(spec, queries)
     numeric = {q for q, use in wf["attributes"].items() if use.numeric}
-    fields = field_specs(spec, needs, numeric)
+    fields = planner_field_specs(spec, needs, numeric)
     corpora = {t.sql_name: table_corpus(t) for t in spec.tables if any(n.table == t.sql_name for n in needs)}
     doc_tokens = {name: tc.tokens for name, tc in corpora.items()}
     read_cost = {name: tc.full_read_cost() for name, tc in corpora.items()}
