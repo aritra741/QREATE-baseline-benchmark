@@ -722,3 +722,15 @@ the per-patch cap is the weakest overall. Player and art follow.
 
 Llama is lower on the held-out queries (−0.094), mostly in structure (0.781 vs 0.868), and close on all 100 (−0.014).
 Drift streams on player and cspaper follow, to test whether adaptive vs static holds across model families.
+
+**Llama 3.1 8B, player drift streams** (fresh build and patches with Llama; `E6.2-stream-llama8b-player/`; 1,742
+calls, 0 prompts possibly truncated, 4 answers cut off):
+
+| Model | Adaptive, 0% drift | Adaptive, 100% | Static, 100% | Patch tokens at 100% |
+|---|---|---|---|---|
+| Qwen 2.5 7B, 4-bit (recorded) | 0.379 | 0.387 | 0.040 | 5.67M |
+| Llama 3.1 8B, 4-bit | 0.356 | 0.359 | 0.040 | 5.76M |
+
+**The drift result holds across model families**: with Llama the adaptive stream keeps its score from 0% to 100%
+drift (0.356 → 0.359) while the static build collapses to the same 0.040, at the same patch cost. Llama is about 0.03
+below Qwen throughout.
