@@ -1031,3 +1031,39 @@ available). **With this model and objective the leftover budget cannot buy much 
 with good descriptions, the planner's per-query reads mostly agree with them. The large levers found are input
 information (descriptions: +0.33) and model capacity (32B: +0.13 at the same 1.3M tokens), not more reads of the same
 documents with the same model.
+
+## E10: is the rise of the patched score under drift real, or extraction noise?
+
+On cspaper and player the patched score is higher at 100% drift than at 0% (0.134 → 0.153; 0.379 → 0.387). Three
+checks (`E10-drift-rise/report.txt`):
+
+**1. Score, paired over the test queries (100% − 0%), against run-to-run noise (a repeat of the 100% stream):**
+
+| | Drift effect (95% CI) | Queries up / down | Noise: repeat − recorded (95% CI) |
+|---|---|---|---|
+| cspaper, Qwen 7B | +0.019 (−0.011 to +0.052) | 11 / 12 | 0.000 (0 queries changed) |
+| player, Qwen 7B | +0.008 (−0.007 to +0.028) | 18 / 11 | +0.0015 (−0.002 to +0.007) |
+| cspaper, Llama 8B | −0.024 (−0.078 to +0.033) | 10 / 14 | — |
+| cspaper, Qwen 32B | **+0.062 (+0.019 to +0.113)** | 12 / 3 | — |
+
+**2. Extracted values of the drifted columns, 0% (read by the build) vs 100% (read by patches), against the same
+comparison between two identical 100% runs:**
+
+| | Cells | Differ: empty vs filled | Differ: two values | Total differing | Noise baseline (two identical runs) |
+|---|---|---|---|---|---|
+| cspaper | 1,400 | 120 | 221 | **24%** | 6.5% (46 + 45) |
+| player | 764 | 21 | 44 | **8.5%** | 3.4% (3 + 23) |
+
+**3. Which side is right where they differ (against gold):** cspaper patches right in 98 cells vs the build in 70 (44
+vs 13 of those because the patch left a cell empty that gold leaves empty); player 23 vs 18.
+
+**Reading.**
+- **It is not sampling noise.** Re-running the same stream changes the score by 0.000–0.0015, and changes 3–7% of
+  cells; building at 0% vs patching at 100% changes 2.5–3.7× as many cells. The difference is systematic: patches
+  read the drifted columns under a different prompt (one query's context instead of the whole build workload's) and
+  only on the documents the query can select, so they leave more cells empty, and where gold is empty that is right.
+- **But for the 7B model the rise is not significant.** Query-level gains and losses largely cancel (cspaper 11 up,
+  12 down); both 95% CIs include zero, and Llama's curve goes down instead. With Qwen 7B the patched curve should be
+  read as *flat* under drift, not rising.
+- **With Qwen 32B the rise is real** (+0.062, CI +0.019 to +0.113, 12 queries up, 3 down): the stronger model makes
+  better use of the patch's query-specific context.

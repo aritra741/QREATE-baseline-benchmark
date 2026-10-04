@@ -54,8 +54,12 @@ in scope.
 | legal | 0.005 | 0.114 | +0.110 (0.055 – 0.177) |
 | med | 0.031 | 0.086 | +0.055 (0.030 – 0.082) |
 
-With patching, the score at 100% drift is never more than 0.014 below the fully anticipated build (0% drift), and on
-player and cspaper it is higher (+0.008, +0.019).
+With patching, the score at 100% drift is never more than 0.014 below the fully anticipated build (0% drift). On
+player and cspaper it is slightly higher (+0.008, +0.019), but neither rise is significant (paired 95% CIs −0.007 to
++0.028 and −0.011 to +0.052; query-level gains and losses cancel), so the patched curve is flat under drift. The rise
+is not extraction noise either: patching changes 2.5–3.7× as many cells of the drifted columns as re-running the same
+stream does, because patches read under a query-specific prompt and only on the documents the query can select. With
+a stronger model the rise becomes significant (Qwen 2.5 32B on cspaper: +0.062, 95% CI +0.019 to +0.113; RQ7).
 
 ![Score as drift grows, static build vs on-demand patching, per corpus.](figures/rq1_drift.png)
 *Figure 1. Score as drift grows, static build vs on-demand patching, per corpus.*
