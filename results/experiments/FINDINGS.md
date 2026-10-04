@@ -801,3 +801,32 @@ so the adaptive-vs-static result is not an artifact of the 7B model.
 On player every patch pays off (E2.2), so first-come-first-served is already the best policy: skipping or delaying
 patches only loses score (cap −0.029, pace −0.010). This is the counterpart of legal and med, where a third of patch
 tokens bought nothing and skipping them helped.
+
+## E3.2: budget policies on art, and all five corpora
+
+Art (`E3-policies/art/summary.json`; no MIN/MAX-over-text queries, so `fragile` = fcfs):
+
+| Policy | Mean score | Tokens | 100% drift: 10% / 25% / 50% / 75% / 100% budget |
+|---|---|---|---|
+| fcfs | 0.2356 | 44.1M | 0.141 / 0.179 / 0.191 / 0.215 / 0.256 |
+| oracle | 0.2356 | 44.1M | identical (art's one no-value patch at 100% drift is already skipped by the budgeted streams) |
+| cap | 0.2263 | 36.3M | 0.101 / 0.169 / 0.218 / 0.215 / 0.256 |
+| pace | **0.2405** | **37.3M** | 0.149 / 0.196 / 0.227 / 0.255 / 0.255 |
+
+**All five corpora** (mean score over 25 streams; tokens):
+
+| Policy | cspaper | player | art | legal | med |
+|---|---|---|---|---|---|
+| fcfs | 0.1453 (7.9M) | **0.3363** (43.0M) | 0.2356 (44.1M) | 0.1106 (219M) | 0.0797 (154M) |
+| fragile | 0.1453 (no-op) | 0.3363 (no-op) | 0.2356 (no-op) | **0.1136** (158M) | **0.0828** (130M) |
+| oracle | 0.1453 (7.2M) | 0.3363 | 0.2356 | 0.1129 (158M) | 0.0797 (130M) |
+| cap | 0.1398 (6.1M) | 0.3076 (29.8M) | 0.2263 (36.3M) | 0.0992 (167M) | 0.0812 (147M) |
+| pace | **0.1466** (6.0M) | 0.3260 (41.5M) | **0.2405** (37.3M) | 0.1030 (177M) | 0.0821 (145M) |
+
+- **`fragile` never hurts** (no-op where there is nothing to skip, best on legal and med) and matches or beats the
+  hindsight oracle everywhere. It is the one policy to adopt.
+- **Pacing** wins on cspaper and art (+0.001, +0.005, with 15–23% fewer tokens) and loses on player and legal (−0.010,
+  −0.008): it helps where early full-corpus patches over-read, and hurts where early patches are the useful ones.
+- **The per-patch cap** is never best and hurts small budgets on every corpus.
+- Whether skipping helps tracks the share of wasted patch tokens (E2.2): 0% on player (fcfs best), 16% on art, ~33–39%
+  on cspaper, legal and med.

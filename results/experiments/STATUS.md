@@ -1,4 +1,4 @@
-# Experiment status (2026-10-04T06:06:02-06:00)
+# Experiment status (2026-10-04T11:49:43-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -38,13 +38,13 @@
 | E6.2-sr-qwen32b | gpu | done | 2 | ok 2026-10-04T02:35:30-06:00 |  |
 | E6.2-stream-qwen32b-cspaper | gpu | done | 1 | ok 2026-10-04T03:25:40-06:00 |  |
 | E6.2-stream-qwen32b-player | gpu | done | 1 | ok 2026-10-04T06:06:02-06:00 |  |
-| E3.2-oracle-player | gpu | running-or-interrupted | 1 | start 2026-10-04T06:06:02-06:00 |  |
-| E3.2-cap-player | gpu | pending | 0 |  |  |
-| E3.2-pace-player | gpu | pending | 0 |  |  |
-| E3.2-oracle-art | gpu | pending | 0 |  |  |
-| E3.2-cap-art | gpu | pending | 0 |  |  |
-| E3.2-pace-art | gpu | pending | 0 |  |  |
-| E7-stream-nullable-med | gpu | pending | 0 |  |  |
+| E3.2-oracle-player | gpu | done | 1 | ok 2026-10-04T06:44:07-06:00 |  |
+| E3.2-cap-player | gpu | done | 1 | ok 2026-10-04T07:21:27-06:00 |  |
+| E3.2-pace-player | gpu | done | 1 | ok 2026-10-04T08:48:40-06:00 |  |
+| E3.2-oracle-art | gpu | done | 1 | ok 2026-10-04T09:05:06-06:00 |  |
+| E3.2-cap-art | gpu | done | 1 | ok 2026-10-04T10:06:43-06:00 |  |
+| E3.2-pace-art | gpu | done | 1 | ok 2026-10-04T11:49:43-06:00 |  |
+| E7-stream-nullable-med | gpu | running-or-interrupted | 1 | start 2026-10-04T11:49:43-06:00 |  |
 | E7-stream-nullable-art | gpu | pending | 0 |  |  |
 | P1-pull-llama8b | cpu | done | 1 | ok 2026-10-01T21:38:00-06:00 |  |
 | P1-pull-qwen32b | cpu | done | 1 | ok 2026-10-02T13:36:20-06:00 |  |
