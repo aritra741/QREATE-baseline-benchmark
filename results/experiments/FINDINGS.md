@@ -837,3 +837,19 @@ gold-empty cells, but misses rise from 276 to 446 of 2,204 gold values. Med is t
 empty, yet relaxing hurts it most: its bottleneck is too few rows (see med above), and each additional empty value
 drops rows from groups and joins. This is the strongest evidence that the never-null instruction, contradictory as it
 is, is the better default on this model.
+
+**E7 on art** (`E7-stream-nullable-art/`): 0% drift 0.2698 → 0.2893 (+0.020; 18 up / 13 down); 100% drift 0.2557 →
+0.2220 (−0.034; 15 / 18).
+
+**E7 across corpora (dropping "Never null" for text fields; paired difference vs recorded):**
+
+| Corpus | 0% drift | 100% drift |
+|---|---|---|
+| player | −0.006 | −0.003 |
+| cspaper | −0.013 | +0.020 |
+| art | +0.020 | −0.034 |
+| med | **−0.043** | (not run) |
+
+Signs differ by corpus and even by drift level within a corpus; the mean is negative. Together with E7b (−0.053) and
+E7c (−0.003 / −0.015), this settles RQ8's null-handling question: on this model the benchmark's never-null
+instruction, though contradicted by gold for 69 of 132 columns, is the better default.

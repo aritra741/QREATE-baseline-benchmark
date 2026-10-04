@@ -16,26 +16,40 @@ so it exceeds wall-clock time.
 | E1.1-stream-rep-cspaper — cspaper | 1,009 | 1.14M | 19,941 | 9.79 / 9.01 / 17.76 | 9,882 | 1,338 |
 | E1.1-stream-rep-player — player | 1,098 | 5.63M | 40,689 | 19.96 / 19.38 / 36.56 | 21,914 | 3,024 |
 | E1.2-stream-fp16-player — player | 1,420 | 7.65M | 66,312 | 12.54 / 13.6 / 25.57 | 17,802 | 2,461 |
+| E3.2-cap — art | 5,267 | 6.10M | 0.27M | 3.52 / 3.53 / 5.29 | 18,519 |  |
 | E3.2-cap — cspaper | 932 | 1.28M | 42,358 | 15.69 / 14.44 / 28.8 | 14,627 |  |
 | E3.2-cap — legal | 2,363 | 12.69M | 0.17M | 26.32 / 24.29 / 45.24 | 62,204 |  |
 | E3.2-cap — med | 652 | 5.30M | 75,786 | 38.51 / 36.59 / 61.27 | 25,109 |  |
+| E3.2-cap — player | 0 | 0 | 0 |  |  |  |
 | E3.2-fragile — cspaper | 0 | 0 | 0 |  |  |  |
 | E3.2-fragile — legal | 2,467 | 13.59M | 0.15M | 24.46 / 22.75 / 41.96 | 60,355 |  |
 | E3.2-fragile — med | 788 | 6.16M | 64,563 | 30.74 / 29.54 / 46.29 | 24,220 |  |
+| E3.2-oracle — art | 0 | 0 | 0 |  |  |  |
 | E3.2-oracle — cspaper | 210 | 0.24M | 6,763 | 12.44 / 11.95 / 20.53 | 2,612 |  |
 | E3.2-oracle — legal | 1,784 | 9.70M | 0.12M | 24.93 / 23.17 / 42.89 | 44,469 |  |
 | E3.2-oracle — med | 1,050 | 8.05M | 77,283 | 29.25 / 28.13 / 45.18 | 30,709 |  |
+| E3.2-oracle — player | 0 | 0 | 0 |  |  |  |
+| E3.2-pace — art | 9,172 | 10.84M | 0.49M | 3.64 / 3.57 / 5.67 | 33,394 |  |
 | E3.2-pace — cspaper | 1,585 | 2.17M | 73,319 | 15.66 / 15.3 / 24.5 | 24,816 |  |
 | E3.2-pace — legal | 5,217 | 28.75M | 0.36M | 25.3 / 23.85 / 43.2 | 0.13M |  |
-| E3.2-pace — med | 0 | 0 | 0 |  |  |  |
+| E3.2-pace — med | 3,249 | 24.92M | 0.28M | 30.42 / 28.86 / 46.76 | 98,849 |  |
+| E3.2-pace — player | 2,049 | 10.19M | 96,822 | 10.96 / 9.23 / 22.06 | 22,447 |  |
+| E6.2-stream-llama8b-cspaper — cspaper | 1,454 | 1.90M | 0.11M | 10.7 / 10.02 / 18.47 | 15,563 | 2,114 |
+| E6.2-stream-llama8b-player — player | 1,742 | 9.63M | 0.19M | 29.37 / 31.14 / 54.8 | 51,155 | 6,849 |
+| E6.2-stream-qwen32b-cspaper — cspaper | 1,450 | 1.90M | 62,678 | 15.7 / 12.23 / 31.45 | 22,765 | 3,010 |
+| E6.2-stream-qwen32b-player — player | 1,420 | 7.66M | 87,355 | 51.95 / 57.79 / 92.14 | 73,767 | 9,622 |
+| E7-stream-nullable-art — art | 8,040 | 9.71M | 0.46M | 3.76 / 2.69 / 8.97 | 30,203 | 4,136 |
 | E7-stream-nullable-cspaper — cspaper | 1,402 | 1.82M | 60,792 | 14.78 / 13.85 / 27.94 | 20,727 | 4,106 |
+| E7-stream-nullable-med — med | 590 | 4.94M | 91,336 | 22.23 / 21.7 / 33.56 | 13,117 | 1,774 |
 | E7-stream-nullable-player — player | 1,742 | 9.62M | 85,895 | 22.55 / 22.14 / 39.7 | 39,288 | 5,395 |
 | E7c-stream-contradicted-cspaper — cspaper | 1,414 | 1.86M | 58,521 | 15.56 / 13.17 / 32.09 | 21,997 | 5,806 |
 | shared read player (OpenRouter) | 216 | 1.28M | 19,856 |  |  |  |
 | shared read player_ollama | 216 | 1.28M | 20,819 |  |  |  |
 | shared read player_ollama_fp16 | 216 | 1.28M | 20,560 |  |  | 521 |
+| shared read player_ollama_llama8b | 216 | 1.28M | 20,916 |  |  |  |
 | shared read player_ollama_nullable | 216 | 1.27M | 20,943 |  |  | 998 |
 | shared read player_ollama_nullhint | 216 | 1.29M | 20,692 |  |  | 1,758 |
+| shared read player_ollama_qwen32b | 216 | 1.28M | 20,912 |  |  |  |
 | shared read player_ollama_rep1 | 216 | 1.28M | 20,839 |  |  | 911 |
 | shared read player_ollama_rep2 | 216 | 1.28M | 20,866 |  |  | 985 |
 | E2.1b-width-art | 1,900 | 2.12M | 59,052 |  |  | 6,347 |
@@ -55,13 +69,15 @@ so it exceeds wall-clock time.
 | runner log E2.1b-width-legal | 1,140 | 5.86M | 38,919 | 18.33 / 16.79 / 34.05 | 20,892 | 5,320 |
 | runner log E2.1b-width-med | 760 | 6.54M | 35,243 | 25.93 / 23.75 / 44.53 | 19,704 | 5,057 |
 | runner log E2.1b-width-player | 2,679 | 10.42M | 86,602 | 16.58 / 15.2 / 31.29 | 44,430 | 11,338 |
+| runner log E6.2-sr-llama8b | 216 | 1.28M | 20,409 | 29.48 / 27.7 / 45.58 | 6,367 | 838 |
+| runner log E6.2-sr-qwen32b | 216 | 1.28M | 21,128 | 61.73 / 52.05 / 98.1 | 13,334 | 2,560 |
 | DocETL drift (cspaper, 143 queries so far) | 30,873 | 44.47M | 1.18M | 871.2 per query | 0.12M |  |
-| DocETL drift (player, 189 queries so far) | 34,031 | 309.13M | 1.36M | 908.1 per query | 0.17M |  |
-| DocETL drift (art, 46 queries so far) | 46,773 | 60.48M | 1.54M | 3699.7 per query | 0.17M |  |
-| DocETL drift (med, 130 queries so far) | 22,378 | 278.27M | 1.70M | 1319.4 per query | 0.17M |  |
-| DocETL drift (legal, 14 queries so far) | 35,644 | 220.17M | 1.38M | 11509.8 per query | 0.16M |  |
+| DocETL drift (player, 193 queries so far) | 34,719 | 315.00M | 1.38M | 905.6 per query | 0.17M |  |
+| DocETL drift (art, 55 queries so far) | 55,860 | 72.28M | 1.83M | 3509.0 per query | 0.19M |  |
+| DocETL drift (med, 133 queries so far) | 22,715 | 282.55M | 1.73M | 1308.7 per query | 0.17M |  |
+| DocETL drift (legal, 16 queries so far) | 43,436 | 267.48M | 1.62M | 11367.2 per query | 0.18M |  |
 
-**Total:** 259,276 calls, 1261.5M input tokens, 12.21M output tokens.
+**Total:** 312,477 calls, 1423.6M input tokens, 15.00M output tokens.
 (Recorded drift runs include every stream and budget of the recorded sweeps; experiment roots count only
 their new calls.)
 
@@ -107,6 +123,12 @@ runtime, and score. Build reads are charged separately (`build.json` per corpus 
 | E1.1-stream-rep-cspaper | cspaper | unlimited |  |  |  |  | 1.16M |
 | E1.1-stream-rep-player | player | unlimited |  |  |  |  | 5.67M |
 | E1.2-stream-fp16-player | player | unlimited |  |  |  |  | 5.68M |
+| E3.2-cap | art | 10% | 0.00M | 0.05M | 0.05M | 0.06M | 0.06M |
+| E3.2-cap | art | 25% | 0.00M | 0.05M | 0.05M | 1.35M | 0.39M |
+| E3.2-cap | art | 50% | 0.00M | 1.17M | 1.66M | 2.63M | 2.96M |
+| E3.2-cap | art | 75% | 0.00M | 2.04M | 2.53M | 3.51M | 4.56M |
+| E3.2-cap | art | 100% | 0.00M | 2.04M | 2.53M | 3.51M | 5.11M |
+| E3.2-cap | art | unlimited | 0.00M | 2.04M | 2.53M | 3.51M | 6.08M |
 | E3.2-cap | cspaper | 10% | 0.00M | 0.03M | 0.03M | 0.03M | 0.02M |
 | E3.2-cap | cspaper | 25% | 0.00M | 0.13M | 0.14M | 0.11M | 0.14M |
 | E3.2-cap | cspaper | 50% | 0.00M | 0.23M | 0.26M | 0.32M | 0.39M |
@@ -125,6 +147,12 @@ runtime, and score. Build reads are charged separately (`build.json` per corpus 
 | E3.2-cap | med | 75% | 0.00M | 5.38M | 11.07M | 14.56M | 14.91M |
 | E3.2-cap | med | 100% | 0.00M | 5.38M | 11.07M | 14.56M | 18.99M |
 | E3.2-cap | med | unlimited | 0.00M | 5.38M | 11.07M | 14.56M | 19.92M |
+| E3.2-cap | player | 10% | 0.00M | 0.00M | 0.00M | 0.00M | 0.01M |
+| E3.2-cap | player | 25% | 0.00M | 0.00M | 0.00M | 0.00M | 0.01M |
+| E3.2-cap | player | 50% | 0.00M | 0.55M | 0.55M | 0.55M | 1.02M |
+| E3.2-cap | player | 75% | 0.00M | 1.48M | 3.34M | 3.34M | 4.20M |
+| E3.2-cap | player | 100% | 0.00M | 1.48M | 3.34M | 4.27M | 5.65M |
+| E3.2-cap | player | unlimited | 0.00M | 1.48M | 3.34M | 4.27M | 5.67M |
 | E3.2-fragile | cspaper | 10% | 0.00M | 0.07M | 0.07M | 0.11M | 0.10M |
 | E3.2-fragile | cspaper | 25% | 0.00M | 0.23M | 0.29M | 0.29M | 0.29M |
 | E3.2-fragile | cspaper | 50% | 0.00M | 0.23M | 0.48M | 0.47M | 0.57M |
@@ -143,6 +171,12 @@ runtime, and score. Build reads are charged separately (`build.json` per corpus 
 | E3.2-fragile | med | 75% | 0.00M | 5.39M | 7.30M | 10.79M | 12.71M |
 | E3.2-fragile | med | 100% | 0.00M | 5.39M | 7.30M | 10.79M | 12.71M |
 | E3.2-fragile | med | unlimited | 0.00M | 5.38M | 11.07M | 14.56M | 19.92M |
+| E3.2-oracle | art | 10% | 0.00M | 0.56M | 0.56M | 0.55M | 0.55M |
+| E3.2-oracle | art | 25% | 0.00M | 1.49M | 1.49M | 1.49M | 1.49M |
+| E3.2-oracle | art | 50% | 0.00M | 2.04M | 2.53M | 2.98M | 2.51M |
+| E3.2-oracle | art | 75% | 0.00M | 2.04M | 2.53M | 3.51M | 4.56M |
+| E3.2-oracle | art | 100% | 0.00M | 2.04M | 2.53M | 3.51M | 5.11M |
+| E3.2-oracle | art | unlimited | 0.00M | 2.04M | 2.53M | 3.51M | 6.08M |
 | E3.2-oracle | cspaper | 10% | 0.00M | 0.07M | 0.07M | 0.11M | 0.09M |
 | E3.2-oracle | cspaper | 25% | 0.00M | 0.23M | 0.29M | 0.29M | 0.28M |
 | E3.2-oracle | cspaper | 50% | 0.00M | 0.23M | 0.48M | 0.47M | 0.57M |
@@ -161,6 +195,18 @@ runtime, and score. Build reads are charged separately (`build.json` per corpus 
 | E3.2-oracle | med | 75% | 0.00M | 4.46M | 8.72M | 10.20M | 13.71M |
 | E3.2-oracle | med | 100% | 0.00M | 4.46M | 8.72M | 10.20M | 13.71M |
 | E3.2-oracle | med | unlimited | 0.00M | 5.38M | 11.07M | 14.56M | 19.92M |
+| E3.2-oracle | player | 10% | 0.00M | 0.55M | 0.55M | 0.55M | 0.55M |
+| E3.2-oracle | player | 25% | 0.00M | 0.93M | 0.94M | 0.94M | 1.41M |
+| E3.2-oracle | player | 50% | 0.00M | 1.48M | 2.41M | 2.79M | 2.80M |
+| E3.2-oracle | player | 75% | 0.00M | 1.48M | 3.34M | 3.34M | 4.20M |
+| E3.2-oracle | player | 100% | 0.00M | 1.48M | 3.34M | 4.27M | 5.65M |
+| E3.2-oracle | player | unlimited | 0.00M | 1.48M | 3.34M | 4.27M | 5.67M |
+| E3.2-pace | art | 10% | 0.00M | 0.47M | 0.50M | 0.33M | 0.40M |
+| E3.2-pace | art | 25% | 0.00M | 1.19M | 1.22M | 1.29M | 1.19M |
+| E3.2-pace | art | 50% | 0.00M | 1.17M | 1.66M | 2.13M | 2.40M |
+| E3.2-pace | art | 75% | 0.00M | 2.04M | 2.53M | 2.59M | 3.84M |
+| E3.2-pace | art | 100% | 0.00M | 2.04M | 2.53M | 3.51M | 4.25M |
+| E3.2-pace | art | unlimited | 0.00M | 2.04M | 2.53M | 3.51M | 6.08M |
 | E3.2-pace | cspaper | 10% | 0.00M | 0.10M | 0.12M | 0.08M | 0.11M |
 | E3.2-pace | cspaper | 25% | 0.00M | 0.23M | 0.26M | 0.28M | 0.23M |
 | E3.2-pace | cspaper | 50% | 0.00M | 0.23M | 0.26M | 0.31M | 0.38M |
@@ -173,7 +219,24 @@ runtime, and score. Build reads are charged separately (`build.json` per corpus 
 | E3.2-pace | legal | 75% | 0.00M | 7.99M | 11.97M | 12.07M | 19.89M |
 | E3.2-pace | legal | 100% | 0.00M | 7.99M | 11.97M | 16.02M | 25.98M |
 | E3.2-pace | legal | unlimited | 0.00M | 7.99M | 11.97M | 19.97M | 29.93M |
+| E3.2-pace | med | 10% | 0.00M | 1.98M | 1.97M | 1.98M | 1.03M |
+| E3.2-pace | med | 25% | 0.00M | 4.45M | 4.82M | 4.87M | 4.68M |
+| E3.2-pace | med | 50% | 0.00M | 5.38M | 7.80M | 8.02M | 9.94M |
+| E3.2-pace | med | 75% | 0.00M | 5.38M | 10.91M | 11.12M | 13.98M |
+| E3.2-pace | med | 100% | 0.00M | 5.38M | 11.07M | 13.30M | 17.24M |
 | E3.2-pace | med | unlimited | 0.00M | 5.38M | 11.07M | 14.56M | 19.92M |
+| E3.2-pace | player | 10% | 0.00M | 0.53M | 0.53M | 0.53M | 0.53M |
+| E3.2-pace | player | 25% | 0.00M | 0.55M | 1.40M | 1.40M | 1.02M |
+| E3.2-pace | player | 50% | 0.00M | 1.48M | 2.42M | 2.44M | 2.81M |
+| E3.2-pace | player | 75% | 0.00M | 1.48M | 3.35M | 3.36M | 3.84M |
+| E3.2-pace | player | 100% | 0.00M | 1.48M | 3.34M | 4.28M | 4.76M |
+| E3.2-pace | player | unlimited | 0.00M | 1.48M | 3.34M | 4.27M | 5.67M |
+| E6.2-stream-llama8b-cspaper | cspaper | unlimited | 0.00M |  |  |  | 1.26M |
+| E6.2-stream-llama8b-player | player | unlimited | 0.00M |  |  |  | 5.76M |
+| E6.2-stream-qwen32b-cspaper | cspaper | unlimited | 0.00M |  |  |  | 1.21M |
+| E6.2-stream-qwen32b-player | player | unlimited |  |  |  |  | 5.70M |
+| E7-stream-nullable-art | art | unlimited | 0.00M |  |  |  | 6.22M |
 | E7-stream-nullable-cspaper | cspaper | unlimited | 0.00M |  |  |  | 1.15M |
+| E7-stream-nullable-med | med | unlimited | 0.00M |  |  |  |  |
 | E7-stream-nullable-player | player | unlimited | 0.00M |  |  |  | 5.67M |
 | E7c-stream-contradicted-cspaper | cspaper | unlimited | 0.00M |  |  |  | 1.17M |
