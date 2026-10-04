@@ -1,4 +1,4 @@
-# Experiment status (2026-10-03T23:08:29-06:00)
+# Experiment status (2026-10-04T02:06:25-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -32,10 +32,10 @@
 | E3.2-oracle-med | gpu | done | 1 | ok 2026-10-03T12:33:25-06:00 |  |
 | E3.2-cap-med | gpu | done | 1 | ok 2026-10-03T14:14:36-06:00 |  |
 | E3.2-pace-med | gpu | done | 2 | ok 2026-10-03T23:08:28-06:00 |  |
-| E6.2-sr-llama8b | gpu | running-or-interrupted | 1 | start 2026-10-03T23:08:29-06:00 |  |
-| E6.2-stream-llama8b-player | gpu | pending | 0 |  |  |
-| E6.2-stream-llama8b-cspaper | gpu | pending | 0 |  |  |
-| E6.2-sr-qwen32b | gpu | pending | 0 |  |  |
+| E6.2-sr-llama8b | gpu | done | 1 | ok 2026-10-03T23:22:27-06:00 |  |
+| E6.2-stream-llama8b-player | gpu | done | 1 | ok 2026-10-04T01:16:36-06:00 |  |
+| E6.2-stream-llama8b-cspaper | gpu | done | 1 | ok 2026-10-04T01:51:50-06:00 |  |
+| E6.2-sr-qwen32b | gpu | running-or-interrupted | 2 | start 2026-10-04T02:06:25-06:00 |  |
 | E6.2-stream-qwen32b-cspaper | gpu | pending | 0 |  |  |
 | E6.2-stream-qwen32b-player | gpu | pending | 0 |  |  |
 | E3.2-oracle-player | gpu | pending | 0 |  |  |

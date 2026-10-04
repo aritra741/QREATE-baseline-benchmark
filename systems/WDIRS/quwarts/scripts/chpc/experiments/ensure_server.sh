@@ -43,7 +43,7 @@ GPU_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | hea
 if [ "${GPU_MB:-0}" -lt 60000 ]; then
   case "$NAME" in
     main) PARALLEL=8 ;;
-    qwen32b) PARALLEL=4; CTX=16384 ;;
+    qwen32b) PARALLEL=2; CTX=16384 ;;  # 4 slots put 2.4 of 43.5 GB on the CPU on a 40 GB A800
     *) PARALLEL=4; CTX=16384 ;;
   esac
 fi
