@@ -165,6 +165,17 @@ STEPS = [
               f"--workers 8 --out $D/execute",
        "outputs": [f"results/experiments/E5.4-planner-on-shared/t{t:03d}/execute/score.json"]}
       for t, f in ((25, 0.149), (75, 0.649))],
+    # ---- GPU lane: E11, other drift draws (QUWARTS_DRIFT_SEED): different withheld columns at about the same drift
+    # levels, all five levels, unlimited patching (static comes with each stream); reads reused where prompts match
+    *[{"id": f"E11-seed{sd}-{c}", "lane": "gpu", "deps": ["G0-prompt-guard"],
+       "cmd": PRE + f"python ../../{EXP}/clone.py --mode seed --corpus {c} --root results/experiments/E11-seed{sd}/live "
+              f"--scratch {SCRATCH}/E11-seed{sd} && " + server("main") +
+              f"QUWARTS_DRIFT_SEED={sd} QUWARTS_LIVE_ROOT=$OLDPWD/results/experiments/E11-seed{sd}/live "
+              f"QUWARTS_SCRATCH={SCRATCH}/E11-seed{sd} python -u -m quwarts.eval.drift_live --corpus {c} --run "
+              f"--streams fixed --axes attribute_pool --deadline 0 --workers 8",
+       "outputs": [f"results/experiments/E11-seed{sd}/live/{c}/streams/fixed4-attribute_pool_{p}.jsonl"
+                   for p in (0, 25, 50, 75, 100)]}
+      for sd in (1, 2, 3) for c in ("cspaper", "player")],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],

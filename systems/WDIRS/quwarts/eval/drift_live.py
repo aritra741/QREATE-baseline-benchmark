@@ -67,7 +67,7 @@ from quwarts.eval import drift_run as R
 CORPORA = ["cspaper", "art", "legal", "player", "med"]
 ALL_CORPORA = CORPORA + ["finan"]
 FIXED_LEVELS = (100, 0, 50, 25, 75)  # 100 first: it is the W0 build, shared with the paired streams
-FIXED_SEED = 0
+FIXED_SEED = int(os.environ.get("QUWARTS_DRIFT_SEED", 0))  # 0: the recorded design; others: robustness draws (E11)
 # Patch budgets (``--streams budget``): % of the patch tokens the unlimited stream spends at 100% drift on that corpus
 # and axis; 0% is the static build (recorded on every stream) and the unlimited stream is the fixed level itself.
 BUDGETS = (10, 25, 50, 75, 100)
@@ -623,6 +623,7 @@ def fixed_design(corpus: str, axis: str = "attribute") -> dict[str, Any]:
             rng.shuffle(o)
             orders.append(o)
     best = None
+    scored = []
     for o in orders:
         share = [100 * len(unanticipated(set(o[:k]))) / len(queries) for k in range(len(o) + 1)]
         ks, k0, cost = [], 0, 0.0
@@ -631,8 +632,14 @@ def fixed_design(corpus: str, axis: str = "attribute") -> dict[str, Any]:
             ks.append(k)
             k0 = k
             cost += abs(share[k] - t)
+        scored.append((cost, o, ks))
         if best is None or cost < best[0] - 1e-9:
             best = (cost, o, ks)
+    if FIXED_SEED:
+        # Robustness draws: a seeded choice among the orders whose level shares are within 10 percentage points
+        # (summed over the three levels) of the best, so the withheld columns differ at about the same drift.
+        near = [x for x in scored if x[0] <= best[0] + 10]
+        best = random.Random(f"order:{FIXED_SEED}").choice(near)
     _cost, order, ks = best
     prefix = {0: 0, **dict(zip(targets, ks)), 100: len(order)}
     levels = {}
