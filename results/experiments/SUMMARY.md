@@ -120,7 +120,8 @@ Cross-cutting causes:
 - **Benchmark metadata says "never null" where gold is often empty**: 69 of 132 never-null columns are empty in ≥5% of
   gold rows (57 used by the workloads); e.g. med `sequelae` 85%. The prompt must then invent values. Prompt-level
   fixes (dropping "Never null", a field-level null hint, relaxing only the contradictory field) move scores by −0.053
-  to +0.020: not a usable lever on this model.
+  to +0.020 on player and cspaper, and dropping "Never null" costs −0.043 on med (fewer invented values, many more
+  missed ones): not a usable lever on this model.
 - **Values right in substance, wrong in form**: lenient vs exact agreement, e.g. art `field` 0.92 vs 0.13; the
   benchmark's tolerant score is only 0.01–0.03 higher. Canonicalizing to the workload's vocabulary gains nothing
   (E8): the gaps are in GROUP BY labels the workload never names.

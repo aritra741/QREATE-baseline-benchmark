@@ -830,3 +830,10 @@ Art (`E3-policies/art/summary.json`; no MIN/MAX-over-text queries, so `fragile` 
 - **The per-patch cap** is never best and hurts small budgets on every corpus.
 - Whether skipping helps tracks the share of wasted patch tokens (E2.2): 0% on player (fcfs best), 16% on art, ~33–39%
   on cspaper, legal and med.
+
+**E7 on med (0% drift, fresh build with "Never null" dropped for text fields; `E7-stream-nullable-med/`):** 0.0952 →
+**0.0518 (−0.043)**, 8 queries up / 18 down. Over all three med tables, false fills fall from 842 to 710 of 1,262
+gold-empty cells, but misses rise from 276 to 446 of 2,204 gold values. Med is the corpus where gold is most often
+empty, yet relaxing hurts it most: its bottleneck is too few rows (see med above), and each additional empty value
+drops rows from groups and joins. This is the strongest evidence that the never-null instruction, contradictory as it
+is, is the better default on this model.
