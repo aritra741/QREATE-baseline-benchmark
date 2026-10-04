@@ -1,8 +1,8 @@
-# Experiment status (2026-10-04T13:28:44-06:00)
+# Experiment status (2026-10-04T14:31:15-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
-| G0-prompt-guard | gpu | done | 1 | ok 2026-10-02T12:42:33-06:00 |  |
+| G0-prompt-guard | gpu | done | 3 | ok 2026-10-04T14:08:13-06:00 |  |
 | P1-pull-fp16 | gpu | done | 2 | ok 2026-10-01T20:46:53-06:00 |  |
 | E1.2-sr-fp16 | gpu | done | 2 | ok 2026-10-01T20:56:34-06:00 |  |
 | E1.1-sr-rep1 | gpu | done | 1 | ok 2026-10-01T21:11:45-06:00 |  |
@@ -20,6 +20,11 @@
 | E2.1b-width-legal | gpu | done | 2 | ok 2026-10-02T17:45:35-06:00 |  |
 | E2.1b-width-cspaper | gpu | done | 2 | ok 2026-10-02T18:07:34-06:00 |  |
 | E2.1b-width-med | gpu | done | 2 | ok 2026-10-02T18:49:17-06:00 |  |
+| E5.0-sr-plain | gpu | done | 1 | ok 2026-10-04T13:38:27-06:00 |  |
+| E5.2-planner-protocol-f025 | gpu | done | 1 | ok 2026-10-04T13:52:01-06:00 |  |
+| E5.2-planner-protocol-f075 | gpu | done | 1 | ok 2026-10-04T14:06:16-06:00 |  |
+| E5.3-planner-joinweight-f025 | gpu | done | 1 | ok 2026-10-04T14:19:34-06:00 |  |
+| E5.3-planner-joinweight-f075 | gpu | done | 1 | ok 2026-10-04T14:31:14-06:00 |  |
 | E3.2-fragile-legal | gpu | done | 2 | ok 2026-10-02T21:17:30-06:00 |  |
 | E3.2-fragile-med | gpu | done | 2 | ok 2026-10-02T22:50:20-06:00 |  |
 | E3.2-fragile-cspaper | gpu | done | 2 | ok 2026-10-02T23:02:02-06:00 |  |

@@ -919,3 +919,11 @@ of DocETL's player tokens):
 - **No planner configuration reaches the plain shared read with descriptions (0.560 at 1.3M), at any budget.** The
   planner opens a per-query context whenever probes show a small gain, and only counts the shared read as an option
   once probed; a single shared read of every workload column is cheaper and better than any plan it finds.
+
+**Why no plan reaches the shared read (from the planner's code, `core/router/facility.py: need_distances`).** The
+planner's loss for serving a need from a provider is the *disagreement* between the provider's read and the need's
+own per-query read, measured on probed documents; a need's own context has zero loss by definition, unmeasured sharing
+is infeasible (infinite loss), and an unread column costs 1. So the objective treats each query's own read as the
+truth: sharing can only add loss, and a single shared read that is *more* accurate than per-query reads (as the
+protocol shared read is, with the descriptions and the whole workload's usage) cannot be recognised. Fixing this needs
+a different objective (e.g. agreement across contexts, or a small labelled sample), not a different budget or weight.
