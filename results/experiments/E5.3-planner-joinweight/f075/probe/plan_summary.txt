@@ -1,0 +1,28 @@
+corpus=player router-v3 expected loss/query: point=0.106 upper=0.807 planned=2,283,656/7,845,167 probe=1,777,259 theta=9,622,426 own-context cost=12,250,214 plan=9a764a95a65b
+  table city: open ['__canonical__']
+  table owner: open ['docetl_Player_v7:q17', 'player_join20:q8', 'player_multiagg20:q15']
+  table player: open ['__canonical__']
+  table team: open ['__canonical__', 'docetl_Player_v7:q14']
+  city.city_name                           canonical<-5q
+  city.population                          canonical<-3q
+  city.state_name                          canonical<-6q
+  owner.name                               player_multiagg20:q15<-1q
+  owner.nationality                        docetl_Player_v7:q17<-1q | player_join20:q8<-4q
+  owner.nba_team                           player_join20:q8<-2q | player_multiagg20:q15<-3q
+  owner.own_year                           docetl_Player_v7:q17<-2q
+  player.age                               canonical<-5q
+  player.college                           canonical<-1q
+  player.draft_pick                        canonical<-2q
+  player.draft_year                        canonical<-1q
+  player.fiba_world_cup                    canonical<-1q
+  player.mvp_awards                        canonical<-2q
+  player.nationality                       canonical<-1q
+  player.nba_championships                 incumbent<-2q
+  player.olympic_gold_medals               canonical<-1q
+  player.position                          canonical<-2q
+  player.team                              canonical<-5q | incumbent<-1q
+  team.championship                        docetl_Player_v7:q14<-5q
+  team.founded_year                        canonical<-3q
+  team.location                            canonical<-6q
+  team.ownership                           docetl_Player_v7:q14<-1q
+  team.team_name                           canonical<-8q

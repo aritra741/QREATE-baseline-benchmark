@@ -89,8 +89,10 @@ planner matches it at a 25% budget (0.232, 2.6M) and beats it at 75–100% (**0.
 themselves are worth **+0.33** (structure F2 0.42 → 0.87), the largest single effect measured.
 
 Where the planner loses points (E5.1): at budgets up to 50%, mostly join keys it leaves unread (each such query
-zeroes; the planner values columns one by one); at 75–100%, the values of columns it does read. Pending: the planner
-with the descriptions (E5.2).
+zeroes; the planner values columns one by one); at 75–100%, the values of columns it does read. With the descriptions too
+(E5.2), the planner reaches 0.247 at 25% and 0.381 at 75%; weighting join keys as the whole query (E5.3) gives 0.422 at
+75% but 0.199 at 25%. **No planner configuration reaches the shared read with descriptions (0.560 at 1.3M tokens)**:
+the planner prefers per-query contexts and undervalues one shared read of every workload column.
 
 ## RQ6: order effects and consistency
 

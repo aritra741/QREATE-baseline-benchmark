@@ -899,3 +899,23 @@ read: it matches it at a 25% budget and beats it by +0.11 at 75% and above (all 
 information. **The benchmark's column descriptions are worth +0.33 on the held-out queries (structure F2 0.419 →
 0.868)**, the largest single effect measured, larger than model scale (7B → 32B: +0.13). The planner should be re-run
 with the protocol field specs to compare like with like at the higher level (E5.2).
+
+## E5.2 / E5.3: the planner with descriptions, and with join keys weighted as the whole query
+
+Player, 20 held-out queries, 4-bit server (`E5.2-planner-protocol/`, `E5.3-planner-joinweight/`; budgets as fractions
+of DocETL's player tokens):
+
+| Configuration | 25% budget | 75% budget |
+|---|---|---|
+| Planner, names and types only (sweep) | 0.232 (2.6M) | 0.340 (5.6M) |
+| E5.2: planner with descriptions | 0.247 (2.4M) | 0.381 (3.9M) |
+| E5.3: with descriptions, join keys weighted 1.0 | 0.199 (2.7M) | **0.422** (3.4M) |
+| Shared read with descriptions (reference) | 0.560 (1.3M) | |
+
+- **Descriptions help the planner much less than the shared read** (+0.015 / +0.041 vs +0.33): at 25% the planner
+  still leaves join keys unread (10 queries, the whole gap); where it reads every column it matches the shared read.
+- **Weighting join keys as the whole query helps at 75% (+0.041) and hurts at 25% (−0.048).** At 25% the plan buys
+  `player.team` through one query's own (expensive) context and drops the shared read of six other player columns.
+- **No planner configuration reaches the plain shared read with descriptions (0.560 at 1.3M), at any budget.** The
+  planner opens a per-query context whenever probes show a small gain, and only counts the shared read as an option
+  once probed; a single shared read of every workload column is cheaper and better than any plan it finds.
