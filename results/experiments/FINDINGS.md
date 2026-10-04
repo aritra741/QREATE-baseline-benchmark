@@ -692,3 +692,19 @@ nothing; the fragile rule also skips patches whose columns later queries read be
 **Cap on med**: 0.0812 at 147M tokens (fcfs 0.0797 at 154M, fragile 0.0828 at 130M); it hurts the 10% budget (0.041 vs
 0.051 at 100% drift) and helps the 25% budget (0.084 vs 0.055). Pace on med, and all policies on player and art, run
 on the next job.
+
+**Pace on med** (finished on job 16050764, A800 40GB node; same 4-bit model): 0.0821 at 145M tokens.
+
+**Budget policies on the three corpora with budget anomalies** (mean over 25 streams each; tokens in parentheses):
+
+| Policy | cspaper | legal | med |
+|---|---|---|---|
+| fcfs (recorded) | 0.1453 (7.9M) | 0.1106 (219M) | 0.0797 (154M) |
+| fragile | 0.1453 (7.9M) | **0.1136** (158M) | **0.0828** (130M) |
+| oracle (hindsight) | 0.1453 (7.2M) | 0.1129 (158M) | 0.0797 (130M) |
+| cap | 0.1398 (6.1M) | 0.0992 (167M) | 0.0812 (147M) |
+| pace | **0.1466** (6.0M) | 0.1030 (177M) | 0.0821 (145M) |
+
+The SQL-based `fragile` rule is the best or tied-best on legal and med, a no-op on cspaper, and never below fcfs; it
+matches or beats the hindsight oracle everywhere. Pacing is best on cspaper and second on med but loses on legal;
+the per-patch cap is the weakest overall. Player and art follow.

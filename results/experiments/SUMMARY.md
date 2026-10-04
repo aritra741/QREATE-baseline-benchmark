@@ -63,7 +63,7 @@ hindsight oracle 0.1453 / 0.1129; per-patch cap 0.1398 / 0.0992; pacing **0.1466
 (and beats unlimited there at high budgets: 0.172 at 0.54M vs 0.153 at 1.16M) but worst-but-one on legal, where it
 delays the useful early patches; the cap hurts small budgets on both. **The SQL-based `fragile` rule is the only
 policy that never hurts**, and on legal it matches the hindsight oracle. On med: fcfs 0.0797, fragile **0.0828**, oracle
-0.0797, cap 0.0812 (pace pending). Pending: pace on med, all policies on player and art.
+0.0797, cap 0.0812, pace 0.0821. Pending: all policies on player and art.
 
 ## RQ4: estimating cost and value
 
