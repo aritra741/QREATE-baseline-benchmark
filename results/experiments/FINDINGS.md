@@ -880,3 +880,22 @@ query needs is empty (under 5% of rows filled); another needed column is empty; 
 while the shared read it was compared with (0.560) used the protocol variant (the benchmark's column descriptions,
 allowed values and nullability). Part of the "planner vs shared read" gap is therefore information, not planning.
 **E5.0 (running)** re-runs the shared read with the planner's field specs on the same server, to separate the two.
+
+## E5.0: the shared read without descriptions — the planner comparison corrected
+
+Player shared read on the 4-bit server with the planner's field specs (each column's name and SQL type only), against
+the protocol read with the benchmark's descriptions (`results/quwarts_router_v3/player_ollama_plain/shared_read/`):
+
+| Player, held-out 20 | Score | Structure F2 | Cell F1 | Tokens |
+|---|---|---|---|---|
+| Shared read, protocol (descriptions, allowed values, nullability) | 0.560 | 0.868 | 0.615 | 1.30M |
+| **Shared read, plain (names and types only)** | **0.234** | 0.419 | 0.288 | 1.25M |
+| Planner, 25% budget (names and types only) | 0.232 | | | 2.63M |
+| Planner, 75–100% budget (names and types only) | **0.340** | | | 5.5–6.7M |
+
+**Correction of the earlier RQ5 reading.** With the same column information, the planner does not lose to the shared
+read: it matches it at a 25% budget and beats it by +0.11 at 75% and above (all 100 queries: plain shared read
+0.212). The "planner 0.340 vs shared read 0.560" gap reported since 2026-10-01 was entirely the difference in input
+information. **The benchmark's column descriptions are worth +0.33 on the held-out queries (structure F2 0.419 →
+0.868)**, the largest single effect measured, larger than model scale (7B → 32B: +0.13). The planner should be re-run
+with the protocol field specs to compare like with like at the higher level (E5.2).

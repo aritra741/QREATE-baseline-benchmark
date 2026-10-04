@@ -80,14 +80,17 @@ and legal; the cap is never best. Whether skipping helps tracks the share of was
   columns), unlimited at 100% drift: player 0%, art 16%, med 32%, legal 39%, cspaper 39%.
 - One value signal is visible in the SQL alone: MIN/MAX over text (RQ3).
 
-## RQ5: why the planner loses to a simple shared read
+## RQ5: the planner vs a single shared read
 
-Player, same 20 held-out queries, same server: one shared read of every input-workload column scores **0.560 at
-1.3M tokens**; the budgeted planner at most **0.340 at 5.5–6.7M**. **Caveat:** the shared read used the benchmark's
-column descriptions, the planner's reads only names and types; a shared read with the planner's field specs (E5.0) is
-running to separate information from planning. Attribution (E5.1): at budgets up to 50% most of the gap is join keys
-the planner left unread (each such query zeroes); at 75–100% the planner reads every column and the gap is in the
-values (15 of 20 queries).
+**Corrected (2026-10-04).** The earlier comparison (planner 0.340 vs shared read 0.560) mixed planning with input
+information: the shared read had the benchmark's column descriptions, the planner's reads only names and types. With
+the same information (E5.0), the shared read scores **0.234** on the 20 held-out player queries (1.25M tokens); the
+planner matches it at a 25% budget (0.232, 2.6M) and beats it at 75–100% (**0.340**, 5.5–6.7M). The descriptions
+themselves are worth **+0.33** (structure F2 0.42 → 0.87), the largest single effect measured.
+
+Where the planner loses points (E5.1): at budgets up to 50%, mostly join keys it leaves unread (each such query
+zeroes; the planner values columns one by one); at 75–100%, the values of columns it does read. Pending: the planner
+with the descriptions (E5.2).
 
 ## RQ6: order effects and consistency
 
