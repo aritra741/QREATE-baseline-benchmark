@@ -11,7 +11,9 @@ FP16 = "qwen2.5:7b-instruct-fp16"
 # E6.2, each on its own server. qwen32b replaced qwen14b (2026-10-02, before any 14B step ran): 4-bit, 4 slots at a
 # 16k context (see ensure_server.sh), about 4-5x slower than 7B, so it runs fewer streams.
 OTHER_MODELS = {"llama8b": "llama3.1:8b", "qwen32b": "qwen2.5:32b-instruct"}
-MODEL_ENV = {"qwen32b": "OLLAMA_NUM_CTX=16384 "}  # the 32B server's context; requests must match it
+# The extra servers' context (requests must match it, or Ollama reloads the model): Llama gets 16k so that it fits
+# beside main on a 40 GB GPU; the 32B model 16k always.
+MODEL_ENV = {"qwen32b": "OLLAMA_NUM_CTX=16384 ", "llama8b": "OLLAMA_NUM_CTX=16384 "}
 MODEL_STREAMS = {"llama8b": [("player", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
                              ("cspaper", "fixed4-attribute_pool/0,fixed4-attribute_pool/100")],
                  "qwen32b": [("cspaper", "fixed4-attribute_pool/0,fixed4-attribute_pool/100"),
@@ -156,3 +158,10 @@ STEPS = [
      "cmd": PRE + "python -u -m quwarts.eval.exp_analysis variance",
      "outputs": ["results/experiments/E1-variance/summary.json"], "skip_if_outputs": False},
 ]
+
+# The 32B steps take the whole GPU on a GPU under 60 GB (gpu_exclusive.sh pauses DocETL, stops main, restores both).
+import shlex as _shlex  # noqa: E402
+
+for _s in STEPS:
+    if _s["id"].startswith("E6.2-") and "qwen32b" in _s["id"]:
+        _s["cmd"] = f"bash {EXP}/gpu_exclusive.sh bash -c {_shlex.quote(_s['cmd'])}"

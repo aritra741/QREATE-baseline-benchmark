@@ -33,10 +33,20 @@ done
 PORT=$(python -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')
 LOG=$REPO/results/experiments/logs/ollama_$NAME.log
 echo "$(date -Is) starting server $NAME on port $PORT (models in $OLLAMA_MODELS)" >> "$LOG"
-# Slots: 16 as in the recorded runs (main); any other server gets 8, since Ollama sizes 16 slots at 32k beyond the
+# Slots (on a GPU of 60 GB or more): 16 as in the recorded runs (main); any other server gets 8, since Ollama sizes 16 slots at 32k beyond the
 # GPU memory left beside the main server, and would put the rest on the CPU.
 # The 32B model (20 GB at 4-bit, about 8.6 GB of KV cache per slot at 32k) gets 4 slots at a 16k context.
 PARALLEL=16; CTX=32768; [ "$NAME" != main ] && PARALLEL=8; [ "$NAME" = qwen32b ] && PARALLEL=4 && CTX=16384
+# A GPU under 60 GB (e.g. A800 40GB): main gets 8 slots (about 19 GB), Llama / 16-bit 4 slots at 16k beside it, and the
+# 32B model the whole GPU (gpu_exclusive.sh stops main and pauses DocETL for its steps).
+GPU_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -1)
+if [ "${GPU_MB:-0}" -lt 60000 ]; then
+  case "$NAME" in
+    main) PARALLEL=8 ;;
+    qwen32b) PARALLEL=4; CTX=16384 ;;
+    *) PARALLEL=4; CTX=16384 ;;
+  esac
+fi
 OLLAMA_HOST=127.0.0.1:$PORT OLLAMA_NUM_PARALLEL=$PARALLEL OLLAMA_CONTEXT_LENGTH=$CTX OLLAMA_MAX_LOADED_MODELS=1 \
   OLLAMA_KEEP_ALIVE=72h OLLAMA_MODELS=$OLLAMA_MODELS setsid nohup ollama serve >> "$LOG" 2>&1 < /dev/null &
 PID=$!

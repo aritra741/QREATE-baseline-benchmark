@@ -14,6 +14,10 @@ setsid nohup ~/venvs/quwarts/bin/python -u systems/WDIRS/quwarts/scripts/chpc/ex
 
 - It starts its own Ollama servers when none is up (`ensure_server.sh`: `main` for the 4-bit 7B model, one extra for
   the 16-bit / Llama / Qwen 32B steps), checks each is on the GPU, and records them in `results/experiments/servers/`.
+- Server sizes follow the GPU (`ensure_server.sh`): with 60 GB or more, main has 16 slots and extra servers 8; under
+  60 GB (e.g. an A800 40GB), main has 8 slots, Llama / 16-bit 4 slots at 16k beside it, and the Qwen 32B steps take
+  the whole GPU through `gpu_exclusive.sh` (DocETL paused with SIGSTOP, main stopped, both restored afterwards; see
+  `results/experiments/logs/gpu_exclusive.log`).
 - The first GPU step is the prompt guard (`G0-prompt-guard`, already done; reset it with
   `runner.py --reset G0-prompt-guard` after any change to prompt or field-spec code).
 - Status: `python systems/WDIRS/quwarts/scripts/chpc/experiments/runner.py --status` (or `results/experiments/STATUS.md`).
