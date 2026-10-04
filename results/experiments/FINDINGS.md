@@ -786,3 +786,18 @@ context better than the build read's.
 its score under full drift while the static build collapses to 0.01–0.05, at the same patch cost for every model. A
 stronger model raises every number (32B: player 0.421, cspaper 0.224 at 100% drift) without changing the patch cost,
 so the adaptive-vs-static result is not an artifact of the 7B model.
+
+## E3.2: budget policies on player
+
+(`E3-policies/player/summary.json`; player has no MIN/MAX-over-text patches to skip, so `fragile` = fcfs.)
+
+| Policy | Mean score | Tokens | 100% drift: 10% / 25% / 50% / 75% / 100% budget |
+|---|---|---|---|
+| fcfs | **0.3363** | 43.0M | 0.142 / 0.176 / 0.292 / 0.355 / 0.387 |
+| oracle | 0.3363 | 43.0M | identical (no patch on player bought nothing) |
+| cap | 0.3076 | 29.8M | 0.120 / 0.120 / 0.150 / 0.355 / 0.387 |
+| pace | 0.3260 | 41.5M | 0.126 / 0.150 / 0.318 / 0.337 / 0.347 |
+
+On player every patch pays off (E2.2), so first-come-first-served is already the best policy: skipping or delaying
+patches only loses score (cap −0.029, pace −0.010). This is the counterpart of legal and med, where a third of patch
+tokens bought nothing and skipping them helped.
