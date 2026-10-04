@@ -961,3 +961,34 @@ Two cheap signals carry most of the information: **MIN/MAX over text** (two thir
 quarters of all waste) and **an unfiltered, whole-corpus patch** (almost all waste is there, but 56% of those tokens
 do pay off, so it marks risk, not certainty). Scoped (filtered) and numeric-aggregate patches almost never waste.
 This is why the SQL-only `fragile` rule matches the hindsight oracle on legal and med (E3.2). Computed from `E2.2-patches/<corpus>/patches.csv` and the query features of E9.
+
+## E1.4: read ahead or patch later? (anticipation, from the drift levels)
+
+Drift level p builds with (100 − p)% of the new columns anticipated and patches the rest on arrival, so the five
+levels are an anticipation sweep. Total tokens (build + patches, unlimited) and score (`fixed_levels.csv`, streams):
+
+| Corpus | All anticipated (0%) | 25% | 50% | 75% | None anticipated (100%) | Lazy ÷ eager tokens |
+|---|---|---|---|---|---|---|
+| cspaper | 0.55M, 0.134 | 0.76M, 0.154 | 0.96M, 0.147 | 1.16M, 0.149 | 1.56M, 0.153 | 2.8× |
+| player | 2.12M, 0.379 | 3.58M, 0.381 | 5.41M, 0.390 | 6.33M, 0.389 | 7.71M, 0.387 | 3.6× |
+| art | 3.18M, 0.270 | 4.98M, 0.266 | 5.37M, 0.267 | 6.28M, 0.260 | 8.52M, 0.256 | 2.7× |
+| med | 2.87M, 0.095 | 8.15M, 0.087 | 13.76M, 0.094 | 17.20M, 0.081 | 22.47M, 0.086 | 7.8× |
+| legal | 5.05M, 0.121 | 12.94M, 0.122 | 16.86M, 0.127 | 24.74M, 0.113 | 34.49M, 0.114 | 6.8× |
+
+**Reading a column ahead is far cheaper than patching it later, at about the same score**: anticipating adds the
+column's field line to prompts that are read anyway, while a patch re-reads every document in scope. Extra build
+tokens to anticipate *all* new columns vs patching them all later, and the break-even probability (anticipate a
+column if the chance a query will need it exceeds this):
+
+| Corpus | Anticipate all | Patch all later | Break-even probability |
+|---|---|---|---|
+| player | 0.07M | 5.67M | **1.3%** |
+| med | 0.33M | 19.92M | **1.6%** |
+| legal | 0.49M | 29.93M | **1.6%** |
+| art | 0.74M | 6.08M | 12% |
+| cspaper | 0.15M | 1.16M | 13% |
+
+**Answer to RQ1:** speculative reading ahead is cheap insurance. On player, med and legal a column is worth reading
+up front if there is even a 2% chance a future query will use it; on art and cspaper, 12–13%. Adaptive patching
+remains essential for columns nobody anticipated (static collapses without it), but a system should anticipate
+generously and patch only what it could not foresee.

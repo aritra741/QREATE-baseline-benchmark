@@ -33,8 +33,11 @@ Adaptive patching holds the score as drift grows; the static build collapses.
 | med | 0.095 → 0.031 | 0.095 → 0.086 | 19.9M |
 
 Build costs of the 0–75% levels (E1.3): the measured W0 read plus exactly counted extra prompt lines, with only the
-answer tokens estimated (12 per field; measured 9.5–15); accurate to within about 2%. Not done: the anticipation
-sweep (E1.4).
+answer tokens estimated (12 per field; measured 9.5–15); accurate to within about 2%. **Reading ahead vs patching later (E1.4):** the drift
+levels form an anticipation sweep. Anticipating every new column costs 0.07–0.74M extra build tokens; patching them
+all later costs 1.2–29.9M, at about the same score (lazy ÷ eager total tokens 2.7–7.8×). A column is worth reading up
+front if the chance a query will need it exceeds **1.3–1.6%** (player, med, legal) or 12–13% (art, cspaper): anticipate
+generously, patch only what could not be foreseen.
 
 ## RQ2: is a narrow patch read more accurate than a wide build read?
 
