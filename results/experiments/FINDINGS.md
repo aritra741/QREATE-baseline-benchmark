@@ -939,3 +939,25 @@ answers are a small share of a build (supplement output 0.02–0.11M vs builds o
 are accurate to within about 2%.** The `measured_tokens` field (W0 read plus the separate supplement read, e.g. 4.04M
 vs 2.12M on player) is what this experiment paid, not what a system that anticipated the columns would pay; it is an
 upper bound. No GPU run is needed for RQ1's cost side.
+
+## E4.1: can a patch's value be predicted before it is read?
+
+All 138 patches of the unlimited streams at 100% drift (five corpora; 152M tokens, of which 44.5M (29%) bought no
+score on their query or any later query using their columns). For signals visible from the SQL before reading: the
+share of that signal's patch tokens that bought nothing, and the share of all wasted tokens it covers:
+
+| Signal (from the query's SQL) | Patches | Tokens | Wasted share | Covers of all waste |
+|---|---|---|---|---|
+| MIN/MAX over a text column | 23 | 47.9M | **0.68** | **0.73** |
+| MIN/MAX over a number | 28 | 37.5M | 0.10 | 0.08 |
+| COUNT only | 63 | 50.0M | 0.16 | 0.18 |
+| AVG / SUM | 24 | 16.8M | 0.01 | 0.01 |
+| Has a join | 46 | 41.7M | 0.18 | 0.17 |
+| No filter (patch reads the whole corpus) | 70 | 90.0M | 0.44 | 0.89 |
+| Filtered (patch scoped by pushdown) | 68 | 62.3M | 0.08 | 0.11 |
+| ≥ 500 documents read | 24 | 58.9M | 0.42 | 0.56 |
+
+Two cheap signals carry most of the information: **MIN/MAX over text** (two thirds of its tokens wasted; three
+quarters of all waste) and **an unfiltered, whole-corpus patch** (almost all waste is there, but 56% of those tokens
+do pay off, so it marks risk, not certainty). Scoped (filtered) and numeric-aggregate patches almost never waste.
+This is why the SQL-only `fragile` rule matches the hindsight oracle on legal and med (E3.2). Computed from `E2.2-patches/<corpus>/patches.csv` and the query features of E9.

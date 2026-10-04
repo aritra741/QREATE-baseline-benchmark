@@ -80,7 +80,9 @@ and legal; the cap is never best. Whether skipping helps tracks the share of was
 - **Cost estimates are accurate**: median estimated/actual patch tokens 0.997–1.005 on all five corpora.
 - **Value is the hard part**: share of patch tokens that bought no score (on the query or any later query using the
   columns), unlimited at 100% drift: player 0%, art 16%, med 32%, legal 39%, cspaper 39%.
-- One value signal is visible in the SQL alone: MIN/MAX over text (RQ3).
+- Value signals visible in the SQL (E4.1, 138 patches, 29% of patch tokens wasted): **MIN/MAX over a text column**
+  (68% of its tokens wasted; 73% of all waste) and **an unfiltered whole-corpus patch** (89% of all waste, but only
+  44% of its own tokens wasted). Filtered patches waste 8%, AVG/SUM patches 1%.
 
 ## RQ5: the planner vs a single shared read
 
