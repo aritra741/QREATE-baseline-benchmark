@@ -109,7 +109,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.score:
         values = load_values(journal)
-        dbs = materialize_plan(spec, plan, values, fields, spec.incumbent_db, root / "databases", args.policy, queries)
+        import os
+
+        incumbent = Path(os.environ["QUWARTS_INCUMBENT_DB"]) if os.environ.get("QUWARTS_INCUMBENT_DB") else spec.incumbent_db
+        dbs = materialize_plan(spec, plan, values, fields, incumbent, root / "databases", args.policy, queries)
         manifest = {q: {**info, "sha256": file_sha(Path(info["db"]))} for q, info in dbs.items()}
         spent = sum(json.loads(l)["tokens"] for l in journal.read_text().splitlines()) if journal.exists() else 0
         freeze = {"policy": args.policy, "execution_tokens": spent, "databases": manifest,

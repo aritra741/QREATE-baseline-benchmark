@@ -78,7 +78,12 @@ def build_plan_v3(
     corpora = {t.sql_name: table_corpus(t) for t in spec.tables if any(n.table == t.sql_name for n in needs)}
     doc_tokens = {name: tc.tokens for name, tc in corpora.items()}
     read_cost = {name: tc.full_read_cost() for name, tc in corpora.items()}
-    db = incumbent_db or spec.incumbent_db
+    # QUWARTS_INCUMBENT_DB (E5.4): a database the plan builds on, e.g. a shared read (its values are the fallback that
+    # "leave unread" keeps, and planned reads only fill its gaps under the executor's default fill policy).
+    import os
+
+    db = incumbent_db or (Path(os.environ["QUWARTS_INCUMBENT_DB"]) if os.environ.get("QUWARTS_INCUMBENT_DB") else None) \
+        or spec.incumbent_db
     incumbent = load_incumbent(spec, db)
 
     probe_budget = int(theta * PROBE_FRACTION)

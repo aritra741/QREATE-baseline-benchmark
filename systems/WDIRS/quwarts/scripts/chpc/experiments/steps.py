@@ -152,6 +152,19 @@ STEPS = [
               f"--workers 8 --out $D/execute",
        "outputs": [f"results/experiments/E5.3-planner-joinweight/f{round(f * 100):03d}/execute/score.json"]}
       for f in (0.25, 0.75)],
+    # ---- GPU lane: E5.4, the planner (with descriptions) building on the protocol shared read (1.30M tokens): the
+    # shared read is the fallback for "leave unread" and planned reads only fill its gaps; planner budgets are the 25%
+    # and 75% targets minus the shared read (0.149 and 0.649 of DocETL's player tokens)
+    *[{"id": f"E5.4-planner-on-shared-t{t:03d}", "lane": "gpu", "deps": ["G0-prompt-guard"],
+       "cmd": PRE + server("main") + "export QUWARTS_FIELDS=protocol "
+              "QUWARTS_INCUMBENT_DB=$OLDPWD/results/quwarts_router_v3/player_ollama/shared_read_protocol/read_first_blank.db && "
+              f"D=$OLDPWD/results/experiments/E5.4-planner-on-shared/t{t:03d} && "
+              f"{{ [ -f $D/probe/plan.json ] || {{ rm -f $D/probe/probe_journal.jsonl; "
+              f"python -u -m quwarts.eval.router_plan_v3 --corpus player --fraction {f} --probe --out $D; }}; }} && "
+              f"python -u -m quwarts.eval.router_execute_v3 --corpus player --plan $D/probe/plan.json --reads --score "
+              f"--workers 8 --out $D/execute",
+       "outputs": [f"results/experiments/E5.4-planner-on-shared/t{t:03d}/execute/score.json"]}
+      for t, f in ((25, 0.149), (75, 0.649))],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],
