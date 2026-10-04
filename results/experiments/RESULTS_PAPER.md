@@ -3,7 +3,10 @@
 Paper-style answers to the eight research questions. Each section states the question, the answer in one or two
 sentences, the evidence, the implication for system design, and the scope of the evidence. The internal record (all
 runs, case studies, corrections) is `FINDINGS.md`; the digest with every number is `SUMMARY.md`. Figures are
-generated from the result files by `systems/WDIRS/quwarts/scripts/plot_results_paper.py` into `figures/`.
+generated from the result files by `systems/WDIRS/quwarts/scripts/plot_results_paper.py` into `figures/`. A
+self-contained Word version with the figures embedded is `RESULTS_PAPER.docx` (rebuild: `module load pandoc/2.19.2`,
+then from this folder `sed -E 's#\]\(figures/([a-z0-9_]+\.png)\)#](figures/\1){width=6.5in}#' RESULTS_PAPER.md | pandoc
+-f markdown+pipe_tables+link_attributes-implicit_figures -t docx --resource-path=. -o RESULTS_PAPER.docx`).
 
 ## Setting and terms
 
