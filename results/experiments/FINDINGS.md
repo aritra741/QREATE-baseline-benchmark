@@ -734,3 +734,15 @@ calls, 0 prompts possibly truncated, 4 answers cut off):
 **The drift result holds across model families**: with Llama the adaptive stream keeps its score from 0% to 100%
 drift (0.356 → 0.359) while the static build collapses to the same 0.040, at the same patch cost. Llama is about 0.03
 below Qwen throughout.
+
+**Llama 3.1 8B, cspaper drift streams** (`E6.2-stream-llama8b-cspaper/`):
+
+| Model | Adaptive, 0% drift | Adaptive, 100% | Static, 100% | Patch tokens at 100% |
+|---|---|---|---|---|
+| Qwen 2.5 7B, 4-bit (recorded) | 0.134 | 0.153 | 0.008 | 1.16M |
+| Llama 3.1 8B, 4-bit | 0.149 | 0.125 | 0.008 | 1.26M |
+
+On cspaper Llama starts higher than Qwen (0.149 vs 0.134) and loses some score under drift (0.125 at 100%), where
+Qwen gained; adaptive still recovers most of what static loses (static 0.008 for both). Across the two corpora the
+adaptive-vs-static gap holds for both model families; the small rises of Qwen's adaptive curve under drift are
+model-specific.
