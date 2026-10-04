@@ -142,6 +142,16 @@ STEPS = [
               f"--workers 8 --out $D/execute",
        "outputs": [f"results/experiments/E5.2-planner-protocol/f{round(f * 100):03d}/execute/score.json"]}
       for f in (0.25, 0.75)],
+    # ---- GPU lane: E5.3, as E5.2 plus join keys weighted as the whole query (QUWARTS_JOIN_WEIGHT=1)
+    *[{"id": f"E5.3-planner-joinweight-f{round(f * 100):03d}", "lane": "gpu", "deps": ["G0-prompt-guard"],
+       "cmd": PRE + server("main") + "export QUWARTS_FIELDS=protocol QUWARTS_JOIN_WEIGHT=1 && "
+              f"D=$OLDPWD/results/experiments/E5.3-planner-joinweight/f{round(f * 100):03d} && "
+              f"{{ [ -f $D/probe/plan.json ] || {{ rm -f $D/probe/probe_journal.jsonl; "
+              f"python -u -m quwarts.eval.router_plan_v3 --corpus player --fraction {f} --probe --out $D; }}; }} && "
+              f"python -u -m quwarts.eval.router_execute_v3 --corpus player --plan $D/probe/plan.json --reads --score "
+              f"--workers 8 --out $D/execute",
+       "outputs": [f"results/experiments/E5.3-planner-joinweight/f{round(f * 100):03d}/execute/score.json"]}
+      for f in (0.25, 0.75)],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],

@@ -17,6 +17,8 @@ its predicate needs, but not the other way round.
 
 from __future__ import annotations
 
+import os
+
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
@@ -131,6 +133,11 @@ def query_needs(query_id: str, sql: str, table_attrs: dict[str, set[str]]) -> li
         )
     # Each query carries weight 1, split over its needs: the benchmark averages per query.
     share = 1.0 / len(needs) if needs else 0.0
+    if os.environ.get("QUWARTS_JOIN_WEIGHT"):
+        # E5.3: a join key carries the whole query's weight (an unread join key zeroes the query, whatever else is read).
+        join_keys = {resolved(c) for j in tree.find_all(exp.Join) for c in j.find_all(exp.Column)} - {None}
+        return [Need(**{**asdict(need), "weight": 1.0 if (need.table, need.attribute) in join_keys else share})
+                for need in needs]
     return [Need(**{**asdict(need), "weight": share}) for need in needs]
 
 

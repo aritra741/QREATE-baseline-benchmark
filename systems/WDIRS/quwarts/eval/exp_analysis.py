@@ -931,7 +931,8 @@ def accounting() -> dict:
 
 # ------------------------------------------------------------------------------------------ E5.1 planner losses
 
-def planner_losses() -> dict:
+def planner_losses(sweep: Path | None = None, shared_run: str = "player_ollama/shared_read_protocol",
+                   out_name: str = "E5.1-planner") -> dict:
     """E5.1: why the budgeted planner loses to one shared read on player. For each budget of the planner sweep and each
     held-out query, the score gap to the shared read (same 4-bit server) is attributed to the first cause that applies:
     a join key the query needs is (almost) empty in the planner's database; another needed column is empty; or every
@@ -944,10 +945,12 @@ def planner_losses() -> dict:
 
     sql = {r["query_id"]: r["sql"] for r in load_queries()}
     shared = {r["query_id"]: r["product"] for r in json.loads(
-        (REPO / "results/quwarts_router_v3/player_ollama/shared_read_protocol/score_blank.json").read_text())["read_first"]["per_query"]}
+        (REPO / "results/quwarts_router_v3" / shared_run / "score_blank.json").read_text())["read_first"]["per_query"]}
     out: dict = {}
     rows = []
-    for d in sorted((REPO / "results" / "quwarts_player_budget_sweep_ollama").glob("f*")):
+    for d in sorted((sweep or REPO / "results" / "quwarts_player_budget_sweep_ollama").glob("f*")):
+        if not (d / "execute" / "score.json").exists():
+            continue
         score = json.loads((d / "execute" / "score.json").read_text())
         frozen = json.loads((d / "execute" / "frozen.json").read_text())["databases"]
 
@@ -996,7 +999,7 @@ def planner_losses() -> dict:
                        "tokens": score["total_tokens"],
                        "by_cause": {k: {"queries": len(v), "summed_gap": round(sum(v), 3), "mean_gap": round(sum(v) / len(v), 3)}
                                     for k, v in sorted(cats.items())}}
-    out_dir = EXP / "E5.1-planner"
+    out_dir = EXP / out_name
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / "per_query.csv").open("w", newline="") as h:
         w = csv.DictWriter(h, fieldnames=list(rows[0]))
@@ -1016,6 +1019,8 @@ def main(argv: list[str] | None = None) -> int:
         out = accounting()
     elif a.what == "planner":
         out = planner_losses()
+        out = {"names_and_types": out, "with_descriptions": planner_losses(
+            EXP / "E5.2-planner-protocol", "player_ollama/shared_read_protocol", "E5.2-planner-protocol/losses")}
     elif a.what == "querytypes":
         out = query_types((a.corpus or "cspaper,player,art,med,legal").split(","))
     else:
