@@ -760,3 +760,16 @@ truncated, 0 answers cut off, 61.7 s per call; `results/quwarts_router_v3/player
 Model scale is the largest single effect measured so far on the shared read: +0.13 held-out and +0.09 on all 100
 queries over the 7B model, in both structure and cell values (far beyond the 0.01 run-to-run noise and the 0.03 of
 quantization). Its drift streams on cspaper and player follow.
+
+**Qwen 2.5 32B, cspaper drift streams** (`E6.2-stream-qwen32b-cspaper/`):
+
+| Model | Adaptive, 0% drift | Adaptive, 100% | Static, 100% | Patch tokens at 100% |
+|---|---|---|---|---|
+| Qwen 2.5 7B, 4-bit (recorded) | 0.134 | 0.153 | 0.008 | 1.16M |
+| Llama 3.1 8B, 4-bit | 0.149 | 0.125 | 0.008 | 1.26M |
+| **Qwen 2.5 32B, 4-bit** | **0.162** | **0.224** | 0.008 | 1.21M |
+
+With 32B the adaptive stream not only holds under drift but rises (0.162 → 0.224), and static collapses to the same
+0.008. The patch cost is the same (1.2M). So the rise of the adaptive curve under drift seen with Qwen 7B is larger
+with a stronger model: patches read the drifted columns with each new query's context, and a stronger model uses that
+context better than the build read's.
