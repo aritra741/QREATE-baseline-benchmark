@@ -929,14 +929,93 @@ def accounting() -> dict:
     return total
 
 
+# ------------------------------------------------------------------------------------------ E5.1 planner losses
+
+def planner_losses() -> dict:
+    """E5.1: why the budgeted planner loses to one shared read on player. For each budget of the planner sweep and each
+    held-out query, the score gap to the shared read (same 4-bit server) is attributed to the first cause that applies:
+    a join key the query needs is (almost) empty in the planner's database; another needed column is empty; or every
+    needed column was read (values differ). A column counts as empty when under 5% of its rows have a value."""
+
+    import sqlglot
+    from sqlglot import exp
+
+    from quwarts.experiments.player_case80 import load_queries
+
+    sql = {r["query_id"]: r["sql"] for r in load_queries()}
+    shared = {r["query_id"]: r["product"] for r in json.loads(
+        (REPO / "results/quwarts_router_v3/player_ollama/shared_read_protocol/score_blank.json").read_text())["read_first"]["per_query"]}
+    out: dict = {}
+    rows = []
+    for d in sorted((REPO / "results" / "quwarts_player_budget_sweep_ollama").glob("f*")):
+        score = json.loads((d / "execute" / "score.json").read_text())
+        frozen = json.loads((d / "execute" / "frozen.json").read_text())["databases"]
+
+        def fills(db: str) -> dict[tuple[str, str], float]:
+            # each query is scored on its own database (its planned reads), the rest on base.db
+            conn = sqlite3.connect(db)
+            out_f: dict[tuple[str, str], float] = {}
+            for (t,) in conn.execute("SELECT name FROM sqlite_master WHERE type='table'"):
+                n = conn.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0] or 1
+                for c in [r[1] for r in conn.execute(f'PRAGMA table_info("{t}")')]:
+                    nn = conn.execute(f'SELECT COUNT("{c}") FROM "{t}" WHERE "{c}" IS NOT NULL AND TRIM("{c}") != \'\'').fetchone()[0]
+                    out_f[(t.lower(), c.lower())] = nn / n
+            conn.close()
+            return out_f
+
+        cats: dict[str, list[float]] = {}
+        for r in score["per_query"]:
+            q = r["query_id"]
+            if q not in shared or q not in sql:
+                continue
+            fill = fills(frozen.get(q, {}).get("db") or str(d / "execute" / "databases" / "base.db"))
+            tree = sqlglot.parse_one(sql[q], read="sqlite")
+            alias = {t.alias_or_name.lower(): t.name.lower() for t in tree.find_all(exp.Table)}
+            tables = list(dict.fromkeys(t.name.lower() for t in tree.find_all(exp.Table)))
+
+            def col_key(c):
+                t = alias.get((c.table or "").lower()) or (tables[0] if len(tables) == 1 else None)
+                if t is None:
+                    t = next((tb for tb in tables if (tb, c.name.lower()) in fill), tables[0])
+                return t, c.name.lower()
+
+            join_cols = {col_key(c) for j in tree.find_all(exp.Join) for c in j.find_all(exp.Column)}
+            all_cols = {col_key(c) for c in tree.find_all(exp.Column)}
+            empty = lambda k: fill.get(k, 0.0) < 0.05  # noqa: E731
+            if any(empty(k) for k in join_cols):
+                cat = "join key empty"
+            elif any(empty(k) for k in all_cols - join_cols):
+                cat = "other column empty"
+            else:
+                cat = "all read, values differ"
+            gap = shared[q] - r["product"]
+            cats.setdefault(cat, []).append(gap)
+            rows.append({"budget": d.name, "qid": q, "cause": cat, "planner": r["product"], "shared": shared[q],
+                         "gap": round(gap, 4), "empty_columns": ";".join(f"{t}.{c}" for t, c in sorted(all_cols) if empty((t, c)))})
+        out[d.name] = {"planner_mean": round(sum(x["product"] for x in score["per_query"]) / len(score["per_query"]), 4),
+                       "tokens": score["total_tokens"],
+                       "by_cause": {k: {"queries": len(v), "summed_gap": round(sum(v), 3), "mean_gap": round(sum(v) / len(v), 3)}
+                                    for k, v in sorted(cats.items())}}
+    out_dir = EXP / "E5.1-planner"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with (out_dir / "per_query.csv").open("w", newline="") as h:
+        w = csv.DictWriter(h, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    (out_dir / "summary.json").write_text(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "policies", "querytypes", "accounting", "reads", "variance"])
+    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "policies", "querytypes", "accounting", "planner", "reads", "variance"])
     ap.add_argument("--corpus")
     a = ap.parse_args(argv)
     fn = {"components": components, "patches": patches, "order": order, "columns": columns, "canon": canon, "policies": policies}.get(a.what)
     if a.what == "accounting":
         out = accounting()
+    elif a.what == "planner":
+        out = planner_losses()
     elif a.what == "querytypes":
         out = query_types((a.corpus or "cspaper,player,art,med,legal").split(","))
     else:

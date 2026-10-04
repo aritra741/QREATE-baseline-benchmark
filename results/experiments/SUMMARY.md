@@ -83,7 +83,11 @@ and legal; the cap is never best. Whether skipping helps tracks the share of was
 ## RQ5: why the planner loses to a simple shared read
 
 Player, same 20 held-out queries, same server: one shared read of every input-workload column scores **0.560 at
-1.3M tokens**; the budgeted planner at most **0.340 at 5.5–6.7M**. Not yet attributed per cause (E5.1) or fixed (E5.2).
+1.3M tokens**; the budgeted planner at most **0.340 at 5.5–6.7M**. **Caveat:** the shared read used the benchmark's
+column descriptions, the planner's reads only names and types; a shared read with the planner's field specs (E5.0) is
+running to separate information from planning. Attribution (E5.1): at budgets up to 50% most of the gap is join keys
+the planner left unread (each such query zeroes); at 75–100% the planner reads every column and the gap is in the
+values (15 of 20 queries).
 
 ## RQ6: order effects and consistency
 

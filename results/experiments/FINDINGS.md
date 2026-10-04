@@ -853,3 +853,30 @@ is, is the better default on this model.
 Signs differ by corpus and even by drift level within a corpus; the mean is negative. Together with E7b (−0.053) and
 E7c (−0.003 / −0.015), this settles RQ8's null-handling question: on this model the benchmark's never-null
 instruction, though contradicted by gold for 69 of 132 columns, is the better default.
+
+## E5.1: why the planner loses to the shared read (player)
+
+For each budget of the planner sweep (4-bit server) and each of the 20 held-out queries, the score gap to the shared
+read is attributed to the first cause that applies, measured on the database the query was scored on: a join key the
+query needs is empty (under 5% of rows filled); another needed column is empty; or every needed column was read
+(`E5.1-planner/summary.json`, `per_query.csv`). Summed gap over the 20 queries:
+
+| Budget | Planner score | Join key empty | Other column empty | All read, values differ |
+|---|---|---|---|---|
+| 5% | 0.077 | 6.35 (10 queries) | 3.30 (9) | 0.00 (1) |
+| 10% | 0.134 | 6.35 (10) | 1.88 (7) | 0.30 (3) |
+| 25% | 0.232 | 6.01 (9) | 0.39 (5) | 0.15 (6) |
+| 50% | 0.285 | 4.24 (7) | 0.14 (3) | 1.10 (10) |
+| 75% | 0.340 | 0.31 (1) | 1.42 (4) | 2.66 (15) |
+| 100% | 0.340 | 0.31 (1) | 1.20 (4) | 2.88 (15) |
+
+- **At small budgets the planner loses on join keys**: half the held-out queries have a join key the planner left
+  unread, and each such query loses about 0.6 (the whole query zeroes). The planner scores columns one by one and
+  does not see that a join key is worth the whole query.
+- **At large budgets it reads everything and still trails** (15 queries, 2.7–2.9 summed gap): the difference is in
+  the values, i.e. in how the columns are read.
+
+**Confound found while doing this:** the planner's reads use `field_specs` (each column's name and SQL type only),
+while the shared read it was compared with (0.560) used the protocol variant (the benchmark's column descriptions,
+allowed values and nullability). Part of the "planner vs shared read" gap is therefore information, not planning.
+**E5.0 (running)** re-runs the shared read with the planner's field specs on the same server, to separate the two.

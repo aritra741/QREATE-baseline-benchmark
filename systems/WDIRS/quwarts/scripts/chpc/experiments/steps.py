@@ -28,14 +28,16 @@ def server(name: str) -> str:
     return f'eval "$(bash ../../{EXP}/ensure_server.sh {name})" && '
 
 
-def shared_read(sid: str, tag: str, model: str | None = None, deps: list[str] | None = None, extra: str = "") -> dict:
+def shared_read(sid: str, tag: str, model: str | None = None, deps: list[str] | None = None, extra: str = "",
+                variant: str = "protocol") -> dict:
     env = (f"OLLAMA_MODEL={model} " if model else "") + extra
+    folder = "shared_read_protocol" if variant == "protocol" else "shared_read"
     return {
         "id": sid, "lane": "gpu", "deps": (deps or []) + ["G0-prompt-guard"],
         "cmd": PRE + server(SERVER_OF.get(model, "main")) + env +
-               f"python -u -m quwarts.eval.router_shared_read_run --corpus player --variant protocol --blank-base "
+               f"python -u -m quwarts.eval.router_shared_read_run --corpus player --variant {variant} --blank-base "
                f"--tag {tag} --reads --score --workers 8",
-        "outputs": [f"results/quwarts_router_v3/player_{tag}/shared_read_protocol/score_blank.json"],
+        "outputs": [f"results/quwarts_router_v3/player_{tag}/{folder}/score_blank.json"],
     }
 
 
@@ -126,6 +128,9 @@ STEPS = [
        "cmd": PRE + server("main") + f"python -u -m quwarts.eval.exp_width --corpus {c} --docs {n} --workers 8",
        "outputs": [f"results/experiments/E2.1b-width/{c}/summary.json"], "skip_if_outputs": False}
       for c, n in [("player", 141), ("art", 100), ("legal", 60), ("cspaper", 40), ("med", 40)]],
+    # ---- GPU lane: E5.0, the shared read with the planner's field specs (name and SQL type only, no benchmark
+    # descriptions): the fair comparison for the planner, whose reads use field_specs, not the protocol descriptions
+    shared_read("E5.0-sr-plain", "ollama_plain", variant="plain"),
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],
