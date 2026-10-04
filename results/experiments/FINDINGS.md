@@ -927,3 +927,15 @@ is infeasible (infinite loss), and an unread column costs 1. So the objective tr
 truth: sharing can only add loss, and a single shared read that is *more* accurate than per-query reads (as the
 protocol shared read is, with the descriptions and the whole workload's usage) cannot be recognised. Fixing this needs
 a different objective (e.g. agreement across contexts, or a small labelled sample), not a different budget or weight.
+
+## E1.3: how accurate are the build costs of the 0–75% drift levels?
+
+The build cost charted for drift levels 0–75% is "one shared read of W0's and the kept columns". It is not a guess:
+it is the **measured** W0 read, plus the **exactly counted** tokens of the extra field lines in every W0 prompt, plus
+an *estimated* 12 answer tokens per extra field (`drift_live.prepare_supplement`). Only the answers are estimated.
+Checked against the separate supplement read that was actually run (all extra columns, the 0% level): measured answer
+tokens per field are 9.5 (player), 9.6 (med), 11.1 (cspaper), 12.0 (art), 15.1 (legal), against the constant 12; and
+answers are a small share of a build (supplement output 0.02–0.11M vs builds of 0.5–5.1M). **The charted build costs
+are accurate to within about 2%.** The `measured_tokens` field (W0 read plus the separate supplement read, e.g. 4.04M
+vs 2.12M on player) is what this experiment paid, not what a system that anticipated the columns would pay; it is an
+upper bound. No GPU run is needed for RQ1's cost side.

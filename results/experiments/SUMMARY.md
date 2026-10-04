@@ -32,7 +32,9 @@ Adaptive patching holds the score as drift grows; the static build collapses.
 | legal | 0.121 → 0.005 | 0.121 → 0.114 | 29.9M |
 | med | 0.095 → 0.031 | 0.095 → 0.086 | 19.9M |
 
-Not yet done: measured (not estimated) build costs per drift level (E1.3) and the anticipation sweep (E1.4).
+Build costs of the 0–75% levels (E1.3): the measured W0 read plus exactly counted extra prompt lines, with only the
+answer tokens estimated (12 per field; measured 9.5–15); accurate to within about 2%. Not done: the anticipation
+sweep (E1.4).
 
 ## RQ2: is a narrow patch read more accurate than a wide build read?
 
