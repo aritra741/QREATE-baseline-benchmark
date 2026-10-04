@@ -2,7 +2,8 @@
 
 Paper-style answers to the eight research questions. Each section states the question, the answer in one or two
 sentences, the evidence, the implication for system design, and the scope of the evidence. The internal record (all
-runs, case studies, corrections) is `FINDINGS.md`; the digest with every number is `SUMMARY.md`.
+runs, case studies, corrections) is `FINDINGS.md`; the digest with every number is `SUMMARY.md`. Figures are
+generated from the result files by `systems/WDIRS/quwarts/scripts/plot_results_paper.py` into `figures/`.
 
 ## Setting and terms
 
@@ -53,6 +54,10 @@ in scope.
 With patching, the score at 100% drift is never more than 0.014 below the fully anticipated build (0% drift), and on
 player and cspaper it is higher (+0.008, +0.019).
 
+![Score as drift grows, static build vs on-demand patching, per corpus.](figures/rq1_drift.png)
+*Figure 1. Score as drift grows, static build vs on-demand patching, per corpus.*
+
+
 *Anticipating is cheaper than patching.* Total tokens (build + patches) and score, from fully anticipated to fully
 on demand:
 
@@ -67,6 +72,9 @@ on demand:
 The break-even probability is the cost of anticipating a column divided by the cost of patching it: a column is worth
 extracting up front if the chance a future query needs it exceeds this value. The build costs are exact up to the
 answer tokens of the anticipated fields (estimated at 12 per field; measured 9.5–15), an error of at most about 2%.
+
+![Total extraction tokens relative to a build that anticipated every column.](figures/rq1_anticipation.png)
+*Figure 2. Total extraction tokens relative to a build that anticipated every column.*
 
 **Implication.** Treat anticipation as cheap insurance: extract every plausibly useful column during the build, and
 keep on-demand patching as the safety net for columns no one foresaw.
@@ -95,6 +103,9 @@ The mechanism differs by corpus: a one-column prompt pushes the model to produce
 gold leaves empty far more often (art: 98% of gold-empty cells at one column, 60% at twelve). That helps where gold is
 mostly filled (legal, player) and hurts where it is often empty (art, med).
 
+![Agreement with gold by number of columns asked per prompt.](figures/rq2_width.png)
+*Figure 3. Agreement with gold by number of columns asked per prompt.*
+
 **Implication.** Extract many columns per prompt for cost; do not narrow prompts in the hope of accuracy.
 
 **Scope.** Five corpora, 40–141 documents each, one model.
@@ -116,6 +127,9 @@ scores 0.110. The 50% budget spends 8M of its 14.5M tokens on two early patches 
 alphabetically smallest counsel name per group; no extraction can answer those, and they help no later query. The 25%
 budget cannot afford them and spends on patches that 19 later queries use.
 
+![Legal at 100% drift: score by budget, first-come-first-served vs skipping MIN/MAX-over-text queries.](figures/rq3_legal_budget.png)
+*Figure 4. Legal at 100% drift: score by budget, first-come-first-served vs skipping MIN/MAX-over-text queries.*
+
 *Such queries are unwinnable and expensive everywhere.* The 45 of 326 test queries that take MIN/MAX of a text column
 score 0.03 on average with our system and 0.001 with the baseline, yet trigger 33% of all patch tokens.
 
@@ -133,6 +147,9 @@ The SQL rule has no effect where no query matches (cspaper, player, art), and on
 budget at 100% drift: 0.053 → 0.107) while saving 28% of tokens. Pacing helps where early patches over-read
 (cspaper, art) and hurts where early patches are the valuable ones (player, legal). Whether any skipping helps tracks
 the share of patch tokens that bought nothing: none on player, about a third on legal and med.
+
+![Each policy's mean score minus first-come-first-served, per corpus.](figures/rq3_policies.png)
+*Figure 5. Each policy's mean score minus first-come-first-served, per corpus.*
 
 **Implication.** Budgeted adaptive extraction needs value-aware skipping, and simple SQL-level signals already
 capture most of the value of hindsight; budget pacing and per-patch caps are not safe defaults.
@@ -160,6 +177,9 @@ columns: player 0%, art 16%, med 32%, legal 39%, cspaper 39%. Over all 138 patch
 | No filter (the patch reads the whole corpus) | 44% | 89% |
 | A filter scopes the patch | 8% | 11% |
 | AVG/SUM aggregate | 1% | 1% |
+
+![Wasted extraction tokens by SQL-visible signal.](figures/rq4_signals.png)
+*Figure 6. Wasted extraction tokens by SQL-visible signal.*
 
 **Implication.** A planner can trust its cost model and should spend its modelling effort on value; cheap SQL
 features already separate risky extractions (whole-corpus reads for text extrema) from safe ones (scoped, numeric).
@@ -191,6 +211,9 @@ measured. At small budgets the planner loses mainly by leaving join keys unread 
 while a missing join key zeroes the whole query). At a 100% budget it plans 4.9M of 10.6M available tokens, because
 its estimated loss is already 0.027 per query.
 
+![Score vs tokens for planner configurations and single shared passes (player).](figures/rq5_planner.png)
+*Figure 7. Score vs tokens for planner configurations and single shared passes (player).*
+
 **Implication.** An extraction planner's objective must estimate accuracy, not agreement with its own reads (for
 example from a small labelled sample or agreement across independent contexts), and must account for join keys at
 query level. More extractions with the same model and inputs buy little; better field descriptions and a stronger
@@ -212,6 +235,9 @@ unlimited one on 8–31 queries per corpus, nearly all answered without their ow
 (cspaper, a column defined only for papers that use an agent framework), the unlimited stream extracted it for every
 paper and the model assigned a framework to 82 papers that have none; the budgeted stream extracted it only on the
 papers earlier queries had selected and left the rest empty, which is correct for most of them.
+
+![Cells that differ between budgeted and unlimited streams, by kind (log scale).](figures/rq6_cells.png)
+*Figure 8. Cells that differ between budgeted and unlimited streams, by kind (log scale).*
 
 **Implication.** Extracting a column for documents where it does not apply is harmful, not merely wasteful; scoping
 extractions to the documents a query can select is a correctness feature as well as a cost one.
@@ -237,6 +263,9 @@ the largest lever after field descriptions.
 Patch costs are the same for every model (player 5.7–5.8M, cspaper 1.2–1.3M tokens). On serving: 16-bit instead of
 4-bit weights adds +0.03 on a single pass and +0.004 on a whole drift stream; repeated runs vary by at most 0.012 on
 20 queries and 0.002 on a stream.
+
+![Three models: single pass, and patched vs static at 100% drift.](figures/rq7_models.png)
+*Figure 9. Three models: single pass, and patched vs static at 100% drift.*
 
 **Implication.** The system-level conclusions are not artefacts of one small, quantized model; a stronger model
 raises every number without changing what the system should do.
@@ -264,6 +293,9 @@ its own gold leaves empty, and values are often right in substance but not in th
 | art | 0.527 | 0.340 | both |
 | med | 0.335 | 0.157 | structure: 61 of 76 queries return too few rows (list-valued join keys, free-text comparisons) |
 
+![Structure F2 vs cell F1 per corpus, with on-demand patching at 100% drift.](figures/rq8_bottleneck.png)
+*Figure 10. Structure F2 vs cell F1 per corpus, with on-demand patching at 100% drift.*
+
 *Metadata contradicts gold.* Of the 132 columns the benchmark's attribute files mark "never null", 69 are empty in at
 least 5% of gold rows (57 of them used by the workloads; e.g. a medical column empty in 85% of gold rows). Extractors
 told "never null" must invent values. Telling the model it may leave text fields empty does not help: it trades
@@ -273,6 +305,9 @@ invented values for missed ones (score changes from −0.053 to +0.020 on four c
 list item; case and punctuation ignored) far exceeds exact agreement (e.g. an art column 0.92 vs 0.13), yet the
 benchmark's tolerant score is only 0.01–0.03 above the strict one, because a GROUP BY needs the exact label.
 Normalizing values to the constants the workload uses gains nothing: the mismatches are in labels no query names.
+
+![Exact vs lenient agreement for the ten columns with the largest gap.](figures/rq8_form.png)
+*Figure 11. Exact vs lenient agreement for the ten columns with the largest gap.*
 
 *By query type:* AVG/SUM 0.36, MIN/MAX over numbers 0.24, COUNT 0.21, MIN/MAX over text 0.03.
 
@@ -296,6 +331,9 @@ uses 7–25× fewer tokens. DocETL extracts per query and does not reuse extract
 | art | 43 | 0.167 | 0.256 | +0.089 (0.047 – 0.135) | 57.9M | 8.51M | 7× |
 | med | 76 | 0.056 | 0.086 | +0.030 (0.010 – 0.054) | 170.6M | 22.46M | 8× |
 | legal | 16 of 30 | 0.046 | 0.147 | +0.101 (0.046 – 0.165) | 269.1M | 26.73M | 10× |
+
+![Ours vs DocETL per corpus (left) and on player by number of joins (right).](figures/docetl.png)
+*Figure 12. Ours vs DocETL per corpus (left) and on player by number of joins (right).*
 
 At 100% drift; DocETL with the same 4-bit Qwen 2.5 7B, one map operation per query and table with an equal-effort
 prompt. On player, DocETL scores 0.125 / 0.034 / 0.008 on queries with 0 / 1 / 2+ joins, while ours stays at 0.37–0.44;
