@@ -87,7 +87,16 @@ Player, same 20 held-out queries, same server: one shared read of every input-wo
 
 ## RQ7: robustness to serving and model
 
-Noise and quantization: see the first section. Pending: Llama 3.1 8B and Qwen 2.5 32B (E6.2).
+Noise and quantization: see the first section. Other models (E6.2), all 4-bit on local Ollama:
+
+| | Llama 3.1 8B | Qwen 2.5 7B | Qwen 2.5 32B |
+|---|---|---|---|
+| Player shared read, held-out 20 | 0.466 | 0.560 | **0.690** |
+| Player, adaptive / static at 100% drift | 0.359 / 0.040 | 0.387 / 0.040 | **0.421** / 0.052 |
+| cspaper, adaptive 0% → 100% drift (static at 100%) | 0.149 → 0.125 (0.008) | 0.134 → 0.153 (0.008) | 0.162 → **0.224** (0.008) |
+
+The adaptive-vs-static result holds for every model at the same patch cost; model scale is the largest single effect
+measured (+0.13 held-out from 7B to 32B), and the 32B model's adaptive curve rises under drift (cspaper +0.06).
 
 ## RQ8: where accuracy is lost
 

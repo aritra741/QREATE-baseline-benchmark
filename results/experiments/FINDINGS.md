@@ -773,3 +773,16 @@ With 32B the adaptive stream not only holds under drift but rises (0.162 → 0.2
 0.008. The patch cost is the same (1.2M). So the rise of the adaptive curve under drift seen with Qwen 7B is larger
 with a stronger model: patches read the drifted columns with each new query's context, and a stronger model uses that
 context better than the build read's.
+
+**Qwen 2.5 32B, player drift stream at 100% drift** (`E6.2-stream-qwen32b-player/`):
+
+| Model | Adaptive, 100% drift | Static, 100% drift | Patch tokens |
+|---|---|---|---|
+| Qwen 2.5 7B, 4-bit (recorded) | 0.387 | 0.040 | 5.67M |
+| Llama 3.1 8B, 4-bit | 0.359 | 0.040 | 5.76M |
+| **Qwen 2.5 32B, 4-bit** | **0.421** | 0.052 | 5.70M |
+
+**E6.2 conclusion:** across three models (Llama 3.1 8B, Qwen 2.5 7B and 32B) and two corpora, adaptive patching keeps
+its score under full drift while the static build collapses to 0.01–0.05, at the same patch cost for every model. A
+stronger model raises every number (32B: player 0.421, cspaper 0.224 at 100% drift) without changing the patch cost,
+so the adaptive-vs-static result is not an artifact of the 7B model.
