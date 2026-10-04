@@ -746,3 +746,17 @@ On cspaper Llama starts higher than Qwen (0.149 vs 0.134) and loses some score u
 Qwen gained; adaptive still recovers most of what static loses (static 0.008 for both). Across the two corpora the
 adaptive-vs-static gap holds for both model families; the small rises of Qwen's adaptive curve under drift are
 model-specific.
+
+**Qwen 2.5 32B (4-bit), player shared read** (2 slots at a 16k context, whole A800 40GB; 216 calls, 0 prompts possibly
+truncated, 0 answers cut off, 61.7 s per call; `results/quwarts_router_v3/player_ollama_qwen32b/`):
+
+| Model | Held-out 20 | Structure F2 | Cell F1 | All 100 queries |
+|---|---|---|---|---|
+| Llama 3.1 8B, 4-bit | 0.466 | 0.781 | 0.565 | 0.468 |
+| Qwen 2.5 7B, 4-bit | 0.560 | 0.868 | 0.615 | 0.482 |
+| Qwen 2.5 7B, 16-bit | 0.590 | 0.880 | 0.639 | 0.490 |
+| **Qwen 2.5 32B, 4-bit** | **0.690** | **0.916** | **0.714** | **0.575** |
+
+Model scale is the largest single effect measured so far on the shared read: +0.13 held-out and +0.09 on all 100
+queries over the 7B model, in both structure and cell values (far beyond the 0.01 run-to-run noise and the 0.03 of
+quantization). Its drift streams on cspaper and player follow.
