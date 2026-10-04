@@ -159,3 +159,17 @@ DocETL (same model, one map per query and table, the fair prompt) at 100% drift,
 Adaptive patching is above DocETL on every corpus at 4–25× fewer tokens; DocETL is above our static build. **DocETL
 collapses with joins** on player (0.125 → 0.034 → 0.008 for 0 / 1 / 2+ joins, all 118 queries) while ours stays at
 0.37–0.44 (likely cause, not yet checked value by value: join keys extracted by separate per-table maps do not match).
+
+## Status (2026-10-04, job 16050764)
+
+Done: replays and per-corpus analyses (all five corpora); noise, quantization; null handling (E7 family); prompt width
+(E2.1b); canonicalization (E8); query types (E9); budget policies on all five corpora (E3.2, E3.3); other models
+(Llama 3.1 8B, Qwen 2.5 32B); planner attribution and fixes (E5.0–E5.3); build-cost accuracy (E1.3); anticipation
+(E1.4); patch-value signals (E4.1); token and latency accounting (`ACCOUNTING.md`).
+
+Open:
+- DocETL on legal (16 of 30 drift test queries; about 3 hours per query); all other corpora complete.
+- An offline best-possible budget policy (E3.1, a knapsack over patches re-scored by replay); the hindsight oracle and
+  the `fragile` rule stand in for it now.
+- A planner objective that can recognise a shared read better than per-query reads (RQ5): the current one treats each
+  query's own read as the truth.
