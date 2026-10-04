@@ -1011,3 +1011,23 @@ From the plans (`quwarts_player_budget_sweep_ollama/f*/probe/plan.json`): at 100
 descriptions (0.560 at 1.3M, better than any plan) and let the planner only fill its gaps (**E5.4, running**);
 charge an unread column 1.0 when there is no incumbent; re-read hard columns with the 32B model (+0.13 on the shared
 read); read ahead columns a drifting workload may need (E1.4: worth it at a 1.3–13% chance of use).
+
+## E5.4: spending the leftover budget on top of the shared read
+
+The planner (with descriptions) building on the protocol shared read: the shared read's database is the fallback
+("leave unread" keeps its values), and planned reads only fill its empty cells (the executor's fill policy). Totals
+include the shared read's 1.30M tokens (`E5.4-planner-on-shared/`):
+
+| Player, 20 held-out queries | Score | Structure F2 | Cell F1 | Total tokens |
+|---|---|---|---|---|
+| Shared read with descriptions alone | 0.560 | 0.868 | 0.615 | 1.30M |
+| E5.4, target 25% of DocETL | 0.562 | 0.882 | 0.625 | 2.84M |
+| E5.4, target 75% of DocETL | 0.566 | 0.884 | 0.630 | 4.93M |
+| Best planner on its own (E5.3, 75%) | 0.422 | 0.713 | 0.515 | 3.40M |
+
+Building on the shared read keeps its accuracy and beats every planner on its own, but the planner on top adds only
++0.002 to +0.006 while doubling to quadrupling the tokens, and it still underspends (75% target: 2.2M planned of 6.8M
+available). **With this model and objective the leftover budget cannot buy much accuracy**: once the columns are read
+with good descriptions, the planner's per-query reads mostly agree with them. The large levers found are input
+information (descriptions: +0.33) and model capacity (32B: +0.13 at the same 1.3M tokens), not more reads of the same
+documents with the same model.

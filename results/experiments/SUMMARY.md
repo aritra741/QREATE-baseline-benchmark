@@ -101,6 +101,13 @@ zeroes; the planner values columns one by one); at 75–100%, the values of colu
 75% but 0.199 at 25%. **No planner configuration reaches the shared read with descriptions (0.560 at 1.3M tokens)**:
 the planner prefers per-query contexts and undervalues one shared read of every workload column.
 
+**Unused budget** (player sweep: 4.86M planned of 10.58M available at 100%): the objective saturates (expected loss
+0.027 per query, measured as disagreement with each query's own read), and "leave unread" is measured as nearly free
+where a query's own probe reads were mostly empty (`player.team`: 0.13, so the join key stays unread). Spending the
+budget on top of the shared read (E5.4) keeps its accuracy but adds only +0.002 to +0.006 at 2.2–3.8× the tokens. More
+reads of the same documents with the same model buy little; descriptions (+0.33) and a stronger model (+0.13) are the
+levers.
+
 ## RQ6: order effects and consistency
 
 - Patches never overwrite: a (column, document) is read at most once per stream.
