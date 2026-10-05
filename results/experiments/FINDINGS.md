@@ -1091,3 +1091,44 @@ the intermediate levels vary with which columns are withheld). The patched curve
 that difference even varies (+0.008, +0.002, −0.004, −0.010). On cspaper all four draws are slightly positive
 (+0.007 to +0.020), none significant on its own; this matches E10 (patches leave more cells empty where gold is
 empty), a small systematic effect at the edge of what 59 queries can resolve.
+
+## E12: a smaller build workload (train share), same test queries
+
+The build workload W0 (the "train" queries whose columns the build reads) is cut to a random 10%, 25% or 50% of its
+queries (`QUWARTS_W0_FRACTION`, seed 0); the drift design, the levels and the streams are made anew, and the 326 test
+queries are the same. The train queries overlap heavily in the columns they use, so only small shares drop columns:
+cspaper and player keep all their W0 columns at 25% and lose 3 and 1 at 10%; art loses 2, 5 and 9 of 15 at 50%, 25%
+and 10%. Withheld columns then become "new" columns that patches must read. Patched (unlimited) and static scores at
+0/25/50/75/100% drift, tokens at 100% drift (`E12-w0f{010,025,050}/live/<corpus>/`; 100% = the recorded run):
+
+| Corpus | Train | W0 cols | New cols | Patched | Static | Build + patch tokens | Patched, 100% − 0% (95% CI) |
+|---|---|---|---|---|---|---|---|
+| cspaper | 100% | 9 | 7 | 0.134 0.154 0.147 0.149 0.153 | 0.134 0.098 0.036 0.008 0.008 | 0.40M + 1.16M | +0.019 (−0.011, +0.052) |
+| cspaper | 25% | 9 | 7 | 0.149 0.166 0.164 0.170 0.147 | 0.149 0.110 0.039 0.009 0.009 | 0.39M + 1.15M | −0.002 |
+| cspaper | 10% | 6 | 9 | 0.162 0.139 0.136 0.138 0.151 | 0.162 0.064 0.055 0.008 0.008 | 0.31M + 1.61M | −0.011 |
+| player | 100% | 12 | 7 | 0.379 0.381 0.390 0.389 0.387 | 0.379 0.294 0.210 0.137 0.040 | 2.04M + 5.67M | +0.008 (−0.007, +0.028) |
+| player | 25% | 12 | 7 | 0.374 0.376 0.385 0.386 0.382 | 0.374 0.290 0.211 0.139 0.043 | 2.02M + 5.67M | +0.007 |
+| player | 10% | 11 | 8 | 0.353 0.348 0.350 0.358 0.367 | 0.353 0.256 0.186 0.108 0.037 | 2.01M + 6.22M | +0.014 (−0.006, +0.040) |
+| art | 100% | 15 | 9 | 0.270 0.266 0.267 0.260 0.256 | 0.270 0.202 0.146 0.048 0.031 | 2.43M + 6.08M | −0.014 |
+| art | 50% | 13 | 9 | 0.262 0.259 0.265 0.255 0.257 | 0.262 0.193 0.140 0.042 0.024 | 2.17M + 6.09M | −0.005 |
+| art | 25% | 10 | 11 | 0.277 0.275 0.269 0.277 0.271 | 0.277 0.210 0.144 0.127 0.031 | 1.77M + 7.12M | −0.006 |
+| art | 10% | 6 | 14 | 0.266 0.262 0.261 0.265 0.251 | 0.266 0.198 0.133 0.069 0.000 | 1.43M + 8.65M | −0.015 (−0.040, +0.007) |
+
+(W0 cols = columns the build reads at 100% drift; new cols = columns only the test queries use.)
+
+**The drift result holds for every train share.** Static collapses at 100% drift on every share (cspaper 0.008–0.009,
+player 0.037–0.043, art 0.000–0.031). The patched curve stays flat: within 0.025 of its 0% score at every level, and
+no 100% − 0% difference is significant (−0.015 to +0.019).
+
+**A smaller train share moves cost from the build to the patches, and costs more in total.** Each column the build no
+longer reads is read later by patches, on the documents each query selects, under a query-specific prompt. On art,
+cutting W0 from 100% to 10% saves 1.0M build tokens and adds 2.6M patch tokens (total 8.5M → 10.1M, +19%); on
+cspaper 10% total tokens rise 23% (1.56M → 1.92M); on player 7% (7.71M → 8.23M). Where the share drops no column
+(cspaper and player at 25%) the cost is unchanged. This is RQ1's anticipation result seen from the other side:
+patching a column costs more than reading it up front.
+
+**The 0% score varies with the share by up to 0.03** (cspaper 0.134 / 0.149 / 0.162; player 0.379 / 0.374 / 0.353),
+even where the W0 columns are the same (cspaper 25%). At 0% drift every column is read during the build, but the
+design groups the columns into prompts differently for each W0, so the cells differ; this is the size of the
+shared-read variance seen before (up to 0.012 on 20 queries, 0.03 between quantizations). Score at a level should be
+compared within a share, not across shares.

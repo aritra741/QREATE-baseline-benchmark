@@ -39,6 +39,11 @@ all later costs 1.2–29.9M, at about the same score (lazy ÷ eager total tokens
 front if the chance a query will need it exceeds **1.3–1.6%** (player, med, legal) or 12–13% (art, cspaper): anticipate
 generously, patch only what could not be foreseen.
 
+**Robustness.** Four draws of the withheld columns (E11; cspaper, player) and build workloads cut to 10–50% of their
+queries (E12; cspaper, player, art): static collapses at 100% drift every time; the patched curve stays flat, with no
+significant 100% − 0% difference (−0.015 to +0.020). A smaller build workload leaves more columns to the patches and
+costs more in total (art at 10%: 8.5M → 10.1M tokens; cspaper 10%: +23%; player 10%: +7%).
+
 ## RQ2: is a narrow patch read more accurate than a wide build read?
 
 **No general effect.** The same 12 columns read 1, 3, 6 or 12 at a time (E2.1b): one column per read is better on

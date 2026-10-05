@@ -44,11 +44,11 @@ def style(ax, ygrid=True):
     ax.set_axisbelow(True)
 
 
-def save(fig, name, title, subtitle=None):
+def save(fig, name, title, subtitle=None, bottom=0.0):
     fig.suptitle(title, x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
     if subtitle:
         fig.text(0.01, 1 - 0.5 / fig.get_figheight(), subtitle, fontsize=9, color=INK2, ha="left")
-    fig.tight_layout(rect=(0, 0, 1, 1 - (0.6 if subtitle else 0.4) / fig.get_figheight()))
+    fig.tight_layout(rect=(0, bottom, 1, 1 - (0.6 if subtitle else 0.4) / fig.get_figheight()))
     fig.savefig(OUT / name, dpi=180)
     plt.close(fig)
     print(OUT / name)
@@ -122,6 +122,40 @@ def rq1_seeds():
     axes[0].legend(loc="lower left")
     save(fig, "rq1_seeds.png", "The drift result holds across four draws of the withheld columns",
          "One line per draw (seed 0 = the recorded design). Patched curves stay flat; static collapses on every draw.")
+
+
+def rq1_train():
+    shares = {"cspaper": [(10, "E12-w0f010"), (25, "E12-w0f025"), (100, None)],
+              "player": [(10, "E12-w0f010"), (25, "E12-w0f025"), (100, None)],
+              "art": [(10, "E12-w0f010"), (25, "E12-w0f025"), (50, "E12-w0f050"), (100, None)]}
+    ramp = {10: "#86b6ef", 25: "#5598e7", 50: "#2a78d6", 100: "#104281"}
+    oramp = {10: "#f5b597", 25: "#ef8d63", 50: "#eb6834", 100: "#b44a1f"}
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.6))
+    for ax, (c, runs) in zip(axes, shares.items()):
+        top = 0.0
+        for share, d in runs:
+            root = RES / "drift_live_ollama" if d is None else EXP / d / "live"
+            rows = {p: stream(c, f"fixed4-attribute_pool_{p}", root) for p in LEVELS}
+            ad = [mean([r["benchmark"] for r in rows[p]]) for p in LEVELS]
+            st = [mean([r["static_benchmark"] for r in rows[p]]) for p in LEVELS]
+            top = max(top, max(ad))
+            ax.plot(LEVELS, ad, color=ramp[share], marker="o", markersize=5, markeredgecolor=SURFACE,
+                    label=f"patched, train {share}%")
+            ax.plot(LEVELS, st, color=oramp[share], linestyle=(0, (4, 2.5)), marker="o", markersize=5,
+                    markeredgecolor=SURFACE, label=f"static, train {share}%")
+        ax.set_ylim(0, top * 1.3)
+        ax.set_xticks(LEVELS, [f"{p}%" for p in LEVELS])
+        ax.set_xlabel("Drift (new columns not anticipated)")
+        ax.set_title(c)
+        style(ax)
+    axes[0].set_ylabel("Score")
+    h, l = axes[2].get_legend_handles_labels()
+    order = [0, 2, 4, 6, 1, 3, 5, 7]
+    fig.legend([h[i] for i in order], [l[i] for i in order], fontsize=8.5, ncol=4, loc="lower center",
+               bbox_to_anchor=(0.5, 0.0), frameon=False)
+    save(fig, "rq1_train.png", "The drift result holds for every train share",
+         "Build workload cut to 10–50% of its queries (same test queries). Darker = larger train share; blue patched, "
+         "orange dashed static.", bottom=0.12)
 
 
 def rq1_anticipation():
@@ -500,6 +534,6 @@ def docetl():
 
 
 if __name__ == "__main__":
-    for fn in (rq1_drift, rq1_seeds, rq1_anticipation, rq2_width, rq3_legal, rq3_policies, rq4_signals, rq5_planner, rq6_cells,
+    for fn in (rq1_drift, rq1_seeds, rq1_train, rq1_anticipation, rq2_width, rq3_legal, rq3_policies, rq4_signals, rq5_planner, rq6_cells,
                rq7_models, rq8_bottleneck, rq8_form, docetl):
         fn()
