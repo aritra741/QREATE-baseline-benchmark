@@ -1,4 +1,4 @@
-# Experiment status (2026-10-04T21:54:13-06:00)
+# Experiment status (2026-10-05T15:59:52-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -33,13 +33,13 @@
 | E11-seed2-player | gpu | done | 1 | ok 2026-10-04T18:18:10-06:00 |  |
 | E11-seed3-cspaper | gpu | done | 1 | ok 2026-10-04T18:25:28-06:00 |  |
 | E11-seed3-player | gpu | done | 1 | ok 2026-10-04T18:51:12-06:00 |  |
-| E12-w0f010-cspaper | gpu | running-or-interrupted | 1 | start 2026-10-04T21:54:13-06:00 |  |
-| E12-w0f025-cspaper | gpu | pending | 0 |  |  |
-| E12-w0f010-player | gpu | pending | 0 |  |  |
-| E12-w0f025-player | gpu | pending | 0 |  |  |
-| E12-w0f010-art | gpu | pending | 0 |  |  |
-| E12-w0f025-art | gpu | pending | 0 |  |  |
-| E12-w0f050-art | gpu | pending | 0 |  |  |
+| E12-w0f010-cspaper | gpu | done | 1 | ok 2026-10-04T22:04:23-06:00 |  |
+| E12-w0f025-cspaper | gpu | done | 1 | ok 2026-10-04T22:10:35-06:00 |  |
+| E12-w0f010-player | gpu | done | 1 | ok 2026-10-04T22:34:22-06:00 |  |
+| E12-w0f025-player | gpu | done | 1 | ok 2026-10-04T22:53:46-06:00 |  |
+| E12-w0f010-art | gpu | done | 1 | ok 2026-10-05T00:15:37-06:00 |  |
+| E12-w0f025-art | gpu | done | 1 | ok 2026-10-05T01:25:33-06:00 |  |
+| E12-w0f050-art | gpu | done | 1 | ok 2026-10-05T01:56:17-06:00 |  |
 | E3.2-fragile-legal | gpu | done | 2 | ok 2026-10-02T21:17:30-06:00 |  |
 | E3.2-fragile-med | gpu | done | 2 | ok 2026-10-02T22:50:20-06:00 |  |
 | E3.2-fragile-cspaper | gpu | done | 2 | ok 2026-10-02T23:02:02-06:00 |  |
