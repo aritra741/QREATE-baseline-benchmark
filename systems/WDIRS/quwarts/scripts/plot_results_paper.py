@@ -99,6 +99,31 @@ def rq1_drift():
          "Score per query (structure F2 × cell F1), averaged. y-axes start at 0; scales differ per corpus.")
 
 
+def rq1_seeds():
+    roots = [RES / "drift_live_ollama"] + [EXP / f"E11-seed{k}" / "live" for k in (1, 2, 3)]
+    fig, axes = plt.subplots(1, 2, figsize=(11, 3.9))
+    for ax, c in zip(axes, ["cspaper", "player"]):
+        top = 0.0
+        for k, root in enumerate(roots):
+            rows = {p: stream(c, f"fixed4-attribute_pool_{p}", root) for p in LEVELS}
+            ad = [mean([r["benchmark"] for r in rows[p]]) for p in LEVELS]
+            st = [mean([r["static_benchmark"] for r in rows[p]]) for p in LEVELS]
+            top = max(top, max(ad))
+            ax.plot(LEVELS, ad, color=BLUE, linewidth=1.6, alpha=0.9, marker="o", markersize=5,
+                    markeredgecolor=SURFACE, label="On-demand patching" if k == 0 else None)
+            ax.plot(LEVELS, st, color=ORANGE, linewidth=1.6, alpha=0.9, linestyle=(0, (4, 2.5)), marker="o", markersize=5,
+                    markeredgecolor=SURFACE, label="Static build" if k == 0 else None)
+        ax.set_ylim(0, top * 1.3)
+        ax.set_xticks(LEVELS, [f"{p}%" for p in LEVELS])
+        ax.set_xlabel("Drift (new columns not anticipated)")
+        ax.set_title(c)
+        style(ax)
+    axes[0].set_ylabel("Score")
+    axes[0].legend(loc="lower left")
+    save(fig, "rq1_seeds.png", "The drift result holds across four draws of the withheld columns",
+         "One line per draw (seed 0 = the recorded design). Patched curves stay flat; static collapses on every draw.")
+
+
 def rq1_anticipation():
     rows = {(r["corpus"], int(r["level"])): r for r in csv.DictReader(open(RES / "drift_live_ollama" / "fixed_levels.csv"))
             if r["axis"] == "attribute_pool"}
@@ -475,6 +500,6 @@ def docetl():
 
 
 if __name__ == "__main__":
-    for fn in (rq1_drift, rq1_anticipation, rq2_width, rq3_legal, rq3_policies, rq4_signals, rq5_planner, rq6_cells,
+    for fn in (rq1_drift, rq1_seeds, rq1_anticipation, rq2_width, rq3_legal, rq3_policies, rq4_signals, rq5_planner, rq6_cells,
                rq7_models, rq8_bottleneck, rq8_form, docetl):
         fn()
