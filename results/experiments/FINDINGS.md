@@ -1067,3 +1067,27 @@ vs 13 of those because the patch left a cell empty that gold leaves empty); play
   read as *flat* under drift, not rising.
 - **With Qwen 32B the rise is real** (+0.062, CI +0.019 to +0.113, 12 queries up, 3 down): the stronger model makes
   better use of the patch's query-specific context.
+
+## E11: other drift draws (different withheld columns at the same levels)
+
+Seeds 1–3 draw other column orders whose level shares are within 10 points of the best fit (seed 0 = the recorded
+design), and another test order; the build workload is unchanged. Patched (unlimited) and static, 0/25/50/75/100%
+drift (`E11-seed*/live/<corpus>/streams/`):
+
+| Corpus | Seed | Patched | Static | Patched, 100% − 0% (95% CI) |
+|---|---|---|---|---|
+| cspaper | 0 | 0.134 0.154 0.147 0.149 0.153 | 0.134 0.098 0.036 0.008 0.008 | +0.019 (−0.011, +0.052) |
+| cspaper | 1 | 0.134 0.136 0.156 0.141 0.141 | 0.134 0.106 0.070 0.008 0.008 | +0.007 (−0.024, +0.040) |
+| cspaper | 2 | 0.134 0.169 0.158 0.164 0.149 | 0.134 0.098 0.098 0.070 0.008 | +0.015 (−0.016, +0.047) |
+| cspaper | 3 | 0.134 0.134 0.134 0.137 0.154 | 0.134 0.106 0.106 0.044 0.008 | +0.020 (−0.002, +0.045) |
+| player | 0 | 0.379 0.381 0.390 0.389 0.387 | 0.379 0.294 0.210 0.137 0.040 | +0.008 (−0.007, +0.028) |
+| player | 1 | 0.379 0.377 0.376 0.380 0.382 | 0.379 0.291 0.217 0.112 0.040 | +0.002 (−0.013, +0.024) |
+| player | 2 | 0.379 0.381 0.390 0.389 0.376 | 0.379 0.275 0.202 0.129 0.040 | −0.004 (−0.022, +0.019) |
+| player | 3 | 0.379 0.389 0.390 0.392 0.369 | 0.379 0.297 0.224 0.150 0.040 | −0.010 (−0.031, +0.013) |
+
+**The trends hold across draws.** Static collapses on every draw (to 0.008 on cspaper and 0.040 on player at 100%;
+the intermediate levels vary with which columns are withheld). The patched curve stays flat on every draw: within
+±0.035 of its 0% score at every level, and no draw's 100% − 0% difference is significant. On player the sign of
+that difference even varies (+0.008, +0.002, −0.004, −0.010). On cspaper all four draws are slightly positive
+(+0.007 to +0.020), none significant on its own; this matches E10 (patches leave more cells empty where gold is
+empty), a small systematic effect at the edge of what 59 queries can resolve.
