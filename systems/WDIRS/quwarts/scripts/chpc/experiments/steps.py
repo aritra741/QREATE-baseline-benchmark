@@ -182,7 +182,7 @@ STEPS = [
       for sd in (1, 2, 3) for c in ("cspaper", "player")],
     # ---- GPU lane: E12, a smaller build workload ("train" share of W0: QUWARTS_W0_FRACTION) with the same test
     # queries; all five drift levels, unlimited patching (static comes with each stream). Shares that still drop
-    # W0 columns: 10% and 25% on cspaper, player, art; also 50% on art.
+    # W0 columns: 10% and 25% on cspaper, player, art; also 50% on art. med and legal at 10/25/50%.
     *[{"id": f"E12-w0f{round(f * 100):03d}-{c}", "lane": "gpu", "deps": ["G0-prompt-guard"],
        "cmd": PRE + f"python ../../{EXP}/clone.py --mode w0 --corpus {c} "
               f"--root results/experiments/E12-w0f{round(f * 100):03d}/live --scratch {SCRATCH}/E12-w0f{round(f * 100):03d} && "
@@ -193,7 +193,8 @@ STEPS = [
        "outputs": [f"results/experiments/E12-w0f{round(f * 100):03d}/live/{c}/streams/fixed4-attribute_pool_{p}.jsonl"
                    for p in (0, 25, 50, 75, 100)]}
       for c, f in (("cspaper", 0.1), ("cspaper", 0.25), ("player", 0.1), ("player", 0.25), ("art", 0.1),
-                   ("art", 0.25), ("art", 0.5))],
+                   ("art", 0.25), ("art", 0.5), ("med", 0.1), ("med", 0.25), ("med", 0.5), ("legal", 0.1),
+                   ("legal", 0.25), ("legal", 0.5))],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],
