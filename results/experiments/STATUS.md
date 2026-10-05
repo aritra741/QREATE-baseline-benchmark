@@ -1,8 +1,8 @@
-# Experiment status (2026-10-04T14:40:51-06:00)
+# Experiment status (2026-10-04T19:24:11-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
-| G0-prompt-guard | gpu | done | 4 | ok 2026-10-04T14:40:51-06:00 |  |
+| G0-prompt-guard | gpu | done | 5 | ok 2026-10-04T17:24:13-06:00 |  |
 | P1-pull-fp16 | gpu | done | 2 | ok 2026-10-01T20:46:53-06:00 |  |
 | E1.2-sr-fp16 | gpu | done | 2 | ok 2026-10-01T20:56:34-06:00 |  |
 | E1.1-sr-rep1 | gpu | done | 1 | ok 2026-10-01T21:11:45-06:00 |  |
@@ -25,8 +25,14 @@
 | E5.2-planner-protocol-f075 | gpu | done | 1 | ok 2026-10-04T14:06:16-06:00 |  |
 | E5.3-planner-joinweight-f025 | gpu | done | 1 | ok 2026-10-04T14:19:34-06:00 |  |
 | E5.3-planner-joinweight-f075 | gpu | done | 1 | ok 2026-10-04T14:31:14-06:00 |  |
-| E5.4-planner-on-shared-t025 | gpu | pending | 0 |  |  |
-| E5.4-planner-on-shared-t075 | gpu | pending | 0 |  |  |
+| E5.4-planner-on-shared-t025 | gpu | done | 1 | ok 2026-10-04T14:47:52-06:00 |  |
+| E5.4-planner-on-shared-t075 | gpu | done | 1 | ok 2026-10-04T15:00:59-06:00 |  |
+| E11-seed1-cspaper | gpu | done | 1 | ok 2026-10-04T17:27:57-06:00 |  |
+| E11-seed1-player | gpu | done | 1 | ok 2026-10-04T17:52:25-06:00 |  |
+| E11-seed2-cspaper | gpu | done | 1 | ok 2026-10-04T17:59:40-06:00 |  |
+| E11-seed2-player | gpu | done | 1 | ok 2026-10-04T18:18:10-06:00 |  |
+| E11-seed3-cspaper | gpu | done | 1 | ok 2026-10-04T18:25:28-06:00 |  |
+| E11-seed3-player | gpu | done | 1 | ok 2026-10-04T18:51:12-06:00 |  |
 | E3.2-fragile-legal | gpu | done | 2 | ok 2026-10-02T21:17:30-06:00 |  |
 | E3.2-fragile-med | gpu | done | 2 | ok 2026-10-02T22:50:20-06:00 |  |
 | E3.2-fragile-cspaper | gpu | done | 2 | ok 2026-10-02T23:02:02-06:00 |  |
