@@ -7,6 +7,8 @@
   fresh   the designs only: the builds and patches are read anew (e.g. with another model).
   seed    a new drift design (QUWARTS_DRIFT_SEED): the W0 build and every journal (reads are reused where prompts
           match), but no design, level builds, streams or states, so the levels are drawn and built anew.
+  w0      a different build workload (QUWARTS_W0_FRACTION): only the read journals (reused where prompts match);
+          the build, the design, the levels and the streams are all made anew.
   policy  as replay, plus the recorded unlimited streams (their outputs and states): budgeted streams under another
           budget policy then get the same budgets, and reuse every read already in the journals.
 
@@ -31,7 +33,7 @@ DESIGNS = ["fixed4_attribute_pool_design.json", "fixed_attribute_pool_design.jso
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["repeat", "replay", "fresh", "policy", "seed"], required=True)
+    ap.add_argument("--mode", choices=["repeat", "replay", "fresh", "policy", "seed", "w0"], required=True)
     ap.add_argument("--corpus", required=True)
     ap.add_argument("--root", required=True, help="the new QUWARTS_LIVE_ROOT")
     ap.add_argument("--scratch", required=True, help="the new QUWARTS_SCRATCH")
@@ -45,7 +47,9 @@ def main() -> int:
         return 0
     dst.mkdir(parents=True, exist_ok=True)
     sdst.mkdir(parents=True, exist_ok=True)
-    files = list(DESIGNS) if a.mode != "seed" else []
+    files = list(DESIGNS) if a.mode not in ("seed", "w0") else []
+    if a.mode == "w0":
+        files += ["build_reads.jsonl", "patch_reads.jsonl", "usage.jsonl", "scores.json"]
     if a.mode == "seed":
         files += ["build.json", "build_reads.jsonl", "patch_reads.jsonl", "usage.jsonl", "scores.json"]
     if a.mode in ("repeat", "replay", "policy"):

@@ -22,7 +22,7 @@ fi
 # One extra server at a time beside main (GPU memory): stop any other non-main server this node started.
 for f in "$DIR"/*.json; do
   [ -e "$f" ] || continue
-  other=$(basename "$f" .json); [ "$other" = main ] || [ "$other" = "$NAME" ] && continue
+  other=$(basename "$f" .json); case "$other" in main*) continue ;; esac; [ "$other" = "$NAME" ] && continue
   read -r opid onode < <(python -c "import json; d = json.load(open('$f')); print(d['pid'], d['node'])")
   if [ "$onode" = "$(hostname)" ] && kill -0 "$opid" 2> /dev/null; then
     echo "$(date -Is) stopping server $other (pid $opid) to start $NAME" >> "$REPO/results/experiments/logs/ollama_$other.log"
@@ -47,7 +47,9 @@ if [ "${GPU_MB:-0}" -lt 60000 ]; then
     *) PARALLEL=4; CTX=16384 ;;
   esac
 fi
-OLLAMA_HOST=127.0.0.1:$PORT OLLAMA_NUM_PARALLEL=$PARALLEL OLLAMA_CONTEXT_LENGTH=$CTX OLLAMA_MAX_LOADED_MODELS=1 \
+# main2: a second main server pinned to GPU 1 (two-GPU nodes), so the runner and DocETL do not share slots.
+GPUS=""; [ "$NAME" = main2 ] && { PARALLEL=8; CTX=32768; GPUS=1; }
+CUDA_VISIBLE_DEVICES=${GPUS:-${CUDA_VISIBLE_DEVICES:-}} OLLAMA_HOST=127.0.0.1:$PORT OLLAMA_NUM_PARALLEL=$PARALLEL OLLAMA_CONTEXT_LENGTH=$CTX OLLAMA_MAX_LOADED_MODELS=1 \
   OLLAMA_KEEP_ALIVE=72h OLLAMA_MODELS=$OLLAMA_MODELS setsid nohup ollama serve >> "$LOG" 2>&1 < /dev/null &
 PID=$!
 for _ in $(seq 1 90); do up "127.0.0.1:$PORT" && break; sleep 1; done

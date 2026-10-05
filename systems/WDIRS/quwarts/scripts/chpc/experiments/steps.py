@@ -25,6 +25,10 @@ CORPORA = ["cspaper", "player", "art", "med", "legal"]
 
 
 def server(name: str) -> str:
+    import os
+
+    if name == "main":  # QUWARTS_RUNNER_SERVER=main2: the runner's own 4-bit server on GPU 1 (two-GPU nodes)
+        name = os.environ.get("QUWARTS_RUNNER_SERVER", "main")
     return f'eval "$(bash ../../{EXP}/ensure_server.sh {name})" && '
 
 
@@ -176,6 +180,20 @@ STEPS = [
        "outputs": [f"results/experiments/E11-seed{sd}/live/{c}/streams/fixed4-attribute_pool_{p}.jsonl"
                    for p in (0, 25, 50, 75, 100)]}
       for sd in (1, 2, 3) for c in ("cspaper", "player")],
+    # ---- GPU lane: E12, a smaller build workload ("train" share of W0: QUWARTS_W0_FRACTION) with the same test
+    # queries; all five drift levels, unlimited patching (static comes with each stream). Shares that still drop
+    # W0 columns: 10% and 25% on cspaper, player, art; also 50% on art.
+    *[{"id": f"E12-w0f{round(f * 100):03d}-{c}", "lane": "gpu", "deps": ["G0-prompt-guard"],
+       "cmd": PRE + f"python ../../{EXP}/clone.py --mode w0 --corpus {c} "
+              f"--root results/experiments/E12-w0f{round(f * 100):03d}/live --scratch {SCRATCH}/E12-w0f{round(f * 100):03d} && "
+              + server("main") + f"QUWARTS_W0_FRACTION={f} "
+              f"QUWARTS_LIVE_ROOT=$OLDPWD/results/experiments/E12-w0f{round(f * 100):03d}/live "
+              f"QUWARTS_SCRATCH={SCRATCH}/E12-w0f{round(f * 100):03d} python -u -m quwarts.eval.drift_live --corpus {c} "
+              f"--run --streams fixed --axes attribute_pool --deadline 0 --workers 8",
+       "outputs": [f"results/experiments/E12-w0f{round(f * 100):03d}/live/{c}/streams/fixed4-attribute_pool_{p}.jsonl"
+                   for p in (0, 25, 50, 75, 100)]}
+      for c, f in (("cspaper", 0.1), ("cspaper", 0.25), ("player", 0.1), ("player", 0.25), ("art", 0.1),
+                   ("art", 0.25), ("art", 0.5))],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],

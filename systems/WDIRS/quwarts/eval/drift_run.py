@@ -136,6 +136,14 @@ def context(corpus: str) -> SimpleNamespace:
     _memoize_table_attributes()
     spec, _train, _test, _run, docs = MS.context(corpus)
     w0 = dict(json.loads((ROOT / corpus / "build.json").read_text())["build"])
+    # QUWARTS_W0_FRACTION (E12): keep a seeded random share of the build workload (the "train" queries); the test
+    # queries are unchanged, so a smaller share leaves more of the columns they need to drift. 1.0: as recorded.
+    frac = float(os.environ.get("QUWARTS_W0_FRACTION", 1.0))
+    if frac < 1.0:
+        keep = sorted(w0)
+        random.Random(f"w0:{corpus}:{os.environ.get('QUWARTS_W0_SEED', 0)}").shuffle(keep)
+        keep = set(keep[:max(1, round(frac * len(keep)))])
+        w0 = {q: s for q, s in w0.items() if q in keep}
     designs = {s: json.loads((DROOT / corpus / f"design_seed{s}.json").read_text()) for s in SEEDS}
     records: dict[str, dict] = {}
     for d in designs.values():
