@@ -80,19 +80,17 @@ def replay(corpus: str) -> dict:
 
 
 def ablate(name: str, corpus: str) -> dict:
-    """E13: the unlimited stream at 100% drift with one component of the controller turned off (drift_live ABLATE;
-    ``nousage`` is the existing patch-prompt variant). From a replay clone, so every recorded read is reused; the
-    ablations that change no prompt (rawview, raw) run with model calls refused, which checks that they make none."""
+    """E13: the unlimited stream at 100% drift with one component of the controller turned off (drift_live ABLATE).
+    From a replay clone, so every recorded read is reused and only reads the ablation changes are paid. (rawview and
+    raw change no prompt, but their views change which documents later filters select, so they may read too.)"""
 
     sid, root, scratch = f"E13-{name}-{corpus}", f"results/experiments/E13-{name}/live", f"{SCRATCH}/E13-{name}"
-    free = name in ("rawview", "raw")
     env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_LIVE_ONLY=fixed4-attribute_pool/100 "
-           + ("QUWARTS_LIVE_VARIANT=no_usage " if name == "nousage" else f"QUWARTS_ABLATE={name} ")
-           + ("QUWARTS_LIVE_REPLAY=1 " if free else ""))
+           f"QUWARTS_ABLATE={name} ")
     return {
-        "id": sid, "lane": "cpu" if free else "gpu", "deps": ["G0-prompt-guard"],
+        "id": sid, "lane": "gpu", "deps": ["G0-prompt-guard"],
         "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} && "
-               + ("" if free else server("main")) + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} "
+               + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} "
                f"--run --streams fixed --axes attribute_pool --deadline 0 --workers 8",
         "outputs": [f"{root}/{corpus}/streams/fixed4-attribute_pool_100.jsonl"],
     }

@@ -91,12 +91,18 @@ VARIANT = os.environ.get("QUWARTS_LIVE_VARIANT", "")
 #   rawview  serve the master database as stored: no value representation in the view (represent Config t0=False)
 #   raw      store patched values as the model returned them (lists joined), without commit-time normalization
 #   noscope  patch every document of the table, not only those the query's pushed-down filter can select
-#   noreuse  every query starts from the build: no patched column is kept for later queries
+#   noreuse  every query starts from the build: no patched column is kept for later queries; a patch then reads only
+#            the columns the query lacks (batching columns that are dropped after the query would only add cost), so
+#            its contrast is nobatch
 #   nobatch  a patch reads only the columns the query lacks, not the other workload columns still missing
-#   nodesc   patch prompts give names and types only (no field descriptions) for the columns outside the build
+#   nodesc   patch prompts drop the field descriptions (the name stands in) for the columns outside the build; types,
+#            allowed values and the usage phrase stay
+#   nousage  patch prompts drop the workload usage phrase for the columns outside the build
 #   head     a long document is read only up to the window (no chained chunks with carried context) by patches
+# rawview and raw also change which documents later queries' pushed-down filters select (the scope is evaluated on the
+# served view), and raw leaves chained long documents normalized (reduce_chunks commits per chunk).
 ABLATE = os.environ.get("QUWARTS_ABLATE", "")
-assert ABLATE in ("", "rawview", "raw", "noscope", "noreuse", "nobatch", "nodesc", "head"), ABLATE
+assert ABLATE in ("", "rawview", "raw", "noscope", "noreuse", "nobatch", "nodesc", "nousage", "head"), ABLATE
 assert VARIANT in ("", "no_literals", "no_usage", "with_known"), VARIANT
 BASE = Path(os.environ["QUWARTS_LIVE_ROOT"]) if os.environ.get("QUWARTS_LIVE_ROOT") else \
     R.RESULTS / ("drift_live" if BACKEND == "openrouter" else "drift_live_ollama")  # the override is for tests
@@ -337,13 +343,15 @@ def patch_variant(ctx, seen, fields):
 
     from quwarts.core.router.workload_features import usage_phrase, workload_features
 
-    uses = workload_features(ctx.spec, seen)["attributes"] if VARIANT == "no_literals" and ABLATE != "nodesc" else {}
+    uses = workload_features(ctx.spec, seen)["attributes"] if VARIANT == "no_literals" and not ABLATE else {}
     out = {}
     for k, f in fields.items():
         if k in ctx.lean_fields:
             out[k] = f
         elif ABLATE == "nodesc":
             out[k] = replace(f, description="")
+        elif ABLATE == "nousage":
+            out[k] = replace(f, usage="")
         elif VARIANT == "no_usage":
             out[k] = replace(f, usage="")
         else:
@@ -853,7 +861,7 @@ class Stream:
             self.mat = {(r.table, a): set(ctx.names[r.table]) for r in self.build.reads for a in r.attributes}
         seen = {**self.build.workload, **self.st["seen"], qid: sql}
         fields_seen, reads_seen = C.design(ctx.spec, seen)  # the build's workload and the queries so far
-        if VARIANT in ("no_literals", "no_usage") or ABLATE == "nodesc":
+        if VARIANT in ("no_literals", "no_usage") or ABLATE in ("nodesc", "nousage"):
             fields_seen = patch_variant(ctx, seen, fields_seen)
         F = {**self.build.all_fields(), **fields_seen}
         need = C.query_attributes(ctx.spec, qid, sql, seen)
@@ -886,7 +894,7 @@ class Stream:
         for t in missing:
             batch = sorted({a for r in reads_seen if r.table == t for a in r.attributes
                             if not self.fully(t, a) and f"{t}.{a}" in fields_seen
-                            and (ABLATE != "nobatch" or a in missing[t])})
+                            and (ABLATE not in ("nobatch", "noreuse") or a in missing[t])})
             for d in scope[t]:
                 attrs = [a for a in batch if d not in self.mat.get((t, a), set())]
                 if attrs:
@@ -902,7 +910,7 @@ class Stream:
         for t in missing:
             batch = sorted({a for r in reads_seen if r.table == t for a in r.attributes
                             if not self.fully(t, a) and f"{t}.{a}" in fields_seen
-                            and (ABLATE != "nobatch" or a in missing[t])})
+                            and (ABLATE not in ("nobatch", "noreuse") or a in missing[t])})
             groups: dict[tuple, list[str]] = {}
             for d in scope[t]:
                 attrs = tuple(a for a in batch if d not in self.mat.get((t, a), set()))
