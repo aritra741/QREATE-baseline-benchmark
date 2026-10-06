@@ -86,6 +86,17 @@ PRICE = {"input": 0.10 / 1e6, "output": 0.20 / 1e6}  # OpenRouter list price of 
 # (the build's and earlier queries'); a read costs about the document's length whatever the number of fields, and
 # the known fields give the model the context the build's prompt had. Only the missing columns are written.
 VARIANT = os.environ.get("QUWARTS_LIVE_VARIANT", "")
+# Component ablations (E13), one at a time; unset = the system as recorded. Each turns off one part of the stream
+# controller (the build is never changed):
+#   rawview  serve the master database as stored: no value representation in the view (represent Config t0=False)
+#   raw      store patched values as the model returned them (lists joined), without commit-time normalization
+#   noscope  patch every document of the table, not only those the query's pushed-down filter can select
+#   noreuse  every query starts from the build: no patched column is kept for later queries
+#   nobatch  a patch reads only the columns the query lacks, not the other workload columns still missing
+#   nodesc   patch prompts give names and types only (no field descriptions) for the columns outside the build
+#   head     a long document is read only up to the window (no chained chunks with carried context) by patches
+ABLATE = os.environ.get("QUWARTS_ABLATE", "")
+assert ABLATE in ("", "rawview", "raw", "noscope", "noreuse", "nobatch", "nodesc", "head"), ABLATE
 assert VARIANT in ("", "no_literals", "no_usage", "with_known"), VARIANT
 BASE = Path(os.environ["QUWARTS_LIVE_ROOT"]) if os.environ.get("QUWARTS_LIVE_ROOT") else \
     R.RESULTS / ("drift_live" if BACKEND == "openrouter" else "drift_live_ollama")  # the override is for tests
@@ -250,8 +261,10 @@ def rows_of(journal: Path) -> dict[str, dict]:
     return out
 
 
-def values_and_shas(docs: dict[str, Path], table: str, attrs: list[str], fields, by_sha) -> tuple[dict, list[str]]:
-    """``read_values`` for one table and field list, also returning the prompt hashes it used."""
+def values_and_shas(docs: dict[str, Path], table: str, attrs: list[str], fields, by_sha,
+                    head: bool = False) -> tuple[dict, list[str]]:
+    """``read_values`` for one table and field list, also returning the prompt hashes it used. ``head``: long
+    documents were read only up to the window (``run_reads(long_documents="head")``)."""
 
     from quwarts.core.retrieve_extract.tokens import count_tokens
     from quwarts.core.router import chunked
@@ -264,7 +277,7 @@ def values_and_shas(docs: dict[str, Path], table: str, attrs: list[str], fields,
     values, used = {}, []
     for doc, path in docs.items():
         text = read_document(path)
-        if count_tokens(text) <= window:
+        if head or count_tokens(text) <= window:
             s = sha(render_prompt(truncate(text, window), specs, None))
             row = by_sha.get(s)
             if row is not None:
@@ -324,11 +337,13 @@ def patch_variant(ctx, seen, fields):
 
     from quwarts.core.router.workload_features import usage_phrase, workload_features
 
-    uses = workload_features(ctx.spec, seen)["attributes"] if VARIANT == "no_literals" else {}
+    uses = workload_features(ctx.spec, seen)["attributes"] if VARIANT == "no_literals" and ABLATE != "nodesc" else {}
     out = {}
     for k, f in fields.items():
         if k in ctx.lean_fields:
             out[k] = f
+        elif ABLATE == "nodesc":
+            out[k] = replace(f, description="")
         elif VARIANT == "no_usage":
             out[k] = replace(f, usage="")
         else:
@@ -481,8 +496,13 @@ def write_values(db: Path, table: str, docs, attrs, vals: dict, fields: dict) ->
             if got is None or d not in ids:
                 continue
             for a in attrs:
-                conn.execute(f'UPDATE "{table}" SET "{a}" = ? WHERE doc_id = ?',
-                             (commit_value(got.get(a), fields[f"{table}.{a}"]), ids[d]))
+                v = got.get(a)
+                if ABLATE == "raw":  # E13: as returned (a list joined as the commit would), no normalization
+                    v = " || ".join(str(x) for x in v if x is not None) if isinstance(v, list) else v
+                    v = json.dumps(v) if isinstance(v, dict) else v
+                else:
+                    v = commit_value(v, fields[f"{table}.{a}"])
+                conn.execute(f'UPDATE "{table}" SET "{a}" = ? WHERE doc_id = ?', (v, ids[d]))
     conn.close()
 
 
@@ -801,7 +821,7 @@ class Stream:
     def view(self, workload, fields, dest: Path) -> Path:
         from quwarts.core.represent import Config, build
 
-        build(self.dir / "master.db", dest, self.ctx.spec, fields, workload, Config())
+        build(self.dir / "master.db", dest, self.ctx.spec, fields, workload, Config(t0=ABLATE != "rawview"))
         return dest
 
     def step(self, stop_at: float) -> None:
@@ -828,9 +848,12 @@ class Stream:
         ctx, pos = self.ctx, self.st["pos"]
         qid = self.stream[pos]
         sql = ctx.catalog[qid]
+        if ABLATE == "noreuse":  # E13: back to the build before every query (earlier patches are not kept)
+            shutil.copy2(self.build.db, self.dir / "master.db")
+            self.mat = {(r.table, a): set(ctx.names[r.table]) for r in self.build.reads for a in r.attributes}
         seen = {**self.build.workload, **self.st["seen"], qid: sql}
         fields_seen, reads_seen = C.design(ctx.spec, seen)  # the build's workload and the queries so far
-        if VARIANT in ("no_literals", "no_usage"):
+        if VARIANT in ("no_literals", "no_usage") or ABLATE == "nodesc":
             fields_seen = patch_variant(ctx, seen, fields_seen)
         F = {**self.build.all_fields(), **fields_seen}
         need = C.query_attributes(ctx.spec, qid, sql, seen)
@@ -845,7 +868,7 @@ class Stream:
             if not lacking:
                 continue
             known = {a for (tt, a) in self.mat if tt == t and self.fully(t, a)}
-            cond = C.pushdown_conjuncts(sql, t, known) if len(need) == 1 else None
+            cond = C.pushdown_conjuncts(sql, t, known) if len(need) == 1 and ABLATE != "noscope" else None
             rows = None
             if cond:
                 if not built:
@@ -862,7 +885,8 @@ class Stream:
         est = 0
         for t in missing:
             batch = sorted({a for r in reads_seen if r.table == t for a in r.attributes
-                            if not self.fully(t, a) and f"{t}.{a}" in fields_seen})
+                            if not self.fully(t, a) and f"{t}.{a}" in fields_seen
+                            and (ABLATE != "nobatch" or a in missing[t])})
             for d in scope[t]:
                 attrs = [a for a in batch if d not in self.mat.get((t, a), set())]
                 if attrs:
@@ -877,7 +901,8 @@ class Stream:
         shas, read_docs, fetched = [], 0, {}
         for t in missing:
             batch = sorted({a for r in reads_seen if r.table == t for a in r.attributes
-                            if not self.fully(t, a) and f"{t}.{a}" in fields_seen})
+                            if not self.fully(t, a) and f"{t}.{a}" in fields_seen
+                            and (ABLATE != "nobatch" or a in missing[t])})
             groups: dict[tuple, list[str]] = {}
             for d in scope[t]:
                 attrs = tuple(a for a in batch if d not in self.mat.get((t, a), set()))
@@ -894,13 +919,15 @@ class Stream:
                     if left is not None and left < 10:
                         raise Incomplete()
                     stats = run_reads(vspec, [read], {}, fields_seen, self.caller, self.journal, WORKERS,
-                                      long_documents="chain", deadline=None if left is None else left - 8)
+                                      long_documents="head" if ABLATE == "head" else "chain",
+                                      deadline=None if left is None else left - 8)
                 finally:
                     shutil.rmtree(root, ignore_errors=True)
                 if stats.get("stopped_at_deadline"):
                     raise Incomplete()
                 by = rows_of(self.journal)
-                vals, used = values_and_shas({d: ctx.docs[t][d] for d in docs}, t, list(asked), fields_seen, by)
+                vals, used = values_and_shas({d: ctx.docs[t][d] for d in docs}, t, list(asked), fields_seen, by,
+                                             head=ABLATE == "head")
                 shas += used
                 read_docs += len(docs)
                 write_values(self.dir / "master.db", t, docs, attrs, vals, fields_seen)

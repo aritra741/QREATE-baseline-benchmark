@@ -79,6 +79,25 @@ def replay(corpus: str) -> dict:
     }
 
 
+def ablate(name: str, corpus: str) -> dict:
+    """E13: the unlimited stream at 100% drift with one component of the controller turned off (drift_live ABLATE;
+    ``nousage`` is the existing patch-prompt variant). From a replay clone, so every recorded read is reused; the
+    ablations that change no prompt (rawview, raw) run with model calls refused, which checks that they make none."""
+
+    sid, root, scratch = f"E13-{name}-{corpus}", f"results/experiments/E13-{name}/live", f"{SCRATCH}/E13-{name}"
+    free = name in ("rawview", "raw")
+    env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_LIVE_ONLY=fixed4-attribute_pool/100 "
+           + ("QUWARTS_LIVE_VARIANT=no_usage " if name == "nousage" else f"QUWARTS_ABLATE={name} ")
+           + ("QUWARTS_LIVE_REPLAY=1 " if free else ""))
+    return {
+        "id": sid, "lane": "cpu" if free else "gpu", "deps": ["G0-prompt-guard"],
+        "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} && "
+               + ("" if free else server("main")) + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} "
+               f"--run --streams fixed --axes attribute_pool --deadline 0 --workers 8",
+        "outputs": [f"{root}/{corpus}/streams/fixed4-attribute_pool_100.jsonl"],
+    }
+
+
 def analysis(what: str, corpus: str) -> dict:
     folder = {"patches": "E2.2-patches", "order": "E2.3-order", "components": "E2.4-errors", "columns": "E2.1-columns"}[what]
     return {"id": f"{folder.split('-')[0]}-{what}-{corpus}", "lane": "cpu", "deps": [f"E2-replay-{corpus}"],
@@ -198,6 +217,10 @@ STEPS = [
                    ("legal", 0.25), ("legal", 0.5))],
     # ---- GPU lane: E3.1, the offline knapsack over patches (exp_analysis knapsack), re-scored by running it
     *[policy("knapsack", c) for c in ("cspaper", "player", "art", "legal", "med")],
+    # ---- E13: component ablations, unlimited stream at 100% drift; no-call ones first (cpu lane), then the gpu ones
+    # cheapest first, corpora cheapest first
+    *[ablate(n, c) for n in ("rawview", "raw", "noscope", "nobatch", "nodesc", "nousage", "head", "noreuse")
+      for c in ("cspaper", "player", "art", "med", "legal")],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],
