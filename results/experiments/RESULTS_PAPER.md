@@ -355,7 +355,7 @@ uses 7–25× fewer tokens. DocETL extracts per query and does not reuse extract
 | cspaper | 59 | 0.105 | 0.153 | +0.049 (0.004 – 0.093) | 20.7M | 1.56M | 13× |
 | art | 43 | 0.167 | 0.256 | +0.089 (0.047 – 0.135) | 57.9M | 8.51M | 7× |
 | med | 76 | 0.056 | 0.086 | +0.030 (0.010 – 0.054) | 170.6M | 22.46M | 8× |
-| legal | 16 of 30 | 0.046 | 0.147 | +0.101 (0.046 – 0.165) | 269.1M | 26.73M | 10× |
+| legal | 30 | 0.040 | 0.114 | +0.075 (0.029 – 0.124) | 475.1M | 34.49M | 14× |
 
 ![Ours vs DocETL per corpus (left) and on player by number of joins (right).](figures/docetl.png)
 *Figure 14. Ours vs DocETL per corpus (left) and on player by number of joins (right).*
@@ -365,4 +365,4 @@ prompt. On player, DocETL scores 0.125 / 0.034 / 0.008 on queries with 0 / 1 / 2
 the likely cause (not yet verified value by value) is that join keys extracted by separate per-table operations do
 not match, whereas our build extracts every table's keys with the same field definitions.
 
-**Scope.** Legal is 16 of 30 queries (DocETL takes about 3 hours per legal query); the other corpora are complete.
+**Scope.** All 326 drift test queries on the five corpora; one model.

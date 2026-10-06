@@ -157,30 +157,28 @@ Cross-cutting causes:
 
 ## Baseline: DocETL on the drift queries
 
-DocETL (same model, one map per query and table, the fair prompt) at 100% drift, on the test queries it has scored
-(complete for cspaper, player and med; art and legal still running):
+DocETL (same model, one map per query and table, the fair prompt) at 100% drift, all 326 drift test queries; paired
+difference with 95% bootstrap CI:
 
-| Corpus | Queries | DocETL | Ours, adaptive | Ours, static | DocETL tokens | Ours: patches + one shared build |
-|---|---|---|---|---|---|---|
-| cspaper | 59 of 59 | 0.105 | 0.153 | 0.008 | 20.7M | 1.16M + 0.40M |
-| player | 118 of 118 | 0.081 | 0.387 | 0.040 | 190.6M | 5.67M + 2.04M |
-| med | 76 of 76 | 0.056 | 0.086 | 0.031 | 170.6M | 19.92M + 2.54M |
-| art | 30 of 43 | 0.151 | 0.235 | 0.044 | 40.5M | 6.08M + 2.43M (all 43) |
-| legal | 8 of 30 | 0.016 | 0.137 | 0.000 | 137.4M | 15.97M + 4.56M (these 8) |
+| Corpus | Queries | DocETL | Ours, adaptive | Ours − DocETL (95% CI) | DocETL tokens | Ours: build + patches | Ratio |
+|---|---|---|---|---|---|---|---|
+| player | 118 | 0.081 | 0.387 | +0.306 (+0.246, +0.367) | 190.6M | 7.71M | 25× |
+| cspaper | 59 | 0.105 | 0.153 | +0.049 (+0.003, +0.093) | 20.7M | 1.56M | 13× |
+| art | 43 | 0.167 | 0.256 | +0.089 (+0.047, +0.134) | 57.9M | 8.52M | 7× |
+| med | 76 | 0.056 | 0.086 | +0.030 (+0.009, +0.054) | 170.6M | 22.47M | 8× |
+| legal | 30 | 0.040 | 0.114 | +0.075 (+0.029, +0.124) | 475.1M | 34.49M | 14× |
 
-Adaptive patching is above DocETL on every corpus at 4–25× fewer tokens; DocETL is above our static build. **DocETL
-collapses with joins** on player (0.125 → 0.034 → 0.008 for 0 / 1 / 2+ joins, all 118 queries) while ours stays at
-0.37–0.44 (likely cause, not yet checked value by value: join keys extracted by separate per-table maps do not match).
+On player DocETL scores 0.125 / 0.034 / 0.008 on queries with 0 / 1 / 2+ joins.
 
 ## Status (2026-10-04, job 16050764)
 
 Done: replays and per-corpus analyses (all five corpora); noise, quantization; null handling (E7 family); prompt width
 (E2.1b); canonicalization (E8); query types (E9); budget policies on all five corpora (E3.2, E3.3); other models
 (Llama 3.1 8B, Qwen 2.5 32B); planner attribution and fixes (E5.0–E5.3); build-cost accuracy (E1.3); anticipation
-(E1.4); patch-value signals (E4.1); token and latency accounting (`ACCOUNTING.md`).
+(E1.4); patch-value signals (E4.1); token and latency accounting (`ACCOUNTING.md`); other drift draws (E11) and
+smaller build workloads (E12: cspaper, player, art, med; legal running); DocETL on all 326 drift test queries.
 
 Open:
-- DocETL on legal (16 of 30 drift test queries; about 3 hours per query); all other corpora complete.
 - An offline best-possible budget policy (E3.1, a knapsack over patches re-scored by replay); the hindsight oracle and
   the `fragile` rule stand in for it now.
 - A planner objective that can recognise a shared read better than per-query reads (RQ5): the current one treats each

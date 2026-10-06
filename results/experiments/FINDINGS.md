@@ -1132,3 +1132,20 @@ even where the W0 columns are the same (cspaper 25%). At 0% drift every column i
 design groups the columns into prompts differently for each W0, so the cells differ; this is the size of the
 shared-read variance seen before (up to 0.012 on 20 queries, 0.03 between quantizations). Score at a level should be
 compared within a share, not across shares.
+
+## DocETL: complete on all 326 drift test queries
+
+Legal finished its 30 test queries (the run then went on to W0 queries, which no comparison uses, and was stopped).
+At 100% drift, paired over each corpus's test queries (95% bootstrap CI):
+
+| Corpus | Queries | DocETL | Ours | Ours − DocETL | DocETL tokens | Ours (build + patches) | Ratio |
+|---|---|---|---|---|---|---|---|
+| player | 118 | 0.081 | 0.387 | +0.306 (+0.246, +0.367) | 190.6M | 7.71M | 25× |
+| cspaper | 59 | 0.105 | 0.153 | +0.049 (+0.003, +0.093) | 20.7M | 1.56M | 13× |
+| art | 43 | 0.167 | 0.256 | +0.089 (+0.047, +0.134) | 57.9M | 8.52M | 7× |
+| med | 76 | 0.056 | 0.086 | +0.030 (+0.009, +0.054) | 170.6M | 22.47M | 8× |
+| legal | 30 | 0.040 | 0.114 | +0.075 (+0.029, +0.124) | 475.1M | 34.49M | 14× |
+
+The interim legal numbers (16 queries: 0.046 vs 0.147) overstated the gap; on all 30 it is +0.075, still significant.
+Legal is DocETL's most expensive corpus: 15.8M tokens per query, because each query maps every one of 570 long
+judgments, with hundreds of validation failures per query (e.g. 367–570 failed documents on the aggregate queries).
