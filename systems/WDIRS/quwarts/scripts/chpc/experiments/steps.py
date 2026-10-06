@@ -88,7 +88,8 @@ def ablate(name: str, corpus: str) -> dict:
     env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_LIVE_ONLY=fixed4-attribute_pool/100 "
            f"QUWARTS_ABLATE={name} ")
     return {
-        "id": sid, "lane": "gpu", "deps": ["G0-prompt-guard"],
+        # gpu2: a second runner on another node's GPU (its own server, QUWARTS_RUNNER_SERVER=mainB) takes the heavy ones
+        "id": sid, "lane": "gpu2" if name in ("nodesc", "nousage", "noreuse") else "gpu", "deps": ["G0-prompt-guard"],
         "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} && "
                + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} "
                f"--run --streams fixed --axes attribute_pool --deadline 0 --workers 8",

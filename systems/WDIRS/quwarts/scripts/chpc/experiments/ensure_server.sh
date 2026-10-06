@@ -36,7 +36,8 @@ echo "$(date -Is) starting server $NAME on port $PORT (models in $OLLAMA_MODELS)
 # Slots (on a GPU of 60 GB or more): 16 as in the recorded runs (main); any other server gets 8, since Ollama sizes 16 slots at 32k beyond the
 # GPU memory left beside the main server, and would put the rest on the CPU.
 # The 32B model (20 GB at 4-bit, about 8.6 GB of KV cache per slot at 32k) gets 4 slots at a 16k context.
-PARALLEL=16; CTX=32768; [ "$NAME" != main ] && PARALLEL=8; [ "$NAME" = qwen32b ] && PARALLEL=4 && CTX=16384
+# mainB: the main server's settings on a second node (a second runner there; see steps.py lane gpu2).
+PARALLEL=16; CTX=32768; case "$NAME" in main*) ;; *) PARALLEL=8 ;; esac; [ "$NAME" = qwen32b ] && PARALLEL=4 && CTX=16384
 # A GPU under 60 GB (e.g. A800 40GB): main gets 8 slots (about 19 GB), Llama / 16-bit 4 slots at 16k beside it, and the
 # 32B model the whole GPU (gpu_exclusive.sh stops main and pauses DocETL for its steps).
 GPU_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -1)
