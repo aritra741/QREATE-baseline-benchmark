@@ -92,7 +92,8 @@ def policy(name: str, corpus: str) -> dict:
 
     sid, root, scratch = f"E3.2-{name}-{corpus}", f"results/experiments/E3.2-{name}/live", f"{SCRATCH}/E3.2-{name}"
     env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_BUDGET_POLICY={name} "
-           f"QUWARTS_BUDGET_ORACLE=$OLDPWD/results/experiments/E2.2-patches/{corpus}/patches.csv ")
+           f"QUWARTS_BUDGET_ORACLE=$OLDPWD/results/experiments/E2.2-patches/{corpus}/patches.csv "
+           f"QUWARTS_BUDGET_ALLOW=$OLDPWD/results/experiments/E3.1-knapsack/{corpus}/allow.json ")
     return {
         "id": sid, "lane": "gpu", "deps": [f"E2.2-patches-{corpus}", "G0-prompt-guard"],
         "cmd": PRE + f"python ../../{EXP}/clone.py --mode policy --corpus {corpus} --root {root} --scratch {scratch} && "
@@ -195,6 +196,8 @@ STEPS = [
       for c, f in (("cspaper", 0.1), ("cspaper", 0.25), ("player", 0.1), ("player", 0.25), ("art", 0.1),
                    ("art", 0.25), ("art", 0.5), ("med", 0.1), ("med", 0.25), ("med", 0.5), ("legal", 0.1),
                    ("legal", 0.25), ("legal", 0.5))],
+    # ---- GPU lane: E3.1, the offline knapsack over patches (exp_analysis knapsack), re-scored by running it
+    *[policy("knapsack", c) for c in ("cspaper", "player", "art", "legal", "med")],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],

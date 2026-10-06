@@ -712,9 +712,12 @@ def fixed_build(corpus: str, axis: str, p: int) -> Build:
 #           needs the same columns patches them itself
 #   oracle  hindsight reference, not a policy: skip a query whose patch bought nothing in the unlimited stream at the
 #           same level (QUWARTS_BUDGET_ORACLE: the E2.2 patches.csv), so the budget goes to patches that paid off
+#   knapsack offline best set (E3.1), not a policy: only the patches the knapsack over the whole unlimited stream chose
+#           for this budget and level (QUWARTS_BUDGET_ALLOW: exp_analysis knapsack's allow.json)
 POLICY = os.environ.get("QUWARTS_BUDGET_POLICY", "fcfs")
-assert POLICY in ("fcfs", "cap", "pace", "oracle", "fragile"), POLICY
+assert POLICY in ("fcfs", "cap", "pace", "oracle", "fragile", "knapsack"), POLICY
 _ORACLE: dict[str, set] = {}
+_ALLOW: dict[str, list] = {}  # E3.1 knapsack choices, "b<budget>/<level>" -> allowed qids
 
 
 def fragile_query(corpus: str, qid: str) -> bool:
@@ -752,6 +755,11 @@ def policy_allows(corpus: str, key: str, qid: str, pos: int, n: int, est: int, s
             _ORACLE[level] = {r["qid"] for r in rows
                               if r["budget"] == "" and r["level"] == level and r["no_value"] == "True"}
         return qid not in _ORACLE[level]
+    if POLICY == "knapsack":  # E3.1: only the patches the offline knapsack chose for this budget and level
+        if not _ALLOW:
+            _ALLOW.update(json.load(open(os.environ["QUWARTS_BUDGET_ALLOW"])))
+        head, level = key.split("/")
+        return qid in _ALLOW.get(f"{head.split('-')[0][len(FIXED):]}/{level}", ())
     return True
 
 

@@ -1009,12 +1009,49 @@ def planner_losses(sweep: Path | None = None, shared_run: str = "player_ollama/s
     return out
 
 
+def knapsack(corpus: str) -> dict:
+    """E3.1: the best set of patches under each budget with the whole stream known in advance. Items are the patches
+    of the unlimited stream at each drift level (E2.2's ``patches.csv``): cost = the estimated tokens the controller
+    charges against the budget, value = the gain on the query itself plus the gain on later queries that use the
+    patched columns without paying. A 0/1 knapsack (costs in units of 1k tokens) picks the set per budget and level;
+    the policy ``knapsack`` in drift_live then allows only those patches, and the re-run scores the choice."""
+
+    rows = [r for r in csv.DictReader((EXP / "E2.2-patches" / corpus / "patches.csv").open()) if r["budget"] == ""]
+    full = REPO / "results" / "drift_live_ollama" / corpus / "streams" / "fixed4-attribute_pool_100.jsonl"
+    spend = sum(r["input_tokens"] + r["output_tokens"] for r in map(json.loads, full.read_text().splitlines()))
+    out, allow = {}, {}
+    for level in sorted({r["level"] for r in rows}, key=int):
+        items = [(r["qid"], max(1, -(-int(r["est_tokens"]) // 1000)),
+                  float(r["gain_on_query"]) + float(r["later_gain_sum"])) for r in rows if r["level"] == level]
+        for b in (10, 25, 50, 75, 100):
+            cap = round(b / 100 * spend) // 1000
+            best = [(0.0, ())] * (cap + 1)  # best[c] = (value, chosen item indices) within cost c
+            for i, (_q, w, v) in enumerate(items):
+                if v <= 0 or w > cap:
+                    continue
+                for c in range(cap, w - 1, -1):
+                    cand = best[c - w][0] + v
+                    if cand > best[c][0] + 1e-12:
+                        best[c] = (cand, best[c - w][1] + (i,))
+            val, chosen = best[cap]
+            allow[f"b{b:03d}/{level}"] = sorted({items[i][0] for i in chosen})
+            out[f"b{b:03d}/{level}"] = {"budget_ktok": cap, "items": len(items), "chosen": len(chosen),
+                                        "cost_ktok": sum(items[i][1] for i in chosen), "est_value": round(val, 3),
+                                        "all_value": round(sum(v for _q, _w, v in items if v > 0), 3)}
+    out_dir = EXP / "E3.1-knapsack" / corpus
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "allow.json").write_text(json.dumps(allow, indent=1))
+    (out_dir / "summary.json").write_text(json.dumps(out, indent=1))
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "policies", "querytypes", "accounting", "planner", "reads", "variance"])
+    ap.add_argument("what", choices=["components", "patches", "order", "columns", "canon", "policies", "querytypes", "accounting", "planner", "reads", "variance", "knapsack"])
     ap.add_argument("--corpus")
     a = ap.parse_args(argv)
-    fn = {"components": components, "patches": patches, "order": order, "columns": columns, "canon": canon, "policies": policies}.get(a.what)
+    fn = {"components": components, "patches": patches, "order": order, "columns": columns, "canon": canon, "policies": policies,
+          "knapsack": knapsack}.get(a.what)
     if a.what == "accounting":
         out = accounting()
     elif a.what == "planner":
