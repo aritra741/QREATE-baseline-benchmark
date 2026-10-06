@@ -127,10 +127,13 @@ def rq1_seeds():
 def rq1_train():
     shares = {"cspaper": [(10, "E12-w0f010"), (25, "E12-w0f025"), (100, None)],
               "player": [(10, "E12-w0f010"), (25, "E12-w0f025"), (100, None)],
-              "art": [(10, "E12-w0f010"), (25, "E12-w0f025"), (50, "E12-w0f050"), (100, None)]}
+              "art": [(10, "E12-w0f010"), (25, "E12-w0f025"), (50, "E12-w0f050"), (100, None)],
+              "med": [(10, "E12-w0f010"), (25, "E12-w0f025"), (50, "E12-w0f050"), (100, None)],
+              "legal": [(10, "E12-w0f010"), (25, "E12-w0f025"), (50, "E12-w0f050"), (100, None)]}
     ramp = {10: "#86b6ef", 25: "#5598e7", 50: "#2a78d6", 100: "#104281"}
     oramp = {10: "#f5b597", 25: "#ef8d63", 50: "#eb6834", 100: "#b44a1f"}
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.6))
+    fig, grid = plt.subplots(2, 3, figsize=(15, 8.2))
+    axes = list(grid.flat)
     for ax, (c, runs) in zip(axes, shares.items()):
         top = 0.0
         for share, d in runs:
@@ -149,13 +152,14 @@ def rq1_train():
         ax.set_title(c)
         style(ax)
     axes[0].set_ylabel("Score")
+    axes[3].set_ylabel("Score")
     h, l = axes[2].get_legend_handles_labels()
     order = [0, 2, 4, 6, 1, 3, 5, 7]
-    fig.legend([h[i] for i in order], [l[i] for i in order], fontsize=8.5, ncol=4, loc="lower center",
-               bbox_to_anchor=(0.5, 0.0), frameon=False)
+    axes[5].axis("off")
+    axes[5].legend([h[i] for i in order], [l[i] for i in order], fontsize=9.5, ncol=2, loc="center", frameon=False)
     save(fig, "rq1_train.png", "The drift result holds for every train share",
          "Build workload cut to 10–50% of its queries (same test queries). Darker = larger train share; blue patched, "
-         "orange dashed static.", bottom=0.12)
+         "orange dashed static.")
 
 
 def rq1_anticipation():

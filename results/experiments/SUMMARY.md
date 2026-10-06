@@ -40,9 +40,11 @@ front if the chance a query will need it exceeds **1.3–1.6%** (player, med, le
 generously, patch only what could not be foreseen.
 
 **Robustness.** Four draws of the withheld columns (E11; cspaper, player) and build workloads cut to 10–50% of their
-queries (E12; cspaper, player, art): static collapses at 100% drift every time; the patched curve stays flat, with no
-significant 100% − 0% difference (−0.015 to +0.020). A smaller build workload leaves more columns to the patches and
-costs more in total (art at 10%: 8.5M → 10.1M tokens; cspaper 10%: +23%; player 10%: +7%).
+queries (E12; all five corpora, 18 runs): static collapses at 100% drift every time; the patched curve stays flat, with
+no significant 100% − 0% difference (−0.015 to +0.020). A smaller build workload leaves more columns to the patches and
+costs more in total (art at 10%: 8.5M → 10.1M tokens; cspaper +23%, med +19%, legal +12%, player +7%). The 0% score
+moves with the share (med 0.095 → 0.062–0.077) because a column's values depend on the prompt it is read in: at 10–25%
+med's join key `disease.disease_name` is read in a 2–3-column prompt and left empty on half the documents (12% before).
 
 ## RQ2: is a narrow patch read more accurate than a wide build read?
 
@@ -176,7 +178,7 @@ Done: replays and per-corpus analyses (all five corpora); noise, quantization; n
 (E2.1b); canonicalization (E8); query types (E9); budget policies on all five corpora (E3.2, E3.3); other models
 (Llama 3.1 8B, Qwen 2.5 32B); planner attribution and fixes (E5.0–E5.3); build-cost accuracy (E1.3); anticipation
 (E1.4); patch-value signals (E4.1); token and latency accounting (`ACCOUNTING.md`); other drift draws (E11) and
-smaller build workloads (E12: cspaper, player, art, med; legal running); DocETL on all 326 drift test queries.
+smaller build workloads (E12, all five corpora); DocETL on all 326 drift test queries.
 
 Open:
 - An offline best-possible budget policy (E3.1, a knapsack over patches re-scored by replay); the hindsight oracle and

@@ -73,13 +73,16 @@ patched curve stays within 0.035 of its 0% score at every level, and no draw's 1
 *Figure 2. The drift result across four draws of the withheld columns (cspaper, player).*
 
 It does not depend on how much of the workload the build anticipates either. Cutting the build workload to 10%, 25%
-or 50% of its queries (same test queries) leaves more columns to the patches (art at 10%: 14 new columns instead of
-9). Static still collapses at 100% drift (0.000–0.043), the patched curve stays within 0.025 of its 0% score, and no
-100% − 0% difference is significant (−0.015 to +0.014). The cost moves from the build to the patches and grows: art
-at 10% saves 1.0M build tokens but adds 2.6M patch tokens (+19% total); cspaper +23%, player +7%.
+or 50% of its queries (same test queries; 18 runs over the five corpora) leaves more columns to the patches (art at
+10%: 14 new columns instead of 9). Static still collapses at 100% drift (0.000–0.043), the patched curve stays within
+0.025 of its 0% score, and no 100% − 0% difference is significant (−0.015 to +0.014). The cost moves from the build to
+the patches and grows: art at 10% saves 1.0M build tokens but adds 2.6M patch tokens (+19% total); cspaper +23%, med
++19%, legal +12%, player +7%. The 0% score itself shifts with the share (med 0.095 → 0.062–0.077), because the build
+groups columns into prompts by workload: at 10–25% med's join key is read in a 2–3-column prompt and left empty on
+half the documents, against 12% in the full build (see RQ2).
 
 ![The drift result for build workloads cut to 10–50% of their queries.](figures/rq1_train.png)
-*Figure 3. The drift result for build workloads cut to 10–50% of their queries (cspaper, player, art).*
+*Figure 3. The drift result for build workloads cut to 10–50% of their queries (all five corpora).*
 
 
 *Anticipating is cheaper than patching.* Total tokens (build + patches) and score, from fully anticipated to fully
@@ -103,7 +106,7 @@ answer tokens of the anticipated fields (estimated at 12 per field; measured 9.5
 **Implication.** Treat anticipation as cheap insurance: extract every plausibly useful column during the build, and
 keep on-demand patching as the safety net for columns no one foresaw.
 
-**Scope.** Five corpora, all drift levels, one model; four draws of the withheld columns on cspaper and player; three smaller build workloads on cspaper, player and art;
+**Scope.** Five corpora, all drift levels, one model; four draws of the withheld columns on cspaper and player; three smaller build workloads on all five corpora;
 replicated with two other models (RQ7).
 
 ---
@@ -127,6 +130,11 @@ with gold where both have a value:
 The mechanism differs by corpus: a one-column prompt pushes the model to produce *some* value, so it fills cells that
 gold leaves empty far more often (art: 98% of gold-empty cells at one column, 60% at twelve). That helps where gold is
 mostly filled (legal, player) and hurts where it is often empty (art, med).
+
+The direction is not even fixed per column. In the smaller-workload builds of RQ1 (E12), med's join key
+`disease.disease_name` read with 1–2 other columns is left *empty* on half the documents, against 12% when read with
+8–11 other disease columns; the wide prompt fills it, often with every disease the article mentions. What a prompt's
+other columns do to a column is unpredictable in sign, which is a further reason not to tune width.
 
 ![Agreement with gold by number of columns asked per prompt.](figures/rq2_width.png)
 *Figure 5. Agreement with gold by number of columns asked per prompt.*

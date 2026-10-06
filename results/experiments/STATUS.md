@@ -1,4 +1,4 @@
-# Experiment status (2026-10-05T15:59:52-06:00)
+# Experiment status (2026-10-06T09:48:12-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -40,6 +40,12 @@
 | E12-w0f010-art | gpu | done | 1 | ok 2026-10-05T00:15:37-06:00 |  |
 | E12-w0f025-art | gpu | done | 1 | ok 2026-10-05T01:25:33-06:00 |  |
 | E12-w0f050-art | gpu | done | 1 | ok 2026-10-05T01:56:17-06:00 |  |
+| E12-w0f010-med | gpu | done | 1 | ok 2026-10-05T18:19:35-06:00 |  |
+| E12-w0f025-med | gpu | done | 1 | ok 2026-10-05T20:15:20-06:00 |  |
+| E12-w0f050-med | gpu | done | 1 | ok 2026-10-05T22:03:57-06:00 |  |
+| E12-w0f010-legal | gpu | done | 1 | ok 2026-10-06T02:03:08-06:00 |  |
+| E12-w0f025-legal | gpu | done | 1 | ok 2026-10-06T02:57:24-06:00 |  |
+| E12-w0f050-legal | gpu | done | 1 | ok 2026-10-06T03:46:53-06:00 |  |
 | E3.2-fragile-legal | gpu | done | 2 | ok 2026-10-02T21:17:30-06:00 |  |
 | E3.2-fragile-med | gpu | done | 2 | ok 2026-10-02T22:50:20-06:00 |  |
 | E3.2-fragile-cspaper | gpu | done | 2 | ok 2026-10-02T23:02:02-06:00 |  |

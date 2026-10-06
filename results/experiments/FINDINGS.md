@@ -1149,3 +1149,47 @@ At 100% drift, paired over each corpus's test queries (95% bootstrap CI):
 The interim legal numbers (16 queries: 0.046 vs 0.147) overstated the gap; on all 30 it is +0.075, still significant.
 Legal is DocETL's most expensive corpus: 15.8M tokens per query, because each query maps every one of 570 long
 judgments, with hundreds of validation failures per query (e.g. 367–570 failed documents on the aggregate queries).
+
+## E12 (continued): med and legal at train shares 10/25/50%
+
+Same setup as E12 above. Patched and static at 0/25/50/75/100% drift, tokens at 100% drift:
+
+| Corpus | Train | New cols | Patched | Static | Build + patch tokens | Patched, 100% − 0% (95% CI) |
+|---|---|---|---|---|---|---|
+| med | 100% | 18 | 0.095 0.087 0.094 0.081 0.086 | 0.095 0.072 0.065 0.037 0.031 | 2.54M + 19.92M | −0.009 (−0.027, +0.007) |
+| med | 50% | 20 | 0.062 0.064 0.062 0.070 0.060 | 0.062 0.049 0.044 0.036 0.021 | 2.48M + 21.21M | −0.002 (−0.020, +0.014) |
+| med | 25% | 21 | 0.072 0.076 0.078 0.080 0.075 | 0.072 0.072 0.039 0.032 0.026 | 2.37M + 21.23M | +0.003 (−0.012, +0.016) |
+| med | 10% | 24 | 0.077 0.079 0.071 0.076 0.070 | 0.077 0.066 0.046 0.048 0.032 | 2.32M + 24.58M | −0.006 (−0.025, +0.013) |
+| legal | 100% | 8 | 0.121 0.122 0.127 0.113 0.114 | 0.121 0.102 0.054 0.021 0.005 | 4.56M + 29.93M | −0.007 (−0.050, +0.028) |
+| legal | 50% | 8 | 0.131 0.131 0.136 0.120 0.121 | 0.131 0.112 0.069 0.035 0.007 | 4.56M + 30.11M | −0.010 (−0.052, +0.025) |
+| legal | 25% | 8 | 0.116 0.117 0.118 0.102 0.103 | 0.116 0.097 0.055 0.022 0.005 | 4.46M + 29.74M | −0.013 (−0.055, +0.023) |
+| legal | 10% | 11 | 0.132 0.128 0.112 0.116 0.128 | 0.132 0.107 0.072 0.037 0.000 | 4.28M + 34.09M | −0.005 (−0.050, +0.036) |
+
+**The drift result holds on all five corpora and every train share** (Figure `rq1_train.png`): static falls to
+0.000–0.032 at 100% drift, the patched curve stays flat (within 0.025 of its 0% score), and none of the 18 runs has a
+significant 100% − 0% difference. Fewer W0 columns again cost more patch tokens (med 10%: +4.4M, +19% total; legal 10%:
++4.2M, +12%).
+
+**Why med's 0% score drops with every smaller share (0.095 → 0.062–0.077).** The loss is concentrated: 8 of 76 queries
+(variants of three base queries) carry most of it, and per column the agreement with gold falls on a few columns:
+
+| Column (0% build) | Train 100% | 50% | 25% | 10% |
+|---|---|---|---|---|
+| disease.disease_name (join key) | 0.18 | 0.16 | 0.09 | 0.08 |
+| drug.storage_conditions | 0.11 | 0.00 | 0.11 | 0.11 |
+| disease.disease_type | 0.16 | 0.10 | 0.08 | 0.09 |
+| drug.dosage_frequency | 0.36 | 0.29 | 0.27 | 0.31 |
+
+(share of documents whose value matches gold.) At 0% drift every column is read, but how the columns are grouped into
+prompts depends on W0: the W0 read asks for W0's columns together, and the rest go to a supplementary read. With the
+full workload, `disease_name` is read beside 8–11 other disease columns; at 25% and 10% W0 keeps only 3 and 2 disease
+columns, and in that narrow prompt the model leaves `disease_name` empty on 50% and 52% of documents (12–13% at 100%
+and 50%). Where it fills it, it often lists every disease the article mentions (`Hemophilia B || Atherosclerosis ||
+…`) under the wide prompt and just the first one under the narrow one; 76 of 100 values change. Since
+`disease_name` is the join key between drug and disease, the joined queries lose rows. At 50% the key survives
+(null 13%) but other columns change (`storage_conditions` 0.11 → 0.00), so that share is lowest for other reasons.
+
+So the level-0 differences between shares are extraction effects of prompt composition: a column's values depend on
+which other columns it is read with, and a narrow prompt is not reliably better (here worse for a key). This is the
+per-column side of RQ2 (no general width effect, but large per-column swings). It does not touch the drift
+comparison, which is within a share.
