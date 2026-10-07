@@ -306,8 +306,9 @@ the largest lever after field descriptions.
 | Player, static / patched at 100% drift | 0.040 / 0.359 | 0.040 / 0.387 | 0.052 / **0.421** |
 | cspaper, patched at 0% → 100% drift (static at 100%) | 0.149 → 0.125 (0.008) | 0.134 → 0.153 (0.008) | 0.162 → **0.224** (0.008) |
 | player, patched at 0% → 100% drift | 0.356 → 0.359 | 0.379 → 0.387 | 0.401 → **0.421** |
-| art, patched at 0% → 100% drift (static at 100%) | | 0.270 → 0.256 (0.031) | 0.293 → 0.289 (0.031) |
+| art, patched at 0% → 100% drift (static at 100%) | 0.209 → 0.203 (0.031) | 0.270 → 0.256 (0.031) | 0.293 → 0.289 (0.031) |
 | med, patched at 0% → 100% drift (static at 100%) | | 0.095 → 0.086 (0.031) | 0.092 → 0.098 (0.050) |
+| legal, patched at 0% → 100% drift (static at 100%) | | 0.121 → 0.114 (0.005) | 0.239 → 0.224 (0.005) |
 
 Patch costs are the same for every model (player 5.7–5.8M, cspaper 1.2–1.3M tokens). On serving: 16-bit instead of
 4-bit weights adds +0.03 on a single pass and +0.004 on a whole drift stream; repeated runs vary by at most 0.012 on
@@ -319,11 +320,12 @@ Patch costs are the same for every model (player 5.7–5.8M, cspaper 1.2–1.3M 
 **Implication.** The system-level conclusions are not artefacts of one small, quantized model; a stronger model
 raises every number without changing what the system should do.
 
-The 32B model raises the 0%-drift score on every corpus (cspaper +0.028, player +0.022, art +0.023) except med
-(−0.003). Its 100% − 0% difference is significant on cspaper and player only (+0.062, +0.020), the narrow-prompt effect
+The 32B model raises the 0%-drift score on every corpus (cspaper +0.028, player +0.022, art +0.023, legal +0.118)
+except med (−0.003); on legal it doubles the score at the same patch cost (0.224 vs 0.114 at 100% drift, 29.9M tokens
+each). Its 100% − 0% difference is significant on cspaper and player only (+0.062, +0.020), the narrow-prompt effect
 of the *Ablations* section, larger with the stronger model.
 
-**Scope.** Llama 8B on two corpora; Qwen 32B on four (legal running); quantization on one corpus.
+**Scope.** Qwen 32B on all five corpora; Llama 8B on three (med, legal running); quantization on one corpus.
 
 ---
 

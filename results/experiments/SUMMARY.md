@@ -175,7 +175,8 @@ One component turned off at a time, unlimited stream at 100% drift, five corpora
   moves each 100%-drift score to its 0%-drift score; on cspaper over every document it reproduces the 0% stream
   (58/59 queries). The grouping (1–3 columns per patch vs all new columns per build prompt) carries it; field specs
   and scope do not. Narrow prompts help on cspaper/player, hurt on art/med; with Qwen 32B the gain is significant on
-  cspaper (+0.062) and player (+0.020), absent on art (−0.003) and med (+0.006) (E6.3; legal running).
+  cspaper (+0.062) and player (+0.020), absent on art (−0.003), med (+0.006) and legal (−0.016) (E6.3). On legal the
+  32B model doubles the 7B score at the same patch cost (0.224 vs 0.114 at 100% drift).
 
 ## Baseline: DocETL on the drift queries
 
@@ -201,7 +202,7 @@ Done: replays and per-corpus analyses (all five corpora); noise, quantization; n
 smaller build workloads (E12, all five corpora); DocETL on all 326 drift test queries; offline knapsack (E3.1); component ablations (E13); prompt factors (E14);
 Qwen 32B drift curves on cspaper, player, art, med (E6.2, E6.3).
 
-Running: Qwen 32B 0%/100% drift on legal (E6.3).
+Running: Llama 8B 0%/100% drift on med and legal (E6.3).
 
 Open:
 - A planner objective that can recognise a shared read better than per-query reads (RQ5): the current one treats each

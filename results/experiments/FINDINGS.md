@@ -1315,7 +1315,19 @@ Patched (unlimited) stream with the 32B model at 0% and 100% drift; paired over 
 | player | 0.401 | 0.421 | 0.052 | **+0.020 (+0.009, +0.034)** | 19 / 9 |
 | art | 0.293 | 0.289 | 0.031 | −0.003 (−0.027, +0.018) | 11 / 9 |
 | med | 0.092 | 0.098 | 0.050 | +0.006 (−0.006, +0.019) | 10 / 9 |
-| legal | running | | | | |
+| legal | 0.239 | 0.224 | 0.005 | −0.016 (−0.050, +0.016) | 5 / 6 |
+
+Llama 3.1 8B, same design (cspaper and player in E6.2):
+
+| Corpus | 0% | 100% | Static at 100% | 100% − 0% (95% CI) | Queries up / down |
+|---|---|---|---|---|---|
+| cspaper | 0.149 | 0.125 | 0.008 | −0.024 (−0.077, +0.034) | 10 / 14 |
+| player | 0.356 | 0.359 | 0.040 | +0.002 (−0.022, +0.022) | 14 / 22 |
+| art | 0.209 | 0.203 | 0.031 | −0.007 (−0.024, +0.010) | 10 / 15 |
+| med, legal | running | | | | |
+
+On legal the 32B model doubles the 7B score at the same patch cost (100% drift: 0.224 vs 0.114, 29.9M tokens each;
+0%: 0.239 vs 0.121) and, like the 7B model, shows no drift rise there.
 
 With the 32B model the narrow-prompt gain becomes significant on the two corpora where the 7B model already leaned
 that way (cspaper, player), and stays absent on art and med. The drift effect is the same mechanism at both sizes
