@@ -23,7 +23,7 @@ from quwarts.eval.exp_analysis import EXP, REPO
 
 RES = REPO / "results"
 OUT = EXP / "COST"
-CORPORA = ["cspaper", "player", "art"]  # med and legal: not yet run
+CORPORA = ["cspaper", "player", "art", "med", "legal"]
 RATES = {"qwen2.5-7b": (0.10, 0.20), "llama3.1-8b": (0.05, 0.08), "qwen2.5-32b (low: qwen3-32b)": (0.08, 0.28),
          "qwen2.5-32b (high: qwen-2.5-coder-32b)": (0.66, 1.00)}
 
@@ -75,13 +75,15 @@ def main() -> dict:
         # DocETL on the same test queries (100% drift)
         dd = json.loads((RES / "docetl_drift_ollama" / c / "per_query.json").read_text())
         q = [r["qid"] for r in stream(live, c, "fixed4-attribute_pool_100") if r["qid"] in dd]
+        q_all = len(stream(live, c, "fixed4-attribute_pool_100"))
         d_in = sum(dd[k]["prompt_tokens"] for k in q)
         d_out = sum(dd[k]["completion_tokens"] for k in q)
-        docetl = {"queries": len(q), "tokens": d_in + d_out, "usd": round(usd(d_in, d_out), 4),
+        docetl = {"queries": len(q), "of": q_all, "tokens": d_in + d_out, "usd": round(usd(d_in, d_out), 4),
                   "usd_per_query": round(usd(d_in, d_out) / len(q), 5)}
         # Smaller build workloads (E12), 100% drift
         shares = {}
-        for d, share in (("E12-w0f010", 10), ("E12-w0f025", 25), ("E12-w0f050", 50)):
+        stale = c in ("med", "legal")  # their E12 and other-model runs predate the regenerated queries
+        for d, share in (() if stale else (("E12-w0f010", 10), ("E12-w0f025", 25), ("E12-w0f050", 50))):
             f = EXP / d / "live" / c / "build.json"
             if not f.exists():
                 continue
@@ -92,6 +94,8 @@ def main() -> dict:
         # Component ablations (E13): patch tokens at 100% drift
         abl = {}
         for n in ("noreuse", "noscope", "nobatch", "head"):
+            if not (EXP / f"E13-{n}" / "live" / c / "streams" / "fixed4-attribute_pool_100.jsonl").exists():
+                continue  # not yet run on this corpus
             pi, po = io(stream(EXP / f"E13-{n}" / "live", c, "fixed4-attribute_pool_100"))
             abl[n] = {"patch_tokens": pi + po, "patch_usd": round(usd(pi, po), 4)}
         # Other models (100% drift; their own builds)
@@ -100,7 +104,7 @@ def main() -> dict:
                                   ("qwen2.5-32b", "E6.2-stream-qwen32b", ["qwen2.5-32b (low: qwen3-32b)", "qwen2.5-32b (high: qwen-2.5-coder-32b)"]),
                                   ("qwen2.5-32b", "E6.3-qwen32b", ["qwen2.5-32b (low: qwen3-32b)", "qwen2.5-32b (high: qwen-2.5-coder-32b)"])):
             r = EXP / f"{root}-{c}" / "live"
-            if name in models or not (r / c / "streams" / "fixed4-attribute_pool_100.jsonl").exists():
+            if stale or name in models or not (r / c / "streams" / "fixed4-attribute_pool_100.jsonl").exists():
                 continue
             bb = json.loads((r / c / "build.json").read_text())
             pi, po = io(stream(r, c, "fixed4-attribute_pool_100"))

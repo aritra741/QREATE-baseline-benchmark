@@ -5,8 +5,9 @@ Every number here is the latest valid one; the full record, with the evidence, c
 `FINDINGS.md`. Token and latency accounting: `ACCOUNTING.md`. Step status: `STATUS.md`.
 
 Setting: Qwen 2.5 7B on local Ollama (4-bit unless stated), score = per-query structure F2 × cell F1@0.20, averaged.
-Drift levels 0–100% withhold new columns from the build (`attribute_pool` test set, all with GROUP BY). Corpora run:
-cspaper, player, art (220 test queries). **med and legal: not yet run.**
+Drift levels 0–100% withhold new columns from the build (`attribute_pool` test set, all with GROUP BY; 290 test
+queries over cspaper, player, art, med, legal). On med and legal the budget policies, ablations, other models and
+smaller build workloads are still running.
 
 ## Are the measurements trustworthy?
 
@@ -31,14 +32,14 @@ Adaptive patching holds the score as drift grows; the static build collapses.
 | player | 0.379 → 0.040 | 0.379 → 0.387 | 5.7M |
 | art | 0.270 → 0.031 | 0.270 → 0.256 | 6.1M |
 | cspaper | 0.134 → 0.008 | 0.134 → 0.153 | 1.2M |
-| med | not yet run | | |
-| legal | not yet run | | |
+| med | 0.130 → 0.041 | 0.130 → 0.115 | 14.1M |
+| legal | 0.173 → 0.005 | 0.173 → 0.170 | 19.8M |
 
 Build costs of the 0–75% levels (E1.3): the measured W0 read plus exactly counted extra prompt lines, with only the
 answer tokens estimated (12 per field; measured 9.5–15); accurate to within about 2%. **Reading ahead vs patching
 later (E1.4):** anticipating every new column costs 0.07–0.74M extra build tokens; patching them all later costs
-1.2–6.1M, at about the same score (lazy ÷ eager total tokens 2.7–3.6×). A column is worth reading up front if the
-chance a query will need it exceeds **1.3%** (player) or 12–13% (art, cspaper).
+1.2–19.8M, at about the same score (lazy ÷ eager total tokens 2.7–5.9×). A column is worth reading up front if the
+chance a query will need it exceeds **1.3–1.9%** (player, med, legal) or 12–13% (art, cspaper).
 
 **Robustness.** Four draws of the withheld columns (E11; cspaper, player) and build workloads cut to 10–50% of their
 queries (E12; 7 runs): static collapses at 100% drift every time; the patched curve stays flat, with no significant
@@ -87,9 +88,9 @@ leaves 39% of cspaper's full budget unspent at the same score.
 
 - **Cost estimates are accurate**: median estimated/actual patch tokens 0.997–1.005.
 - **Value**: share of patch tokens that bought no score (on the query or any later query using the columns),
-  unlimited at 100% drift: player 0%, art 16%, cspaper 39%. Over all 67 patches of the unlimited streams (31.5M tokens)
-  5% bought nothing; unfiltered whole-corpus patches hold 86% of that waste (7% of their own tokens), filtered patches
-  2%.
+  unlimited at 100% drift: player 0%, art 16%, legal 19%, med 33%, cspaper 39%. Over all 116 patches of the unlimited
+  streams (118M tokens) 16% bought nothing; unfiltered whole-corpus patches hold 58% of that waste (20% of their own
+  tokens), filtered patches 42% (12%), AVG/SUM patches 2% of theirs.
 
 ## RQ5: the planner vs a single shared read
 
@@ -145,8 +146,8 @@ when read with six other columns and filled on 98% when read alone.
 | player | cell values (rows and joins stay right; static loses only cells) | 0.753 / 0.468 |
 | art | both | 0.527 / 0.340 |
 | cspaper | cell values | 0.650 / 0.187 |
-| med | not yet run | |
-| legal | not yet run | |
+| legal | cell values | 0.720 / 0.229 |
+| med | structure: too few rows, list-valued join keys, exact comparison of free text | 0.334 / 0.230 |
 
 Cross-cutting causes:
 - **Benchmark metadata says "never null" where gold is often empty**: 19 of the 59 never-null columns of cspaper,
@@ -162,8 +163,8 @@ Cross-cutting causes:
   `death_date` cells 0.31 → 0.88 but the score only +0.006 (one query), player unchanged.
 - **Prompt width** (A4): with the field text fixed, reading a column alone vs with 6–8 others changes cells by 0.03
   on average, none significant, with no predictive column feature.
-- **Query type** (E9, patched at 100% drift): AVG 0.42, SUM 0.35, MIN over numbers 0.33, COUNT 0.28, MAX over numbers
-  0.18.
+- **Query type** (E9, patched at 100% drift, 290 queries): AVG 0.40, SUM 0.34, MIN over numbers 0.31, COUNT 0.23,
+  MAX over numbers 0.19; MIN/MAX over numbers stored as text (years, amounts) 0.21–0.25.
 
 ## Ablations (E13, E14)
 
@@ -184,8 +185,9 @@ One component turned off at a time, unlimited stream at 100% drift (paired; * si
 ## Cost (tokens, and OpenRouter list prices)
 
 `COST/summary.json` (`python -m quwarts.eval.exp_cost`); 7B at $0.10 / $0.20 per million input / output tokens.
-- Whole corpus, build + all patches: cspaper $0.16 (1.56M tokens), player $0.78 (7.71M), art $0.88 (8.52M) at 100%
-  drift; $0.06 / $0.21 / $0.34 with every column anticipated (0%). Patches are 71–75% of tokens at 100% drift.
+- Whole corpus, build + all patches: cspaper $0.16 (1.56M tokens), player $0.78 (7.71M), art $0.88 (8.52M), med
+  $1.68 (16.6M), legal $2.46 (24.3M) at 100% drift; $0.06 / $0.21 / $0.34 / $0.29 / $0.50 with every column
+  anticipated (0%). Patches are 71–85% of tokens at 100% drift; a patch on legal's long judgments costs 3.9M tokens.
 - 7–9 queries per corpus need a patch at 100% drift: median 220k (cspaper), 930k (player), 974k (art) tokens each,
   $0.017–0.071; every other query reuses them at no extraction cost. Per test query: $0.001–0.008 (0%), $0.003–0.020
   (100%).
@@ -204,8 +206,8 @@ CI:
 | player | 118 | 0.081 | 0.387 | +0.306 (+0.246, +0.367) | 190.6M | 7.71M | 25× |
 | cspaper | 59 | 0.105 | 0.153 | +0.049 (+0.003, +0.093) | 20.7M | 1.56M | 13× |
 | art | 43 | 0.167 | 0.256 | +0.089 (+0.047, +0.134) | 57.9M | 8.52M | 7× |
-| med | not yet run | | | | | | |
-| legal | not yet run | | | | | | |
+| med | 43 | 0.072 | 0.115 | +0.044 (+0.012, +0.078) | 88.8M | 16.62M | 5× |
+| legal | 21 of 27 | 0.057 | 0.153 | +0.097 (+0.031, +0.170) | 333.0M | 20.36M | 16× |
 
 On player DocETL scores 0.125 / 0.034 / 0.008 on queries with 0 / 1 / 2+ joins.
 
@@ -218,7 +220,9 @@ anticipation (E1.4); patch-value signals (E4.1); token and latency accounting (`
 (E11) and smaller build workloads (E12); DocETL; component ablations (E13); prompt factors (E14, also with 32B);
 per-column analyses (A3, A6, A15).
 
-Not yet run: med and legal (all experiments).
+Re-run on regenerated queries: med and legal (drift levels, budget sweep, replays and per-query analyses, cost,
+DocETL). Running on med and legal: budget policies, ablations (E13, E14). Not yet re-run on med and legal: other models,
+smaller build workloads, DocETL on legal's 6 new queries.
 
 Open:
 - A planner objective that can recognise a shared read better than per-query reads (RQ5): the current one treats each

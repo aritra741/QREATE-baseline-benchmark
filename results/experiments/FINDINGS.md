@@ -1,6 +1,6 @@
 # Experiment findings (running log)
 
-> **Status (2026-10-07):** med and legal have not been run yet; their numbers in this log are not results.
+> **Status (2026-10-07):** med and legal were re-run on regenerated drift queries (R2); their earlier numbers in this log are superseded.
 
 > **Erratum (2026-10-02 13:20).** From 2026-10-01 23:40 to 2026-10-02 13:20 a code edit for E7b dropped the line
 > "Answer No unless the document indicates Yes." from the prompt of every never-null yes/no field, even with no
@@ -1512,3 +1512,13 @@ re-scored (`A-open/A13-t2/`): art 0.256 → 0.259 (+0.003, 95% CI +0.0004 to +0.
 tokens in 12 calls (6% of art's patch tokens); player unchanged (5 calls, 63k tokens: almost every value already maps
 to the vocabulary). The model tier fixes a few labels the workload compares or groups by, but the large lenient vs
 exact gap (RQ8; art `field` 0.92 vs 0.13) is in labels no query names, which a vocabulary-driven rewrite cannot reach.
+
+## R2: med and legal on the regenerated drift queries (aggregates only over numeric columns)
+med 43 test queries (14 new columns), legal 27 (5 new columns); W0 builds and read journals kept, levels, designs and
+streams new. At 100% drift, static → patched: med 0.041 → 0.115 (+0.074, 95% CI 0.035–0.119), legal 0.005 → 0.170
+(+0.165, 0.096–0.237); patched 0% → 100%: med 0.130 → 0.115 (−0.015, −0.053 to +0.020), legal 0.173 → 0.170 (−0.003,
+−0.032 to +0.023). Anticipation: lazy ÷ eager tokens 5.9× (med), 4.9× (legal); break-even 1.9% for both. Bottleneck at
+100% drift: med structure F2 0.334 / cell F1 0.230 (structure), legal 0.720 / 0.229 (values). DocETL on the same
+queries: med 0.072 vs ours 0.115 (+0.044, 0.012–0.078; 5× our tokens), legal (21 of 27) 0.057 vs 0.153 (+0.097,
+0.031–0.170; 16×). Wasted patch tokens at 100% drift: med 33%, legal 19%. Patches cost 948k (med) and 3.9M (legal)
+tokens each; 14 and 6 queries need one.

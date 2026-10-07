@@ -21,8 +21,9 @@ of the new columns the test queries need were left out of the build. At 0% the b
 
 **Data.** Five document corpora: research papers (cspaper, 200 documents), basketball players with teams, owners and
 cities (player, 4 tables, 216 documents), artists (art, 1,000), medical diseases, drugs and institutions (med, 3
-tables, about 300), and court cases (legal, 570). The results below cover cspaper, player and art (220 drift test
-queries); med and legal have not been run yet.
+tables, about 300), and court cases (legal, 570). 290 drift test queries over all five. Budget policies, ablations,
+other models and smaller build workloads on med and legal are still running; those sections cover cspaper, player
+and art.
 
 **Metric.** Per query, structure F2 (are the right rows and groups returned) × cell F1 with 20% numeric tolerance
 (are the values right), averaged over queries. 1.0 is a perfect answer.
@@ -52,10 +53,10 @@ in scope.
 | player | 0.040 | 0.387 | +0.347 (0.287 – 0.411) |
 | art | 0.031 | 0.256 | +0.225 (0.152 – 0.304) |
 | cspaper | 0.008 | 0.153 | +0.146 (0.092 – 0.204) |
-| legal | not yet run | | |
-| med | not yet run | | |
+| legal | 0.005 | 0.170 | +0.165 (0.096 – 0.237) |
+| med | 0.041 | 0.115 | +0.074 (0.035 – 0.119) |
 
-With patching, the score at 100% drift is never more than 0.014 below the fully anticipated build (0% drift). On
+With patching, the score at 100% drift is never more than 0.015 below the fully anticipated build (0% drift). On
 player and cspaper it is slightly higher (+0.008, +0.019), but neither rise is significant (paired 95% CIs −0.007 to
 +0.028 and −0.011 to +0.052; query-level gains and losses cancel), so the patched curve is flat under drift. The rise
 is not extraction noise either: patching changes 2.5–3.7× as many cells of the drifted columns as re-running the same
@@ -96,8 +97,8 @@ on demand:
 | Corpus | All anticipated | None anticipated | On-demand ÷ anticipated tokens | Break-even probability |
 |---|---|---|---|---|
 | player | 2.12M, 0.379 | 7.71M, 0.387 | 3.6× | 1.3% |
-| med | not yet run | | | |
-| legal | not yet run | | | |
+| med | 2.81M, 0.130 | 16.62M, 0.115 | 5.9× | 1.9% |
+| legal | 4.94M, 0.173 | 24.33M, 0.170 | 4.9× | 1.9% |
 | art | 3.18M, 0.270 | 8.52M, 0.256 | 2.7× | 12% |
 | cspaper | 0.55M, 0.134 | 1.56M, 0.153 | 2.8× | 13% |
 
@@ -111,8 +112,8 @@ answer tokens of the anticipated fields (estimated at 12 per field; measured 9.5
 **Implication.** Treat anticipation as cheap insurance: extract every plausibly useful column during the build, and
 keep on-demand patching as the safety net for columns no one foresaw.
 
-**Scope.** Three corpora (cspaper, player, art; med and legal not yet run), all drift levels, one model; four draws
-of the withheld columns on cspaper and player; three smaller build workloads; replicated with two other models (RQ7).
+**Scope.** Five corpora, all drift levels, one model; four draws of the withheld columns on cspaper and player; three
+smaller build workloads on cspaper, player and art; replicated with two other models (RQ7).
 
 ---
 
@@ -191,22 +192,22 @@ order, an offline plan over patches is no substitute for deciding online.
 
 ## RQ4. Can the cost and the value of an extraction be predicted before it is run?
 
-**Answer.** Cost, yes, almost exactly. On the corpora run so far few extraction tokens buy nothing, and most of those
-are spent by patches that read the whole corpus.
+**Answer.** Cost, yes, almost exactly. Value only partly: 16% of patch tokens buy nothing, mostly on corpora whose
+values are often absent (med, cspaper), and whole-corpus patches hold the larger share of that waste.
 
 **Evidence.**
 
 *Cost.* The median ratio of estimated to actual patch tokens is between 0.997 and 1.005 on every corpus.
 
 *Value.* Share of patch tokens that improved neither the triggering query nor any later query using the same
-columns, at 100% drift: player 0%, art 16%, cspaper 39% (med and legal not yet run). Over all 67 patches of the
-unlimited streams at every drift level (31.5M tokens, 5% wasted):
+columns, at 100% drift: player 0%, art 16%, legal 19%, med 33%, cspaper 39%. Over all 116 patches of the unlimited
+streams at every drift level (118M tokens, 16% wasted):
 
 | Signal visible in the SQL | Share of its tokens wasted | Share of all waste it covers |
 |---|---|---|
-| No filter (the patch reads the whole corpus) | 7% | 86% |
-| A filter scopes the patch | 2% | 14% |
-| AVG/SUM aggregate | 2% | 14% |
+| No filter (the patch reads the whole corpus) | 20% | 58% |
+| A filter scopes the patch | 12% | 42% |
+| AVG/SUM aggregate | 2% | 1% |
 
 ![Wasted extraction tokens by SQL-visible signal.](figures/rq4_signals.png)
 *Figure 7. Wasted extraction tokens by SQL-visible signal.*
@@ -214,7 +215,7 @@ unlimited streams at every drift level (31.5M tokens, 5% wasted):
 **Implication.** A planner can trust its cost model; where value is uncertain, whole-corpus reads are the extractions
 to scrutinize.
 
-**Scope.** Three corpora (med and legal not yet run), the unlimited streams.
+**Scope.** Five corpora, the unlimited streams.
 
 ---
 
@@ -272,7 +273,7 @@ papers earlier queries had selected and left the rest empty, which is correct fo
 **Implication.** Extracting a column for documents where it does not apply is harmful, not merely wasteful; scoping
 extractions to the documents a query can select is a correctness feature as well as a cost one.
 
-**Scope.** Three corpora (med and legal not yet run), all budget × drift settings.
+**Scope.** Five corpora, all budget × drift settings.
 
 ---
 
@@ -313,9 +314,9 @@ difference is significant on cspaper and player (+0.062, +0.020) and not on art,
 
 ## RQ8. Where do LLM-built databases lose accuracy?
 
-**Answer.** It depends on the corpus. Where documents have simple facts and tables join cleanly (player, cspaper), the
-loss is in cell values; where values are free-text labels (art), it is in both values and structure (wrong or missing
-rows and groups). Two causes cut across corpora and bound every system: the benchmark's metadata instructs extractors to fill fields that
+**Answer.** It depends on the corpus. Where documents have simple facts and tables join cleanly, the loss is in cell
+values; where values are free text, lists or join keys, it is in structure (wrong or missing rows and groups). Two
+causes cut across corpora and bound every system: the benchmark's metadata instructs extractors to fill fields that
 its own gold leaves empty, and values are often right in substance but not in the exact form a query groups by.
 
 **Evidence.**
@@ -325,10 +326,10 @@ its own gold leaves empty, and values are often right in substance but not in th
 | Corpus | Structure F2 | Cell F1 | Where the loss is |
 |---|---|---|---|
 | player | 0.753 | 0.468 | cell values; rows and joins stay right |
-| legal | not yet run | | |
+| legal | 0.720 | 0.229 | cell values |
 | cspaper | 0.650 | 0.187 | cell values, e.g. results tables deep in papers |
 | art | 0.527 | 0.340 | both |
-| med | not yet run | | |
+| med | 0.334 | 0.230 | structure: too few rows (list-valued join keys, free-text comparisons) |
 
 ![Structure F2 vs cell F1 per corpus, with on-demand patching at 100% drift.](figures/rq8_bottleneck.png)
 *Figure 11. Structure F2 vs cell F1 per corpus, with on-demand patching at 100% drift.*
@@ -346,12 +347,13 @@ Normalizing values to the constants the workload uses gains nothing: the mismatc
 ![Exact vs lenient agreement for the ten columns with the largest gap.](figures/rq8_form.png)
 *Figure 12. Exact vs lenient agreement for the ten columns with the largest gap.*
 
-*By query type* (patched, 100% drift): AVG 0.42, SUM 0.35, MIN over numbers 0.33, COUNT 0.28, MAX over numbers 0.18.
+*By query type* (patched, 100% drift, 290 queries): AVG 0.40, SUM 0.34, MIN over numbers 0.31, COUNT 0.23, MAX over
+numbers 0.19; MIN/MAX over numbers stored as text (years, amounts) 0.21–0.25.
 
 **Implication.** Benchmarks for LLM-based extraction should check their attribute metadata against their gold and
 score set-valued columns as sets; systems gain most from accurate field definitions.
 
-**Scope.** Three corpora (med and legal not yet run); one model for the per-column analysis.
+**Scope.** Five corpora (the metadata count on cspaper, player and art); one model for the per-column analysis.
 
 ---
 
@@ -397,10 +399,10 @@ grouping changes values in a corpus-specific direction, so it is a cost decision
 
 ## Cost
 
-**Answer.** Under drift, on-demand patching is most of the cost: at 100% drift patches are 71–75% of all extraction
-tokens, and a query that needs a patch costs 0.2–1.1M tokens, while a query answered from the database costs nothing
-more. At list prices for the 7B model a whole corpus costs $0.16–0.88 with patching (build plus every patch) and
-$0.06–0.34 if the build had anticipated every column. Reuse of patched columns is the largest saving (5–17×), and the
+**Answer.** Under drift, on-demand patching is most of the cost: at 100% drift patches are 71–85% of all extraction
+tokens, and a query that needs a patch costs 0.2–3.9M tokens (legal's long judgments are the most expensive), while a
+query answered from the database costs nothing more. At list prices for the 7B model a whole corpus costs $0.16–2.46
+with patching (build plus every patch) and $0.06–0.50 if the build had anticipated every column. Reuse of patched columns is the largest saving (5–17×), and the
 system is 7–25× cheaper than DocETL on the same queries.
 
 **Evidence.** Tokens as charged by the server; dollars at OpenRouter list rates for `qwen/qwen-2.5-7b-instruct`
@@ -412,12 +414,14 @@ corpus's test queries:
 | cspaper | 59 | 0.55M, $0.058 | 1.56M, $0.160 | 75% | 220k tokens, $0.017 | $0.0010 / $0.0027 |
 | player | 118 | 2.12M, $0.214 | 7.71M, $0.778 | 74% | 930k tokens, $0.071 | $0.0018 / $0.0066 |
 | art | 43 | 3.18M, $0.339 | 8.52M, $0.881 | 71% | 974k tokens, $0.069 | $0.0079 / $0.0205 |
-| med, legal | not yet run | | | | | |
+| med | 43 | 2.81M, $0.286 | 16.62M, $1.677 | 85% | 948k tokens, $0.101 | $0.0066 / $0.0390 |
+| legal | 27 | 4.94M, $0.503 | 24.33M, $2.456 | 81% | 3.9M tokens, $0.332 | $0.0186 / $0.0910 |
 
-Only 7–9 of each corpus's test queries need a patch at 100% drift (the first to use each new column); every later
+Only 6–14 of each corpus's test queries need a patch at 100% drift (the first to use each new column); every later
 query reuses what they read. A query answered from the database adds no extraction cost.
 
-*What changes the cost* (100% drift, 7B rates):
+*What changes the cost* (100% drift, 7B rates; cspaper, player and art — the variants have not been re-run on med and
+legal yet; DocETL on the same queries costs $8.94 on med and $33.52 on 21 of legal's 27):
 
 | Variant | cspaper | player | art |
 |---|---|---|---|
@@ -444,23 +448,24 @@ Qwen 2.5 32B Instruct is not on OpenRouter; the range uses the closest listed mo
 model rates), paid once per new column and shared by every later query that uses it. Reuse is what keeps it small;
 anticipating columns during the build removes most of it.
 
-**Scope.** Three corpora (med and legal not yet run); tokens measured, the fixed levels' builds costed as one shared
-read (within about 2%, E1.3); prices are list rates on 2026-10-07 and exclude local serving costs.
+**Scope.** Five corpora for the main table, three for the variants and models; tokens measured, the fixed levels'
+builds costed as one shared read (within about 2%, E1.3); prices are list rates on 2026-10-07 and exclude local
+serving costs.
 
 ---
 
 ## Comparison with DocETL
 
 **Answer.** On the same drift queries and model, on-demand patching is more accurate than DocETL on every corpus and
-uses 7–25× fewer tokens. DocETL extracts per query and does not reuse extractions; its accuracy collapses on joins.
+uses 5–25× fewer tokens. DocETL extracts per query and does not reuse extractions; its accuracy collapses on joins.
 
 | Corpus | Queries | DocETL | Ours (patched) | Paired difference (95% CI) | DocETL tokens | Ours (build + patches) | Ratio |
 |---|---|---|---|---|---|---|---|
 | player | 118 | 0.081 | 0.387 | +0.306 (0.246 – 0.368) | 190.6M | 7.71M | 25× |
 | cspaper | 59 | 0.105 | 0.153 | +0.049 (0.004 – 0.093) | 20.7M | 1.56M | 13× |
 | art | 43 | 0.167 | 0.256 | +0.089 (0.047 – 0.135) | 57.9M | 8.51M | 7× |
-| med | not yet run | | | | | | |
-| legal | not yet run | | | | | | |
+| med | 43 | 0.072 | 0.115 | +0.044 (0.012 – 0.078) | 88.8M | 16.62M | 5× |
+| legal | 21 of 27 | 0.057 | 0.153 | +0.097 (0.031 – 0.170) | 333.0M | 20.36M | 16× |
 
 ![Ours vs DocETL per corpus (left) and on player by number of joins (right).](figures/docetl.png)
 *Figure 14. Ours vs DocETL per corpus (left) and on player by number of joins (right).*
@@ -470,4 +475,4 @@ prompt. On player, DocETL scores 0.125 / 0.034 / 0.008 on queries with 0 / 1 / 2
 the likely cause (not yet verified value by value) is that join keys extracted by separate per-table operations do
 not match, whereas our build extracts every table's keys with the same field definitions.
 
-**Scope.** All 220 drift test queries on cspaper, player and art (med and legal not yet run); one model.
+**Scope.** 284 of the 290 drift test queries (legal's 6 newest queries not yet run with DocETL); one model.

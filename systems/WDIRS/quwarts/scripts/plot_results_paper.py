@@ -27,8 +27,9 @@ SURFACE, INK, INK2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#89878
 BLUE, ORANGE, AQUA, YELLOW, MAGENTA = "#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"
 ALL_CORPORA = ["player", "art", "cspaper", "legal", "med"]
 CORPUS_COLOR = dict(zip(ALL_CORPORA, [BLUE, ORANGE, AQUA, YELLOW, MAGENTA]))
-# The corpora whose drift test queries have been run (legal and med: not yet run).
-CORPORA = ["player", "art", "cspaper"]
+CORPORA = ALL_CORPORA
+# Experiments not yet re-run on med and legal's regenerated queries use these three.
+CORE3 = ["player", "art", "cspaper"]
 LEVELS = (0, 25, 50, 75, 100)
 
 plt.rcParams.update({
@@ -249,13 +250,13 @@ def rq3_policies():
     w = 0.16
     for i, (key, label, color) in enumerate(pols):
         vals = []
-        for c in CORPORA:
+        for c in CORE3:
             d = policy_summary(c)
             vals.append(d[key]["mean_score"] - d["fcfs"]["mean_score"] if key in d else 0.0)
-        xs = [j + (i - (len(pols) - 1) / 2) * w for j in range(len(CORPORA))]
+        xs = [j + (i - (len(pols) - 1) / 2) * w for j in range(len(CORE3))]
         ax.bar(xs, vals, width=w - 0.02, color=color, label=label, edgecolor=SURFACE, linewidth=1)
     ax.axhline(0, color=AXIS, linewidth=1)
-    ax.set_xticks(range(len(CORPORA)), CORPORA)
+    ax.set_xticks(range(len(CORE3)), CORE3)
     ax.set_ylabel("Score minus first-come-first-served")
     ax.legend(ncol=5, loc="lower left", bbox_to_anchor=(0, 1.0), fontsize=8.5)
     style(ax)
@@ -440,7 +441,7 @@ def rq7_models():
 
 def rq8_bottleneck():
     sf, cf = [], []
-    order = ["player", "cspaper", "art"]
+    order = ["player", "legal", "cspaper", "art", "med"]
     for c in order:
         d = json.loads((EXP / "E2.4-errors" / c / "summary.json").read_text())["unlimited@100"]
         sf.append(d["structure_f2"])
@@ -458,7 +459,7 @@ def rq8_bottleneck():
     ax.set_ylabel("Mean over queries")
     ax.legend(loc="upper right", ncol=2, bbox_to_anchor=(1, 1.12))
     style(ax)
-    save(fig, "rq8_bottleneck.png", "Cell values limit player and cspaper; art loses on both",
+    save(fig, "rq8_bottleneck.png", "Values limit most corpora; structure limits med",
          "With on-demand patching at 100% drift.")
 
 
@@ -502,7 +503,7 @@ def ablation_rows():
 
     out = {}
     for d, _label in ABLATIONS:
-        for c in CORPORA:
+        for c in CORE3:
             base = {r["qid"]: r for r in stream(c, "fixed4-attribute_pool_100")}
             ab = {r["qid"]: r for r in stream(c, "fixed4-attribute_pool_100", EXP / d / "live")}
             diff = [ab[q]["benchmark"] - base[q]["benchmark"] for q in base]
@@ -519,9 +520,9 @@ def ablations():
     fig, (ax, bx) = plt.subplots(1, 2, figsize=(13, 5.6), gridspec_kw={"width_ratios": [1.7, 1]}, sharey=True)
     ys = list(range(len(ABLATIONS)))[::-1]
     for y, (d, label) in zip(ys, ABLATIONS):
-        for k, c in enumerate(CORPORA):
+        for k, c in enumerate(CORE3):
             m, lo, hi, ratio = rows[(d, c)]
-            yy = y + (k - (len(CORPORA) - 1) / 2) * 0.16
+            yy = y + (k - (len(CORE3) - 1) / 2) * 0.16
             sig = lo > 0 or hi < 0
             ax.plot([lo, hi], [yy, yy], color=colors[c], linewidth=1.2, alpha=0.6)
             ax.plot([m], [yy], "o", markersize=6, color=colors[c] if sig else SURFACE, markeredgecolor=colors[c],
@@ -532,7 +533,7 @@ def ablations():
     ax.set_xlabel("Score change vs the full system at 100% drift (95% CI; filled = significant)")
     from matplotlib.lines import Line2D
 
-    ax.legend([Line2D([], [], marker="o", linestyle="", color=colors[c], markersize=6) for c in CORPORA], CORPORA,
+    ax.legend([Line2D([], [], marker="o", linestyle="", color=colors[c], markersize=6) for c in CORE3], CORE3,
               loc="lower left", bbox_to_anchor=(0, 1.0), fontsize=9, ncol=5, frameon=False)
     style(ax)
     bx.axvline(1, color=AXIS, linewidth=1)
@@ -590,7 +591,7 @@ def docetl():
     ax.set_ylim(0, max(a) * 1.25)
     ax.set_title("Player by number of joins")
     style(ax)
-    save(fig, "docetl.png", "Ours is more accurate than DocETL on every corpus at 7–25× fewer tokens",
+    save(fig, "docetl.png", "Ours is more accurate than DocETL on every corpus at 5–25× fewer tokens",
          "Same model and drift queries. DocETL's accuracy collapses on joins.")
 
 
