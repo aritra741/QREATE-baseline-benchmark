@@ -1193,3 +1193,47 @@ So the level-0 differences between shares are extraction effects of prompt compo
 which other columns it is read with, and a narrow prompt is not reliably better (here worse for a key). This is the
 per-column side of RQ2 (no general width effect, but large per-column swings). It does not touch the drift
 comparison, which is within a share.
+
+## E3.1: an offline knapsack over patches (with the whole stream known in advance)
+
+For every budget and drift level, a 0/1 knapsack over the unlimited stream's patches (E2.2 `patches.csv`) picks the
+set with the most value within the budget: cost = the controller's estimated tokens for the patch, value = its gain on
+its own query plus the gain on later queries that use its columns without paying (`E3.1-knapsack/<corpus>/`). The
+re-run then allows only the chosen patches (policy `knapsack`, `E3.2-knapsack/live/`). Mean score over the 25 budget ×
+drift settings, total patch tokens:
+
+| Corpus | First-come-first-served | Offline knapsack | Difference | Tokens |
+|---|---|---|---|---|
+| cspaper | 0.1453 | 0.1369 | −0.0084 | 7.9M → 6.1M |
+| player | 0.3363 | 0.3389 | +0.0026 | 43.0M → 42.1M |
+| art | 0.2356 | 0.2306 | −0.0050 | 44.1M → 41.5M |
+| legal | 0.1106 | 0.1128 | +0.0022 | 219.3M → 155.9M |
+| med | 0.0797 | 0.0827 | +0.0030 | 154.1M → 127.3M |
+
+At 100% drift, by budget (10/25/50/75/100%):
+
+| Corpus | First-come-first-served | Offline knapsack |
+|---|---|---|
+| cspaper | 0.120 0.137 0.147 0.153 0.153 | 0.080 0.080 0.115 0.153 0.153 |
+| player | 0.142 0.176 0.292 0.355 0.387 | 0.062 0.264 0.344 0.355 0.379 |
+| art | 0.141 0.179 0.191 0.215 0.256 | 0.130 0.130 0.189 0.255 0.256 |
+| legal | 0.052 0.110 0.053 0.114 0.114 | 0.064 0.095 0.107 0.107 0.107 |
+| med | 0.051 0.055 0.060 0.075 0.081 | 0.041 0.077 0.082 0.084 0.084 |
+
+**Hindsight over a fixed set of patches is not a reliable bound, and not a better policy.** The knapsack wins where
+first-come-first-served wastes the budget on early, worthless patches (player 25%: 0.264 vs 0.176; legal 50%: 0.107 vs
+0.053; med 25–75%) and loses at small budgets on cspaper and art. Two reasons, both visible in the runs:
+
+- *A patch's cost depends on the patches before it.* The knapsack prices each patch as it was in the unlimited
+  stream, where earlier patches had already made the query's filter columns known, so its scope was narrow. Without
+  them the same patch reads far more (legal 10%, one chosen patch: 57 documents and 0.14M tokens became 570 documents
+  and 4.2M), no longer fits, and is skipped. Chosen patches skipped this way: legal 2 of 3 at 10%, cspaper 1 of 2 at
+  25%, and one each at several player and art budgets; cspaper at 25% then spends 0.04M of its 0.29M budget.
+- *A patch's value depends on the patches before it.* Gains measured in the unlimited stream, where every other patch
+  is also present, are not additive: on cspaper at 10% the knapsack's single chosen patch (estimated as the most
+  valuable) scores 0.080, while first-come-first-served's cheaper early patches together score 0.120.
+
+What the knapsack does show is how much budget buys nothing: at the full budget it leaves 23–39% unspent (legal 18.3M
+of 29.9M, med 13.7M of 19.9M, cspaper 0.71M of 1.16M) for −0.007 to +0.003 in score. That agrees with the hindsight
+oracle and with the SQL rule (skip MIN/MAX over text): the gains come from not paying for worthless patches, and the
+order-dependence of cost and value makes any offline set selection a poor guide for an online policy.

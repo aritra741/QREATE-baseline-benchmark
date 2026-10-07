@@ -244,20 +244,20 @@ def rq3_legal():
 
 def rq3_policies():
     pols = [("fragile", "Skip MIN/MAX over text", BLUE), ("oracle", "Hindsight oracle", ORANGE),
-            ("cap", "Per-patch cap", AQUA), ("pace", "Pacing", YELLOW)]
+            ("cap", "Per-patch cap", AQUA), ("pace", "Pacing", YELLOW), ("knapsack", "Offline knapsack", MAGENTA)]
     fig, ax = plt.subplots(figsize=(10, 4.2))
-    w = 0.19
+    w = 0.16
     for i, (key, label, color) in enumerate(pols):
         vals = []
         for c in CORPORA:
             d = policy_summary(c)
             vals.append(d[key]["mean_score"] - d["fcfs"]["mean_score"] if key in d else 0.0)
-        xs = [j + (i - 1.5) * w for j in range(len(CORPORA))]
+        xs = [j + (i - (len(pols) - 1) / 2) * w for j in range(len(CORPORA))]
         ax.bar(xs, vals, width=w - 0.02, color=color, label=label, edgecolor=SURFACE, linewidth=1)
     ax.axhline(0, color=AXIS, linewidth=1)
     ax.set_xticks(range(len(CORPORA)), CORPORA)
     ax.set_ylabel("Score minus first-come-first-served")
-    ax.legend(ncol=4, loc="lower left", bbox_to_anchor=(0, 1.0))
+    ax.legend(ncol=5, loc="lower left", bbox_to_anchor=(0, 1.0), fontsize=8.5)
     style(ax)
     save(fig, "rq3_policies.png", "Only skipping unwinnable queries never hurts",
          "Mean over 25 budget × drift settings per corpus. Skip and oracle are no-ops where no query matches.")

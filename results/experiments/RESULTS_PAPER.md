@@ -175,17 +175,26 @@ score 0.03 on average with our system and 0.001 with the baseline, yet trigger 3
 | Hindsight oracle (skip patches that bought nothing) | 0.1453 | 0.3363 | 0.2356 | 0.1129 (158M) | 0.0797 (130M) |
 | Cap any single patch at 25% of the budget | 0.1398 | 0.3076 | 0.2263 | 0.0992 | 0.0812 |
 | Pacing (spend in step with the stream) | **0.1466** | 0.3260 | **0.2405** | 0.1030 | 0.0821 |
+| Offline knapsack over patches (whole stream known) | 0.1369 | **0.3389** | 0.2306 | 0.1128 (156M) | 0.0827 (127M) |
 
 The SQL rule has no effect where no query matches (cspaper, player, art), and on legal it removes the collapse (50%
 budget at 100% drift: 0.053 → 0.107) while saving 28% of tokens. Pacing helps where early patches over-read
 (cspaper, art) and hurts where early patches are the valuable ones (player, legal). Whether any skipping helps tracks
 the share of patch tokens that bought nothing: none on player, about a third on legal and med.
 
+*Even hindsight does not give a better fixed plan.* An offline 0/1 knapsack that knows the whole stream and picks the
+patches with the most measured value per budget is not better overall (−0.008 to +0.003 against first-come-first-served).
+A patch's cost and value both depend on the patches before it: without the earlier patches that made its filter
+columns known, a chosen legal patch reads 570 documents instead of 57 (4.2M tokens instead of 0.14M) and no longer
+fits; and gains measured with every other patch present are not additive. The knapsack does confirm how much budget
+buys nothing: at the full budget it leaves 23–39% unspent on legal, med and cspaper at about the same score.
+
 ![Each policy's mean score minus first-come-first-served, per corpus.](figures/rq3_policies.png)
 *Figure 7. Each policy's mean score minus first-come-first-served, per corpus.*
 
 **Implication.** Budgeted adaptive extraction needs value-aware skipping, and simple SQL-level signals already
-capture most of the value of hindsight; budget pacing and per-patch caps are not safe defaults.
+capture most of the value of hindsight; budget pacing and per-patch caps are not safe defaults, and because patch costs and
+values depend on order, an offline plan over patches is no substitute for deciding online.
 
 **Scope.** Five corpora × five budgets × five drift levels. Not yet computed: the offline optimum over all patch
 subsets, which would bound every policy.

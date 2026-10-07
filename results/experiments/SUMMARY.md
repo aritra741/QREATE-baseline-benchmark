@@ -85,6 +85,12 @@ Generic policies (E3.2), mean score over 25 streams per corpus:
 and legal; the cap is never best. Whether skipping helps tracks the share of wasted patch tokens: none on player
 (where fcfs is best), a third on legal and med.
 
+**Offline knapsack (E3.1).** Knowing the whole stream and picking the patches with the most measured value per budget
+is not better than first-come-first-served overall (cspaper −0.008, art −0.005, player +0.003, legal +0.002, med
++0.003) because a patch's cost and value depend on the patches before it (a chosen legal patch grew from 57 to 570
+documents without its predecessors and was skipped). It leaves 23–39% of the full budget unspent on legal, med and
+cspaper at about the same score: the waste is real, but no fixed plan captures it; online value-aware skipping does.
+
 ## RQ4: estimating cost and value
 
 - **Cost estimates are accurate**: median estimated/actual patch tokens 0.997–1.005 on all five corpora.
@@ -178,10 +184,10 @@ Done: replays and per-corpus analyses (all five corpora); noise, quantization; n
 (E2.1b); canonicalization (E8); query types (E9); budget policies on all five corpora (E3.2, E3.3); other models
 (Llama 3.1 8B, Qwen 2.5 32B); planner attribution and fixes (E5.0–E5.3); build-cost accuracy (E1.3); anticipation
 (E1.4); patch-value signals (E4.1); token and latency accounting (`ACCOUNTING.md`); other drift draws (E11) and
-smaller build workloads (E12, all five corpora); DocETL on all 326 drift test queries.
+smaller build workloads (E12, all five corpora); DocETL on all 326 drift test queries; offline knapsack (E3.1).
+
+Running: component ablations (E13; 8 components x 5 corpora).
 
 Open:
-- An offline best-possible budget policy (E3.1, a knapsack over patches re-scored by replay); the hindsight oracle and
-  the `fragile` rule stand in for it now.
 - A planner objective that can recognise a shared read better than per-query reads (RQ5): the current one treats each
   query's own read as the truth.
