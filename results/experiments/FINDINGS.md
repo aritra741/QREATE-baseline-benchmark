@@ -1492,3 +1492,15 @@ unchanged (its `birth_date` is not compared at day precision by any test query);
 correctness rises sharply (art `death_date` 0.31 → 0.88, `birth_date` 0.38 → 0.79, A7), but the workloads mostly use
 the year, which normalization kept. The switch stays off by default so recorded results reproduce; turning it on is
 a cheap correctness fix with a small score effect on these workloads.
+
+### A4: does reading a column alone help, and can we predict when? (7B; cspaper, player, art)
+Each new column read alone with the build's own field spec, on up to 150 documents per table, against the build's
+read of the same documents with all of the table's new columns together (6–9 per prompt), so only the grouping
+differs (`A-open/A4-alone/`). Of 22 columns none differs significantly after Holm correction; two do before it
+(art `birth_city` +0.10 alone, p = 0.008; art `awards` −0.07, p = 0.027). Mean |change| 0.03. No column feature
+predicts the direction: numeric 0.026, free text 0.034, categorical 0.038 mean |change|; multi-valued +0.038 vs
+single −0.009 on average; gold often empty +0.013 vs not −0.003; groups of 9 vs 5–7 alike.
+So with the field text fixed, prompt width barely matters for this model, and A3's large per-column differences
+between patch and build prompts come mostly from the text that differs between them (the usage phrase's example
+values: art `century`, A3, A7), not from how many columns share the prompt. For the 32B model grouping did matter
+(cspaper `reasoning_depth`, E14 with 32B).
