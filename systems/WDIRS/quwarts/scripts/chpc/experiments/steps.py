@@ -141,10 +141,11 @@ def recorded(corpus: str, lane: str) -> dict:
 
 # med and legal on the regenerated queries: queued steps spread over the follow-up runner's three lanes (one stream per
 # lane at a time), balanced by the durations measured on the previous query set.
-FOLLOWUP_LANES = {"E3.2-knapsack": "gpu", "E3.2-oracle": "gpu", "E14-bfields": "gpu", "E13-rawview": "gpu",
-                  "E13-raw": "gpu", "E13-noscope": "gpu", "E13-nobatch": "gpu", "E13-head": "gpu", "E14-bprompt": "gpu",
-                  "E14-bprompt+noscope": "gpu",
-                  "E13-nodesc": "gpu2", "E3.2-cap": "gpu2", "E14-bgroup": "gpu2", "E13-nousage": "gpu2",
+# The short ones (minutes to half an hour each) run on their own lane (gpu4) so they finish first.
+FOLLOWUP_LANES = {"E3.2-knapsack": "gpu", "E3.2-oracle": "gpu", "E14-bfields": "gpu", "E13-rawview": "gpu4",
+                  "E13-raw": "gpu4", "E13-noscope": "gpu4", "E13-nobatch": "gpu4", "E13-head": "gpu4", "E14-bprompt": "gpu4",
+                  "E14-bprompt+noscope": "gpu4", "E14-bgroup": "gpu4",
+                  "E13-nodesc": "gpu2", "E3.2-cap": "gpu2", "E13-nousage": "gpu2",
                   "E13-noreuse": "gpu3", "E3.2-pace": "gpu3"}
 
 
