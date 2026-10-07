@@ -1504,3 +1504,11 @@ So with the field text fixed, prompt width barely matters for this model, and A3
 between patch and build prompts come mostly from the text that differs between them (the usage phrase's example
 values: art `century`, A3, A7), not from how many columns share the prompt. For the 32B model grouping did matter
 (cspaper `reasoning_depth`, E14 with 32B).
+
+### A13: the representation's model tier on the served views (values right in substance, wrong in form)
+Each served view of the recorded unlimited 100%-drift stream re-represented with the model tier on (represent Config
+t2="cascade": values the deterministic tiers cannot map to the column's workload vocabulary go to the 7B model), then
+re-scored (`A-open/A13-t2/`): art 0.256 → 0.259 (+0.003, 95% CI +0.0004 to +0.006; 5 queries up, 1 down) for 0.39M
+tokens in 12 calls (6% of art's patch tokens); player unchanged (5 calls, 63k tokens: almost every value already maps
+to the vocabulary). The model tier fixes a few labels the workload compares or groups by, but the large lenient vs
+exact gap (RQ8; art `field` 0.92 vs 0.13) is in labels no query names, which a vocabulary-driven rewrite cannot reach.

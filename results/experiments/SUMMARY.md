@@ -156,7 +156,12 @@ Cross-cutting causes:
   gold-empty cells (A14): cspaper +0.039 (95% CI +0.002 to +0.087), player +0.014, art +0.004 (n.s.).
 - **Values right in substance, wrong in form**: lenient vs exact agreement, e.g. art `field` 0.92 vs 0.13; the
   benchmark's tolerant score is only 0.01–0.03 higher. Canonicalizing to the workload's vocabulary gains nothing
-  (E8): the gaps are in GROUP BY labels the workload never names.
+  (E8): the gaps are in GROUP BY labels the workload never names. The representation's model tier (A13) adds +0.003 on
+  art (significant; 0.39M tokens) and nothing on player.
+- **Dates** (A-date): commit normalization kept only the year of `%Y/%-m/%-d` dates; keeping them as written lifts art
+  `death_date` cells 0.31 → 0.88 but the score only +0.006 (one query), player unchanged.
+- **Prompt width** (A4): with the field text fixed, reading a column alone vs with 6–8 others changes cells by 0.03
+  on average, none significant, with no predictive column feature.
 - **Query type** (E9, patched at 100% drift): AVG 0.42, SUM 0.35, MIN over numbers 0.33, COUNT 0.28, MAX over numbers
   0.18.
 
