@@ -241,6 +241,21 @@ STEPS = [
     *[{**stream(f"E6.3-qwen32b-{c}", c, "fresh", key="fixed4-attribute_pool/0,fixed4-attribute_pool/100",
                 model=OTHER_MODELS["qwen32b"], extra=MODEL_ENV["qwen32b"]), "lane": "gpu4"}
       for c in ("art", "med", "legal")],
+    # ---- A0: no-call replays of the E13/E14 ablation streams that keep their databases and views (the runs deleted
+    # them), for the per-column analyses; each must reproduce its run (verify_replay-style check on scores)
+    *[{"id": f"A0-{e}-{n.replace(',', '+')}-{c}", "lane": f"cpu{i % 3}", "retries": 0,
+       "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --src-root results/experiments/{e}-{n.replace(',', '+')}/live "
+              f"--src-scratch {SCRATCH}/{e}-{n.replace(',', '+')} --corpus {c} "
+              f"--root results/experiments/A0-{e}-{n.replace(',', '+')}/live --scratch {SCRATCH}/A0-{e}-{n.replace(',', '+')} && "
+              f"QUWARTS_LIVE_ROOT=$OLDPWD/results/experiments/A0-{e}-{n.replace(',', '+')}/live "
+              f"QUWARTS_SCRATCH={SCRATCH}/A0-{e}-{n.replace(',', '+')} QUWARTS_LIVE_ONLY=fixed4-attribute_pool/100 "
+              f"QUWARTS_ABLATE={n} QUWARTS_LIVE_REPLAY=1 QUWARTS_KEEP_VIEWS=1 python -u -m quwarts.eval.drift_live "
+              f"--corpus {c} --run --streams fixed --axes attribute_pool --deadline 0 --workers 8",
+       "outputs": [f"results/experiments/A0-{e}-{n.replace(',', '+')}/live/{c}/streams/fixed4-attribute_pool_100.jsonl"]}
+      for i, (e, n, c) in enumerate([(e, n, c) for e, ns in (("E13", ("nodesc", "raw", "rawview", "noscope", "nobatch",
+                                                                       "head", "noreuse", "nousage")),
+                                                             ("E14", ("bgroup", "bfields")))
+                                     for n in ns for c in ("cspaper", "player", "art", "med", "legal")])],
     # ---- E14 with Qwen 2.5 32B on cspaper and player, where its drift rise is significant (lane gpu4, the H200): cloned
     # from the 32B runs (E6.2 roots), whose journals hold the 32B build's prompts, so bprompt again needs no call
     *[{**ablate(n, c, exp="E14-32b", lane="gpu4", replay_only=n.startswith("bprompt")),

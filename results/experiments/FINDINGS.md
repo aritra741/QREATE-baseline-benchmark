@@ -1365,3 +1365,60 @@ null"; the build's adds the workload hint "compared with specific values ... giv
 it"). On player the gain is spread thinly (`draft_pick` filled 79% vs 72%, `team.ownership` 27% vs 23% correct).
 
 Whether the grouping or the hint does it is being separated (`bgroup`, `bfields` with 32B, running).
+
+## Open questions settled without model calls (A; `A-open/`, `quwarts.eval.exp_open`)
+
+### A15: what the test sets can detect
+Smallest mean paired query-level difference detectable with 80% power (two-sided 0.05), from the spread of the
+recorded 0%-vs-100% differences: cspaper 0.046 (59 queries), player 0.026 (118), art 0.036 (43), med 0.025 (76),
+legal 0.057 (30). Every query-level "not significant" in this report means "smaller than about 0.03–0.06", not "zero".
+
+### A3: patch prompt vs build prompt, cell by cell (7B) — and what kinds of columns it affects
+The recorded 100%-drift stream (new columns read by patches) against the 0% build (read by the build's prompt), on the
+documents the patches read; McNemar's exact test per column, Holm-corrected. At the cell level the prompt matters a
+lot: significant columns per corpus — art 6 of 9, med 5 of 18, legal 4 of 8, cspaper 1 of 6, player 0 of 7 — in both
+directions within a corpus, which is why query-level means barely move (the gains and losses cancel).
+
+What separates the columns (all 48 new columns, `A3-cells/column_features.json`):
+
+1. **Numeric and yes/no columns are insensitive** (6 numeric, 1 yes/no: mean |change| 0.026, max 0.038). The value
+   is a number the document states; the prompt has little room to change it.
+2. **Abstention on free-text and multi-choice columns.** With 1–2 columns per prompt (a patch) the model leaves
+   cells empty far more often than with 7–9 (the build), even though nearly all these columns say "Never null": the
+   predicted-empty share rises by 0.13–0.46 on 13 columns (e.g. `drug.storage_conditions` +0.46, `drug.recommended_usage`
+   +0.45, `legal.defendant_current_status` +0.43, `disease.etiology` +0.42). Whether that helps depends on gold: it
+   helps where gold is often empty, and hurts where gold is mostly filled. Of the 13 columns where abstention moves
+   the score by at least 0.05, the sign follows "more empties help iff gold is empty in ≥ 30% of rows" in 10:
+   `storage_conditions` (gold empty 82%) +0.43, `recommended_usage` (40%) +0.21, `sequelae` (85%) +0.21, `etiology`
+   (36%) +0.16, `single_dose` (40%) +0.12; but `defendant_current_status` (gold empty 10%) −0.18 and
+   `active_ingredients` (8%) −0.05. These are med's and legal's descriptive columns: long free text or multi-choice
+   lists that a document often does not state, marked never-null in the schema (see A14).
+3. **Value form on name and range columns.** Where both prompts fill a cell, they differ in form, not substance:
+   - `legal.judge_name`: build "Justice Cowdroy", patch "Cowdroy" (gold) — 0.00 vs 0.22 correct;
+   - `legal.counsel_for_*`: build appends the instructing firm ("G Kennett || Phillips Fox"), patch gives the lawyer
+     only (gold) — 0.19 vs 0.48 and 0.26 vs 0.63;
+   - `art.century`: build "20th-21st" (gold), patch "20th" — 0.44 vs 0.27;
+   - `drug.activation_conditions`: patch lists several categories where gold has one — 0.62 vs 0.43.
+4. **Example values in the usage phrase steer form and filling.** The two prompts' field lines differ mainly in the
+   workload usage phrase, built from the queries known at the time (all anticipated queries for the build, the queries
+   so far for a patch), so the build's line more often carries example values: `art.century` (build shows
+   '19th-20th', '20th-21st' and returns ranges; the patch's line says only "aggregated as a number" and returns single
+   centuries); `defendant_current_status` (build shows 'Company', 'Government' and fills 95%; patch has no examples and
+   leaves 47% empty); `storage_conditions` (the build's example is a verbatim document string and the hint "give the
+   value as the document states it", and the build fills 100% in free form where gold is mostly empty).
+
+So the prompt effect is not a property of drift or of a corpus but of three column properties: whether the value is
+a number (insensitive), whether gold is often empty (abstention helps or hurts), and whether the column's value has
+an ambiguous form (titles, firms, ranges, multiple categories) that example values settle. Splitting each column's
+change into grouping and field text needs the `bgroup` / `bfields` databases (being rebuilt by no-call replays, A0).
+
+### A6: why the 0% score moves with the train share (E12)
+The 0%-level build of each share against the full train set's, per column on all documents. The columns that change
+are the ones read in a prompt of a different size: art at 10–25% (11–12 columns significant, e.g. `birth_country`
+read with 6 columns instead of 15: 0.02 vs 0.53 correct; `color` filled 0.75 vs 0.40), legal at 10% (5 significant,
+e.g. `case_type` read with 5 instead of 10: 0.68 vs 0.48), med at 10% (2 significant: `dosage_frequency` 0.29 vs 0.47,
+`risk_factors` 0.18 vs 0.04, both now read with 12 columns instead of 8–9), cspaper at 10% (`application_domain` 0.05
+vs 0.35). At 25–50% few or no columns change significantly on med and legal (prompt sizes stay within one or two of
+the full build's); med's lower 0% score at 50% is many small, non-significant changes across 33 columns
+(`brand_name` +0.16, `treatment_challenges` +0.11, ...), not one column. The train share changes which columns share
+a prompt, and the per-column prompt effect (A3) does the rest.
