@@ -152,7 +152,8 @@ Cross-cutting causes:
 - **Benchmark metadata says "never null" where gold is often empty**: 19 of the 59 never-null columns of cspaper,
   player and art are empty in ≥5% of gold rows (e.g. cspaper `performance_on_hotpotqa` 84%). The prompt must then
   invent values. Prompt-level fixes (dropping "Never null", a field-level null hint, relaxing only the contradictory
-  field) move scores by −0.053 to +0.020: not a usable lever on this model.
+  field) move scores by −0.053 to +0.020: not a usable lever on this model. Its cost, measured by emptying exactly the
+  gold-empty cells (A14): cspaper +0.039 (95% CI +0.002 to +0.087), player +0.014, art +0.004 (n.s.).
 - **Values right in substance, wrong in form**: lenient vs exact agreement, e.g. art `field` 0.92 vs 0.13; the
   benchmark's tolerant score is only 0.01–0.03 higher. Canonicalizing to the workload's vocabulary gains nothing
   (E8): the gaps are in GROUP BY labels the workload never names.
@@ -167,6 +168,9 @@ One component turned off at a time, unlimited stream at 100% drift (paired; * si
 - **Cost**: reuse of patched columns (without it 4.9–16.9× the tokens, score −0.012 to +0.010), scope (up to 1.46×).
 - **Neither**: the workload usage phrase, chained reading of long documents (saves 42% of patch tokens on player for
   −0.004), batching other workload columns into a patch.
+- **Per column** (A7): descriptions and normalization matter for count and date columns (player `fiba_world_cup`
+  0.86 → 0.01 without descriptions); normalization supplies "0 if none" for counts but mangles art's dates (raw
+  `death_date` 0.88 vs normalized 0.31), so art's −0.003 hides two large opposite effects.
 - **Why the patched score moves under drift (E14)**: giving patches the build's exact prompt (no new calls needed)
   moves each 100%-drift score to its 0%-drift score; on cspaper over every document it reproduces the 0% stream
   (58/59 queries). The grouping (1–3 columns per patch vs all new columns per build prompt) carries it; field specs

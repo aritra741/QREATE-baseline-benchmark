@@ -1455,3 +1455,31 @@ The same split runs through the other corpus-dependent results:
   med and legal for −0.012 to +0.015;
 - the static/patched gap is smallest on med (0.031 vs 0.086 at 100% drift): even patched values rarely match gold
   exactly (0–10% of filled cells on most med columns, A3).
+
+### A7/A8: what each ablation changes, column by column (cspaper, player, art)
+No-call replays of every E13/E14 run that keep their databases (A0) reproduce all 30 runs' per-query scores exactly.
+Against the full system's 100%-drift database, on the documents both read (McNemar per column, Holm-corrected):
+
+- **Field descriptions** matter for count and date columns whose name does not say what to write. Without them the
+  model leaves counts empty (player `fiba_world_cup` filled 0.23 vs 1.00, correct 0.01 vs 0.86; `nba_championships`
+  0.23 vs 0.95; art `awards` 0.06 vs 0.74) and writes dates in another form (art `birth_date` 0.00 vs 0.38).
+- **Value normalization at commit** supplies the absence value of never-null counts ("0 if none"): without it player
+  `fiba_world_cup` is filled on 0.15 of documents instead of 1.00 (correct 0.08 vs 0.86) and art `awards` 0.26 vs
+  0.74. But it **hurts dates on art**: raw values are right far more often for `birth_date` (0.79 vs 0.38) and
+  `death_date` (0.88 vs 0.31; 573 cells gained, none lost). Art's net −0.003 hides two large opposite effects;
+  normalization should leave date strings alone.
+- **Art's gains without scope or batching (+0.011)** come from one column: `nationality` read one column per prompt
+  is right on 53 more documents and wrong on 5 (0.72–0.73 vs 0.68), outweighing `field` (−67 / +22). No scope effect
+  as such.
+- **The usage phrase** changes values even where the score does not move: without it art `birth_city` is right on
+  205 more documents (0.59 vs 0.39); the phrase's example values steer the model toward a form gold does not use.
+- **Prompt factors on art (E14)**: the build's grouping fixes `century` (+252 / −147) and breaks `field` (−96 / +26);
+  the build's field specs alone fix `century` too (+201 / −65) — the build's usage phrase shows ranges
+  ('19th-20th'), the patch's does not (A3).
+
+### A14: what "never null" costs (cspaper, player, art)
+Emptying, in each served view, the cells of never-null text columns that gold leaves empty (an oracle for "the
+model may abstain where the document says nothing"): cspaper 0.153 → 0.193 (+0.039, 95% CI +0.002 to +0.087), player
+0.387 → 0.401 (+0.014, −0.012 to +0.043), art 0.249 → 0.253 (+0.004, n.s.). On cspaper the schema's "never null" on
+columns gold often leaves empty (`agent_framework` 76%, `performance_on_hotpotqa` 84%) costs a quarter of the score;
+prompt-level fixes (E7) could not recover it because the model then also abstains where gold has a value.
