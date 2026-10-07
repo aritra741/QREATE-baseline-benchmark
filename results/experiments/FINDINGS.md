@@ -1453,3 +1453,28 @@ The same split runs through the other corpus-dependent results:
   med and legal for −0.012 to +0.015;
 - the static/patched gap is smallest on med (0.031 vs 0.086 at 100% drift): even patched values rarely match gold
   exactly (0–10% of filled cells on most med columns, A3).
+
+### A12: MIN/MAX over text is unscorable — a metric artifact, not an extraction limit
+Gold values injected into each query's served view (recorded unlimited stream, 100% drift), then re-scored:
+
+| Corpus | MIN/MAX-over-text queries: before → all referenced columns from gold | Other queries: before → all from gold |
+|---|---|---|
+| player | 3: 0.444 → 0.995 | 115: 0.386 → 0.681 |
+| med | 30: 0.000 → **0.000** (all 30 still zero) | 46: 0.142 → 0.457 |
+| legal | 12: 0.000 → **0.125** (10 still zero) | 18: 0.191 → 0.830 |
+| cspaper / art | none | 59: 0.153 → 0.760 / 43: 0.256 → 0.789 |
+
+With perfect values the med MIN/MAX-over-text queries still score zero, and the predicted rows equal the gold rows
+(e.g. `SELECT administration_route, MAX(recommended_usage) ... GROUP BY administration_route`: 17 rows, identical
+values; structure F2 0.94, cell F1 0.00). The cause is the benchmark's aggregation metric
+(`spp/aggregation_metrics.py`): `schema_from_sql` types every aggregate output as numeric, and a numeric cell passes
+only if both values parse as numbers (`_numeric_range_err`: `float('other')` fails), so a MIN or MAX over a text
+column can never be a true positive. The 45 such test queries (14%) score zero by construction for any system
+(player's 3 escape because their extrema happen to be numeric strings; legal's 2 that score after injection likewise).
+Consequences:
+- "MIN/MAX over text is unwinnable" (RQ3, RQ4) is the metric's doing; the `fragile` rule saves budget on queries that
+  cannot score under this metric, not on queries no extraction could answer.
+- A text-typed re-scoring of these outputs is running as a sensitivity check (A12b); the official metric is unchanged.
+
+Separately, all-gold views reach only 0.46–0.83 on the other queries, not 1.0: the remaining loss sits between the
+served view and the score (row alignment, list-valued keys, the official SQL rewrite); to be characterized.

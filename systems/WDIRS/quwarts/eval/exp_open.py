@@ -351,6 +351,72 @@ def nevernull() -> dict:
     return rescore("A14-nevernull", {"never_null_text_gold_empty": fn})
 
 
+# ------------------------------------------------------------------------------------------ A12b
+
+def text_extrema_fix() -> None:
+    """Sensitivity metric: the benchmark types every aggregate output as numeric (spp.aggregation_metrics.schema_from_sql),
+    so a MIN/MAX over a text column can never match (float('other') fails). Here a MIN/MAX output whose gold values are
+    not numeric is typed as a string (compared like a key cell); everything else is unchanged."""
+
+    from spp import aggregation_metrics as M
+
+    if getattr(M, "_text_extrema_fixed", False):
+        return
+    orig = M.gold_table_from_sql
+
+    def fixed(rows, sql):
+        t = orig(rows, sql)
+        schema = M.schema_from_sql(sql)
+        types = {c.name: c.type for c in t.columns}
+        for c in t.columns:
+            op = schema["operators"].get(c.name, "")
+            if c.role == "measure" and op in ("MIN", "MAX") and not M._column_values_look_numeric(rows, c.name):
+                types[c.name] = "string"
+        if types == {c.name: c.type for c in t.columns}:
+            return t
+        return M.table_from_rows(rows, key_columns=[c.name for c in t.columns if c.role == "key"],
+                                 measure_columns=[c.name for c in t.columns if c.role == "measure"],
+                                 column_types=types, operators=schema["operators"])
+
+    M.gold_table_from_sql = fixed
+    import quwarts.experiments.player_case80 as P
+    if hasattr(P, "gold_table_from_sql"):
+        P.gold_table_from_sql = fixed
+    M._text_extrema_fixed = True
+
+
+def metricfix() -> dict:
+    """A12b: the recorded unlimited streams at 0% and 100% drift, and the static build at 100%, re-scored with
+    text-typed MIN/MAX outputs (E2 replay views; no model calls). Per query type: MIN/MAX-over-text vs the rest."""
+
+    from quwarts.eval.drift_live import fragile_query
+    from quwarts.eval.exp_analysis import streams
+
+    text_extrema_fix()
+    out = {}
+    for c in CORPORA:
+        ctx = R.context(c)
+        cache_path = OUT / "A12b-metricfix" / f"cache_{c}.json"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
+        res = {}
+        for key in ("fixed4-attribute_pool/0", "fixed4-attribute_pool/100"):
+            st = streams(c)[key]
+            items = [(r["qid"], view(c, key, r["pos"])) for r in st if view(c, key, r["pos"]).exists()]
+            score_components(c, items, cache)
+            cache_path.write_text(json.dumps(cache))
+            new = {q: (lambda x: x["structure_f2"] * x["cell_f1_20"])(cache[f"{q}|{R.digest(db, ctx.catalog[q])}"]) for q, db in items}
+            old = {r["qid"]: r["benchmark"] for r in st}
+            frag = {q for q in new if fragile_query(c, q)}
+            m = lambda d, qs: round(sum(d[q] for q in qs) / len(qs), 4) if qs else None
+            res[key] = {"all_old": m(old, list(new)), "all_new": m(new, list(new)),
+                        "minmax_text_queries": len(frag), "minmax_text_old": m(old, frag), "minmax_text_new": m(new, frag),
+                        "others_unchanged": all(abs(new[q] - old[q]) < 1e-9 for q in new if q not in frag)}
+        out[c] = res
+    save("A12b-metricfix", out)
+    return out
+
+
 # ------------------------------------------------------------------------------------------ A7 / A8
 
 ABLATIONS = [("E13", n) for n in ("nodesc", "raw", "rawview", "noscope", "nobatch", "head", "noreuse", "nousage")] + \
@@ -388,10 +454,10 @@ def ablcells() -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["cells", "power", "shares", "goldinject", "nevernull", "ablcells"])
+    ap.add_argument("what", choices=["cells", "power", "shares", "goldinject", "nevernull", "ablcells", "metricfix"])
     a = ap.parse_args(argv)
     out = {"cells": cells, "power": power, "shares": shares, "goldinject": goldinject, "nevernull": nevernull,
-           "ablcells": ablcells}[a.what]()
+           "ablcells": ablcells, "metricfix": metricfix}[a.what]()
     print(json.dumps(out, indent=1, default=str)[:6000])
     return 0
 
