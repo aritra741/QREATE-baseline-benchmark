@@ -79,23 +79,24 @@ def replay(corpus: str) -> dict:
     }
 
 
-def ablate(name: str, corpus: str) -> dict:
+def ablate(name: str, corpus: str, exp: str = "E13", lane: str | None = None, replay_only: bool = False) -> dict:
     """E13: the unlimited stream at 100% drift with one component of the controller turned off (drift_live ABLATE).
     From a replay clone, so every recorded read is reused and only reads the ablation changes are paid. (rawview and
     raw change no prompt, but their views change which documents later filters select, so they may read too.)"""
 
-    sid, root, scratch = f"E13-{name}-{corpus}", f"results/experiments/E13-{name}/live", f"{SCRATCH}/E13-{name}"
+    tag = name.replace(",", "+")  # E14 combines factors (comma list)
+    sid, root, scratch = f"{exp}-{tag}-{corpus}", f"results/experiments/{exp}-{tag}/live", f"{SCRATCH}/{exp}-{tag}"
     env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_LIVE_ONLY=fixed4-attribute_pool/100 "
-           f"QUWARTS_ABLATE={name} ")
+           f"QUWARTS_ABLATE={name} " + ("QUWARTS_LIVE_REPLAY=1 " if replay_only else ""))
     return {
         # gpu2 / gpu3: two more runners on another node's full GPU (one server, QUWARTS_RUNNER_SERVER=mainB) take the
         # heavy ones; two streams at once keep its 16 slots busy (one stream alone left it about 40% idle)
         # (nousage moved to this node's lane when it fell idle, except legal, which follows nodesc on gpu2)
-        "id": sid, "lane": {"nodesc": "gpu2", "noreuse": "gpu3"}.get(name, "gpu2" if (name, corpus) == ("nousage", "legal")
-                                                                      else "gpu"),
+        "id": sid, "lane": lane or {"nodesc": "gpu2", "noreuse": "gpu3"}.get(
+            name, "gpu2" if (name, corpus) == ("nousage", "legal") else "gpu"),
         "deps": ["G0-prompt-guard"],
         "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} && "
-               + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} "
+               + ("" if replay_only else server("main")) + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} "
                f"--run --streams fixed --axes attribute_pool --deadline 0 --workers 8",
         "outputs": [f"{root}/{corpus}/streams/fixed4-attribute_pool_100.jsonl"],
     }
@@ -224,6 +225,22 @@ STEPS = [
     # cheapest first, corpora cheapest first
     *[ablate(n, c) for n in ("rawview", "raw", "noscope", "nobatch", "nodesc", "nousage", "head", "noreuse")
       for c in ("cspaper", "player", "art", "med", "legal")],
+    # ---- E14: prompt factors (build vs patch prompt for the same column). bprompt reads only the build's prompts, so it
+    # runs with model calls refused (the check that it reproduces them); bprompt+noscope must equal the 0% build's cells
+    *[ablate(n, c, exp="E14", lane="gpu", replay_only=n.startswith("bprompt"))
+      for n in ("bprompt", "bprompt,noscope", "bfields", "bgroup") for c in ("cspaper", "player", "art", "med", "legal")],
+    # ---- E6.3: Qwen 2.5 32B drift curve (0% and 100%) beyond cspaper, on the full-GPU node (lane gpu4); player reuses
+    # E6.2's root (its 32B W0 build and 100% stream), so only the 0% level is new there
+    {"id": "E6.3-qwen32b-player0", "lane": "gpu4", "deps": ["G0-prompt-guard"],
+     "cmd": PRE + server("qwen32b") + "QUWARTS_LIVE_ROOT=$OLDPWD/results/experiments/E6.2-stream-qwen32b-player/live "
+            f"QUWARTS_SCRATCH={SCRATCH}/E6.2-stream-qwen32b-player QUWARTS_LIVE_ONLY=fixed4-attribute_pool/0 "
+            "QUWARTS_KEEP_VIEWS=1 OLLAMA_MODEL=qwen2.5:32b-instruct " + MODEL_ENV["qwen32b"]
+            + "python -u -m quwarts.eval.drift_live --corpus player --run --streams fixed --axes attribute_pool "
+              "--deadline 0 --workers 8",
+     "outputs": ["results/experiments/E6.2-stream-qwen32b-player/live/player/streams/fixed4-attribute_pool_0.jsonl"]},
+    *[{**stream(f"E6.3-qwen32b-{c}", c, "fresh", key="fixed4-attribute_pool/0,fixed4-attribute_pool/100",
+                model=OTHER_MODELS["qwen32b"], extra=MODEL_ENV["qwen32b"]), "lane": "gpu4"}
+      for c in ("art", "med", "legal")],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],

@@ -99,10 +99,19 @@ VARIANT = os.environ.get("QUWARTS_LIVE_VARIANT", "")
 #            allowed values and the usage phrase stay
 #   nousage  patch prompts drop the workload usage phrase for the columns outside the build
 #   head     a long document is read only up to the window (no chained chunks with carried context) by patches
+# Prompt factors (E14): how a patch's prompt differs from the build's for the same column. At a fixed level the build
+# reads all of a table's new columns in one prompt (supplement_spec's read) with their build-time field specs:
+#   bfields  patches use the build's field specs for the new columns (the patch's grouping and scope)
+#   bgroup   patches ask for all of the table's new columns together, as the build does (the patch's field specs;
+#            the build's for columns no query has used yet), and keep every column they read
+#   bprompt  both: a patch's prompt is the build's prompt, read from the build journal (no new calls are needed);
+#            with noscope (QUWARTS_ABLATE=bprompt,noscope) the patched cells must equal the 0% build's
+# Several may be combined (comma list).
 # rawview and raw also change which documents later queries' pushed-down filters select (the scope is evaluated on the
 # served view), and raw leaves chained long documents normalized (reduce_chunks commits per chunk).
-ABLATE = os.environ.get("QUWARTS_ABLATE", "")
-assert ABLATE in ("", "rawview", "raw", "noscope", "noreuse", "nobatch", "nodesc", "nousage", "head"), ABLATE
+ABLATE = frozenset(a for a in os.environ.get("QUWARTS_ABLATE", "").split(",") if a)
+assert ABLATE <= {"rawview", "raw", "noscope", "noreuse", "nobatch", "nodesc", "nousage", "head",
+                  "bfields", "bgroup", "bprompt"}, ABLATE
 assert VARIANT in ("", "no_literals", "no_usage", "with_known"), VARIANT
 BASE = Path(os.environ["QUWARTS_LIVE_ROOT"]) if os.environ.get("QUWARTS_LIVE_ROOT") else \
     R.RESULTS / ("drift_live" if BACKEND == "openrouter" else "drift_live_ollama")  # the override is for tests
@@ -348,9 +357,9 @@ def patch_variant(ctx, seen, fields):
     for k, f in fields.items():
         if k in ctx.lean_fields:
             out[k] = f
-        elif ABLATE == "nodesc":
+        elif "nodesc" in ABLATE:
             out[k] = replace(f, description="")
-        elif ABLATE == "nousage":
+        elif "nousage" in ABLATE:
             out[k] = replace(f, usage="")
         elif VARIANT == "no_usage":
             out[k] = replace(f, usage="")
@@ -505,7 +514,7 @@ def write_values(db: Path, table: str, docs, attrs, vals: dict, fields: dict) ->
                 continue
             for a in attrs:
                 v = got.get(a)
-                if ABLATE == "raw":  # E13: as returned (a list joined as the commit would), no normalization
+                if "raw" in ABLATE:  # E13: as returned (a list joined as the commit would), no normalization
                     v = " || ".join(str(x) for x in v if x is not None) if isinstance(v, list) else v
                     v = json.dumps(v) if isinstance(v, dict) else v
                 else:
@@ -804,7 +813,8 @@ class Stream:
         self.build = build or w0_build(corpus)
         self.dir = scratch(corpus) / key.replace("/", "_")
         self.state_path = folder(corpus) / "state" / f"{key.replace('/', '_')}.json"
-        self.journal = folder(corpus) / "patch_reads.jsonl"
+        # bprompt: a patch's prompts are the build's, so it reads (and journals) where the build did
+        self.journal = build_journal(corpus) if "bprompt" in ABLATE else folder(corpus) / "patch_reads.jsonl"
         self.stream = stream or self.ctx.designs[0]["streams"][key]
         self.t0 = set(self.ctx.designs[0]["in_distribution"])
         if self.state_path.exists():
@@ -829,7 +839,7 @@ class Stream:
     def view(self, workload, fields, dest: Path) -> Path:
         from quwarts.core.represent import Config, build
 
-        build(self.dir / "master.db", dest, self.ctx.spec, fields, workload, Config(t0=ABLATE != "rawview"))
+        build(self.dir / "master.db", dest, self.ctx.spec, fields, workload, Config(t0="rawview" not in ABLATE))
         return dest
 
     def step(self, stop_at: float) -> None:
@@ -856,12 +866,12 @@ class Stream:
         ctx, pos = self.ctx, self.st["pos"]
         qid = self.stream[pos]
         sql = ctx.catalog[qid]
-        if ABLATE == "noreuse":  # E13: back to the build before every query (earlier patches are not kept)
+        if "noreuse" in ABLATE:  # E13: back to the build before every query (earlier patches are not kept)
             shutil.copy2(self.build.db, self.dir / "master.db")
             self.mat = {(r.table, a): set(ctx.names[r.table]) for r in self.build.reads for a in r.attributes}
         seen = {**self.build.workload, **self.st["seen"], qid: sql}
         fields_seen, reads_seen = C.design(ctx.spec, seen)  # the build's workload and the queries so far
-        if VARIANT in ("no_literals", "no_usage") or ABLATE in ("nodesc", "nousage"):
+        if VARIANT in ("no_literals", "no_usage") or ABLATE & {"nodesc", "nousage"}:
             fields_seen = patch_variant(ctx, seen, fields_seen)
         F = {**self.build.all_fields(), **fields_seen}
         need = C.query_attributes(ctx.spec, qid, sql, seen)
@@ -876,7 +886,7 @@ class Stream:
             if not lacking:
                 continue
             known = {a for (tt, a) in self.mat if tt == t and self.fully(t, a)}
-            cond = C.pushdown_conjuncts(sql, t, known) if len(need) == 1 and ABLATE != "noscope" else None
+            cond = C.pushdown_conjuncts(sql, t, known) if len(need) == 1 and "noscope" not in ABLATE else None
             rows = None
             if cond:
                 if not built:
@@ -894,7 +904,7 @@ class Stream:
         for t in missing:
             batch = sorted({a for r in reads_seen if r.table == t for a in r.attributes
                             if not self.fully(t, a) and f"{t}.{a}" in fields_seen
-                            and (ABLATE not in ("nobatch", "noreuse") or a in missing[t])})
+                            and (not ABLATE & {"nobatch", "noreuse"} or a in missing[t])})
             for d in scope[t]:
                 attrs = [a for a in batch if d not in self.mat.get((t, a), set())]
                 if attrs:
@@ -910,7 +920,7 @@ class Stream:
         for t in missing:
             batch = sorted({a for r in reads_seen if r.table == t for a in r.attributes
                             if not self.fully(t, a) and f"{t}.{a}" in fields_seen
-                            and (ABLATE not in ("nobatch", "noreuse") or a in missing[t])})
+                            and (not ABLATE & {"nobatch", "noreuse"} or a in missing[t])})
             groups: dict[tuple, list[str]] = {}
             for d in scope[t]:
                 attrs = tuple(a for a in batch if d not in self.mat.get((t, a), set()))
@@ -918,30 +928,44 @@ class Stream:
                     groups.setdefault(attrs, []).append(d)
             known_t = sorted(a for r in reads_seen if r.table == t for a in r.attributes
                              if self.fully(t, a) and f"{t}.{a}" in fields_seen) if VARIANT == "with_known" else []
+            FR, together = fields_seen, ()  # E14: the read's field specs, and the build's co-read columns
+            if ABLATE & {"bfields", "bgroup", "bprompt"}:
+                supp = supplement_spec(self.corpus, self.key.split("/")[0].split("-", 1)[1])
+                build_first = ABLATE & {"bfields", "bprompt"}
+                FR = {**fields_seen, **supp["fields"]} if build_first else {**supp["fields"], **fields_seen}
+                if ABLATE & {"bgroup", "bprompt"}:
+                    together = next((r.attributes for r in supp["reads"] if r.table == t), ())
             for attrs, docs in groups.items():
-                asked = tuple(sorted(set(attrs) | set(known_t)))
+                asked = tuple(sorted(set(attrs) | set(known_t) | set(together)))
                 read = C.Read(t, "patch:" + ",".join(asked), asked)
                 vspec, root = view_spec(ctx.spec, ctx.docs, t, docs)
                 try:
                     left = left_of(stop_at)
                     if left is not None and left < 10:
                         raise Incomplete()
-                    stats = run_reads(vspec, [read], {}, fields_seen, self.caller, self.journal, WORKERS,
-                                      long_documents="head" if ABLATE == "head" else "chain",
+                    stats = run_reads(vspec, [read], {}, FR, self.caller, self.journal, WORKERS,
+                                      long_documents="head" if "head" in ABLATE else "chain",
                                       deadline=None if left is None else left - 8)
                 finally:
                     shutil.rmtree(root, ignore_errors=True)
                 if stats.get("stopped_at_deadline"):
                     raise Incomplete()
                 by = rows_of(self.journal)
-                vals, used = values_and_shas({d: ctx.docs[t][d] for d in docs}, t, list(asked), fields_seen, by,
-                                             head=ABLATE == "head")
+                vals, used = values_and_shas({d: ctx.docs[t][d] for d in docs}, t, list(asked), FR, by,
+                                             head="head" in ABLATE)
                 shas += used
                 read_docs += len(docs)
-                write_values(self.dir / "master.db", t, docs, attrs, vals, fields_seen)
+                write_values(self.dir / "master.db", t, docs, attrs, vals, FR)
                 for a in attrs:
                     self.mat.setdefault((t, a), set()).update(d for d in docs if d in vals)
                     fetched[f"{t}.{a}"] = fetched.get(f"{t}.{a}", 0) + sum(d in vals for d in docs)
+                for a in together:  # E14 bgroup / bprompt: the other columns read with them are kept, as the build's are
+                    fresh = [d for d in docs if d in vals and d not in self.mat.get((t, a), set())]
+                    if a in attrs or not fresh:
+                        continue
+                    write_values(self.dir / "master.db", t, fresh, [a], vals, FR)
+                    self.mat.setdefault((t, a), set()).update(fresh)
+                    fetched[f"{t}.{a}"] = fetched.get(f"{t}.{a}", 0) + len(fresh)
         if missing or not built:
             self.view(seen, F, pre)  # the served view after the patch
         seconds = partial["seconds"] + (time.monotonic() - t_start)
