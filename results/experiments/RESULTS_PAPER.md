@@ -58,8 +58,12 @@ With patching, the score at 100% drift is never more than 0.014 below the fully 
 player and cspaper it is slightly higher (+0.008, +0.019), but neither rise is significant (paired 95% CIs −0.007 to
 +0.028 and −0.011 to +0.052; query-level gains and losses cancel), so the patched curve is flat under drift. The rise
 is not extraction noise either: patching changes 2.5–3.7× as many cells of the drifted columns as re-running the same
-stream does, because patches read under a query-specific prompt and only on the documents the query can select. With
-a stronger model the rise becomes significant (Qwen 2.5 32B on cspaper: +0.062, 95% CI +0.019 to +0.113; RQ7).
+stream does. It is a prompt effect, and we isolated it (see *Ablations*): giving patches exactly the build's prompt
+moves every corpus's 100%-drift score to its 0%-drift score, and almost all of that is grouping. A patch asks for 1–3
+columns, the build for all of a table's new columns at once; fewer columns per prompt give better values on cspaper and
+player and worse on art and med (RQ2). Which documents a patch reads contributes nothing. With the 32B model the same
+effect is significant on cspaper (+0.062, 95% CI +0.019 to +0.113) and player (+0.020, +0.009 to +0.034) and absent on
+art and med (RQ7): a corpus-specific gain from narrow prompts, not a benefit of drift.
 
 ![Score as drift grows, static build vs on-demand patching, per corpus.](figures/rq1_drift.png)
 *Figure 1. Score as drift grows, static build vs on-demand patching, per corpus.*
@@ -301,6 +305,9 @@ the largest lever after field descriptions.
 | Player, one shared pass (20 held-out queries) | 0.466 | 0.560 | **0.690** |
 | Player, static / patched at 100% drift | 0.040 / 0.359 | 0.040 / 0.387 | 0.052 / **0.421** |
 | cspaper, patched at 0% → 100% drift (static at 100%) | 0.149 → 0.125 (0.008) | 0.134 → 0.153 (0.008) | 0.162 → **0.224** (0.008) |
+| player, patched at 0% → 100% drift | 0.356 → 0.359 | 0.379 → 0.387 | 0.401 → **0.421** |
+| art, patched at 0% → 100% drift (static at 100%) | | 0.270 → 0.256 (0.031) | 0.293 → 0.289 (0.031) |
+| med, patched at 0% → 100% drift (static at 100%) | | 0.095 → 0.086 (0.031) | 0.092 → 0.098 (0.050) |
 
 Patch costs are the same for every model (player 5.7–5.8M, cspaper 1.2–1.3M tokens). On serving: 16-bit instead of
 4-bit weights adds +0.03 on a single pass and +0.004 on a whole drift stream; repeated runs vary by at most 0.012 on
@@ -312,7 +319,11 @@ Patch costs are the same for every model (player 5.7–5.8M, cspaper 1.2–1.3M 
 **Implication.** The system-level conclusions are not artefacts of one small, quantized model; a stronger model
 raises every number without changing what the system should do.
 
-**Scope.** Two corpora for the other models; quantization on one corpus.
+The 32B model raises the 0%-drift score on every corpus (cspaper +0.028, player +0.022, art +0.023) except med
+(−0.003). Its 100% − 0% difference is significant on cspaper and player only (+0.062, +0.020), the narrow-prompt effect
+of the *Ablations* section, larger with the stronger model.
+
+**Scope.** Llama 8B on two corpora; Qwen 32B on four (legal running); quantization on one corpus.
 
 ---
 
@@ -361,6 +372,46 @@ and list-valued join keys as special cases.
 
 ---
 
+## Ablations: which parts of the system matter
+
+**Answer.** Three components carry accuracy: field descriptions in the extraction prompt (up to −0.136 without them),
+normalizing values when they are stored (up to −0.131), and mapping free-text values to the workload's forms in the
+served view (−0.066 on art). Two carry cost: reusing patched columns (without it, 3.7–16.9× the tokens for the same
+score) and restricting a patch to the documents the query can select (up to 1.46× without it). The rest (the
+workload usage phrase, chained reading of long documents, batching other workload columns into a patch) change the
+score by at most 0.015 in either direction.
+
+**Evidence.** The unlimited stream at 100% drift with one component turned off, against the full system (paired
+score change over each corpus's test queries; * = 95% CI excludes 0):
+
+| Turned off | cspaper | player | art | med | legal | Patch tokens |
+|---|---|---|---|---|---|---|
+| Field descriptions | −0.034* | −0.136* | −0.101* | +0.005 | −0.034 | 1.0× |
+| Value normalization at commit | −0.011* | −0.131* | −0.003 | +0.004 | 0.000 | 1.0× |
+| Value representation in the view | 0.000 | 0.000 | −0.066* | +0.010 | −0.016 | 1.0× |
+| Reuse of patched columns | −0.012 | −0.003* | +0.010* | +0.002 | −0.012 | 3.7–16.9× |
+| Scope (patch every document) | 0.000 | 0.000 | +0.011* | 0.000 | +0.001 | 1.0–1.46× |
+| Chained reading of long documents | 0.000 | −0.004 | 0.000 | +0.015* | −0.012* | 0.58–1.0× |
+| Batching other workload columns | −0.003 | 0.000 | +0.011* | 0.000 | −0.007 | 1.0–1.46× |
+| Workload usage phrase | −0.006 | 0.000 | +0.001 | +0.003 | +0.010 | 1.0× |
+
+![Each component turned off in turn: score change and patch tokens.](figures/ablations.png)
+*Figure 14. Each component turned off in turn: score change (95% CI) and patch tokens, at 100% drift.*
+
+*Prompt factors.* The same column is read differently by the build and by a patch. Giving patches the build's exact
+prompt (field specs and co-read columns; no new model call was needed, so the prompts were byte-identical) moves each
+corpus's 100%-drift score to its 0%-drift score; on cspaper, applied to every document, it reproduces the 0% stream
+query for query (58 of 59). Splitting the prompt into its two parts, the grouping alone reproduces the shift (cspaper
+−0.022, player −0.009, art +0.017 against the 0%-to-100% differences −0.019, −0.008, +0.014), while the build's field
+specs alone move it little. Reading all new columns together costs 0.13–0.35× the patch tokens.
+
+**Implication.** Invest in field definitions and in value normalization; keep reuse and scoping for cost. Prompt
+grouping changes values in a corpus-specific direction, so it is a cost decision, not an accuracy lever.
+
+**Scope.** Five corpora, one model (Qwen 2.5 7B), 100% drift.
+
+---
+
 ## Comparison with DocETL
 
 **Answer.** On the same drift queries and model, on-demand patching is more accurate than DocETL on every corpus and
@@ -375,7 +426,7 @@ uses 7–25× fewer tokens. DocETL extracts per query and does not reuse extract
 | legal | 30 | 0.040 | 0.114 | +0.075 (0.029 – 0.124) | 475.1M | 34.49M | 14× |
 
 ![Ours vs DocETL per corpus (left) and on player by number of joins (right).](figures/docetl.png)
-*Figure 14. Ours vs DocETL per corpus (left) and on player by number of joins (right).*
+*Figure 15. Ours vs DocETL per corpus (left) and on player by number of joins (right).*
 
 At 100% drift; DocETL with the same 4-bit Qwen 2.5 7B, one map operation per query and table with an equal-effort
 prompt. On player, DocETL scores 0.125 / 0.034 / 0.008 on queries with 0 / 1 / 2+ joins, while ours stays at 0.37–0.44;

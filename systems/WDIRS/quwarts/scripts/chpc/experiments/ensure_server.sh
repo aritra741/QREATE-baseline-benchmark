@@ -48,6 +48,8 @@ if [ "${GPU_MB:-0}" -lt 60000 ]; then
     *) PARALLEL=4; CTX=16384 ;;
   esac
 fi
+# The 32B model on a GPU of 100 GB or more (H200): 8 slots at 16k (about 55 GB with the weights), matching a stream's 8 workers.
+[ "$NAME" = qwen32b ] && [ "${GPU_MB:-0}" -ge 100000 ] && PARALLEL=8
 # main2: a second main server pinned to GPU 1 (two-GPU nodes), so the runner and DocETL do not share slots.
 GPUS=""; [ "$NAME" = main2 ] && { PARALLEL=8; CTX=32768; GPUS=1; }
 CUDA_VISIBLE_DEVICES=${GPUS:-${CUDA_VISIBLE_DEVICES:-}} OLLAMA_HOST=127.0.0.1:$PORT OLLAMA_NUM_PARALLEL=$PARALLEL OLLAMA_CONTEXT_LENGTH=$CTX OLLAMA_MAX_LOADED_MODELS=1 \

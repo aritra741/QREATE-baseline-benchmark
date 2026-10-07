@@ -487,6 +487,62 @@ def rq8_form():
 
 # ------------------------------------------------------------------ DocETL
 
+ABLATIONS = [("E13-nodesc", "No field descriptions"), ("E13-raw", "No value normalization"),
+             ("E13-rawview", "No value representation in the view"), ("E13-head", "Long documents: first window only"),
+             ("E13-nousage", "No workload usage phrase"), ("E13-noscope", "Patch every document (no scope)"),
+             ("E13-nobatch", "Patch only the query's own columns"), ("E13-noreuse", "No reuse of patched columns"),
+             ("E14-bfields", "Patch with the build's field specs"),
+             ("E14-bgroup", "Patch all new columns together (build grouping)")]
+
+
+def ablation_rows():
+    """Per ablation and corpus: mean paired score change vs the recorded 100%-drift stream, its 95% bootstrap CI, and the
+    patch-token ratio."""
+
+    out = {}
+    for d, _label in ABLATIONS:
+        for c in CORPORA:
+            base = {r["qid"]: r for r in stream(c, "fixed4-attribute_pool_100")}
+            ab = {r["qid"]: r for r in stream(c, "fixed4-attribute_pool_100", EXP / d / "live")}
+            diff = [ab[q]["benchmark"] - base[q]["benchmark"] for q in base]
+            rng = random.Random(0)
+            ms = sorted(sum(rng.choice(diff) for _ in diff) / len(diff) for _ in range(4000))
+            tok = lambda rows: sum(r["input_tokens"] + r["output_tokens"] for r in rows)
+            out[(d, c)] = (mean(diff), ms[100], ms[3900], tok(ab.values()) / tok(base.values()))
+    return out
+
+
+def ablations():
+    rows = ablation_rows()
+    colors = dict(zip(CORPORA, (BLUE, ORANGE, AQUA, YELLOW, MAGENTA)))
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(13, 5.6), gridspec_kw={"width_ratios": [1.7, 1]}, sharey=True)
+    ys = list(range(len(ABLATIONS)))[::-1]
+    for y, (d, label) in zip(ys, ABLATIONS):
+        for k, c in enumerate(CORPORA):
+            m, lo, hi, ratio = rows[(d, c)]
+            yy = y + (k - 2) * 0.13
+            sig = lo > 0 or hi < 0
+            ax.plot([lo, hi], [yy, yy], color=colors[c], linewidth=1.2, alpha=0.6)
+            ax.plot([m], [yy], "o", markersize=6, color=colors[c] if sig else SURFACE, markeredgecolor=colors[c],
+                    markeredgewidth=1.6)
+            bx.plot([ratio], [yy], "o", markersize=6, color=colors[c], markeredgecolor=SURFACE)
+    ax.axvline(0, color=AXIS, linewidth=1)
+    ax.set_yticks(ys, [l for _d, l in ABLATIONS], fontsize=9)
+    ax.set_xlabel("Score change vs the full system at 100% drift (95% CI; filled = significant)")
+    from matplotlib.lines import Line2D
+
+    ax.legend([Line2D([], [], marker="o", linestyle="", color=colors[c], markersize=6) for c in CORPORA], CORPORA,
+              loc="lower left", bbox_to_anchor=(0, 1.0), fontsize=9, ncol=5, frameon=False)
+    style(ax)
+    bx.axvline(1, color=AXIS, linewidth=1)
+    bx.set_xscale("log")
+    bx.set_xticks([0.1, 0.3, 1, 3, 10], ["0.1×", "0.3×", "1×", "3×", "10×"])
+    bx.set_xlabel("Patch tokens relative to the full system")
+    style(bx)
+    save(fig, "ablations.png", "Field descriptions, normalization and reuse carry the system",
+         "One component turned off at a time; unlimited stream at 100% drift, five corpora.")
+
+
 def docetl():
     def ci(d):
         rng = random.Random(0)
@@ -539,5 +595,5 @@ def docetl():
 
 if __name__ == "__main__":
     for fn in (rq1_drift, rq1_seeds, rq1_train, rq1_anticipation, rq2_width, rq3_legal, rq3_policies, rq4_signals, rq5_planner, rq6_cells,
-               rq7_models, rq8_bottleneck, rq8_form, docetl):
+               rq7_models, rq8_bottleneck, rq8_form, docetl, ablations):
         fn()

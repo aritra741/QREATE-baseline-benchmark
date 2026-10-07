@@ -1237,3 +1237,86 @@ What the knapsack does show is how much budget buys nothing: at the full budget 
 of 29.9M, med 13.7M of 19.9M, cspaper 0.71M of 1.16M) for −0.007 to +0.003 in score. That agrees with the hindsight
 oracle and with the SQL rule (skip MIN/MAX over text): the gains come from not paying for worthless patches, and the
 order-dependence of cost and value makes any offline set selection a poor guide for an online policy.
+
+## E13: component ablations (one part of the controller turned off at a time)
+
+The unlimited stream at 100% drift with one component off (`QUWARTS_ABLATE`, `E13-<name>/live/<corpus>/`), from a
+replay clone (recorded reads reused, only reads the ablation changes are paid). Paired score change against the
+recorded stream over each corpus's test queries, 95% bootstrap CI (* = excludes 0), and patch tokens relative to it.
+Recorded: cspaper 0.153 (1.2M), player 0.387 (5.7M), art 0.256 (6.1M), med 0.086 (19.9M), legal 0.114 (29.9M).
+
+| Turned off | cspaper | player | art | med | legal | Tokens |
+|---|---|---|---|---|---|---|
+| Field descriptions in patch prompts | **−0.034*** | **−0.136*** | **−0.101*** | +0.005 | −0.034 | 1.0× |
+| Commit-time value normalization | **−0.011*** | **−0.131*** | −0.003 | +0.004 | 0.000 | 1.0× |
+| Value representation in the view | 0.000 | 0.000 | **−0.066*** | +0.010 | −0.016 | 1.0× |
+| Chained reading of long documents (first window only) | 0.000 | −0.004 | 0.000 | **+0.015*** | **−0.012*** | 0.58–1.0× |
+| Workload usage phrase | −0.006 | 0.000 | +0.001 | +0.003 | +0.010 | 1.0× |
+| Scope (patch every document) | 0.000 | 0.000 | **+0.011*** | 0.000 | +0.001 | 1.0–1.46× |
+| Batching (patch only the query's own columns) | −0.003 | 0.000 | **+0.011*** | 0.000 | −0.007 | 1.0–1.46× |
+| Reuse (every query starts from the build) | −0.012 | **−0.003*** | **+0.010*** | +0.002 | −0.012 | **3.7–16.9×** |
+
+**What matters for accuracy.** Field descriptions (up to −0.136 without them; the model guesses what a bare column
+name means), value normalization at commit (player −0.131: numbers and absence values such as "0 if none" are stored
+in a form the queries compare against), and the view's value representation on art (−0.066: free-text labels mapped
+to the workload's forms). The usage phrase adds nothing measurable.
+
+**What matters for cost.** Reuse: without it, every query re-reads its columns and the stream costs 3.7× (legal) to
+16.9× (player) as many tokens for the same score (−0.012 to +0.010). Scope saves up to 46% of patch tokens at no
+accuracy cost (art's +0.011 without it is the narrower-prompt effect below, not scope). Reading only the first window
+of long documents saves 21–42% where documents are long (player, med, legal) for −0.012 to +0.015.
+
+`noscope` and `nobatch` coincide on art (same score and tokens) because both end with every new column read on
+every document, one column per prompt; their per-query views differ (15 of 43 identical). The rawview and raw runs
+were first run with model calls refused; on art their views select other documents for later patches, so
+they were re-run allowing reads (found in code review).
+
+## E14: why the patched score moves under drift — the prompt, decomposed
+
+At 0% drift the build reads all of a table's new columns in one prompt over every document, with build-time field
+specs; at 100% drift a patch reads the columns a query lacks (plus other workload columns still missing), with field
+specs designed from the queries seen so far, on the documents the query can select. Variants of the 100%-drift stream
+(`E14-<name>/live/`):
+
+- `bprompt`: patches use exactly the build's prompt (same field specs, same co-read columns), read from the build
+  journal. **Run with model calls refused: no call was needed, so the prompts are byte-identical to the build's.**
+- `bprompt,noscope`: the same on every document. On cspaper it reproduces the 0% stream exactly (58 of 59 queries
+  identical; the one difference is the view's value representation, which depends on the workload seen so far).
+- `bfields`: the build's field specs, the patch's grouping. `bgroup`: the patch's field specs, the build's grouping.
+
+| | cspaper | player | art | med | legal |
+|---|---|---|---|---|---|
+| 0% − 100% (recorded; the drift effect, sign flipped) | −0.019 | −0.008 | +0.014 | +0.009 | +0.007 |
+| `bprompt` − recorded 100% | −0.019 | −0.008 | +0.014 | +0.012 | +0.003 |
+| `bprompt,noscope` − recorded 100% | −0.019 | −0.008 | +0.014 | +0.012 | +0.003 |
+| `bgroup` − recorded 100% (build grouping only) | −0.022 | −0.009 | +0.017 | +0.003 | +0.004 |
+| `bfields` − recorded 100% (build field specs only) | −0.007 | −0.002 | +0.012 | −0.001 | +0.003 |
+| Tokens, `bprompt` / `bgroup` vs recorded 100% | 0.31× | 0.35× | 0.27× | 0.13× | 0.15× |
+
+**The whole drift effect is the prompt, and almost all of it is grouping.** Giving patches the build's prompt moves
+every corpus's 100%-drift score to its 0%-drift score (cspaper 0.153 → 0.134, player 0.387 → 0.379, art 0.256 →
+0.270), and scope adds nothing (`bprompt` = `bprompt,noscope` on every corpus). Of the two parts of the prompt, the
+grouping carries it: `bgroup` alone reproduces the shift on cspaper, player and art, while the build's field specs
+alone (`bfields`) move the score little except on art. So the "rise under drift" on cspaper and player is a
+narrow-prompt effect: a patch asks for 1–3 columns, the build for all new columns of the table at once, and on these
+two corpora fewer columns per prompt give better values (on art and med, worse). None of the single-corpus
+differences is significant; the sign pattern matches RQ2 (prompt width helps on some corpora and hurts on others).
+
+The grouping is also what makes anticipation cheap: reading all new columns together costs 0.13–0.35× the patch
+tokens (E1.4's break-even, seen from the patch side).
+
+## E6.3: Qwen 2.5 32B, 0% vs 100% drift on more corpora
+
+Patched (unlimited) stream with the 32B model at 0% and 100% drift; paired over test queries:
+
+| Corpus | 0% | 100% | Static at 100% | 100% − 0% (95% CI) | Queries up / down |
+|---|---|---|---|---|---|
+| cspaper | 0.162 | 0.224 | 0.008 | **+0.062 (+0.019, +0.113)** | 12 / 3 |
+| player | 0.401 | 0.421 | 0.052 | **+0.020 (+0.009, +0.034)** | 19 / 9 |
+| art | 0.293 | 0.289 | 0.031 | −0.003 (−0.027, +0.018) | 11 / 9 |
+| med | 0.092 | 0.098 | 0.050 | +0.006 (−0.006, +0.019) | 10 / 9 |
+| legal | running | | | | |
+
+With the 32B model the narrow-prompt gain becomes significant on the two corpora where the 7B model already leaned
+that way (cspaper, player), and stays absent on art and med. The drift effect is the same mechanism at both sizes
+(E14), larger for the stronger model; it is corpus-specific, not a general benefit of drift.

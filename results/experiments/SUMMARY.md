@@ -163,6 +163,20 @@ Cross-cutting causes:
   (E8): the gaps are in GROUP BY labels the workload never names.
 - **Query type** (E9): AVG/SUM 0.36, MIN/MAX over numbers 0.24, COUNT 0.21, MIN/MAX over text 0.03.
 
+## Ablations (E13, E14)
+
+One component turned off at a time, unlimited stream at 100% drift, five corpora (paired; * significant):
+- **Accuracy**: field descriptions (cspaper −0.034*, player −0.136*, art −0.101*), value normalization at commit
+  (player −0.131*, cspaper −0.011*), the view's value representation (art −0.066*).
+- **Cost**: reuse of patched columns (without it 3.7–16.9× the tokens, score −0.012 to +0.010), scope (up to 1.46×).
+- **Neither**: the workload usage phrase, chained reading of long documents (saves 21–42% of tokens on long-document
+  corpora for −0.012 to +0.015), batching other workload columns into a patch.
+- **Why the patched score moves under drift (E14)**: giving patches the build's exact prompt (no new calls needed)
+  moves each 100%-drift score to its 0%-drift score; on cspaper over every document it reproduces the 0% stream
+  (58/59 queries). The grouping (1–3 columns per patch vs all new columns per build prompt) carries it; field specs
+  and scope do not. Narrow prompts help on cspaper/player, hurt on art/med; with Qwen 32B the gain is significant on
+  cspaper (+0.062) and player (+0.020), absent on art (−0.003) and med (+0.006) (E6.3; legal running).
+
 ## Baseline: DocETL on the drift queries
 
 DocETL (same model, one map per query and table, the fair prompt) at 100% drift, all 326 drift test queries; paired
@@ -184,9 +198,10 @@ Done: replays and per-corpus analyses (all five corpora); noise, quantization; n
 (E2.1b); canonicalization (E8); query types (E9); budget policies on all five corpora (E3.2, E3.3); other models
 (Llama 3.1 8B, Qwen 2.5 32B); planner attribution and fixes (E5.0–E5.3); build-cost accuracy (E1.3); anticipation
 (E1.4); patch-value signals (E4.1); token and latency accounting (`ACCOUNTING.md`); other drift draws (E11) and
-smaller build workloads (E12, all five corpora); DocETL on all 326 drift test queries; offline knapsack (E3.1).
+smaller build workloads (E12, all five corpora); DocETL on all 326 drift test queries; offline knapsack (E3.1); component ablations (E13); prompt factors (E14);
+Qwen 32B drift curves on cspaper, player, art, med (E6.2, E6.3).
 
-Running: component ablations (E13; 8 components x 5 corpora).
+Running: Qwen 32B 0%/100% drift on legal (E6.3).
 
 Open:
 - A planner objective that can recognise a shared read better than per-query reads (RQ5): the current one treats each
