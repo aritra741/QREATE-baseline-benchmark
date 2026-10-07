@@ -151,6 +151,11 @@ other columns do to a column is unpredictable in sign, which is a further reason
 
 ## RQ3. How should an adaptive system spend a limited extraction budget?
 
+> **Under revision.** The MIN/MAX-over-text queries this section builds on are artifacts of our drift query generator
+> (a type-blind attribute swap; 12 of legal's and 30 of med's test queries) and score zero by construction under the
+> benchmark metric. The `fragile` rule's advantage and legal's budget collapse come from them; this section will be
+> re-run on test streams without them.
+
 **Answer.** Spending the budget first-come-first-served (patch every query that fits) is not monotone: a larger budget
 can score lower, because expensive early patches can exhaust the budget without improving any answer. A rule that
 reads only the SQL, *never patch for a query whose answer is the minimum or maximum of a text column*, removes these
