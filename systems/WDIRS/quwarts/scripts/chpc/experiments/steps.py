@@ -241,6 +241,15 @@ STEPS = [
     *[{**stream(f"E6.3-qwen32b-{c}", c, "fresh", key="fixed4-attribute_pool/0,fixed4-attribute_pool/100",
                 model=OTHER_MODELS["qwen32b"], extra=MODEL_ENV["qwen32b"]), "lane": "gpu4"}
       for c in ("art", "med", "legal")],
+    # ---- E14 with Qwen 2.5 32B on cspaper and player, where its drift rise is significant (lane gpu4, the H200): cloned
+    # from the 32B runs (E6.2 roots), whose journals hold the 32B build's prompts, so bprompt again needs no call
+    *[{**ablate(n, c, exp="E14-32b", lane="gpu4", replay_only=n.startswith("bprompt")),
+       "cmd": ablate(n, c, exp="E14-32b", lane="gpu4", replay_only=n.startswith("bprompt"))["cmd"]
+           .replace("--mode replay", f"--mode replay --src-root results/experiments/E6.2-stream-qwen32b-{c}/live "
+                                     f"--src-scratch {SCRATCH}/E6.2-stream-qwen32b-{c}")
+           .replace(server("main"), server("qwen32b"))
+           .replace("QUWARTS_ABLATE=", f"OLLAMA_MODEL={OTHER_MODELS['qwen32b']} {MODEL_ENV['qwen32b']}QUWARTS_ABLATE=")}
+      for n in ("bprompt", "bgroup", "bfields") for c in ("cspaper", "player")],
     # ---- E6.3: Llama 3.1 8B drift curve on art, med, legal (lane gpu5: the MIG slice, once idle)
     *[{**stream(f"E6.3-llama8b-{c}", c, "fresh", key="fixed4-attribute_pool/0,fixed4-attribute_pool/100",
                 model=OTHER_MODELS["llama8b"], extra=MODEL_ENV["llama8b"]), "lane": "gpu5"}

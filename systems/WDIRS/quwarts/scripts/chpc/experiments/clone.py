@@ -37,7 +37,13 @@ def main() -> int:
     ap.add_argument("--corpus", required=True)
     ap.add_argument("--root", required=True, help="the new QUWARTS_LIVE_ROOT")
     ap.add_argument("--scratch", required=True, help="the new QUWARTS_SCRATCH")
+    ap.add_argument("--src-root", help="clone from another run's QUWARTS_LIVE_ROOT (default: the recorded run)")
+    ap.add_argument("--src-scratch", help="that run's QUWARTS_SCRATCH (its databases are under drift_live_ollama/)")
     a = ap.parse_args()
+    global SRC, SRC_SCRATCH
+    if a.src_root:
+        SRC = (REPO / a.src_root) if not a.src_root.startswith("/") else Path(a.src_root)
+        SRC_SCRATCH = Path(a.src_scratch) / "drift_live_ollama"
     root = (REPO / a.root) if not a.root.startswith("/") else Path(a.root)
     src, dst = SRC / a.corpus, root / a.corpus
     sdst = Path(a.scratch) / "drift_live_ollama" / a.corpus

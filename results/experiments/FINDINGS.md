@@ -1332,3 +1332,36 @@ On legal the 32B model doubles the 7B score at the same patch cost (100% drift: 
 With the 32B model the narrow-prompt gain becomes significant on the two corpora where the 7B model already leaned
 that way (cspaper, player), and stays absent on art and med. The drift effect is the same mechanism at both sizes
 (E14), larger for the stronger model; it is corpus-specific, not a general benefit of drift.
+
+## E14 with Qwen 32B: the significant drift rise is the patch prompt (cspaper, player)
+
+The 32B model's patched score rises significantly from 0% to 100% drift on cspaper (+0.062) and player (+0.020)
+(E6.2/E6.3). Giving its patches the build's exact prompt (`bprompt`, cloned from the 32B runs; run with model calls
+refused, so every prompt was the 32B build's own) removes the rise completely, query for query:
+
+| Corpus | 0% drift | 100%, patch prompt | 100%, build prompt | Build prompt − 0% |
+|---|---|---|---|---|
+| cspaper | 0.162 | 0.224 | **0.162** | 0.000 (every query identical) |
+| player | 0.401 | 0.421 | **0.401** | 0.000 (every query identical) |
+
+**Where it comes from (cells of the new columns, 32B, patch prompt vs build prompt, against gold):**
+
+| Column | Correct: patch / build | Filled: patch / build | Gold empty |
+|---|---|---|---|
+| cspaper.reasoning_depth | **0.69 / 0.29** | **0.98 / 0.36** | 0.01 |
+| cspaper.use_agent | 0.91 / 0.89 | 1.00 / 1.00 | 0.00 |
+| cspaper.agent_framework | 0.82 / 0.85 | 0.21 / 0.17 | 0.76 |
+| cspaper.evaluation_dataset | 0.08 / 0.10 | 0.56 / 0.58 | 0.04 |
+| cspaper.baseline | 0.04 / 0.07 | 0.94 / 0.85 | 0.06 |
+| cspaper.performance_on_hotpotqa | 0.78 / 0.82 | 0.11 / 0.06 | 0.84 |
+| player.draft_pick | 0.67 / 0.67 | 0.79 / 0.72 | 0.01 |
+| player.team.ownership | 0.27 / 0.23 | 0.87 / 0.87 | 0.20 |
+
+On cspaper one column carries it: `reasoning_depth` (single-hop / multi-hop; never null; 9 test queries group by it).
+The build reads it together with the other six new columns, and leaves it empty on 64% of papers although gold
+almost always has a value; the first patch that needs it (a `GROUP BY reasoning_depth` query) reads it alone over all
+200 papers and fills 98%, correct on 69% instead of 29%. The two prompt lines are nearly identical (both say "Never
+null"; the build's adds the workload hint "compared with specific values ... give the value as the document states
+it"). On player the gain is spread thinly (`draft_pick` filled 79% vs 72%, `team.ownership` 27% vs 23% correct).
+
+Whether the grouping or the hint does it is being separated (`bgroup`, `bfields` with 32B, running).
