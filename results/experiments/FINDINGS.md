@@ -1451,5 +1451,5 @@ The same split runs through the other corpus-dependent results:
   cspaper −0.034) and not on med (+0.005), where the description cannot make an undetermined value determinate;
 - long documents matter for cost, not accuracy: reading only the first window saves 21–42% of patch tokens on player,
   med and legal for −0.012 to +0.015;
-- the static/patched gap is smallest on med (0.031 vs 0.086 at 100% drift) because even the patched values are mostly
-  wrong in form.
+- the static/patched gap is smallest on med (0.031 vs 0.086 at 100% drift): even patched values rarely match gold
+  exactly (0–10% of filled cells on most med columns, A3).

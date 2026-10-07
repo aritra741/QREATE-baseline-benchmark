@@ -1,4 +1,4 @@
-# Experiment status (2026-10-06T09:48:12-06:00)
+# Experiment status (2026-10-07T12:49:41-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -46,6 +46,134 @@
 | E12-w0f010-legal | gpu | done | 1 | ok 2026-10-06T02:03:08-06:00 |  |
 | E12-w0f025-legal | gpu | done | 1 | ok 2026-10-06T02:57:24-06:00 |  |
 | E12-w0f050-legal | gpu | done | 1 | ok 2026-10-06T03:46:53-06:00 |  |
+| E3.2-knapsack-cspaper | gpu | done | 3 | ok 2026-10-06T17:17:32-06:00 |  |
+| E3.2-knapsack-player | gpu | done | 2 | ok 2026-10-06T11:27:25-06:00 |  |
+| E3.2-knapsack-art | gpu | done | 1 | ok 2026-10-06T12:11:14-06:00 |  |
+| E3.2-knapsack-legal | gpu | done | 1 | ok 2026-10-06T14:11:36-06:00 |  |
+| E3.2-knapsack-med | gpu | done | 1 | ok 2026-10-06T16:54:25-06:00 |  |
+| E13-rawview-cspaper | gpu | done | 1 | ok 2026-10-06T14:33:15-06:00 |  |
+| E13-rawview-player | gpu | done | 1 | ok 2026-10-06T14:36:04-06:00 |  |
+| E13-rawview-art | gpu | done | 3 | ok 2026-10-06T15:22:26-06:00 |  |
+| E13-rawview-med | gpu | done | 1 | ok 2026-10-06T14:42:54-06:00 |  |
+| E13-rawview-legal | gpu | done | 1 | ok 2026-10-06T15:28:23-06:00 |  |
+| E13-raw-cspaper | gpu | done | 1 | ok 2026-10-06T15:29:57-06:00 |  |
+| E13-raw-player | gpu | done | 1 | ok 2026-10-06T15:34:09-06:00 |  |
+| E13-raw-art | gpu | done | 1 | ok 2026-10-06T15:39:05-06:00 |  |
+| E13-raw-med | gpu | done | 1 | ok 2026-10-06T15:45:23-06:00 |  |
+| E13-raw-legal | gpu | done | 1 | ok 2026-10-06T15:51:14-06:00 |  |
+| E13-noscope-cspaper | gpu | done | 1 | ok 2026-10-06T14:35:12-06:00 |  |
+| E13-noscope-player | gpu | done | 1 | ok 2026-10-06T14:38:31-06:00 |  |
+| E13-noscope-art | gpu | done | 1 | ok 2026-10-06T15:17:43-06:00 |  |
+| E13-noscope-med | gpu | done | 1 | ok 2026-10-06T15:56:36-06:00 |  |
+| E13-noscope-legal | gpu | done | 1 | ok 2026-10-06T16:29:24-06:00 |  |
+| E13-nobatch-cspaper | gpu | done | 1 | ok 2026-10-06T16:30:54-06:00 |  |
+| E13-nobatch-player | gpu | done | 1 | ok 2026-10-06T16:34:12-06:00 |  |
+| E13-nobatch-art | gpu | done | 1 | ok 2026-10-06T17:00:30-06:00 |  |
+| E13-nobatch-med | gpu | done | 1 | ok 2026-10-06T17:05:30-06:00 |  |
+| E13-nobatch-legal | gpu | done | 1 | ok 2026-10-06T17:19:11-06:00 |  |
+| E13-nodesc-cspaper | gpu2 | done | 1 | ok 2026-10-06T15:10:27-06:00 |  |
+| E13-nodesc-player | gpu2 | done | 1 | ok 2026-10-06T15:30:43-06:00 |  |
+| E13-nodesc-art | gpu2 | done | 1 | ok 2026-10-06T16:29:14-06:00 |  |
+| E13-nodesc-med | gpu2 | done | 1 | ok 2026-10-06T17:59:40-06:00 |  |
+| E13-nodesc-legal | gpu2 | done | 1 | ok 2026-10-06T21:17:56-06:00 |  |
+| E13-nousage-cspaper | gpu | done | 1 | ok 2026-10-06T19:37:33-06:00 |  |
+| E13-nousage-player | gpu | done | 1 | ok 2026-10-06T19:56:09-06:00 |  |
+| E13-nousage-art | gpu | done | 1 | ok 2026-10-06T20:40:54-06:00 |  |
+| E13-nousage-med | gpu | done | 1 | ok 2026-10-06T22:20:31-06:00 |  |
+| E13-nousage-legal | gpu2 | done | 1 | ok 2026-10-06T23:55:47-06:00 |  |
+| E13-head-cspaper | gpu | done | 1 | ok 2026-10-06T17:20:12-06:00 |  |
+| E13-head-player | gpu | done | 1 | ok 2026-10-06T17:32:39-06:00 |  |
+| E13-head-art | gpu | done | 1 | ok 2026-10-06T17:34:38-06:00 |  |
+| E13-head-med | gpu | done | 1 | ok 2026-10-06T18:12:11-06:00 |  |
+| E13-head-legal | gpu | done | 1 | ok 2026-10-06T18:44:30-06:00 |  |
+| E13-noreuse-cspaper | gpu3 | done | 1 | ok 2026-10-06T15:54:18-06:00 |  |
+| E13-noreuse-player | gpu3 | done | 1 | ok 2026-10-06T16:23:42-06:00 |  |
+| E13-noreuse-art | gpu3 | done | 1 | ok 2026-10-06T17:34:41-06:00 |  |
+| E13-noreuse-med | gpu3 | done | 1 | ok 2026-10-06T19:48:57-06:00 |  |
+| E13-noreuse-legal | gpu3 | done | 1 | ok 2026-10-06T23:24:37-06:00 |  |
+| E14-bprompt-cspaper | gpu | done | 1 | ok 2026-10-06T19:58:21-06:00 |  |
+| E14-bprompt-player | gpu | done | 1 | ok 2026-10-06T20:02:45-06:00 |  |
+| E14-bprompt-art | gpu | done | 1 | ok 2026-10-06T20:04:14-06:00 |  |
+| E14-bprompt-med | gpu | done | 1 | ok 2026-10-06T20:07:06-06:00 |  |
+| E14-bprompt-legal | gpu | done | 1 | ok 2026-10-06T20:08:26-06:00 |  |
+| E14-bprompt+noscope-cspaper | gpu | done | 1 | ok 2026-10-06T19:59:24-06:00 |  |
+| E14-bprompt+noscope-player | gpu | done | 1 | ok 2026-10-06T20:11:13-06:00 |  |
+| E14-bprompt+noscope-art | gpu | done | 1 | ok 2026-10-06T20:12:40-06:00 |  |
+| E14-bprompt+noscope-med | gpu | done | 1 | ok 2026-10-06T20:15:33-06:00 |  |
+| E14-bprompt+noscope-legal | gpu | done | 1 | ok 2026-10-06T20:16:53-06:00 |  |
+| E14-bfields-cspaper | gpu | done | 1 | ok 2026-10-06T20:22:58-06:00 |  |
+| E14-bfields-player | gpu | done | 1 | ok 2026-10-06T20:43:05-06:00 |  |
+| E14-bfields-art | gpu | done | 1 | ok 2026-10-06T21:40:21-06:00 |  |
+| E14-bfields-med | gpu | done | 1 | ok 2026-10-06T22:59:30-06:00 |  |
+| E14-bfields-legal | gpu | done | 1 | ok 2026-10-07T00:13:28-06:00 |  |
+| E14-bgroup-cspaper | gpu | done | 1 | ok 2026-10-07T00:17:55-06:00 |  |
+| E14-bgroup-player | gpu | done | 1 | ok 2026-10-07T00:27:00-06:00 |  |
+| E14-bgroup-art | gpu | done | 1 | ok 2026-10-07T00:49:53-06:00 |  |
+| E14-bgroup-med | gpu | done | 1 | ok 2026-10-07T01:10:17-06:00 |  |
+| E14-bgroup-legal | gpu | done | 1 | ok 2026-10-07T01:41:19-06:00 |  |
+| E6.3-qwen32b-player0 | gpu4 | done | 1 | ok 2026-10-06T20:46:16-06:00 |  |
+| E6.3-qwen32b-art | gpu4 | done | 1 | ok 2026-10-07T00:36:27-06:00 |  |
+| E6.3-qwen32b-med | gpu4 | done | 1 | ok 2026-10-07T05:04:42-06:00 |  |
+| E6.3-qwen32b-legal | gpu4 | done | 2 | ok 2026-10-07T11:48:32-06:00 |  |
+| A0-E13-nodesc-cspaper | cpu0 | done | 1 | ok 2026-10-07T12:35:24-06:00 |  |
+| A0-E13-nodesc-player | cpu1 | done | 1 | ok 2026-10-07T12:37:35-06:00 |  |
+| A0-E13-nodesc-art | cpu2 | done | 1 | ok 2026-10-07T12:37:05-06:00 |  |
+| A0-E13-nodesc-med | cpu0 | done | 1 | ok 2026-10-07T12:40:43-06:00 |  |
+| A0-E13-nodesc-legal | cpu1 | done | 1 | ok 2026-10-07T12:42:57-06:00 |  |
+| A0-E13-raw-cspaper | cpu2 | done | 1 | ok 2026-10-07T12:38:15-06:00 |  |
+| A0-E13-raw-player | cpu0 | done | 1 | ok 2026-10-07T12:44:13-06:00 |  |
+| A0-E13-raw-art | cpu1 | done | 1 | ok 2026-10-07T12:45:36-06:00 |  |
+| A0-E13-raw-med | cpu2 | done | 1 | ok 2026-10-07T12:43:29-06:00 |  |
+| A0-E13-raw-legal | cpu0 | done | 1 | ok 2026-10-07T12:49:40-06:00 |  |
+| A0-E13-rawview-cspaper | cpu1 | done | 1 | ok 2026-10-07T12:46:27-06:00 |  |
+| A0-E13-rawview-player | cpu2 | done | 1 | ok 2026-10-07T12:46:15-06:00 |  |
+| A0-E13-rawview-art | cpu0 | running-or-interrupted | 1 | start 2026-10-07T12:49:41-06:00 |  |
+| A0-E13-rawview-med | cpu1 | running-or-interrupted | 1 | start 2026-10-07T12:46:27-06:00 |  |
+| A0-E13-rawview-legal | cpu2 | running-or-interrupted | 1 | start 2026-10-07T12:46:15-06:00 |  |
+| A0-E13-noscope-cspaper | cpu0 | pending | 0 |  |  |
+| A0-E13-noscope-player | cpu1 | pending | 0 |  |  |
+| A0-E13-noscope-art | cpu2 | pending | 0 |  |  |
+| A0-E13-noscope-med | cpu0 | pending | 0 |  |  |
+| A0-E13-noscope-legal | cpu1 | pending | 0 |  |  |
+| A0-E13-nobatch-cspaper | cpu2 | pending | 0 |  |  |
+| A0-E13-nobatch-player | cpu0 | pending | 0 |  |  |
+| A0-E13-nobatch-art | cpu1 | pending | 0 |  |  |
+| A0-E13-nobatch-med | cpu2 | pending | 0 |  |  |
+| A0-E13-nobatch-legal | cpu0 | pending | 0 |  |  |
+| A0-E13-head-cspaper | cpu1 | pending | 0 |  |  |
+| A0-E13-head-player | cpu2 | pending | 0 |  |  |
+| A0-E13-head-art | cpu0 | pending | 0 |  |  |
+| A0-E13-head-med | cpu1 | pending | 0 |  |  |
+| A0-E13-head-legal | cpu2 | pending | 0 |  |  |
+| A0-E13-noreuse-cspaper | cpu0 | pending | 0 |  |  |
+| A0-E13-noreuse-player | cpu1 | pending | 0 |  |  |
+| A0-E13-noreuse-art | cpu2 | pending | 0 |  |  |
+| A0-E13-noreuse-med | cpu0 | pending | 0 |  |  |
+| A0-E13-noreuse-legal | cpu1 | pending | 0 |  |  |
+| A0-E13-nousage-cspaper | cpu2 | pending | 0 |  |  |
+| A0-E13-nousage-player | cpu0 | pending | 0 |  |  |
+| A0-E13-nousage-art | cpu1 | pending | 0 |  |  |
+| A0-E13-nousage-med | cpu2 | pending | 0 |  |  |
+| A0-E13-nousage-legal | cpu0 | pending | 0 |  |  |
+| A0-E14-bgroup-cspaper | cpu1 | done | 1 | ok 2026-10-07T12:45:03-06:00 |  |
+| A0-E14-bgroup-player | cpu2 | done | 1 | ok 2026-10-07T12:46:53-06:00 |  |
+| A0-E14-bgroup-art | cpu0 | done | 1 | ok 2026-10-07T12:45:22-06:00 |  |
+| A0-E14-bgroup-med | cpu1 | done | 1 | ok 2026-10-07T12:47:38-06:00 |  |
+| A0-E14-bgroup-legal | cpu2 | done | 1 | ok 2026-10-07T12:48:08-06:00 |  |
+| A0-E14-bfields-cspaper | cpu0 | done | 1 | ok 2026-10-07T12:46:31-06:00 |  |
+| A0-E14-bfields-player | cpu1 | running-or-interrupted | 1 | start 2026-10-07T12:47:38-06:00 |  |
+| A0-E14-bfields-art | cpu2 | running-or-interrupted | 1 | start 2026-10-07T12:48:08-06:00 |  |
+| A0-E14-bfields-med | cpu0 | running-or-interrupted | 1 | start 2026-10-07T12:46:31-06:00 |  |
+| A0-E14-bfields-legal | cpu1 | pending | 0 |  |  |
+| E14-32b-bprompt-cspaper | gpu4 | done | 1 | ok 2026-10-07T12:21:40-06:00 |  |
+| E14-32b-bprompt-player | gpu4 | done | 1 | ok 2026-10-07T12:24:34-06:00 |  |
+| E14-32b-bgroup-cspaper | gpu4 | done | 1 | ok 2026-10-07T12:31:19-06:00 |  |
+| E14-32b-bgroup-player | gpu4 | done | 1 | ok 2026-10-07T12:45:26-06:00 |  |
+| E14-32b-bfields-cspaper | gpu4 | running-or-interrupted | 1 | start 2026-10-07T12:45:27-06:00 |  |
+| E14-32b-bfields-player | gpu4 | pending | 0 |  |  |
+| E6.3-llama8b-art | gpu5 | done | 1 | ok 2026-10-07T12:04:29-06:00 |  |
+| E6.3-llama8b-med | gpu5 | running-or-interrupted | 1 | start 2026-10-07T12:04:29-06:00 |  |
+| E6.3-llama8b-legal | gpu5 | pending | 0 |  |  |
 | E3.2-fragile-legal | gpu | done | 2 | ok 2026-10-02T21:17:30-06:00 |  |
 | E3.2-fragile-med | gpu | done | 2 | ok 2026-10-02T22:50:20-06:00 |  |
 | E3.2-fragile-cspaper | gpu | done | 2 | ok 2026-10-02T23:02:02-06:00 |  |
