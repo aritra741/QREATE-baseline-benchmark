@@ -16,6 +16,8 @@ its prompt hash and raw response, and reads are resumable by prompt hash.
 
 from __future__ import annotations
 
+import os
+
 import hashlib
 import json
 import shutil
@@ -223,6 +225,9 @@ def load_values(journal: Path, fields: dict[str, FieldSpec] | None = None,
     return out
 
 
+_DATE = __import__("re").compile(r"^\s*\d{3,4}[/-]\d{1,2}(?:[/-]\d{1,2})?\s*$")
+
+
 def commit_value(value: Any, field: FieldSpec) -> Any:
     """Commit-time normalization shared with the other QuWARTS arms (compiler rule 9)."""
 
@@ -239,6 +244,11 @@ def commit_value(value: Any, field: FieldSpec) -> Any:
     value = complete(value, field)  # declared domain, then declared absence value
     if value is None:
         return None
+    # QUWARTS_KEEP_DATES (A-date): a date in a text field is kept as written. normalize_value reads "2010/7/15" as the
+    # number 2010, dropping month and day that the field's own format ("%Y/%-m/%-d") asks for.
+    if os.environ.get("QUWARTS_KEEP_DATES") and field.value_type not in ("int", "float") and isinstance(value, str) \
+            and _DATE.match(value):
+        return value.strip()
     if isinstance(value, bool) or (isinstance(value, (int, float)) and field.value_type not in ("int", "float")):
         value = str(int(value)) if isinstance(value, (int, bool)) else str(value)
     dtype = "numeric" if field.value_type in ("int", "float") else "string"
