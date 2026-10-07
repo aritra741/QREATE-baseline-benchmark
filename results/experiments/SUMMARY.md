@@ -54,6 +54,11 @@ legal (+0.068 exact agreement) and player (+0.026), worse on art (−0.034), fla
 width 1, 60% at width 12). The adaptive curve's small rises under drift (cspaper +0.02, player +0.01) come from
 *which documents get read* (E2.3), not from prompt width.
 
+> **Caveat (2026-10-07).** The MIN/MAX-over-text queries behind the RQ3/RQ4 budget findings are artifacts of our drift
+> query generator (a type-blind attribute swap: 12 of legal's 30 and 30 of med's 76 test queries) and score zero by
+> construction under the benchmark metric. The `fragile` rule's advantage, legal's budget collapse and most of the
+> wasted patch tokens come from these queries; RQ3/RQ4 must be re-run without them before they are reported.
+
 ## RQ3: budget policies for adaptive extraction
 
 **The anomalies of first-come-first-served (fcfs) are explained.**

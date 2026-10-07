@@ -1504,7 +1504,13 @@ queries are unscorable and unrealistic. They make up 40% of legal's and 39% of m
 
 Budget policies (mean of 25 settings, scored without those queries): legal fcfs 0.164, fragile 0.169, oracle 0.168,
 knapsack 0.168, pace 0.151, cap 0.142; med fcfs 0.132, fragile 0.137, knapsack 0.137, pace 0.136, cap 0.134,
-oracle 0.132. Skipping these queries' patches still helps the rest: the rule's benefit is the budget it frees.
+oracle 0.132. **This does not support the `fragile` rule as a policy.** The artifact queries are still in the streams
+(only left out of the scoring): under first-come-first-served they trigger expensive patches, and the rule skips
+exactly those, freeing budget for the rest. In a workload without them the rule would never fire. The RQ3/RQ4 budget
+findings are largely driven by these queries — they take 33% of all patch tokens and 73% of the patch tokens that
+bought nothing (RQ4), and legal's first-come-first-served collapse (50% budget below 25%) came from two early patches
+for "the alphabetically smallest counsel name per group". Settling RQ3 needs the budgeted streams re-run on test
+streams without these queries (or with type-correct regenerations).
 
 **To fix:** the generator should substitute only type-compatible columns (numeric under SUM/AVG/MIN/MAX) and rename
 aliases. The paper should report legal and med with and without these queries, or regenerate them.
