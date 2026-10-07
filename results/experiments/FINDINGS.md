@@ -1366,7 +1366,11 @@ almost always has a value; the first patch that needs it (a `GROUP BY reasoning_
 null"; the build's adds the workload hint "compared with specific values ... give the value as the document states
 it"). On player the gain is spread thinly (`draft_pick` filled 79% vs 72%, `team.ownership` 27% vs 23% correct).
 
-Whether the grouping or the hint does it is being separated (`bgroup`, `bfields` with 32B, running).
+**Grouping or wording?** (`bgroup` / `bfields` with 32B): on cspaper the build's grouping alone gives 0.155 (≈ 0% at
+0.162) and the build's wording alone 0.227 (≈ the patch's 0.224): the rise is entirely grouping (`reasoning_depth` read
+alone vs with six other columns), not the "as the document states it" hint. On player, grouping alone gives 0.411 and
+wording alone 0.418, between 0% (0.401) and the patch (0.421): the smaller player rise splits between the two, mostly
+grouping.
 
 ## Open questions settled without model calls (A; `A-open/`, `quwarts.eval.exp_open`)
 
