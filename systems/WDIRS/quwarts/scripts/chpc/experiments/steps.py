@@ -127,6 +127,18 @@ def policy(name: str, corpus: str) -> dict:
     }
 
 
+def recorded(corpus: str, lane: str) -> dict:
+    """The recorded run (results/drift_live_ollama/<corpus>) on the regenerated drift queries: all five drift levels,
+    then the 25 budgeted streams. The W0 build and the read journals were kept; levels, designs and streams are new."""
+
+    run = (f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --axes attribute_pool --deadline 0 --workers 8 "
+           "--streams")
+    return {"id": f"R2-recorded-{corpus}", "lane": lane, "deps": ["G0-prompt-guard"],
+            "cmd": PRE + server("main") + f"{run} fixed && {run} budget",
+            "outputs": [f"results/drift_live_ollama/{corpus}/streams/fixed4{b}-attribute_pool_{p}.jsonl"
+                        for b in ("", "b010", "b025", "b050", "b075", "b100") for p in (0, 25, 50, 75, 100)]}
+
+
 STEPS = [
     # ---- GPU lane, first: the default prompts still match the recorded runs (see prompt_guard.sh)
     {"id": "G0-prompt-guard", "lane": "gpu", "retries": 0, "cmd": f"bash {EXP}/prompt_guard.sh",
@@ -256,6 +268,8 @@ STEPS = [
                                                                        "head", "noreuse", "nousage")),
                                                              ("E14", ("bgroup", "bfields")))
                                      for n in ns for c in ("cspaper", "player", "art", "med", "legal")])],
+    # ---- R2: med and legal on the regenerated drift queries (aggregates only over numeric columns)
+    recorded("med", "gpu"), recorded("legal", "gpu2"),
     # ---- E14 with Qwen 2.5 32B on cspaper and player, where its drift rise is significant (lane gpu4, the H200): cloned
     # from the 32B runs (E6.2 roots), whose journals hold the 32B build's prompts, so bprompt again needs no call
     *[{**ablate(n, c, exp="E14-32b", lane="gpu4", replay_only=n.startswith("bprompt")),

@@ -12,7 +12,10 @@ is paired with its own source.
   workloads): one column of the query is replaced by a schema column the build never read, with the same
   role and type and a similar number of distinct values (within a factor of two); string constants compared
   with it become selectivity-matched values of the new column. Columns used in joins, LIKE patterns, range
-  comparisons or CASE conditions are not swapped.
+  comparisons or CASE conditions are not swapped. A column under AVG/SUM/MIN/MAX is replaced only by a column
+  whose gold values are numbers (at least 90% of its non-empty values parse as numbers, so a year stored as text
+  qualifies and a name, a list or a free-text label does not): the alphabetical extreme of a text column is not a
+  question anyone asks.
 * combined: drifted positions alternate between the two (a base query with one kind of variant uses it).
 Levels 0/25/50/75/100 of N = 28 base queries (fewer when fewer base queries have a variant), gradual
 streams of 2N (every base query twice, drift probability rising 0 -> 1), 3 seeds; each generated query
@@ -79,6 +82,22 @@ def column_swaps(corpus: str, t0: list[dict], w0_attrs: set[tuple[str, str]], ca
             except sqlite3.Error:
                 distinct[(tb.sql_name, a)] = 0
     targets = {k for k in kinds if k not in w0_attrs and distinct.get(k, 0) > 0}
+
+    def numeric_valued(k: tuple[str, str]) -> bool:
+        try:
+            vals = [v for (v,) in gold.execute(f'SELECT "{k[1]}" FROM "{k[0]}"') if v is not None and str(v).strip() != ""]
+        except sqlite3.Error:
+            return False
+        ok = 0
+        for v in vals:
+            try:
+                float(str(v).replace(",", "").replace("$", "").strip())
+                ok += 1
+            except ValueError:
+                pass
+        return bool(vals) and ok >= 0.9 * len(vals)
+
+    numeric = {k: numeric_valued(k) for k in kinds}
     table_attrs = table_attribute_names(spec, catalog_sql)
     known = {s.strip() for s in catalog_sql.values()}
     out: dict[str, list[dict]] = {}
@@ -118,6 +137,8 @@ def column_swaps(corpus: str, t0: list[dict], w0_attrs: set[tuple[str, str]], ca
             if blocked:
                 continue
             cands = [k for k in sorted(targets) if k[0] == src[0] and kinds[k] == kinds[src]]
+            if "numagg" in roles:  # an aggregated column becomes another column of numbers
+                cands = [k for k in cands if numeric[k]]
             if roles & {"group", "filter"}:
                 d0 = max(1, distinct.get(src, 1))
                 cands = [k for k in cands if 0.5 <= max(1, distinct[k]) / d0 <= 2]
@@ -148,6 +169,12 @@ def column_swaps(corpus: str, t0: list[dict], w0_attrs: set[tuple[str, str]], ca
                         used.add(v)
                         lit.replace(exp.Literal.string(v))
                 if not ok:
+                    continue
+                # Every aggregated column of the variant must hold numbers, whichever column was swapped (a base query
+                # that takes MIN/MAX of a text column yields no variant).
+                aggd = {resolve_column(c, aliases_t, table_attrs) and (resolve_column(c, aliases_t, table_attrs), c.name)
+                        for f in t.find_all(exp.Avg, exp.Sum, exp.Min, exp.Max) for c in f.find_all(exp.Column)}
+                if any(k and k in numeric and not numeric[k] for k in aggd):
                     continue
                 sql = t.sql(dialect="sqlite")
                 if sql.strip() in known:
