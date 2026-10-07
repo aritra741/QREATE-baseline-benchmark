@@ -1422,3 +1422,34 @@ vs 0.35). At 25–50% few or no columns change significantly on med and legal (p
 the full build's); med's lower 0% score at 50% is many small, non-significant changes across 33 columns
 (`brand_name` +0.16, `treatment_challenges` +0.11, ...), not one column. The train share changes which columns share
 a prompt, and the per-column prompt effect (A3) does the rest.
+
+### Is there a corpus effect? Yes — through how determinate the values are, not document length
+Prompt effect (A3, |patch − build| per column) by corpus, with each corpus's properties:
+
+| Corpus | Median document (tokens) | Documents over the window | New columns (numeric / yes-no / categorical / free text) | Gold empty (mean) | Mean |effect| | Free-text columns only |
+|---|---|---|---|---|---|---|
+| player | 4,143 | 38% | 7 (5/0/0/2) | 0.08 | 0.028 | 0.041 |
+| art | 813 | 0% | 9 (1/0/1/7) | 0.12 | 0.044 | 0.041 |
+| cspaper | 932 | 0% | 6 (0/1/2/3) | 0.28 | 0.032 | 0.015 |
+| med | 9,078 | 41% | 18 (0/0/4/14), all multi-valued | 0.42 | **0.109** | 0.080 |
+| legal | 4,554 | 18% | 8 (0/0/0/8) | 0.27 | **0.110** | 0.110 |
+
+Med and legal are 2.5–4× as prompt-sensitive, and stay so within free-text columns, so column type alone does not
+explain it. Document length does not either: within a corpus, the two prompts give different values about as often
+on short documents as on long ones (med 81% of cells on short documents vs 71% on long; legal 40% vs 53%; player 7% vs
+13%). What differs is how determinate the values are: med's and legal's new columns are descriptive judgments with no
+canonical answer (a disease's etiology, sequelae, a drug's storage conditions, a party's status, who counts as
+counsel), often unstated in the document (gold empty 27–42%), and often lists. Any two prompts disagree on 40–80% of
+their cells, so the prompt decides the answer; player's are facts stated as numbers (draft pick, championships) and two
+prompts disagree on 7–13%.
+
+The same split runs through the other corpus-dependent results:
+- normalization at commit matters on player (numeric-heavy: −0.131 without it), not on med or legal;
+- the view's value representation matters on art (free-text labels such as nationality, field, movement mapped to the
+  workload's forms: −0.066), not elsewhere;
+- field descriptions matter where a column name is ambiguous but the value is determinate (player −0.136, art −0.101,
+  cspaper −0.034) and not on med (+0.005), where the description cannot make an undetermined value determinate;
+- long documents matter for cost, not accuracy: reading only the first window saves 21–42% of patch tokens on player,
+  med and legal for −0.012 to +0.015;
+- the static/patched gap is smallest on med (0.031 vs 0.086 at 100% drift) because even the patched values are mostly
+  wrong in form.
