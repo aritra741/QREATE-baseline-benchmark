@@ -1,0 +1,589 @@
+{
+ "cspaper": [],
+ "player": [
+  {
+   "qid": "attr:player_multiagg20:q12:365f4815",
+   "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.draft_pick) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, MAX(t.championship) AS team_titles FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2",
+   "args": [
+    [
+     "team.championship",
+     ""
+    ]
+   ],
+   "comment": []
+  },
+  {
+   "qid": "attr:player_multiagg20:q12:e0cde198",
+   "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.nba_championships) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, MAX(t.championship) AS team_titles FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2",
+   "args": [
+    [
+     "team.championship",
+     ""
+    ]
+   ],
+   "comment": []
+  },
+  {
+   "qid": "attr:player_multiagg20:q12:a5be78a3",
+   "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.draft_year) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, MAX(t.championship) AS team_titles FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2",
+   "args": [
+    [
+     "team.championship",
+     ""
+    ]
+   ],
+   "comment": []
+  }
+ ],
+ "art": [],
+ "med": [
+  {
+   "qid": "attr:Splits/train.sql#6:f6d3251f",
+   "sql": "SELECT administration_route, MAX(recommended_usage) AS max_dosage_frequency FROM drug GROUP BY administration_route",
+   "args": [
+    [
+     "drug.recommended_usage",
+     "recommended instructions for use, choose one or more from ['swallowed "
+    ]
+   ],
+   "comment": [
+    " Query 6: train (agg_only) id=agg_only_med_gen_14 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/dev.sql#14:dba14859",
+   "sql": "SELECT drug.prescription_status, MAX(drug.single_dose) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.prescription_status",
+   "args": [
+    [
+     "drug.single_dose",
+     "the amount of the drug to be taken at one time per administration,extr"
+    ]
+   ],
+   "comment": [
+    " Query 14: dev (agg_join) id=agg_join_med_gen_5 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#53:b59f3915",
+   "sql": "SELECT disease.disease_type, MAX(drug.storage_conditions) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.disease_type",
+   "args": [
+    [
+     "drug.storage_conditions",
+     "recommended conditions for storing the drug; choose one or more from ["
+    ]
+   ],
+   "comment": [
+    " Query 53: train (agg_join) id=agg_join_med_gen_26 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/test.sql#12:efd2b36a",
+   "sql": "SELECT drug.manufacturer, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.manufacturer",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 12: test (agg_join) id=agg_join_med_gen_12 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#6:4c333532",
+   "sql": "SELECT administration_route, MAX(active_ingredients) AS max_dosage_frequency FROM drug GROUP BY administration_route",
+   "args": [
+    [
+     "drug.active_ingredients",
+     "active pharmaceutical ingredients in the drug (e.g., Sildenafil||Dapox"
+    ]
+   ],
+   "comment": [
+    " Query 6: train (agg_only) id=agg_only_med_gen_14 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#45:fe8858e3",
+   "sql": "SELECT drug.unsuitable_population, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.unsuitable_population",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 45: train (agg_join) id=agg_join_med_gen_19 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#6:f342b748",
+   "sql": "SELECT administration_route, MAX(indication) AS max_dosage_frequency FROM drug GROUP BY administration_route",
+   "args": [
+    [
+     "drug.indication",
+     "the main symptoms, clinical manifestations, or related conditions for "
+    ]
+   ],
+   "comment": [
+    " Query 6: train (agg_only) id=agg_only_med_gen_14 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#9:02dbedba",
+   "sql": "SELECT single_dose, MAX(dosage_frequency) AS max_dosage_frequency FROM drug GROUP BY single_dose",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 9: train (agg_only) id=agg_only_med_gen_22 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/test.sql#12:8c237e5f",
+   "sql": "SELECT drug.recommended_usage, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.recommended_usage",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 12: test (agg_join) id=agg_join_med_gen_12 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#27:7f0a4eea",
+   "sql": "SELECT prescription_status, MIN(indication) AS min_dosage_frequency FROM drug WHERE (pharmaceutical_form = 'tablet') OR (pharmaceutical_form <> 'solution') GROUP BY prescription_status",
+   "args": [
+    [
+     "drug.indication",
+     "the main symptoms, clinical manifestations, or related conditions for "
+    ]
+   ],
+   "comment": [
+    " Query 27: train (agg_filter) id=agg_filter_med_gen_83 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#4:4d653bee",
+   "sql": "SELECT single_dose, MIN(dosage_frequency) AS min_dosage_frequency FROM drug GROUP BY single_dose",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 4: train (agg_only) id=agg_only_med_gen_21 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/test.sql#12:52e294e8",
+   "sql": "SELECT drug.storage_conditions, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.storage_conditions",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 12: test (agg_join) id=agg_join_med_gen_12 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#9:920a4474",
+   "sql": "SELECT unsuitable_population, MAX(dosage_frequency) AS max_dosage_frequency FROM drug GROUP BY unsuitable_population",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 9: train (agg_only) id=agg_only_med_gen_22 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#45:78fca263",
+   "sql": "SELECT drug.manufacturer, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.manufacturer",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 45: train (agg_join) id=agg_join_med_gen_19 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#62:7cbf2d97",
+   "sql": "SELECT drug.recommended_usage, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE disease.pathogenesis <> 'traumatic' GROUP BY drug.recommended_usage",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 62: train (agg_filter_join) id=agg_filter_join_med_gen_112 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#4:ba6e000a",
+   "sql": "SELECT manufacturer, MIN(dosage_frequency) AS min_dosage_frequency FROM drug GROUP BY manufacturer",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 4: train (agg_only) id=agg_only_med_gen_21 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#78:e3b697cb",
+   "sql": "SELECT drug.prescription_status, MIN(drug.dosage_frequency) AS min_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE (drug.pharmaceutical_form = 'capsule') OR (disease.diagnosis_challenges <> 'diagnostic_uncertainty') GROUP BY drug.prescription_status",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 78: train (agg_filter_join) id=agg_filter_join_med_gen_42 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#53:47c3dfc6",
+   "sql": "SELECT disease.disease_type, MAX(drug.mechanism_of_action) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.disease_type",
+   "args": [
+    [
+     "drug.mechanism_of_action",
+     "how the drug works in the body to achieve its intended effect (e.g., i"
+    ]
+   ],
+   "comment": [
+    " Query 53: train (agg_join) id=agg_join_med_gen_26 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#45:b0f929d0",
+   "sql": "SELECT drug.storage_conditions, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.storage_conditions",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 45: train (agg_join) id=agg_join_med_gen_19 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/dev.sql#14:84e26a12",
+   "sql": "SELECT drug.activation_conditions, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.activation_conditions",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 14: dev (agg_join) id=agg_join_med_gen_5 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#9:dd83c82e",
+   "sql": "SELECT storage_conditions, MAX(dosage_frequency) AS max_dosage_frequency FROM drug GROUP BY storage_conditions",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 9: train (agg_only) id=agg_only_med_gen_22 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/dev.sql#14:6acd7b54",
+   "sql": "SELECT drug.prescription_status, MAX(drug.mechanism_of_action) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.prescription_status",
+   "args": [
+    [
+     "drug.mechanism_of_action",
+     "how the drug works in the body to achieve its intended effect (e.g., i"
+    ]
+   ],
+   "comment": [
+    " Query 14: dev (agg_join) id=agg_join_med_gen_5 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#78:62f97dfd",
+   "sql": "SELECT drug.prescription_status, MIN(drug.dosage_frequency) AS min_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE (drug.pharmaceutical_form = 'capsule') OR (disease.etiology <> 'azithromycin (Zithromax or Zmax) use') GROUP BY drug.prescription_status",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 78: train (agg_filter_join) id=agg_filter_join_med_gen_42 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#27:79c3953e",
+   "sql": "SELECT activation_conditions, MIN(dosage_frequency) AS min_dosage_frequency FROM drug WHERE (pharmaceutical_form = 'tablet') OR (pharmaceutical_form <> 'solution') GROUP BY activation_conditions",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 27: train (agg_filter) id=agg_filter_med_gen_83 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#4:56f19889",
+   "sql": "SELECT recommended_usage, MIN(dosage_frequency) AS min_dosage_frequency FROM drug GROUP BY recommended_usage",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 4: train (agg_only) id=agg_only_med_gen_21 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#78:e9e539a7",
+   "sql": "SELECT drug.prescription_status, MIN(drug.dosage_frequency) AS min_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE (drug.pharmaceutical_form = 'capsule') OR (disease.complications <> 'eclampsia||seizures||stroke||severe bleeding||HELLP syndrome||death') GROUP BY drug.prescription_status",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 78: train (agg_filter_join) id=agg_filter_join_med_gen_42 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#62:9e25123e",
+   "sql": "SELECT drug.manufacturer, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE disease.pathogenesis <> 'traumatic' GROUP BY drug.manufacturer",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 62: train (agg_filter_join) id=agg_filter_join_med_gen_112 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#27:eae09d3e",
+   "sql": "SELECT prescription_status, MIN(active_ingredients) AS min_dosage_frequency FROM drug WHERE (pharmaceutical_form = 'tablet') OR (pharmaceutical_form <> 'solution') GROUP BY prescription_status",
+   "args": [
+    [
+     "drug.active_ingredients",
+     "active pharmaceutical ingredients in the drug (e.g., Sildenafil||Dapox"
+    ]
+   ],
+   "comment": [
+    " Query 27: train (agg_filter) id=agg_filter_med_gen_83 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#53:fb267f05",
+   "sql": "SELECT disease.disease_type, MAX(drug.recommended_usage) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.disease_type",
+   "args": [
+    [
+     "drug.recommended_usage",
+     "recommended instructions for use, choose one or more from ['swallowed "
+    ]
+   ],
+   "comment": [
+    " Query 53: train (agg_join) id=agg_join_med_gen_26 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#62:f76dae6f",
+   "sql": "SELECT drug.storage_conditions, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE disease.pathogenesis <> 'traumatic' GROUP BY drug.storage_conditions",
+   "args": [
+    [
+     "drug.dosage_frequency",
+     "the recommended frequency of administration (e.g., once daily, twice a"
+    ]
+   ],
+   "comment": [
+    " Query 62: train (agg_filter_join) id=agg_filter_join_med_gen_112 "
+   ]
+  }
+ ],
+ "legal": [
+  {
+   "qid": "attr:Splits/train.sql#11:74d4b9d6",
+   "sql": "SELECT first_judge, MIN(counsel_for_respondent) AS min_hearing_year FROM legal GROUP BY first_judge",
+   "args": [
+    [
+     "legal.counsel_for_respondent",
+     "name of the respondent\u2019s lawyer (e.g., Mr D Barclay)"
+    ]
+   ],
+   "comment": [
+    " Query 11: train (agg_only) id=agg_only_legal_gen_105 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#10:42bf003a",
+   "sql": "SELECT evidence, MIN(counsel_for_applicant) AS min_hearing_year FROM legal GROUP BY evidence",
+   "args": [
+    [
+     "legal.counsel_for_applicant",
+     "name of the applicant\u2019s lawyer (e.g., Mr I Faulkner SC)"
+    ]
+   ],
+   "comment": [
+    " Query 10: train (agg_only) id=agg_only_legal_gen_88 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#1:b4866c84",
+   "sql": "SELECT case_type, MAX(fine_amount) AS max_hearing_year FROM legal GROUP BY case_type",
+   "args": [
+    [
+     "legal.fine_amount",
+     "total monetary amount of fines imposed in the case (include all fines,"
+    ]
+   ],
+   "comment": [
+    " Query 1: train (agg_only) id=agg_only_legal_gen_12 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#12:43a1422e",
+   "sql": "SELECT first_judge, MAX(defendant_current_status) AS max_hearing_year FROM legal GROUP BY first_judge",
+   "args": [
+    [
+     "legal.defendant_current_status",
+     "current occupation or type of the defendant (rules same as for plainti"
+    ]
+   ],
+   "comment": [
+    " Query 12: train (agg_only) id=agg_only_legal_gen_106 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#10:954e6b4c",
+   "sql": "SELECT evidence, MIN(fine_amount) AS min_hearing_year FROM legal GROUP BY evidence",
+   "args": [
+    [
+     "legal.fine_amount",
+     "total monetary amount of fines imposed in the case (include all fines,"
+    ]
+   ],
+   "comment": [
+    " Query 10: train (agg_only) id=agg_only_legal_gen_88 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#12:84d8812c",
+   "sql": "SELECT first_judge, MAX(counsel_for_respondent) AS max_hearing_year FROM legal GROUP BY first_judge",
+   "args": [
+    [
+     "legal.counsel_for_respondent",
+     "name of the respondent\u2019s lawyer (e.g., Mr D Barclay)"
+    ]
+   ],
+   "comment": [
+    " Query 12: train (agg_only) id=agg_only_legal_gen_106 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#1:e4ea2d8f",
+   "sql": "SELECT case_type, MAX(charges) AS max_hearing_year FROM legal GROUP BY case_type",
+   "args": [
+    [
+     "legal.charges",
+     "list of specific legal accusations or charges brought against the defe"
+    ]
+   ],
+   "comment": [
+    " Query 1: train (agg_only) id=agg_only_legal_gen_12 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#10:52267d26",
+   "sql": "SELECT evidence, MIN(judge_name) AS min_hearing_year FROM legal GROUP BY evidence",
+   "args": [
+    [
+     "legal.judge_name",
+     "name of the judge presiding over the case (e.g., arshall J.)"
+    ]
+   ],
+   "comment": [
+    " Query 10: train (agg_only) id=agg_only_legal_gen_88 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#1:e29c513d",
+   "sql": "SELECT case_type, MAX(defendant_current_status) AS max_hearing_year FROM legal GROUP BY case_type",
+   "args": [
+    [
+     "legal.defendant_current_status",
+     "current occupation or type of the defendant (rules same as for plainti"
+    ]
+   ],
+   "comment": [
+    " Query 1: train (agg_only) id=agg_only_legal_gen_12 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#11:2690f450",
+   "sql": "SELECT first_judge, MIN(charges) AS min_hearing_year FROM legal GROUP BY first_judge",
+   "args": [
+    [
+     "legal.charges",
+     "list of specific legal accusations or charges brought against the defe"
+    ]
+   ],
+   "comment": [
+    " Query 11: train (agg_only) id=agg_only_legal_gen_105 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#11:3a2cf6b1",
+   "sql": "SELECT first_judge, MIN(counsel_for_applicant) AS min_hearing_year FROM legal GROUP BY first_judge",
+   "args": [
+    [
+     "legal.counsel_for_applicant",
+     "name of the applicant\u2019s lawyer (e.g., Mr I Faulkner SC)"
+    ]
+   ],
+   "comment": [
+    " Query 11: train (agg_only) id=agg_only_legal_gen_105 "
+   ]
+  },
+  {
+   "qid": "attr:Splits/train.sql#12:66cde6f4",
+   "sql": "SELECT first_judge, MAX(judgment_year) AS max_hearing_year FROM legal GROUP BY first_judge",
+   "args": [
+    [
+     "legal.judgment_year",
+     "year when the judgment was delivered; use format YYYY (e.g., 2009)"
+    ]
+   ],
+   "comment": [
+    " Query 12: train (agg_only) id=agg_only_legal_gen_106 "
+   ]
+  }
+ ]
+}

@@ -1478,3 +1478,33 @@ Consequences:
 
 Separately, all-gold views reach only 0.46–0.83 on the other queries, not 1.0: the remaining loss sits between the
 served view and the score (row alignment, list-valued keys, the official SQL rewrite); to be characterized.
+
+### Are MIN/MAX-over-text queries realistic? Mostly not — they are artifacts of our drift query generator
+All 45 test queries that take MIN or MAX of a text column are `attribute_pool` variants made by the drift design from
+15 original benchmark queries (`A-open/A12-goldinject/minmax_text_queries.json`): the generator replaces the aggregated
+column with another column of the same table without checking its type, and keeps the original alias.
+- legal (12 of 30 test queries): originals `MIN/MAX(hearing_year)` (realistic — earliest/latest hearing — but the
+  benchmark types the year as text); variants `MIN(counsel_for_respondent) AS min_hearing_year`, `MAX(charges)`,
+  `MIN(judge_name)`, `MAX(defendant_current_status)`: the alphabetically first counsel per judge, the "largest" charge.
+- med (30 of 76): originals `MAX(dosage_frequency)` (values like "once daily": already alphabetical in SQL); variants
+  `MAX(storage_conditions)`, `MAX(mechanism_of_action)`, `MIN(active_ingredients)`, `MAX(indication)` over lists.
+- player (3 of 118): `MAX(team.championship)` variants; cspaper and art: none.
+No user asks for the alphabetical extreme of names, charges or condition lists; with the metric artifact (A12) these
+queries are unscorable and unrealistic. They make up 40% of legal's and 39% of med's test sets.
+
+**Without them the conclusions hold** (recorded runs re-averaged, no new calls):
+
+| Corpus | Queries | Static at 100% | Patched 0% → 100% | 100% − 0% (95% CI) | Ours − DocETL |
+|---|---|---|---|---|---|
+| legal, all | 30 | 0.005 | 0.121 → 0.114 | −0.007 (−0.050, +0.028) | +0.075 |
+| legal, without | 18 | 0.008 | 0.175 → 0.191 | +0.016 (−0.020, +0.053) | +0.137 |
+| med, all | 76 | 0.031 | 0.095 → 0.086 | −0.009 (−0.027, +0.007) | +0.030 |
+| med, without | 46 | 0.051 | 0.157 → 0.142 | −0.015 (−0.045, +0.012) | +0.050 |
+| player, without | 115 | 0.032 | 0.378 → 0.386 | +0.008 (−0.007, +0.029) | +0.303 |
+
+Budget policies (mean of 25 settings, scored without those queries): legal fcfs 0.164, fragile 0.169, oracle 0.168,
+knapsack 0.168, pace 0.151, cap 0.142; med fcfs 0.132, fragile 0.137, knapsack 0.137, pace 0.136, cap 0.134,
+oracle 0.132. Skipping these queries' patches still helps the rest: the rule's benefit is the budget it frees.
+
+**To fix:** the generator should substitute only type-compatible columns (numeric under SUM/AVG/MIN/MAX) and rename
+aliases. The paper should report legal and med with and without these queries, or regenerate them.
