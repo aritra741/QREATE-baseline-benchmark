@@ -25,8 +25,10 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SURFACE, INK, INK2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 BLUE, ORANGE, AQUA, YELLOW, MAGENTA = "#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"
-CORPORA = ["player", "art", "cspaper", "legal", "med"]
-CORPUS_COLOR = dict(zip(CORPORA, [BLUE, ORANGE, AQUA, YELLOW, MAGENTA]))
+ALL_CORPORA = ["player", "art", "cspaper", "legal", "med"]
+CORPUS_COLOR = dict(zip(ALL_CORPORA, [BLUE, ORANGE, AQUA, YELLOW, MAGENTA]))
+# The corpora whose drift test queries have been run (legal and med: not yet run).
+CORPORA = ["player", "art", "cspaper"]
 LEVELS = (0, 25, 50, 75, 100)
 
 plt.rcParams.update({
@@ -78,7 +80,7 @@ def mean(xs):
 # ------------------------------------------------------------------ RQ1
 
 def rq1_drift():
-    fig, axes = plt.subplots(1, 5, figsize=(15, 3.6), sharey=False)
+    fig, axes = plt.subplots(1, len(CORPORA), figsize=(3 * len(CORPORA) + 1.5, 3.6), sharey=False)
     for ax, c in zip(axes, CORPORA):
         rows = {p: stream(c, f"fixed4-attribute_pool_{p}") for p in LEVELS}
         ad = [mean([r["benchmark"] for r in rows[p]]) for p in LEVELS]
@@ -127,12 +129,10 @@ def rq1_seeds():
 def rq1_train():
     shares = {"cspaper": [(10, "E12-w0f010"), (25, "E12-w0f025"), (100, None)],
               "player": [(10, "E12-w0f010"), (25, "E12-w0f025"), (100, None)],
-              "art": [(10, "E12-w0f010"), (25, "E12-w0f025"), (50, "E12-w0f050"), (100, None)],
-              "med": [(10, "E12-w0f010"), (25, "E12-w0f025"), (50, "E12-w0f050"), (100, None)],
-              "legal": [(10, "E12-w0f010"), (25, "E12-w0f025"), (50, "E12-w0f050"), (100, None)]}
+              "art": [(10, "E12-w0f010"), (25, "E12-w0f025"), (50, "E12-w0f050"), (100, None)]}
     ramp = {10: "#86b6ef", 25: "#5598e7", 50: "#2a78d6", 100: "#104281"}
     oramp = {10: "#f5b597", 25: "#ef8d63", 50: "#eb6834", 100: "#b44a1f"}
-    fig, grid = plt.subplots(2, 3, figsize=(15, 8.2))
+    fig, grid = plt.subplots(2, 2, figsize=(12, 8.2))
     axes = list(grid.flat)
     for ax, (c, runs) in zip(axes, shares.items()):
         top = 0.0
@@ -152,11 +152,11 @@ def rq1_train():
         ax.set_title(c)
         style(ax)
     axes[0].set_ylabel("Score")
-    axes[3].set_ylabel("Score")
+    axes[2].set_ylabel("Score")
     h, l = axes[2].get_legend_handles_labels()
     order = [0, 2, 4, 6, 1, 3, 5, 7]
-    axes[5].axis("off")
-    axes[5].legend([h[i] for i in order], [l[i] for i in order], fontsize=9.5, ncol=2, loc="center", frameon=False)
+    axes[3].axis("off")
+    axes[3].legend([h[i] for i in order], [l[i] for i in order], fontsize=9.5, ncol=2, loc="center", frameon=False)
     save(fig, "rq1_train.png", "The drift result holds for every train share",
          "Build workload cut to 10–50% of its queries (same test queries). Darker = larger train share; blue patched, "
          "orange dashed static.")
@@ -192,7 +192,7 @@ def rq2_width():
     widths = [1, 3, 6, 12]
     ends = {}
     fig, ax = plt.subplots(figsize=(8, 4.2))
-    for c in CORPORA:
+    for c in ALL_CORPORA:  # extraction on fixed document samples: independent of the drift test queries
         f = EXP / "E2.1b-width" / c / "summary.json"
         if not f.exists():
             continue
@@ -243,8 +243,8 @@ def rq3_legal():
 
 
 def rq3_policies():
-    pols = [("fragile", "Skip MIN/MAX over text", BLUE), ("oracle", "Hindsight oracle", ORANGE),
-            ("cap", "Per-patch cap", AQUA), ("pace", "Pacing", YELLOW), ("knapsack", "Offline knapsack", MAGENTA)]
+    pols = [("oracle", "Hindsight oracle", ORANGE), ("cap", "Per-patch cap", AQUA), ("pace", "Pacing", YELLOW),
+            ("knapsack", "Offline knapsack", MAGENTA)]
     fig, ax = plt.subplots(figsize=(10, 4.2))
     w = 0.16
     for i, (key, label, color) in enumerate(pols):
@@ -259,8 +259,8 @@ def rq3_policies():
     ax.set_ylabel("Score minus first-come-first-served")
     ax.legend(ncol=5, loc="lower left", bbox_to_anchor=(0, 1.0), fontsize=8.5)
     style(ax)
-    save(fig, "rq3_policies.png", "Only skipping unwinnable queries never hurts",
-         "Mean over 25 budget × drift settings per corpus. Skip and oracle are no-ops where no query matches.")
+    save(fig, "rq3_policies.png", "No budget policy is reliably better than first-come-first-served",
+         "Mean over 25 budget × drift settings per corpus.")
 
 
 # ------------------------------------------------------------------ RQ4
@@ -288,7 +288,7 @@ def rq4_signals():
                          "avg_sum": any(a in ("avg", "sum") for a in aggs) and not any(a.endswith("_text") for a in aggs),
                          "filtered": bool(f.get("filter_kinds"))})
     total_waste = sum(r["tokens"] for r in rows if r["waste"])
-    sigs = [("MIN/MAX over a text column", lambda r: r["minmax_text"]), ("No filter (whole corpus)", lambda r: not r["filtered"]),
+    sigs = [("No filter (whole corpus)", lambda r: not r["filtered"]),
             ("Filtered (scoped)", lambda r: r["filtered"]), ("AVG / SUM", lambda r: r["avg_sum"])]
     share, cover = [], []
     for _n, pred in sigs:
@@ -311,8 +311,9 @@ def rq4_signals():
         ax.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
     axes[0].set_yticks(range(len(names)), names)
     axes[0].invert_yaxis()
-    save(fig, "rq4_signals.png", "Two SQL-visible signals locate most wasted extraction tokens",
-         f"138 patches over five corpora, 152M tokens, {total_waste / sum(r['tokens'] for r in rows):.0%} wasted "
+    save(fig, "rq4_signals.png", "Whole-corpus patches hold most of the wasted extraction tokens",
+         f"{len(rows)} patches over {len(CORPORA)} corpora, {sum(r['tokens'] for r in rows) / 1e6:.1f}M tokens, "
+         f"{total_waste / sum(r['tokens'] for r in rows):.0%} wasted "
          "(improved no query).")
 
 
@@ -439,7 +440,7 @@ def rq7_models():
 
 def rq8_bottleneck():
     sf, cf = [], []
-    order = ["player", "legal", "cspaper", "art", "med"]
+    order = ["player", "cspaper", "art"]
     for c in order:
         d = json.loads((EXP / "E2.4-errors" / c / "summary.json").read_text())["unlimited@100"]
         sf.append(d["structure_f2"])
@@ -457,7 +458,7 @@ def rq8_bottleneck():
     ax.set_ylabel("Mean over queries")
     ax.legend(loc="upper right", ncol=2, bbox_to_anchor=(1, 1.12))
     style(ax)
-    save(fig, "rq8_bottleneck.png", "Values limit most corpora; structure limits med",
+    save(fig, "rq8_bottleneck.png", "Cell values limit player and cspaper; art loses on both",
          "With on-demand patching at 100% drift.")
 
 
@@ -514,13 +515,13 @@ def ablation_rows():
 
 def ablations():
     rows = ablation_rows()
-    colors = dict(zip(CORPORA, (BLUE, ORANGE, AQUA, YELLOW, MAGENTA)))
+    colors = CORPUS_COLOR
     fig, (ax, bx) = plt.subplots(1, 2, figsize=(13, 5.6), gridspec_kw={"width_ratios": [1.7, 1]}, sharey=True)
     ys = list(range(len(ABLATIONS)))[::-1]
     for y, (d, label) in zip(ys, ABLATIONS):
         for k, c in enumerate(CORPORA):
             m, lo, hi, ratio = rows[(d, c)]
-            yy = y + (k - 2) * 0.13
+            yy = y + (k - (len(CORPORA) - 1) / 2) * 0.16
             sig = lo > 0 or hi < 0
             ax.plot([lo, hi], [yy, yy], color=colors[c], linewidth=1.2, alpha=0.6)
             ax.plot([m], [yy], "o", markersize=6, color=colors[c] if sig else SURFACE, markeredgecolor=colors[c],
@@ -540,7 +541,7 @@ def ablations():
     bx.set_xlabel("Patch tokens relative to the full system")
     style(bx)
     save(fig, "ablations.png", "Field descriptions, normalization and reuse carry the system",
-         "One component turned off at a time; unlimited stream at 100% drift, five corpora.")
+         "One component turned off at a time; unlimited stream at 100% drift.")
 
 
 def docetl():
@@ -594,6 +595,6 @@ def docetl():
 
 
 if __name__ == "__main__":
-    for fn in (rq1_drift, rq1_seeds, rq1_train, rq1_anticipation, rq2_width, rq3_legal, rq3_policies, rq4_signals, rq5_planner, rq6_cells,
+    for fn in (rq1_drift, rq1_seeds, rq1_train, rq1_anticipation, rq2_width, rq3_policies, rq4_signals, rq5_planner, rq6_cells,
                rq7_models, rq8_bottleneck, rq8_form, docetl, ablations):
         fn()

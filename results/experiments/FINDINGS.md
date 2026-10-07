@@ -1,5 +1,7 @@
 # Experiment findings (running log)
 
+> **Status (2026-10-07):** med and legal have not been run yet; their numbers in this log are not results.
+
 > **Erratum (2026-10-02 13:20).** From 2026-10-01 23:40 to 2026-10-02 13:20 a code edit for E7b dropped the line
 > "Answer No unless the document indicates Yes." from the prompt of every never-null yes/no field, even with no
 > experiment variables set. Runs that started in that window and made new reads were invalid: E7b, E7 and E7c on
@@ -1453,64 +1455,3 @@ The same split runs through the other corpus-dependent results:
   med and legal for −0.012 to +0.015;
 - the static/patched gap is smallest on med (0.031 vs 0.086 at 100% drift): even patched values rarely match gold
   exactly (0–10% of filled cells on most med columns, A3).
-
-### A12: MIN/MAX over text is unscorable — a metric artifact, not an extraction limit
-Gold values injected into each query's served view (recorded unlimited stream, 100% drift), then re-scored:
-
-| Corpus | MIN/MAX-over-text queries: before → all referenced columns from gold | Other queries: before → all from gold |
-|---|---|---|
-| player | 3: 0.444 → 0.995 | 115: 0.386 → 0.681 |
-| med | 30: 0.000 → **0.000** (all 30 still zero) | 46: 0.142 → 0.457 |
-| legal | 12: 0.000 → **0.125** (10 still zero) | 18: 0.191 → 0.830 |
-| cspaper / art | none | 59: 0.153 → 0.760 / 43: 0.256 → 0.789 |
-
-With perfect values the med MIN/MAX-over-text queries still score zero, and the predicted rows equal the gold rows
-(e.g. `SELECT administration_route, MAX(recommended_usage) ... GROUP BY administration_route`: 17 rows, identical
-values; structure F2 0.94, cell F1 0.00). The cause is the benchmark's aggregation metric
-(`spp/aggregation_metrics.py`): `schema_from_sql` types every aggregate output as numeric, and a numeric cell passes
-only if both values parse as numbers (`_numeric_range_err`: `float('other')` fails), so a MIN or MAX over a text
-column can never be a true positive. The 45 such test queries (14%) score zero by construction for any system
-(player's 3 escape because their extrema happen to be numeric strings; legal's 2 that score after injection likewise).
-Consequences:
-- "MIN/MAX over text is unwinnable" (RQ3, RQ4) is the metric's doing; the `fragile` rule saves budget on queries that
-  cannot score under this metric, not on queries no extraction could answer.
-- A text-typed re-scoring of these outputs is running as a sensitivity check (A12b); the official metric is unchanged.
-
-Separately, all-gold views reach only 0.46–0.83 on the other queries, not 1.0: the remaining loss sits between the
-served view and the score (row alignment, list-valued keys, the official SQL rewrite); to be characterized.
-
-### Are MIN/MAX-over-text queries realistic? Mostly not — they are artifacts of our drift query generator
-All 45 test queries that take MIN or MAX of a text column are `attribute_pool` variants made by the drift design from
-15 original benchmark queries (`A-open/A12-goldinject/minmax_text_queries.json`): the generator replaces the aggregated
-column with another column of the same table without checking its type, and keeps the original alias.
-- legal (12 of 30 test queries): originals `MIN/MAX(hearing_year)` (realistic — earliest/latest hearing — but the
-  benchmark types the year as text); variants `MIN(counsel_for_respondent) AS min_hearing_year`, `MAX(charges)`,
-  `MIN(judge_name)`, `MAX(defendant_current_status)`: the alphabetically first counsel per judge, the "largest" charge.
-- med (30 of 76): originals `MAX(dosage_frequency)` (values like "once daily": already alphabetical in SQL); variants
-  `MAX(storage_conditions)`, `MAX(mechanism_of_action)`, `MIN(active_ingredients)`, `MAX(indication)` over lists.
-- player (3 of 118): `MAX(team.championship)` variants; cspaper and art: none.
-No user asks for the alphabetical extreme of names, charges or condition lists; with the metric artifact (A12) these
-queries are unscorable and unrealistic. They make up 40% of legal's and 39% of med's test sets.
-
-**Without them the conclusions hold** (recorded runs re-averaged, no new calls):
-
-| Corpus | Queries | Static at 100% | Patched 0% → 100% | 100% − 0% (95% CI) | Ours − DocETL |
-|---|---|---|---|---|---|
-| legal, all | 30 | 0.005 | 0.121 → 0.114 | −0.007 (−0.050, +0.028) | +0.075 |
-| legal, without | 18 | 0.008 | 0.175 → 0.191 | +0.016 (−0.020, +0.053) | +0.137 |
-| med, all | 76 | 0.031 | 0.095 → 0.086 | −0.009 (−0.027, +0.007) | +0.030 |
-| med, without | 46 | 0.051 | 0.157 → 0.142 | −0.015 (−0.045, +0.012) | +0.050 |
-| player, without | 115 | 0.032 | 0.378 → 0.386 | +0.008 (−0.007, +0.029) | +0.303 |
-
-Budget policies (mean of 25 settings, scored without those queries): legal fcfs 0.164, fragile 0.169, oracle 0.168,
-knapsack 0.168, pace 0.151, cap 0.142; med fcfs 0.132, fragile 0.137, knapsack 0.137, pace 0.136, cap 0.134,
-oracle 0.132. **This does not support the `fragile` rule as a policy.** The artifact queries are still in the streams
-(only left out of the scoring): under first-come-first-served they trigger expensive patches, and the rule skips
-exactly those, freeing budget for the rest. In a workload without them the rule would never fire. The RQ3/RQ4 budget
-findings are largely driven by these queries — they take 33% of all patch tokens and 73% of the patch tokens that
-bought nothing (RQ4), and legal's first-come-first-served collapse (50% budget below 25%) came from two early patches
-for "the alphabetically smallest counsel name per group". Settling RQ3 needs the budgeted streams re-run on test
-streams without these queries (or with type-correct regenerations).
-
-**To fix:** the generator should substitute only type-compatible columns (numeric under SUM/AVG/MIN/MAX) and rename
-aliases. The paper should report legal and med with and without these queries, or regenerate them.
