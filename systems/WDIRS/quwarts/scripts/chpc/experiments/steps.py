@@ -90,7 +90,9 @@ def ablate(name: str, corpus: str) -> dict:
     return {
         # gpu2 / gpu3: two more runners on another node's full GPU (one server, QUWARTS_RUNNER_SERVER=mainB) take the
         # heavy ones; two streams at once keep its 16 slots busy (one stream alone left it about 40% idle)
-        "id": sid, "lane": {"nodesc": "gpu2", "nousage": "gpu2", "noreuse": "gpu3"}.get(name, "gpu"),
+        # (nousage moved to this node's lane when it fell idle, except legal, which follows nodesc on gpu2)
+        "id": sid, "lane": {"nodesc": "gpu2", "noreuse": "gpu3"}.get(name, "gpu2" if (name, corpus) == ("nousage", "legal")
+                                                                      else "gpu"),
         "deps": ["G0-prompt-guard"],
         "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} && "
                + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} "
