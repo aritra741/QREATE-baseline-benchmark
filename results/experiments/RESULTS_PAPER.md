@@ -401,7 +401,7 @@ grouping changes values in a corpus-specific direction, so it is a cost decision
 tokens, and a query that needs a patch costs 0.2–1.1M tokens, while a query answered from the database costs nothing
 more. At list prices for the 7B model a whole corpus costs $0.16–0.88 with patching (build plus every patch) and
 $0.06–0.34 if the build had anticipated every column. Reuse of patched columns is the largest saving (5–17×), and the
-system is 13–25× cheaper than DocETL on the same queries.
+system is 7–25× cheaper than DocETL on the same queries.
 
 **Evidence.** Tokens as charged by the server; dollars at OpenRouter list rates for `qwen/qwen-2.5-7b-instruct`
 ($0.10 per million input tokens, $0.20 per million output tokens; fetched 2026-10-07). Build plus all patches for each
@@ -428,8 +428,8 @@ query reuses what they read. A query answered from the database adds no extracti
 | Long documents read to the first window: patches only | $0.12 (same) | $0.33 (vs $0.57) | $0.62 (same) |
 | DocETL on the same test queries | $2.13 | $19.15 | $5.94 |
 
-*Across models* (build + patches at 100% drift; token counts are within a few percent across models, so prices
-differ by rate alone):
+*Across models* (build + patches at 100% drift; patch tokens differ by at most 19% across models — Llama reads
+more on art — so prices differ mostly by rate):
 
 | Corpus | Llama 3.1 8B ($0.05 / $0.08) | Qwen 2.5 7B ($0.10 / $0.20) | Qwen 2.5 32B (not listed; $0.08 / $0.28 to $0.66 / $1.00) |
 |---|---|---|---|

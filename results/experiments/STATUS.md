@@ -1,4 +1,4 @@
-# Experiment status (2026-10-07T12:49:41-06:00)
+# Experiment status (2026-10-07T13:27:54-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -127,50 +127,52 @@
 | A0-E13-raw-legal | cpu0 | done | 1 | ok 2026-10-07T12:49:40-06:00 |  |
 | A0-E13-rawview-cspaper | cpu1 | done | 1 | ok 2026-10-07T12:46:27-06:00 |  |
 | A0-E13-rawview-player | cpu2 | done | 1 | ok 2026-10-07T12:46:15-06:00 |  |
-| A0-E13-rawview-art | cpu0 | running-or-interrupted | 1 | start 2026-10-07T12:49:41-06:00 |  |
-| A0-E13-rawview-med | cpu1 | running-or-interrupted | 1 | start 2026-10-07T12:46:27-06:00 |  |
-| A0-E13-rawview-legal | cpu2 | running-or-interrupted | 1 | start 2026-10-07T12:46:15-06:00 |  |
-| A0-E13-noscope-cspaper | cpu0 | pending | 0 |  |  |
-| A0-E13-noscope-player | cpu1 | pending | 0 |  |  |
-| A0-E13-noscope-art | cpu2 | pending | 0 |  |  |
-| A0-E13-noscope-med | cpu0 | pending | 0 |  |  |
-| A0-E13-noscope-legal | cpu1 | pending | 0 |  |  |
-| A0-E13-nobatch-cspaper | cpu2 | pending | 0 |  |  |
-| A0-E13-nobatch-player | cpu0 | pending | 0 |  |  |
-| A0-E13-nobatch-art | cpu1 | pending | 0 |  |  |
-| A0-E13-nobatch-med | cpu2 | pending | 0 |  |  |
-| A0-E13-nobatch-legal | cpu0 | pending | 0 |  |  |
-| A0-E13-head-cspaper | cpu1 | pending | 0 |  |  |
-| A0-E13-head-player | cpu2 | pending | 0 |  |  |
-| A0-E13-head-art | cpu0 | pending | 0 |  |  |
-| A0-E13-head-med | cpu1 | pending | 0 |  |  |
-| A0-E13-head-legal | cpu2 | pending | 0 |  |  |
-| A0-E13-noreuse-cspaper | cpu0 | pending | 0 |  |  |
-| A0-E13-noreuse-player | cpu1 | pending | 0 |  |  |
-| A0-E13-noreuse-art | cpu2 | pending | 0 |  |  |
-| A0-E13-noreuse-med | cpu0 | pending | 0 |  |  |
-| A0-E13-noreuse-legal | cpu1 | pending | 0 |  |  |
-| A0-E13-nousage-cspaper | cpu2 | pending | 0 |  |  |
-| A0-E13-nousage-player | cpu0 | pending | 0 |  |  |
-| A0-E13-nousage-art | cpu1 | pending | 0 |  |  |
-| A0-E13-nousage-med | cpu2 | pending | 0 |  |  |
-| A0-E13-nousage-legal | cpu0 | pending | 0 |  |  |
+| A0-E13-rawview-art | cpu0 | done | 1 | ok 2026-10-07T12:51:29-06:00 |  |
+| A0-E13-rawview-med | cpu1 | done | 1 | ok 2026-10-07T12:50:47-06:00 |  |
+| A0-E13-rawview-legal | cpu2 | done | 1 | ok 2026-10-07T12:51:25-06:00 |  |
+| A0-E13-noscope-cspaper | cpu0 | done | 1 | ok 2026-10-07T12:52:38-06:00 |  |
+| A0-E13-noscope-player | cpu1 | done | 1 | ok 2026-10-07T12:54:09-06:00 |  |
+| A0-E13-noscope-art | cpu2 | done | 1 | ok 2026-10-07T12:54:28-06:00 |  |
+| A0-E13-noscope-med | cpu0 | done | 1 | ok 2026-10-07T12:58:02-06:00 |  |
+| A0-E13-noscope-legal | cpu1 | done | 1 | ok 2026-10-07T12:59:54-06:00 |  |
+| A0-E13-nobatch-cspaper | cpu2 | done | 1 | ok 2026-10-07T12:55:40-06:00 |  |
+| A0-E13-nobatch-player | cpu0 | done | 1 | ok 2026-10-07T13:01:25-06:00 |  |
+| A0-E13-nobatch-art | cpu1 | done | 1 | ok 2026-10-07T13:03:20-06:00 |  |
+| A0-E13-nobatch-med | cpu2 | done | 1 | ok 2026-10-07T13:01:01-06:00 |  |
+| A0-E13-nobatch-legal | cpu0 | done | 1 | ok 2026-10-07T13:07:12-06:00 |  |
+| A0-E13-head-cspaper | cpu1 | done | 1 | ok 2026-10-07T13:04:24-06:00 |  |
+| A0-E13-head-player | cpu2 | done | 1 | ok 2026-10-07T13:04:25-06:00 |  |
+| A0-E13-head-art | cpu0 | done | 1 | ok 2026-10-07T13:09:18-06:00 |  |
+| A0-E13-head-med | cpu1 | done | 1 | ok 2026-10-07T13:08:48-06:00 |  |
+| A0-E13-head-legal | cpu2 | done | 1 | ok 2026-10-07T13:08:27-06:00 |  |
+| A0-E13-noreuse-cspaper | cpu0 | done | 1 | ok 2026-10-07T13:12:16-06:00 |  |
+| A0-E13-noreuse-player | cpu1 | done | 1 | ok 2026-10-07T13:25:21-06:00 |  |
+| A0-E13-noreuse-art | cpu2 | done | 1 | ok 2026-10-07T13:16:11-06:00 |  |
+| A0-E13-noreuse-med | cpu0 | failed | 1 | fail 2026-10-07T13:12:38-06:00 | exit 1: KeyError: 'attr:Splits/train.sql#6:f6d3251f' |
+| A0-E13-noreuse-legal | cpu1 | skipped | 0 | skip 2026-10-07T13:13:11-06:00 | med/legal re-run on regenerated queries |
+| A0-E13-nousage-cspaper | cpu2 | done | 1 | ok 2026-10-07T13:17:23-06:00 |  |
+| A0-E13-nousage-player | cpu0 | done | 1 | ok 2026-10-07T13:16:01-06:00 |  |
+| A0-E13-nousage-art | cpu1 | done | 1 | ok 2026-10-07T13:27:54-06:00 |  |
+| A0-E13-nousage-med | cpu2 | skipped | 0 | skip 2026-10-07T13:13:12-06:00 | med/legal re-run on regenerated queries |
+| A0-E13-nousage-legal | cpu0 | skipped | 0 | skip 2026-10-07T13:13:12-06:00 | med/legal re-run on regenerated queries |
 | A0-E14-bgroup-cspaper | cpu1 | done | 1 | ok 2026-10-07T12:45:03-06:00 |  |
 | A0-E14-bgroup-player | cpu2 | done | 1 | ok 2026-10-07T12:46:53-06:00 |  |
 | A0-E14-bgroup-art | cpu0 | done | 1 | ok 2026-10-07T12:45:22-06:00 |  |
 | A0-E14-bgroup-med | cpu1 | done | 1 | ok 2026-10-07T12:47:38-06:00 |  |
 | A0-E14-bgroup-legal | cpu2 | done | 1 | ok 2026-10-07T12:48:08-06:00 |  |
 | A0-E14-bfields-cspaper | cpu0 | done | 1 | ok 2026-10-07T12:46:31-06:00 |  |
-| A0-E14-bfields-player | cpu1 | running-or-interrupted | 1 | start 2026-10-07T12:47:38-06:00 |  |
-| A0-E14-bfields-art | cpu2 | running-or-interrupted | 1 | start 2026-10-07T12:48:08-06:00 |  |
-| A0-E14-bfields-med | cpu0 | running-or-interrupted | 1 | start 2026-10-07T12:46:31-06:00 |  |
-| A0-E14-bfields-legal | cpu1 | pending | 0 |  |  |
+| A0-E14-bfields-player | cpu1 | done | 1 | ok 2026-10-07T12:51:02-06:00 |  |
+| A0-E14-bfields-art | cpu2 | done | 1 | ok 2026-10-07T12:50:26-06:00 |  |
+| A0-E14-bfields-med | cpu0 | done | 1 | ok 2026-10-07T12:52:12-06:00 |  |
+| A0-E14-bfields-legal | cpu1 | done | 1 | ok 2026-10-07T12:56:40-06:00 |  |
+| R2-recorded-med | gpu | running-or-interrupted | 1 | start 2026-10-07T13:13:29-06:00 |  |
+| R2-recorded-legal | gpu2 | running-or-interrupted | 1 | start 2026-10-07T13:13:32-06:00 |  |
 | E14-32b-bprompt-cspaper | gpu4 | done | 1 | ok 2026-10-07T12:21:40-06:00 |  |
 | E14-32b-bprompt-player | gpu4 | done | 1 | ok 2026-10-07T12:24:34-06:00 |  |
 | E14-32b-bgroup-cspaper | gpu4 | done | 1 | ok 2026-10-07T12:31:19-06:00 |  |
 | E14-32b-bgroup-player | gpu4 | done | 1 | ok 2026-10-07T12:45:26-06:00 |  |
-| E14-32b-bfields-cspaper | gpu4 | running-or-interrupted | 1 | start 2026-10-07T12:45:27-06:00 |  |
-| E14-32b-bfields-player | gpu4 | pending | 0 |  |  |
+| E14-32b-bfields-cspaper | gpu4 | done | 1 | ok 2026-10-07T12:52:17-06:00 |  |
+| E14-32b-bfields-player | gpu4 | running-or-interrupted | 1 | start 2026-10-07T12:52:17-06:00 |  |
 | E6.3-llama8b-art | gpu5 | done | 1 | ok 2026-10-07T12:04:29-06:00 |  |
 | E6.3-llama8b-med | gpu5 | running-or-interrupted | 1 | start 2026-10-07T12:04:29-06:00 |  |
 | E6.3-llama8b-legal | gpu5 | pending | 0 |  |  |
