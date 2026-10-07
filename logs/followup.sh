@@ -8,9 +8,25 @@ REPO=/uufs/chpc.utah.edu/common/home/u1592362/Downloads/QREATE-baseline-benchmar
 cd $REPO
 source ~/venvs/quwarts/quwarts.env
 R=systems/WDIRS/quwarts/scripts/chpc/experiments/runner.py
-until grep -q "\"step\": \"E2.2-patches-$C\", \"event\": \"ok\"" <(grep -a "E2.2-patches-$C" results/experiments/status.jsonl | tail -1); do
-  sleep 120
-done
+# Wait for this re-run's own analyses: an "ok" for E2.2-patches-<corpus> later than the re-run's "ok" (the status log
+# also holds the previous query set's events).
+ready() {
+  python3 - "$C" << 'PY'
+import json, sys
+c = sys.argv[1]
+r2 = pa = None
+for line in open("results/experiments/status.jsonl"):
+    x = json.loads(line)
+    if x.get("event") != "ok":
+        continue
+    if x["step"] == f"R2-recorded-{c}":
+        r2 = x["time"]
+    if x["step"] == f"E2.2-patches-{c}" and r2 and x["time"] > r2:
+        pa = x["time"]
+sys.exit(0 if pa else 1)
+PY
+}
+until ready; do sleep 120; done
 EXP=results/experiments; S=/scratch/general/vast/u1592362/quwarts_exp
 POL="cap pace oracle knapsack"; ABL="rawview raw noscope nobatch nodesc nousage head noreuse"; FAC="bprompt bprompt+noscope bfields bgroup"
 for d in $(for p in $POL; do echo E3.2-$p; done) $(for a in $ABL; do echo E13-$a; done) $(for f in $FAC; do echo E14-$f; done); do

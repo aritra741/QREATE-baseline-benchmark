@@ -91,8 +91,10 @@ def history() -> dict[str, list[dict]]:
 
 def state(step: dict, hist: dict[str, list[dict]]) -> str:
     sid = step["id"]
-    if (DONE / f"{sid}.json").exists():
+    try:  # another runner (other node) may reset the step between the check and the read
         return json.loads((DONE / f"{sid}.json").read_text()).get("state", "done")
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
     evs = [e for e in hist.get(sid, []) if e["event"] in ("start", "ok", "fail", "blocked")]
     if not evs:
         return "pending"
