@@ -139,6 +139,23 @@ def recorded(corpus: str, lane: str) -> dict:
                         for b in ("", "b010", "b025", "b050", "b075", "b100") for p in (0, 25, 50, 75, 100)]}
 
 
+# med and legal on the regenerated queries: queued steps spread over the follow-up runner's three lanes (one stream per
+# lane at a time), balanced by the durations measured on the previous query set.
+FOLLOWUP_LANES = {"E3.2-knapsack": "gpu", "E3.2-oracle": "gpu", "E14-bfields": "gpu", "E13-rawview": "gpu",
+                  "E13-raw": "gpu", "E13-noscope": "gpu", "E13-nobatch": "gpu", "E13-head": "gpu", "E14-bprompt": "gpu",
+                  "E14-bprompt+noscope": "gpu",
+                  "E13-nodesc": "gpu2", "E3.2-cap": "gpu2", "E14-bgroup": "gpu2", "E13-nousage": "gpu2",
+                  "E13-noreuse": "gpu3", "E3.2-pace": "gpu3"}
+
+
+def followup_lane(step: dict) -> dict:
+    for c in ("med", "legal"):
+        head = step["id"][: -len(c) - 1] if step["id"].endswith("-" + c) else None
+        if head in FOLLOWUP_LANES:
+            return {**step, "lane": FOLLOWUP_LANES[head]}
+    return step
+
+
 STEPS = [
     # ---- GPU lane, first: the default prompts still match the recorded runs (see prompt_guard.sh)
     {"id": "G0-prompt-guard", "lane": "gpu", "retries": 0, "cmd": f"bash {EXP}/prompt_guard.sh",
@@ -322,3 +339,5 @@ import shlex as _shlex  # noqa: E402
 for _s in STEPS:
     if _s["id"].startswith("E6.2-") and "qwen32b" in _s["id"]:
         _s["cmd"] = f"bash {EXP}/gpu_exclusive.sh bash -c {_shlex.quote(_s['cmd'])}"
+
+STEPS = [followup_lane(x) for x in STEPS]
