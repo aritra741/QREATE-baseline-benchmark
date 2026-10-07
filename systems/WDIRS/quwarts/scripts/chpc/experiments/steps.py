@@ -241,6 +241,10 @@ STEPS = [
     *[{**stream(f"E6.3-qwen32b-{c}", c, "fresh", key="fixed4-attribute_pool/0,fixed4-attribute_pool/100",
                 model=OTHER_MODELS["qwen32b"], extra=MODEL_ENV["qwen32b"]), "lane": "gpu4"}
       for c in ("art", "med", "legal")],
+    # ---- E6.3: Llama 3.1 8B drift curve on art, med, legal (lane gpu5: the MIG slice, once idle)
+    *[{**stream(f"E6.3-llama8b-{c}", c, "fresh", key="fixed4-attribute_pool/0,fixed4-attribute_pool/100",
+                model=OTHER_MODELS["llama8b"], extra=MODEL_ENV["llama8b"]), "lane": "gpu5"}
+      for c in ("art", "med", "legal")],
     # ---- GPU lane: Phase 3 budget policies on the corpora with budget anomalies, then the rest
     *[policy("fragile", c) for c in ("legal", "med", "cspaper")],
     *[policy(name, c) for c in ("cspaper", "legal", "med") for name in ("oracle", "cap", "pace")],
