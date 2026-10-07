@@ -1483,3 +1483,12 @@ model may abstain where the document says nothing"): cspaper 0.153 → 0.193 (+0
 0.387 → 0.401 (+0.014, −0.012 to +0.043), art 0.249 → 0.253 (+0.004, n.s.). On cspaper the schema's "never null" on
 columns gold often leaves empty (`agent_framework` 76%, `performance_on_hotpotqa` 84%) costs a quarter of the score;
 prompt-level fixes (E7) could not recover it because the model then also abstains where gold has a value.
+
+### Dates kept as written (QUWARTS_KEEP_DATES; no-call replays, `A-date/`)
+Commit normalization read a date such as "2010/7/15" as the number 2010, although the field asks for `%Y/%-m/%-d`.
+With dates kept as written (builds rebuilt from the journals, all five drift levels replayed with model calls
+refused, identical tokens): art +0.006 at every drift level (one query gains, none lose; static +0.006), player
+unchanged (its `birth_date` is not compared at day precision by any test query); cspaper has no date column. Cell
+correctness rises sharply (art `death_date` 0.31 → 0.88, `birth_date` 0.38 → 0.79, A7), but the workloads mostly use
+the year, which normalization kept. The switch stays off by default so recorded results reproduce; turning it on is
+a cheap correctness fix with a small score effect on these workloads.
