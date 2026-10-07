@@ -172,6 +172,19 @@ One component turned off at a time, unlimited stream at 100% drift (paired; * si
   (58/59 queries). The grouping (1–3 columns per patch vs all new columns per build prompt) carries it; field specs
   and scope do not.
 
+## Cost (tokens, and OpenRouter list prices)
+
+`COST/summary.json` (`python -m quwarts.eval.exp_cost`); 7B at $0.10 / $0.20 per million input / output tokens.
+- Whole corpus, build + all patches: cspaper $0.16 (1.56M tokens), player $0.78 (7.71M), art $0.88 (8.52M) at 100%
+  drift; $0.06 / $0.21 / $0.34 with every column anticipated (0%). Patches are 71–75% of tokens at 100% drift.
+- 7–9 queries per corpus need a patch at 100% drift: median 220k (cspaper), 930k (player), 974k (art) tokens each,
+  $0.017–0.071; every other query reuses them at no extraction cost. Per test query: $0.001–0.008 (0%), $0.003–0.020
+  (100%).
+- Without reuse, patches cost 5–17× more ($1.10 / $9.65 / $3.03 vs $0.12 / $0.57 / $0.62); a 10% build workload adds
+  7–23%; DocETL costs $2.13 / $19.15 / $5.94 for the same queries.
+- Other models at list prices: Llama 3.1 8B $0.09 / $0.39 / $0.50; Qwen 2.5 32B (not listed; range from qwen3-32b to
+  qwen-2.5-coder-32b) $0.14–1.08 / $0.64–5.14 / $0.73–5.58.
+
 ## Baseline: DocETL on the drift queries
 
 DocETL (same model, one map per query and table, the fair prompt) at 100% drift; paired difference with 95% bootstrap

@@ -395,6 +395,60 @@ grouping changes values in a corpus-specific direction, so it is a cost decision
 
 ---
 
+## Cost
+
+**Answer.** Under drift, on-demand patching is most of the cost: at 100% drift patches are 71–75% of all extraction
+tokens, and a query that needs a patch costs 0.2–1.1M tokens, while a query answered from the database costs nothing
+more. At list prices for the 7B model a whole corpus costs $0.16–0.88 with patching (build plus every patch) and
+$0.06–0.34 if the build had anticipated every column. Reuse of patched columns is the largest saving (5–17×), and the
+system is 13–25× cheaper than DocETL on the same queries.
+
+**Evidence.** Tokens as charged by the server; dollars at OpenRouter list rates for `qwen/qwen-2.5-7b-instruct`
+($0.10 per million input tokens, $0.20 per million output tokens; fetched 2026-10-07). Build plus all patches for each
+corpus's test queries:
+
+| Corpus | Test queries | All anticipated (0% drift) | None anticipated (100% drift) | Patches' share | Per query that needs a patch (median) | Per test query, 0% / 100% |
+|---|---|---|---|---|---|---|
+| cspaper | 59 | 0.55M, $0.058 | 1.56M, $0.160 | 75% | 220k tokens, $0.017 | $0.0010 / $0.0027 |
+| player | 118 | 2.12M, $0.214 | 7.71M, $0.778 | 74% | 930k tokens, $0.071 | $0.0018 / $0.0066 |
+| art | 43 | 3.18M, $0.339 | 8.52M, $0.881 | 71% | 974k tokens, $0.069 | $0.0079 / $0.0205 |
+| med, legal | not yet run | | | | | |
+
+Only 7–9 of each corpus's test queries need a patch at 100% drift (the first to use each new column); every later
+query reuses what they read. A query answered from the database adds no extraction cost.
+
+*What changes the cost* (100% drift, 7B rates):
+
+| Variant | cspaper | player | art |
+|---|---|---|---|
+| Recorded system (build + patches) | $0.160 | $0.778 | $0.881 |
+| Build workload cut to 10% of its queries (E12) | $0.196 (+23%) | $0.830 (+7%) | $1.036 (+18%) |
+| No reuse of patched columns: patches only | $1.10 (vs $0.12) | $9.65 (vs $0.57) | $3.03 (vs $0.62) |
+| Patch every document (no scope): patches only | $0.16 (vs $0.12) | $0.57 (same) | $0.91 (vs $0.62) |
+| Long documents read to the first window: patches only | $0.12 (same) | $0.33 (vs $0.57) | $0.62 (same) |
+| DocETL on the same test queries | $2.13 | $19.15 | $5.94 |
+
+*Across models* (build + patches at 100% drift; token counts are within a few percent across models, so prices
+differ by rate alone):
+
+| Corpus | Llama 3.1 8B ($0.05 / $0.08) | Qwen 2.5 7B ($0.10 / $0.20) | Qwen 2.5 32B (not listed; $0.08 / $0.28 to $0.66 / $1.00) |
+|---|---|---|---|
+| cspaper | $0.09 (score 0.125) | $0.16 (0.153) | $0.14–1.08 (0.224) |
+| player | $0.39 (0.359) | $0.78 (0.387) | $0.64–5.14 (0.421) |
+| art | $0.50 (0.203) | $0.88 (0.256) | $0.73–5.58 (0.289) |
+
+Qwen 2.5 32B Instruct is not on OpenRouter; the range uses the closest listed models, `qwen/qwen3-32b` (low) and
+`qwen/qwen-2.5-coder-32b-instruct` (high, same generation and size).
+
+**Implication.** The cost of adapting to drift is a handful of whole-corpus reads, each 0.2–1.1M tokens (cents at small
+model rates), paid once per new column and shared by every later query that uses it. Reuse is what keeps it small;
+anticipating columns during the build removes most of it.
+
+**Scope.** Three corpora (med and legal not yet run); tokens measured, the fixed levels' builds costed as one shared
+read (within about 2%, E1.3); prices are list rates on 2026-10-07 and exclude local serving costs.
+
+---
+
 ## Comparison with DocETL
 
 **Answer.** On the same drift queries and model, on-demand patching is more accurate than DocETL on every corpus and
