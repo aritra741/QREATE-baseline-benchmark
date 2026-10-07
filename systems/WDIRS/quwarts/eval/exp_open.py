@@ -430,7 +430,7 @@ def ablcells() -> dict:
     out = {}
     rec = REPO / "results" / "drift_live_ollama"
     for e, n in ABLATIONS:
-        for c in CORPORA:
+        for c in ("cspaper", "player", "art"):  # med and legal: re-run on regenerated queries, ablations not yet run
             root = EXP / f"A0-{e}-{n}" / "live" / c
             master = SCRATCH / f"A0-{e}-{n}" / "drift_live_ollama" / c / "fixed4-attribute_pool_100" / "master.db"
             if not master.exists():
