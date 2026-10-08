@@ -184,7 +184,7 @@ def rq1_anticipation():
     ax.set_ylabel("Total tokens ÷ fully anticipated")
     style(ax)
     save(fig, "rq1_anticipation.png", "Patching a column later costs far more than reading it up front",
-         "Build + patch tokens relative to a build that anticipated every column; scores stay within 0.014 (see table).")
+         "Build + patch tokens relative to a build that anticipated every column; scores stay within 0.015 (see table).")
 
 
 # ------------------------------------------------------------------ RQ2
