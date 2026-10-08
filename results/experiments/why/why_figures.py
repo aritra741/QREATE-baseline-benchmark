@@ -245,5 +245,48 @@ def specification():
          "documents).")
 
 
+# ------------------------------------------------------------------ 7 transfer
+def transfer():
+    ck = json.loads((WHY / "transfer_check" / "summary.json").read_text())
+    dt = json.loads((WHY / "transfer_docetl" / "summary.json").read_text())
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(10.5, 4.0), gridspec_kw={"width_ratios": [1.15, 1]})
+    kinds = [("number", "Numbers"), ("yes/no", "Yes/no"), ("list", "Lists"), ("free text", "Free text"),
+             ("category", "Categories")]
+    w = 0.38
+    for k, (key, col, lab) in enumerate((("wrong_when_agree", BLUE, "The two prompts agree"),
+                                         ("wrong_when_disagree", ORANGE, "The two prompts disagree"))):
+        vals = [ck[x][key] for x, _ in kinds]
+        bars = ax.bar([i + (k - 0.5) * w for i in range(len(kinds))], vals, width=w - 0.03, color=col, label=lab)
+        for b, v in zip(bars, vals):
+            ax.annotate(f"{v:.0%}", (b.get_x() + b.get_width() / 2, v), xytext=(0, 3), textcoords="offset points",
+                        ha="center", fontsize=8.5)
+    ax.set_xticks(range(len(kinds)), [f"{n}\n({ck[x]['cells']:,} cells)" for x, n in kinds], fontsize=9)
+    ax.set_ylim(0, 1.0)
+    ax.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+    ax.set_ylabel("Share of cells wrong")
+    ax.set_title("(a) Our system: cells where two prompts agree or disagree", fontsize=10, loc="left", color=INK)
+    ax.legend(loc="upper left", fontsize=8.5, frameon=False)
+    style(ax)
+    rs = [r for r in dt["columns"] if r["quwarts_disagreement"] is not None]
+    cols = {"cspaper": BLUE, "player": AQUA, "art": ORANGE, "med": MAGENTA, "legal": YELLOW}
+    for c, col in cols.items():
+        pts = [r for r in rs if r["corpus"] == c]
+        if pts:
+            bx.scatter([r["quwarts_disagreement"] for r in pts], [r["accuracy"] for r in pts], s=46, color=col,
+                       edgecolor=SURFACE, linewidth=1.5, label=CORP[c], zorder=3)
+    bx.set_xlim(-0.03, 1)
+    bx.set_ylim(-0.03, 1.03)
+    bx.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+    bx.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+    bx.set_xlabel("Disagreement between our two prompts")
+    bx.set_ylabel("DocETL's accuracy on the same column")
+    bx.set_title(f"(b) Carries over to DocETL (rank correlation {dt['spearman_quwarts_disagreement_vs_docetl_accuracy']:.2f})",
+                 fontsize=10, loc="left", color=INK)
+    bx.legend(loc="upper right", fontsize=8, frameon=False)
+    style(bx)
+    save(fig, "w7_transfer.png", "", None)
+
+
 for fn in (knowledge_map, when_vs_how, cost, value_timing, determinacy, joinkeys, specification):
     fn()
+transfer()
