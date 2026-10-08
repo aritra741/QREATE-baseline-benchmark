@@ -167,7 +167,11 @@ def fate() -> dict:
                       f'SELECT doc_id,"{a}" FROM "{t}"')}
         except sqlite3.Error:
             continue
-        pairs = [(norm(g[a]), norm(pv.get(doc, pv.get(doc.rsplit(".", 1)[0]))))
+        def vn(v):  # numbers as numbers: "1.0" and "1" are the same label
+            v = norm(v)
+            return v if v is None or num(v) is None else repr(round(num(v), 6))
+
+        pairs = [(vn(g[a]), vn(pv.get(doc, pv.get(doc.rsplit(".", 1)[0]))))
                  for doc, g in gold.items() if a in g and not is_null(g[a])]
         gd = {g for g, _ in pairs}
         kind = ("two-valued" if len(gd) <= 2 else

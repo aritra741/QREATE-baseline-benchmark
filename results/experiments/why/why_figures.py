@@ -287,6 +287,55 @@ def transfer():
     save(fig, "w7_transfer.png", "", None)
 
 
+# ------------------------------------------------------------------ 8 predicting DocETL
+def docetl_predict():
+    dp = json.loads((WHY / "transfer_docetl_predict" / "summary.json").read_text())
+    ours = json.loads((EXP / "why" / "groups.json").read_text())["summary"]["label_fate"]["per_column_kind"]
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(10.5, 3.9))
+    kinds = [("number", "Numbers"), ("yes/no", "Yes/no"), ("list", "Lists"), ("free text", "Free text"),
+             ("category", "Categories")]
+    cc = dp["cells"]
+    w = 0.38
+    for k, (key, col, lab) in enumerate((("docetl_wrong_when_ours_agree", BLUE, "Our two prompts agree"),
+                                         ("docetl_wrong_when_ours_disagree", ORANGE, "Our two prompts disagree"))):
+        vals = [cc[x][key] for x, _ in kinds]
+        bars = ax.bar([i + (k - 0.5) * w for i in range(len(kinds))], vals, width=w - 0.03, color=col, label=lab)
+        for b, v in zip(bars, vals):
+            ax.annotate(f"{v:.0%}", (b.get_x() + b.get_width() / 2, v), xytext=(0, 3), textcoords="offset points",
+                        ha="center", fontsize=8.5)
+    ax.set_xticks(range(len(kinds)), [n for _, n in kinds], fontsize=9)
+    ax.set_ylim(0, 1.0)
+    ax.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+    ax.set_ylabel("Share of DocETL's values that are wrong")
+    ax.set_title("(a) DocETL's errors, split by our prompts", fontsize=10, loc="left", color=INK)
+    ax.legend(loc="upper left", fontsize=8.5, frameon=False)
+    style(ax)
+    ne = dp["label_fate_by_kind_nonempty"]
+    okey = {"number": "numeric", "yes/no": "two-valued", "list": "multi-valued", "category": "categorical"}
+    shown = [("number", "Numbers"), ("yes/no", "Yes/no"), ("category", "Categories"), ("list", "Lists")]
+    for k, (src, col, lab) in enumerate((("ours", AQUA, "Our system"), ("docetl", MAGENTA, "DocETL"))):
+        vals = []
+        for x, _ in shown:
+            if src == "docetl":
+                vals.append(ne[x]["exact"])
+            else:
+                o = ours[okey[x]]
+                vals.append(o["exact"] / (1 - o.get("empty", 0)))
+        bars = bx.bar([i + (k - 0.5) * w for i in range(len(shown))], vals, width=w - 0.03, color=col, label=lab)
+        for b, v in zip(bars, vals):
+            bx.annotate(f"{v:.0%}", (b.get_x() + b.get_width() / 2, v), xytext=(0, 3), textcoords="offset points",
+                        ha="center", fontsize=8.5)
+    bx.set_xticks(range(len(shown)), [n for _, n in shown], fontsize=9)
+    bx.set_ylim(0, 1.08)
+    bx.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+    bx.set_ylabel("GROUP BY rows with the exact gold label")
+    bx.set_title("(b) Labels kept, by kind of column", fontsize=10, loc="left", color=INK)
+    bx.legend(loc="upper right", fontsize=8.5, frameon=False)
+    style(bx)
+    save(fig, "w8_docetl_predict.png", "", None)
+
+
 for fn in (knowledge_map, when_vs_how, cost, value_timing, determinacy, joinkeys, specification):
     fn()
 transfer()
+docetl_predict()

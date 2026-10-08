@@ -5,6 +5,7 @@ No model calls.
     python -m quwarts.eval.exp_transfer check     # prompt disagreement as a signal of which cells / columns are wrong
     python -m quwarts.eval.exp_transfer predict   # predict which queries come out right from column kind and aggregate
     python -m quwarts.eval.exp_transfer docetl    # do column kind and prompt disagreement predict DocETL's accuracy?
+    python -m quwarts.eval.exp_transfer docetl_predict  # do our failure explanations predict DocETL's failures?
 """
 
 from __future__ import annotations
@@ -292,11 +293,181 @@ def docetl() -> dict:
     return save("transfer_docetl", out)
 
 
+def docetl_values(c: str) -> dict:
+    """DocETL's non-empty values per column and document, pooled over its per-query outputs."""
+    vals = defaultdict(lambda: defaultdict(list))
+    for f in glob.glob(str(DOCETL / c / "db" / "*.db")):
+        con = sqlite3.connect(f)
+        for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table'"):
+            info = [x[1] for x in con.execute(f'PRAGMA table_info("{t}")')]
+            if "doc_id" not in info:
+                continue
+            i = info.index("doc_id")
+            for row in con.execute(f'SELECT * FROM "{t}"'):
+                for j, a in enumerate(info):
+                    if j != i and not is_null(row[j]):
+                        vals[f"{t}.{a}"][row[i]].append(row[j])
+        con.close()
+    return vals
+
+
+def gold_for(g: dict, d):
+    return g.get(d) or g.get(str(d).rsplit(".", 1)[0])
+
+
+def docetl_predict() -> dict:
+    """Do our explanations predict DocETL's failures? On DocETL's own outputs: (1) where gold rows of GROUP BY columns
+    end up, by kind of column; (2) within-corpus score by aggregate and by GROUP BY kind, and aggregate direction in
+    matched groups; (3) per cell of the 41 new columns, DocETL's error rate where our two prompts agree vs disagree."""
+    from collections import Counter
+
+    from quwarts.eval.drift_live import supplement_spec
+    from quwarts.eval.exp_groups import gold_conn, num
+    from quwarts.eval.exp_groups import norm as gnorm
+
+    order = ["list", "free text", "category", "yes/no", "derived", "number"]
+    qrows, fate, direction = [], defaultdict(Counter), defaultdict(Counter)
+    for c in CORPORA:
+        ctx = R.context(c)
+        fields = {**ctx.fields, **ctx.lean_fields, **supplement_spec(c, "attribute_pool")["fields"]}
+        gold = gold_by_doc(c)
+        gconn = gold_conn(c)
+        per = json.loads((DOCETL / c / "per_query.json").read_text())
+        for q, r in per.items():
+            if q not in ctx.catalog:
+                continue  # a query from before the med/legal regeneration
+            sql = re.sub(r"/\*.*?\*/", "", ctx.catalog[q], flags=re.S)
+            db = DOCETL / c / "db" / (re.sub(r"[:/#]", "_", q) + ".db")
+            try:
+                tree = sqlglot.parse_one(sql, read="sqlite")
+            except Exception:  # noqa: BLE001
+                continue
+            alias = {t.alias_or_name: t.name for t in tree.find_all(exp.Table)}
+            tables = set(alias.values())
+            grp = tree.find(exp.Group)
+            kinds, gcols = [], []
+            for col in (grp.find_all(exp.Column) if grp else []):
+                ts = [alias.get(col.table)] if col.table else [t for t in tables if f"{t}.{col.name}" in fields]
+                key = next((f"{t}.{col.name}" for t in ts if f"{t}.{col.name}" in fields), None)
+                kinds.append(kind_of(fields[key]) if key else "derived")
+                if key:
+                    gcols.append((key, kinds[-1]))
+            aggs = {a.key.upper() for a in tree.find_all(exp.AggFunc)}
+            qrows.append({"corpus": c, "qid": q, "score": r["benchmark"], "aggs": sorted(aggs),
+                          "group_kind": min(kinds, key=order.index) if kinds else "no GROUP BY"})
+            if not db.exists():
+                continue
+            con = sqlite3.connect(db)
+            # (1) label fate in this query's output
+            for key, kind in gcols:
+                t, a = key.split(".", 1)
+                try:
+                    pv = dict(con.execute(f'SELECT doc_id,"{a}" FROM "{t}"').fetchall())
+                except sqlite3.Error:
+                    continue
+                pairs = []
+                for d, p in pv.items():
+                    g = gold_for(gold.get(t, {}), d)
+                    if g and a in g and not is_null(g[a]):
+                        # numbers as numbers (DocETL stores 45.0 where gold has 45)
+                        pairs.append((vnorm(g[a]), None if is_null(p) else vnorm(p)))
+                by = defaultdict(Counter)
+                for g, p in pairs:
+                    if p is not None:
+                        by[p][g] += 1
+                owner = {p: cnt.most_common(1)[0][0] for p, cnt in by.items()}
+                for g, p in pairs:
+                    fate[kind]["empty" if p is None else "exact" if p == g else
+                               "other_form" if owner[p] == g else "merged"] += 1
+            # (2b) aggregate direction over groups matched by key
+            sel = tree.find(exp.Select)
+            exprs = sel.expressions if sel else []
+            nk = sum(1 for e in exprs if not e.find(exp.AggFunc))
+            ak = [e.find(exp.AggFunc).key.upper() for e in exprs if e.find(exp.AggFunc) is not None]
+            if ak and nk:
+                try:
+                    gm = {tuple(gnorm(x) for x in row[:nk]): row[nk:] for row in gconn.execute(sql).fetchall()}
+                    for row in con.execute(sql).fetchall():
+                        k = tuple(gnorm(x) for x in row[:nk])
+                        if k not in gm:
+                            continue
+                        for i, kind in enumerate(ak[:len(row) - nk]):
+                            pv_, gv = num(row[nk + i]), num(gm[k][i])
+                            if pv_ is None or gv is None:
+                                continue
+                            span = max(abs(gv), 1e-9)
+                            direction[kind]["within" if abs(pv_ - gv) <= 0.2 * span else
+                                            "above" if pv_ > gv else "below"] += 1
+                except sqlite3.Error:
+                    pass
+            con.close()
+    share = lambda cn: {"rows": sum(cn.values()), **{k: round(v / sum(cn.values()), 3) for k, v in cn.most_common()}}  # noqa: E731
+    # DocETL fills a column only for the documents a query's filters keep, so "empty" mostly means "not read";
+    # compare the non-empty rows
+    nonempty = {k: share(Counter({x: n for x, n in v.items() if x != "empty"})) for k, v in fate.items()}
+    out = {"queries": len(qrows), "label_fate_by_kind": {k: share(v) for k, v in fate.items()},
+           "label_fate_by_kind_nonempty": nonempty,
+           "aggregate_direction": {k: share(v) for k, v in direction.items()}}
+    # (2a) within-corpus effects on DocETL's scores
+    mean = {c: S.mean(r["score"] for r in qrows if r["corpus"] == c) for c in CORPORA if any(r["corpus"] == c for r in qrows)}
+    for r in qrows:
+        r["resid"] = r["score"] - mean[r["corpus"]]
+
+    def eff(rs):
+        return {"queries": len(rs), "score_vs_corpus_mean": round(S.mean(r["resid"] for r in rs), 3),
+                "corpora_below_mean": sum(S.mean(r["resid"] for r in rs if r["corpus"] == c) < 0
+                                          for c in CORPORA if any(r["corpus"] == c for r in rs)),
+                "corpora": len({r["corpus"] for r in rs})} if rs else None
+    out["within_corpus"] = {
+        "aggregate": {a: eff([r for r in qrows if a in r["aggs"]]) for a in ("MIN", "AVG", "SUM", "MAX", "COUNT")},
+        "group_by_kind": {k: eff([r for r in qrows if r["group_kind"] == k]) for k in
+                          ("no GROUP BY", "number", "derived", "yes/no", "category", "free text", "list")}}
+    out["mean_score"] = {c: round(m, 3) for c, m in mean.items()}
+    # (3) per cell: DocETL error where our two prompts agree vs disagree
+    cells = []
+    for c in CORPORA:
+        ctx = R.context(c)
+        gold = gold_by_doc(c)
+        dv = docetl_values(c)
+        new = json.loads((LIVE / c / "fixed4_attribute_pool_design.json").read_text())["new_columns"]
+        docs = patched_docs(LIVE / c / "state" / "fixed4-attribute_pool_100.json")
+        P = HOME_SCRATCH / c / "fixed4-attribute_pool_100" / "master.db"
+        if not P.exists():
+            from quwarts.eval.exp_analysis import REPLAY_SCRATCH
+            P = REPLAY_SCRATCH / c / "fixed4-attribute_pool_100" / "master.db"
+        B = HOME_SCRATCH / c / "builds" / "fixed4_attribute_pool_0" / "build.db"
+        fields = {**ctx.fields, **ctx.lean_fields}
+        for col in new:
+            t, a = col.split(".", 1)
+            pv, bv = column_values(P, t, a), column_values(B, t, a)
+            if pv is None or bv is None or col not in fields or col not in dv:
+                continue
+            ddoc = {str(k).rsplit(".", 1)[0]: v for k, v in dv[col].items()}
+            for d, g in gold.get(t, {}).items():
+                if a not in g or d not in docs.get(col, set()):
+                    continue
+                vs = dv[col].get(d) or ddoc.get(str(d).rsplit(".", 1)[0])
+                if not vs:
+                    continue
+                x = norm(lookup(pv, d)) != norm(lookup(bv, d))
+                for v in vs:
+                    cells.append({"kind": kind_of(fields[col]), "disagree": x, "wrong": not correct(v, g[a])})
+    cc = {}
+    for name, sel in (("all", cells), *((k, [x for x in cells if x["kind"] == k]) for k in
+                                         ("number", "yes/no", "category", "list", "free text"))):
+        dg, ag = [x for x in sel if x["disagree"]], [x for x in sel if not x["disagree"]]
+        if dg and ag:
+            cc[name] = {"docetl_values": len(sel), "docetl_wrong_when_ours_disagree": round(S.mean(x["wrong"] for x in dg), 3),
+                        "docetl_wrong_when_ours_agree": round(S.mean(x["wrong"] for x in ag), 3)}
+    out["cells"] = cc
+    return save("transfer_docetl_predict", out)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["need", "check", "predict", "docetl"])
+    ap.add_argument("what", choices=["need", "check", "predict", "docetl", "docetl_predict"])
     a = ap.parse_args(argv)
-    out = {"need": need, "check": check, "predict": predict, "docetl": docetl}[a.what]()
+    out = {"need": need, "check": check, "predict": predict, "docetl": docetl, "docetl_predict": docetl_predict}[a.what]()
     print(json.dumps({k: v for k, v in out.items() if k not in ("columns",)}, indent=1, default=str)[:5000])
     return 0
 

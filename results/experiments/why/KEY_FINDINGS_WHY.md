@@ -91,27 +91,6 @@ columns to trust, which need a better description, and where to spend a human ch
 yes/no answers, lists and free text, a disagreeing cell is a likely error. For categories, agreement is not evidence of
 correctness, and the category definitions themselves need checking.
 
-# Why does telling the model what a column means matter more than anything else we changed?
-
-**Most extraction errors come from the specification rather than from reading.** Given only a column name, the model
-often does not know what to write, whether that is a count, a list of years, or a date in a particular format. It
-leaves the cell empty or writes the value in another form. Without descriptions in the on-demand prompts, a count of
-FIBA World Cup appearances falls from 0.86 to 0.01 correct because the model leaves it empty. An artist's award count
-falls from 0.74 to 0.06, and birth dates from 0.38 to 0.00 because they come back in a different format. **Adding the
-benchmark's descriptions to a single extraction pass raised its score from 0.234 to 0.560, the largest effect in the
-whole study.**
-
-![Figure 4. Share of cells correct with and without field descriptions.](figures/w6_specification.png){width=6.5in}
-
-The same problem shows up in values that are right in substance but wrong in form. On one artist column, values agree
-with the gold data 92% of the time if we ignore case, punctuation and list order, but only 13% of the time exactly,
-and a GROUP BY needs the exact form. The evidence here comes from cell-level comparisons. We have not yet run the
-causal test of rewriting ambiguous descriptions and measuring the gain.
-
-*What this lets you decide.* Effort spent on describing each column (its unit, its format, what to write when the
-document is silent) pays more than effort spent on scheduling or budgeting extraction. The columns that need it most
-are the ones the previous section flags: high disagreement, or categories whose labels the model draws differently.
-
 # Why do aggregate queries over extracted values lose their groups?
 
 Looking at individual queries rather than averages, **most failures are the wrong set of groups, and almost always too
@@ -126,12 +105,12 @@ and medical documents (0.75), and absent on basketball players and court judgmen
 corpora rank overall. The more groups a gold answer has, the more of them are missed: 47% of queries with one to
 three gold groups return too few, against 81% of queries with more than thirty.
 
-![Figure 5. (a) Distinct values in the extracted GROUP BY column relative to gold. (b) Share of queries returning too
+![Figure 4. (a) Distinct values in the extracted GROUP BY column relative to gold. (b) Share of queries returning too
 few groups, by the number of groups in the gold answer.](figures/b7_label_collapse.png){width=6.5in}
 
 To see how labels collapse we followed every gold row of every GROUP BY column (17,021 rows) into the extracted table.
-45% get the exact gold label. 22% get a label of their own that is spelled differently, so the group survives under
-another name. **24% are merged into a label that mostly belongs to a different gold group, and only 9% are left
+49% get the exact gold label. 19% get a label of their own that is spelled differently, so the group survives under
+another name. **23% are merged into a label that mostly belongs to a different gold group, and only 9% are left
 empty.** Groups therefore disappear mainly because the model draws category boundaries more coarsely than the gold
 data, not because it fails to answer.
 
@@ -139,7 +118,7 @@ data, not because it fails to answer.
 the exact label for 94% of rows, because a number has one obvious way to be written and no boundary to choose. Free
 categories keep it for 49%, and the merges follow the model's own idea of the categories: on artists, "20th century"
 absorbs the gold groups "19th-20th" and "20th-21st", and on court judgments one case-type label holds 235
-administrative, 155 civil and 56 commercial cases. Two-valued columns (yes/no, 0/1) merge 24% of rows, almost always
+administrative, 155 civil and 56 commercial cases. Two-valued columns (yes/no, 0/1) merge 18% of rows, almost always
 into the majority answer: "is this the first judgment in the case?" is answered "0" for 261 judgments that are not and
 212 that are. Lists of values do worst (29% exact, 32% merged), because the model keeps one item of a list such as
 "oral, intravenous" and so joins the group of that single item. This also explains the corpus differences. Medical
@@ -147,7 +126,7 @@ columns are mostly lists and free-text categories, and 44% of their rows get a d
 the highest of any corpus. Basketball players group mostly by short factual values such as team and position and keep
 79% exact.
 
-![Figure 6. Where each gold row of a GROUP BY column ends up in the extracted table, by kind of column (a) and by
+![Figure 5. Where each gold row of a GROUP BY column ends up in the extracted table, by kind of column (a) and by
 corpus (b), at 100% drift.](figures/b8_label_fate.png){width=6.5in}
 
 The aggregate decides how much a wrong or missing row matters. We matched predicted and gold groups by their keys and
@@ -158,10 +137,10 @@ directions (21% too high, 20% too low), because one inflated value anywhere in t
 within 20% in only 42% of groups, too low in 33% and too high in 25%, because every row whose label is missing or
 merged moves a count.
 
-![Figure 7. Mean score by aggregate across drift levels, with on-demand extraction (a) and the static build
+![Figure 6. Mean score by aggregate across drift levels, with on-demand extraction (a) and the static build
 (b).](figures/b1_aggregate_drift.png){width=6.5in}
 
-![Figure 8. Aggregate values in matched groups at 100% drift: too low, within 20% of gold, or too
+![Figure 7. Aggregate values in matched groups at 100% drift: too low, within 20% of gold, or too
 high.](figures/b6_aggregate_direction.png){width=6.5in}
 
 Averaged over all corpora, AVG queries score 0.38, SUM and MIN 0.32, COUNT 0.21 and MAX 0.17, and this ordering is the
@@ -190,6 +169,39 @@ boundaries are a matter of judgment loses groups, and more so the more groups th
 extraction errors; MAX does not, because one bad value decides it. A system can use this to warn about fragile
 queries, to spend its extraction effort on the columns fragile queries group by, or to normalize those columns to a
 fixed vocabulary before grouping.
+
+# Do these explanations predict where another system fails?
+
+An explanation that is about columns, values and aggregates, rather than about our system, should predict the
+failures of any system that extracts the same columns with an LLM. We checked this on DocETL's outputs for the same
+corpora and queries, without changing DocETL. This tests the explanations as predictions; it does not yet test whether
+applying them improves DocETL, which needs new runs.
+
+**Most predictions hold.** Where our two prompts disagree on a cell, DocETL's value for that cell is wrong 78% of the
+time; where they agree, 38%. The signal is strong for numbers (57% against 28%), lists (84% against 43%) and free text
+(80% against 49%). List columns lose the most group labels in DocETL as well (37% of non-empty rows keep the exact
+label, against 65% to 74% for the other kinds), and DocETL merges category and yes/no labels at rates close to ours
+(19% and 21% of non-empty rows, against our 25% and 18%). MIN is almost never too low in DocETL either (3% of matched groups, ours 2%).
+Within each corpus, DocETL's MAX queries are below the corpus mean on four of five corpora, its COUNT queries are above
+it on all five, as in our system, and grouping by a list column is below the mean on all three corpora that have one.
+
+![Figure 8. (a) Share of DocETL's values that are wrong, split by whether our two prompts agree on the cell. (b) Share
+of GROUP BY rows that keep the exact gold label, by kind of column, in our system and in DocETL (non-empty rows,
+numbers compared as numbers).](figures/w8_docetl_predict.png){width=6.5in}
+
+**Three predictions fail, and each failure narrows an explanation.** Our disagreement says nothing about DocETL's
+yes/no errors (34% against 35%), and on categories it separates them only weakly (49% against 42%). So disagreement
+transfers where errors come from the document leaving the answer open, and not where they come from how a system phrases
+its labels, which differs between systems. Numbers keep the exact label for only 69% of DocETL's rows, against 96% in
+ours, because a quarter of its numbers come back in another form, so "numbers are safe to group by" depends on the
+system writing numbers in one form. And DocETL's AVG and SUM queries are below their corpus mean on four corpora, where
+ours are not; our explanation that errors cancel in sums and averages assumes that every row is read, and DocETL reads
+only the documents each query's own filters keep, so rows go missing rather than errors cancelling.
+
+*What this lets you decide.* Disagreement between two cheap prompts can be used to judge columns for a different
+system than the one that produced the prompts, at least for numbers, lists and free text. Which queries to distrust (a
+list in the GROUP BY, a MAX) carries over too. Statements that depend on how a system writes values or which documents
+it reads, such as the safety of numbers and of averages, have to be checked per system.
 
 # Why is anticipating a column cheap, and when is it worth it?
 
@@ -330,6 +342,22 @@ Basketball players is the only corpus with joins, so this rests on one corpus.
 joins on them. This is the first section's finding applied to keys: a key extracted in a different prompt is a
 different value, and for a key, any difference breaks the match.
 
+# Why does telling the model what a column means matter so much?
+
+This one is expected and not new: UDA-Bench already evaluated DocETL with field descriptions in its prompts. We include
+it because its size puts the other effects in perspective. Given only a column name, the model often does not know
+what to write, whether that is a count, a list of years, or a date in a particular format, so it leaves the cell empty
+or writes the value in another form. Without descriptions in the on-demand prompts, a count of FIBA World Cup
+appearances falls from 0.86 to 0.01 correct, an artist's award count from 0.74 to 0.06, and birth dates from 0.38 to
+0.00. Adding the benchmark's descriptions to a single extraction pass raised its score from 0.234 to 0.560, larger than
+any scheduling or budget effect we measured.
+
+![Figure 12. Share of cells correct with and without field descriptions.](figures/w6_specification.png){width=6.5in}
+
+*What this lets you decide.* Describing each column (its unit, its format, what to write when the document is silent)
+comes before any scheduling or budgeting decision. The columns that need it most are the ones flagged by disagreement
+between prompts, and categories whose labels the model draws differently from the data.
+
 # What carries over to other problems
 
 Several of these findings are instances of ideas known in other areas, and the comparison shows what is new about an
@@ -352,8 +380,8 @@ in time changed its values.
 answering and behind inter-annotator agreement in crowdsourcing. Our results show it works at the level of a column,
 across prompts and across systems: our disagreement predicts DocETL's accuracy. They also show the known limit of
 agreement among annotators who share a bias. On categories both prompts make the same coarse choice, so agreement does
-not mean correctness. This is the one transfer we tested directly; the others in this section are arguments by
-analogy.
+not mean correctness. This, and the aggregate and label patterns below, are the transfers we tested directly on
+DocETL; the others in this section are arguments by analogy.
 
 *Measurement error in aggregates.* The aggregate results are robust statistics in another guise. A maximum depends on a
 single observation, so one inflated value decides it; a minimum is safe when errors only push values up; averages and
@@ -364,9 +392,8 @@ model can predict which aggregates to trust from the direction and kind of the l
 sources agree on a canonical key before they can be linked. Extraction by an LLM reproduces the problem inside one
 system as soon as keys are extracted more than once.
 
-*Data documentation.* The largest effect in the study came from describing each column. For an LLM reader, schema
-documentation is not optional metadata but the main input that decides accuracy, which argues for treating column
-descriptions as part of the schema in any system that extracts structured data with a model.
+*Data documentation.* Describing each column had the largest effect in the study, which UDA-Bench had already shown for
+DocETL. For an LLM reader, schema documentation is not optional metadata but an input that decides accuracy.
 
 # Open questions
 
@@ -375,7 +402,8 @@ on artists, and we do not know why the direction depends on the corpus. Grouping
 but barely for the 7B model. We cannot yet say how much of the medical corpus's prompt sensitivity comes from each of
 the three properties listed above, or what the best achievable budget policy is. The findings also have not been
 tested beyond five corpora and three models, or on a different split of the workload into known and later queries.
-Of the transfers to other areas, only the one about agreement has been tested outside our system, on DocETL.
+The explanations have been tested as predictions of DocETL's failures, but not yet as changes to DocETL: whether
+sharing one prompt per column, extracting join keys once, or batching upcoming columns improves DocETL needs new runs.
 
 # Methods
 
@@ -394,12 +422,14 @@ predicted label to the gold group that most of its rows belong to, and classifie
 in another form, merged into another group's label, or empty. The pacing analysis compares each paced stream with
 the first-come stream at the same budget and drift level, query by query, and records whether the two held the same
 needed columns when the query arrived. The disagreement check compares, for every cell of the 41 new columns, the
-served value with the build's value and with gold. The DocETL comparison pools every non-empty value DocETL produced
+served value with the build's value and with gold. The DocETL comparisons pool every non-empty value DocETL produced
 for a column across its per-query outputs (a query that did not process a document leaves it empty), and measures its
 disagreement on documents that two or more queries extracted. The need analysis counts the schema columns that any
 benchmark query uses and, in the fully drifted stream, how often a new column is asked for again. The within-corpus
 query comparison subtracts each corpus's mean score at the same drift level before averaging by aggregate or by kind
-of GROUP BY column.
+of GROUP BY column. For DocETL, the same label, aggregate and within-corpus analyses run on its per-query
+outputs and scores for the queries in the current catalogue; labels are compared on non-empty rows, because DocETL fills
+a column only for the documents a query's filters keep. Label comparisons treat numbers as numbers in both systems.
 
 # Appendix: example test queries
 
