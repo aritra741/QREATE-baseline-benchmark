@@ -3,21 +3,22 @@ title: "Why the system behaves the way it does"
 ---
 
 The system builds a database from documents with an LLM. Before queries arrive, it reads every document once for the
-columns its known workload uses (the build). When a later query needs a column the build skipped, it extracts that
-column on demand, only for the documents the query can select, and keeps the result for later queries. Workload drift
-of p% means that p% of the columns needed by the test queries were left out of the build. We use five corpora
+columns its known workload uses (the *build*). When a later query needs a column the build skipped, it extracts that
+column *on demand*, only for the documents the query can select, and keeps the result for later queries. *Workload
+drift* of p% means that p% of the columns needed by the test queries were left out of the build. We use five corpora
 (research papers, basketball players, artists, medical documents and court judgments), Qwen 2.5 7B as the main model,
 and Qwen 2.5 32B for some comparisons. A query's score is the product of structure F2 and cell F1, averaged over
 queries.
 
-The sections below take the main observations from the experiments and ask why each one holds.
+The sections below take the main observations from the experiments and ask why each one holds, starting with the
+ones that matter most.
 
 # Why does on-demand extraction match the accuracy of extracting everything up front?
 
-Extraction timing turns out to be irrelevant. What matters is the prompt. Drift only changes which prompt reads a
+**Extraction timing turns out to be irrelevant; what matters is the prompt.** Drift only changes which prompt reads a
 column: the build asks for all of a table's new columns at once, while an on-demand extraction asks for one to three.
 To test this we re-ran the fully drifted workloads with every on-demand extraction given exactly the build's prompt.
-396 of the 397 queries then scored the same as when everything was extracted up front. The remaining query differs
+**396 of the 397 queries then scored the same as when everything was extracted up front.** The remaining query differs
 because of how values are mapped to the workload's vocabulary when results are served, not because of extraction.
 
 The small gaps we saw earlier between up-front and on-demand scores are therefore prompt effects. With the 7B model
@@ -34,15 +35,15 @@ control is prompt design.
 
 # Why is reading a column up front so much cheaper than extracting it later?
 
-Anticipating a column costs 2.7 to 5.9 times less than extracting it on demand, and the break-even probability (the
-chance a future query needs a column above which it is worth reading up front) ranges from 1.3% to 13%. Both follow
-from where the tokens go. Every extraction prompt contains the whole document. Adding one column to a build prompt that
-is sent anyway costs only the column's description and its answer, 84 tokens at the median. Extracting the column
-later pays for the document again, a median of 745 to 9,537 tokens depending on the corpus, plus 66 tokens of
+Anticipating a column costs 2.7 to 5.9 times less than extracting it on demand, and the *break-even probability* (the
+chance a future query needs a column above which it is worth reading up front) ranges from 1.3% to 13%. **Both follow
+from where the tokens go: every extraction prompt contains the whole document.** Adding one column to a build prompt
+that is sent anyway costs only the column's description and its answer, 84 tokens at the median. Extracting the
+column later pays for the document again, a median of 745 to 9,537 tokens depending on the corpus, plus 66 tokens of
 instructions. The break-even probability should then be close to the ratio of description tokens to document tokens.
 
-A model built only from these token counts predicts the measured break-even within about 30% on every corpus and puts
-the corpora in the right order:
+**A model built only from these token counts predicts the measured break-even within about 30% on every corpus** and
+puts the corpora in the right order:
 
 | Corpus | Median document (tokens) | Predicted | Measured |
 |---|---|---|---|
@@ -65,11 +66,11 @@ most.
 # Why can't a budget policy beat extracting whatever fits, first come, first served?
 
 We tried pacing the budget, capping any single extraction, skipping extractions that bought nothing in hindsight, and
-an offline plan that knew the whole workload in advance. None was reliably better than first come, first served. The
-main reason is that an extraction's value mostly arrives later. Across the five corpora, 54% to 97% of the score gain
-from an extraction goes to later queries that reuse the column, rather than to the query that triggered it (97% on
-research papers, 54% on court judgments). Several extractions do nothing for their own query and a lot for later
-ones. A policy deciding when a query arrives cannot see this.
+an offline plan that knew the whole workload in advance. None was reliably better than first come, first served.
+**The main reason is that an extraction's value mostly arrives later.** Across the five corpora, 54% to 97% of the
+score gain from an extraction goes to later queries that reuse the column, rather than to the query that triggered it
+(97% on research papers, 54% on court judgments). Several extractions do nothing for their own query and a lot for
+later ones. A policy deciding when a query arrives cannot see this.
 
 ![Figure 3. Share of each extraction's score gain that goes to its own query and to later
 queries.](figures/w3_value_timing.png){width=6.5in}
@@ -80,18 +81,19 @@ served the same query almost always costs the same as without a budget (94% to 1
 removes an extraction's predecessors its cost can jump. In one case it went from 1 document to 29 and no longer fit.
 
 So budgeted extraction is a sequential problem in which value is deferred and shared between queries. A useful policy
-would need to forecast which columns future queries will use. Estimating each extraction's value on its own is not
+would need to forecast which columns future queries will use; estimating each extraction's value on its own is not
 enough. The policy comparison covers three corpora so far, with medical and legal still running, and we do not yet
 have a true upper bound for budget policies.
 
 # Why do field descriptions matter more than anything else we changed?
 
-Most extraction errors come from the specification rather than from reading. Given only a column name, the model often
-does not know what to write, whether that is a count, a list of years, or a date in a particular format. It leaves the
-cell empty or writes the value in another form. Without descriptions in the on-demand prompts, a count of FIBA World
-Cup appearances falls from 0.86 to 0.01 correct because the model leaves it empty. An artist's award count falls from
-0.74 to 0.06, and birth dates from 0.38 to 0.00 because they come back in a different format. Adding the benchmark's
-descriptions to a single extraction pass raised its score from 0.234 to 0.560, the largest effect in the whole study.
+**Most extraction errors come from the specification rather than from reading.** Given only a column name, the model
+often does not know what to write, whether that is a count, a list of years, or a date in a particular format. It
+leaves the cell empty or writes the value in another form. Without descriptions in the on-demand prompts, a count of
+FIBA World Cup appearances falls from 0.86 to 0.01 correct because the model leaves it empty. An artist's award count
+falls from 0.74 to 0.06, and birth dates from 0.38 to 0.00 because they come back in a different format. **Adding the
+benchmark's descriptions to a single extraction pass raised its score from 0.234 to 0.560, the largest effect in the
+whole study.**
 
 ![Figure 4. Share of cells correct with and without field descriptions.](figures/w6_specification.png){width=6.5in}
 
@@ -102,16 +104,16 @@ causal test of rewriting ambiguous descriptions and measuring the gain.
 
 # Why are some columns, and some corpora, so sensitive to the prompt?
 
-When a document states a value plainly, as with a number or a yes/no answer, any reasonable prompt returns it. When
-the document does not settle the answer, for example a disease's causes, a party's status, or a value it never
-mentions, the prompt decides. It does this through how readily the model leaves a cell empty and through the example
-values the prompt shows.
+When a document states a value plainly, as with a number or a yes/no answer, any reasonable prompt returns it. **When
+the document does not settle the answer, the prompt decides.** Examples are a disease's causes, a party's status, or a
+value the document never mentions. The prompt decides through how readily the model leaves a cell empty and through
+the example values it shows.
 
 We measured, for each column the test queries need, how often the build's prompt and the on-demand prompt give
-different values for the same document. Across 41 columns this disagreement is a strong predictor of error (Spearman
-−0.76). Numbers disagree on 9% of cells, yes/no columns on 24%, free text on 47% and categories on 60%. No column with
-more than about 55% disagreement is right more than 60% of the time. The reverse does not hold: some columns are
-consistent and still wrong because both prompts make the same formatting error.
+different values for the same document. **Across 41 columns this disagreement is a strong predictor of error
+(Spearman −0.76).** Numbers disagree on 9% of cells, yes/no columns on 24%, free text on 47% and categories on 60%. No
+column with more than about 55% disagreement is right more than 60% of the time. The reverse does not hold: some
+columns are consistent and still wrong because both prompts make the same formatting error.
 
 ![Figure 5. Disagreement between two prompts against accuracy, one point per column.](figures/w4_determinacy.png){width=6.5in}
 
@@ -125,7 +127,7 @@ look, before any gold data exists.
 
 # Why does extracting a column for more documents sometimes make answers worse?
 
-When a column does not apply to a document, the model rarely leaves it empty, especially when the schema says the
+**When a column does not apply to a document, the model rarely leaves it empty**, especially when the schema says the
 column is never null. Extracting "agent framework" for every paper assigned one to 82 papers that have none. The
 budgeted run extracted it only for the papers earlier queries had selected, and was more accurate. More generally, a
 budgeted run beats the unlimited one on 8 to 31 queries per corpus, and nearly all of those queries were answered
@@ -137,11 +139,23 @@ Limiting extraction to documents where a column applies is therefore a matter of
 rests on case evidence and an oracle measurement; we have not yet counted invented values against applicability in a
 controlled way.
 
+# Why does a cost-based extraction planner fall short of one shared extraction pass?
+
+**The planner estimates its loss as disagreement with each query's own extraction, which means it treats its own
+extractions as correct.** It cannot tell that a shared extraction is more accurate, and once its extractions agree with
+each other it sees nothing left to gain. It also values columns one at a time, while a missing join key makes the
+whole query fail. On basketball players its best configuration reaches 0.42, against 0.56 for one shared pass with
+descriptions. At the full budget it plans only 4.9M of the 10.6M available tokens because its estimated loss is
+already 0.027 per query.
+
+We know the cause but have not built a planner with a different objective. Such a planner would need some estimate of
+accuracy, for instance from a small labelled sample or from the disagreement between prompts described above.
+
 # Why does DocETL fail on queries that join tables?
 
 DocETL extracts each table separately for each query. On basketball players its scores drop from 0.125 for queries
-without joins to 0.034 with one join and 0.008 with two or more. A join only matches rows whose keys agree, and keys
-extracted independently mostly do not. In DocETL's per-query tables, 18% of player rows find their team and 19% of
+without joins to 0.034 with one join and 0.008 with two or more. **A join only matches rows whose keys agree, and keys
+extracted independently mostly do not.** In DocETL's per-query tables, 18% of player rows find their team and 19% of
 team rows find their city. In our build the figures are 75% and 97%, and in the gold data 63% and 93% (the gold data
 contains players whose team has no row of its own). Our build extracts each table's keys once with the same field
 definitions, and later queries reuse them.
@@ -149,17 +163,6 @@ definitions, and later queries reuse them.
 ![Figure 6. Share of rows whose join key finds a partner in the joined table.](figures/w5_join_keys.png){width=6.5in}
 
 Basketball players is the only corpus with joins, so this rests on one corpus.
-
-# Why does a cost-based extraction planner fall short of one shared extraction pass?
-
-The planner estimates its loss as disagreement with each query's own extraction, which means it treats its own
-extractions as correct. It cannot tell that a shared extraction is more accurate, and once its extractions agree with
-each other it sees nothing left to gain. It also values columns one at a time, while a missing join key makes the
-whole query fail. On basketball players its best configuration reaches 0.42, against 0.56 for one shared pass with
-descriptions. At the full budget it plans only 4.9M of the 10.6M available tokens because its estimated loss is
-already 0.027 per query. We know the cause but have not built a planner with a different objective. Such a planner
-would need some estimate of accuracy, for instance from a small labelled sample or from disagreement between prompts
-as in the previous section.
 
 # Open questions
 
