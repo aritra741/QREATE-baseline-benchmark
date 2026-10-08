@@ -18,8 +18,10 @@ ones that matter most.
 **Extraction timing turns out to be irrelevant; what matters is the prompt.** Drift only changes which prompt reads a
 column: the build asks for all of a table's new columns at once, while an on-demand extraction asks for one to three.
 To test this we re-ran the fully drifted workloads with every on-demand extraction given exactly the build's prompt.
-**396 of the 397 queries then scored the same as when everything was extracted up front.** The remaining query differs
-because of how values are mapped to the workload's vocabulary when results are served, not because of extraction.
+**463 of the 467 queries then scored the same as when everything was extracted up front.** One of the remaining
+queries (research papers) differs because of how values are mapped to the workload's vocabulary when results are
+served, not because of extraction. The other three are on the medical (2 of 43) and legal (1 of 27) corpora, and we
+have not yet traced them.
 
 The small gaps we saw earlier between up-front and on-demand scores are therefore prompt effects. With the 7B model
 they are too small to be significant. With the 32B model they are not: on research papers the on-demand score is 0.062
@@ -29,8 +31,7 @@ together with six other columns, the model leaves it empty for 64% of papers; as
 ![Figure 1. Scores with everything extracted up front, with on-demand extraction, and with on-demand extraction using
 the build's prompt.](figures/w1_when_vs_how.png){width=6.5in}
 
-This holds on three corpora with the 7B model and on two with the 32B model. The same test on the medical and legal
-corpora is still running. In practice, a system can defer extraction without losing accuracy, and the thing to
+This holds on all five corpora with the 7B model and on two with the 32B model. In practice, a system can defer extraction without losing accuracy, and the thing to
 control is prompt design.
 
 # Why do queries fail, and does it depend on the kind of query?
@@ -45,12 +46,31 @@ distinct values in the extracted table with the number in the gold table. In 59%
 fewer distinct values, and in only 11% it has more. The collapse is strongest on research papers (median ratio 0.67)
 and medical documents (0.75), and absent on basketball players and court judgments (1.0), which matches how the
 corpora rank overall. The more groups a gold answer has, the more of them are missed: 47% of queries with one to
-three gold groups return too few, against 81% of queries with more than thirty. A label collapses when the model writes
-several gold categories the same way or leaves the value empty so that the row drops out of every group. We have not
-yet separated these two cases.
+three gold groups return too few, against 81% of queries with more than thirty.
 
 ![Figure 2. (a) Distinct values in the extracted GROUP BY column relative to gold. (b) Share of queries returning too
 few groups, by the number of groups in the gold answer.](figures/b7_label_collapse.png){width=6.5in}
+
+To see how labels collapse we followed every gold row of every GROUP BY column (17,021 rows) into the extracted table.
+45% get the exact gold label. 22% get a label of their own that is spelled differently, so the group survives under
+another name. **24% are merged into a label that mostly belongs to a different gold group, and only 9% are left
+empty.** Groups therefore disappear mainly because the model draws category boundaries more coarsely than the gold
+data, not because it fails to answer.
+
+**Whether a column collapses depends on what kind of value it holds.** GROUP BY columns that hold numbers or years keep
+the exact label for 94% of rows, because a number has one obvious way to be written and no boundary to choose. Free
+categories keep it for 49%, and the merges follow the model's own idea of the categories: on artists, "20th century"
+absorbs the gold groups "19th-20th" and "20th-21st", and on court judgments one case-type label holds 235
+administrative, 155 civil and 56 commercial cases. Two-valued columns (yes/no, 0/1) merge 24% of rows, almost always
+into the majority answer: "is this the first judgment in the case?" is answered "0" for 261 judgments that are not and
+212 that are. Lists of values do worst (29% exact, 32% merged), because the model keeps one item of a list such as "oral,
+intravenous" and so joins the group of that single item. This also explains the corpus differences. Medical columns
+are mostly lists and free-text categories, and 44% of their rows get a differently spelled label and 19% none, the
+highest of any corpus. Basketball players group mostly by short factual values such as team and position and keep 79%
+exact.
+
+![Figure 3. Where each gold row of a GROUP BY column ends up in the extracted table, by kind of column (a) and by
+corpus (b), at 100% drift.](figures/b8_label_fate.png){width=6.5in}
 
 The aggregate matters as much as the grouping. AVG queries score 0.38, SUM and MIN 0.32, COUNT 0.21 and MAX 0.17, and
 **this ordering is the same at every drift level**, so it is a property of the aggregate rather than of drift. It
@@ -62,10 +82,10 @@ both directions (21% too high, 20% too low), because one inflated value anywhere
 COUNT is within 20% in only 42% of groups, too low in 33% and too high in 25%, because every row whose label is
 missing or merged moves a count. That is the same label collapse as above.
 
-![Figure 3. Mean score by aggregate across drift levels, with on-demand extraction (a) and the static build
+![Figure 4. Mean score by aggregate across drift levels, with on-demand extraction (a) and the static build
 (b).](figures/b1_aggregate_drift.png){width=6.5in}
 
-![Figure 4. Aggregate values in matched groups at 100% drift: too low, within 20% of gold, or too
+![Figure 5. Aggregate values in matched groups at 100% drift: too low, within 20% of gold, or too
 high.](figures/b6_aggregate_direction.png){width=6.5in}
 
 Filters and joins follow the same logic. Queries with no filter score lowest (0.23, against 0.29 with one filter),
@@ -102,7 +122,7 @@ puts the corpora in the right order:
 On papers and artists the measured value is higher than predicted because on-demand extractions there read only the
 documents a query's filters select, which the model ignores.
 
-![Figure 5. Left: composition of one extraction prompt at each corpus's median document length. Right: predicted and
+![Figure 6. Left: composition of one extraction prompt at each corpus's median document length. Right: predicted and
 measured break-even probability.](figures/w2_cost_mechanism.png){width=6.5in}
 
 For corpora with long documents this means almost any plausibly useful column is worth extracting up front, since the
@@ -112,24 +132,48 @@ most.
 # Why can't a budget policy beat extracting whatever fits, first come, first served?
 
 We tried pacing the budget, capping any single extraction, skipping extractions that bought nothing in hindsight, and
-an offline plan that knew the whole workload in advance. None was reliably better than first come, first served.
+an offline plan that knew the whole workload in advance, on all five corpora. None was reliably better than first
+come, first served. The best gain of any policy on any corpus is 0.005 in mean score, and every policy that does not
+use hindsight loses on at least one corpus (pacing by 0.010 on basketball players, the offline plan by 0.008 on
+research papers). Skipping extractions that bought nothing in hindsight keeps the score and only saves tokens (up to
+17% on medical).
 **The main reason is that an extraction's value mostly arrives later.** Across the five corpora, 54% to 97% of the
 score gain from an extraction goes to later queries that reuse the column, rather than to the query that triggered it
 (97% on research papers, 54% on court judgments). Several extractions do nothing for their own query and a lot for
 later ones. A policy deciding when a query arrives cannot see this.
 
-![Figure 6. Share of each extraction's score gain that goes to its own query and to later
+![Figure 7. Share of each extraction's score gain that goes to its own query and to later
 queries.](figures/w3_value_timing.png){width=6.5in}
+
+**Capping the size of an extraction always loses (by 0.006 to 0.029), because the largest extractions are the most
+valuable ones.** In the unlimited runs the rank correlation between an extraction's token cost and its total value is
+0.28 to 0.63 on four corpora. A large extraction reads a column for many documents, and many later queries reuse it.
+The cap costs least on research papers, the one corpus where size and value are unrelated (correlation −0.01), and
+most on basketball players.
+
+**Pacing does not drop extractions, it delays them, so whether it helps depends on two opposing effects.** 89% to
+100% of the extractions that pacing skips are made later in the same stream, reading the same documents. The delay
+has a predictable cost: queries that arrive while the column is still missing get worse. Among queries where the two
+policies hold different columns, pacing loses on four of five corpora (on research papers 8 such queries get worse
+and none better). The second effect is not predictable. Once both policies hold the column, its values still differ,
+because the delayed extraction ran in a different prompt, next to different columns. These queries move in both
+directions and, summed, favour pacing on four corpora and strongly disfavour it on basketball players (49 better, 108
+worse). The two effects add up to the observed sign on every corpus: pacing helps on artists, research papers and
+medical, and hurts on basketball players and court judgments. **So pacing wins only when re-extracting a column in
+different company happens to improve its values by more than the delay costs.** This is the prompt sensitivity of the
+section on prompts below, appearing through the budget, and it explains why no policy that reasons only about cost
+and timing can win reliably.
 
 The offline plan fails for an additional reason: an extraction's cost depends on what was extracted before it. Earlier
 extractions make filter columns available, which narrows the documents later extractions read. Under first come, first
 served the same query almost always costs the same as without a budget (94% to 100% of cases), but once the plan
 removes an extraction's predecessors its cost can jump. In one case it went from 1 document to 29 and no longer fit.
 
-So budgeted extraction is a sequential problem in which value is deferred and shared between queries. A useful policy
-would need to forecast which columns future queries will use; estimating each extraction's value on its own is not
-enough. The policy comparison covers three corpora so far, with medical and legal still running, and we do not yet
-have a true upper bound for budget policies.
+So budgeted extraction is a sequential problem in which value is deferred and shared between queries, and in which
+moving an extraction changes its values as well as its timing. A useful policy would need to forecast which columns
+future queries will use and keep each column's extraction prompt fixed; estimating each extraction's value on its own
+is not enough. We do not yet have a true upper bound for budget policies, and we have not explained why the value
+effect turns against pacing on basketball players.
 
 # Why do field descriptions matter more than anything else we changed?
 
@@ -141,7 +185,7 @@ falls from 0.74 to 0.06, and birth dates from 0.38 to 0.00 because they come bac
 benchmark's descriptions to a single extraction pass raised its score from 0.234 to 0.560, the largest effect in the
 whole study.**
 
-![Figure 7. Share of cells correct with and without field descriptions.](figures/w6_specification.png){width=6.5in}
+![Figure 8. Share of cells correct with and without field descriptions.](figures/w6_specification.png){width=6.5in}
 
 The same problem shows up in values that are right in substance but wrong in form. On one artist column, values agree
 with the gold data 92% of the time if we ignore case, punctuation and list order, but only 13% of the time exactly,
@@ -161,7 +205,7 @@ different values for the same document. **Across 41 columns this disagreement is
 column with more than about 55% disagreement is right more than 60% of the time. The reverse does not hold: some
 columns are consistent and still wrong because both prompts make the same formatting error.
 
-![Figure 8. Disagreement between two prompts against accuracy, one point per column.](figures/w4_determinacy.png){width=6.5in}
+![Figure 9. Disagreement between two prompts against accuracy, one point per column.](figures/w4_determinacy.png){width=6.5in}
 
 The medical corpus, whose columns are mostly descriptive judgments, stands out. Its two prompts disagree on 75% of
 cells, against 28% to 34% for papers, artists and court judgments and 10% for basketball players. Document length
@@ -206,7 +250,7 @@ team rows find their city. In our build the figures are 75% and 97%, and in the 
 contains players whose team has no row of its own). Our build extracts each table's keys once with the same field
 definitions, and later queries reuse them.
 
-![Figure 9. Share of rows whose join key finds a partner in the joined table.](figures/w5_join_keys.png){width=6.5in}
+![Figure 10. Share of rows whose join key finds a partner in the joined table.](figures/w5_join_keys.png){width=6.5in}
 
 Basketball players is the only corpus with joins, so this rests on one corpus.
 
@@ -230,7 +274,11 @@ values with the gold data per column; determinacy uses the 41 columns with at le
 checks, for each basketball-player query with a join, how many rows' keys appear in the joined table. The query
 breakdown uses, for every test query and drift level, its structure and value scores and its predicted and gold row
 counts; the label analysis counts distinct values per GROUP BY column in the served and gold tables, and the aggregate
-analysis runs each query on both and compares values in groups matched by key.
+analysis runs each query on both and compares values in groups matched by key. The label-fate analysis assigns each
+predicted label to the gold group that most of its rows belong to, and classifies every gold row as exact, own label
+in another form, merged into another group's label, or empty. The pacing analysis compares each paced stream with
+the first-come stream at the same budget and drift level, query by query, and records whether the two held the same
+needed columns when the query arrived.
 
 # Appendix: example test queries
 

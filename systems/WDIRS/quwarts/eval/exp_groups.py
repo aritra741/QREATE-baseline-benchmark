@@ -145,5 +145,58 @@ def main() -> dict:
     return out
 
 
+def fate() -> dict:
+    """Where each gold row of a GROUP BY column ends up in the last served view of the 100% stream:
+    exact label, its own label in another form (one-to-one but not string-equal), merged into a label that
+    mostly holds another gold group, or left empty. Adds "label_fate" and merge examples to groups.json."""
+    from collections import Counter
+
+    from quwarts.core.adapt import controller as C
+    from quwarts.eval.exp_analysis import gold_by_doc, is_null
+
+    data = json.loads(OUT.read_text())
+    cols = sorted({(r["corpus"], r["column"]) for r in data["distinct"]})
+    tot, per, merges, bykind = Counter(), defaultdict(Counter), defaultdict(list), defaultdict(Counter)
+    for c, col in cols:
+        t, a = col.split(".", 1)
+        gold = gold_by_doc(c).get(t, {})
+        st = streams(c)["fixed4-attribute_pool/100"]
+        try:
+            pv = {C._doc_name(x): y for x, y in
+                  sqlite3.connect(view(c, "fixed4-attribute_pool/100", st[-1]["pos"])).execute(
+                      f'SELECT doc_id,"{a}" FROM "{t}"')}
+        except sqlite3.Error:
+            continue
+        pairs = [(norm(g[a]), norm(pv.get(doc, pv.get(doc.rsplit(".", 1)[0]))))
+                 for doc, g in gold.items() if a in g and not is_null(g[a])]
+        gd = {g for g, _ in pairs}
+        kind = ("two-valued" if len(gd) <= 2 else
+                "multi-valued" if sum("||" in g for g, _ in pairs) > 0.1 * len(pairs) else
+                "numeric" if sum(num(g) is not None for g, _ in pairs) > 0.9 * len(pairs) else "categorical")
+        by = defaultdict(Counter)
+        for g, p in pairs:
+            if p is not None:
+                by[p][g] += 1
+        owner = {p: cnt.most_common(1)[0][0] for p, cnt in by.items()}
+        for g, p in pairs:
+            k = ("empty" if p is None else "exact" if p == g else "other_form" if owner[p] == g else "merged")
+            tot[k] += 1
+            per[c][k] += 1
+            bykind[kind][k] += 1
+        for p, cnt in by.items():
+            if len(cnt) > 1 and sum(cnt.values()) >= 5:
+                merges[c].append({"column": col, "label": p, "gold_labels": dict(cnt.most_common(4)),
+                                  "rows": sum(cnt.values())})
+    share = lambda cn: {k: round(v / sum(cn.values()), 3) for k, v in cn.most_common()}  # noqa: E731
+    out = {"rows": sum(tot.values()), "all": share(tot), "per_corpus": {c: share(cn) for c, cn in per.items()},
+           "per_column_kind": {k: {"rows": sum(cn.values()), **share(cn)} for k, cn in bykind.items()},
+           "merge_examples": {c: sorted(m, key=lambda x: -x["rows"])[:8] for c, m in merges.items()}}
+    data["summary"]["label_fate"] = out
+    OUT.write_text(json.dumps(data, indent=1))
+    return out
+
+
 if __name__ == "__main__":
-    print(json.dumps(main(), indent=1))
+    import sys
+
+    print(json.dumps(fate() if "--fate" in sys.argv else main(), indent=1))

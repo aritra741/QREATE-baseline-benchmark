@@ -82,6 +82,436 @@
     "columns": 22,
     "median_ratio": 1.0
    }
+  },
+  "label_fate": {
+   "rows": 17021,
+   "all": {
+    "exact": 0.448,
+    "merged": 0.241,
+    "other_form": 0.218,
+    "empty": 0.094
+   },
+   "per_corpus": {
+    "art": {
+     "exact": 0.324,
+     "merged": 0.294,
+     "other_form": 0.286,
+     "empty": 0.096
+    },
+    "cspaper": {
+     "exact": 0.672,
+     "merged": 0.248,
+     "empty": 0.058,
+     "other_form": 0.022
+    },
+    "legal": {
+     "exact": 0.687,
+     "merged": 0.145,
+     "other_form": 0.086,
+     "empty": 0.082
+    },
+    "med": {
+     "other_form": 0.442,
+     "empty": 0.19,
+     "exact": 0.19,
+     "merged": 0.179
+    },
+    "player": {
+     "exact": 0.791,
+     "empty": 0.109,
+     "other_form": 0.081,
+     "merged": 0.02
+    }
+   },
+   "per_column_kind": {
+    "multi-valued": {
+     "rows": 4166,
+     "other_form": 0.34,
+     "merged": 0.324,
+     "exact": 0.289,
+     "empty": 0.048
+    },
+    "categorical": {
+     "rows": 9826,
+     "exact": 0.492,
+     "merged": 0.219,
+     "other_form": 0.148,
+     "empty": 0.141
+    },
+    "two-valued": {
+     "rows": 2416,
+     "exact": 0.418,
+     "other_form": 0.338,
+     "merged": 0.245
+    },
+    "numeric": {
+     "rows": 613,
+     "exact": 0.935,
+     "other_form": 0.028,
+     "empty": 0.023,
+     "merged": 0.015
+    }
+   },
+   "merge_examples": {
+    "art": [
+     {
+      "column": "art.teaching",
+      "label": "0.0",
+      "gold_labels": {
+       "0": 527,
+       "1": 21
+      },
+      "rows": 548
+     },
+     {
+      "column": "art.birth_continent",
+      "label": "europe",
+      "gold_labels": {
+       "europe": 501,
+       "north america": 4,
+       "south america": 1,
+       "oceania": 1
+      },
+      "rows": 507
+     },
+     {
+      "column": "art.teaching",
+      "label": "1.0",
+      "gold_labels": {
+       "0": 289,
+       "1": 163
+      },
+      "rows": 452
+     },
+     {
+      "column": "art.century",
+      "label": "20th",
+      "gold_labels": {
+       "20th-21st": 151,
+       "20th": 150,
+       "19th-20th": 142,
+       "19th": 2
+      },
+      "rows": 445
+     },
+     {
+      "column": "art.composition",
+      "label": "dynamic diagonal composition",
+      "gold_labels": {
+       "asymmetrical": 37,
+       "balanced": 33,
+       "dynamic": 24,
+       "geometric": 14
+      },
+      "rows": 356
+     },
+     {
+      "column": "art.birth_continent",
+      "label": "north america",
+      "gold_labels": {
+       "north america": 298,
+       "europe": 5,
+       "south america": 2
+      },
+      "rows": 305
+     },
+     {
+      "column": "art.nationality",
+      "label": "american",
+      "gold_labels": {
+       "american": 243,
+       "united states": 6,
+       "african-american": 3,
+       "american||jewish": 2
+      },
+      "rows": 269
+     },
+     {
+      "column": "art.field",
+      "label": "painting",
+      "gold_labels": {
+       "painting": 104,
+       "painting||engraving": 2,
+       "painting||portraiture": 2,
+       "painting||lithography": 2
+      },
+      "rows": 150
+     }
+    ],
+    "cspaper": [
+     {
+      "column": "cspaper.topic",
+      "label": "retrieval-augmented generation",
+      "gold_labels": {
+       "retrieval-augmented generation": 193,
+       "no": 1
+      },
+      "rows": 194
+     },
+     {
+      "column": "cspaper.uses_reranker",
+      "label": "no",
+      "gold_labels": {
+       "no": 132,
+       "yes": 57,
+       "text": 1
+      },
+      "rows": 190
+     },
+     {
+      "column": "cspaper.use_agent",
+      "label": "no",
+      "gold_labels": {
+       "no": 150,
+       "yes": 35
+      },
+      "rows": 185
+     },
+     {
+      "column": "cspaper.reasoning_depth",
+      "label": "multi-hop",
+      "gold_labels": {
+       "multi-hop": 84,
+       "single-hop": 57,
+       "single-hop|| multi-hop": 1
+      },
+      "rows": 142
+     },
+     {
+      "column": "cspaper.retrieval_method",
+      "label": "dense retrieval",
+      "gold_labels": {
+       "dense retrieval": 66,
+       "hybrid retrieval": 12,
+       "other": 5,
+       "dense retrieval|| sparse retrieval": 4
+      },
+      "rows": 105
+     },
+     {
+      "column": "cspaper.reasoning_depth",
+      "label": "single-hop",
+      "gold_labels": {
+       "single-hop": 31,
+       "multi-hop": 25
+      },
+      "rows": 56
+     },
+     {
+      "column": "cspaper.retrieval_method",
+      "label": "other",
+      "gold_labels": {
+       "dense retrieval": 16,
+       "web search": 3,
+       "other": 2,
+       "sparse retrieval": 2
+      },
+      "rows": 30
+     },
+     {
+      "column": "cspaper.agent_framework",
+      "label": "other",
+      "gold_labels": {
+       "other": 14,
+       "cot": 7,
+       "multi-agent collaboration": 3,
+       "tot": 1
+      },
+      "rows": 25
+     }
+    ],
+    "legal": [
+     {
+      "column": "legal.evidence",
+      "label": "1",
+      "gold_labels": {
+       "1": 423,
+       "0": 90
+      },
+      "rows": 513
+     },
+     {
+      "column": "legal.first_judge",
+      "label": "0",
+      "gold_labels": {
+       "0": 261,
+       "1": 212
+      },
+      "rows": 473
+     },
+     {
+      "column": "legal.case_type",
+      "label": "civil case",
+      "gold_labels": {
+       "administrative case": 235,
+       "civil case": 155,
+       "commercial case": 56,
+       "criminal case": 4
+      },
+      "rows": 451
+     },
+     {
+      "column": "legal.verdict",
+      "label": "dismissed",
+      "gold_labels": {
+       "dismissed": 300,
+       "others": 10,
+       "approved": 2
+      },
+      "rows": 312
+     },
+     {
+      "column": "legal.judgment_year",
+      "label": "2006",
+      "gold_labels": {
+       "2006": 170,
+       "2007": 2,
+       "2008": 2
+      },
+      "rows": 174
+     },
+     {
+      "column": "legal.defendant_current_status",
+      "label": "government",
+      "gold_labels": {
+       "government": 141,
+       "organization": 10,
+       "company": 5,
+       "chief executive officer": 2
+      },
+      "rows": 163
+     },
+     {
+      "column": "legal.judgment_year",
+      "label": "2007",
+      "gold_labels": {
+       "2007": 148,
+       "2008": 1
+      },
+      "rows": 149
+     },
+     {
+      "column": "legal.verdict",
+      "label": "others",
+      "gold_labels": {
+       "dismissed": 44,
+       "approved": 41,
+       "others": 29,
+       "not guilty": 1
+      },
+      "rows": 116
+     }
+    ],
+    "med": [
+     {
+      "column": "drug.prescription_status",
+      "label": "prescription_only",
+      "gold_labels": {
+       "prescription_only": 37,
+       "over_the_counter": 2,
+       "prescription_only||restricted": 1
+      },
+      "rows": 40
+     },
+     {
+      "column": "drug.administration_route",
+      "label": "oral",
+      "gold_labels": {
+       "oral": 29,
+       "subcutaneous": 2,
+       "oral||intravenous||topical": 1,
+       "oral||nasal": 1
+      },
+      "rows": 36
+     },
+     {
+      "column": "drug.recommended_usage",
+      "label": "take with food",
+      "gold_labels": {
+       "take with or without food": 5,
+       "take with food": 4,
+       "other": 4,
+       "take with or without food||at fixed time": 3
+      },
+      "rows": 21
+     },
+     {
+      "column": "drug.recommended_usage",
+      "label": "swallowed with water",
+      "gold_labels": {
+       "other": 6,
+       "at fixed time": 3,
+       "swallowed with water||take with or without food||at fixed time": 2,
+       "take as prescribed": 1
+      },
+      "rows": 19
+     },
+     {
+      "column": "disease.affected_organs",
+      "label": "joints || nervous system",
+      "gold_labels": {
+       "joints||gums": 1,
+       "intestines||joints||back||mouth||eyes": 1,
+       "joints||big toe||elbow||ankle||wrist": 1,
+       "brain": 1
+      },
+      "rows": 13
+     },
+     {
+      "column": "drug.activation_conditions",
+      "label": "no special condition",
+      "gold_labels": {
+       "no special condition": 10,
+       "requires co-administration with other drugs": 1,
+       "requires stimulation": 1,
+       "other": 1
+      },
+      "rows": 13
+     },
+     {
+      "column": "drug.storage_conditions",
+      "label": "store at room temperature",
+      "gold_labels": {
+       "store at room temperature": 3,
+       "keep tightly closed||store in a tight, light-resistant container||child-resistant closure": 1,
+       "freeze": 1,
+       "store at room temperature||avoid freezing||store below 25c or 77f": 1
+      },
+      "rows": 12
+     },
+     {
+      "column": "drug.administration_route",
+      "label": "intravenous || oral",
+      "gold_labels": {
+       "oral": 4,
+       "injection": 1,
+       "topical||nasal": 1,
+       "intramuscular||intravenous": 1
+      },
+      "rows": 8
+     }
+    ],
+    "player": [
+     {
+      "column": "player.position",
+      "label": "frontcourt",
+      "gold_labels": {
+       "frontcourt": 42,
+       "backcourt": 1
+      },
+      "rows": 43
+     },
+     {
+      "column": "player.position",
+      "label": "backcourt",
+      "gold_labels": {
+       "backcourt": 30,
+       "frontcourt": 3
+      },
+      "rows": 33
+     }
+    ]
+   }
   }
  },
  "distinct": [

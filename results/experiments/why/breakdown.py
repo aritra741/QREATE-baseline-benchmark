@@ -245,5 +245,38 @@ def distinct_labels():
     plt.close(fig)
 
 
+def label_fate():
+    d = gj["label_fate"]
+    NAMES = {"cspaper": "Research papers", "player": "Basketball players", "art": "Artists", "med": "Medical",
+             "legal": "Court judgments", "numeric": "Numbers", "categorical": "Free categories",
+             "two-valued": "Two values (yes/no, 0/1)", "multi-valued": "Lists of values"}
+    parts = (("exact", "Exact gold label", AQUA), ("other_form", "Own label, other form", BLUE),
+             ("merged", "Merged into another group", ORANGE), ("empty", "Left empty", MUTED))
+    fig, (ax, bx) = plt.subplots(2, 1, figsize=(9.5, 5.4), gridspec_kw={"height_ratios": [4, 5]})
+    for a, rows, title in ((ax, [(k, d["per_column_kind"][k]) for k in ("numeric", "categorical", "two-valued", "multi-valued")],
+                            "(a) By kind of GROUP BY column"),
+                           (bx, [(c, d["per_corpus"][c]) for c in CORPORA], "(b) By corpus")):
+        for i, (k, e) in enumerate(rows):
+            left = 0
+            for key, lab, col in parts:
+                v = e.get(key, 0)
+                a.barh(i, v, left=left, color=col, height=0.6, label=lab if (i == 0 and a is ax) else None)
+                if v >= 0.06:
+                    a.text(left + v / 2, i, f"{v:.0%}", ha="center", va="center", fontsize=8.5, color="white")
+                left += v
+        a.set_yticks(range(len(rows)), [NAMES[k] + (f" ({e['rows']:,} rows)" if "rows" in e else "") for k, e in rows])
+        a.invert_yaxis()
+        a.set_xlim(0, 1)
+        a.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+        a.set_title(title, fontsize=10.5, loc="left", color=INK)
+        for sp in ("top", "right"):
+            a.spines[sp].set_visible(False)
+    fig.legend(loc="upper center", ncol=4, fontsize=8.5, frameon=False, bbox_to_anchor=(0.55, 1.0))
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.savefig(HERE / "figures" / "b8_label_fate.png", dpi=180)
+    plt.close(fig)
+
+
 aggregate_direction()
 distinct_labels()
+label_fate()

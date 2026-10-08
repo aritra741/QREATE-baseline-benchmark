@@ -233,11 +233,119 @@ def joinkeys() -> dict:
     return save("joinkeys", {"by_join": by, "per_query": per})
 
 
+def conditions() -> dict:
+    """When pacing (or a per-extraction cap) beats first come, first served. For every budgeted stream, the extractions
+    taken only by one policy, valued by their own + later gain in the unlimited stream at the same drift level; and,
+    per corpus and drift level, how front-loaded value and cost are in the unlimited stream."""
+    out = {"streams": [], "levels": []}
+    for c in CORPORA:
+        rows = list(csv.DictReader(open(EXP / "E2.2-patches" / c / "patches.csv")))
+        unl = [r for r in rows if r["budget"] == ""]
+        for p in (25, 50, 75, 100):
+            u = [r for r in unl if int(r["level"]) == p]
+            src = REPO / "results" / "drift_live_ollama" / c / "streams"
+            n = sum(1 for _ in open(src / f"fixed4-attribute_pool_{p}.jsonl"))
+            val = {r["qid"]: float(r["gain_on_query"]) + float(r["later_gain_sum"]) for r in u}
+            tok = {r["qid"]: int(r["tokens"]) for r in u}
+            tv, tt = sum(max(v, 0) for v in val.values()), sum(tok.values())
+            early = [r for r in u if int(r["pos"]) < n / 4]
+            lv = {"corpus": c, "level": p, "patches": len(u),
+                  "early_value_share": round(sum(max(val[r["qid"]], 0) for r in early) / tv, 3) if tv else None,
+                  "early_token_share": round(sum(tok[r["qid"]] for r in early) / tt, 3) if tt else None,
+                  "top_patch_token_share": round(max(tok.values()) / tt, 3) if tt else None}
+            deltas = {}
+            for pol in ("pace", "cap"):
+                ds = []
+                for b in (10, 25, 50, 75, 100):
+                    f0 = src / f"fixed4b{b:03d}-attribute_pool_{p}.jsonl"
+                    f1 = EXP / f"E3.2-{pol}" / "live" / c / "streams" / f0.name
+                    if not (f0.exists() and f1.exists()):
+                        continue
+                    r0 = [json.loads(x) for x in f0.read_text().splitlines() if x.strip()]
+                    r1 = [json.loads(x) for x in f1.read_text().splitlines() if x.strip()]
+                    t0 = {r["qid"] for r in r0 if r["action"] == "patch"}
+                    t1 = {r["qid"] for r in r1 if r["action"] == "patch"}
+                    d = sum(r["benchmark"] for r in r1) / len(r1) - sum(r["benchmark"] for r in r0) / len(r0)
+                    ds.append(d)
+                    out["streams"].append({"corpus": c, "level": p, "budget": b, "policy": pol, "delta": round(d, 4),
+                                           "only_fcfs": len(t0 - t1), "only_policy": len(t1 - t0),
+                                           "only_fcfs_value": round(sum(val.get(q, 0) for q in t0 - t1), 3),
+                                           "only_policy_value": round(sum(val.get(q, 0) for q in t1 - t0), 3),
+                                           "only_fcfs_mean_pos": round(S.mean(next(r["pos"] for r in r0 if r["qid"] == q) / n
+                                                                              for q in t0 - t1), 3) if t0 - t1 else None,
+                                           "only_policy_mean_pos": round(S.mean(next(r["pos"] for r in r1 if r["qid"] == q) / n
+                                                                                for q in t1 - t0), 3) if t1 - t0 else None})
+                deltas[pol] = round(S.mean(ds), 4) if ds else None
+            lv.update({f"{k}_minus_fcfs": v for k, v in deltas.items()})
+            out["levels"].append(lv)
+    ls = [x for x in out["levels"] if x["early_value_share"] is not None and x["pace_minus_fcfs"] is not None]
+    st = [x for x in out["streams"] if x["policy"] == "pace" and (x["only_fcfs"] or x["only_policy"])]
+    out["summary"] = {
+        "levels": len(ls),
+        "spearman_pace_delta_vs_early_value_minus_cost": spearman(
+            [x["early_value_share"] - x["early_token_share"] for x in ls], [x["pace_minus_fcfs"] for x in ls]),
+        "spearman_pace_delta_vs_early_value": spearman([x["early_value_share"] for x in ls], [x["pace_minus_fcfs"] for x in ls]),
+        "pace_streams_that_differ": len(st),
+        "spearman_pace_delta_vs_value_traded": spearman([x["only_policy_value"] - x["only_fcfs_value"] for x in st],
+                                                        [x["delta"] for x in st]),
+        "sign_agreement_value_traded": round(sum((x["only_policy_value"] - x["only_fcfs_value"]) * x["delta"] > 0 for x in st)
+                                             / max(1, sum(x["delta"] != 0 for x in st)), 3)}
+    return save("conditions", out)
+
+
+def pace_split() -> dict:
+    """Pacing defers rather than drops extractions. For every query whose score differs between pace and fcfs (same
+    budget and drift level): did the two policies hold different sets of the query's needed columns at that point
+    (a deferral effect), or the same set (the columns' values differ, e.g. extracted in another prompt)?
+    Also: share of fcfs-only extractions whose columns pace fetches later, and size vs value in unlimited streams."""
+    from quwarts.core.adapt import controller as C
+
+    out = {}
+    for c in CORPORA:
+        ctx, need = R.context(c), {}
+        k = {"different_columns": [0, 0, 0.0], "same_columns": [0, 0, 0.0]}
+        refetched = skipped = 0
+        for p in (25, 50, 75, 100):
+            for b in (10, 25, 50, 75, 100):
+                f0 = REPO / "results" / "drift_live_ollama" / c / "streams" / f"fixed4b{b:03d}-attribute_pool_{p}.jsonl"
+                f1 = EXP / "E3.2-pace" / "live" / c / "streams" / f0.name
+                if not (f0.exists() and f1.exists()):
+                    continue
+                r0 = [json.loads(x) for x in f0.read_text().splitlines() if x.strip()]
+                r1 = [json.loads(x) for x in f1.read_text().splitlines() if x.strip()]
+                p1 = [r for r in r1 if r["action"] == "patch"]
+                for r in r0:
+                    if r["action"] == "patch" and r["qid"] not in {x["qid"] for x in p1}:
+                        cols = set(r.get("fetched", {}))
+                        skipped += 1
+                        refetched += any(x["pos"] > r["pos"] and cols & set(x.get("fetched", {})) for x in p1)
+                h0, h1 = set(), set()
+                for a, bb in zip(r0, r1):
+                    h0 |= set(a.get("fetched", {})) if a["action"] == "patch" else set()
+                    h1 |= set(bb.get("fetched", {})) if bb["action"] == "patch" else set()
+                    q = a["qid"]
+                    if q not in need:
+                        nd = C.query_attributes(ctx.spec, q, ctx.catalog[q], {q: ctx.catalog[q]})
+                        need[q] = {f"{t}.{x}" for t, xs in nd.items() for x in xs}
+                    d = bb["benchmark"] - a["benchmark"]
+                    if abs(d) < 1e-9:
+                        continue
+                    e = k["different_columns" if (need[q] & h0) != (need[q] & h1) else "same_columns"]
+                    e[0 if d < 0 else 1] += 1
+                    e[2] += d
+        rows = [r for r in csv.DictReader(open(EXP / "E2.2-patches" / c / "patches.csv")) if r["budget"] == ""]
+        out[c] = {"fcfs_only_extractions": skipped, "fetched_later_by_pace": round(refetched / skipped, 3) if skipped else None,
+                  **{kk: {"worse": v[0], "better": v[1], "net_score_sum": round(v[2], 2)} for kk, v in k.items()},
+                  "spearman_tokens_vs_value_unlimited": round(spearman(
+                      [int(r["tokens"]) for r in rows], [float(r["gain_on_query"]) + float(r["later_gain_sum"]) for r in rows]), 2)}
+    return save("pace_split", out)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["cost", "value", "determinacy", "joinkeys"])
+    ap.add_argument("what", choices=["cost", "value", "determinacy", "joinkeys", "conditions", "pace_split"])
     a = ap.parse_args(argv)
-    out = {"cost": cost, "value": value, "determinacy": determinacy, "joinkeys": joinkeys}[a.what]()
+    out = {"cost": cost, "value": value, "determinacy": determinacy, "joinkeys": joinkeys, "conditions": conditions, "pace_split": pace_split}[a.what]()
     s = json.dumps(out, indent=1, default=str)
     print(s[:3000])
     return 0
