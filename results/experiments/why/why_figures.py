@@ -35,10 +35,8 @@ def style(ax):
 
 
 def save(fig, name, title, subtitle=None):
-    fig.suptitle(title, x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
-    if subtitle:
-        fig.text(0.01, 1 - 0.5 / fig.get_figheight(), subtitle, fontsize=9.5, color=INK2, ha="left")
-    fig.tight_layout(rect=(0, 0, 1, 1 - (0.62 if subtitle else 0.42) / fig.get_figheight()))
+    # Titles and subtitles live in the document's captions; the image itself carries none.
+    fig.tight_layout()
     fig.savefig(OUT / name, dpi=180)
     plt.close(fig)
     print(OUT / name)
@@ -124,7 +122,7 @@ def cost():
     ax.set_xlabel("Tokens in one extraction prompt (median document)")
     ax.set_xlim(0, max(doc for _, doc in comps) * 1.55)
     ax.legend(loc="lower right", fontsize=8.5, frameon=False)
-    ax.set_title("Patching pays for the whole document again", fontsize=11, loc="left", color=INK)
+    ax.set_title("(a) Tokens in one extraction prompt", fontsize=10.5, loc="left", color=INK)
     style(ax)
     ax.grid(axis="y", visible=False)
     ax.grid(axis="x", color=GRID)
@@ -145,7 +143,7 @@ def cost():
     bx.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
     bx.set_xlabel("Predicted by the document-token model")
     bx.set_ylabel("Measured break-even probability")
-    bx.set_title("The model predicts when anticipating pays off", fontsize=11, loc="left", color=INK)
+    bx.set_title("(b) Break-even probability", fontsize=10.5, loc="left", color=INK)
     style(bx)
     save(fig, "w2_cost_mechanism.png", "Why anticipating a column is so cheap",
          "Left: prompt composition at each corpus's median document length (measured medians). Right: break-even "
