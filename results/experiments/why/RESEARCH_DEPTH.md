@@ -413,3 +413,27 @@ absolute per-query difference is 0.06. Join queries 0.029 (first run 0.055; orig
 0.23 (0.41; original 0.19). So the headline holds under sampling, +34% to +52% over per-query extraction at a twelfth
 of the calls, while the join improvement is real but its size is within the sampling spread. The paper should report
 both runs.
+
+**I4, the forecast policy and frozen contexts under a budget (level 100, budgets 25% and 50%, five corpora).**
+*The forecast policy never beats first come, first served:* with contexts frozen, forecast − fcfs is −0.011 on
+average over ten streams, 0 wins and 6 losses (by more than 0.002), at 95% of the tokens; the one large loss is
+medical at 50% (−0.055), where skipping an early expensive patch with no known reuse lost the columns that later
+queries needed most. The reason is the one the design of the benchmark forces: under column drift the columns in
+demand are exactly those no known query uses, so a reuse forecast has no history to forecast from until the first
+request, and the first request is itself the best predictor of reuse (57–100% of columns asked once are asked again).
+First come, first served *is* the forecast policy in that regime. Prediction I4 therefore fails, and it fails for a
+reason that generalizes: forecasting pays only where the workload repeats templates (PreView's setting), not where
+it drifts.
+
+*What does move the budget curve is the extraction unit, not the schedule.* Compared on absolute tokens (each
+family's percentage budgets are shares of its own unlimited spend, which differ 3–6×), freezing each table's new
+columns into one prompt dominates the recorded one-prompt-per-query policy on four of five corpora: players 0.348 at
+0.98M tokens against the recorded 0.293 at 2.8M; artists 0.197 at 0.8M against 0.191 at 2.5M; medical 0.122 at 1.2M
+against 0.115 at 13.1M; legal 0.192 at 4.3M (unlimited) against 0.170 at 19.8M. Papers is the exception: equal at
+0.1M tokens (0.131 against 0.120) but the recorded run reaches 0.153 at 1.2M where the frozen one stops at 0.131,
+because grouping lowers the accuracy of papers' most used columns (Section 1). Across the recorded sweep the five
+scheduling policies we tried move the score by at most ±0.01 at a given budget; changing what one prompt asks for
+moves the tokens needed for a given score by 3–10×. That is the cost lemma and the context finding together, and it
+is the budget section's conclusion: *decide the unit of extraction by each column's context effect, then spend first
+come, first served.* `WHY/i4/summary.json`, figure `figures/w12_budget_curves.png`. Pacing with frozen contexts and
+the forecast policy without freezing are still running and will be added.

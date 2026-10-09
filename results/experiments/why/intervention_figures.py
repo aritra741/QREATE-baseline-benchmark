@@ -144,5 +144,34 @@ def frozen_docetl():
     save(fig, "w11_frozen_docetl.png")
 
 
-for fn in (context_intervention, second_looks, frozen_docetl):
+def budget_curves():
+    d = json.loads((EXP / "WHY" / "i4" / "summary.json").read_text())["score_vs_tokens"]
+    names = {"cspaper": "Research papers", "player": "Basketball players", "art": "Artists", "med": "Medical", "legal": "Court judgments"}
+    fig, axes = plt.subplots(1, 5, figsize=(14, 3.4))
+    for ax, c in zip(axes, ["cspaper", "player", "art", "med", "legal"]):
+        cur = d.get(c, {})
+        rec = sorted(cur.get("recorded", []), key=lambda p: p["tokens"])
+        if rec:
+            ax.plot([p["tokens"] / 1e6 for p in rec], [p["score"] for p in rec], marker="o", color=MUTED, label="Recorded: one prompt per query's missing columns")
+        fr = sorted(cur.get("frozen_fcfs", []) + cur.get("frozen_unlimited", []), key=lambda p: p["tokens"])
+        if fr:
+            ax.plot([p["tokens"] / 1e6 for p in fr], [p["score"] for p in fr], marker="o", color=BLUE, label="Frozen context: a table's new columns in one prompt")
+        fo = sorted(cur.get("frozen_forecast", []), key=lambda p: p["tokens"])
+        if fo:
+            ax.plot([p["tokens"] / 1e6 for p in fo], [p["score"] for p in fo], marker="s", linestyle="none", color=ORANGE, label="Frozen context, forecast policy")
+        ax.set_xscale("log")
+        ax.set_title(names[c], fontsize=10, loc="left", color=INK)
+        ax.set_xlabel("Tokens spent on extraction (millions, log)")
+        if c == "cspaper":
+            ax.set_ylabel("Mean query score")
+        style(ax)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=3, fontsize=8.5, frameon=False, bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    fig.savefig(OUT / "w12_budget_curves.png", dpi=180)
+    plt.close(fig)
+    print(OUT / "w12_budget_curves.png")
+
+
+for fn in (context_intervention, second_looks, frozen_docetl, budget_curves):
     fn()
