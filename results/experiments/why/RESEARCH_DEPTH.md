@@ -371,3 +371,17 @@ documents both contexts answered) tracks the 7B's sensitivity only weakly here (
 have fewer than ten such documents), so the label-free sensitivity measured inside DocETL needs more than two
 contexts, which I3c provides. On papers the same rule gave 0.101 against 0.122, so the gain is corpus-dependent:
 largest where queries join and group (players), smallest where they mostly filter single tables (papers).
+
+**I3c (keep drawing contexts until one fills half the documents, at most four) and a third source of
+non-idempotence.** Papers: 0.113 against the original's 0.122 at 6,613 calls (4.7× fewer), 31 queries better and 28
+worse, so the determined-context rule essentially matches per-query extraction on the corpus where freezing had hurt
+most, with paper_name now filled for 200 of 200 documents on its fourth context after 0, 2 and 6. Players: 0.119
+against 0.108, below the two-try run's 0.164. That gap led to a check that changes how all three DocETL comparisons
+must be read: DocETL sets no temperature, so its calls are sampled, and the same prompt on the same documents returns
+the identical value in only 69–100% of cases between two runs (median about 0.85 per column; `I3d` replicates I3b to
+bound the spread). Sampling is therefore a third reason a stored value is not the value, alongside the prompt's
+context and the model, and it applies to the original per-query DocETL run as much as to the frozen ones. Until the
+replicate reports, the defensible statement is: freezing each column on a determined context gives DocETL between
+0.113 and 0.122 on papers (original 0.122) and between 0.119 and 0.164 on players (original 0.108) at a fifth to a
+twelfth of the calls, with joins consistently better (0.022 → 0.041–0.055) and the player–team key match 0.28–0.41
+against 0.19.
