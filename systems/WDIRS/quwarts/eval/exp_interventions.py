@@ -351,11 +351,78 @@ def i7() -> dict:
     return save("i7", out)
 
 
+def i5() -> dict:
+    """The build's prompt groups (I5): the level-0 build re-made with every new column read alone, or grouped by the
+    I1 rule (columns more accurate alone get their own prompt); the 0% stream's score and the per-column accuracy
+    against the recorded build, with the I1 prediction per column (alone better / group better / no difference)."""
+    from quwarts.eval.exp_analysis import REPLAY_SCRATCH
+    from quwarts.eval.exp_context import fields_of
+    from quwarts.eval.exp_open import HOME_SCRATCH, column_values, lookup
+
+    i1 = json.loads((EXP / "I1-context" / "summary.json").read_text())["columns"]["qwen7b"]
+    direction = {}
+    for r in i1:
+        a, n = r["accuracy"].get("alone"), r["accuracy"].get("natural")
+        if a is not None and n is not None:
+            direction[(r["corpus"], r["column"])] = "alone_better" if a - n >= 0.05 else "group_better" if n - a >= 0.05 else "same"
+    out = {"kinds": {}}
+    for kind in ("alone", "chosen"):
+        root = EXP / f"I5-{kind}" / "live"
+        res = {}
+        for c in CORPORA:
+            gf = EXP / "I5-groups" / f"{c}_{kind}.json"
+            if not gf.exists():
+                continue
+            groups = json.loads(gf.read_text())
+            rec = stream_stats(REPO / "results" / "drift_live_ollama" / c / "streams" / "fixed4-attribute_pool_0.jsonl")
+            new = stream_stats(root / c / "streams" / "fixed4-attribute_pool_0.jsonl")
+            gold = gold_by_doc(c)
+            fields = fields_of(c)
+            p0 = HOME_SCRATCH / c / "fixed4-attribute_pool_0" / "master.db"
+            if not p0.exists():
+                p0 = REPLAY_SCRATCH / c / "fixed4-attribute_pool_0" / "master.db"
+            p1 = SCRATCH / f"I5-{kind}" / "drift_live_ollama" / c / "fixed4-attribute_pool_0" / "master.db"
+            alone_cols = {f"{t}.{g[0]}" for t, gs in groups.items() for g in gs if len(g) == 1}
+            cols = []
+            for t, gs in groups.items():
+                for g in gs:
+                    for a in g:
+                        col = f"{t}.{a}"
+                        if col not in fields:
+                            continue
+                        v0 = column_values(p0, t, a) if p0.exists() else None
+                        v1 = column_values(p1, t, a) if p1.exists() else None
+                        docs = [d for d, gg in gold.get(t, {}).items() if a in gg]
+                        acc0 = round(S.mean(correct(lookup(v0, d), gold[t][d][a]) for d in docs), 3) if docs and v0 is not None else None
+                        acc1 = round(S.mean(correct(lookup(v1, d), gold[t][d][a]) for d in docs), 3) if docs and v1 is not None else None
+                        cols.append({"column": col, "kind": kind_of(fields[col]), "read_alone": col in alone_cols, "group_size": len(g),
+                                     "i1_direction": direction.get((c, col)), "cells": len(docs),
+                                     "accuracy_recorded": acc0, "accuracy_new": acc1,
+                                     "delta": round(acc1 - acc0, 3) if acc0 is not None and acc1 is not None else None})
+            done = [x for x in cols if x["delta"] is not None]
+            summ = {}
+            if new and rec:
+                summ["score_delta_vs_recorded"] = round(new["score"] - rec["score"], 4)
+            if done:
+                for key in ("alone_better", "group_better", "same", None):
+                    sel = [x for x in done if x["i1_direction"] == key and x["read_alone"]]
+                    if sel:
+                        summ[f"read_alone_and_i1_{key or 'unmeasured'}"] = {"columns": len(sel), "mean_delta": round(S.mean(x["delta"] for x in sel), 4),
+                                                                           "up": sum(x["delta"] > 0.02 for x in sel), "down": sum(x["delta"] < -0.02 for x in sel)}
+                grouped = [x for x in done if not x["read_alone"]]
+                if grouped:
+                    summ["still_grouped"] = {"columns": len(grouped), "mean_delta": round(S.mean(x["delta"] for x in grouped), 4)}
+            res[c] = {"recorded": rec, "new": new, "complete": new is not None and rec is not None and new["queries"] == rec["queries"],
+                      "summary": summ, "columns": cols}
+        out["kinds"][kind] = res
+    return save("i5", out)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("what", choices=["i3", "i4", "i6", "i7"])
+    ap.add_argument("what", choices=["i3", "i4", "i5", "i6", "i7"])
     a = ap.parse_args(argv)
-    o = {"i3": i3, "i4": i4, "i6": i6, "i7": i7}[a.what]()
+    o = {"i3": i3, "i4": i4, "i5": i5, "i6": i6, "i7": i7}[a.what]()
     print(json.dumps({k: v for k, v in o.items() if k not in ("columns", "streams")}, indent=1, default=str)[:6000])
     return 0
 
