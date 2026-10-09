@@ -499,3 +499,26 @@ why the determinacy of a column is measurable with any cheap perturbation (Secti
 why a canonical context has to be frozen as a byte string, order included (P2). It also suggests an intervention
 we have not run: place a column whose gold is mostly empty after the fields that make its absence evident
 (`use_agent` before `agent_framework`), a layout rule that costs nothing.
+
+
+**I5, the build's prompt groups (all ten streams, 2026-10-09 17:51; `WHY/i5/summary.json`).** Every new column read
+alone (`alone`), or the I1 rule (`chosen`: a column more accurate alone on the 30-document sample gets its own prompt,
+the rest stay grouped), level-0 build, scored on the 0% stream. *The per-column prediction transfers from 30 documents
+to the whole build:* the five columns I1 flagged as better alone gain +0.136 (alone) and +0.138 (chosen) in cell
+accuracy, four of five up by more than 0.02 and none down in the chosen run; the nine columns I1 flagged as better in
+the group gain +0.005 when read alone (five of nine down); the ten with no difference +0.018. *The query score does
+not follow:* alone +0.011 papers, +0.006 players, +0.004 artists, −0.028 medical, +0.002 legal; chosen −0.000 to
+−0.010 on every corpus. The two legal runs are the same prompts (all five columns alone) and differ by 0.006, the
+noise floor. Prediction I5 fails on its first half (chosen beats neither grouping on artists) and holds on its second
+(the gain sits where I1 said). Three mechanisms, visible query by query: (1) *form*: legal `judge_name` goes from 0.03
+to 0.45 correct because the lone prompt writes 'Flick' where the group prompt wrote 'Justice Flick', and the GROUP BY
+on it moves +0.03; (2) *emptiness*: `defendant_current_status` alone leaves 214 cells empty against 85 in the group
+(0.65 → 0.48) and the filters on it select other rows; (3) *aggregates over a changed numeric column*: artists'
+`awards` loses 0.07 alone and AVG(awards) by continent loses 0.45; medical's COUNT(manufacturer) and
+COUNT(single_dose) lose 0.37 as the lone prompts fill and empty different cells. The context effect is per column and
+predictable, but at the cell level it is mostly a change of form and of emptiness, which queries that group, filter
+or aggregate see as a mixed bag; and it is expensive, since a column alone costs a document (cost lemma): `alone`
+spends 2.8–6.4× the supplement tokens, `chosen` 1.5–4.7×. The decision this supports: choose the grouping for cost
+and consistency, harvest the per-column gains through normalization where they are form (a view rule maps 'Justice
+Flick' to 'Flick' for nothing), and read a column alone only when its emptiness or selection matters to a query and
+the document is short.

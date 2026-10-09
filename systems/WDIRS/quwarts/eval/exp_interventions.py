@@ -378,10 +378,10 @@ def i5() -> dict:
             new = stream_stats(root / c / "streams" / "fixed4-attribute_pool_0.jsonl")
             gold = gold_by_doc(c)
             fields = fields_of(c)
-            p0 = HOME_SCRATCH / c / "fixed4-attribute_pool_0" / "master.db"
+            p0 = HOME_SCRATCH / c / "builds" / "fixed4_attribute_pool_0" / "build.db"  # the level-0 build's values
             if not p0.exists():
-                p0 = REPLAY_SCRATCH / c / "fixed4-attribute_pool_0" / "master.db"
-            p1 = SCRATCH / f"I5-{kind}" / "drift_live_ollama" / c / "fixed4-attribute_pool_0" / "master.db"
+                p0 = REPLAY_SCRATCH / c / "builds" / "fixed4_attribute_pool_0" / "build.db"
+            p1 = SCRATCH / f"I5-{kind}" / "drift_live_ollama" / c / "builds" / "fixed4_attribute_pool_0" / "build.db"
             alone_cols = {f"{t}.{g[0]}" for t, gs in groups.items() for g in gs if len(g) == 1}
             cols = []
             for t, gs in groups.items():

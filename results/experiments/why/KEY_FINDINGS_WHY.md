@@ -65,12 +65,29 @@ that reorders fields for cache hits changes the answers.
 ![Figure 2. The context intervention on fixed documents. (a) Mean accuracy and empty-answer rate in five contexts. (b)
 Each column's accuracy alone against its accuracy in the build's group.](figures/w9_context_intervention.png){width=6.5in}
 
+We then used the per-column effect as a rule for the build itself: every new column read alone, or only the columns
+the thirty-document test had found more accurate alone, the rest grouped as before (ten builds, scored on the
+undrifted stream). **The per-column prediction transfers: the columns flagged as better alone gain 0.14 in cell
+accuracy in the full build, four of five up and none down, while columns flagged as better in the group gain nothing
+when read alone.** The query score does not follow (−0.01 to +0.01 on every corpus but one, against a run-to-run
+floor of 0.006; medical loses 0.028 when everything is read alone). Query by query the reasons are visible. The gains
+are largely changes of form: a court judge's name goes from 3% to 45% correct because the lone prompt writes 'Flick'
+where the group prompt wrote 'Justice Flick', and the query that groups by judge moves 0.03. The losses are changes of
+emptiness and of a few numeric cells: the lone prompt leaves a party's status empty in 214 documents against 85, so
+filters select other rows, and an artist's award count read alone loses 0.07 in accuracy while the average of awards
+by continent loses 0.45. And reading a column alone costs a document, so the all-alone build spends 2.8 to 6.4 times
+the supplement tokens and the selective one 1.5 to 4.7. The context effect is real, per column and predictable from
+thirty documents; at the cell level it is mostly form and emptiness, which a view rule can often fix for nothing and
+which aggregates and filters do not reward consistently.
+
 *What this lets you decide.* Extraction can be deferred until a query needs it without losing accuracy, so a system
 does not have to guess the workload correctly to be accurate, only to be cheap. What has to be controlled is the
 prompt. Values from different prompts should not be mixed in one column, a store of extracted values should record the
-prompt each value came from, and re-extracting a column is a new measurement, not a refresh. The budget section below
-shows what happens when this is ignored: delaying an extraction moves it into a different prompt and changes the
-answers.
+prompt each value came from, and re-extracting a column is a new measurement, not a refresh. Choose the grouping for
+cost and consistency; harvest a column's form gain through normalization rather than a separate read; read a column
+alone only when its emptiness or selection matters to a query and the document is short. The budget section below
+shows what happens when the prompt is not controlled: delaying an extraction moves it into a different prompt and
+changes the answers.
 
 # Why can a column's accuracy be predicted without any gold data?
 
@@ -569,15 +586,16 @@ DocETL. For an LLM reader, schema documentation is not optional metadata but an 
 
 # Open questions
 
-Several things remain unexplained. With the 7B model, asking for fewer columns helps on papers and players and hurts
-on artists, and we do not know why the direction depends on the corpus. Grouping columns matters for the 32B model
-but barely for the 7B model. We cannot yet say how much of the medical corpus's prompt sensitivity comes from each of
+Several things remain unexplained. With the 7B model the direction of asking for fewer columns is a per-column mix
+of form and emptiness effects (Section 1), and we cannot yet predict a query's score change from its columns' cell
+changes. Grouping columns matters for the 32B model but barely for the 7B model. We cannot yet say how much of the medical corpus's prompt sensitivity comes from each of
 the three properties listed above, or what the best achievable budget policy is. The findings also have not been
 tested beyond five corpora and three models, or on a different split of the workload into known and later queries.
 Three changes to DocETL have been tested (freezing each column on its first context, on the better of two, and on a
 determined one), and the budget policy that forecasts reuse with frozen contexts has been tested and fails for a
-stated reason (Section 6). Running or queued, each with its prediction written first (RESEARCH_DEPTH.md): the build's prompt groups chosen
-by each column's measured context effect (I5), the verifier as the router of second looks on the 32B (I2b), the label
+stated reason (Section 6), and the build's prompt groups chosen by each column's measured context effect have been
+tested (Section 1: the cell gains transfer, the query scores do not move). Running or queued, each with its
+prediction written first (RESEARCH_DEPTH.md): the verifier as the router of second looks on the 32B (I2b), the label
 contract on the five columns that lack a vocabulary (I6), and per-column read windows (I7).
 
 # Methods
