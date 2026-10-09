@@ -412,8 +412,17 @@ def i5() -> dict:
                 grouped = [x for x in done if not x["read_alone"]]
                 if grouped:
                     summ["still_grouped"] = {"columns": len(grouped), "mean_delta": round(S.mean(x["delta"] for x in grouped), 4)}
+            builds = {}
+            for name, broot in (("recorded", REPO / "results" / "drift_live_ollama"), ("new", root)):
+                bf = broot / c / "builds" / "fixed4_attribute_pool_0.json"
+                if bf.exists():
+                    b = json.loads(bf.read_text())
+                    builds[name] = {"measured_tokens": b.get("measured_tokens"), "supplement_calls": b.get("supplement_calls"),
+                                    "supplement_tokens": b.get("supplement_tokens")}
+            if "recorded" in builds and "new" in builds and builds["new"]["supplement_tokens"] and builds["recorded"]["supplement_tokens"]:
+                summ["supplement_token_ratio"] = round(builds["new"]["supplement_tokens"] / builds["recorded"]["supplement_tokens"], 3)
             res[c] = {"recorded": rec, "new": new, "complete": new is not None and rec is not None and new["queries"] == rec["queries"],
-                      "summary": summ, "columns": cols}
+                      "summary": summ, "builds": builds, "columns": cols}
         out["kinds"][kind] = res
     return save("i5", out)
 
