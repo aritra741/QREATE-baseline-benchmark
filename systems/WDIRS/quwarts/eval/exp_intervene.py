@@ -44,6 +44,7 @@ CORPORA = ["cspaper", "player", "art", "med", "legal"]
 MODELS = {"qwen7b": ("main", "qwen2.5:7b-instruct"), "qwen32b": ("qwen32b", "qwen2.5:32b-instruct"),
           "llama8b": ("llama8b", "llama3.1:8b")}
 KINDS = ("alone", "plus2", "plus6", "natural", "paraphrase")
+ORDER_KINDS = ("natural_shuffled", "natural_reversed")  # Q4: the natural set in another order (one order per table)
 MAX_DOC_TOKENS = 9000  # every context then fits the 32B server's 16k window with room for the fields and the answer
 SYSTEM = "Extract only facts stated in the document. Return JSON."  # core/llm/ollama.DEFAULT_SYSTEM
 _lock = threading.Lock()
@@ -147,9 +148,16 @@ def plan(corpus: str, n_docs: int) -> list[dict]:
     for t, cols in by_table.items():
         docs = sample_docs(corpus, ctx, t, gold.get(t, {}), n_docs)
         others_all = sorted(k.split(".", 1)[1] for k in fields if k.startswith(t + "."))
+        nat0 = natural.get(t) or tuple(sorted({c.split(".", 1)[1] for c in cols}))
+        shuffled = list(nat0)
+        random.Random(f"{corpus}:{t}:order").shuffle(shuffled)
+        if shuffled == list(nat0) and len(shuffled) > 1:
+            shuffled = shuffled[1:] + shuffled[:1]
         for d in docs:
-            nat = natural.get(t) or tuple(sorted({c.split(".", 1)[1] for c in cols}))
+            nat = nat0
             jobs.append({"table": t, "doc": d, "kind": "natural", "focal": None, "attributes": list(nat)})
+            jobs.append({"table": t, "doc": d, "kind": "natural_shuffled", "focal": None, "attributes": shuffled})
+            jobs.append({"table": t, "doc": d, "kind": "natural_reversed", "focal": None, "attributes": list(reversed(nat))})
             for col in cols:
                 a = col.split(".", 1)[1]
                 rng = random.Random(f"{corpus}:{col}:I1")
@@ -239,7 +247,7 @@ def analyze() -> dict:
                 r = json.loads(line)
                 parsed = parse_fields(r["response"], r["attributes"])
                 for a in r["attributes"]:
-                    if r["kind"] == "natural" and a not in new:
+                    if r["kind"] in ("natural",) + ORDER_KINDS and a not in new:
                         continue
                     if r["focal"] is None or r["focal"] == a:
                         vals[(r["table"], r["doc"], a)][r["kind"]] = parsed.get(a)
@@ -270,6 +278,12 @@ def analyze() -> dict:
                          and vnorm(kinds["alone"]) == vnorm(kinds["natural"])]
                 differ = [(kinds["alone"], g) for kinds, g in items if "alone" in kinds and "natural" in kinds
                           and vnorm(kinds["alone"]) != vnorm(kinds["natural"])]
+                for ok in ORDER_KINDS:  # Q4: same set, another order
+                    both = [(kinds["natural"], kinds[ok]) for kinds, _ in items if "natural" in kinds and ok in kinds]
+                    if len(both) >= 10:
+                        e["order_change_" + ok.split("_")[1]] = round(S.mean(vnorm(x) != vnorm(y) for x, y in both), 3)
+                        have = [(kinds[ok], g) for kinds, g in items if ok in kinds]
+                        e["accuracy"][ok] = round(S.mean(correct(v, g) for v, g in have), 3)
                 e["accuracy_when_agree"] = round(S.mean(correct(v, g) for v, g in agree), 3) if agree else None
                 e["accuracy_when_differ"] = round(S.mean(correct(v, g) for v, g in differ), 3) if differ else None
                 e["n_agree"], e["n_differ"] = len(agree), len(differ)
@@ -298,6 +312,19 @@ def analyze() -> dict:
                                       for k in KINDS if any(k in r["empty"] for r in rows)}
         m["columns_better_alone_than_natural"] = sum(r["accuracy"].get("alone", 0) > r["accuracy"].get("natural", 0) + 0.05 for r in rows)
         m["columns_better_natural_than_alone"] = sum(r["accuracy"].get("natural", 0) > r["accuracy"].get("alone", 0) + 0.05 for r in rows)
+        # Q4 summary: order-only changes against set changes
+        oc = [r for r in rows if "order_change_shuffled" in r and "natural" in r["sensitivity"]]
+        if oc:
+            m["order_effect"] = {"columns": len(oc),
+                                 "mean_change_shuffled": round(S.mean(r["order_change_shuffled"] for r in oc), 3),
+                                 "mean_change_reversed": round(S.mean(r.get("order_change_reversed", r["order_change_shuffled"]) for r in oc), 3),
+                                 "mean_change_set_plus6_vs_alone": round(S.mean(r["sensitivity"]["plus6"] for r in oc if "plus6" in r["sensitivity"]), 3),
+                                 "spearman_order_change_vs_sensitivity": round(spearman([r["order_change_shuffled"] for r in oc], [r["mean_sensitivity"] for r in oc if "mean_sensitivity" in r]), 3) if all("mean_sensitivity" in r for r in oc) and len(oc) > 4 else None,
+                                 "accuracy_natural": round(S.mean(r["accuracy"]["natural"] for r in oc), 3),
+                                 "accuracy_shuffled": round(S.mean(r["accuracy"]["natural_shuffled"] for r in oc), 3),
+                                 "columns_changing_over_0.2": sum(r["order_change_shuffled"] > 0.2 for r in oc),
+                                 "by_kind": {k: round(S.mean(r["order_change_shuffled"] for r in oc if r["kind"] == k), 3)
+                                             for k in ("number", "yes/no", "category", "list", "free text") if any(r["kind"] == k for r in oc)}}
         m["mean_sensitivity_by_kind"] = {}
         for k in ("number", "yes/no", "category", "list", "free text"):
             rs = [r for r in rows if r["kind"] == k and "mean_sensitivity" in r]
