@@ -406,3 +406,10 @@ alone −0.79; agreeing lone answers right 72% of the time, differing ones 14%. 
 5 of 20 columns (by 0.05 or more), so "less sensitive on average" is the defensible form. One difference from the 7B:
 the 32B's accuracy is highest in the natural group (0.66 against 0.57 alone; 7 columns better alone, 4 better
 grouped), where the 7B's was flat; a larger model makes more use of co-asked columns. `I1-context/summary.json`.
+
+**I3d, the replicate of the two-try run on players.** 0.145 against the first run's 0.164 over the 193 drift queries
+(original 0.108); over all 274 queries 0.150 against 0.154; 150 of 274 queries score identically and the mean
+absolute per-query difference is 0.06. Join queries 0.029 (first run 0.055; original 0.022); player–team key match
+0.23 (0.41; original 0.19). So the headline holds under sampling, +34% to +52% over per-query extraction at a twelfth
+of the calls, while the join improvement is real but its size is within the sampling spread. The paper should report
+both runs.

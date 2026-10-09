@@ -1645,5 +1645,352 @@
   "columns_with_nonempty_disagreement": 8,
   "spearman_docetl_sensitivity_vs_frozen_accuracy": 0.238,
   "spearman_docetl_sensitivity_vs_7b_sensitivity": -0.009
+ },
+ "frozen2_rep": {
+  "corpora": {
+   "cspaper": {
+    "queries": 1,
+    "complete": false,
+    "original": 0.0,
+    "frozen": 0.0,
+    "join_queries": 0,
+    "original_join": null,
+    "frozen_join": null,
+    "original_nojoin": 0.0,
+    "frozen_nojoin": 0.0,
+    "queries_better": 0,
+    "queries_worse": 0,
+    "calls_original": 260,
+    "calls_frozen": 254,
+    "tokens_original": 389561,
+    "tokens_frozen": 382416
+   },
+   "player": {
+    "queries": 193,
+    "complete": true,
+    "original": 0.1077,
+    "frozen": 0.1448,
+    "join_queries": 86,
+    "original_join": 0.0218,
+    "frozen_join": 0.0291,
+    "original_nojoin": 0.1767,
+    "frozen_nojoin": 0.2378,
+    "queries_better": 59,
+    "queries_worse": 33,
+    "calls_original": 34719,
+    "calls_frozen": 2797,
+    "tokens_original": 316383329,
+    "tokens_frozen": 29486267
+   }
+  },
+  "join_keys": {
+   "player": {
+    "player.team = team.team_name": {
+     "original": 0.191,
+     "frozen": 0.227,
+     "gold": 0.633
+    },
+    "team.location = city.city_name": {
+     "original": 0.165,
+     "frozen": 0.042,
+     "gold": 0.933
+    }
+   }
+  },
+  "columns": [
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.paper_name",
+    "kind": "free text",
+    "sensitivity_7b": 0.1,
+    "docetl_sensitivity": null,
+    "docetl_sensitivity_nonempty": null,
+    "tries": 1,
+    "filled": [
+     0
+    ],
+    "accuracy_original": 0.848,
+    "accuracy_frozen": 0,
+    "empty_frozen": 1
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.uses_reranker",
+    "kind": "yes/no",
+    "sensitivity_7b": 0.675,
+    "docetl_sensitivity": null,
+    "docetl_sensitivity_nonempty": null,
+    "tries": 1,
+    "filled": [
+     57
+    ],
+    "accuracy_original": 0.671,
+    "accuracy_frozen": 0.223,
+    "empty_frozen": 0.711
+   },
+   {
+    "corpus": "player",
+    "column": "city.city_name",
+    "kind": "free text",
+    "sensitivity_7b": 0.0,
+    "docetl_sensitivity": 0.793,
+    "docetl_sensitivity_nonempty": 0.875,
+    "tries": 2,
+    "filled": [
+     20,
+     21
+    ],
+    "accuracy_original": 0.283,
+    "accuracy_frozen": 0.207,
+    "empty_frozen": 0.276
+   },
+   {
+    "corpus": "player",
+    "column": "player.draft_pick",
+    "kind": "number",
+    "sensitivity_7b": 0.17,
+    "docetl_sensitivity": 0.302,
+    "docetl_sensitivity_nonempty": 0.019,
+    "tries": 2,
+    "filled": [
+     54,
+     96
+    ],
+    "accuracy_original": 0.953,
+    "accuracy_frozen": 0.672,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.olympic_gold_medals",
+    "kind": "number",
+    "sensitivity_7b": 0.128,
+    "docetl_sensitivity": 0.219,
+    "docetl_sensitivity_nonempty": 0.375,
+    "tries": 2,
+    "filled": [
+     34,
+     25
+    ],
+    "accuracy_original": 0.455,
+    "accuracy_frozen": 0.176,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.team",
+    "kind": "free text",
+    "sensitivity_7b": 0.22,
+    "docetl_sensitivity": 0.485,
+    "docetl_sensitivity_nonempty": 0.182,
+    "tries": 2,
+    "filled": [
+     69,
+     119
+    ],
+    "accuracy_original": 0.778,
+    "accuracy_frozen": 0.612,
+    "empty_frozen": 0.112
+   },
+   {
+    "corpus": "player",
+    "column": "player.position",
+    "kind": "category",
+    "sensitivity_7b": 0.113,
+    "docetl_sensitivity": 0.158,
+    "docetl_sensitivity_nonempty": 0.123,
+    "tries": 2,
+    "filled": [
+     125,
+     127
+    ],
+    "accuracy_original": 0.493,
+    "accuracy_frozen": 0.485,
+    "empty_frozen": 0.052
+   },
+   {
+    "corpus": "player",
+    "column": "player.draft_year",
+    "kind": "number",
+    "sensitivity_7b": 0.113,
+    "docetl_sensitivity": 0.153,
+    "docetl_sensitivity_nonempty": 0.042,
+    "tries": 2,
+    "filled": [
+     114,
+     98
+    ],
+    "accuracy_original": 0.912,
+    "accuracy_frozen": 0.761,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.age",
+    "kind": "number",
+    "sensitivity_7b": 0.277,
+    "docetl_sensitivity": 0.568,
+    "docetl_sensitivity_nonempty": 0.5,
+    "tries": 2,
+    "filled": [
+     117,
+     107
+    ],
+    "accuracy_original": 0.891,
+    "accuracy_frozen": 0.798,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.nba_championships",
+    "kind": "number",
+    "sensitivity_7b": 0.44,
+    "docetl_sensitivity": 0.128,
+    "docetl_sensitivity_nonempty": 0.214,
+    "tries": 2,
+    "filled": [
+     28,
+     17
+    ],
+    "accuracy_original": 0.721,
+    "accuracy_frozen": 0.155,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.nationality",
+    "kind": "free text",
+    "sensitivity_7b": 0.078,
+    "docetl_sensitivity": 0.939,
+    "docetl_sensitivity_nonempty": 0.939,
+    "tries": 2,
+    "filled": [
+     39,
+     124
+    ],
+    "accuracy_original": 0.914,
+    "accuracy_frozen": 0.809,
+    "empty_frozen": 0.121
+   },
+   {
+    "corpus": "player",
+    "column": "player.mvp_awards",
+    "kind": "number",
+    "sensitivity_7b": 0.454,
+    "docetl_sensitivity": 0.402,
+    "docetl_sensitivity_nonempty": 0.139,
+    "tries": 2,
+    "filled": [
+     85,
+     104
+    ],
+    "accuracy_original": 0.747,
+    "accuracy_frozen": 0.679,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.fiba_world_cup",
+    "kind": "number",
+    "sensitivity_7b": 0.149,
+    "docetl_sensitivity": 0.131,
+    "docetl_sensitivity_nonempty": 0.333,
+    "tries": 2,
+    "filled": [
+     22,
+     15
+    ],
+    "accuracy_original": 0.267,
+    "accuracy_frozen": 0.054,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.college",
+    "kind": "free text",
+    "sensitivity_7b": 0.241,
+    "docetl_sensitivity": 0.206,
+    "docetl_sensitivity_nonempty": 0.211,
+    "tries": 2,
+    "filled": [
+     116,
+     117
+    ],
+    "accuracy_original": 0.687,
+    "accuracy_frozen": 0.667,
+    "empty_frozen": 0.17
+   },
+   {
+    "corpus": "player",
+    "column": "team.team_name",
+    "kind": "free text",
+    "sensitivity_7b": 0.0,
+    "docetl_sensitivity": 0.773,
+    "docetl_sensitivity_nonempty": 0.667,
+    "tries": 2,
+    "filled": [
+     21,
+     21
+    ],
+    "accuracy_original": 0.58,
+    "accuracy_frozen": 0.433,
+    "empty_frozen": 0.3
+   },
+   {
+    "corpus": "player",
+    "column": "team.location",
+    "kind": "free text",
+    "sensitivity_7b": 0.0,
+    "docetl_sensitivity": 0.545,
+    "docetl_sensitivity_nonempty": 0.526,
+    "tries": 2,
+    "filled": [
+     21,
+     25
+    ],
+    "accuracy_original": 0.734,
+    "accuracy_frozen": 0.133,
+    "empty_frozen": 0.167
+   },
+   {
+    "corpus": "player",
+    "column": "team.championship",
+    "kind": "free text",
+    "sensitivity_7b": 0.033,
+    "docetl_sensitivity": 0.593,
+    "docetl_sensitivity_nonempty": null,
+    "tries": 2,
+    "filled": [
+     9,
+     16
+    ],
+    "accuracy_original": 0.012,
+    "accuracy_frozen": 0,
+    "empty_frozen": 0.448
+   },
+   {
+    "corpus": "player",
+    "column": "team.ownership",
+    "kind": "free text",
+    "sensitivity_7b": 0.367,
+    "docetl_sensitivity": 0.767,
+    "docetl_sensitivity_nonempty": 1.0,
+    "tries": 2,
+    "filled": [
+     20,
+     20
+    ],
+    "accuracy_original": 0.111,
+    "accuracy_frozen": 0.2,
+    "empty_frozen": 0.333
+   }
+  ],
+  "spearman_sensitivity_vs_accuracy_change": 0.024,
+  "spearman_sensitivity_vs_frozen_accuracy": 0.244,
+  "spearman_docetl_nonempty_disagreement_vs_7b_sensitivity": -0.285,
+  "spearman_docetl_nonempty_disagreement_vs_frozen_accuracy": -0.257,
+  "columns_with_nonempty_disagreement": 15,
+  "spearman_docetl_sensitivity_vs_frozen_accuracy": 0.15,
+  "spearman_docetl_sensitivity_vs_7b_sensitivity": -0.418
  }
 }

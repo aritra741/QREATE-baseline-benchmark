@@ -379,15 +379,20 @@ query's prompt extracted it (paper name: 44 prompts, median fill 0.53, the first
 is a lottery over contexts, and freezing on the first draw makes every later query hostage to it.* Joins still improve
 (0.022 → 0.041; player–team keys matching 0.19 → 0.30), because even a poor key is the same key everywhere.
 Freezing instead on the better of a column's first two contexts, chosen without labels by the share of documents it
-fills, recovers it: **on players DocETL then scores 0.164 against its own 0.108, with join queries at 0.055 against
-0.022 and 66 queries better against 35 worse, at a twelfth of the calls**; on papers 0.101 against 0.122 at an eighth.
-The gain is largest where queries join and group and smallest where they filter single tables. And it comes despite
-the frozen values being *less* accurate per column than the original's pooled values (draft pick 0.95 → 0.63): one
-value per cell, the same for every query and agreeing across tables, is worth more to a join or a GROUP BY than a
-higher accuracy that differs from query to query.
+fills, recovers it: **on players DocETL then scores 0.145 to 0.164 in two runs against its own 0.108, with join
+queries at 0.029 to 0.055 against 0.022 and about 60 queries better against 35 worse, at a twelfth of the calls**; on
+papers 0.101 against 0.122 at an eighth. Keeping drawing contexts until one fills half the documents (at most four)
+gives 0.113 on papers at a fifth of the calls and 0.119 on players. The two runs differ because DocETL sets no
+temperature and so samples its answers: the same prompt on the same documents returns the same value only 69% to
+100% of the time, which is a third reason a stored value is not "the" value, besides the prompt's context and the
+model, and it applies to the original per-query run as well. The gain is largest where queries join and group and
+smallest where they filter single tables. And it comes despite the frozen values being *less* accurate per column
+than the original's pooled values (draft pick 0.95 → 0.63): one value per cell, the same for every query and agreeing
+across tables, is worth more to a join or a GROUP BY than a higher accuracy that differs from query to query.
 
 ![Figure 14. DocETL's mean query score and number of model calls on the same queries: per-query extraction, every
-column frozen on its first context, and frozen on the better of its first two contexts.](figures/w11_frozen_docetl.png){width=6.5in}
+column frozen on its first context, frozen on the better of its first two contexts (two runs), and frozen on a
+determined context.](figures/w11_frozen_docetl.png){width=6.5in}
 
 Basketball players is the only corpus with joins, so the join part rests on one corpus.
 
