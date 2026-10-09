@@ -397,3 +397,12 @@ line, not another read of the document, so asking for all of them at the first p
 rate. It also means I4's budget comparisons between the frozen and recorded families must be read on absolute tokens
 (each family's budgets are shares of its own unlimited spend, 3–6× apart); the analysis now reports score against
 tokens for both.
+
+**I1 on the 32B (papers, players, artists; 15 documents per table; 20 columns).** The same picture at higher accuracy:
+sensitivity ranks the columns the same under the kinds of change (0.59–0.91 between pairs); sensitivity vs accuracy
+alone −0.79; agreeing lone answers right 72% of the time, differing ones 14%. The 32B is less sensitive on average
+(0.21 against the 7B's 0.25 on the same columns) and its per-column sensitivity correlates 0.60 with the 7B's; the
+7B's sensitivity predicts the 32B's accuracy at −0.71. Prediction (c), that the 32B is never more sensitive, fails on
+5 of 20 columns (by 0.05 or more), so "less sensitive on average" is the defensible form. One difference from the 7B:
+the 32B's accuracy is highest in the natural group (0.66 against 0.57 alone; 7 columns better alone, 4 better
+grouped), where the 7B's was flat; a larger model makes more use of co-asked columns. `I1-context/summary.json`.
