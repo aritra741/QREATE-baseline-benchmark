@@ -1,0 +1,2916 @@
+{
+ "cspaper": {
+  "usage": {
+   "schema_columns": 21,
+   "w0_queries": 43,
+   "test_queries": 59,
+   "columns_used_by_w0": 9,
+   "columns_used_by_test": 14,
+   "columns_used_by_any_query": 15,
+   "test_columns_not_in_w0": [
+    "cspaper.agent_framework",
+    "cspaper.baseline",
+    "cspaper.evaluation_dataset",
+    "cspaper.performance_on_hotpotqa",
+    "cspaper.reasoning_depth",
+    "cspaper.use_agent"
+   ],
+   "share_of_w0_uses_in_top_k_columns": {
+    "3": 0.474,
+    "5": 0.695,
+    "10": 1.0
+   },
+   "w0_group_by_columns": [
+    "application_domain",
+    "baseline_band",
+    "data_modality",
+    "domain_family",
+    "modality_family",
+    "multi_turn_retrieval",
+    "retrieval_family",
+    "topic",
+    "uses_knowledge_graph",
+    "uses_reranker"
+   ],
+   "w0_filter_columns": [
+    "application_domain",
+    "baseline_amount",
+    "data_modality",
+    "multi_turn_retrieval",
+    "retrieval_method",
+    "topic",
+    "uses_knowledge_graph",
+    "uses_reranker"
+   ]
+  },
+  "structure": {
+   "test_queries": 59,
+   "source_query_in_w0": 0,
+   "same_template_as_a_w0_query": 16,
+   "same_shape_as_a_w0_query (tables, joins, aggregates, group-by arity)": 56
+  },
+  "literal_gap": {
+   "constants": 17,
+   "mean_verbatim_share": 0.408,
+   "constants_never_verbatim": 2,
+   "constants_always_verbatim": 0,
+   "by_kind": {
+    "yes/no": 0.502,
+    "category": 0.277,
+    "list": 0.346,
+    "free text": 0.5
+   },
+   "rows": [
+    {
+     "query_set": "w0",
+     "column": "cspaper.multi_turn_retrieval",
+     "constant": "Yes",
+     "gold_rows": 58,
+     "verbatim_share": 0.017,
+     "kind": "yes/no"
+    },
+    {
+     "query_set": "w0",
+     "column": "cspaper.multi_turn_retrieval",
+     "constant": "No",
+     "gold_rows": 141,
+     "verbatim_share": 0.986,
+     "kind": "yes/no"
+    },
+    {
+     "query_set": "w0",
+     "column": "cspaper.uses_reranker",
+     "constant": "Yes",
+     "gold_rows": 62,
+     "verbatim_share": 0.032,
+     "kind": "yes/no"
+    },
+    {
+     "query_set": "w0",
+     "column": "cspaper.uses_reranker",
+     "constant": "No",
+     "gold_rows": 132,
+     "verbatim_share": 0.985,
+     "kind": "yes/no"
+    },
+    {
+     "query_set": "w0",
+     "column": "cspaper.data_modality",
+     "constant": "Text",
+     "gold_rows": 188,
+     "verbatim_share": 0.787,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "cspaper.uses_knowledge_graph",
+     "constant": "Yes",
+     "gold_rows": 32,
+     "verbatim_share": 0.031,
+     "kind": "yes/no"
+    },
+    {
+     "query_set": "w0",
+     "column": "cspaper.uses_knowledge_graph",
+     "constant": "No",
+     "gold_rows": 166,
+     "verbatim_share": 0.982,
+     "kind": "yes/no"
+    },
+    {
+     "query_set": "w0",
+     "column": "cspaper.application_domain",
+     "constant": "General",
+     "gold_rows": 128,
+     "verbatim_share": 0.25,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "cspaper.topic",
+     "constant": "Retrieval-Augmented Generation",
+     "gold_rows": 193,
+     "verbatim_share": 0.767,
+     "kind": "category"
+    },
+    {
+     "query_set": "test",
+     "column": "cspaper.agent_framework",
+     "constant": "Other",
+     "gold_rows": 27,
+     "verbatim_share": 0.37,
+     "kind": "category"
+    },
+    {
+     "query_set": "test",
+     "column": "cspaper.agent_framework",
+     "constant": "Multi-Agent Collaboration",
+     "gold_rows": 12,
+     "verbatim_share": 0.083,
+     "kind": "category"
+    },
+    {
+     "query_set": "test",
+     "column": "cspaper.baseline",
+     "constant": "Traditional RAG",
+     "gold_rows": 2,
+     "verbatim_share": 0.5,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "cspaper.performance_on_hotpotqa",
+     "constant": "F1: 62.2",
+     "gold_rows": 1,
+     "verbatim_share": 0.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "cspaper.reasoning_depth",
+     "constant": "single-hop",
+     "gold_rows": 89,
+     "verbatim_share": 0.011,
+     "kind": "category"
+    },
+    {
+     "query_set": "test",
+     "column": "cspaper.reasoning_depth",
+     "constant": "multi-hop",
+     "gold_rows": 110,
+     "verbatim_share": 0.155,
+     "kind": "category"
+    },
+    {
+     "query_set": "test",
+     "column": "cspaper.use_agent",
+     "constant": "Yes",
+     "gold_rows": 47,
+     "verbatim_share": 0.0,
+     "kind": "yes/no"
+    },
+    {
+     "query_set": "test",
+     "column": "cspaper.use_agent",
+     "constant": "No",
+     "gold_rows": 153,
+     "verbatim_share": 0.98,
+     "kind": "yes/no"
+    }
+   ]
+  },
+  "stated_or_inferred": {
+   "columns": 17,
+   "mean_stated_share": 0.406,
+   "by_kind": {
+    "number": {
+     "columns": 1,
+     "stated_share": 0.027,
+     "median_position": 0.801
+    },
+    "yes/no": {
+     "columns": 4,
+     "stated_share": 0.74,
+     "median_position": 0.081
+    },
+    "category": {
+     "columns": 4,
+     "stated_share": 0.303,
+     "median_position": 0.26
+    },
+    "list": {
+     "columns": 3,
+     "stated_share": 0.408,
+     "median_position": 0.339
+    },
+    "free text": {
+     "columns": 5,
+     "stated_share": 0.294,
+     "median_position": 0.303
+    }
+   },
+   "spearman_stated_vs_sensitivity": -0.086,
+   "spearman_stated_vs_accuracy": 0.211,
+   "columns_with_sensitivity": 15,
+   "rows": [
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.agent_framework",
+     "kind": "category",
+     "gold_values": 49,
+     "stated_share": 0.286,
+     "median_position": 0.661,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.675,
+     "accuracy_7b": 0.19
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.application_domain",
+     "kind": "list",
+     "gold_values": 199,
+     "stated_share": 0.402,
+     "median_position": 0.449,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.835,
+     "accuracy_7b": 0.325
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.baseline",
+     "kind": "free text",
+     "gold_values": 188,
+     "stated_share": 0.404,
+     "median_position": 0.317,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.85,
+     "accuracy_7b": 0.025
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.baseline_amount",
+     "kind": "number",
+     "gold_values": 188,
+     "stated_share": 0.027,
+     "median_position": 0.801,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.745,
+     "accuracy_7b": 0.122
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.data_modality",
+     "kind": "list",
+     "gold_values": 192,
+     "stated_share": 0.823,
+     "median_position": 0.228,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.175,
+     "accuracy_7b": 0.665
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.evaluation_dataset",
+     "kind": "free text",
+     "gold_values": 193,
+     "stated_share": 0.223,
+     "median_position": 0.331,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.36,
+     "accuracy_7b": 0.09
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.evaluation_metric",
+     "kind": "free text",
+     "gold_values": 193,
+     "stated_share": 0.487,
+     "median_position": 0.292,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.generator_model",
+     "kind": "free text",
+     "gold_values": 185,
+     "stated_share": 0.162,
+     "median_position": 0.303,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.multi_turn_retrieval",
+     "kind": "yes/no",
+     "gold_values": 199,
+     "stated_share": 0.704,
+     "median_position": 0.075,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.445,
+     "accuracy_7b": 0.635
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.paper_name",
+     "kind": "free text",
+     "gold_values": 200,
+     "stated_share": 0.195,
+     "median_position": 0.0,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.1,
+     "accuracy_7b": 0.82
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.performance_on_hotpotqa",
+     "kind": "list",
+     "gold_values": 31,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.305,
+     "accuracy_7b": 0.75
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.reasoning_depth",
+     "kind": "category",
+     "gold_values": 198,
+     "stated_share": 0.086,
+     "median_position": 0.343,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.595,
+     "accuracy_7b": 0.67
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.retrieval_method",
+     "kind": "category",
+     "gold_values": 199,
+     "stated_share": 0.075,
+     "median_position": 0.177,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.46,
+     "accuracy_7b": 0.41
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.topic",
+     "kind": "category",
+     "gold_values": 200,
+     "stated_share": 0.765,
+     "median_position": 0.099,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.02,
+     "accuracy_7b": 0.99
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.use_agent",
+     "kind": "yes/no",
+     "gold_values": 200,
+     "stated_share": 0.75,
+     "median_position": 0.081,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.625,
+     "accuracy_7b": 0.875
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.uses_knowledge_graph",
+     "kind": "yes/no",
+     "gold_values": 199,
+     "stated_share": 0.824,
+     "median_position": 0.081,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.595,
+     "accuracy_7b": 0.485
+    },
+    {
+     "corpus": "cspaper",
+     "column": "cspaper.uses_reranker",
+     "kind": "yes/no",
+     "gold_values": 195,
+     "stated_share": 0.682,
+     "median_position": 0.081,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.675,
+     "accuracy_7b": 0.365
+    }
+   ]
+  }
+ },
+ "player": {
+  "usage": {
+   "schema_columns": 32,
+   "w0_queries": 96,
+   "test_queries": 118,
+   "columns_used_by_w0": 12,
+   "columns_used_by_test": 19,
+   "columns_used_by_any_query": 19,
+   "test_columns_not_in_w0": [
+    "city.area",
+    "player.college",
+    "player.draft_pick",
+    "player.draft_year",
+    "player.fiba_world_cup",
+    "player.nba_championships",
+    "team.ownership"
+   ],
+   "share_of_w0_uses_in_top_k_columns": {
+    "3": 0.492,
+    "5": 0.68,
+    "10": 0.975
+   },
+   "w0_group_by_columns": [
+    "championship",
+    "location",
+    "nationality",
+    "position",
+    "state_name",
+    "team",
+    "team_name"
+   ],
+   "w0_filter_columns": [
+    "age",
+    "championship",
+    "city_name",
+    "location",
+    "mvp_awards",
+    "nationality",
+    "olympic_gold_medals",
+    "population",
+    "position",
+    "state_name",
+    "team"
+   ]
+  },
+  "structure": {
+   "test_queries": 118,
+   "source_query_in_w0": 0,
+   "same_template_as_a_w0_query": 63,
+   "same_shape_as_a_w0_query (tables, joins, aggregates, group-by arity)": 90
+  },
+  "literal_gap": {
+   "constants": 24,
+   "mean_verbatim_share": 0.926,
+   "constants_never_verbatim": 0,
+   "constants_always_verbatim": 21,
+   "by_kind": {
+    "category": 0.119,
+    "free text": 1.0
+   },
+   "rows": [
+    {
+     "query_set": "w0",
+     "column": "player.nationality",
+     "constant": "Croatian",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.nationality",
+     "constant": "French",
+     "gold_rows": 2,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.team",
+     "constant": "Lokomotiv Kuban",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.nationality",
+     "constant": "Nigerian-American",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.nationality",
+     "constant": "American",
+     "gold_rows": 116,
+     "verbatim_share": 0.991,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.nationality",
+     "constant": "American-born naturalized Azerbaijani",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "city.city_name",
+     "constant": "San Antonio",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.nationality",
+     "constant": "Dutch",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "team.location",
+     "constant": "Boston",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.nationality",
+     "constant": "American-Venezuelan",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.nationality",
+     "constant": "Serbian",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.position",
+     "constant": "Frontcourt",
+     "gold_rows": 45,
+     "verbatim_share": 0.044,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.position",
+     "constant": "Backcourt",
+     "gold_rows": 31,
+     "verbatim_share": 0.194,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.team",
+     "constant": "Bursaspor Basketbol",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.nationality",
+     "constant": "Greek-American",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.team",
+     "constant": "Los Angeles Lakers",
+     "gold_rows": 9,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "player.team",
+     "constant": "Cedevita Olimpija",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "team.location",
+     "constant": "Chicago",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "city.city_name",
+     "constant": "Los Angeles",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "player.team",
+     "constant": "Saski Baskonia",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "team.ownership",
+     "constant": "Glen Taylor",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "player.college",
+     "constant": "New York University",
+     "gold_rows": 2,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "player.nationality",
+     "constant": "Canadian",
+     "gold_rows": 2,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "team.ownership",
+     "constant": "Paul Allen",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    }
+   ]
+  },
+  "stated_or_inferred": {
+   "columns": 22,
+   "mean_stated_share": 0.594,
+   "by_kind": {
+    "number": {
+     "columns": 10,
+     "stated_share": 0.463,
+     "median_position": 0.067
+    },
+    "category": {
+     "columns": 1,
+     "stated_share": 0.105,
+     "median_position": 0.194
+    },
+    "free text": {
+     "columns": 11,
+     "stated_share": 0.756,
+     "median_position": 0.005
+    }
+   },
+   "spearman_stated_vs_sensitivity": -0.644,
+   "spearman_stated_vs_accuracy": 0.813,
+   "columns_with_sensitivity": 19,
+   "rows": [
+    {
+     "corpus": "player",
+     "column": "city.area",
+     "kind": "number",
+     "gold_values": 23,
+     "stated_share": 0.913,
+     "median_position": 0.17,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.31,
+     "accuracy_7b": 0.655
+    },
+    {
+     "corpus": "player",
+     "column": "city.city_name",
+     "kind": "free text",
+     "gold_values": 29,
+     "stated_share": 1.0,
+     "median_position": 0.0,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.0,
+     "accuracy_7b": 0.966
+    },
+    {
+     "corpus": "player",
+     "column": "city.population",
+     "kind": "number",
+     "gold_values": 29,
+     "stated_share": 1.0,
+     "median_position": 0.006,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.0,
+     "accuracy_7b": 1
+    },
+    {
+     "corpus": "player",
+     "column": "city.state_name",
+     "kind": "free text",
+     "gold_values": 28,
+     "stated_share": 1.0,
+     "median_position": 0.001,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.0,
+     "accuracy_7b": 1
+    },
+    {
+     "corpus": "player",
+     "column": "player.age",
+     "kind": "number",
+     "gold_values": 141,
+     "stated_share": 0.525,
+     "median_position": 0.266,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.277,
+     "accuracy_7b": 0.858
+    },
+    {
+     "corpus": "player",
+     "column": "player.birth_date",
+     "kind": "free text",
+     "gold_values": 141,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "player",
+     "column": "player.college",
+     "kind": "free text",
+     "gold_values": 123,
+     "stated_share": 0.951,
+     "median_position": 0.068,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.241,
+     "accuracy_7b": 0.723
+    },
+    {
+     "corpus": "player",
+     "column": "player.draft_pick",
+     "kind": "number",
+     "gold_values": 139,
+     "stated_share": 0.374,
+     "median_position": 0.07,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.17,
+     "accuracy_7b": 0.631
+    },
+    {
+     "corpus": "player",
+     "column": "player.draft_year",
+     "kind": "number",
+     "gold_values": 140,
+     "stated_share": 0.814,
+     "median_position": 0.067,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.113,
+     "accuracy_7b": 0.752
+    },
+    {
+     "corpus": "player",
+     "column": "player.fiba_world_cup",
+     "kind": "number",
+     "gold_values": 140,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.149,
+     "accuracy_7b": 0.099
+    },
+    {
+     "corpus": "player",
+     "column": "player.mvp_awards",
+     "kind": "number",
+     "gold_values": 141,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.454,
+     "accuracy_7b": 0.816
+    },
+    {
+     "corpus": "player",
+     "column": "player.name",
+     "kind": "free text",
+     "gold_values": 141,
+     "stated_share": 0.929,
+     "median_position": 0.001,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "player",
+     "column": "player.nationality",
+     "kind": "free text",
+     "gold_values": 139,
+     "stated_share": 0.993,
+     "median_position": 0.012,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.078,
+     "accuracy_7b": 0.979
+    },
+    {
+     "corpus": "player",
+     "column": "player.nba_championships",
+     "kind": "number",
+     "gold_values": 140,
+     "stated_share": 0.007,
+     "median_position": 0.04,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.44,
+     "accuracy_7b": 0.475
+    },
+    {
+     "corpus": "player",
+     "column": "player.olympic_gold_medals",
+     "kind": "number",
+     "gold_values": 140,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.128,
+     "accuracy_7b": 0.142
+    },
+    {
+     "corpus": "player",
+     "column": "player.position",
+     "kind": "category",
+     "gold_values": 76,
+     "stated_share": 0.105,
+     "median_position": 0.194,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.113,
+     "accuracy_7b": 0.518
+    },
+    {
+     "corpus": "player",
+     "column": "player.team",
+     "kind": "free text",
+     "gold_values": 139,
+     "stated_share": 0.921,
+     "median_position": 0.034,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.22,
+     "accuracy_7b": 0.539
+    },
+    {
+     "corpus": "player",
+     "column": "team.championship",
+     "kind": "free text",
+     "gold_values": 30,
+     "stated_share": 0.067,
+     "median_position": 0.009,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.033,
+     "accuracy_7b": 0.533
+    },
+    {
+     "corpus": "player",
+     "column": "team.founded_year",
+     "kind": "number",
+     "gold_values": 30,
+     "stated_share": 1.0,
+     "median_position": 0.008,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "player",
+     "column": "team.location",
+     "kind": "free text",
+     "gold_values": 30,
+     "stated_share": 1.0,
+     "median_position": 0.0,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.0,
+     "accuracy_7b": 0.967
+    },
+    {
+     "corpus": "player",
+     "column": "team.ownership",
+     "kind": "free text",
+     "gold_values": 24,
+     "stated_share": 0.458,
+     "median_position": 0.059,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.367,
+     "accuracy_7b": 0.333
+    },
+    {
+     "corpus": "player",
+     "column": "team.team_name",
+     "kind": "free text",
+     "gold_values": 30,
+     "stated_share": 1.0,
+     "median_position": 0.0,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.0,
+     "accuracy_7b": 0.967
+    }
+   ]
+  }
+ },
+ "art": {
+  "usage": {
+   "schema_columns": 28,
+   "w0_queries": 46,
+   "test_queries": 43,
+   "columns_used_by_w0": 15,
+   "columns_used_by_test": 20,
+   "columns_used_by_any_query": 24,
+   "test_columns_not_in_w0": [
+    "art.awards",
+    "art.birth_city",
+    "art.birth_date",
+    "art.century",
+    "art.composition",
+    "art.death_city",
+    "art.death_date",
+    "art.field",
+    "art.nationality"
+   ],
+   "share_of_w0_uses_in_top_k_columns": {
+    "3": 0.525,
+    "5": 0.673,
+    "10": 0.911
+   },
+   "w0_group_by_columns": [
+    "art_movement",
+    "birth_continent",
+    "birth_country",
+    "color",
+    "color_group",
+    "death_place",
+    "genre",
+    "image_genre",
+    "institution_status",
+    "marriage",
+    "style",
+    "teaching",
+    "teaching_status",
+    "tone",
+    "tone_family",
+    "tone_group",
+    "zodiac"
+   ],
+   "w0_filter_columns": [
+    "age",
+    "birth_continent",
+    "birth_country",
+    "color",
+    "death_country",
+    "image_genre",
+    "marriage",
+    "style",
+    "teaching",
+    "tone"
+   ]
+  },
+  "structure": {
+   "test_queries": 43,
+   "source_query_in_w0": 0,
+   "same_template_as_a_w0_query": 25,
+   "same_shape_as_a_w0_query (tables, joins, aggregates, group-by arity)": 43
+  },
+  "literal_gap": {
+   "constants": 36,
+   "mean_verbatim_share": 0.398,
+   "constants_never_verbatim": 4,
+   "constants_always_verbatim": 3,
+   "by_kind": {
+    "category": 0.405,
+    "list": 0.473,
+    "free text": 0.047
+   },
+   "rows": [
+    {
+     "query_set": "w0",
+     "column": "art.tone",
+     "constant": "Neutral",
+     "gold_rows": 456,
+     "verbatim_share": 0.018,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.tone",
+     "constant": "Bright",
+     "gold_rows": 215,
+     "verbatim_share": 0.153,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.tone",
+     "constant": "Dark",
+     "gold_rows": 187,
+     "verbatim_share": 0.08,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.tone",
+     "constant": "Warm",
+     "gold_rows": 31,
+     "verbatim_share": 0.032,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.image_genre",
+     "constant": "Portrait",
+     "gold_rows": 224,
+     "verbatim_share": 0.527,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.image_genre",
+     "constant": "Landscape",
+     "gold_rows": 158,
+     "verbatim_share": 0.551,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.image_genre",
+     "constant": "Still Life",
+     "gold_rows": 99,
+     "verbatim_share": 0.141,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.image_genre",
+     "constant": "Abstract",
+     "gold_rows": 75,
+     "verbatim_share": 0.68,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.color",
+     "constant": "Earth Tones",
+     "gold_rows": 151,
+     "verbatim_share": 0.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.color",
+     "constant": "Blue",
+     "gold_rows": 85,
+     "verbatim_share": 0.047,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.color",
+     "constant": "Green",
+     "gold_rows": 64,
+     "verbatim_share": 0.078,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.color",
+     "constant": "Red",
+     "gold_rows": 58,
+     "verbatim_share": 0.897,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.birth_country",
+     "constant": "United States",
+     "gold_rows": 245,
+     "verbatim_share": 0.318,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.birth_country",
+     "constant": "France",
+     "gold_rows": 94,
+     "verbatim_share": 0.66,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.birth_country",
+     "constant": "United Kingdom",
+     "gold_rows": 86,
+     "verbatim_share": 0.058,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.birth_country",
+     "constant": "Germany",
+     "gold_rows": 66,
+     "verbatim_share": 0.742,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.birth_country",
+     "constant": "Italy",
+     "gold_rows": 39,
+     "verbatim_share": 0.718,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.birth_country",
+     "constant": "British India",
+     "gold_rows": 2,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.marriage",
+     "constant": "Married",
+     "gold_rows": 196,
+     "verbatim_share": 0.571,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.style",
+     "constant": "Expressionism",
+     "gold_rows": 70,
+     "verbatim_share": 0.2,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.style",
+     "constant": "Romanticism",
+     "gold_rows": 62,
+     "verbatim_share": 0.065,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.style",
+     "constant": "Impressionism",
+     "gold_rows": 47,
+     "verbatim_share": 0.34,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.style",
+     "constant": "Realism",
+     "gold_rows": 45,
+     "verbatim_share": 0.178,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.style",
+     "constant": "Surrealism",
+     "gold_rows": 39,
+     "verbatim_share": 0.436,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "art.color",
+     "constant": "Black And White",
+     "gold_rows": 50,
+     "verbatim_share": 0.06,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "art.birth_continent",
+     "constant": "Europe",
+     "gold_rows": 529,
+     "verbatim_share": 0.24,
+     "kind": "category"
+    },
+    {
+     "query_set": "test",
+     "column": "art.nationality",
+     "constant": "German",
+     "gold_rows": 67,
+     "verbatim_share": 0.985,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "art.nationality",
+     "constant": "Italian",
+     "gold_rows": 40,
+     "verbatim_share": 0.95,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "art.nationality",
+     "constant": "Japanese",
+     "gold_rows": 28,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "art.nationality",
+     "constant": "British",
+     "gold_rows": 92,
+     "verbatim_share": 0.609,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "art.nationality",
+     "constant": "Russian",
+     "gold_rows": 25,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "art.nationality",
+     "constant": "French",
+     "gold_rows": 108,
+     "verbatim_share": 0.972,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "art.color",
+     "constant": "Brown",
+     "gold_rows": 38,
+     "verbatim_share": 0.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "art.color",
+     "constant": "Yellow",
+     "gold_rows": 27,
+     "verbatim_share": 0.037,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "art.century",
+     "constant": "20th-21st",
+     "gold_rows": 166,
+     "verbatim_share": 0.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "art.century",
+     "constant": "19th-20th",
+     "gold_rows": 332,
+     "verbatim_share": 0.0,
+     "kind": "free text"
+    }
+   ]
+  },
+  "stated_or_inferred": {
+   "columns": 25,
+   "mean_stated_share": 0.393,
+   "by_kind": {
+    "number": {
+     "columns": 3,
+     "stated_share": 0.076,
+     "median_position": 0.343
+    },
+    "category": {
+     "columns": 3,
+     "stated_share": 0.206,
+     "median_position": 0.397
+    },
+    "list": {
+     "columns": 11,
+     "stated_share": 0.602,
+     "median_position": 0.085
+    },
+    "free text": {
+     "columns": 8,
+     "stated_share": 0.295,
+     "median_position": 0.139
+    }
+   },
+   "spearman_stated_vs_sensitivity": 0.193,
+   "spearman_stated_vs_accuracy": -0.162,
+   "columns_with_sensitivity": 24,
+   "rows": [
+    {
+     "corpus": "art",
+     "column": "art.age",
+     "kind": "number",
+     "gold_values": 751,
+     "stated_share": 0.229,
+     "median_position": 0.343,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.138,
+     "accuracy_7b": 0.713
+    },
+    {
+     "corpus": "art",
+     "column": "art.art_institution",
+     "kind": "list",
+     "gold_values": 709,
+     "stated_share": 0.75,
+     "median_position": 0.223,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.428,
+     "accuracy_7b": 0.109
+    },
+    {
+     "corpus": "art",
+     "column": "art.art_movement",
+     "kind": "list",
+     "gold_values": 778,
+     "stated_share": 0.799,
+     "median_position": 0.064,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.462,
+     "accuracy_7b": 0.315
+    },
+    {
+     "corpus": "art",
+     "column": "art.awards",
+     "kind": "number",
+     "gold_values": 1000,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.72,
+     "accuracy_7b": 0.458
+    },
+    {
+     "corpus": "art",
+     "column": "art.birth_city",
+     "kind": "list",
+     "gold_values": 936,
+     "stated_share": 0.869,
+     "median_position": 0.092,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.52,
+     "accuracy_7b": 0.307
+    },
+    {
+     "corpus": "art",
+     "column": "art.birth_continent",
+     "kind": "category",
+     "gold_values": 980,
+     "stated_share": 0.172,
+     "median_position": 0.336,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.02,
+     "accuracy_7b": 0.937
+    },
+    {
+     "corpus": "art",
+     "column": "art.birth_country",
+     "kind": "list",
+     "gold_values": 977,
+     "stated_share": 0.598,
+     "median_position": 0.085,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.324,
+     "accuracy_7b": 0.529
+    },
+    {
+     "corpus": "art",
+     "column": "art.birth_date",
+     "kind": "free text",
+     "gold_values": 978,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.119,
+     "accuracy_7b": 0.785
+    },
+    {
+     "corpus": "art",
+     "column": "art.century",
+     "kind": "free text",
+     "gold_values": 709,
+     "stated_share": 0.042,
+     "median_position": 0.119,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.869,
+     "accuracy_7b": 0.299
+    },
+    {
+     "corpus": "art",
+     "column": "art.color",
+     "kind": "list",
+     "gold_values": 953,
+     "stated_share": 0.084,
+     "median_position": 0.323,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.641,
+     "accuracy_7b": 0.038
+    },
+    {
+     "corpus": "art",
+     "column": "art.composition",
+     "kind": "free text",
+     "gold_values": 953,
+     "stated_share": 0.027,
+     "median_position": 0.461,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.924,
+     "accuracy_7b": 0.028
+    },
+    {
+     "corpus": "art",
+     "column": "art.death_city",
+     "kind": "free text",
+     "gold_values": 559,
+     "stated_share": 0.723,
+     "median_position": 0.158,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.211,
+     "accuracy_7b": 0.566
+    },
+    {
+     "corpus": "art",
+     "column": "art.death_country",
+     "kind": "free text",
+     "gold_values": 628,
+     "stated_share": 0.565,
+     "median_position": 0.115,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.296,
+     "accuracy_7b": 0.604
+    },
+    {
+     "corpus": "art",
+     "column": "art.death_date",
+     "kind": "free text",
+     "gold_values": 762,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.063,
+     "accuracy_7b": 0.889
+    },
+    {
+     "corpus": "art",
+     "column": "art.field",
+     "kind": "list",
+     "gold_values": 1000,
+     "stated_share": 0.964,
+     "median_position": 0.073,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 1.0,
+     "accuracy_7b": 0.272
+    },
+    {
+     "corpus": "art",
+     "column": "art.genre",
+     "kind": "list",
+     "gold_values": 680,
+     "stated_share": 0.953,
+     "median_position": 0.085,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.815,
+     "accuracy_7b": 0.033
+    },
+    {
+     "corpus": "art",
+     "column": "art.image_genre",
+     "kind": "list",
+     "gold_values": 883,
+     "stated_share": 0.422,
+     "median_position": 0.155,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.826,
+     "accuracy_7b": 0.092
+    },
+    {
+     "corpus": "art",
+     "column": "art.marriage",
+     "kind": "category",
+     "gold_values": 295,
+     "stated_share": 0.42,
+     "median_position": 0.397,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.348,
+     "accuracy_7b": 0.478
+    },
+    {
+     "corpus": "art",
+     "column": "art.name",
+     "kind": "free text",
+     "gold_values": 999,
+     "stated_share": 0.939,
+     "median_position": 0.0,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.097,
+     "accuracy_7b": 0.808
+    },
+    {
+     "corpus": "art",
+     "column": "art.nationality",
+     "kind": "list",
+     "gold_values": 989,
+     "stated_share": 0.903,
+     "median_position": 0.018,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.264,
+     "accuracy_7b": 0.718
+    },
+    {
+     "corpus": "art",
+     "column": "art.object",
+     "kind": "list",
+     "gold_values": 924,
+     "stated_share": 0.03,
+     "median_position": 0.406,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "art",
+     "column": "art.style",
+     "kind": "list",
+     "gold_values": 957,
+     "stated_share": 0.249,
+     "median_position": 0.078,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.789,
+     "accuracy_7b": 0.081
+    },
+    {
+     "corpus": "art",
+     "column": "art.teaching",
+     "kind": "number",
+     "gold_values": 1000,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.182,
+     "accuracy_7b": 0.686
+    },
+    {
+     "corpus": "art",
+     "column": "art.tone",
+     "kind": "free text",
+     "gold_values": 953,
+     "stated_share": 0.067,
+     "median_position": 0.543,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.722,
+     "accuracy_7b": 0.033
+    },
+    {
+     "corpus": "art",
+     "column": "art.zodiac",
+     "kind": "category",
+     "gold_values": 863,
+     "stated_share": 0.025,
+     "median_position": 0.578,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.22,
+     "accuracy_7b": 0.617
+    }
+   ]
+  }
+ },
+ "med": {
+  "usage": {
+   "schema_columns": 52,
+   "w0_queries": 53,
+   "test_queries": 43,
+   "columns_used_by_w0": 17,
+   "columns_used_by_test": 22,
+   "columns_used_by_any_query": 31,
+   "test_columns_not_in_w0": [
+    "disease.affected_organs",
+    "disease.common_symptoms",
+    "disease.complications",
+    "disease.drugs",
+    "disease.epidemiology",
+    "disease.risk_factors",
+    "disease.sequelae",
+    "drug.activation_conditions",
+    "drug.manufacturer",
+    "drug.mechanism_of_action",
+    "drug.recommended_usage",
+    "drug.single_dose",
+    "drug.storage_conditions",
+    "drug.unsuitable_population"
+   ],
+   "share_of_w0_uses_in_top_k_columns": {
+    "3": 0.426,
+    "5": 0.651,
+    "10": 0.911
+   },
+   "w0_group_by_columns": [
+    "administration_route",
+    "disease_type",
+    "dx_group",
+    "form_family",
+    "path_group",
+    "pharmaceutical_form",
+    "prescription_status",
+    "prevention_group",
+    "prognosis_group",
+    "route_family",
+    "rx_status",
+    "treatment_group",
+    "type_family"
+   ],
+   "w0_filter_columns": [
+    "administration_route",
+    "brand_name",
+    "diagnostic_methods",
+    "disease_type",
+    "pathogenesis",
+    "pharmaceutical_form",
+    "prescription_status",
+    "preventive_measures",
+    "prognosis",
+    "treatments"
+   ]
+  },
+  "structure": {
+   "test_queries": 43,
+   "source_query_in_w0": 0,
+   "same_template_as_a_w0_query": 32,
+   "same_shape_as_a_w0_query (tables, joins, aggregates, group-by arity)": 43
+  },
+  "literal_gap": {
+   "constants": 17,
+   "mean_verbatim_share": 0.694,
+   "constants_never_verbatim": 3,
+   "constants_always_verbatim": 8,
+   "by_kind": {
+    "category": 0.0,
+    "list": 0.737
+   },
+   "rows": [
+    {
+     "query_set": "w0",
+     "column": "drug.pharmaceutical_form",
+     "constant": "tablet",
+     "gold_rows": 42,
+     "verbatim_share": 0.929,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "drug.pharmaceutical_form",
+     "constant": "capsule",
+     "gold_rows": 13,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "drug.prescription_status",
+     "constant": "unclassified",
+     "gold_rows": 1,
+     "verbatim_share": 0.0,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "drug.administration_route",
+     "constant": "topical",
+     "gold_rows": 6,
+     "verbatim_share": 0.667,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "drug.administration_route",
+     "constant": "oral",
+     "gold_rows": 55,
+     "verbatim_share": 0.927,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "drug.pharmaceutical_form",
+     "constant": "injection",
+     "gold_rows": 14,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "disease.disease_type",
+     "constant": "metabolic",
+     "gold_rows": 7,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "drug.brand_name",
+     "constant": "Nucala",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "disease.disease_type",
+     "constant": "degenerative",
+     "gold_rows": 10,
+     "verbatim_share": 0.3,
+     "kind": "list"
+    },
+    {
+     "query_set": "w0",
+     "column": "drug.pharmaceutical_form",
+     "constant": "gel",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "drug.administration_route",
+     "constant": "subcutaneous",
+     "gold_rows": 5,
+     "verbatim_share": 0.8,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "drug.administration_route",
+     "constant": "injection",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "drug.unsuitable_population",
+     "constant": "patients with severe psychiatric illness",
+     "gold_rows": 1,
+     "verbatim_share": 0.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "drug.manufacturer",
+     "constant": "Forest Pharmaceuticals, Inc.",
+     "gold_rows": 1,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "drug.manufacturer",
+     "constant": "Bayer",
+     "gold_rows": 2,
+     "verbatim_share": 1.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "drug.single_dose",
+     "constant": "adults 2 mg",
+     "gold_rows": 3,
+     "verbatim_share": 0.0,
+     "kind": "list"
+    },
+    {
+     "query_set": "test",
+     "column": "drug.storage_conditions",
+     "constant": "store at room temperature",
+     "gold_rows": 12,
+     "verbatim_share": 0.167,
+     "kind": "list"
+    }
+   ]
+  },
+  "stated_or_inferred": {
+   "columns": 35,
+   "mean_stated_share": 0.654,
+   "by_kind": {
+    "category": {
+     "columns": 1,
+     "stated_share": 0.022,
+     "median_position": 0.061
+    },
+    "list": {
+     "columns": 34,
+     "stated_share": 0.672,
+     "median_position": 0.254
+    }
+   },
+   "spearman_stated_vs_sensitivity": -0.163,
+   "spearman_stated_vs_accuracy": -0.122,
+   "columns_with_sensitivity": 35,
+   "rows": [
+    {
+     "corpus": "med",
+     "column": "disease.affected_organs",
+     "kind": "list",
+     "gold_values": 80,
+     "stated_share": 0.95,
+     "median_position": 0.126,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.74,
+     "accuracy_7b": 0.05
+    },
+    {
+     "corpus": "med",
+     "column": "disease.common_symptoms",
+     "kind": "list",
+     "gold_values": 82,
+     "stated_share": 0.951,
+     "median_position": 0.142,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.77,
+     "accuracy_7b": 0.08
+    },
+    {
+     "corpus": "med",
+     "column": "disease.complications",
+     "kind": "list",
+     "gold_values": 50,
+     "stated_share": 0.96,
+     "median_position": 0.122,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.78,
+     "accuracy_7b": 0.4
+    },
+    {
+     "corpus": "med",
+     "column": "disease.diagnosis_challenges",
+     "kind": "list",
+     "gold_values": 31,
+     "stated_share": 0.097,
+     "median_position": 0.229,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": 0.81,
+     "accuracy_7b": 0.32
+    },
+    {
+     "corpus": "med",
+     "column": "disease.diagnostic_methods",
+     "kind": "list",
+     "gold_values": 56,
+     "stated_share": 0.339,
+     "median_position": 0.33,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.64,
+     "accuracy_7b": 0.2
+    },
+    {
+     "corpus": "med",
+     "column": "disease.disease_name",
+     "kind": "list",
+     "gold_values": 100,
+     "stated_share": 0.9,
+     "median_position": 0.13,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.6,
+     "accuracy_7b": 0.2
+    },
+    {
+     "corpus": "med",
+     "column": "disease.disease_type",
+     "kind": "list",
+     "gold_values": 90,
+     "stated_share": 0.678,
+     "median_position": 0.213,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.63,
+     "accuracy_7b": 0.19
+    },
+    {
+     "corpus": "med",
+     "column": "disease.drugs",
+     "kind": "list",
+     "gold_values": 86,
+     "stated_share": 1.0,
+     "median_position": 0.177,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.8,
+     "accuracy_7b": 0.15
+    },
+    {
+     "corpus": "med",
+     "column": "disease.epidemiology",
+     "kind": "list",
+     "gold_values": 61,
+     "stated_share": 0.557,
+     "median_position": 0.176,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.74,
+     "accuracy_7b": 0.28
+    },
+    {
+     "corpus": "med",
+     "column": "disease.etiology",
+     "kind": "list",
+     "gold_values": 64,
+     "stated_share": 0.719,
+     "median_position": 0.148,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": 0.81,
+     "accuracy_7b": 0.14
+    },
+    {
+     "corpus": "med",
+     "column": "disease.pathogenesis",
+     "kind": "list",
+     "gold_values": 80,
+     "stated_share": 0.5,
+     "median_position": 0.137,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.76,
+     "accuracy_7b": 0.1
+    },
+    {
+     "corpus": "med",
+     "column": "disease.preventive_measures",
+     "kind": "list",
+     "gold_values": 32,
+     "stated_share": 0.25,
+     "median_position": 0.31,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.42,
+     "accuracy_7b": 0.47
+    },
+    {
+     "corpus": "med",
+     "column": "disease.prognosis",
+     "kind": "list",
+     "gold_values": 56,
+     "stated_share": 0.375,
+     "median_position": 0.294,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.7,
+     "accuracy_7b": 0.1
+    },
+    {
+     "corpus": "med",
+     "column": "disease.quality_of_life_impact",
+     "kind": "list",
+     "gold_values": 53,
+     "stated_share": 0.415,
+     "median_position": 0.095,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.69,
+     "accuracy_7b": 0.16
+    },
+    {
+     "corpus": "med",
+     "column": "disease.risk_factors",
+     "kind": "list",
+     "gold_values": 58,
+     "stated_share": 0.914,
+     "median_position": 0.059,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.98,
+     "accuracy_7b": 0.03
+    },
+    {
+     "corpus": "med",
+     "column": "disease.sequelae",
+     "kind": "list",
+     "gold_values": 15,
+     "stated_share": 0.867,
+     "median_position": 0.294,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.46,
+     "accuracy_7b": 0.64
+    },
+    {
+     "corpus": "med",
+     "column": "disease.treatment_challenges",
+     "kind": "list",
+     "gold_values": 46,
+     "stated_share": 0.522,
+     "median_position": 0.219,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.75,
+     "accuracy_7b": 0.13
+    },
+    {
+     "corpus": "med",
+     "column": "disease.treatments",
+     "kind": "list",
+     "gold_values": 89,
+     "stated_share": 0.517,
+     "median_position": 0.157,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.65,
+     "accuracy_7b": 0.12
+    },
+    {
+     "corpus": "med",
+     "column": "drug.activation_conditions",
+     "kind": "list",
+     "gold_values": 29,
+     "stated_share": 0.138,
+     "median_position": 0.028,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.643,
+     "accuracy_7b": 0.592
+    },
+    {
+     "corpus": "med",
+     "column": "drug.active_ingredients",
+     "kind": "list",
+     "gold_values": 90,
+     "stated_share": 0.967,
+     "median_position": 0.453,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": 0.48,
+     "accuracy_7b": 0.367
+    },
+    {
+     "corpus": "med",
+     "column": "drug.administration_route",
+     "kind": "list",
+     "gold_values": 77,
+     "stated_share": 0.935,
+     "median_position": 0.181,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.388,
+     "accuracy_7b": 0.408
+    },
+    {
+     "corpus": "med",
+     "column": "drug.brand_name",
+     "kind": "list",
+     "gold_values": 68,
+     "stated_share": 1.0,
+     "median_position": 0.418,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.52,
+     "accuracy_7b": 0.316
+    },
+    {
+     "corpus": "med",
+     "column": "drug.disease_name",
+     "kind": "list",
+     "gold_values": 94,
+     "stated_share": 0.979,
+     "median_position": 0.374,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.52,
+     "accuracy_7b": 0.112
+    },
+    {
+     "corpus": "med",
+     "column": "drug.dosage_frequency",
+     "kind": "list",
+     "gold_values": 55,
+     "stated_share": 0.745,
+     "median_position": 0.556,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": 0.337,
+     "accuracy_7b": 0.48
+    },
+    {
+     "corpus": "med",
+     "column": "drug.generic_name",
+     "kind": "list",
+     "gold_values": 91,
+     "stated_share": 0.978,
+     "median_position": 0.458,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.418,
+     "accuracy_7b": 0.286
+    },
+    {
+     "corpus": "med",
+     "column": "drug.indication",
+     "kind": "list",
+     "gold_values": 89,
+     "stated_share": 0.888,
+     "median_position": 0.353,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": 0.847,
+     "accuracy_7b": 0.02
+    },
+    {
+     "corpus": "med",
+     "column": "drug.manufacturer",
+     "kind": "list",
+     "gold_values": 28,
+     "stated_share": 0.964,
+     "median_position": 0.521,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.694,
+     "accuracy_7b": 0.653
+    },
+    {
+     "corpus": "med",
+     "column": "drug.mechanism_of_action",
+     "kind": "list",
+     "gold_values": 70,
+     "stated_share": 0.386,
+     "median_position": 0.514,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.776,
+     "accuracy_7b": 0.143
+    },
+    {
+     "corpus": "med",
+     "column": "drug.pharmaceutical_form",
+     "kind": "list",
+     "gold_values": 74,
+     "stated_share": 0.959,
+     "median_position": 0.278,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.592,
+     "accuracy_7b": 0.265
+    },
+    {
+     "corpus": "med",
+     "column": "drug.prescription_status",
+     "kind": "category",
+     "gold_values": 45,
+     "stated_share": 0.022,
+     "median_position": 0.061,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.194,
+     "accuracy_7b": 0.51
+    },
+    {
+     "corpus": "med",
+     "column": "drug.recommended_usage",
+     "kind": "list",
+     "gold_values": 59,
+     "stated_share": 0.424,
+     "median_position": 0.033,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.878,
+     "accuracy_7b": 0.173
+    },
+    {
+     "corpus": "med",
+     "column": "drug.side_effects",
+     "kind": "list",
+     "gold_values": 72,
+     "stated_share": 0.986,
+     "median_position": 0.303,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": 0.633,
+     "accuracy_7b": 0.143
+    },
+    {
+     "corpus": "med",
+     "column": "drug.single_dose",
+     "kind": "list",
+     "gold_values": 59,
+     "stated_share": 0.051,
+     "median_position": 0.466,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.765,
+     "accuracy_7b": 0.224
+    },
+    {
+     "corpus": "med",
+     "column": "drug.storage_conditions",
+     "kind": "list",
+     "gold_values": 18,
+     "stated_share": 0.278,
+     "median_position": 0.729,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.827,
+     "accuracy_7b": 0.327
+    },
+    {
+     "corpus": "med",
+     "column": "drug.unsuitable_population",
+     "kind": "list",
+     "gold_values": 57,
+     "stated_share": 0.667,
+     "median_position": 0.396,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.663,
+     "accuracy_7b": 0.286
+    }
+   ]
+  }
+ },
+ "legal": {
+  "usage": {
+   "schema_columns": 21,
+   "w0_queries": 46,
+   "test_queries": 27,
+   "columns_used_by_w0": 10,
+   "columns_used_by_test": 14,
+   "columns_used_by_any_query": 15,
+   "test_columns_not_in_w0": [
+    "legal.defendant_current_status",
+    "legal.fine_amount",
+    "legal.judge_name",
+    "legal.judgment_year",
+    "legal.plaintiff_current_status"
+   ],
+   "share_of_w0_uses_in_top_k_columns": {
+    "3": 0.461,
+    "5": 0.722,
+    "10": 1.0
+   },
+   "w0_group_by_columns": [
+    "applicant_nation",
+    "case_family",
+    "case_type",
+    "evidence",
+    "first_judge",
+    "hearing_year",
+    "nationality_for_applicant",
+    "precedent_band",
+    "statute_band",
+    "verdict",
+    "verdict_family"
+   ],
+   "w0_filter_columns": [
+    "case_number",
+    "case_type",
+    "defendant",
+    "evidence",
+    "first_judge",
+    "hearing_year",
+    "legal_basis_num",
+    "legal_fees",
+    "nationality_for_applicant",
+    "verdict"
+   ]
+  },
+  "structure": {
+   "test_queries": 27,
+   "source_query_in_w0": 0,
+   "same_template_as_a_w0_query": 16,
+   "same_shape_as_a_w0_query (tables, joins, aggregates, group-by arity)": 27
+  },
+  "literal_gap": {
+   "constants": 26,
+   "mean_verbatim_share": 0.565,
+   "constants_never_verbatim": 7,
+   "constants_always_verbatim": 9,
+   "by_kind": {
+    "category": 0.245,
+    "free text": 0.661
+   },
+   "rows": [
+    {
+     "query_set": "w0",
+     "column": "legal.verdict",
+     "constant": "Dismissed",
+     "gold_rows": 384,
+     "verbatim_share": 0.909,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.case_type",
+     "constant": "Civil Case",
+     "gold_rows": 156,
+     "verbatim_share": 0.019,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.case_type",
+     "constant": "Commercial Case",
+     "gold_rows": 59,
+     "verbatim_share": 0.0,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.case_type",
+     "constant": "Administrative Case",
+     "gold_rows": 344,
+     "verbatim_share": 0.0,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.nationality_for_applicant",
+     "constant": "Australia",
+     "gold_rows": 83,
+     "verbatim_share": 0.952,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.nationality_for_applicant",
+     "constant": "China",
+     "gold_rows": 63,
+     "verbatim_share": 0.968,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.nationality_for_applicant",
+     "constant": "India",
+     "gold_rows": 48,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.nationality_for_applicant",
+     "constant": "Bangladesh",
+     "gold_rows": 26,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.verdict",
+     "constant": "Approved",
+     "gold_rows": 105,
+     "verbatim_share": 0.229,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.verdict",
+     "constant": "Others",
+     "gold_rows": 73,
+     "verbatim_share": 0.315,
+     "kind": "category"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.defendant",
+     "constant": "Secretary, Department of Employment and Workplace Relations",
+     "gold_rows": 2,
+     "verbatim_share": 0.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "w0",
+     "column": "legal.legal_fees",
+     "constant": "3265",
+     "gold_rows": 1,
+     "verbatim_share": 0.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.fine_amount",
+     "constant": "0",
+     "gold_rows": 6,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.fine_amount",
+     "constant": "5000",
+     "gold_rows": 3,
+     "verbatim_share": 0.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.fine_amount",
+     "constant": "20000",
+     "gold_rows": 2,
+     "verbatim_share": 0.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.defendant_current_status",
+     "constant": "Organization",
+     "gold_rows": 48,
+     "verbatim_share": 0.042,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.defendant_current_status",
+     "constant": "Company",
+     "gold_rows": 129,
+     "verbatim_share": 0.69,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.defendant_current_status",
+     "constant": "Government",
+     "gold_rows": 295,
+     "verbatim_share": 0.61,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.judgment_year",
+     "constant": "2009",
+     "gold_rows": 109,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.judgment_year",
+     "constant": "2006",
+     "gold_rows": 172,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.judgment_year",
+     "constant": "2007",
+     "gold_rows": 151,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.judge_name",
+     "constant": "McKerracher",
+     "gold_rows": 7,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.plaintiff_current_status",
+     "constant": "Membership Of The District __xecutive Committee_ Of The Bnp For The Noakhali District Of Bangladesh.",
+     "gold_rows": 1,
+     "verbatim_share": 0.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.judge_name",
+     "constant": "Tracey",
+     "gold_rows": 29,
+     "verbatim_share": 0.966,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.judge_name",
+     "constant": "Flick",
+     "gold_rows": 29,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    },
+    {
+     "query_set": "test",
+     "column": "legal.judge_name",
+     "constant": "Greenwood",
+     "gold_rows": 25,
+     "verbatim_share": 1.0,
+     "kind": "free text"
+    }
+   ]
+  },
+  "stated_or_inferred": {
+   "columns": 19,
+   "mean_stated_share": 0.555,
+   "by_kind": {
+    "number": {
+     "columns": 3,
+     "stated_share": 0.088,
+     "median_position": 0.116
+    },
+    "category": {
+     "columns": 2,
+     "stated_share": 0.353,
+     "median_position": 0.453
+    },
+    "list": {
+     "columns": 2,
+     "stated_share": 0.94,
+     "median_position": 0.985
+    },
+    "free text": {
+     "columns": 12,
+     "stated_share": 0.641,
+     "median_position": 0.072
+    }
+   },
+   "spearman_stated_vs_sensitivity": 0.024,
+   "spearman_stated_vs_accuracy": 0.0,
+   "columns_with_sensitivity": 8,
+   "rows": [
+    {
+     "corpus": "legal",
+     "column": "legal.case_number",
+     "kind": "number",
+     "gold_values": 569,
+     "stated_share": 0.25,
+     "median_position": 0.142,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.case_type",
+     "kind": "category",
+     "gold_values": 570,
+     "stated_share": 0.005,
+     "median_position": 0.687,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.charges",
+     "kind": "free text",
+     "gold_values": 538,
+     "stated_share": 0.125,
+     "median_position": 0.072,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": 0.182,
+     "accuracy_7b": 0.056
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.counsel_for_applicant",
+     "kind": "list",
+     "gold_values": 321,
+     "stated_share": 0.969,
+     "median_position": 0.984,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": 0.496,
+     "accuracy_7b": 0.354
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.counsel_for_respondent",
+     "kind": "list",
+     "gold_values": 467,
+     "stated_share": 0.91,
+     "median_position": 0.986,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": 0.654,
+     "accuracy_7b": 0.158
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.defendant",
+     "kind": "free text",
+     "gold_values": 565,
+     "stated_share": 0.641,
+     "median_position": 0.028,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.defendant_current_status",
+     "kind": "free text",
+     "gold_values": 512,
+     "stated_share": 0.574,
+     "median_position": 0.236,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.882,
+     "accuracy_7b": 0.458
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.evidence",
+     "kind": "number",
+     "gold_values": 570,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.fine_amount",
+     "kind": "free text",
+     "gold_values": 45,
+     "stated_share": 0.467,
+     "median_position": 0.86,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.051,
+     "accuracy_7b": 0.939
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.first_judge",
+     "kind": "free text",
+     "gold_values": 570,
+     "stated_share": 0.0,
+     "median_position": null,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.hearing_year",
+     "kind": "free text",
+     "gold_values": 565,
+     "stated_share": 0.996,
+     "median_position": 0.052,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.judge_name",
+     "kind": "free text",
+     "gold_values": 570,
+     "stated_share": 0.996,
+     "median_position": 0.976,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.602,
+     "accuracy_7b": 0.004
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.judgment_year",
+     "kind": "free text",
+     "gold_values": 568,
+     "stated_share": 0.998,
+     "median_position": 0.09,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.098,
+     "accuracy_7b": 0.895
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.legal_basis_num",
+     "kind": "number",
+     "gold_values": 570,
+     "stated_share": 0.014,
+     "median_position": 0.091,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.legal_fees",
+     "kind": "free text",
+     "gold_values": 69,
+     "stated_share": 0.71,
+     "median_position": 0.903,
+     "in_w0": true,
+     "in_test": false,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.nationality_for_applicant",
+     "kind": "free text",
+     "gold_values": 303,
+     "stated_share": 0.98,
+     "median_position": 0.033,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.plaintiff",
+     "kind": "free text",
+     "gold_values": 564,
+     "stated_share": 0.635,
+     "median_position": 0.015,
+     "in_w0": false,
+     "in_test": false,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.plaintiff_current_status",
+     "kind": "free text",
+     "gold_values": 314,
+     "stated_share": 0.573,
+     "median_position": 0.061,
+     "in_w0": false,
+     "in_test": true,
+     "sensitivity_7b": 0.846,
+     "accuracy_7b": 0.325
+    },
+    {
+     "corpus": "legal",
+     "column": "legal.verdict",
+     "kind": "category",
+     "gold_values": 570,
+     "stated_share": 0.702,
+     "median_position": 0.219,
+     "in_w0": true,
+     "in_test": true,
+     "sensitivity_7b": null,
+     "accuracy_7b": null
+    }
+   ]
+  }
+ },
+ "pooled": {
+  "columns": 101,
+  "spearman_stated_vs_sensitivity": -0.051,
+  "spearman_stated_vs_accuracy": 0.091,
+  "by_kind": {
+   "number": {
+    "columns": 13,
+    "stated_share": 0.299,
+    "sensitivity": 0.294
+   },
+   "yes/no": {
+    "columns": 4,
+    "stated_share": 0.74,
+    "sensitivity": 0.585
+   },
+   "category": {
+    "columns": 9,
+    "stated_share": 0.217,
+    "sensitivity": 0.294
+   },
+   "list": {
+    "columns": 49,
+    "stated_share": 0.664,
+    "sensitivity": 0.638
+   },
+   "free text": {
+    "columns": 26,
+    "stated_share": 0.55,
+    "sensitivity": 0.316
+   }
+  },
+  "stated_0.00-0.34": {
+   "columns": 33,
+   "mean_sensitivity": 0.438,
+   "mean_accuracy": 0.421
+  },
+  "stated_0.34-0.67": {
+   "columns": 21,
+   "mean_sensitivity": 0.604,
+   "mean_accuracy": 0.338
+  },
+  "stated_0.67-1.00": {
+   "columns": 47,
+   "mean_sensitivity": 0.45,
+   "mean_accuracy": 0.469
+  }
+ }
+}

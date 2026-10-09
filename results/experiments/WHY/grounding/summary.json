@@ -1,0 +1,826 @@
+{
+ "grounding": {
+  "cells": {
+   "all": 36801,
+   "non_empty_non_trivial": 23716
+  },
+  "all": {
+   "cells": 23716,
+   "share_grounded": 0.571,
+   "accuracy_grounded": 0.417,
+   "accuracy_ungrounded": 0.394,
+   "disagreement_grounded": 0.487,
+   "disagreement_ungrounded": 0.516,
+   "share_of_wrong_cells_ungrounded": 0.439
+  },
+  "number": {
+   "cells": 178,
+   "share_grounded": 0.938,
+   "accuracy_grounded": 0.946,
+   "accuracy_ungrounded": 0.727,
+   "disagreement_grounded": 0.078,
+   "disagreement_ungrounded": 0.545,
+   "share_of_wrong_cells_ungrounded": 0.25
+  },
+  "category": {
+   "cells": 3510,
+   "share_grounded": 0.193,
+   "accuracy_grounded": 0.691,
+   "accuracy_ungrounded": 0.612,
+   "disagreement_grounded": 0.141,
+   "disagreement_ungrounded": 0.225,
+   "share_of_wrong_cells_ungrounded": 0.84
+  },
+  "list": {
+   "cells": 10978,
+   "share_grounded": 0.786,
+   "accuracy_grounded": 0.281,
+   "accuracy_ungrounded": 0.138,
+   "disagreement_grounded": 0.588,
+   "disagreement_ungrounded": 0.747,
+   "share_of_wrong_cells_ungrounded": 0.246
+  },
+  "free text": {
+   "cells": 9050,
+   "share_grounded": 0.449,
+   "accuracy_grounded": 0.638,
+   "accuracy_ungrounded": 0.389,
+   "disagreement_grounded": 0.349,
+   "disagreement_ungrounded": 0.573,
+   "share_of_wrong_cells_ungrounded": 0.674
+  },
+  "list_all_items_stated": {
+   "cells": 8634,
+   "share_all_stated": 0.789,
+   "accuracy_all_stated": 0.357,
+   "accuracy_some_stated": 0
+  },
+  "grounded=True,disagree=True": {
+   "cells": 6601,
+   "accuracy": 0.198
+  },
+  "grounded=True,disagree=False": {
+   "cells": 6940,
+   "accuracy": 0.625
+  },
+  "grounded=False,disagree=True": {
+   "cells": 5250,
+   "accuracy": 0.113
+  },
+  "grounded=False,disagree=False": {
+   "cells": 4925,
+   "accuracy": 0.693
+  },
+  "gold_stated": {
+   "cells_stated": 13163,
+   "cells_not_stated": 12375,
+   "disagreement_when_stated": 0.486,
+   "disagreement_when_not_stated": 0.488,
+   "accuracy_when_stated": 0.429,
+   "accuracy_when_not_stated": 0.324
+  },
+  "empty_cells": {
+   "cells": 9661,
+   "accuracy": 0.341,
+   "gold_also_empty": 0.341
+  }
+ },
+ "classifier": {
+  "cells": 36801,
+  "share_wrong": 0.584,
+  "grounded": {
+   "auroc_by_column_cv": 0.443,
+   "auroc_leave_one_corpus_out": {
+    "cspaper": 0.623,
+    "player": 0.771,
+    "art": 0.492,
+    "med": 0.357,
+    "legal": 0.567
+   },
+   "coefficients": [
+    -0.16
+   ]
+  },
+  "grounded+disagree": {
+   "auroc_by_column_cv": 0.703,
+   "auroc_leave_one_corpus_out": {
+    "cspaper": 0.751,
+    "player": 0.747,
+    "art": 0.758,
+    "med": 0.573,
+    "legal": 0.655
+   },
+   "coefficients": [
+    -0.24,
+    2.01
+   ]
+  },
+  "all": {
+   "auroc_by_column_cv": 0.847,
+   "auroc_leave_one_corpus_out": {
+    "cspaper": 0.748,
+    "player": 0.827,
+    "art": 0.894,
+    "med": 0.77,
+    "legal": 0.761
+   },
+   "coefficients": [
+    3.34,
+    -3.94,
+    0.95,
+    3.23,
+    1.45,
+    3.44,
+    -1.03,
+    1.0,
+    -0.67,
+    -0.89,
+    -1.13,
+    -1.08
+   ]
+  },
+  "feature_order_all": [
+   "grounded",
+   "grounded_all",
+   "disagree",
+   "empty",
+   "log_value_len",
+   "sensitivity",
+   "fill",
+   "number",
+   "yes/no",
+   "category",
+   "list",
+   "free text"
+  ]
+ },
+ "cascade": {
+  "pool_cells": 1719,
+  "budget": 600,
+  "rules": {
+   "random": {
+    "net_fixes": 59,
+    "fixes": 92,
+    "breaks": 33,
+    "tokens_32b": 950377,
+    "usd_low": 0.079,
+    "usd_high": 0.631,
+    "net_fixes_per_usd_high": 93.4,
+    "share_served_wrong_in_selection": 0.66
+   },
+   "most_sensitive_first": {
+    "net_fixes": 66,
+    "fixes": 76,
+    "breaks": 10,
+    "tokens_32b": 652327,
+    "usd_low": 0.055,
+    "usd_high": 0.435,
+    "net_fixes_per_usd_high": 151.8,
+    "share_served_wrong_in_selection": 0.878
+   },
+   "ungrounded_first": {
+    "net_fixes": 33,
+    "fixes": 61,
+    "breaks": 28,
+    "tokens_32b": 874581,
+    "usd_low": 0.072,
+    "usd_high": 0.581,
+    "net_fixes_per_usd_high": 56.8,
+    "share_served_wrong_in_selection": 0.637
+   },
+   "disagreeing_first": {
+    "net_fixes": 69,
+    "fixes": 90,
+    "breaks": 21,
+    "tokens_32b": 938958,
+    "usd_low": 0.078,
+    "usd_high": 0.624,
+    "net_fixes_per_usd_high": 110.6,
+    "share_served_wrong_in_selection": 0.79
+   },
+   "classifier_p_wrong_first": {
+    "net_fixes": 65,
+    "fixes": 76,
+    "breaks": 11,
+    "tokens_32b": 877539,
+    "usd_low": 0.073,
+    "usd_high": 0.584,
+    "net_fixes_per_usd_high": 111.4,
+    "share_served_wrong_in_selection": 0.84
+   },
+   "ungrounded_and_not_empty_first": {
+    "net_fixes": 34,
+    "fixes": 63,
+    "breaks": 29,
+    "tokens_32b": 912009,
+    "usd_low": 0.075,
+    "usd_high": 0.606,
+    "net_fixes_per_usd_high": 56.1,
+    "share_served_wrong_in_selection": 0.632
+   }
+  },
+  "pool_grounded=True": {
+   "cells": 1084,
+   "served_accuracy": 0.252,
+   "fix_rate_of_wrong": 0.261,
+   "break_rate_of_right": 0.099
+  },
+  "pool_grounded=False": {
+   "cells": 420,
+   "served_accuracy": 0.405,
+   "fix_rate_of_wrong": 0.116,
+   "break_rate_of_right": 0.141
+  }
+ },
+ "position": {
+  "cspaper": {
+   "columns": 11,
+   "mean_p90": 0.658,
+   "columns_needing_first_half_only": 2,
+   "columns_needing_first_quarter_only": 1,
+   "token_share_saved_reading_to_p90_per_column": 0.342,
+   "by_kind": {
+    "category": 0.785,
+    "list": 0.79,
+    "free text": 0.502
+   },
+   "columns_detail": {
+    "cspaper.data_modality": {
+     "stated_values": 158,
+     "median": 0.23,
+     "p90": 0.723,
+     "kind": "list"
+    },
+    "cspaper.evaluation_metric": {
+     "stated_values": 94,
+     "median": 0.297,
+     "p90": 0.56,
+     "kind": "free text"
+    },
+    "cspaper.paper_name": {
+     "stated_values": 39,
+     "median": 0.0,
+     "p90": 0.024,
+     "kind": "free text"
+    },
+    "cspaper.baseline": {
+     "stated_values": 76,
+     "median": 0.322,
+     "p90": 0.698,
+     "kind": "free text"
+    },
+    "cspaper.generator_model": {
+     "stated_values": 30,
+     "median": 0.308,
+     "p90": 0.563,
+     "kind": "free text"
+    },
+    "cspaper.application_domain": {
+     "stated_values": 80,
+     "median": 0.453,
+     "p90": 0.858,
+     "kind": "list"
+    },
+    "cspaper.topic": {
+     "stated_values": 152,
+     "median": 0.099,
+     "p90": 0.49,
+     "kind": "category"
+    },
+    "cspaper.retrieval_method": {
+     "stated_values": 15,
+     "median": 0.177,
+     "p90": 0.816,
+     "kind": "category"
+    },
+    "cspaper.evaluation_dataset": {
+     "stated_values": 43,
+     "median": 0.331,
+     "p90": 0.665,
+     "kind": "free text"
+    },
+    "cspaper.agent_framework": {
+     "stated_values": 14,
+     "median": 0.666,
+     "p90": 0.873,
+     "kind": "category"
+    },
+    "cspaper.reasoning_depth": {
+     "stated_values": 17,
+     "median": 0.343,
+     "p90": 0.963,
+     "kind": "category"
+    }
+   }
+  },
+  "player": {
+   "columns": 13,
+   "mean_p90": 0.185,
+   "columns_needing_first_half_only": 12,
+   "columns_needing_first_quarter_only": 8,
+   "token_share_saved_reading_to_p90_per_column": 0.815,
+   "by_kind": {
+    "number": 0.192,
+    "free text": 0.182
+   },
+   "columns_detail": {
+    "city.city_name": {
+     "stated_values": 29,
+     "median": 0.0,
+     "p90": 0.0,
+     "kind": "free text"
+    },
+    "city.state_name": {
+     "stated_values": 28,
+     "median": 0.001,
+     "p90": 0.003,
+     "kind": "free text"
+    },
+    "city.population": {
+     "stated_values": 29,
+     "median": 0.006,
+     "p90": 0.012,
+     "kind": "number"
+    },
+    "city.area": {
+     "stated_values": 21,
+     "median": 0.17,
+     "p90": 0.262,
+     "kind": "number"
+    },
+    "player.name": {
+     "stated_values": 131,
+     "median": 0.001,
+     "p90": 0.011,
+     "kind": "free text"
+    },
+    "player.nationality": {
+     "stated_values": 138,
+     "median": 0.012,
+     "p90": 0.126,
+     "kind": "free text"
+    },
+    "player.team": {
+     "stated_values": 128,
+     "median": 0.035,
+     "p90": 0.748,
+     "kind": "free text"
+    },
+    "player.college": {
+     "stated_values": 117,
+     "median": 0.068,
+     "p90": 0.318,
+     "kind": "free text"
+    },
+    "player.draft_year": {
+     "stated_values": 114,
+     "median": 0.07,
+     "p90": 0.474,
+     "kind": "number"
+    },
+    "team.team_name": {
+     "stated_values": 30,
+     "median": 0.0,
+     "p90": 0.0,
+     "kind": "free text"
+    },
+    "team.founded_year": {
+     "stated_values": 30,
+     "median": 0.008,
+     "p90": 0.02,
+     "kind": "number"
+    },
+    "team.location": {
+     "stated_values": 30,
+     "median": 0.0,
+     "p90": 0.002,
+     "kind": "free text"
+    },
+    "team.ownership": {
+     "stated_values": 11,
+     "median": 0.059,
+     "p90": 0.432,
+     "kind": "free text"
+    }
+   }
+  },
+  "art": {
+   "columns": 20,
+   "mean_p90": 0.655,
+   "columns_needing_first_half_only": 4,
+   "columns_needing_first_quarter_only": 2,
+   "token_share_saved_reading_to_p90_per_column": 0.345,
+   "by_kind": {
+    "category": 0.86,
+    "list": 0.567,
+    "free text": 0.716
+   },
+   "columns_detail": {
+    "art.name": {
+     "stated_values": 938,
+     "median": 0.0,
+     "p90": 0.0,
+     "kind": "free text"
+    },
+    "art.nationality": {
+     "stated_values": 893,
+     "median": 0.018,
+     "p90": 0.042,
+     "kind": "list"
+    },
+    "art.art_movement": {
+     "stated_values": 622,
+     "median": 0.064,
+     "p90": 0.624,
+     "kind": "list"
+    },
+    "art.birth_city": {
+     "stated_values": 813,
+     "median": 0.092,
+     "p90": 0.264,
+     "kind": "list"
+    },
+    "art.death_city": {
+     "stated_values": 404,
+     "median": 0.158,
+     "p90": 0.753,
+     "kind": "free text"
+    },
+    "art.field": {
+     "stated_values": 964,
+     "median": 0.073,
+     "p90": 0.473,
+     "kind": "list"
+    },
+    "art.genre": {
+     "stated_values": 648,
+     "median": 0.086,
+     "p90": 0.608,
+     "kind": "list"
+    },
+    "art.art_institution": {
+     "stated_values": 532,
+     "median": 0.223,
+     "p90": 0.529,
+     "kind": "list"
+    },
+    "art.style": {
+     "stated_values": 238,
+     "median": 0.079,
+     "p90": 0.701,
+     "kind": "list"
+    },
+    "art.image_genre": {
+     "stated_values": 373,
+     "median": 0.155,
+     "p90": 0.778,
+     "kind": "list"
+    },
+    "art.marriage": {
+     "stated_values": 124,
+     "median": 0.397,
+     "p90": 0.81,
+     "kind": "category"
+    },
+    "art.birth_country": {
+     "stated_values": 584,
+     "median": 0.085,
+     "p90": 0.543,
+     "kind": "list"
+    },
+    "art.death_country": {
+     "stated_values": 355,
+     "median": 0.115,
+     "p90": 0.756,
+     "kind": "free text"
+    },
+    "art.object": {
+     "stated_values": 28,
+     "median": 0.42,
+     "p90": 0.868,
+     "kind": "list"
+    },
+    "art.tone": {
+     "stated_values": 64,
+     "median": 0.564,
+     "p90": 0.941,
+     "kind": "free text"
+    },
+    "art.color": {
+     "stated_values": 80,
+     "median": 0.327,
+     "p90": 0.803,
+     "kind": "list"
+    },
+    "art.birth_continent": {
+     "stated_values": 169,
+     "median": 0.336,
+     "p90": 0.863,
+     "kind": "category"
+    },
+    "art.century": {
+     "stated_values": 30,
+     "median": 0.13,
+     "p90": 0.879,
+     "kind": "free text"
+    },
+    "art.composition": {
+     "stated_values": 26,
+     "median": 0.483,
+     "p90": 0.967,
+     "kind": "free text"
+    },
+    "art.zodiac": {
+     "stated_values": 22,
+     "median": 0.589,
+     "p90": 0.906,
+     "kind": "category"
+    }
+   }
+  },
+  "med": {
+   "columns": 29,
+   "mean_p90": 0.741,
+   "columns_needing_first_half_only": 2,
+   "columns_needing_first_quarter_only": 1,
+   "token_share_saved_reading_to_p90_per_column": 0.259,
+   "by_kind": {
+    "list": 0.741
+   },
+   "columns_detail": {
+    "disease.etiology": {
+     "stated_values": 46,
+     "median": 0.15,
+     "p90": 0.741,
+     "kind": "list"
+    },
+    "disease.common_symptoms": {
+     "stated_values": 78,
+     "median": 0.146,
+     "p90": 0.61,
+     "kind": "list"
+    },
+    "disease.complications": {
+     "stated_values": 48,
+     "median": 0.129,
+     "p90": 0.582,
+     "kind": "list"
+    },
+    "disease.affected_organs": {
+     "stated_values": 76,
+     "median": 0.126,
+     "p90": 0.699,
+     "kind": "list"
+    },
+    "disease.drugs": {
+     "stated_values": 86,
+     "median": 0.18,
+     "p90": 0.795,
+     "kind": "list"
+    },
+    "disease.disease_name": {
+     "stated_values": 90,
+     "median": 0.135,
+     "p90": 0.69,
+     "kind": "list"
+    },
+    "disease.treatments": {
+     "stated_values": 46,
+     "median": 0.157,
+     "p90": 0.735,
+     "kind": "list"
+    },
+    "disease.sequelae": {
+     "stated_values": 13,
+     "median": 0.294,
+     "p90": 0.582,
+     "kind": "list"
+    },
+    "disease.treatment_challenges": {
+     "stated_values": 24,
+     "median": 0.251,
+     "p90": 0.895,
+     "kind": "list"
+    },
+    "disease.quality_of_life_impact": {
+     "stated_values": 22,
+     "median": 0.111,
+     "p90": 0.237,
+     "kind": "list"
+    },
+    "disease.disease_type": {
+     "stated_values": 61,
+     "median": 0.213,
+     "p90": 0.603,
+     "kind": "list"
+    },
+    "disease.prognosis": {
+     "stated_values": 21,
+     "median": 0.294,
+     "p90": 0.838,
+     "kind": "list"
+    },
+    "disease.risk_factors": {
+     "stated_values": 53,
+     "median": 0.059,
+     "p90": 0.566,
+     "kind": "list"
+    },
+    "disease.pathogenesis": {
+     "stated_values": 40,
+     "median": 0.14,
+     "p90": 0.603,
+     "kind": "list"
+    },
+    "disease.epidemiology": {
+     "stated_values": 34,
+     "median": 0.193,
+     "p90": 0.627,
+     "kind": "list"
+    },
+    "disease.diagnostic_methods": {
+     "stated_values": 19,
+     "median": 0.33,
+     "p90": 0.703,
+     "kind": "list"
+    },
+    "drug.generic_name": {
+     "stated_values": 89,
+     "median": 0.458,
+     "p90": 0.915,
+     "kind": "list"
+    },
+    "drug.brand_name": {
+     "stated_values": 68,
+     "median": 0.442,
+     "p90": 0.89,
+     "kind": "list"
+    },
+    "drug.disease_name": {
+     "stated_values": 92,
+     "median": 0.377,
+     "p90": 0.914,
+     "kind": "list"
+    },
+    "drug.indication": {
+     "stated_values": 79,
+     "median": 0.353,
+     "p90": 0.908,
+     "kind": "list"
+    },
+    "drug.active_ingredients": {
+     "stated_values": 87,
+     "median": 0.453,
+     "p90": 0.904,
+     "kind": "list"
+    },
+    "drug.pharmaceutical_form": {
+     "stated_values": 71,
+     "median": 0.278,
+     "p90": 0.771,
+     "kind": "list"
+    },
+    "drug.dosage_frequency": {
+     "stated_values": 41,
+     "median": 0.556,
+     "p90": 0.926,
+     "kind": "list"
+    },
+    "drug.side_effects": {
+     "stated_values": 71,
+     "median": 0.303,
+     "p90": 0.804,
+     "kind": "list"
+    },
+    "drug.recommended_usage": {
+     "stated_values": 25,
+     "median": 0.033,
+     "p90": 0.466,
+     "kind": "list"
+    },
+    "drug.manufacturer": {
+     "stated_values": 27,
+     "median": 0.521,
+     "p90": 0.974,
+     "kind": "list"
+    },
+    "drug.mechanism_of_action": {
+     "stated_values": 27,
+     "median": 0.514,
+     "p90": 0.875,
+     "kind": "list"
+    },
+    "drug.administration_route": {
+     "stated_values": 72,
+     "median": 0.183,
+     "p90": 0.741,
+     "kind": "list"
+    },
+    "drug.unsuitable_population": {
+     "stated_values": 38,
+     "median": 0.412,
+     "p90": 0.895,
+     "kind": "list"
+    }
+   }
+  },
+  "legal": {
+   "columns": 14,
+   "mean_p90": 0.789,
+   "columns_needing_first_half_only": 2,
+   "columns_needing_first_quarter_only": 2,
+   "token_share_saved_reading_to_p90_per_column": 0.211,
+   "by_kind": {
+    "category": 0.971,
+    "list": 0.994,
+    "free text": 0.735
+   },
+   "columns_detail": {
+    "legal.judge_name": {
+     "stated_values": 568,
+     "median": 0.976,
+     "p90": 0.991,
+     "kind": "free text"
+    },
+    "legal.plaintiff": {
+     "stated_values": 353,
+     "median": 0.015,
+     "p90": 0.193,
+     "kind": "free text"
+    },
+    "legal.defendant": {
+     "stated_values": 361,
+     "median": 0.028,
+     "p90": 0.604,
+     "kind": "free text"
+    },
+    "legal.hearing_year": {
+     "stated_values": 563,
+     "median": 0.052,
+     "p90": 0.977,
+     "kind": "free text"
+    },
+    "legal.judgment_year": {
+     "stated_values": 567,
+     "median": 0.09,
+     "p90": 0.985,
+     "kind": "free text"
+    },
+    "legal.counsel_for_applicant": {
+     "stated_values": 311,
+     "median": 0.984,
+     "p90": 0.994,
+     "kind": "list"
+    },
+    "legal.counsel_for_respondent": {
+     "stated_values": 425,
+     "median": 0.986,
+     "p90": 0.995,
+     "kind": "list"
+    },
+    "legal.nationality_for_applicant": {
+     "stated_values": 297,
+     "median": 0.033,
+     "p90": 0.211,
+     "kind": "free text"
+    },
+    "legal.plaintiff_current_status": {
+     "stated_values": 180,
+     "median": 0.062,
+     "p90": 0.518,
+     "kind": "free text"
+    },
+    "legal.verdict": {
+     "stated_values": 400,
+     "median": 0.22,
+     "p90": 0.971,
+     "kind": "category"
+    },
+    "legal.defendant_current_status": {
+     "stated_values": 294,
+     "median": 0.236,
+     "p90": 0.987,
+     "kind": "free text"
+    },
+    "legal.charges": {
+     "stated_values": 67,
+     "median": 0.072,
+     "p90": 0.68,
+     "kind": "free text"
+    },
+    "legal.fine_amount": {
+     "stated_values": 21,
+     "median": 0.86,
+     "p90": 0.972,
+     "kind": "free text"
+    },
+    "legal.legal_fees": {
+     "stated_values": 49,
+     "median": 0.903,
+     "p90": 0.967,
+     "kind": "free text"
+    }
+   }
+  }
+ }
+}
