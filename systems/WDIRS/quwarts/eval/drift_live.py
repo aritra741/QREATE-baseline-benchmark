@@ -402,6 +402,21 @@ class Build:
             spec = supplement_spec(corpus, axis)
             keep = spec["kept"][level]
             self.read_all = spec["reads"]
+            # I5 (RESEARCH_DEPTH.md): QUWARTS_BUILD_GROUPS, a JSON file {table: [[column, ...], ...]}, splits a table's
+            # build-time read of the anticipated columns into several prompts (the grouping is an accuracy decision:
+            # a column's value depends on the columns asked with it). Columns not listed keep one read together.
+            groups_file = os.environ.get("QUWARTS_BUILD_GROUPS")
+            if groups_file:
+                groups = json.loads(Path(groups_file).read_text())
+                reads = []
+                for r in self.read_all:
+                    gs = [tuple(sorted(a for a in g if a in r.attributes)) for g in groups.get(r.table, [])]
+                    gs = [g for g in gs if g]
+                    rest = tuple(a for a in r.attributes if not any(a in g for g in gs))
+                    reads += [C.Read(r.table, "supplement", g) for g in gs]
+                    if rest:
+                        reads.append(C.Read(r.table, "supplement", rest))
+                self.read_all = reads
             self.supplement = [C.Read(r.table, "supplement", tuple(a for a in r.attributes if (r.table, a) in keep))
                                for r in self.read_all]
             self.supplement = [r for r in self.supplement if r.attributes]
@@ -551,14 +566,17 @@ def prepare_supplement(corpus: str, caller, deadline: float | None, b: "Build") 
     tmp = b.dir / "build.tmp.db"
     shutil.copy2(w0_build(corpus).db, tmp)
     rows, shas, missing = rows_of(j), [], []
-    keep = {r.table: r.attributes for r in b.supplement}
+    keep: dict[str, tuple] = {}
+    for r in b.supplement:  # a table may have several supplement reads (QUWARTS_BUILD_GROUPS)
+        keep[r.table] = tuple(sorted(set(keep.get(r.table, ())) | set(r.attributes)))
     for r in b.read_all if b.supplement else []:
-        if r.table not in keep:
+        attrs = [a for a in r.attributes if a in keep.get(r.table, ())]
+        if not attrs:
             continue
         vals, used = values_and_shas(ctx.docs[r.table], r.table, list(r.attributes), b.fields, rows)
         shas += used
         missing += [f"{r.table}/{d}" for d in ctx.docs[r.table] if d not in vals]
-        write_values(tmp, r.table, list(ctx.docs[r.table]), keep[r.table], vals, b.fields)
+        write_values(tmp, r.table, list(ctx.docs[r.table]), attrs, vals, b.fields)
     shutil.move(str(tmp), b.db)
     represent(b.db, b.static, ctx.spec, b.all_fields(), b.workload, Config())
     cost = charge(shas, caller.usage, rows)

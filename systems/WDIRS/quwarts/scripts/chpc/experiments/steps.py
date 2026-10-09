@@ -354,9 +354,7 @@ I4_ONLY = ",".join(f"fixed4b{b:03d}-attribute_pool/100" for b in I4_BUDGETS)
 def frozen_docetl(corpus: str) -> dict:
     """I3: DocETL with one extraction per column across its queries (run_docetl_frozen.py)."""
     return {"id": f"I3-frozen-{corpus}", "lane": "gpu", "retries": 1,
-            # the smoke test of this script (two player queries) must have exited before the full player run
-            "cmd": DOCETL_PRE + 'while pgrep -u $USER -f "run_docetl_frozen.py --corpus player --threads 8 --limit" > /dev/null; '
-                   'do sleep 30; done; eval "$(bash ../WDIRS/quwarts/scripts/chpc/experiments/ensure_server.sh main)" && '
+            "cmd": DOCETL_PRE + 'eval "$(bash ../WDIRS/quwarts/scripts/chpc/experiments/ensure_server.sh main)" && '
                    f"python -u run_docetl_frozen.py --corpus {corpus} --threads 8",
             "outputs": [f"results/docetl_frozen_ollama/{corpus}/complete.json"]}
 
@@ -382,8 +380,30 @@ STEPS += [
     *[i4("forecast", c, False) for c in CORPORA],
     # I2 on the 32B server, after the I1 loop on that server has finished
     {"id": "I2-secondlook", "lane": "gpu32", "retries": 1,
-     "cmd": PRE + 'while pgrep -u $USER -f "exp_intervene run .*--model qwen32b" > /dev/null; do sleep 60; done; '
+     # ([b] so that this command line does not match its own pattern)
+     "cmd": PRE + 'while pgrep -u $USER -f "exp_intervene run .*--model qwen32[b]" > /dev/null; do sleep 60; done; '
             + server("qwen32b") + "python -u -m quwarts.eval.exp_secondlook run --budget 1000 --workers 4 && "
             "python -m quwarts.eval.exp_secondlook analyze",
      "outputs": ["results/experiments/I2-secondlook/summary.json"]},
 ]
+
+
+def i5(kind: str, corpus: str) -> dict:
+    """I5: the level-0 build (every new column anticipated) re-made under a grouping of its prompts, from a replay clone
+    whose level-0 build is set aside, so W0 and every matching read are reused and only the regrouped prompts are
+    paid; scored on the 0% stream (all test queries answered from the build)."""
+    sid, root, scratch = f"I5-{kind}-{corpus}", f"results/experiments/I5-{kind}/live", f"{SCRATCH}/I5-{kind}"
+    build_dir = f"{scratch}/drift_live_ollama/{corpus}/builds/fixed4_attribute_pool_0"
+    build_meta = f"$OLDPWD/{root}/{corpus}/builds/fixed4_attribute_pool_0.json"
+    env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_LIVE_ONLY=fixed4-attribute_pool/0 "
+           f"QUWARTS_BUILD_GROUPS=$OLDPWD/results/experiments/I5-groups/{corpus}_{kind}.json ")
+    return {"id": sid, "lane": "gpu", "retries": 1, "deps": ["G0-prompt-guard"],
+            "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} && "
+                   f"([ -e {build_dir} ] && mv {build_dir} {build_dir}_recorded_$(date +%s) || true) && "
+                   f"([ -e {build_meta} ] && mv {build_meta} {build_meta}_recorded || true) && "
+                   + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams fixed "
+                   f"--axes attribute_pool --deadline 0 --workers 8",
+            "outputs": [f"{root}/{corpus}/streams/fixed4-attribute_pool_0.jsonl"]}
+
+
+STEPS += [i5("alone", c) for c in CORPORA]

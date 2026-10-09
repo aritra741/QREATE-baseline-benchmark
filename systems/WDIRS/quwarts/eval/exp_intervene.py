@@ -334,9 +334,42 @@ def analyze() -> dict:
     return out
 
 
+
+
+# ------------------------------------------------------------------ I5 groupings
+
+def write_groupings(kind: str) -> list[Path]:
+    """I5: build-time groupings of the new columns per corpus (results/experiments/I5-groups/<corpus>_<kind>.json):
+    ``alone`` gives every new column its own prompt; ``chosen`` separates the columns that I1 found more accurate
+    alone than in the natural group (by 0.05 on the sampled documents) and keeps the rest together."""
+    d = EXP / "I5-groups"
+    d.mkdir(parents=True, exist_ok=True)
+    summary = json.loads((OUT / "summary.json").read_text()) if kind == "chosen" else {}
+    acc = {(r["corpus"], r["column"]): r["accuracy"] for r in summary.get("columns", {}).get("qwen7b", [])}
+    out = []
+    for c in CORPORA:
+        design = json.loads((LIVE / c / "fixed4_attribute_pool_design.json").read_text())
+        by_table = defaultdict(list)
+        for col in design["new_columns"]:
+            by_table[col.split(".", 1)[0]].append(col.split(".", 1)[1])
+        groups = {}
+        for t, cols in by_table.items():
+            if kind == "alone":
+                groups[t] = [[a] for a in cols]
+            else:
+                alone = [a for a in cols if acc.get((c, f"{t}.{a}"), {}).get("alone", 0) >= acc.get((c, f"{t}.{a}"), {}).get("natural", 0) + 0.05]
+                rest = [a for a in cols if a not in alone]
+                groups[t] = [[a] for a in alone] + ([rest] if rest else [])
+        p = d / f"{c}_{kind}.json"
+        p.write_text(json.dumps(groups, indent=1))
+        out.append(p)
+    return out
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["run", "analyze", "plan"])
+    ap.add_argument("what", choices=["run", "analyze", "plan", "groups"])
+    ap.add_argument("--kind", default="alone", choices=["alone", "chosen"])
     ap.add_argument("--corpus")
     ap.add_argument("--model", default="qwen7b", choices=list(MODELS))
     ap.add_argument("--docs", type=int, default=30)
@@ -345,6 +378,8 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     if a.what == "run":
         run(a.corpus, a.model, a.docs, a.workers, a.limit)
+    elif a.what == "groups":
+        print([str(p) for p in write_groupings(a.kind)])
     elif a.what == "plan":
         jobs = plan(a.corpus, a.docs)
         print(len(jobs), "prompts;", Counter(j["kind"] for j in jobs))

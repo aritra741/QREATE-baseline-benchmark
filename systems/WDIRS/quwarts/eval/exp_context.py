@@ -57,8 +57,9 @@ def width_bin(w: int) -> str:
     return "?"
 
 
-def load(d: Path) -> dict:
-    """(table, doc, attr) -> list of (context, value); context = tuple of columns asked in the same prompt."""
+def load(d: Path, exclude_shas: set | None = None) -> dict:
+    """(table, doc, attr) -> list of (context, value); context = tuple of columns asked in the same prompt.
+    ``exclude_shas``: prompts to leave out (an ablation's journal starts with a copy of the recorded run's reads)."""
     vals = defaultdict(list)
     for name in ("build_reads.jsonl", "patch_reads.jsonl"):
         f = d / name
@@ -68,6 +69,8 @@ def load(d: Path) -> dict:
             if not line.strip():
                 continue
             r = json.loads(line)
+            if exclude_shas and r.get("prompt_sha") in exclude_shas:
+                continue
             ctx = tuple(sorted(r["attributes"]))
             got = parse(r["response"])
             for a in r["attributes"]:
@@ -204,7 +207,136 @@ def main() -> dict:
     (d / "summary.json").write_text(json.dumps(out, indent=1, default=str))
     return out
 
+# ------------------------------------------------------------------ items 4 and 5 of the plan (no GPU)
+
+ABLATIONS = {  # kind of context change -> run whose patches differ from the recorded run in that one respect
+    "description": EXP / "E13-nodesc" / "live",   # field descriptions removed from on-demand prompts
+    "usage": EXP / "E13-nousage" / "live",        # the workload-use phrase removed
+    "grouping": EXP / "E14-bgroup" / "live",      # every patch asks the table's whole new-column set
+    "window": EXP / "E13-head" / "live",          # long documents read up to the window only
+}
+
+
+def kinds_of_change() -> dict:
+    """Per column, the share of documents whose value changes under each kind of context change, from the ablation
+    logs; then whether the column ranking is the same across kinds (Spearman) and how each kind relates to accuracy."""
+    rows = []
+    for c in CORPORA:
+        main = load(LIVE / c)
+        mctx: dict[tuple, dict[tuple, object]] = {}
+        for k, lst in main.items():
+            d = {}
+            for ctx, v in lst:
+                d.setdefault(ctx, v)
+            mctx[k] = d
+        fields = fields_of(c)
+        gold = gold_by_doc(c)
+        stats = {r["column"]: r for r in column_stats(main, gold, fields, c)}
+        per: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
+        for name, d in ABLATIONS.items():
+            if not (d / c / "patch_reads.jsonl").exists():
+                continue
+            main_shas = {json.loads(line)["prompt_sha"] for name in ("build_reads.jsonl", "patch_reads.jsonl")
+                         for line in (LIVE / c / name).read_text().splitlines() if line.strip()}
+            abl = load(d / c, exclude_shas=main_shas)  # the ablation's own reads only
+            seen = set()
+            for (t, dd, a), lst in abl.items():
+                if (t, dd, a) not in mctx or (t, dd, a) in seen:
+                    continue
+                m = mctx[(t, dd, a)]
+                for ctx, v in lst:
+                    if name == "grouping":
+                        narrow = min(m, key=len)  # the recorded run's narrowest context for this cell
+                        mv = m[narrow]
+                    elif ctx in m:
+                        mv = m[ctx]
+                    else:
+                        continue
+                    per[f"{t}.{a}"][name].append(vnorm(mv) != vnorm(v))
+                    seen.add((t, dd, a))
+                    break
+        for col, kinds in per.items():
+            e = {"corpus": c, "column": col, "kind": kind_of(fields[col]) if col in fields else "?",
+                 "accuracy": stats.get(col, {}).get("accuracy"), "sensitivity": stats.get(col, {}).get("sensitivity")}
+            for name, flags in kinds.items():
+                if len(flags) >= 10:
+                    e[name] = round(S.mean(flags), 3)
+                    e[name + "_docs"] = len(flags)
+            if any(k in e for k in ABLATIONS):
+                rows.append(e)
+    out = {"columns": rows, "spearman_between_kinds": {}, "spearman_vs_accuracy": {}, "mean_by_kind_of_column": {}}
+    names = list(ABLATIONS) + ["sensitivity"]
+    for i, x in enumerate(names):
+        for y in names[i + 1:]:
+            rs = [r for r in rows if r.get(x) is not None and r.get(y) is not None]
+            if len(rs) >= 8:
+                out["spearman_between_kinds"][f"{x}_vs_{y}"] = {"columns": len(rs),
+                                                                "spearman": round(spearman([r[x] for r in rs], [r[y] for r in rs]), 3)}
+        rs = [r for r in rows if r.get(x) is not None and r.get("accuracy") is not None]
+        if len(rs) >= 8:
+            out["spearman_vs_accuracy"][x] = {"columns": len(rs), "spearman": round(spearman([r[x] for r in rs], [r["accuracy"] for r in rs]), 3),
+                                              "mean": round(S.mean(r[x] for r in rs), 3)}
+    for k in ("number", "yes/no", "category", "list", "free text"):
+        rs = [r for r in rows if r["kind"] == k]
+        if rs:
+            out["mean_by_kind_of_column"][k] = {x: round(S.mean(r[x] for r in rs if r.get(x) is not None), 3)
+                                                for x in names if any(r.get(x) is not None for r in rs)}
+            out["mean_by_kind_of_column"][k]["columns"] = len(rs)
+    d = EXP / "WHY" / "context"
+    (d / "kinds_of_change.json").write_text(json.dumps(out, indent=1))
+    return out
+
+
+def sample_curve(reps: int = 30) -> dict:
+    """How many documents the signal needs: per 7B column, sensitivity estimated from n sampled documents against the
+    column's full-corpus accuracy, Spearman over columns, averaged over random draws."""
+    import random
+
+    flags_by_col: dict[tuple, list[int]] = {}
+    acc: dict[tuple, float] = {}
+    for c in CORPORA:
+        main = load(LIVE / c)
+        fields = fields_of(c)
+        gold = gold_by_doc(c)
+        for r in column_stats(main, gold, fields, c):
+            if r["accuracy"] is not None:
+                acc[(c, r["column"])] = r["accuracy"]
+        per: dict[str, dict[str, dict]] = defaultdict(lambda: defaultdict(dict))
+        for (t, d, a), lst in main.items():
+            for ctx, v in lst:
+                per[f"{t}.{a}"][d].setdefault(ctx, v)
+        for col, docs in per.items():
+            fl = [int(len({vnorm(v) for v in ctxs.values()}) > 1) for ctxs in docs.values() if len(ctxs) >= 2]
+            if (c, col) in acc and len(fl) >= 10:
+                flags_by_col[(c, col)] = fl
+    out = {"columns": len(flags_by_col)}
+    full = {k: S.mean(v) for k, v in flags_by_col.items()}
+    keys = sorted(flags_by_col)
+    out["full"] = {"columns": len(keys), "spearman": round(spearman([full[k] for k in keys], [acc[k] for k in keys]), 3)}
+    for n in (5, 10, 20, 40):
+        ks = [k for k in keys if len(flags_by_col[k]) >= n]
+        if len(ks) < 8:
+            continue
+        rhos = []
+        for rep in range(reps):
+            rng = random.Random(f"{n}:{rep}")
+            est = [S.mean(rng.sample(flags_by_col[k], n)) for k in ks]
+            rhos.append(spearman(est, [acc[k] for k in ks]))
+        out[f"n={n}"] = {"columns": len(ks), "spearman_mean": round(S.mean(rhos), 3),
+                         "spearman_min": round(min(rhos), 3), "spearman_max": round(max(rhos), 3),
+                         "spearman_full_on_same_columns": round(spearman([full[k] for k in ks], [acc[k] for k in ks]), 3)}
+    (EXP / "WHY" / "context" / "sample_curve.json").write_text(json.dumps(out, indent=1))
+    return out
+
 
 if __name__ == "__main__":
-    o = main()
-    print(json.dumps({k: v for k, v in o.items() if k != "columns"}, indent=1))
+    import sys
+
+    if "--kinds" in sys.argv:
+        o = kinds_of_change()
+        print(json.dumps({k: v for k, v in o.items() if k != "columns"}, indent=1))
+    elif "--sample" in sys.argv:
+        print(json.dumps(sample_curve(), indent=1))
+    else:
+        o = main()
+        print(json.dumps({k: v for k, v in o.items() if k != "columns"}, indent=1))
