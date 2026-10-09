@@ -463,3 +463,21 @@ after I5, so nothing shares the 7B server.
   fall by about half on players and 15–30% elsewhere, scores within 0.02 of the recorded 100% stream; artists' birth
   and death dates (windows of a tenth) stay as accurate, because the value is in the first lines, and any loss
   concentrates in list columns whose later items the window cuts.
+
+**I1, field order (Q4 of LITERATURE_IDEAS.md): the same fields in another order, 7B, 24 columns of the natural
+groups, 30 documents each (`I1-context/summary.json`, `order_effect`).** Shuffling the field lines changes 40% of
+the cells' values and reversing them 44%, against 44% for adding six random fields to a column asked alone and
+5–6% for the same prompt run twice (E1.1). *The order of the fields is as much of the context as the set of fields*,
+and the columns it moves are the same ones (Spearman 0.83 between a column's order change and its set sensitivity):
+lists 0.56 and categories 0.52 against numbers 0.15 and yes/no 0.10. The mean accuracy does not move (0.388 natural,
+0.381 shuffled), the columns do: papers' `agent_framework` (allowed values Other, Multi-Agent Collaboration, CoT,
+ToT; gold null for 25 of 30 papers) is answered 'Other' on 28 of 30 when it is the first field line and left empty
+on 25 of 30 when it is the eleventh or the last (accuracy 0.20 against 0.77), while `reasoning_depth` splits 19/11
+multi-hop/single-hop in one order and 13/17 in another with no accuracy change. Two readings: a field answered first
+is answered before the model has placed the document (it picks a label from the allowed list), and an
+under-determined mapping flips with any perturbation of the prompt, sampling excluded. For the paper this closes the
+question of what "context" means: not a semantic interaction among fields but the prompt's arrangement, which is
+why the determinacy of a column is measurable with any cheap perturbation (Section 3's ten-document estimate) and
+why a canonical context has to be frozen as a byte string, order included (P2). It also suggests an intervention
+we have not run: place a column whose gold is mostly empty after the fields that make its absence evident
+(`use_agent` before `agent_framework`), a layout rule that costs nothing.

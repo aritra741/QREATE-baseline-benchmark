@@ -161,12 +161,21 @@ gets a new rule for what to recycle: a value is reusable only with its context.
 prefixes hit the KV cache (up to 4.4× faster); the RDBMS-challenges paper proposes "reordering columns based on
 cardinality"; Kalypso reuses KV state across operators. All assume the output is invariant to the reordering.
 
-*What we measured.* The co-asked columns change a value in 37–42% of cells. We have not yet varied the *order* of
-fields with the set held fixed; Sclar et al. show format alone moves accuracy by tens of points on other tasks.
+*What we measured.* The co-asked columns change a value in 37–42% of cells. **Answered 2026-10-09 (I1, 7B, 24
+columns, 30 documents each): invariance is false.** Shuffling the field lines with the set held fixed changes 40% of
+the cells' values, reversing them 44%, against 5–6% for the same prompt run twice; the columns that move are the
+sensitive ones (Spearman 0.83 with set sensitivity; lists 0.56, categories 0.52, numbers 0.15, yes/no 0.10). Mean
+accuracy is unchanged (0.388 against 0.381), single columns are not: papers' `agent_framework` is right on 20% of
+documents when it is the first field and 77% when it is the eleventh or last (first, the model picks 'Other' from
+the allowed list; later, it leaves the cell empty, which gold mostly is). Sclar et al.'s format sensitivity holds for
+extraction at the cell level, and it holds for the cheapest format change there is.
 
-*The question.* Is extracted-value invariance under field reordering true, and if not, which columns move (our
-prediction: the sensitive ones, by the same ranking)? If a serving optimization changes answers, it is a correctness
-constraint on the plan, like a non-commuting operator.
+*The question, now a claim.* A serving optimization that reorders fields for cache hits changes about four
+cells in ten, concentrated in the columns that are under-determined anyway; it is a correctness constraint on the
+plan, like a non-commuting operator, and the constraint is checkable without labels (determinacy from ten documents).
+The constructive side: order is a free knob. A layout rule such as "a column whose gold is mostly empty goes after
+the fields that make its absence evident" (`use_agent` before `agent_framework`) is a zero-cost intervention we have
+not yet run.
 
 *Test (one evening with the I1 harness).* Add a context kind "same set, shuffled order" and a kind "same set, prefix
 reordered as Liu et al. would" for every column; measure per-column change rate and query-score change on the
