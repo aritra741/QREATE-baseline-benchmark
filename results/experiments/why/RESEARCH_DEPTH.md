@@ -284,3 +284,19 @@ is the one corpus where the two agree.
 −0.75; mean accuracy by context 0.42 alone, 0.42 with two random columns, 0.48 with six, 0.49 in the natural group,
 0.39 with a paraphrased description; on categories, agreeing cells are right 52% of the time and disagreeing cells 14%
 (the category exception does not appear on this corpus's two category columns). Full five-corpus results follow.
+
+**I3 on research papers (frozen DocETL, first-query policy): the prediction failed, and the failure is the finding.**
+Freezing each column on the first query that needed it cut DocETL's calls from 30,873 to 2,111 and its tokens from
+45.6M to 3.0M for the same 143 queries (37 minutes against hours), but the mean score fell from 0.122 to 0.059 (17
+queries better, 38 worse). The cause is not the wrapper: in the original run the first query's prompt also returned
+an empty paper_name for every document; the original's 0.85 accuracy on that column comes from *other* queries'
+prompts. Across the original run, a column's share of non-empty answers ranges from 1% to 100% depending on which
+query's prompt extracted it (paper_name: 44 prompts, minimum 0.01, median 0.53, maximum 1.00; the median column's
+spread is 0.50). Per-query extraction is therefore a lottery over contexts, and freezing on the first draw makes every
+later query hostage to it; the column's 7B sensitivity does not predict which columns lost (ρ = 0.01), the quality of
+the frozen context does. This is P2 in its strongest form, and it corrects the plan: the right intervention is not
+"freeze on the first context" but "freeze on a determined context". I3b does that without labels: the first two
+queries that need a column both extract it, the context with more non-empty answers wins, and the disagreement
+between the two is recorded as the column's sensitivity measured inside DocETL. Prediction for I3b: score at or above
+the original on papers at about twice the frozen cost (still an order of magnitude below the original), join keys
+consistent on players, and DocETL's own two-context disagreement predicts its per-column accuracy as ours does.
