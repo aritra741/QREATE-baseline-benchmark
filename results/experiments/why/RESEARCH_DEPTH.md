@@ -355,3 +355,19 @@ case, and when the bias is the reader's (a format habit) a different reader repa
 from P1 is therefore not "re-ask where sensitive" but "do not spend readers where sensitive; change the specification
 or ask a person there, and spend stronger readers where a column is determined yet wrong". The paper should state
 I2's result as this correction. Numbers: `I2-secondlook/summary.json` (allocations, by_sensitivity_bin, per_column).
+
+**I3b on basketball players (freeze on the better of two contexts): the transfer prediction holds, and more.**
+Over the same 193 queries DocETL scores 0.164 with frozen columns against 0.108 with its own per-query extraction
+(join queries 0.022 → 0.055, non-join 0.177 → 0.252; 66 queries better, 35 worse), at 2,821 calls against 34,719
+and a twelfth of the tokens. The player–team join key matches 0.41 of rows against 0.19 (gold 0.63). The one key
+that got worse, team.location = city.city_name (0.165 → 0.045), is a column both of whose first two contexts were
+poor (17 and 25 of 30 documents filled, accuracy 0.17); I3c's stopping rule targets exactly that case. The
+instructive part is that *per column* the frozen values are mostly less accurate than the original's pooled values
+(draft_pick 0.95 → 0.63, nba_championships 0.72 → 0.15), yet the *queries* score higher: one value per cell, used by
+every query, with keys that agree across tables, is worth more to a join or a GROUP BY than higher per-prompt
+accuracy that differs from query to query. That is P2 stated as a design rule: consistency of a stored value across
+its uses matters more than the accuracy of any one extraction of it. DocETL's own two-context disagreement (over
+documents both contexts answered) tracks the 7B's sensitivity only weakly here (−0.26, 20 columns; several columns
+have fewer than ten such documents), so the label-free sensitivity measured inside DocETL needs more than two
+contexts, which I3c provides. On papers the same rule gave 0.101 against 0.122, so the gain is corpus-dependent:
+largest where queries join and group (players), smallest where they mostly filter single tables (papers).
