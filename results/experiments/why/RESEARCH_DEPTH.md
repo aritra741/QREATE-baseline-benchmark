@@ -300,3 +300,30 @@ queries that need a column both extract it, the context with more non-empty answ
 between the two is recorded as the column's sensitivity measured inside DocETL. Prediction for I3b: score at or above
 the original on papers at about twice the frozen cost (still an order of magnitude below the original), join keys
 consistent on players, and DocETL's own two-context disagreement predicts its per-column accuracy as ours does.
+
+**I1 on all five corpora (7B, 5,005 prompts, 39 new columns with ten or more sampled documents; done 23:26).**
+(a) *A column's sensitivity ranks the same under every kind of context change:* Spearman between the per-column
+sensitivities to two random added columns, six added columns, the natural group and a paraphrased description is
+0.82–0.93 for every pair. Sensitivity is one property of the column, not a property of a particular prompt change.
+(b) *Average accuracy is flat across contexts and column-specific in direction:* 0.39 alone, 0.37 with two random
+columns, 0.41 with six, 0.39 in the natural group, 0.39 with a paraphrased description; 18 columns are better alone
+than in the natural group by 0.05 or more and 9 are better in the group. Empty-answer rates are 0.28–0.32 in every
+context. (c) Sensitivity predicts accuracy at −0.71, the same as on the full logs. (d) *Agreement vs correctness:* a
+lone answer that agrees with the natural group's answer is right 55% of the time, one that differs 15% (690 cells);
+lists 61% vs 13%, numbers 44% vs 15%, free text 52% vs 25%. On the intervention's two category columns the signal
+also holds (52% vs 14%), so the category exception seen on the full logs (57% vs 49% over the 41-column set, whose
+"category" columns are the choice-list ones) does not reproduce on this small sample; the paper should present the
+exception as observed on the full-log columns and not yet isolated. By kind: lists are the most sensitive (0.57) and
+least accurate (0.27); numbers the least sensitive (0.11). Full table: `I1-context/summary.json`.
+
+**I3 on basketball players (first-query freezing).** Join queries improve as predicted, non-join queries collapse as
+on papers. Over 193 queries: join queries 0.022 → 0.041 (86 queries), non-join 0.177 → 0.064, overall 0.108 → 0.054;
+calls 34,719 → 1,725. Key match rates: player.team = team.team_name 0.19 → 0.30 (gold 0.63), but team.location =
+city.city_name 0.165 → 0.09, because team.location froze on a bad first prompt (accuracy 0.73 → 0.17). The columns
+that lost most are the ones whose first prompt happened to be bad (nationality 0.91 → 0.09, nba_championships 0.72 →
+0.15); the 7B's sensitivity does not predict the loss (ρ = −0.06). Part of the original's per-query accuracy also
+comes from each prompt carrying its own query's SQL constants, so a value is spelled the way that query compares it;
+a frozen value is spelled one way for all queries, which an offline table can only recover by normalizing values to
+a canonical form (what the QuWARTS build does with entity normalization). Both I3 runs therefore say the same thing:
+*freezing a column on an arbitrary context is worse than re-extracting per query; freezing it on a determined context
+is the hypothesis still to test* (I3b, running).
