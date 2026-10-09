@@ -202,6 +202,46 @@ def analyze() -> dict:
             out["by_sensitivity_bin"][f"{lo:.1f}-{hi:.1f}"] = {"cells": len(sel), "served_accuracy": round(S.mean(correct(r["served"], r["gold"]) for r in sel), 3),
                                                               "second_accuracy": round(S.mean(correct(r["second"], r["gold"]) for r in sel), 3),
                                                               "net_per_1000_cells": round(1000 * (caught - intro) / len(sel), 1)}
+    # per column: is a wrong cell fixable by a stronger reader, and does sensitivity predict that?
+    by_col = defaultdict(list)
+    for r in allr:
+        by_col[(r["corpus"], r["column"])].append(r)
+    cols = []
+    for (c, col), rs in by_col.items():
+        if len(rs) < 10:
+            continue
+        wrong = [r for r in rs if not correct(r["served"], r["gold"])]
+        fixed = sum(correct(r["second"], r["gold"]) for r in wrong)
+        intro = sum(correct(r["served"], r["gold"]) and not correct(r["second"], r["gold"]) for r in rs)
+        cols.append({"corpus": c, "column": col, "kind": rs[0]["kind"], "sensitivity": rs[0]["sensitivity"], "cells": len(rs),
+                     "served_accuracy": round(S.mean(correct(r["served"], r["gold"]) for r in rs), 3),
+                     "second_accuracy": round(S.mean(correct(r["second"], r["gold"]) for r in rs), 3),
+                     "wrong": len(wrong), "fix_rate": round(fixed / len(wrong), 3) if wrong else None,
+                     "net_per_1000_cells": round(1000 * (fixed - intro) / len(rs), 1)})
+    from quwarts.eval.exp_why import spearman
+
+    fx = [x for x in cols if x["fix_rate"] is not None and x["wrong"] >= 5]
+    out["per_column"] = {"columns": len(cols),
+                         "spearman_sensitivity_vs_second_accuracy": round(spearman([x["sensitivity"] for x in cols], [x["second_accuracy"] for x in cols]), 3),
+                         "spearman_sensitivity_vs_fix_rate": round(spearman([x["sensitivity"] for x in fx], [x["fix_rate"] for x in fx]), 3) if len(fx) > 4 else None,
+                         "spearman_sensitivity_vs_net": round(spearman([x["sensitivity"] for x in cols], [x["net_per_1000_cells"] for x in cols]), 3),
+                         "by_sensitivity_band": {}, "rows": cols}
+    for lo, hi in ((0, 0.3), (0.3, 0.6), (0.6, 1.01)):
+        sel = [x for x in fx if lo <= x["sensitivity"] < hi]
+        if sel:
+            out["per_column"]["by_sensitivity_band"][f"{lo}-{min(hi, 1.0)}"] = {
+                "columns": len(sel), "mean_fix_rate_of_wrong_cells": round(S.mean(x["fix_rate"] for x in sel), 3),
+                "served_accuracy": round(S.mean(x["served_accuracy"] for x in sel), 3),
+                "second_accuracy": round(S.mean(x["second_accuracy"] for x in sel), 3)}
+    # hindsight re-allocations over the asked cells, same budget: lowest-sensitivity first and highest first
+    budget = min(len(alloc["random"]), len(allr))
+    asked = sorted(allr, key=lambda r: r["sensitivity"])
+    for name, sel in (("lowest_sensitivity_first", asked[:budget]), ("highest_sensitivity_first", asked[-budget:])):
+        caught = sum((not correct(r["served"], r["gold"])) and correct(r["second"], r["gold"]) for r in sel)
+        intro = sum(correct(r["served"], r["gold"]) and not correct(r["second"], r["gold"]) for r in sel)
+        out["allocations"][name + "_hindsight"] = {"cells": len(sel), "caught": caught, "introduced": intro,
+                                                   "net_per_1000_cells": round(1000 * (caught - intro) / len(sel), 1),
+                                                   "columns": len({r["column"] for r in sel})}
     (OUT / "summary.json").write_text(json.dumps(out, indent=1))
     return out
 
