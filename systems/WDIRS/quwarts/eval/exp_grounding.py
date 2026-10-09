@@ -291,6 +291,12 @@ def main() -> dict:
     out = {"grounding": grounding(rows), "classifier": classifier(rows), "cascade": cascade(rows), "position": position(rows)}
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "summary.json").write_text(json.dumps(out, indent=1, default=str))
+    # the per-cell verifier scores (out-of-fold by column), for the routed second looks (I2b, exp_secondlook)
+    with (OUT / "cells.jsonl").open("w") as h:
+        for r in rows:
+            h.write(json.dumps({"corpus": r["corpus"], "column": r["column"], "doc": r["doc"],
+                                "p_wrong": round(r.get("p_wrong_all", 0.0), 4), "disagree": r["disagree"],
+                                "grounded": r["grounded"], "grounded_all": r["grounded_all"], "empty": r["empty"]}) + "\n")
     return out
 
 

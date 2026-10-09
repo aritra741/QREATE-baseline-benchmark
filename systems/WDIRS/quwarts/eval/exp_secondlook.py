@@ -35,6 +35,7 @@ from quwarts.eval.exp_open import HOME_SCRATCH, column_values, correct, lookup, 
 from quwarts.eval.exp_transfer import kind_of
 
 OUT = EXP / "I2-secondlook"
+RATE_HIGH = json.loads((EXP / "COST" / "summary.json").read_text())["rates_usd_per_million"]["qwen2.5-32b (high: qwen-2.5-coder-32b)"]
 CORPORA = ["cspaper", "player", "art", "med", "legal"]
 ALLOCATIONS = ("by_sensitivity", "uniform", "random")
 _lock = threading.Lock()
@@ -76,7 +77,15 @@ def cells() -> list[dict]:
     return out
 
 
-def allocate(rows: list[dict], budget: int) -> dict[str, list[dict]]:
+def verifier_scores() -> dict[str, dict]:
+    """The label-free verifier's score per cell (exp_grounding, out-of-fold by column) and its disagreement flag."""
+    p = EXP / "WHY" / "grounding" / "cells.jsonl"
+    if not p.exists():
+        return {}
+    return {f"{r['corpus']}|{r['column']}|{r['doc']}": r for r in (json.loads(l) for l in p.read_text().splitlines() if l.strip())}
+
+
+def allocate(rows: list[dict], budget: int, lengths: dict | None = None) -> dict[str, list[dict]]:
     rng = random.Random("I2")
     by_col = defaultdict(list)
     for r in rows:
@@ -95,24 +104,38 @@ def allocate(rows: list[dict], budget: int) -> dict[str, list[dict]]:
         i += 1
     rnd = list(rows)
     rng.shuffle(rnd)
-    return {"by_sensitivity": bys, "uniform": uni, "random": rnd[:budget]}
+    out = {"by_sensitivity": bys, "uniform": uni, "random": rnd[:budget]}
+    # I2b: the same budget routed by the verifier (classifier score; disagreement alone; score per token of the
+    # document, the cost-aware router). Cells the verifier has no row for (one context only) go last.
+    ver = verifier_scores()
+    if ver:
+        rng2 = random.Random("I2b")
+        tie = {key_of(r): rng2.random() for r in rows}
+        p = lambda r: ver[key_of(r)]["p_wrong"] if key_of(r) in ver else -1.0  # noqa: E731
+        dis = lambda r: key_of(r) in ver and bool(ver[key_of(r)]["disagree"])  # noqa: E731
+        out["classifier"] = sorted(rows, key=lambda r: (-p(r), tie[key_of(r)]))[:budget]
+        out["disagreeing"] = sorted(rows, key=lambda r: (not dis(r), tie[key_of(r)]))[:budget]
+        if lengths:
+            toks = lambda r: lengths.get((r["corpus"], r["column"].split(".", 1)[0], r["doc"]), 6000) + 400  # noqa: E731
+            out["classifier_per_token"] = sorted(rows, key=lambda r: (-(max(p(r), 0.0) / toks(r)), tie[key_of(r)]))[:budget]
+    return out
 
 
 def key_of(r: dict) -> str:
     return f"{r['corpus']}|{r['column']}|{r['doc']}"
 
 
-def run(budget: int, workers: int, limit: int | None) -> None:
+def run(budget: int, workers: int, limit: int | None, dry: bool = False) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     cfg = json.loads((OUT / "config.json").read_text()) if (OUT / "config.json").exists() else {}
     budget = int(cfg.get("budget", budget))
     rows = cells()
     max_doc = cfg.get("max_doc_tokens")
+    lengths: dict[tuple, int] = {}
     if max_doc:  # size the experiment to the hardware: skip the longest documents (stated in the write-up)
         from quwarts.core.retrieve_extract.tokens import count_tokens
 
         ctxs0 = {c: R.context(c) for c in CORPORA}
-        lengths: dict[tuple, int] = {}
         keep = []
         for r in rows:
             t = r["column"].split(".", 1)[0]
@@ -123,9 +146,16 @@ def run(budget: int, workers: int, limit: int | None) -> None:
                 keep.append(r)
         print(f"I2: document cap {max_doc} tokens keeps {len(keep)} of {len(rows)} cells", flush=True)
         rows = keep
-    alloc = allocate(rows, budget)
+    alloc = allocate(rows, budget, lengths)
     (OUT / "allocation.json").write_text(json.dumps({k: [key_of(r) for r in v] for k, v in alloc.items()}, indent=0))
     wanted = {key_of(r): r for v in alloc.values() for r in v}
+    if dry:
+        done0 = set()
+        if (OUT / "reads.jsonl").exists():
+            done0 = {key_of(json.loads(l)) for l in (OUT / "reads.jsonl").read_text().splitlines() if l.strip()}
+        for k, v in alloc.items():
+            print(f"  {k}: {len(v)} cells, {sum(key_of(r) in done0 for r in v)} already read")
+        return
     journal = OUT / "reads.jsonl"
     done = set()
     if journal.exists():
@@ -179,8 +209,12 @@ def analyze() -> dict:
             caught = sum((not correct(r["served"], r["gold"])) and correct(r["second"], r["gold"]) for r in sel)
             introduced = sum(correct(r["served"], r["gold"]) and not correct(r["second"], r["gold"]) for r in sel)
             tokens = sum(r["prompt_tokens"] + r["output_tokens"] for r in sel)
+            pin, pout = sum(r["prompt_tokens"] for r in sel), sum(r["output_tokens"] for r in sel)
+            usd = (pin * RATE_HIGH[0] + pout * RATE_HIGH[1]) / 1e6  # the 32B at its higher OpenRouter price
             return {"cells": len(sel), "served_wrong": sum(not correct(r["served"], r["gold"]) for r in sel),
                     "caught": caught, "introduced": introduced, "net": caught - introduced,
+                    "tokens": tokens, "usd_high": round(usd, 3),
+                    "net_per_usd_high": round((caught - introduced) / usd, 1) if usd else None,
                     "caught_per_1000_cells": round(1000 * caught / len(sel), 1),
                     "net_per_1000_cells": round(1000 * (caught - introduced) / len(sel), 1),
                     "net_per_million_tokens": round(1e6 * (caught - introduced) / tokens, 1) if tokens else None,
@@ -252,9 +286,10 @@ def main(argv=None) -> int:
     ap.add_argument("--budget", type=int, default=1000)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--dry", action="store_true", help="write the allocation and report overlap; ask nothing")
     a = ap.parse_args(argv)
     if a.what == "run":
-        run(a.budget, a.workers, a.limit)
+        run(a.budget, a.workers, a.limit, a.dry)
     else:
         print(json.dumps(analyze(), indent=1))
     return 0

@@ -450,3 +450,38 @@ STEPS += [{"id": f"I1-qwen32b-{c}", "lane": "gpu32", "retries": 1, "deps": ["I2-
 
 # I5 "chosen": the grouping derived from I1 on the 7B (columns more accurate alone get their own prompt).
 STEPS += [{**i5("chosen", c), "deps": ["G0-prompt-guard"]} for c in CORPORA]
+
+
+# ---------------------------------------------------------------------------------------------------- I2b, I6, I7
+# After the 7B queue (the gpu lane is serial, so nothing starves the 7B server): the verifier as the router of
+# second looks on the idle 32B (I2b), then two interventions from the workload study (WORKLOAD_AWARENESS.md), each
+# the unlimited 100% stream from a replay clone so that only the changed prompts are paid:
+#   I6  QUWARTS_LABEL_CONTRACT: the workload declares the label vocabulary of its GROUP BY columns (an oracle: gold's
+#       labels), for the columns outside the build whose declared list does not already cover gold (exp_contract)
+#   I7  QUWARTS_WINDOW_SHARES: a patch reads a document only up to the 90th percentile of where the 7B's own stated
+#       values for the column sit in the recorded run (label-free), per column (exp_contract windows)
+STEPS += [{"id": "I2b-verifier", "lane": "gpu", "retries": 1, "deps": ["I2-secondlook"],
+           "cmd": PRE + server("qwen32b") + "python -u -m quwarts.eval.exp_secondlook run --workers 4 && "
+                  "python -m quwarts.eval.exp_secondlook analyze && touch $OLDPWD/results/experiments/I2-secondlook/verifier_complete",
+           "outputs": ["results/experiments/I2-secondlook/verifier_complete"]}]
+
+
+def stream_with(exp: str, corpus: str, env_extra: str) -> dict:
+    sid, root, scratch = f"{exp}-{corpus}", f"results/experiments/{exp}/live", f"{SCRATCH}/{exp}"
+    env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_LIVE_ONLY=fixed4-attribute_pool/100 " + env_extra + " ")
+    return {"id": sid, "lane": "gpu", "retries": 1, "deps": ["G0-prompt-guard"],
+            "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} && "
+                   + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams fixed "
+                   f"--axes attribute_pool --deadline 0 --workers 8",
+            "outputs": [f"{root}/{corpus}/streams/fixed4-attribute_pool_100.jsonl"]}
+
+
+# I6 only where a vocabulary is missing (exp_contract: papers' and players' GROUP BY columns are declared, in the build
+# or identifiers); I7 not on legal, whose on-demand columns sit at the end of a judgment (p90 0.98-0.99: no window).
+STEPS += [stream_with("I7-windows", "player", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7-windows/player.json"),
+          stream_with("I7-windows", "cspaper", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7-windows/cspaper.json"),
+          stream_with("I6-contract", "art", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/art.json"),
+          stream_with("I7-windows", "art", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7-windows/art.json"),
+          stream_with("I6-contract", "legal", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/legal.json"),
+          stream_with("I6-contract", "med", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/med.json"),
+          stream_with("I7-windows", "med", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7-windows/med.json")]

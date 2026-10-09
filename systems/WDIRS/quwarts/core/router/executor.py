@@ -61,6 +61,32 @@ def _sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+_SHARES: dict[str, float] | None = None
+
+
+def window_shares() -> dict[str, float]:
+    """I7 (RESEARCH_DEPTH.md): QUWARTS_WINDOW_SHARES, a JSON file ``{"table.column": share}``, reads a document only up
+    to that share of its tokens for a column (the 90th percentile of where the column's values sit, learned from a
+    sample); a read of several columns takes the largest share. Unset: whole documents, as recorded."""
+    global _SHARES
+    if _SHARES is None:
+        p = os.environ.get("QUWARTS_WINDOW_SHARES")
+        _SHARES = {k: float(v) for k, v in json.loads(Path(p).read_text()).items()} if p else {}
+    return _SHARES
+
+
+def cut_to_share(text: str, table: str, attributes, min_tokens: int = 400) -> str:
+    shares = window_shares()
+    if not shares:
+        return text
+    share = max((shares.get(f"{table}.{a}", 1.0) for a in attributes), default=1.0)
+    if share >= 1.0:
+        return text
+    from quwarts.core.retrieve_extract.tokens import count_tokens
+
+    return truncate(text, max(min_tokens, int(share * count_tokens(text) + 0.999)))
+
+
 def run_reads(
     spec: CorpusSpec,
     reads: list[Read],
@@ -101,7 +127,7 @@ def run_reads(
         specs = [fields[f"{read.table}.{a}"] for a in read.attributes]
         sql = queries.get(read.context)  # None for shared (query-independent) contexts
         for path in list_documents(spec.table(read.table)):
-            text = read_document(path)
+            text = cut_to_share(read_document(path), read.table, read.attributes)
             if long_documents == "chain" and sql is None and count_tokens(text) > window:
                 chains.append((read, path.name, chunked.split_chunks(text, chunked.chunk_tokens(window)), specs))
                 continue

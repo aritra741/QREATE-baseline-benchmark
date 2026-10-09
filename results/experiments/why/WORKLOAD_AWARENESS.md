@@ -42,9 +42,18 @@ values, for example 'Multi-Agent Collaboration', 'Other'"); its measured effect 
 252 more with the build's phrase), which says the vocabulary matters column by column in both directions, and that
 example values steer form more than correctness. Canonicalizing values to the known constants after extraction
 (E8) does not help either, because the vocabulary a GROUP BY needs, the set of labels gold uses, is exactly what
-the workload does not name. *Recommendation for the community:* a workload interface should let the workload
-declare the label vocabulary of columns it groups by (a "label contract"), not only the constants it filters by;
-our label-collapse result (23% of gold rows merged into another group) is the cost of its absence.
+the workload does not name. The natural remedy is a *label contract*: the workload declares the vocabulary of the
+columns it groups by. Checking it against the 47 GROUP BY columns of the test queries (`exp_contract.py`,
+`I6-contract/report.json`) shows where it applies and where it cannot. 22 are read by the build and keep their
+vocabulary across drift. Of the 25 read on demand, 3 already list their labels in the prompt, 17 are identifiers or
+open lists (colleges, death dates, drugs, fields: 55–751 distinct values that no contract can enumerate), and 5 have
+a small vocabulary the prompt does not state: artists' `century` ('19th-20th', '20th', '20th-21st'), legal's
+`judgment_year` and `defendant_current_status`, medical's `recommended_usage` and `activation_conditions`. And the
+columns with the largest merges (legal `case_type`, 235 administrative cases served as civil; artists'
+`birth_continent`; papers' `topic`) are build columns whose prompt lists the labels. **Label collapse is mostly the
+model's mapping of a passage to a declared label, not a missing vocabulary**, and that mapping is what context
+sensitivity measures; a contract can fix only the few columns where no vocabulary exists (the I6 run, queued,
+measures how much).
 
 **Normalization and derived values.** Commit-time normalization, which stores numbers and absence values in the
 form the workload compares ("0 if none"), is worth 0.131 on players and 0.011 on papers (E13), and the view's mapping
@@ -130,7 +139,15 @@ document of the stated gold value: on players 90% of stated values sit within th
 column only as far as its 90th percentile would save 82% of the tokens on players, 34% on papers and artists, 26%
 on medical and 21% on legal, at a 10% miss rate by construction. This explains the "first window only" ablation
 (21–42% of tokens saved for −0.012 to +0.015) and improves on it: a per-column window learned from a sample of
-positions is a cheaper read plan than a fixed window, and it needs no model.
+positions is a cheaper read plan than a fixed window, and it needs no model. It also needs no gold: learned from
+where the 7B's *own* stated values sit in the recorded run, the shares for the columns read on demand are within
+0.01–0.08 of the gold-based ones on papers, players and artists (0.18 on medical, where the model's list items sit
+later than gold's, so the learned window is the conservative one). Those are the shares the queued I7 run uses:
+players 0.29–0.53, papers 0.33–0.90, artists 0.10–0.88 (birth date, death date and nationality in the first tenth),
+medical 0.54–0.89. Legal gets none: its on-demand columns (judge, year, the parties' status) sit in the last 2% of a
+judgment, so the whole document is the window, which is why "first window only" cost legal its −0.012. A read that
+asks several columns takes the largest share, and that is optimal: reading two columns in one prompt costs the
+longer window once, reading them apart costs both.
 
 **The things we already do without a model, named as such.** Determinacy estimated from ten sampled documents
 (ρ −0.66 against −0.72 for the full corpus); the context chosen for a column by its fill rate (what made frozen
@@ -151,10 +168,11 @@ you which cells those are.
 1. The workload's structure survives column drift: in 76–100% of test queries the tables, joins, aggregates and
    group-by shape already occur in the training workload. Systems should learn structure (keys, kinds, groupings)
    from workloads and learn columns on demand; forecasting columns under drift does not work (I4).
-2. About half of the constants queries compare with never appear verbatim in the documents. A document-only
-   extractor cannot be expected to produce them; benchmarks and systems should carry a label vocabulary per column as
-   part of the workload, and label collapse should be reported as a property of the column's vocabulary, not of the
-   model.
+2. About half of the constants queries compare with never appear verbatim in the documents, so a document-only
+   extractor cannot be expected to produce them in the query's form. But the vocabulary is rarely what is missing:
+   of 25 GROUP BY columns read on demand, 5 lack a small label set, and the largest merges happen on columns whose
+   prompt lists the labels. Label collapse is the model's mapping of a passage to a declared label; measure it as
+   sensitivity, and expect a vocabulary declaration to fix only the columns where none exists.
 3. Under-determination is a property of the schema's representation (lists, labels, empties), not of the text. Two
    extractors disagree as often on stated facts as on unstated ones; they disagree about what to select and how to
    write it. "Make the schema more determinate" (enumerate labels, fix list semantics, define absence) is the
@@ -167,9 +185,11 @@ you which cells those are.
 
 ## 5. What is still missing
 
-The position model and the verifier are measured, not deployed; a run with per-column windows and the verifier as
-the cascade router would turn two of the observations into interventions (half a day each on the GPU after the
-current queue). The label-contract recommendation needs a test: give the build the gold label vocabulary of the
-GROUP BY columns and measure how much of the 23% merged rows comes back. And the "structure survives drift"
-result should be checked on a workload whose structure does drift (a different split of templates between train and
-test), which the benchmark does not provide.
+Three deployments are queued behind the current 7B runs, each with a prediction written down first
+(RESEARCH_DEPTH.md §8): the verifier as the router of 600 second looks on the 32B (I2b: more net fixes per dollar
+than random and than most-sensitive-first, because it adds disagreement and empties to sensitivity); the label
+contract on the five columns that lack a vocabulary (I6: their merged rows fall by at least half, the corpus score
+moves by under 0.01, because those columns carry few rows); per-column windows on papers, players, artists and
+medical (I7: players' patch tokens fall by about half, the others' by 15–30%, scores within 0.02 of recorded). The
+"structure survives drift" result should be checked on a workload whose structure does drift (a different split of
+templates between train and test), which the benchmark does not provide.

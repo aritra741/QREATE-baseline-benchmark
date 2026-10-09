@@ -441,3 +441,25 @@ the forecast policy without freezing are still running and will be added.
 **I3d on papers.** The second two-try run scores 0.093 against the first's 0.101 (original 0.122; 116 of 143 queries
 identical), so on papers the determined-context rule stays about 20% below per-query extraction in both runs, and
 the sampling spread (about 0.01 on the mean) does not change either corpus's conclusion.
+
+**Queued 2026-10-09 10:40, predictions written before the runs (from WORKLOAD_AWARENESS.md §3).** All on the gpu lane
+after I5, so nothing shares the 7B server.
+- *I2b, the verifier as the router of second looks* (`exp_secondlook`: allocations `classifier`, `disagreeing`,
+  `classifier_per_token`, 600 cells each, 1,280 new 32B reads; the verifier's scores are out-of-fold by column).
+  Prediction: `classifier` and `disagreeing` catch more wrong cells than `by_sensitivity` (whose selection is 0.62
+  wrong) because they add disagreement and empties; per dollar `classifier_per_token` is best, since the price of a
+  fix is the document's length; `classifier` alone may not beat `most_sensitive_first` per dollar, because its top
+  cells are artists' empties in long documents (525 of 600 are art). A failure would be the classifier's top cells
+  being empties the 32B also leaves empty: then net fixes per cell fall below random, and the verifier is a detector
+  of under-determination, not of fixable error.
+- *I6, the label contract* (`QUWARTS_LABEL_CONTRACT`, five columns: art.century; legal.judgment_year,
+  defendant_current_status; drug.recommended_usage, activation_conditions). Prediction: on art.century the merged and
+  other-form rows (now about 60%) fall by at least half; legal.judgment_year becomes nearly exact; the corpus scores
+  move by under 0.01 because the contracted columns are few. Papers and players have nothing to contract (their
+  GROUP BY columns are declared, in the build, or identifiers), which is itself the result: the vocabulary is rarely
+  what is missing.
+- *I7, per-column read windows* (`QUWARTS_WINDOW_SHARES`, learned label-free from where the 7B's own stated values
+  sit; players 0.29–0.53, papers 0.33–0.90, artists 0.10–0.88, medical 0.54–0.89; legal none). Prediction: patch tokens
+  fall by about half on players and 15–30% elsewhere, scores within 0.02 of the recorded 100% stream; artists' birth
+  and death dates (windows of a tenth) stay as accurate, because the value is in the first lines, and any loss
+  concentrates in list columns whose later items the window cuts.

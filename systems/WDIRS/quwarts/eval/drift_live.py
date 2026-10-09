@@ -110,6 +110,12 @@ VARIANT = os.environ.get("QUWARTS_LIVE_VARIANT", "")
 # rawview and raw also change which documents later queries' pushed-down filters select (the scope is evaluated on the
 # served view), and raw leaves chained long documents normalized (reduce_chunks commits per chunk).
 ABLATE = frozenset(a for a in os.environ.get("QUWARTS_ABLATE", "").split(",") if a)
+# I6 (RESEARCH_DEPTH.md): QUWARTS_LABEL_CONTRACT, a JSON file {"table.column": [label, ...]}: a patch prompt lists these
+# as the allowed values of a column outside the build (the vocabulary a workload's GROUP BY compares against, which
+# the documents do not state and the usage phrase only exemplifies). Unset: the field specs as recorded.
+CONTRACT = (json.loads(Path(os.environ["QUWARTS_LABEL_CONTRACT"]).read_text())
+            if os.environ.get("QUWARTS_LABEL_CONTRACT") else {})
+from dataclasses import replace as replace_field  # noqa: E402
 assert ABLATE <= {"rawview", "raw", "noscope", "noreuse", "nobatch", "nodesc", "nousage", "head",
                   "bfields", "bgroup", "bprompt"}, ABLATE
 assert VARIANT in ("", "no_literals", "no_usage", "with_known"), VARIANT
@@ -287,11 +293,13 @@ def values_and_shas(docs: dict[str, Path], table: str, attrs: list[str], fields,
     from quwarts.core.router.corpus_features import read_document
     from quwarts.core.router.probes import parse_fields
 
+    from quwarts.core.router.executor import cut_to_share
+
     window = int(V3["window_tokens"])
     specs = [fields[f"{table}.{a}"] for a in attrs]
     values, used = {}, []
     for doc, path in docs.items():
-        text = read_document(path)
+        text = cut_to_share(read_document(path), table, attrs)  # I7: per-column read windows (unset: whole document)
         if head or count_tokens(text) <= window:
             s = sha(render_prompt(truncate(text, window), specs, None))
             row = by_sha.get(s)
@@ -913,6 +921,9 @@ class Stream:
         fields_seen, reads_seen = C.design(ctx.spec, seen)  # the build's workload and the queries so far
         if VARIANT in ("no_literals", "no_usage") or ABLATE & {"nodesc", "nousage"}:
             fields_seen = patch_variant(ctx, seen, fields_seen)
+        if CONTRACT:  # I6: the workload declares the label vocabulary of the columns it groups by
+            fields_seen = {k: (replace_field(f, choices=tuple(CONTRACT[k])) if k in CONTRACT and k not in ctx.lean_fields else f)
+                           for k, f in fields_seen.items()}
         F = {**self.build.all_fields(), **fields_seen}
         need = C.query_attributes(ctx.spec, qid, sql, seen)
         views = self.dir / "views"
