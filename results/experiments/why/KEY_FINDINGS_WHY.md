@@ -350,15 +350,52 @@ extractions make filter columns available, which narrows the documents later ext
 served the same query almost always costs the same as without a budget (94% to 100% of cases), but once the plan
 removes an extraction's predecessors its cost can jump. In one case it went from 1 document to 29 and no longer fit.
 
-We do not yet have a true upper bound for budget policies, and we have not explained why the value effect turns
-against pacing on basketball players.
+**We then built the policy the first version of this section called for, and it does not beat first come, first
+served either.** Each table's new columns are frozen into one prompt, so delaying an extraction cannot change its
+values, and a patch is skipped when none of its columns has been reused and its estimated cost exceeds a tenth of the
+remaining budget. Against first come, first served with the same frozen prompts, at budgets of 25% and 50% on five
+corpora, the forecast policy loses 0.011 on average, with no wins and six losses; the one large loss is medical at
+50% (−0.055), where an early expensive patch with no reuse history was skipped and later queries needed its columns
+most. The reason generalizes. Under column drift the columns in demand are those no known query uses, so a reuse
+forecast has nothing to forecast from until the first request, and the first request is itself the best predictor
+of reuse (57% to 100% of columns asked once are asked again). First come, first served *is* the forecast policy in
+that regime; forecasting pays where the workload repeats templates, not where it drifts. Without the frozen prompts
+the same policy is a wash (+0.005, four wins and six losses at 86% of the tokens), and its gains on artists and
+losses on papers, medical and court judgments are the value effect above, not the schedule.
+
+**Pacing fails for a reason the frozen prompt exposes: the unit of extraction decides which policies are
+admissible.** A frozen patch reads all of a table's new columns in one prompt, so it is one large indivisible spend
+(on players, 0.98M tokens at the first query), and a rule that releases the budget in proportion to the stream's
+progress cannot afford it until late. On players at 50% the paced stream skips the first query's patch and the 101
+later queries that need the same table, spends half its budget on two small patches, and scores 0.142 against 0.348
+for first come, first served, which spent the budget at the first query and answered 111 queries. Over ten streams
+pacing with frozen prompts loses 0.034 on average (one win, six losses); with per-query prompts, whose patches are
+small, it is a wash (+0.006). Grouping makes spending lumpy, and a lumpy spend needs a lump-sum rule.
+
+**What moves the budget curve is the extraction unit, not the schedule.** Compared on absolute tokens (each family's
+percentage budgets are shares of its own unlimited spend, which differ three- to sixfold), freezing each table's new
+columns into one prompt dominates the recorded one-prompt-per-query policy on four of five corpora: players 0.348 at
+0.98M tokens against the recorded 0.293 at 2.8M; artists 0.197 at 0.8M against 0.191 at 2.5M; medical 0.122 at 1.2M
+against 0.115 at 13.1M; court judgments 0.192 at 4.3M (unlimited) against 0.170 at 19.8M. Research papers is the
+exception: the recorded run reaches 0.153 at 1.2M tokens where the frozen one stops at 0.131, because grouping lowers
+the accuracy of papers' most used columns (Section 1). Across every policy we tried, the schedule moves the score by
+about 0.01 at a given budget; changing what one prompt asks for moves the tokens needed for a given score by three-
+to tenfold.
+
+![Figure 13. Mean query score against tokens spent, at budgets from 10% to unlimited, for the recorded
+one-prompt-per-query policy and for frozen prompts under first come, first served, the forecast policy and
+pacing.](figures/w12_budget_curves.png){width=6.5in}
+
+We do not yet have a true upper bound for budget policies.
 
 *What this lets you decide.* A budget policy should be judged by three questions the results above answer. Will the
 column be reused? Then its value is mostly in the future and a large extraction is worth more, not less. Does delaying
 the extraction change the prompt it runs in? Then the delay changes the answers, and the prompt should be held fixed
 per column so that only the timing moves. Does the extraction's cost depend on earlier extractions? Then a plan that
-reorders extractions mis-prices them. A policy that forecasts column reuse from the workload, keeps each column's
-prompt fixed, and orders extractions so that filter columns come first addresses all three; we have not built it.
+reorders extractions mis-prices them. We built the first two parts of that policy, and it does not beat first come,
+first served, because under drift there is no reuse history to forecast from. The decision that matters is made
+before scheduling: fix the unit of extraction by each column's context effect, then spend first come, first served,
+and do not pace a lumpy spend.
 
 # Why does extracting a column for more documents sometimes make answers worse?
 
@@ -400,7 +437,7 @@ team rows find their city. In our build the figures are 75% and 97%, and in the 
 contains players whose team has no row of its own). Our build extracts each table's keys once with the same field
 definitions, and later queries reuse them.
 
-![Figure 13. Share of rows whose join key finds a partner in the joined table.](figures/w5_join_keys.png){width=6.5in}
+![Figure 14. Share of rows whose join key finds a partner in the joined table.](figures/w5_join_keys.png){width=6.5in}
 
 We then changed DocETL to find out. Each column is extracted once, by the first query that needs it and in that query's
 own prompt, and every later query reuses the value. On papers and players this cuts DocETL's calls fifteen-fold but
@@ -421,7 +458,7 @@ smallest where they filter single tables. And it comes despite the frozen values
 than the original's pooled values (draft pick 0.95 → 0.63): one value per cell, the same for every query and agreeing
 across tables, is worth more to a join or a GROUP BY than a higher accuracy that differs from query to query.
 
-![Figure 14. DocETL's mean query score and number of model calls on the same queries: per-query extraction, every
+![Figure 15. DocETL's mean query score and number of model calls on the same queries: per-query extraction, every
 column frozen on its first context, frozen on the better of its first two contexts (two runs), and frozen on a
 determined context.](figures/w11_frozen_docetl.png){width=6.5in}
 
@@ -443,7 +480,7 @@ appearances falls from 0.86 to 0.01 correct, an artist's award count from 0.74 t
 0.00. Adding the benchmark's descriptions to a single extraction pass raised its score from 0.234 to 0.560, larger than
 any scheduling or budget effect we measured.
 
-![Figure 15. Share of cells correct with and without field descriptions.](figures/w6_specification.png){width=6.5in}
+![Figure 16. Share of cells correct with and without field descriptions.](figures/w6_specification.png){width=6.5in}
 
 *What this lets you decide.* Describing each column (its unit, its format, what to write when the document is silent)
 comes before any scheduling or budgeting decision. The columns that need it most are the ones flagged by disagreement
@@ -538,8 +575,8 @@ but barely for the 7B model. We cannot yet say how much of the medical corpus's 
 the three properties listed above, or what the best achievable budget policy is. The findings also have not been
 tested beyond five corpora and three models, or on a different split of the workload into known and later queries.
 Three changes to DocETL have been tested (freezing each column on its first context, on the better of two, and on a
-determined one). Running or queued, each with its prediction written first (RESEARCH_DEPTH.md): the budget policy
-that forecasts reuse with frozen contexts (I4, to be added to the budget section), the build's prompt groups chosen
+determined one), and the budget policy that forecasts reuse with frozen contexts has been tested and fails for a
+stated reason (Section 6). Running or queued, each with its prediction written first (RESEARCH_DEPTH.md): the build's prompt groups chosen
 by each column's measured context effect (I5), the verifier as the router of second looks on the 32B (I2b), the label
 contract on the five columns that lack a vocabulary (I6), and per-column read windows (I7).
 

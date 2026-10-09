@@ -435,8 +435,26 @@ because grouping lowers the accuracy of papers' most used columns (Section 1). A
 scheduling policies we tried move the score by at most ±0.01 at a given budget; changing what one prompt asks for
 moves the tokens needed for a given score by 3–10×. That is the cost lemma and the context finding together, and it
 is the budget section's conclusion: *decide the unit of extraction by each column's context effect, then spend first
-come, first served.* `WHY/i4/summary.json`, figure `figures/w12_budget_curves.png`. Pacing with frozen contexts and
-the forecast policy without freezing are still running and will be added.
+come, first served.* `WHY/i4/summary.json`, figure `figures/w12_budget_curves.png`.
+
+*Pacing with frozen contexts (all ten streams, 2026-10-09 12:24).* Pacing loses to first come, first served by 0.034
+on average (1 win, 6 losses), and the frozen context exposes the mechanism: a frozen patch reads all of a table's
+new columns in one prompt, so it is one large indivisible spend (players: 0.98M tokens at the first query), and a
+rule that releases the budget in proportion to the stream's progress cannot afford it until late. On players at 50%
+the paced stream skips the first query's patch and the 101 later queries that need the same table, spends 0.55M of
+its 1.0M on two small patches, and scores 0.142 against 0.348 for fcfs, which spent 0.98M at query 0 and answered 111
+queries. With per-query contexts (the recorded runs) patches are small and pacing is a wash (+0.006, 6 wins, 4
+losses). *The unit of extraction decides which budget policies are admissible:* grouping makes spending lumpy, a
+lumpy spend needs a lump-sum rule, and pacing assumes divisibility. This completes the budget conclusion: choose the
+unit by the context effect, then spend first come, first served, because the policies that smooth spending are the
+ones the unit breaks.
+
+*The forecast policy without frozen contexts* is a wash against the recorded fcfs streams: +0.005 on average at 86%
+of the tokens, 4 wins and 6 losses; gains on artists (+0.037 at 25%, +0.064 at 50%), losses on papers, medical and
+legal (−0.014 to −0.025). With per-query contexts every skipped patch changes the prompt a column is later read in,
+so the per-corpus sign is the value effect of the pacing analysis, not the schedule; the comparison that holds the
+prompt fixed (frozen forecast against frozen fcfs: −0.011, 0 wins) is the one that tests the policy. Prediction I4
+fails in both forms.
 
 **I3d on papers.** The second two-try run scores 0.093 against the first's 0.101 (original 0.122; 116 of 143 queries
 identical), so on papers the determined-context rule stays about 20% below per-query extraction in both runs, and
