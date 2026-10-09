@@ -51,6 +51,17 @@ documents at the window (0.60 to 0.84 between kinds). "Ask for fewer columns at 
 direction; it is a per-column effect, and in Section 2 we show it is also the measure of how far the document
 determines the value.
 
+The order of the field lines is part of the context too, and it is as strong as the set. For the 24 columns the
+natural groups contain, the same fields were asked in the build's order, shuffled, and reversed. **Shuffling changes
+40% of the cells' values and reversing them 44%, as much as adding six random columns (44%), against 5% to 6% when the
+same prompt is simply run twice.** The columns that move are the same ones (Spearman 0.83 between a column's order
+change and its set sensitivity; lists 0.56 and categories 0.52, numbers 0.15 and yes/no 0.10), and the mean accuracy
+again does not move (0.388 against 0.381) while single columns do: a paper's agent framework, whose gold is empty for
+25 of 30 papers, is answered 'Other' on 28 papers when it is the first field line and left empty on 25 when it is the
+eleventh or the last (accuracy 0.20 against 0.77). So "context" is not a semantic interaction among fields but the
+prompt's arrangement. A canonical prompt has to be fixed as a byte string, order included, and a serving optimization
+that reorders fields for cache hits changes the answers.
+
 ![Figure 2. The context intervention on fixed documents. (a) Mean accuracy and empty-answer rate in five contexts. (b)
 Each column's accuracy alone against its accuracy in the build's group.](figures/w9_context_intervention.png){width=6.5in}
 
@@ -120,11 +131,31 @@ intervention's own sample, which has only two choice-list columns, disagreement 
 ![Figure 5. Second looks by the 32B. (a) Accuracy of the served 7B value and of the 32B's answer, by the column's
 sensitivity. (b) Net errors fixed per thousand second looks under four allocations.](figures/w10_second_looks.png){width=6.5in}
 
+**Under-determination is not the absence of the fact from the text.** Checking every cell of the recorded run against
+its document (36,801 cells, 23,716 with a non-trivial value), whether the gold value is stated verbatim makes no
+difference to whether the two prompts disagree, 48.6% when it is and 48.8% when it is not, though stated values are
+extracted right more often (0.43 against 0.32). What the prompts disagree about is which of the mentioned items belong
+in a list, which label a passage maps to, and whether to leave the cell empty, not what the document says. Whether the
+*extracted* value is stated in the document, a string check that needs no model and no labels, does carry information,
+but by kind: numbers found verbatim are right 95% of the time against 73% when not, free text 64% against 39%,
+categories 69% against 61% (labels are rarely in the text), and lists 28% against 14%, where the decisive check is
+whether every item is stated (36% right when all are, 0% when any item is invented). Put together, grounding,
+disagreement, emptiness, value length, the column's sensitivity from ten documents and its kind make a label-free
+verifier: a logistic regression on them predicts whether a cell is wrong with AUROC 0.85 when cross-validated by
+column, and 0.75 to 0.89 when trained on four corpora and tested on the fifth. Grounding alone is useless (0.44),
+disagreement alone gives 0.70; the largest weights are an empty cell, a sensitive column and an invented list item.
+**Priced rather than counted, the second looks tell a different story from Figure 5b:** the most sensitive columns sit
+in short documents, so most-sensitive-first gives 152 net fixes per dollar at the 32B's price against 93 for random and
+111 for the verifier's ranking, and the document's length, not the rule, sets the price of a fix. A cascade over
+documents has to be budgeted in tokens, and a router should weigh the expected fix by the length of what it must read.
+
 *What this lets you decide.* Before any gold data exists, asking a column twice with two cheap prompts on ten or so
 documents tells you which columns the documents determine. Where they do not, re-asking is wasted, whatever the
 model: change the specification, narrow the vocabulary, or ask a person. Where they do and the column is still wrong,
 a different reader is the repair. For categories, agreement is not evidence of correctness, and the category
-definitions themselves need checking.
+definitions themselves need checking. A verifier built from grounding, disagreement and sensitivity, which needs
+neither labels nor a model, tells which cells to trust and which to send to a stronger reader, and that routing should
+be priced per token, not per cell.
 
 # Why do aggregate queries over extracted values lose their groups?
 
@@ -418,6 +449,45 @@ any scheduling or budget effect we measured.
 comes before any scheduling or budgeting decision. The columns that need it most are the ones flagged by disagreement
 between prompts, and categories whose labels the model draws differently from the data.
 
+# What does the workload tell the system that the documents do not?
+
+The system reads the reference workload for five things, and each has been measured on its own
+(`WORKLOAD_AWARENESS.md`). *Which columns to extract:* the reference queries use 26% to 48% of the schema's columns,
+and their three most used columns carry 43% to 53% of all uses; reading them up front buys cost, not accuracy, since
+cutting the reference workload to a tenth of its queries raises tokens by 7% to 23% and leaves the scores unchanged.
+*The shape of the queries to come:* by construction no test query's source is among the reference queries, yet 76% to
+100% of them share the tables, joins, aggregates and grouping of a reference query, so under full column drift the
+workload still says *how* a column will be used, which is what gives one definition per join key, derived attributes,
+and the value kind a column needs. *The vocabulary queries compare against:* about half of the constants in the test
+queries never appear verbatim in the documents whose gold value matches them (players 93% verbatim, papers 41%,
+artists 40%, medical 69%, legal 57%), and some appear nowhere ('Earth Tones', '20th-21st', 'Administrative Case'), so
+only a system that has seen the workload can produce them in the form a query compares. *Normalization targets* (0.13
+on players, 0.07 on artists) and *scope* from the queries' filters (up to 46% of on-demand tokens). Two things often
+credited to workload awareness are not: the descriptions come from the schema, and the drift result holds at every
+share of the workload. The honest summary is that the workload tells the system what to normalize to, what to join
+on and what to read first, not what to extract, because under drift what is asked next is what has not been asked.
+
+The vocabulary point has a limit we found only by checking all 47 GROUP BY columns of the test queries. The largest
+merges (235 administrative cases served as civil; artists' continents; papers' topics) happen on columns whose prompt
+already lists the labels; 17 of the 25 columns read on demand are identifiers or open lists no declaration could
+enumerate; only 5 lack a small vocabulary the prompt does not state. Label collapse is mostly the model's mapping of a
+passage to a declared label, which is what sensitivity measures; declaring the vocabulary can fix only the few columns
+where none exists (a run on those five is queued).
+
+Where a value sits in a document is a column property too, and it is learnable without gold. For each column read on
+demand, the 90th percentile of the position of the 7B's own served value, when it is stated verbatim, falls within
+0.01 to 0.08 of the gold-based position on papers, players and artists: players' columns need the first 29% to 53% of
+an entry, artists' dates and nationality the first tenth, while the legal corpus's on-demand columns (judge, year, the
+parties' status) sit in the last 2% of a judgment. A per-column window is a read plan that needs no model and refines
+the fixed first-window cut of the ablation (21% to 42% of tokens for −0.012 to +0.015); a run with it is queued.
+Together with determinacy from ten documents, fill rate per context, grounding rate and the cost lemma, these form a
+per-column catalogue, which is to an LLM-built database what cardinalities and selectivities are to a relational one:
+the statistics a planner needs, computed once, cheaply, and not by a model.
+
+*What this lets you decide.* Learn structure (keys, kinds, groupings, normal forms) from the workload and columns on
+demand; forecasting columns under drift does not work. Treat the label vocabulary as a schema input, and expect it to
+fix only columns that lack one. Read each column only as far as its values sit.
+
 # What carries over to other problems
 
 Several of these findings are instances of ideas known in other areas, and the comparison shows what is new about an
@@ -443,6 +513,11 @@ agreement among annotators who share a bias. On categories both prompts make the
 not mean correctness. This, and the aggregate and label patterns below, are the transfers we tested directly on
 DocETL; the others in this section are arguments by analogy.
 
+*Cascades and verifiers.* Model cascades in query processing (SUPG, LOTUS) route items to a stronger model by a proxy
+score and budget in oracle calls. Our verifier is such a proxy that needs no labels, and the pricing result says the
+budget has to be in tokens: when the item is a document, a second look costs the document's length, and the rule that
+fixes the most cells per call is not the one that fixes the most per dollar.
+
 *Measurement error in aggregates.* The aggregate results are robust statistics in another guise. A maximum depends on a
 single observation, so one inflated value decides it; a minimum is safe when errors only push values up; averages and
 sums let errors cancel; counts move with every misclassified row. Anyone running analytics over labels produced by a
@@ -462,10 +537,11 @@ on artists, and we do not know why the direction depends on the corpus. Grouping
 but barely for the 7B model. We cannot yet say how much of the medical corpus's prompt sensitivity comes from each of
 the three properties listed above, or what the best achievable budget policy is. The findings also have not been
 tested beyond five corpora and three models, or on a different split of the workload into known and later queries.
-Two changes to DocETL have been tested (freezing each column on one context); whether keeping drawing contexts until
-one determines a column, a budget policy that forecasts reuse with frozen contexts, and choosing the build's prompt
-groups by each column's measured context effect improve matters are running (I3c, I4, I5 in RESEARCH_DEPTH.md), as is
-the context intervention on the 32B.
+Three changes to DocETL have been tested (freezing each column on its first context, on the better of two, and on a
+determined one). Running or queued, each with its prediction written first (RESEARCH_DEPTH.md): the budget policy
+that forecasts reuse with frozen contexts (I4, to be added to the budget section), the build's prompt groups chosen
+by each column's measured context effect (I5), the verifier as the router of second looks on the 32B (I2b), the label
+contract on the five columns that lack a vocabulary (I6), and per-column read windows (I7).
 
 # Methods
 
@@ -498,6 +574,16 @@ DocETL's prompt, documents, model, scoring and query order, and only reuse a col
 been extracted by the first (or the better of the first two) queries that needed it. For DocETL, the same label, aggregate and within-corpus analyses run on its per-query
 outputs and scores for the queries in the current catalogue; labels are compared on non-empty rows, because DocETL fills
 a column only for the documents a query's filters keep. Label comparisons treat numbers as numbers in both systems.
+The grounding check lowercases the document and looks for each item of a value (numbers in their common forms); the
+verifier is a logistic regression on grounding, full grounding, disagreement, emptiness, log value length, sensitivity,
+fill rate and kind, cross-validated with whole columns held out and again with whole corpora held out. The cascade
+pricing uses the 32B's recorded prompt and output tokens per second look at OpenRouter's list prices. The position
+model takes, per column, the relative character position of the first verbatim occurrence of the served (or gold)
+value and its 90th percentile over documents. The field-order test asks each natural group in the build's order, a
+fixed shuffle and the reverse on the same thirty documents and counts cells whose normalized value differs from the
+natural order's; the run-to-run rate is from the repeated streams of E1.1. The workload analysis counts, per corpus,
+the schema columns the reference and test queries use, matches each test query's template and shape against the
+reference queries, and checks each query constant for a verbatim occurrence in the documents whose gold value equals it.
 
 # Appendix: example test queries
 
