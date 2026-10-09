@@ -392,10 +392,19 @@ def frozen4_docetl(corpus: str) -> dict:
             "outputs": [f"results/docetl_frozen4_ollama/{corpus}/complete.json"]}
 
 
+def frozen2_replicate(corpus: str) -> dict:
+    """I3d: a second run of I3b (DocETL samples its answers; the run-to-run spread bounds the claims)."""
+    return {"id": f"I3d-frozen2rep-{corpus}", "lane": "gpu", "retries": 1,
+            "cmd": DOCETL_PRE + 'eval "$(bash ../WDIRS/quwarts/scripts/chpc/experiments/ensure_server.sh main)" && '
+                   f"DOCETL_FROZEN_TRIES=2 DOCETL_FROZEN_TAG=_rep python -u run_docetl_frozen.py --corpus {corpus} --threads 8",
+            "outputs": [f"results/docetl_frozen2_ollama_rep/{corpus}/complete.json"]}
+
+
 STEPS += [
     *[frozen_docetl(c) for c in ("cspaper", "player")],
     *[frozen2_docetl(c) for c in ("cspaper", "player")],
     *[frozen4_docetl(c) for c in ("cspaper", "player")],
+    *[frozen2_replicate(c) for c in ("player", "cspaper")],
     *[i4(p, c, True) for c in CORPORA for p in ("fcfs", "forecast")],  # the comparison that tests the policy
     *[i4("forecast", c, False) for c in CORPORA],                       # the policy without frozen contexts
     *[i4("pace", c, True) for c in CORPORA],                            # pacing with frozen contexts, last

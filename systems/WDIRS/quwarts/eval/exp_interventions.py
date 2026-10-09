@@ -23,7 +23,7 @@ from quwarts.eval.exp_why import norm, save, spearman
 CORPORA = ["cspaper", "player", "art", "med", "legal"]
 ORIG = REPO / "results" / "docetl_drift_ollama"
 VARIANTS = {"frozen": REPO / "results" / "docetl_frozen_ollama", "frozen2": REPO / "results" / "docetl_frozen2_ollama",
-            "frozen4": REPO / "results" / "docetl_frozen4_ollama"}
+            "frozen4": REPO / "results" / "docetl_frozen4_ollama", "frozen2_rep": REPO / "results" / "docetl_frozen2_ollama_rep"}
 
 
 def nonempty_disagreement(tries: list[dict]) -> float | None:

@@ -32,7 +32,8 @@ TRIES = int(os.environ.get("DOCETL_FROZEN_TRIES", "1"))
 # DOCETL_FROZEN_FILL=f: stop trying a column once its best context fills at least this share of the documents (the
 # determinacy stopping rule); 0 (the default) keeps trying up to TRIES contexts regardless.
 FILL = float(os.environ.get("DOCETL_FROZEN_FILL", "0"))
-OUT = ROOT / "results" / ("docetl_frozen_ollama" if TRIES == 1 else f"docetl_frozen{TRIES}_ollama")
+# DOCETL_FROZEN_TAG: a suffix for a replicate run (DocETL's calls are sampled, so runs differ).
+OUT = ROOT / "results" / (("docetl_frozen_ollama" if TRIES == 1 else f"docetl_frozen{TRIES}_ollama") + os.environ.get("DOCETL_FROZEN_TAG", ""))
 ORIGINAL_RUN_TABLE = base.run_table  # kept before main() replaces base.run_table with the frozen one
 _lock = threading.Lock()
 
