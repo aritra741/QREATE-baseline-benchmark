@@ -104,7 +104,25 @@ def key_of(r: dict) -> str:
 
 def run(budget: int, workers: int, limit: int | None) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
+    cfg = json.loads((OUT / "config.json").read_text()) if (OUT / "config.json").exists() else {}
+    budget = int(cfg.get("budget", budget))
     rows = cells()
+    max_doc = cfg.get("max_doc_tokens")
+    if max_doc:  # size the experiment to the hardware: skip the longest documents (stated in the write-up)
+        from quwarts.core.retrieve_extract.tokens import count_tokens
+
+        ctxs0 = {c: R.context(c) for c in CORPORA}
+        lengths: dict[tuple, int] = {}
+        keep = []
+        for r in rows:
+            t = r["column"].split(".", 1)[0]
+            k = (r["corpus"], t, r["doc"])
+            if k not in lengths:
+                lengths[k] = count_tokens(read_document(Path(ctxs0[r["corpus"]].docs[t][r["doc"]])))
+            if lengths[k] <= int(max_doc):
+                keep.append(r)
+        print(f"I2: document cap {max_doc} tokens keeps {len(keep)} of {len(rows)} cells", flush=True)
+        rows = keep
     alloc = allocate(rows, budget)
     (OUT / "allocation.json").write_text(json.dumps({k: [key_of(r) for r in v] for k, v in alloc.items()}, indent=0))
     wanted = {key_of(r): r for v in alloc.values() for r in v}
