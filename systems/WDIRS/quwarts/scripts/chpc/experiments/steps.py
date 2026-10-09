@@ -437,14 +437,16 @@ def i5(kind: str, corpus: str) -> dict:
 
 
 STEPS += [i5("alone", c) for c in CORPORA]
-STEPS += [frozen_docetl(c) for c in ("art", "legal", "med")]  # first-query freezing on the other corpora, last
+STEPS += [frozen4_docetl("art")]  # the determined-context rule on a third corpus (short documents); medical and legal
+# documents are too long for DocETL's per-query maps on one MIG slice
 
 # I1 on the 32B, after I2 on the same server, sized to the MIG slice (15 documents per table; the 30-document 7B
 # sample contains them, so the comparison is on the same documents). Resumable: reads already made are kept.
 STEPS += [{"id": f"I1-qwen32b-{c}", "lane": "gpu32", "retries": 1, "deps": ["I2-secondlook"],
            "cmd": PRE + server("qwen32b") + f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen32b --docs 15 --workers 4",
            "outputs": [f"results/experiments/I1-context/qwen32b/{c}/reads.jsonl"]}
-          for c in ("cspaper", "player", "art", "legal", "med")]
+          for c in ("cspaper", "player", "art")]  # legal and med: long documents, hours per corpus on the 32B; the
+          # cross-model claim already rests on the logged runs of all five corpora
 
 # I5 "chosen": the grouping derived from I1 on the 7B (columns more accurate alone get their own prompt).
 STEPS += [{**i5("chosen", c), "deps": ["G0-prompt-guard"]} for c in CORPORA]
