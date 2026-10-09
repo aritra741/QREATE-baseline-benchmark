@@ -437,3 +437,7 @@ moves the tokens needed for a given score by 3–10×. That is the cost lemma an
 is the budget section's conclusion: *decide the unit of extraction by each column's context effect, then spend first
 come, first served.* `WHY/i4/summary.json`, figure `figures/w12_budget_curves.png`. Pacing with frozen contexts and
 the forecast policy without freezing are still running and will be added.
+
+**I3d on papers.** The second two-try run scores 0.093 against the first's 0.101 (original 0.122; 116 of 143 queries
+identical), so on papers the determined-context rule stays about 20% below per-query extraction in both runs, and
+the sampling spread (about 0.01 on the mean) does not change either corpus's conclusion.
