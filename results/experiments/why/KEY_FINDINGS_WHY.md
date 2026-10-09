@@ -39,6 +39,21 @@ The timing result holds on all five corpora with the 7B model and on two with th
 effect depends on the model: it is small for the 7B model and large for the 32B model on one corpus, and we have not
 measured it on other model families.
 
+We then intervened directly. For every column the drifted workload needs and the build lacks, the same thirty sampled
+documents were read in five contexts: the column alone, with two random columns of its table, with six, in the build's
+natural group, and alone with a paraphrased description (39 columns, 5,005 prompts). **On average the context does not
+move accuracy at all, 0.37 to 0.41 in every context, and the direction of its effect is the column's own:** 18 columns
+are more accurate alone than in the group by 0.05 or more and 9 are less. How much a column's value changes between
+contexts is one property of the column: its sensitivity to adding two random columns, to adding six, to the natural
+group and to a paraphrase rank the columns the same way (Spearman 0.82 to 0.93 between every pair), and so do the
+changes we had already logged, removing the description, removing the workload-use phrase, regrouping, or cutting long
+documents at the window (0.60 to 0.84 between kinds). "Ask for fewer columns at once" is therefore not a knob with a
+direction; it is a per-column effect, and in Section 2 we show it is also the measure of how far the document
+determines the value.
+
+![Figure 2. The context intervention on fixed documents. (a) Mean accuracy and empty-answer rate in five contexts. (b)
+Each column's accuracy alone against its accuracy in the build's group.](figures/w9_context_intervention.png){width=6.5in}
+
 *What this lets you decide.* Extraction can be deferred until a query needs it without losing accuracy, so a system
 does not have to guess the workload correctly to be accurate, only to be cheap. What has to be controlled is the
 prompt. Values from different prompts should not be mixed in one column, a store of extracted values should record the
@@ -59,10 +74,11 @@ different values for the same document. **Across 41 columns this disagreement is
 (Spearman −0.76).** Numbers disagree on 9% of cells, yes/no columns on 24%, free text on 47% and categories on 60%.
 No column with more than about 55% disagreement is right more than 60% of the time.
 
-![Figure 2. Disagreement between two prompts against accuracy, one point per column.](figures/w4_determinacy.png){width=6.5in}
+![Figure 3. Disagreement between two prompts against accuracy, one point per column.](figures/w4_determinacy.png){width=6.5in}
 
-The signal also works cell by cell. Where the two prompts disagree, the served value is wrong 79% of the time; where
-they agree, 44%. The disagreeing cells are 36% of all cells and hold half of all wrong cells. Checking columns in order
+The signal is cheap: estimated from ten sampled documents per column it ranks the columns almost as well as the full
+corpus does (Spearman −0.66 against −0.72; five documents give −0.62). The signal also works cell by cell. Where the two
+prompts disagree, the served value is wrong 79% of the time; where they agree, 44%. The disagreeing cells are 36% of all cells and hold half of all wrong cells. Checking columns in order
 of disagreement finds 69% of the wrong cells after checking half of all cells, close to the 72% that an order chosen
 with hindsight finds and well above the 50% of a random order. **The signal fails in one place, and the failure is
 informative: on category columns, cells where the prompts agree are wrong more often (57%) than cells where they
@@ -77,7 +93,7 @@ own accuracy (−0.63 over 85 columns). Columns that are hard for one system are
 correlation 0.64), and list-valued columns are the worst kind in both (16% correct in DocETL against 47% to 66% for
 the other kinds).
 
-![Figure 3. (a) Share of wrong cells where our two prompts agree or disagree, by kind of column. (b) Our two-prompt
+![Figure 4. (a) Share of wrong cells where our two prompts agree or disagree, by kind of column. (b) Our two-prompt
 disagreement on a column against DocETL's accuracy on the same column.](figures/w7_transfer.png){width=6.5in}
 
 The medical corpus, whose columns are mostly descriptive judgments, stands out. Its two prompts disagree on 75% of
@@ -86,10 +102,29 @@ does not explain this; on the earlier version of the medical and legal queries, 
 short documents as on long ones. With five corpora we cannot separate three properties that occur together in the
 medical corpus: descriptive columns, gold values that are often empty, and list-valued columns.
 
-*What this lets you decide.* Before any gold data exists, asking a column twice with two cheap prompts tells you which
-columns to trust, which need a better description, and where to spend a human check or a larger model. For numbers,
-yes/no answers, lists and free text, a disagreeing cell is a likely error. For categories, agreement is not evidence of
-correctness, and the category definitions themselves need checking.
+**A sensitive cell is one the document under-determines, and a stronger reader cannot determine it either.** We gave
+a 32B model a second look at 1,719 cells the 7B had served, the column asked alone, and allocated a budget of 600 looks
+three ways. Spending them on the most sensitive columns first fixed a net 110 errors per thousand looks; spreading them
+evenly, 48; at random, 148. Sensitivity does not tell where a second look pays, in either direction (the 600 least
+sensitive cells, chosen with hindsight, give 132). What it predicts is the 32B's own accuracy on the column (−0.67,
+as it predicts the 7B's, Llama's and DocETL's): in the most sensitive band the 7B is right on 14% of cells and the 32B
+on 24%; in the least sensitive band 59% and 80%. The cells a stronger reader repairs are determined ones the weaker
+reader misread, which sit in low-sensitivity columns with poor accuracy, such as dates written in another format
+(an artist's death date: sensitivity 0.06, 84% of the 7B's errors fixed; birth date 0.12 and 73%). So there are two
+kinds of error. *Under-determination* shows as disagreement and is not repaired by asking again, whatever the model;
+*misreading* shows as agreement on a wrong value and is repaired by a different reader when the bias was the reader's.
+The category exception above is the same distinction: a shared label vocabulary is a bias no reader repairs. (On the
+intervention's own sample, which has only two choice-list columns, disagreement did predict error on categories too,
+52% right when agreeing against 14% when not; the exception rests on the 41 logged columns.)
+
+![Figure 5. Second looks by the 32B. (a) Accuracy of the served 7B value and of the 32B's answer, by the column's
+sensitivity. (b) Net errors fixed per thousand second looks under four allocations.](figures/w10_second_looks.png){width=6.5in}
+
+*What this lets you decide.* Before any gold data exists, asking a column twice with two cheap prompts on ten or so
+documents tells you which columns the documents determine. Where they do not, re-asking is wasted, whatever the
+model: change the specification, narrow the vocabulary, or ask a person. Where they do and the column is still wrong,
+a different reader is the repair. For categories, agreement is not evidence of correctness, and the category
+definitions themselves need checking.
 
 # Why do aggregate queries over extracted values lose their groups?
 
@@ -105,7 +140,7 @@ and medical documents (0.75), and absent on basketball players and court judgmen
 corpora rank overall. The more groups a gold answer has, the more of them are missed: 47% of queries with one to
 three gold groups return too few, against 81% of queries with more than thirty.
 
-![Figure 4. (a) Distinct values in the extracted GROUP BY column relative to gold. (b) Share of queries returning too
+![Figure 6. (a) Distinct values in the extracted GROUP BY column relative to gold. (b) Share of queries returning too
 few groups, by the number of groups in the gold answer.](figures/b7_label_collapse.png){width=6.5in}
 
 To see how labels collapse we followed every gold row of every GROUP BY column (17,021 rows) into the extracted table.
@@ -126,7 +161,7 @@ columns are mostly lists and free-text categories, and 44% of their rows get a d
 the highest of any corpus. Basketball players group mostly by short factual values such as team and position and keep
 79% exact.
 
-![Figure 5. Where each gold row of a GROUP BY column ends up in the extracted table, by kind of column (a) and by
+![Figure 7. Where each gold row of a GROUP BY column ends up in the extracted table, by kind of column (a) and by
 corpus (b), at 100% drift.](figures/b8_label_fate.png){width=6.5in}
 
 The aggregate decides how much a wrong or missing row matters. We matched predicted and gold groups by their keys and
@@ -137,10 +172,10 @@ directions (21% too high, 20% too low), because one inflated value anywhere in t
 within 20% in only 42% of groups, too low in 33% and too high in 25%, because every row whose label is missing or
 merged moves a count.
 
-![Figure 6. Mean score by aggregate across drift levels, with on-demand extraction (a) and the static build
+![Figure 8. Mean score by aggregate across drift levels, with on-demand extraction (a) and the static build
 (b).](figures/b1_aggregate_drift.png){width=6.5in}
 
-![Figure 7. Aggregate values in matched groups at 100% drift: too low, within 20% of gold, or too
+![Figure 9. Aggregate values in matched groups at 100% drift: too low, within 20% of gold, or too
 high.](figures/b6_aggregate_direction.png){width=6.5in}
 
 Averaged over all corpora, AVG queries score 0.38, SUM and MIN 0.32, COUNT 0.21 and MAX 0.17, and this ordering is the
@@ -185,7 +220,7 @@ label, against 65% to 74% for the other kinds), and DocETL merges category and y
 Within each corpus, DocETL's MAX queries are below the corpus mean on four of five corpora, its COUNT queries are above
 it on all five, as in our system, and grouping by a list column is below the mean on all three corpora that have one.
 
-![Figure 8. (a) Share of DocETL's values that are wrong, split by whether our two prompts agree on the cell. (b) Share
+![Figure 10. (a) Share of DocETL's values that are wrong, split by whether our two prompts agree on the cell. (b) Share
 of GROUP BY rows that keep the exact gold label, by kind of column, in our system and in DocETL (non-empty rows,
 numbers compared as numbers).](figures/w8_docetl_predict.png){width=6.5in}
 
@@ -226,7 +261,7 @@ puts the corpora in the right order:
 On papers and artists the measured value is higher than predicted because on-demand extractions there read only the
 documents a query's filters select, which the model ignores.
 
-![Figure 9. Left: composition of one extraction prompt at each corpus's median document length. Right: predicted and
+![Figure 11. Left: composition of one extraction prompt at each corpus's median document length. Right: predicted and
 measured break-even probability.](figures/w2_cost_mechanism.png){width=6.5in}
 
 The other half of the decision is how likely a column is to be needed. In these benchmarks it is high. Of the columns
@@ -258,7 +293,7 @@ score gain from an extraction goes to later queries that reuse the column, rathe
 (97% on research papers, 54% on court judgments). Several extractions do nothing for their own query and a lot for
 later ones. A policy deciding when a query arrives cannot see this.
 
-![Figure 10. Share of each extraction's score gain that goes to its own query and to later
+![Figure 12. Share of each extraction's score gain that goes to its own query and to later
 queries.](figures/w3_value_timing.png){width=6.5in}
 
 **Capping the size of an extraction always loses (by 0.006 to 0.029), because the largest extractions are the most
@@ -334,13 +369,33 @@ team rows find their city. In our build the figures are 75% and 97%, and in the 
 contains players whose team has no row of its own). Our build extracts each table's keys once with the same field
 definitions, and later queries reuse them.
 
-![Figure 11. Share of rows whose join key finds a partner in the joined table.](figures/w5_join_keys.png){width=6.5in}
+![Figure 13. Share of rows whose join key finds a partner in the joined table.](figures/w5_join_keys.png){width=6.5in}
 
-Basketball players is the only corpus with joins, so this rests on one corpus.
+We then changed DocETL to find out. Each column is extracted once, by the first query that needs it and in that query's
+own prompt, and every later query reuses the value. On papers and players this cuts DocETL's calls fifteen-fold but
+loses accuracy (papers 0.122 → 0.059, players 0.108 → 0.054), and the per-column numbers show why: in DocETL's
+original run the share of documents for which a column is filled at all ranges from 1% to 100% depending on which
+query's prompt extracted it (paper name: 44 prompts, median fill 0.53, the first query's 0.01). *Per-query extraction
+is a lottery over contexts, and freezing on the first draw makes every later query hostage to it.* Joins still improve
+(0.022 → 0.041; player–team keys matching 0.19 → 0.30), because even a poor key is the same key everywhere.
+Freezing instead on the better of a column's first two contexts, chosen without labels by the share of documents it
+fills, recovers it: **on players DocETL then scores 0.164 against its own 0.108, with join queries at 0.055 against
+0.022 and 66 queries better against 35 worse, at a twelfth of the calls**; on papers 0.101 against 0.122 at an eighth.
+The gain is largest where queries join and group and smallest where they filter single tables. And it comes despite
+the frozen values being *less* accurate per column than the original's pooled values (draft pick 0.95 → 0.63): one
+value per cell, the same for every query and agreeing across tables, is worth more to a join or a GROUP BY than a
+higher accuracy that differs from query to query.
+
+![Figure 14. DocETL's mean query score and number of model calls on the same queries: per-query extraction, every
+column frozen on its first context, and frozen on the better of its first two contexts.](figures/w11_frozen_docetl.png){width=6.5in}
+
+Basketball players is the only corpus with joins, so the join part rests on one corpus.
 
 *What this lets you decide.* Join keys should be extracted once, with one definition, and shared by every query that
-joins on them. This is the first section's finding applied to keys: a key extracted in a different prompt is a
-different value, and for a key, any difference breaks the match.
+joins on them; more generally a stored value should be the same for every query that reads it, and the context it is
+frozen on should be chosen for how well it determines the column, not for which query came first. This is the first
+section's finding applied to a store: consistency of a value across its uses matters more than the accuracy of any one
+extraction of it.
 
 # Why does telling the model what a column means matter so much?
 
@@ -352,7 +407,7 @@ appearances falls from 0.86 to 0.01 correct, an artist's award count from 0.74 t
 0.00. Adding the benchmark's descriptions to a single extraction pass raised its score from 0.234 to 0.560, larger than
 any scheduling or budget effect we measured.
 
-![Figure 12. Share of cells correct with and without field descriptions.](figures/w6_specification.png){width=6.5in}
+![Figure 15. Share of cells correct with and without field descriptions.](figures/w6_specification.png){width=6.5in}
 
 *What this lets you decide.* Describing each column (its unit, its format, what to write when the document is silent)
 comes before any scheduling or budgeting decision. The columns that need it most are the ones flagged by disagreement
@@ -402,8 +457,10 @@ on artists, and we do not know why the direction depends on the corpus. Grouping
 but barely for the 7B model. We cannot yet say how much of the medical corpus's prompt sensitivity comes from each of
 the three properties listed above, or what the best achievable budget policy is. The findings also have not been
 tested beyond five corpora and three models, or on a different split of the workload into known and later queries.
-The explanations have been tested as predictions of DocETL's failures, but not yet as changes to DocETL: whether
-sharing one prompt per column, extracting join keys once, or batching upcoming columns improves DocETL needs new runs.
+Two changes to DocETL have been tested (freezing each column on one context); whether keeping drawing contexts until
+one determines a column, a budget policy that forecasts reuse with frozen contexts, and choosing the build's prompt
+groups by each column's measured context effect improve matters are running (I3c, I4, I5 in RESEARCH_DEPTH.md), as is
+the context intervention on the 32B.
 
 # Methods
 
@@ -427,7 +484,13 @@ for a column across its per-query outputs (a query that did not process a docume
 disagreement on documents that two or more queries extracted. The need analysis counts the schema columns that any
 benchmark query uses and, in the fully drifted stream, how often a new column is asked for again. The within-corpus
 query comparison subtracts each corpus's mean score at the same drift level before averaging by aggregate or by kind
-of GROUP BY column. For DocETL, the same label, aggregate and within-corpus analyses run on its per-query
+of GROUP BY column. The context intervention reads thirty sampled documents per table (those with a gold row and at most
+9,000 tokens) in five contexts with the drift run's prompt renderer and generation settings; sensitivity to a context
+is the share of documents whose normalized value differs from the lone answer. The second looks re-ask the 32B, column
+alone, for cells of the new columns at 100% drift in documents of at most 6,000 tokens; a look catches an error when the
+served value is wrong and the new one right, and introduces one in the opposite case. The frozen DocETL runs keep
+DocETL's prompt, documents, model, scoring and query order, and only reuse a column's values across queries once it has
+been extracted by the first (or the better of the first two) queries that needed it. For DocETL, the same label, aggregate and within-corpus analyses run on its per-query
 outputs and scores for the queries in the current catalogue; labels are compared on non-empty rows, because DocETL fills
 a column only for the documents a query's filters keep. Label comparisons treat numbers as numbers in both systems.
 
