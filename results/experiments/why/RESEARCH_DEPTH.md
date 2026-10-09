@@ -1,0 +1,254 @@
+# What would top researchers learn from this paper? An audit against the advisor's own papers, and a plan
+
+Date: 2026-10-08. Sources: ten of Anna Fariha's papers read in full or in their key sections (SAGE SIGMOD 2026,
+Conformance Constraints SIGMOD 2021, SQuID VLDB 2019, AID SIGMOD 2020, ExDis SIGMOD 2026, DataPrism SIGMOD 2022,
+PreView manuscript, the fair-classification analysis SIGMOD 2022, the EDT vision paper, and our QuWARTS demo), plus two
+new analyses run today on existing logs (`WHY/context/summary.json`, `quwarts/eval/exp_context.py`).
+
+## 1. How her papers are built
+
+Every full paper follows the same recipe, and the recipe is what she means by "smarts".
+
+**One named object with a definition.** Conformance constraints (a bounded linear projection with a quantitative
+violation score). Unsafe tuples. The abduction-ready database and the semantic context of a set of examples. The
+profile–violation–transformation triplet. A disparity explanation as a (subpopulation, treatment) pair. Pivot-table
+utility and pivot-table diversity. The paper is then about that object: its definition, its properties, how to compute
+it, what it is good for.
+
+**One principle, stated in a sentence, about a property that causes an effect, and preferably surprising.** "Projections
+with low variance construct effective conformance constraints", with the twist that the low-variance components of
+PCA, which everyone discards, are the useful ones. "The examples are more likely to be alike, so a shared property that
+is rare in the data is unlikely to be coincidental" (SQuID's abduction prior is the inverse of a filter's selectivity).
+"Temporal precedence over-approximates causality; interventions refine it" (AID). "A system malfunctions because of a
+property of the data, not because of individual cells, and correlation with failure is not cause" (DataPrism). "The
+idle time between a user's queries is a resource" (PreView).
+
+**A mechanism for why the principle holds, formal where possible.** In Conformance Constraints: Lemma 11 (two correlated
+projections combine into one with lower variance and a stronger constraint), Theorem 12 (the set of good projections is
+uncorrelated), and Proposition 17, which is the real "why": a tuple is unsafe when two models that agree on the training
+data disagree on it, and violation of the ideal constraint is sound and complete for that. The principle is not an
+observation; it is derived. SQuID proves the abduction algorithm correct; AID gives an information-theoretic convergence
+rate; ExDis shows NP-hardness and gives a greedy algorithm; SAGE formulates a constrained optimization (Problem 2.1).
+
+**A technique that follows from the principle, with a cost.** Because low-variance projections are the good ones, the
+algorithm is PCA, linear in rows and cubic in attributes. Because semantics prune the pivot-table space, SAGE pushes the
+diversity constraint down into the search. Because value lives in future queries, PreView predicts the next queries
+(templates and parameters, recency-weighted, Poisson arrival times) and materializes within the time before the next
+query. The technique is never "we tried five things".
+
+**Evaluation as questions that could falsify the principle.** The research questions are "Is there a relationship
+between constraint violation and prediction error?" (and a curve shows it, tuple by tuple), "Does it persist under
+noise?" (yes, and the paper explains why noise weakens both constraints and failures), "Where does the baseline fail and
+why?" (W-PCA misses local drift because it has no disjunctive constraints). Each experiment ends with a boxed key
+takeaway. In the analysis paper on fair classification, which is the closest in form to ours, the findings are written
+as explanations with stated hypotheses: "the impact of enforcing a fairness notion can be explained through the score of
+a fairness-unaware classifier for that notion", "we hypothesize that their robustness is due to the fact that the
+target demography holds regardless of data errors". That paper does not only compare methods: it injects errors into
+the training data in a controlled, disproportionate way, varies the downstream model, and writes a "Lessons" section
+about where the field should go.
+
+**Reuse and transfer.** One object serves two applications (trusted ML and drift), and is then reused by later work
+(DataPrism uses conformance constraints as one of its profiles). The EDT vision paper is explicit about the attitude:
+recommendation "is a search and optimization problem, not a generation problem"; LLMs are "enablers, not complete
+solutions"; decompose global objectives for algorithmic benefit.
+
+What she will look for in ours, then, is: the object, the one-sentence principle, the mechanism, the technique that
+follows from it, the falsifying questions with the failure cases, and the transfer.
+
+## 2. Our work against that recipe
+
+What we have is a system with a sensible design (workload-aware offline extraction, scoped on-demand extraction,
+reuse), a large set of configuration sweeps (drift levels, budgets, five policies, eleven ablations, three models, five
+corpora), and a "why" document that explains the sweeps after the fact. Measured against the recipe:
+
+- There is no named object. "Workload-aware extraction" is a design, not a primitive.
+- There is no principle stated before the experiments. The experiments ask "which setting works best", and the
+  mechanisms were found afterwards by looking at the results.
+- Almost all evidence is correlational. The exceptions are the timing replay (patches re-run with the build's prompt:
+  463 of 467 queries identical) and, as of today, the paired context comparison below.
+- No technique was derived from a principle and then tested. The policies were guesses (cap, pace, oracle, knapsack).
+- Nothing is formal. There is a cost model that predicts the break-even within 30%, which is the only derived
+  quantity.
+- The research questions are comparisons, and the deck reads as a design-space exploration. She is right.
+
+The good news is that the material for the recipe exists in our results; it was never organized as a claim.
+
+## 3. The core we actually have
+
+### The thesis in one sentence
+
+**In a database populated by an LLM, a read is not idempotent: the value of a cell depends on the context in which it
+was extracted, and that single property explains when extraction can be deferred, why budget policies that reason
+about cost and timing cannot win, why joins fail when keys are extracted per query, and how to tell which columns to
+trust without any ground truth.**
+
+That is a property → effect → mechanism statement, it is surprising from a database point of view (a materialized value
+is not equal to a recomputed one), it yields a primitive and techniques, and it carries over to any store populated by
+a model.
+
+### The object
+
+*Extraction context.* A cell value is v(d, a | c), where d is the document, a the column, and c the context: the field
+specification, the other columns asked in the same prompt, the instructions, and the model. In a conventional database
+v(d, a) has no third argument.
+
+*Context sensitivity of a column.* s(a) = the share of documents whose value changes between two admissible contexts.
+Operationally: ask the column twice in different company and count disagreements.
+
+*An unsafe cell*, by analogy with Fariha's unsafe tuple: a cell is unsafe if two admissible contexts that agree on most
+of the corpus disagree on it. Agreement across contexts is *sound* for detecting that the document under-determines a
+value (if the document fixed the value, no admissible context would change it) but *not complete*, because contexts can
+share a bias (the same label vocabulary, the same misreading of a description). That incompleteness is exactly what we
+measured on category columns, where agreeing cells are wrong more often than disagreeing ones. This is a statement we
+can make precisely and defend; it is the analog of Proposition 17 and of the false-negative discussion in that paper.
+
+### The principles, with the evidence we have today
+
+**P1. Where the document under-determines a value, the context decides, and the value is wrong.** Context sensitivity
+predicts column accuracy at the same strength for three models: Spearman −0.72 for Qwen 7B (102 columns), −0.72 for
+Qwen 32B (47), −0.66 for Llama 8B (21). It is largely a property of the column rather than of the model: the per-column
+sensitivity of the 7B correlates 0.61 with the 32B's and 0.53 with Llama's, and the 7B's sensitivity predicts the 32B's
+accuracy (−0.62), Llama's (−0.48) and DocETL's (−0.73 on 40 shared columns). The larger model is less sensitive (0.37
+against 0.58 on the same 46 columns), so a column's determinacy has a model-dependent floor, which is itself a usable
+fact: sensitivity measured with a cheap model bounds what a dearer model will get right. Fail case, by kind: numbers
+0.29, categories 0.29, free text 0.31, yes/no 0.59, lists 0.64 (7B). On categories the signal inverts, as above.
+
+**P2. A cell's value has a hidden argument, so reads are not idempotent, and timing is irrelevant.** Same column, same
+document, same model: a narrow prompt (one to three columns) and a wide one (four or more) give a different value 41% of
+the time with the 7B, 37% with the 32B, 42% with Llama. The average accuracy does not move (0.438 narrow against 0.447
+wide for the 7B) because the direction is column-specific: of 54 columns, 16 are better narrow and 17 better wide. So
+"ask fewer columns at once" is not a knob; it is a per-column effect with no sign. This resolves one of the document's
+open questions in principle: grouping helped on artists because its heavily used new columns are the ones that are
+better wide (awards 0.09 → 0.46, century 0.19 → 0.30), and the usage-weighted prediction has the right sign there
+(+0.14 predicted, +0.017 measured). It does not predict the small effects on players and medical (both within 0.03),
+where cell accuracy and query score come apart; we should say so. Consequences we have already measured: deferring
+extraction loses nothing when the context is held fixed (463 of 467); delaying it in a budget changes the answers
+(pacing); keys extracted per query match 18% of the time against 75% when extracted once.
+
+**P3. The cost of extraction is the cost of reading the document, so anticipating a column is almost free, and the
+limit on anticipation is accuracy, not cost.** Break-even probability ≈ field tokens / document tokens, 1.3% to 13%
+measured, predicted within about 30%. In these benchmarks 59% to 86% of schema columns are used by some query and a
+column asked once is asked again 57% to 100% of the time, far above break-even. By cost alone one would extract
+everything up front; P2 says the price is paid in values, not tokens. The real optimization is therefore to choose
+contexts (which columns go together) to maximize accuracy under a cost bound, not to minimize cost.
+
+**P4. Budgeted extraction is a sequential problem in which value is deferred and shared, cost depends on what was
+extracted before, and moving an extraction changes its value.** 54% to 97% of an extraction's value goes to later
+queries; the largest extractions are the most valuable (capping always loses); filter columns extracted early narrow
+later reads (an offline plan mis-prices extractions it reorders); and pacing's effect is the sum of a predictable delay
+cost and an unpredictable context effect (P2). A policy that reasons about cost and timing alone cannot win, and we
+can say why.
+
+**P5. The model draws coarser categories than the data, and the aggregate decides how much that matters.** 49% of gold
+rows keep their exact group label, 23% are merged into another group, 9% are left empty; numbers keep 94%, lists 29%;
+MIN is robust (too low 2% of the time), MAX is not; COUNT's low score is a corpus effect, not a property of counting.
+The pattern repeats on DocETL's outputs, with the stated exceptions (numbers and averages, for reasons we can name).
+
+### What is established and what is still a hypothesis
+
+Established on existing data: the sensitivity–accuracy relationship and its stability across models and across DocETL;
+the paired context effect and its lack of a consistent direction; the timing replay; the cost law; the value-deferral
+and order-dependence facts; the label and aggregate breakdowns. Correlational, not yet interventional: everything about
+budget policies; the corpus-level direction of grouping effects; the claim that freezing contexts would fix pacing or
+DocETL's joins. Not yet formal: the soundness/incompleteness statement; the cost law as a lemma; the budget problem as
+an objective.
+
+## 4. What a top researcher would learn
+
+That a database built by an LLM violates the oldest assumption in data management, that a stored value is the value,
+and that the violation is measurable per column without labels, is a property of the column more than of the model,
+predicts another system's errors, and has to be designed around: cache and materialize by context, extract keys once,
+hold contexts fixed when deferring, and treat batching as an accuracy decision rather than a cost decision. They would
+also learn the one-line cost law (field tokens over document tokens) and that the budget problem is sequential with
+deferred, shared value. These carry over to RAG caches, LLM annotation pipelines, knowledge-graph construction and
+semantic operators: anywhere a model's output is stored and reused.
+
+## 5. The plan: turn observations into tested principles
+
+Each item states the prediction before the run, as her papers do, and what we would write if it fails.
+
+### Formal work (no GPU, two to three days)
+
+1. Definitions of extraction context, context sensitivity, unsafe cell; the soundness-not-completeness proposition for
+   agreement-based trust, with the category case as the counterexample.
+2. The cost lemma: with document tokens D, instructions I, field tokens f, break-even p* = f / (D + I + f), and its
+   corollary that for D ≫ f the decision depends only on whether the column is plausibly used.
+3. The budget problem as an objective: maximize expected score gain over the remaining stream, where an extraction's
+   value is its reuse-weighted future gain, its cost depends on the filter columns already present, and its context is
+   fixed per column. State what the policies we tried optimize instead, and why each loses (cap: ignores reuse; pace:
+   moves the context; offline plan: mis-prices history-dependent cost).
+
+### From existing logs (no GPU, one day)
+
+4. How cheap is the trust signal? Measure sensitivity on 10, 20 and 40 sampled documents per column and see how well
+   the sample predicts the full-corpus accuracy ranking. Prediction: 20 documents suffice (rank correlation above 0.6).
+5. Sensitivity under each kind of context change separately (co-asked columns, description present or absent, model),
+   from the ablation logs we have (E13-nodesc, E14-bfields, E14-bgroup, head). Prediction: the per-column ranking is
+   stable across kinds of change; this is what makes it a column property.
+6. Finish the explanation of the grouping ablation: compare cell-level and query-level deltas per corpus to show where
+   the two come apart (group labels, aggregates), closing the open question properly.
+
+### Interventions on the GPU (pre-registered)
+
+I1. *Context intervention on fixed documents* (one night). For every new column on all five corpora, 30 documents,
+    extract under five contexts: alone, with two random columns, with six, with its natural group, and with a
+    paraphrased description. Predictions: (a) sensitivity per column is stable across the kinds of change
+    (ρ > 0.6 between pairs); (b) average accuracy is flat across widths but column-specific; (c) the 32B has lower
+    sensitivity on every column, never higher; (d) on categories, agreement does not predict correctness. If (a) fails,
+    sensitivity is a property of the column–context pair, and the paper's primitive must be indexed by context kind.
+
+I2. *Determinacy-guided second looks* (half a day). With a fixed budget of re-extractions by the 32B, allocate them to
+    columns by sensitivity, uniformly, and at random. Prediction: by sensitivity catches 1.4 to 2 times more errors per
+    token (from the 69% vs 50% curve), except on categories, where it should not beat random. This is the technique that
+    follows from P1.
+
+I3. *Context-frozen DocETL* (one to two nights, the transfer she asked for). Run DocETL with one shared extraction per
+    column across its queries (keys first). Predictions: join-key match rises from 18% toward 70% or more and the join
+    queries recover most of the 0.125 → 0.008 loss; non-join queries change little; the columns that improve are the
+    high-sensitivity ones. If join queries do not recover, the key problem is not consistency but coverage, and P2's
+    role in joins is smaller than claimed.
+
+I4. *A policy derived from P4* (one night). Forecast column demand from the workload (cluster query templates, weight by
+    recency, as PreView does), hold each column's context fixed, and extract in forecast order under the budget.
+    Prediction: beats first come, first served on the corpora with high reuse (players, papers) and never loses; and
+    unfreezing the contexts brings back the pacing noise. This replaces "we tried five policies" with "the principle
+    says a policy must do these three things; here is the one that does, and here is what happens when you take each
+    one away".
+
+I5. *Batching as an accuracy decision* (one night). Choose column groupings to maximize predicted accuracy from the
+    per-column context effects measured in I1, under the same token cost. Prediction: beats both "all columns together"
+    and "one at a time" on artists, ties elsewhere; and the gain is concentrated on the columns with large, consistent
+    narrow-vs-wide differences.
+
+Order: formal work and items 4–6 first (they sharpen the predictions), then I1 and I3 (the two that most change the
+paper), then I2, I4, I5.
+
+## 6. What reviewers will say, and the answers
+
+*Prompt sensitivity is known.* Self-consistency and prompt brittleness are documented in NLP. Our contribution is not
+that LLM outputs vary; it is that the variation is a per-column, cross-model, cross-system property, that it is the
+right trust signal in the absence of labels, and that it breaks the idempotence that data-management systems assume,
+with consequences for materialization, joins and budgets. The related-work section must say this plainly and cite the
+NLP work; the framing is the same move as "through the data management lens" in the fairness paper.
+
+*Only five corpora, curated benchmark schemas, one corpus with joins, a 7B model as the main one.* True; the cross-model
+results help, I3 adds a second system, and the long-document corpora cover the cost law. The curated-schema caveat
+limits P3's "anticipate everything" corollary and should be stated.
+
+*The score (structure F2 × cell F1) hides mechanisms.* Agreed; the paper's evidence should be at cell and query level
+with the score only as the summary.
+
+*The cost law is obvious.* It is; its role is as the lemma that moves the problem from cost to accuracy, which is not
+obvious.
+
+## 7. A framing for the paper
+
+Title directions: "Reads Are Not Idempotent: Context-Dependent Values in LLM-Built Databases and What to Do About
+Them"; or "Determinacy: Measuring Trust in Data Extracted by Language Models" (deliberately echoing Conformance
+Constraints: Measuring Trust in Data-Driven Systems).
+
+Sections, in her order: the object (context, sensitivity, unsafe cell) with the soundness/incompleteness proposition;
+the principles P1–P2 with the cross-model and paired evidence; the cost lemma and the budget formulation (P3–P4); the
+techniques derived from them (determinacy-guided second looks, context-frozen reuse, forecast-ordered extraction) each
+tested against the prediction; the breakdown by value kind and aggregate (P5) as the consequence section; transfer to
+DocETL; lessons. QuWARTS becomes the vehicle, not the contribution.
