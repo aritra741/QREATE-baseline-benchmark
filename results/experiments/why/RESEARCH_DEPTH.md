@@ -385,3 +385,15 @@ replicate reports, the defensible statement is: freezing each column on a determ
 0.113 and 0.122 on papers (original 0.122) and between 0.119 and 0.164 on players (original 0.108) at a fifth to a
 twelfth of the calls, with joins consistently better (0.022 → 0.041–0.055) and the player–team key match 0.28–0.41
 against 0.19.
+
+**Frozen contexts are also the cheap contexts (from the E14-bgroup and recorded streams, unlimited budget, 100%
+drift).** When every on-demand patch asks for the table's whole set of new columns (so each column is always
+extracted in the same context), the stream reads each document once for all of them instead of once per query's
+missing columns: tokens fall to 30% of the recorded run's on papers, 35% on players, 27% on artists, 17% on medical
+and 22% on legal (patches 7 → 4, 8 → 4, 9 → 2, 14 → 3, 6 → 1), and the score rises on artists (0.256 → 0.272),
+medical (0.115 → 0.140) and legal (0.170 → 0.192) while falling on papers (0.153 → 0.131) and players (0.387 →
+0.378). This is the cost lemma (FORMAL.md §3) inside the stream: a column the next query might need costs its field
+line, not another read of the document, so asking for all of them at the first patch is anticipation at the cheap
+rate. It also means I4's budget comparisons between the frozen and recorded families must be read on absolute tokens
+(each family's budgets are shares of its own unlimited spend, 3–6× apart); the analysis now reports score against
+tokens for both.

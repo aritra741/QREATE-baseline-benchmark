@@ -193,6 +193,25 @@ def i4() -> dict:
         out["summary"][k] = {"streams": len(v), "mean_delta": round(S.mean(x[2] for x in v), 4),
                              "wins": sum(x[2] > 0.002 for x in v), "losses": sum(x[2] < -0.002 for x in v),
                              "mean_token_ratio": round(S.mean(x[3] for x in v), 3), "per_stream": v}
+    # Budgets are shares of each family's own unlimited spend, and frozen (grouped) patches are several times cheaper,
+    # so frozen and recorded streams are also compared on absolute tokens: score against tokens at level 100.
+    out["score_vs_tokens"] = {}
+    for c in CORPORA:
+        curve = {}
+        for fam, root in (("recorded", REPO / "results" / "drift_live_ollama"), ("frozen_fcfs", EXP / "I4-bgroup-fcfs" / "live"),
+                          ("frozen_forecast", EXP / "I4-bgroup-forecast" / "live"), ("frozen_unlimited", EXP / "E14-bgroup" / "live")):
+            pts = []
+            for b in (10, 25, 50, 75, 100):
+                st = stream_stats(root / c / "streams" / f"fixed4b{b:03d}-attribute_pool_100.jsonl")
+                if st:
+                    pts.append({"budget": b, "tokens": st["tokens"], "score": st["score"]})
+            st = stream_stats(root / c / "streams" / "fixed4-attribute_pool_100.jsonl")
+            if st and fam in ("recorded", "frozen_unlimited"):
+                pts.append({"budget": "unlimited", "tokens": st["tokens"], "score": st["score"]})
+            if pts:
+                curve[fam] = pts
+        if curve:
+            out["score_vs_tokens"][c] = curve
     return save("i4", out)
 
 
