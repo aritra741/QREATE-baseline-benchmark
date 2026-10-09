@@ -337,3 +337,21 @@ median fill rate is 0.5 often give two blanks. The rule, not the idea, is the li
 column until one fills at least half the documents (at most four), which is freezing on a *determined* context in the
 sense of FORMAL.md §1. DocETL's own two-context disagreement does not yet track accuracy (0.26) because two empty
 answers agree; the analysis now also reports disagreement over documents both contexts answered.
+
+**I2, determinacy-guided second looks (1,719 cells re-asked by the 32B alone; budget 600 per allocation; documents up
+to 6k tokens): the prediction failed, and the failure separates two kinds of error.** Allocating the budget to the
+most sensitive columns first (which put all 600 cells in one list column) gave a net 110 fixes per 1,000 cells;
+uniform across columns 48; random 148. In hindsight, over the cells asked, the 600 lowest-sensitivity cells give 132
+and the 600 highest 120, so sensitivity does not sort cells by how much a second look pays, in either direction.
+What sensitivity does predict is the *32B's own accuracy* on the column (−0.67), exactly as it predicts the 7B's,
+DocETL's and Llama's. The two facts together say: a sensitive cell is one the document under-determines, and a
+stronger reader cannot determine it either (the 32B is right on 24% of cells in the 0.8–1.0 band, the 7B on 14%);
+the cells a stronger reader *fixes* are determined ones the weak reader misread, which sit in low-sensitivity
+columns with low accuracy, such as dates written in another format (art.death_date: sensitivity 0.06, the 32B fixes
+84% of the 7B's errors; birth_date 0.12 and 73%). Per column, sensitivity and the share of wrong cells the 32B fixes
+are unrelated (ρ = −0.09, 27 columns). In the terms of FORMAL.md §2: disagreement is sound for detecting
+under-determination, and under-determination is not repaired by re-asking; agreement-with-error is the shared-bias
+case, and when the bias is the reader's (a format habit) a different reader repairs it. The technique that follows
+from P1 is therefore not "re-ask where sensitive" but "do not spend readers where sensitive; change the specification
+or ask a person there, and spend stronger readers where a column is determined yet wrong". The paper should state
+I2's result as this correction. Numbers: `I2-secondlook/summary.json` (allocations, by_sensitivity_bin, per_column).
