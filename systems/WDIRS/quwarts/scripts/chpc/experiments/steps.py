@@ -383,11 +383,22 @@ def frozen2_docetl(corpus: str) -> dict:
             "outputs": [f"results/docetl_frozen2_ollama/{corpus}/complete.json"]}
 
 
+def frozen4_docetl(corpus: str) -> dict:
+    """I3c: as I3b, but a column keeps being re-extracted in later queries' contexts (up to four) until its best context
+    fills at least half of the documents: freezing on a determined context (DOCETL_FROZEN_TRIES=4, FILL=0.5)."""
+    return {"id": f"I3c-frozen4-{corpus}", "lane": "gpu", "retries": 1,
+            "cmd": DOCETL_PRE + 'eval "$(bash ../WDIRS/quwarts/scripts/chpc/experiments/ensure_server.sh main)" && '
+                   f"DOCETL_FROZEN_TRIES=4 DOCETL_FROZEN_FILL=0.5 python -u run_docetl_frozen.py --corpus {corpus} --threads 8",
+            "outputs": [f"results/docetl_frozen4_ollama/{corpus}/complete.json"]}
+
+
 STEPS += [
     *[frozen_docetl(c) for c in ("cspaper", "player")],
     *[frozen2_docetl(c) for c in ("cspaper", "player")],
-    *[i4(p, c, True) for c in CORPORA for p in ("fcfs", "forecast", "pace")],
-    *[i4("forecast", c, False) for c in CORPORA],
+    *[frozen4_docetl(c) for c in ("cspaper", "player")],
+    *[i4(p, c, True) for c in CORPORA for p in ("fcfs", "forecast")],  # the comparison that tests the policy
+    *[i4("forecast", c, False) for c in CORPORA],                       # the policy without frozen contexts
+    *[i4("pace", c, True) for c in CORPORA],                            # pacing with frozen contexts, last
     # I2 on the 32B server, after the I1 loop on that server has finished
     {"id": "I2-secondlook", "lane": "gpu32", "retries": 1,
      # ([b] so that this command line does not match its own pattern)

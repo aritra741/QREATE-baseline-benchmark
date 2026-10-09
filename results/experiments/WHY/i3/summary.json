@@ -1,0 +1,694 @@
+{
+ "frozen": {
+  "corpora": {
+   "cspaper": {
+    "queries": 143,
+    "complete": true,
+    "original": 0.1222,
+    "frozen": 0.0586,
+    "join_queries": 0,
+    "original_join": null,
+    "frozen_join": null,
+    "original_nojoin": 0.1222,
+    "frozen_nojoin": 0.0586,
+    "queries_better": 17,
+    "queries_worse": 38,
+    "calls_original": 30873,
+    "calls_frozen": 2111,
+    "tokens_original": 45648440,
+    "tokens_frozen": 3034295
+   },
+   "player": {
+    "queries": 193,
+    "complete": true,
+    "original": 0.1077,
+    "frozen": 0.054,
+    "join_queries": 86,
+    "original_join": 0.0218,
+    "frozen_join": 0.0412,
+    "original_nojoin": 0.1767,
+    "frozen_nojoin": 0.0643,
+    "queries_better": 30,
+    "queries_worse": 59,
+    "calls_original": 34719,
+    "calls_frozen": 1725,
+    "tokens_original": 316383329,
+    "tokens_frozen": 18647876
+   }
+  },
+  "join_keys": {
+   "player": {
+    "player.team = team.team_name": {
+     "original": 0.191,
+     "frozen": 0.304,
+     "gold": 0.633
+    },
+    "team.location = city.city_name": {
+     "original": 0.165,
+     "frozen": 0.091,
+     "gold": 0.933
+    }
+   }
+  },
+  "columns": [
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.paper_name",
+    "kind": "free text",
+    "sensitivity_7b": 0.1,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.848,
+    "accuracy_frozen": 0,
+    "empty_frozen": 1
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.uses_reranker",
+    "kind": "yes/no",
+    "sensitivity_7b": 0.675,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.671,
+    "accuracy_frozen": 0.216,
+    "empty_frozen": 0.716
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.agent_framework",
+    "kind": "category",
+    "sensitivity_7b": 0.675,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.569,
+    "accuracy_frozen": 0.76,
+    "empty_frozen": 0.98
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.retrieval_method",
+    "kind": "category",
+    "sensitivity_7b": 0.46,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.26,
+    "accuracy_frozen": 0.06,
+    "empty_frozen": 0.775
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.use_agent",
+    "kind": "yes/no",
+    "sensitivity_7b": 0.625,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.656,
+    "accuracy_frozen": 0,
+    "empty_frozen": 0.995
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.uses_knowledge_graph",
+    "kind": "yes/no",
+    "sensitivity_7b": 0.595,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.756,
+    "accuracy_frozen": 0.02,
+    "empty_frozen": 0.225
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.performance_on_hotpotqa",
+    "kind": "list",
+    "sensitivity_7b": 0.305,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0,
+    "accuracy_frozen": 0.815,
+    "empty_frozen": 0.96
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.reasoning_depth",
+    "kind": "category",
+    "sensitivity_7b": 0.595,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.565,
+    "accuracy_frozen": 0.02,
+    "empty_frozen": 0.98
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.baseline",
+    "kind": "free text",
+    "sensitivity_7b": 0.85,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0,
+    "accuracy_frozen": 0.06,
+    "empty_frozen": 0.995
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.baseline_amount",
+    "kind": "number",
+    "sensitivity_7b": 0.745,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.195,
+    "accuracy_frozen": 0,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.data_modality",
+    "kind": "list",
+    "sensitivity_7b": 0.175,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.547,
+    "accuracy_frozen": 0.02,
+    "empty_frozen": 0.555
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.evaluation_dataset",
+    "kind": "free text",
+    "sensitivity_7b": 0.36,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.154,
+    "accuracy_frozen": 0.046,
+    "empty_frozen": 0.928
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.topic",
+    "kind": "category",
+    "sensitivity_7b": 0.02,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.943,
+    "accuracy_frozen": 0.959,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.application_domain",
+    "kind": "list",
+    "sensitivity_7b": 0.835,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.522,
+    "accuracy_frozen": 0.185,
+    "empty_frozen": 0.62
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.multi_turn_retrieval",
+    "kind": "yes/no",
+    "sensitivity_7b": 0.445,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.557,
+    "accuracy_frozen": 0.065,
+    "empty_frozen": 0.905
+   },
+   {
+    "corpus": "player",
+    "column": "city.city_name",
+    "kind": "free text",
+    "sensitivity_7b": 0.0,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.283,
+    "accuracy_frozen": 0.207,
+    "empty_frozen": 0.276
+   },
+   {
+    "corpus": "player",
+    "column": "city.population",
+    "kind": "number",
+    "sensitivity_7b": 0.0,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 1,
+    "accuracy_frozen": 0.929,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.draft_pick",
+    "kind": "number",
+    "sensitivity_7b": 0.17,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.953,
+    "accuracy_frozen": 0.42,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.olympic_gold_medals",
+    "kind": "number",
+    "sensitivity_7b": 0.128,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.455,
+    "accuracy_frozen": 0.229,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.team",
+    "kind": "free text",
+    "sensitivity_7b": 0.22,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.778,
+    "accuracy_frozen": 0.45,
+    "empty_frozen": 0.473
+   },
+   {
+    "corpus": "player",
+    "column": "player.position",
+    "kind": "category",
+    "sensitivity_7b": 0.113,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.493,
+    "accuracy_frozen": 0.447,
+    "empty_frozen": 0.121
+   },
+   {
+    "corpus": "player",
+    "column": "player.draft_year",
+    "kind": "number",
+    "sensitivity_7b": 0.113,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.912,
+    "accuracy_frozen": 0.781,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.age",
+    "kind": "number",
+    "sensitivity_7b": 0.277,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.891,
+    "accuracy_frozen": 0.8,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.nba_championships",
+    "kind": "number",
+    "sensitivity_7b": 0.44,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.721,
+    "accuracy_frozen": 0.146,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.nationality",
+    "kind": "free text",
+    "sensitivity_7b": 0.078,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.914,
+    "accuracy_frozen": 0.085,
+    "empty_frozen": 0.291
+   },
+   {
+    "corpus": "player",
+    "column": "player.mvp_awards",
+    "kind": "number",
+    "sensitivity_7b": 0.454,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.747,
+    "accuracy_frozen": 0.628,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.fiba_world_cup",
+    "kind": "number",
+    "sensitivity_7b": 0.149,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.267,
+    "accuracy_frozen": 0.044,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "player",
+    "column": "player.college",
+    "kind": "free text",
+    "sensitivity_7b": 0.241,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.687,
+    "accuracy_frozen": 0.66,
+    "empty_frozen": 0.191
+   },
+   {
+    "corpus": "player",
+    "column": "team.team_name",
+    "kind": "free text",
+    "sensitivity_7b": 0.0,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.58,
+    "accuracy_frozen": 0.467,
+    "empty_frozen": 0.3
+   },
+   {
+    "corpus": "player",
+    "column": "team.location",
+    "kind": "free text",
+    "sensitivity_7b": 0.0,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.734,
+    "accuracy_frozen": 0.167,
+    "empty_frozen": 0.267
+   },
+   {
+    "corpus": "player",
+    "column": "team.championship",
+    "kind": "free text",
+    "sensitivity_7b": 0.033,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.012,
+    "accuracy_frozen": 0,
+    "empty_frozen": 0.593
+   },
+   {
+    "corpus": "player",
+    "column": "team.ownership",
+    "kind": "free text",
+    "sensitivity_7b": 0.367,
+    "docetl_sensitivity": null,
+    "tries": 0,
+    "filled": null,
+    "accuracy_original": 0.111,
+    "accuracy_frozen": 0.2,
+    "empty_frozen": 0.4
+   }
+  ],
+  "spearman_sensitivity_vs_accuracy_change": -0.058,
+  "spearman_sensitivity_vs_frozen_accuracy": -0.285
+ },
+ "frozen2": {
+  "corpora": {
+   "cspaper": {
+    "queries": 143,
+    "complete": true,
+    "original": 0.1222,
+    "frozen": 0.1007,
+    "join_queries": 0,
+    "original_join": null,
+    "frozen_join": null,
+    "original_nojoin": 0.1222,
+    "frozen_nojoin": 0.1007,
+    "queries_better": 18,
+    "queries_worse": 31,
+    "calls_original": 30873,
+    "calls_frozen": 3937,
+    "tokens_original": 45648440,
+    "tokens_frozen": 5678020
+   }
+  },
+  "join_keys": {},
+  "columns": [
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.paper_name",
+    "kind": "free text",
+    "sensitivity_7b": 0.1,
+    "docetl_sensitivity": 0.015,
+    "tries": 2,
+    "filled": [
+     1,
+     2
+    ],
+    "accuracy_original": 0.848,
+    "accuracy_frozen": 0.01,
+    "empty_frozen": 0.99
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.uses_reranker",
+    "kind": "yes/no",
+    "sensitivity_7b": 0.675,
+    "docetl_sensitivity": 0.292,
+    "tries": 2,
+    "filled": [
+     59,
+     1
+    ],
+    "accuracy_original": 0.671,
+    "accuracy_frozen": 0.235,
+    "empty_frozen": 0.699
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.agent_framework",
+    "kind": "category",
+    "sensitivity_7b": 0.675,
+    "docetl_sensitivity": 0.015,
+    "tries": 2,
+    "filled": [
+     2,
+     1
+    ],
+    "accuracy_original": 0.569,
+    "accuracy_frozen": 0.76,
+    "empty_frozen": 0.99
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.retrieval_method",
+    "kind": "category",
+    "sensitivity_7b": 0.46,
+    "docetl_sensitivity": 0.251,
+    "tries": 2,
+    "filled": [
+     50,
+     6
+    ],
+    "accuracy_original": 0.26,
+    "accuracy_frozen": 0.075,
+    "empty_frozen": 0.75
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.use_agent",
+    "kind": "yes/no",
+    "sensitivity_7b": 0.625,
+    "docetl_sensitivity": 0.41,
+    "tries": 2,
+    "filled": [
+     78,
+     6
+    ],
+    "accuracy_original": 0.656,
+    "accuracy_frozen": 0.27,
+    "empty_frozen": 0.61
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.uses_knowledge_graph",
+    "kind": "yes/no",
+    "sensitivity_7b": 0.595,
+    "docetl_sensitivity": 0.6,
+    "tries": 2,
+    "filled": [
+     81,
+     138
+    ],
+    "accuracy_original": 0.756,
+    "accuracy_frozen": 0.6,
+    "empty_frozen": 0.31
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.performance_on_hotpotqa",
+    "kind": "list",
+    "sensitivity_7b": 0.305,
+    "docetl_sensitivity": 0.04,
+    "tries": 2,
+    "filled": [
+     8,
+     1
+    ],
+    "accuracy_original": 0,
+    "accuracy_frozen": 0.815,
+    "empty_frozen": 0.96
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.reasoning_depth",
+    "kind": "category",
+    "sensitivity_7b": 0.595,
+    "docetl_sensitivity": 0.381,
+    "tries": 2,
+    "filled": [
+     20,
+     84
+    ],
+    "accuracy_original": 0.565,
+    "accuracy_frozen": 0.278,
+    "empty_frozen": 0.571
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.baseline",
+    "kind": "free text",
+    "sensitivity_7b": 0.85,
+    "docetl_sensitivity": 0.221,
+    "tries": 2,
+    "filled": [
+     0,
+     36
+    ],
+    "accuracy_original": 0,
+    "accuracy_frozen": 0.05,
+    "empty_frozen": 0.82
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.baseline_amount",
+    "kind": "number",
+    "sensitivity_7b": 0.745,
+    "docetl_sensitivity": 0.0,
+    "tries": 2,
+    "filled": [
+     0,
+     0
+    ],
+    "accuracy_original": 0.195,
+    "accuracy_frozen": 0,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.data_modality",
+    "kind": "list",
+    "sensitivity_7b": 0.175,
+    "docetl_sensitivity": 0.697,
+    "tries": 2,
+    "filled": [
+     152,
+     81
+    ],
+    "accuracy_original": 0.547,
+    "accuracy_frozen": 0.245,
+    "empty_frozen": 0.24
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.evaluation_dataset",
+    "kind": "free text",
+    "sensitivity_7b": 0.36,
+    "docetl_sensitivity": null,
+    "tries": 1,
+    "filled": [
+     14
+    ],
+    "accuracy_original": 0.154,
+    "accuracy_frozen": 0.051,
+    "empty_frozen": 0.929
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.topic",
+    "kind": "category",
+    "sensitivity_7b": 0.02,
+    "docetl_sensitivity": 0.086,
+    "tries": 2,
+    "filled": [
+     197,
+     190
+    ],
+    "accuracy_original": 0.943,
+    "accuracy_frozen": 0.964,
+    "empty_frozen": 0
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.application_domain",
+    "kind": "list",
+    "sensitivity_7b": 0.835,
+    "docetl_sensitivity": 0.22,
+    "tries": 2,
+    "filled": [
+     81,
+     53
+    ],
+    "accuracy_original": 0.522,
+    "accuracy_frozen": 0.22,
+    "empty_frozen": 0.59
+   },
+   {
+    "corpus": "cspaper",
+    "column": "cspaper.multi_turn_retrieval",
+    "kind": "yes/no",
+    "sensitivity_7b": 0.445,
+    "docetl_sensitivity": 0.085,
+    "tries": 2,
+    "filled": [
+     14,
+     8
+    ],
+    "accuracy_original": 0.557,
+    "accuracy_frozen": 0.055,
+    "empty_frozen": 0.915
+   }
+  ],
+  "spearman_sensitivity_vs_accuracy_change": 0.059,
+  "spearman_sensitivity_vs_frozen_accuracy": -0.261,
+  "spearman_docetl_sensitivity_vs_frozen_accuracy": 0.257,
+  "spearman_docetl_sensitivity_vs_7b_sensitivity": -0.023
+ }
+}

@@ -22,7 +22,20 @@ from quwarts.eval.exp_why import norm, save, spearman
 
 CORPORA = ["cspaper", "player", "art", "med", "legal"]
 ORIG = REPO / "results" / "docetl_drift_ollama"
-VARIANTS = {"frozen": REPO / "results" / "docetl_frozen_ollama", "frozen2": REPO / "results" / "docetl_frozen2_ollama"}
+VARIANTS = {"frozen": REPO / "results" / "docetl_frozen_ollama", "frozen2": REPO / "results" / "docetl_frozen2_ollama",
+            "frozen4": REPO / "results" / "docetl_frozen4_ollama"}
+
+
+def nonempty_disagreement(tries: list[dict]) -> float | None:
+    """Disagreement between the first two contexts over the documents both answered (empties excluded)."""
+    if len(tries) < 2:
+        return None
+    t1, t2 = tries[0]["values"], tries[1]["values"]
+    both = [d for d in t1 if d in t2 and not is_null(t1[d]) and not is_null(t2[d])
+            and t1[d] not in (-1, "Not found") and t2[d] not in (-1, "Not found")]
+    if len(both) < 10:
+        return None
+    return round(sum(norm(t1[d]) != norm(t2[d]) for d in both) / len(both), 3)
 
 
 def keys_db(db: Path, t: str, c: str) -> list:
@@ -115,6 +128,7 @@ def i3_variant(FROZEN: Path) -> dict:
                 if len(fr) >= 10 and len(ov) >= 10:
                     out["columns"].append({"corpus": c, "column": col, "kind": kind_of(fields[col]),
                                            "sensitivity_7b": by_col.get(col), "docetl_sensitivity": e.get("sensitivity"),
+                                           "docetl_sensitivity_nonempty": nonempty_disagreement(e.get("tries", [])),
                                            "tries": len(e.get("tries", [])), "filled": e.get("filled"),
                                            "accuracy_original": round(S.mean(correct(v, gg) for v, gg in ov), 3),
                                            "accuracy_frozen": round(S.mean(correct(v, gg) for v, gg in fr), 3),
@@ -125,6 +139,13 @@ def i3_variant(FROZEN: Path) -> dict:
             [r["sensitivity_7b"] for r in cols], [r["accuracy_frozen"] - r["accuracy_original"] for r in cols]), 3)
         out["spearman_sensitivity_vs_frozen_accuracy"] = round(spearman(
             [r["sensitivity_7b"] for r in cols], [r["accuracy_frozen"] for r in cols]), 3)
+    dn = [r for r in out["columns"] if r.get("docetl_sensitivity_nonempty") is not None and r["sensitivity_7b"] is not None]
+    if len(dn) > 4:
+        out["spearman_docetl_nonempty_disagreement_vs_7b_sensitivity"] = round(spearman(
+            [r["docetl_sensitivity_nonempty"] for r in dn], [r["sensitivity_7b"] for r in dn]), 3)
+        out["spearman_docetl_nonempty_disagreement_vs_frozen_accuracy"] = round(spearman(
+            [r["docetl_sensitivity_nonempty"] for r in dn], [r["accuracy_frozen"] for r in dn]), 3)
+        out["columns_with_nonempty_disagreement"] = len(dn)
     ds = [r for r in out["columns"] if r.get("docetl_sensitivity") is not None]
     if len(ds) > 4:  # DocETL's own two-context disagreement as a trust signal, inside DocETL
         out["spearman_docetl_sensitivity_vs_frozen_accuracy"] = round(spearman(

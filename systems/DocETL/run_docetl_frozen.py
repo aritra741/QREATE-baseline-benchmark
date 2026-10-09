@@ -29,6 +29,9 @@ ROOT = HERE.parents[1]
 # then frozen from the context with the most non-empty answers (a label-free choice), and the disagreement between the
 # tries is recorded as the column's sensitivity. k=1 freezes on the first query, whatever its prompt did.
 TRIES = int(os.environ.get("DOCETL_FROZEN_TRIES", "1"))
+# DOCETL_FROZEN_FILL=f: stop trying a column once its best context fills at least this share of the documents (the
+# determinacy stopping rule); 0 (the default) keeps trying up to TRIES contexts regardless.
+FILL = float(os.environ.get("DOCETL_FROZEN_FILL", "0"))
 OUT = ROOT / "results" / ("docetl_frozen_ollama" if TRIES == 1 else f"docetl_frozen{TRIES}_ollama")
 ORIGINAL_RUN_TABLE = base.run_table  # kept before main() replaces base.run_table with the frozen one
 _lock = threading.Lock()
@@ -54,7 +57,16 @@ def run_table_frozen(corpus: str, qid: str, sql: str, table: str, attrs: list[st
     numeric = {a for a in attrs if getattr(fields.get(f"{table}.{a}"), "value_type", "str") in ("int", "float")}
     with _lock:
         cache = load_cache(corpus, table)
-        new = [a for a in attrs if a.lower() not in cache or len(cache[a.lower()].get("tries", [])) < TRIES]
+        def settled(e: dict) -> bool:
+            tries = e.get("tries", [])
+            if len(tries) >= TRIES:
+                return True
+            if FILL and tries:
+                n = max(1, len(tries[0]["values"]))
+                return max(e.get("filled", [0])) / n >= FILL
+            return False
+
+        new = [a for a in attrs if a.lower() not in cache or not settled(cache[a.lower()])]
     if new:
         # Only the columns that still need an extraction: this query's prompt lists them (and its own SQL).
         s = ORIGINAL_RUN_TABLE(corpus, qid, sql, table, new, fields, out / "new", threads)
