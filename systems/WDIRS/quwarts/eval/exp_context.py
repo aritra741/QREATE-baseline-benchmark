@@ -329,12 +329,75 @@ def sample_curve(reps: int = 30) -> dict:
     return out
 
 
+def grouping_query_deltas() -> dict:
+    """Item 6: per test query at 100% drift, the score change under the grouping ablation (E14-bgroup: every patch
+    asks the table's whole new-column set) against the cell-level prediction from the paired narrow-vs-wide accuracy
+    of the new columns the query uses. Where cell accuracy and query score come apart."""
+    import sqlglot
+    from sqlglot import exp as sx
+
+    from quwarts.eval.exp_transfer import needed
+
+    ctx_summary = json.loads((EXP / "WHY" / "context" / "summary.json").read_text())["columns"]
+    rows = []
+    for c in CORPORA:
+        f0 = LIVE / c / "streams" / "fixed4-attribute_pool_100.jsonl"
+        f1 = EXP / "E14-bgroup" / "live" / c / "streams" / "fixed4-attribute_pool_100.jsonl"
+        if not (f0.exists() and f1.exists()):
+            continue
+        ctx = R.context(c)
+        new = set(json.loads((LIVE / c / "fixed4_attribute_pool_design.json").read_text())["new_columns"])
+        nw = {r["column"]: r["narrow_vs_wide"] for r in ctx_summary.get(f"qwen7b/{c}", []) if r.get("narrow_vs_wide")}
+        s0 = {json.loads(l)["qid"]: json.loads(l)["benchmark"] for l in f0.read_text().splitlines() if l.strip()}
+        s1 = {json.loads(l)["qid"]: json.loads(l)["benchmark"] for l in f1.read_text().splitlines() if l.strip()}
+        for q in s0:
+            if q not in s1:
+                continue
+            cols = [a for a in needed(ctx, q) & new if a in nw]
+            if not cols:
+                continue
+            try:
+                tree = sqlglot.parse_one(re.sub(r"/\*.*?\*/", "", ctx.catalog[q], flags=re.S), read="sqlite")
+                grp = tree.find(sx.Group)
+                gcols = {col.name for col in (grp.find_all(sx.Column) if grp else [])}
+            except Exception:  # noqa: BLE001
+                gcols = set()
+            pred = S.mean(nw[a]["accuracy_wide"] - nw[a]["accuracy_narrow"] for a in cols)
+            pred_group = S.mean(nw[a]["accuracy_wide"] - nw[a]["accuracy_narrow"] for a in cols if a.split(".", 1)[1] in gcols) \
+                if any(a.split(".", 1)[1] in gcols for a in cols) else None
+            rows.append({"corpus": c, "qid": q, "delta": round(s1[q] - s0[q], 4), "pred_cells": round(pred, 3),
+                         "pred_groupby_cells": None if pred_group is None else round(pred_group, 3),
+                         "changed": abs(s1[q] - s0[q]) > 1e-9})
+    out = {"queries": len(rows), "changed": sum(r["changed"] for r in rows),
+           "spearman_delta_vs_pred_cells": round(spearman([r["pred_cells"] for r in rows], [r["delta"] for r in rows]), 3)}
+    ch = [r for r in rows if r["changed"]]
+    if len(ch) > 4:
+        out["among_changed"] = {"queries": len(ch), "spearman": round(spearman([r["pred_cells"] for r in ch], [r["delta"] for r in ch]), 3),
+                                "sign_agreement": round(S.mean((r["delta"] > 0) == (r["pred_cells"] > 0) for r in ch), 3)}
+    g = [r for r in rows if r["pred_groupby_cells"] is not None]
+    if len(g) > 4:
+        out["groupby_columns_only"] = {"queries": len(g), "spearman": round(spearman([r["pred_groupby_cells"] for r in g], [r["delta"] for r in g]), 3)}
+    out["per_corpus"] = {}
+    for c in CORPORA:
+        rs = [r for r in rows if r["corpus"] == c]
+        if rs:
+            out["per_corpus"][c] = {"queries": len(rs), "changed": sum(r["changed"] for r in rs),
+                                    "mean_delta": round(S.mean(r["delta"] for r in rs), 4),
+                                    "mean_pred_cells": round(S.mean(r["pred_cells"] for r in rs), 3)}
+    out["rows"] = rows
+    (EXP / "WHY" / "context" / "grouping_query_deltas.json").write_text(json.dumps(out, indent=1))
+    return out
+
+
 if __name__ == "__main__":
     import sys
 
     if "--kinds" in sys.argv:
         o = kinds_of_change()
         print(json.dumps({k: v for k, v in o.items() if k != "columns"}, indent=1))
+    elif "--queries" in sys.argv:
+        o = grouping_query_deltas()
+        print(json.dumps({k: v for k, v in o.items() if k != "rows"}, indent=1))
     elif "--sample" in sys.argv:
         print(json.dumps(sample_curve(), indent=1))
     else:
