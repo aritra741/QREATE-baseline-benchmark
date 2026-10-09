@@ -342,3 +342,48 @@ for _s in STEPS:
         _s["cmd"] = f"bash {EXP}/gpu_exclusive.sh bash -c {_shlex.quote(_s['cmd'])}"
 
 STEPS = [followup_lane(x) for x in STEPS]
+
+
+# ---- RESEARCH_DEPTH.md interventions (2026-10-08). I1 (exp_intervene) runs outside the runner on both servers.
+DOCETL_PRE = ("source ~/venvs/quwarts/quwarts.env && cd systems/DocETL && export QUWARTS_DRIFT_DESIGN=drift_paired "
+              "QUWARTS_LLM=ollama OLLAMA_NUM_CTX=32768 && ")
+I4_BUDGETS = (25, 50)
+I4_ONLY = ",".join(f"fixed4b{b:03d}-attribute_pool/100" for b in I4_BUDGETS)
+
+
+def frozen_docetl(corpus: str) -> dict:
+    """I3: DocETL with one extraction per column across its queries (run_docetl_frozen.py)."""
+    return {"id": f"I3-frozen-{corpus}", "lane": "gpu", "retries": 1,
+            # the smoke test of this script (two player queries) must have exited before the full player run
+            "cmd": DOCETL_PRE + 'while pgrep -u $USER -f "run_docetl_frozen.py --corpus player --threads 8 --limit" > /dev/null; '
+                   'do sleep 30; done; eval "$(bash ../WDIRS/quwarts/scripts/chpc/experiments/ensure_server.sh main)" && '
+                   f"python -u run_docetl_frozen.py --corpus {corpus} --threads 8",
+            "outputs": [f"results/docetl_frozen_ollama/{corpus}/complete.json"]}
+
+
+def i4(policy_name: str, corpus: str, frozen: bool) -> dict:
+    """I4: budgeted streams at 100% drift under a policy, with the context frozen (QUWARTS_ABLATE=bgroup: every patch
+    of a table asks the same column set, cloned from the E14-bgroup run) or as recorded (unfrozen)."""
+    tag = ("bgroup-" if frozen else "plain-") + policy_name
+    sid, root, scratch = f"I4-{tag}-{corpus}", f"results/experiments/I4-{tag}/live", f"{SCRATCH}/I4-{tag}"
+    src = ("--src-root $OLDPWD/results/experiments/E14-bgroup/live --src-scratch " + f"{SCRATCH}/E14-bgroup ") if frozen else ""
+    env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_BUDGET_POLICY={policy_name} "
+           f"QUWARTS_LIVE_ONLY={I4_ONLY} " + ("QUWARTS_ABLATE=bgroup " if frozen else ""))
+    return {"id": sid, "lane": "gpu", "retries": 1, "deps": ["G0-prompt-guard"],
+            "cmd": PRE + f"python ../../{EXP}/clone.py --mode policy --corpus {corpus} --root {root} --scratch {scratch} {src}&& "
+                   + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams budget "
+                   f"--axes attribute_pool --deadline 0 --workers 8",
+            "outputs": [f"{root}/{corpus}/streams/fixed4b{b:03d}-attribute_pool_100.jsonl" for b in I4_BUDGETS]}
+
+
+STEPS += [
+    *[frozen_docetl(c) for c in ("cspaper", "player", "art", "legal", "med")],
+    *[i4(p, c, True) for c in CORPORA for p in ("fcfs", "forecast", "pace")],
+    *[i4("forecast", c, False) for c in CORPORA],
+    # I2 on the 32B server, after the I1 loop on that server has finished
+    {"id": "I2-secondlook", "lane": "gpu32", "retries": 1,
+     "cmd": PRE + 'while pgrep -u $USER -f "exp_intervene run .*--model qwen32b" > /dev/null; do sleep 60; done; '
+            + server("qwen32b") + "python -u -m quwarts.eval.exp_secondlook run --budget 1000 --workers 4 && "
+            "python -m quwarts.eval.exp_secondlook analyze",
+     "outputs": ["results/experiments/I2-secondlook/summary.json"]},
+]

@@ -42,6 +42,9 @@ PARALLEL=16; CTX=32768; case "$NAME" in main*) ;; *) PARALLEL=8 ;; esac; [ "$NAM
 # A GPU under 60 GB (e.g. A800 40GB): main gets 8 slots (about 19 GB), Llama / 16-bit 4 slots at 16k beside it, and the
 # 32B model the whole GPU (gpu_exclusive.sh stops main and pauses DocETL for its steps).
 GPU_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -1)
+# A MIG slice (e.g. 3g.71gb): CUDA sees only the slice, so size the servers by its profile, not the parent GPU.
+MIG_GB=$(nvidia-smi -L 2> /dev/null | sed -n 's/.*MIG [0-9]*g\.\([0-9]*\)gb.*/\1/p' | head -1)
+[ -n "${MIG_GB:-}" ] && GPU_MB=$((MIG_GB * 1000))
 if [ "${GPU_MB:-0}" -lt 60000 ]; then
   case "$NAME" in
     main) PARALLEL=8 ;;
@@ -49,6 +52,8 @@ if [ "${GPU_MB:-0}" -lt 60000 ]; then
     *) PARALLEL=4; CTX=16384 ;;
   esac
 fi
+# A GPU (or MIG slice) of 60 to 100 GB: main gets 8 slots (about 20 GB), so the 32B model (4 slots at 16k, about 37 GB) fits beside it.
+if [ "${GPU_MB:-0}" -ge 60000 ] && [ "${GPU_MB:-0}" -lt 100000 ]; then case "$NAME" in main*) PARALLEL=8 ;; esac; fi
 # The 32B model on a GPU of 100 GB or more (H200): 8 slots at 16k (about 55 GB with the weights), matching a stream's 8 workers.
 [ "$NAME" = qwen32b ] && [ "${GPU_MB:-0}" -ge 100000 ] && PARALLEL=8
 # Llama's requests ask for a 16k context (steps.py MODEL_ENV); the server must match, or Ollama reloads the model.

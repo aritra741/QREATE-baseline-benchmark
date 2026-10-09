@@ -751,9 +751,28 @@ def fixed_build(corpus: str, axis: str, p: int) -> Build:
 #           same level (QUWARTS_BUDGET_ORACLE: the E2.2 patches.csv), so the budget goes to patches that paid off
 #   knapsack offline best set (E3.1), not a policy: only the patches the knapsack over the whole unlimited stream chose
 #           for this budget and level (QUWARTS_BUDGET_ALLOW: exp_analysis knapsack's allow.json)
+#   forecast extract now only what the known workload (W0 and the queries seen so far in the stream) asks for again, or
+#           what is cheap: a patch whose columns no other known query uses is skipped when it costs more than
+#           QUWARTS_FORECAST_SMALL (default 0.10) of the remaining budget. From the finding that a patch's value is
+#           deferred and shared (RESEARCH_DEPTH.md, P4): it forecasts reuse instead of judging a patch by its own query.
 POLICY = os.environ.get("QUWARTS_BUDGET_POLICY", "fcfs")
-assert POLICY in ("fcfs", "cap", "pace", "oracle", "fragile", "knapsack"), POLICY
+assert POLICY in ("fcfs", "cap", "pace", "oracle", "fragile", "knapsack", "forecast"), POLICY
 _ORACLE: dict[str, set] = {}
+_DEMAND: dict[str, dict[str, set]] = {}  # corpus -> known query -> the columns it uses
+
+
+def forecast_allows(corpus: str, qid: str, missing: dict, seen: list[str], est: int, spent: int, budget: int) -> bool:
+    ctx = R.context(corpus)
+    dem = _DEMAND.setdefault(corpus, {})
+    for q, sql in list(ctx.w0.items()) + [(s, ctx.catalog[s]) for s in seen if s in ctx.catalog]:
+        if q not in dem:
+            need = C.query_attributes(ctx.spec, q, sql, {q: sql})
+            dem[q] = {f"{t}.{a}" for t, attrs in need.items() for a in attrs}
+    cols = {f"{t}.{a}" for t, attrs in missing.items() for a in attrs}
+    known = set(ctx.w0) | set(seen)
+    reuse = sum(1 for q, cs in dem.items() if q != qid and q in known and cs & cols)
+    small = float(os.environ.get("QUWARTS_FORECAST_SMALL", 0.10))
+    return reuse >= 1 or est <= small * max(budget - spent, 0)
 _ALLOW: dict[str, list] = {}  # E3.1 knapsack choices, "b<budget>/<level>" -> allowed qids
 
 
@@ -776,7 +795,10 @@ def fragile_query(corpus: str, qid: str) -> bool:
     return False
 
 
-def policy_allows(corpus: str, key: str, qid: str, pos: int, n: int, est: int, spent: int, budget: int) -> bool:
+def policy_allows(corpus: str, key: str, qid: str, pos: int, n: int, est: int, spent: int, budget: int,
+                  missing: dict | None = None, seen: list[str] | None = None) -> bool:
+    if POLICY == "forecast":
+        return forecast_allows(corpus, qid, missing or {}, seen or [], est, spent, budget)
     if POLICY == "cap":
         return est <= float(os.environ.get("QUWARTS_BUDGET_CAP", 0.25)) * budget
     if POLICY == "pace":
@@ -914,7 +936,8 @@ class Stream:
             # later (cheaper) patches may still fit.
             spent = sum(r["input_tokens"] + r["output_tokens"] for r in self.st["records"])
             if spent + est > self.budget or not policy_allows(self.corpus, self.key, qid, pos, len(self.stream),
-                                                              est, spent, self.budget):
+                                                              est, spent, self.budget, missing=missing,
+                                                              seen=[r["qid"] for r in self.st["records"]]):
                 skipped, missing = missing, {}
         shas, read_docs, fetched = [], 0, {}
         for t in missing:
