@@ -449,7 +449,8 @@ STEPS += [{"id": f"I1-qwen32b-{c}", "lane": "gpu32", "retries": 1, "deps": ["I2-
           # cross-model claim already rests on the logged runs of all five corpora
 
 # I5 "chosen": the grouping derived from I1 on the 7B (columns more accurate alone get their own prompt).
-STEPS += [{**i5("chosen", c), "deps": ["G0-prompt-guard"]} for c in CORPORA]
+# lane gpu2: a second runner in Slurm job 2157447 (same node, its own GPU, server mainB), started 2026-10-09
+STEPS += [{**i5("chosen", c), "deps": ["G0-prompt-guard"], "lane": "gpu2"} for c in CORPORA]
 
 
 # ---------------------------------------------------------------------------------------------------- I2b, I6, I7
@@ -469,7 +470,7 @@ STEPS += [{"id": "I2b-verifier", "lane": "gpu", "retries": 1, "deps": ["I2-secon
 def stream_with(exp: str, corpus: str, env_extra: str) -> dict:
     sid, root, scratch = f"{exp}-{corpus}", f"results/experiments/{exp}/live", f"{SCRATCH}/{exp}"
     env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_LIVE_ONLY=fixed4-attribute_pool/100 " + env_extra + " ")
-    return {"id": sid, "lane": "gpu", "retries": 1, "deps": ["G0-prompt-guard"],
+    return {"id": sid, "lane": "gpu2", "retries": 1, "deps": ["G0-prompt-guard"],
             "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} && "
                    + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams fixed "
                    f"--axes attribute_pool --deadline 0 --workers 8",

@@ -23,8 +23,9 @@ fi
 for f in "$DIR"/*.json; do
   [ -e "$f" ] || continue
   other=$(basename "$f" .json); case "$other" in main*) continue ;; esac; [ "$other" = "$NAME" ] && continue
-  read -r opid onode < <(python -c "import json; d = json.load(open('$f')); print(d['pid'], d['node'])")
+  read -r opid onode ojob < <(python -c "import json; d = json.load(open('$f')); print(d['pid'], d['node'], d.get('slurm_job') or '-')")
   [ "$onode" = "$(hostname)" ] || continue  # another node's server (a second job): not ours to stop
+  [ "$ojob" = "${SLURM_JOB_ID:--}" ] || continue  # another job's server on this node (its own GPU): not ours either
   if kill -0 "$opid" 2> /dev/null; then
     echo "$(date -Is) stopping server $other (pid $opid) to start $NAME" >> "$REPO/results/experiments/logs/ollama_$other.log"
     kill "$opid"; sleep 5
@@ -47,7 +48,7 @@ MIG_GB=$(nvidia-smi -L 2> /dev/null | sed -n 's/.*MIG [0-9]*g\.\([0-9]*\)gb.*/\1
 [ -n "${MIG_GB:-}" ] && GPU_MB=$((MIG_GB * 1000))
 if [ "${GPU_MB:-0}" -lt 60000 ]; then
   case "$NAME" in
-    main) PARALLEL=8 ;;
+    main*) PARALLEL=8 ;;  # mainB on a 2g.35gb MIG slice (job 2157447): 8 slots at 32k, about 20 GB
     qwen32b) PARALLEL=2; CTX=16384 ;;  # 4 slots put 2.4 of 43.5 GB on the CPU on a 40 GB A800
     *) PARALLEL=4; CTX=16384 ;;
   esac
