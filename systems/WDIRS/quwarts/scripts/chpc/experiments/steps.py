@@ -425,3 +425,6 @@ STEPS += [{"id": f"I1-qwen32b-{c}", "lane": "gpu32", "retries": 1, "deps": ["I2-
            "cmd": PRE + server("qwen32b") + f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen32b --docs 15 --workers 4",
            "outputs": [f"results/experiments/I1-context/qwen32b/{c}/reads.jsonl"]}
           for c in ("cspaper", "player", "art", "legal", "med")]
+
+# I5 "chosen": the grouping derived from I1 on the 7B (columns more accurate alone get their own prompt).
+STEPS += [{**i5("chosen", c), "deps": ["G0-prompt-guard"]} for c in CORPORA]
