@@ -327,3 +327,13 @@ a frozen value is spelled one way for all queries, which an offline table can on
 a canonical form (what the QuWARTS build does with entity normalization). Both I3 runs therefore say the same thing:
 *freezing a column on an arbitrary context is worse than re-extracting per query; freezing it on a determined context
 is the hypothesis still to test* (I3b, running).
+
+**I3b on research papers (freeze on the better of two contexts).** Mean score 0.101 against the original's 0.122
+and the first-query variant's 0.059, with 3,937 calls (the original 30,873) and 5.7M tokens (45.6M): choosing the
+context by a label-free rule recovers most of what first-query freezing lost, at an eighth of the cost. What is still
+missing is explained column by column: paper_name is empty in both of its first two contexts (1 and 2 documents
+filled of 200), as are several others (`filled` in `WHY/i3/summary.json`), because two draws from a lottery whose
+median fill rate is 0.5 often give two blanks. The rule, not the idea, is the limit; I3c keeps drawing contexts for a
+column until one fills at least half the documents (at most four), which is freezing on a *determined* context in the
+sense of FORMAL.md §1. DocETL's own two-context disagreement does not yet track accuracy (0.26) because two empty
+answers agree; the analysis now also reports disagreement over documents both contexts answered.
