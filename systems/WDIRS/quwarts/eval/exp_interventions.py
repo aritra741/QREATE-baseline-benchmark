@@ -215,11 +215,145 @@ def i4() -> dict:
     return save("i4", out)
 
 
+SCRATCH = Path("/scratch/general/vast/u1592362/quwarts_exp")
+
+
+def master_db(root_scratch: Path, c: str) -> Path:
+    return root_scratch / c / "fixed4-attribute_pool_100" / "master.db"
+
+
+def recorded_master(c: str) -> Path:
+    from quwarts.eval.exp_analysis import REPLAY_SCRATCH
+    from quwarts.eval.exp_open import HOME_SCRATCH
+
+    p = HOME_SCRATCH / c / "fixed4-attribute_pool_100" / "master.db"
+    return p if p.exists() else REPLAY_SCRATCH / c / "fixed4-attribute_pool_100" / "master.db"
+
+
+def label_fate(db: Path, t: str, a: str, gold_t: dict) -> dict | None:
+    """exp_groups.fate for one column on one database: where each gold row's label ends up (exact, its own label in
+    another form, merged into a label that mostly holds another gold group, empty)."""
+    from collections import Counter
+
+    from quwarts.eval.exp_groups import num
+    from quwarts.eval.exp_open import column_values, lookup
+
+    pv = column_values(db, t, a) if db.exists() else None
+    if pv is None:
+        return None
+
+    def vn(v):
+        v = norm(v)
+        return v if v is None or num(v) is None else repr(round(num(v), 6))
+
+    pairs = [(vn(g[a]), vn(lookup(pv, d))) for d, g in gold_t.items() if a in g and not is_null(g[a])]
+    by = defaultdict(Counter)
+    for g, pr in pairs:
+        if pr is not None:
+            by[pr][g] += 1
+    owner = {pr: cnt.most_common(1)[0][0] for pr, cnt in by.items()}
+    cnt = Counter("empty" if pr is None else "exact" if pr == g else "other_form" if owner[pr] == g else "merged" for g, pr in pairs)
+    n = max(1, len(pairs))
+    return {"rows": len(pairs), **{k: round(cnt[k] / n, 3) for k in ("exact", "other_form", "merged", "empty")},
+            "labels_served": len(by)}
+
+
+def i6() -> dict:
+    """The label contract (I6): the contracted columns' label fate and the stream score against the recorded run."""
+    from quwarts.eval.exp_context import fields_of
+
+    root = EXP / "I6-contract" / "live"
+    out = {"corpora": {}}
+    distinct = json.loads((EXP / "why" / "groups.json").read_text())["distinct"]
+    for c in CORPORA:
+        cf = EXP / "I6-contract" / f"{c}.json"
+        if not cf.exists() or not json.loads(cf.read_text()):
+            continue
+        contract = json.loads(cf.read_text())
+        rec = stream_stats(REPO / "results" / "drift_live_ollama" / c / "streams" / "fixed4-attribute_pool_100.jsonl")
+        new = stream_stats(root / c / "streams" / "fixed4-attribute_pool_100.jsonl")
+        gold = gold_by_doc(c)
+        fields = fields_of(c)
+        cols = {}
+        for col, labels in contract.items():
+            t, a = col.split(".", 1)
+            cols[col] = {"labels_declared": len(labels), "kind": kind_of(fields[col]) if col in fields else None,
+                         "recorded": label_fate(recorded_master(c), t, a, gold.get(t, {})),
+                         "contract": label_fate(master_db(SCRATCH / "I6-contract" / "drift_live_ollama", c), t, a, gold.get(t, {}))}
+        # the test queries that group by a contracted column, paired
+        qids = sorted({r["qid"] for r in distinct if r["corpus"] == c and r["column"] in contract})
+        paired = None
+        f_rec = REPO / "results" / "drift_live_ollama" / c / "streams" / "fixed4-attribute_pool_100.jsonl"
+        f_new = root / c / "streams" / "fixed4-attribute_pool_100.jsonl"
+        if f_rec.exists() and f_new.exists():
+            r0 = {r["qid"]: r["benchmark"] for r in map(json.loads, f_rec.read_text().splitlines()) if r.get("qid")}
+            r1 = {r["qid"]: r["benchmark"] for r in map(json.loads, f_new.read_text().splitlines()) if r.get("qid")}
+            common = [q for q in qids if q in r0 and q in r1]
+            if common:
+                paired = {"queries": len(common), "recorded": round(S.mean(r0[q] for q in common), 4),
+                          "contract": round(S.mean(r1[q] for q in common), 4),
+                          "up": sum(r1[q] > r0[q] + 1e-9 for q in common), "down": sum(r1[q] < r0[q] - 1e-9 for q in common)}
+        out["corpora"][c] = {"recorded": rec, "contract": new, "complete": new is not None and rec is not None and new["queries"] == rec["queries"],
+                             "columns": cols, "grouping_queries": paired}
+    return save("i6", out)
+
+
+def i7() -> dict:
+    """Per-column read windows (I7): the stream's score and tokens against the recorded run and the first-window
+    ablation (E13-head), and per-column accuracy against the window share."""
+    from quwarts.eval.exp_context import fields_of
+    from quwarts.eval.exp_open import column_values, lookup
+
+    root = EXP / "I7-windows" / "live"
+    out = {"corpora": {}}
+    for c in CORPORA:
+        wf = EXP / "I7-windows" / f"{c}.json"
+        if not wf.exists() or not json.loads(wf.read_text()):
+            continue
+        shares = json.loads(wf.read_text())
+        rec = stream_stats(REPO / "results" / "drift_live_ollama" / c / "streams" / "fixed4-attribute_pool_100.jsonl")
+        head = stream_stats(EXP / "E13-head" / "live" / c / "streams" / "fixed4-attribute_pool_100.jsonl")
+        new = stream_stats(root / c / "streams" / "fixed4-attribute_pool_100.jsonl")
+        gold = gold_by_doc(c)
+        fields = fields_of(c)
+        design = json.loads((REPO / "results" / "drift_live_ollama" / c / "fixed4_attribute_pool_design.json").read_text())
+        cols = []
+        db_new = master_db(SCRATCH / "I7-windows" / "drift_live_ollama", c)
+        for col in design["new_columns"]:
+            if col not in fields:
+                continue
+            t, a = col.split(".", 1)
+            pv0 = column_values(recorded_master(c), t, a)
+            pv1 = column_values(db_new, t, a) if db_new.exists() else None
+            if pv0 is None:
+                continue
+            docs = [d for d, g in gold.get(t, {}).items() if a in g]
+            acc0 = round(S.mean(correct(lookup(pv0, d), gold[t][d][a]) for d in docs), 3) if docs else None
+            acc1 = round(S.mean(correct(lookup(pv1, d), gold[t][d][a]) for d in docs), 3) if docs and pv1 is not None else None
+            cols.append({"column": col, "kind": kind_of(fields[col]), "share": shares.get(col, 1.0), "cells": len(docs),
+                         "accuracy_recorded": acc0, "accuracy_windows": acc1,
+                         "delta": round(acc1 - acc0, 3) if acc0 is not None and acc1 is not None else None})
+        summary = {}
+        if new and rec:
+            summary = {"score_delta_vs_recorded": round(new["score"] - rec["score"], 4),
+                       "token_ratio_vs_recorded": round(new["tokens"] / max(1, rec["tokens"]), 3),
+                       "token_ratio_vs_head": round(new["tokens"] / max(1, head["tokens"]), 3) if head else None,
+                       "score_delta_vs_head": round(new["score"] - head["score"], 4) if head else None}
+            done = [x for x in cols if x["delta"] is not None]
+            if done:
+                summary["mean_accuracy_delta_windowed"] = round(S.mean(x["delta"] for x in done if x["share"] < 1.0), 4) if any(x["share"] < 1.0 for x in done) else None
+                summary["mean_accuracy_delta_whole"] = round(S.mean(x["delta"] for x in done if x["share"] >= 1.0), 4) if any(x["share"] >= 1.0 for x in done) else None
+                summary["spearman_share_vs_delta"] = round(spearman([x["share"] for x in done], [x["delta"] for x in done]), 3) if len(done) > 4 else None
+        out["corpora"][c] = {"recorded": rec, "head": head, "windows": new, "complete": new is not None and rec is not None and new["queries"] == rec["queries"],
+                             "summary": summary, "columns": cols}
+    return save("i7", out)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("what", choices=["i3", "i4"])
+    ap.add_argument("what", choices=["i3", "i4", "i6", "i7"])
     a = ap.parse_args(argv)
-    o = {"i3": i3, "i4": i4}[a.what]()
+    o = {"i3": i3, "i4": i4, "i6": i6, "i7": i7}[a.what]()
     print(json.dumps({k: v for k, v in o.items() if k not in ("columns", "streams")}, indent=1, default=str)[:6000])
     return 0
 
