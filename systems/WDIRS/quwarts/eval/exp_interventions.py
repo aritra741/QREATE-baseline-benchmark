@@ -21,7 +21,8 @@ from quwarts.eval.exp_transfer import kind_of
 from quwarts.eval.exp_why import norm, save, spearman
 
 CORPORA = ["cspaper", "player", "art", "med", "legal"]
-ORIG, FROZEN = REPO / "results" / "docetl_drift_ollama", REPO / "results" / "docetl_frozen_ollama"
+ORIG = REPO / "results" / "docetl_drift_ollama"
+VARIANTS = {"frozen": REPO / "results" / "docetl_frozen_ollama", "frozen2": REPO / "results" / "docetl_frozen2_ollama"}
 
 
 def keys_db(db: Path, t: str, c: str) -> list:
@@ -41,6 +42,14 @@ def rate(left_vals, right_vals):
 
 
 def i3() -> dict:
+    out = {}
+    for name, root in VARIANTS.items():
+        if root.exists():
+            out[name] = i3_variant(root)
+    return save("i3", out)
+
+
+def i3_variant(FROZEN: Path) -> dict:
     """Frozen vs original DocETL: per query (join / no join), join-key match rates, and per-column accuracy change
     against the column's 7B context sensitivity."""
     sens = json.loads((EXP / "WHY" / "context" / "summary.json").read_text())["columns"]
@@ -105,7 +114,8 @@ def i3() -> dict:
                 ov = [(v, gd[a]) for v, gd in ov if gd and a in gd and not is_null(v)]
                 if len(fr) >= 10 and len(ov) >= 10:
                     out["columns"].append({"corpus": c, "column": col, "kind": kind_of(fields[col]),
-                                           "sensitivity_7b": by_col.get(col),
+                                           "sensitivity_7b": by_col.get(col), "docetl_sensitivity": e.get("sensitivity"),
+                                           "tries": len(e.get("tries", [])), "filled": e.get("filled"),
                                            "accuracy_original": round(S.mean(correct(v, gg) for v, gg in ov), 3),
                                            "accuracy_frozen": round(S.mean(correct(v, gg) for v, gg in fr), 3),
                                            "empty_frozen": round(S.mean(is_null(v) for v, _ in fr), 3)})
@@ -115,7 +125,15 @@ def i3() -> dict:
             [r["sensitivity_7b"] for r in cols], [r["accuracy_frozen"] - r["accuracy_original"] for r in cols]), 3)
         out["spearman_sensitivity_vs_frozen_accuracy"] = round(spearman(
             [r["sensitivity_7b"] for r in cols], [r["accuracy_frozen"] for r in cols]), 3)
-    return save("i3", out)
+    ds = [r for r in out["columns"] if r.get("docetl_sensitivity") is not None]
+    if len(ds) > 4:  # DocETL's own two-context disagreement as a trust signal, inside DocETL
+        out["spearman_docetl_sensitivity_vs_frozen_accuracy"] = round(spearman(
+            [r["docetl_sensitivity"] for r in ds], [r["accuracy_frozen"] for r in ds]), 3)
+        both = [r for r in ds if r["sensitivity_7b"] is not None]
+        if len(both) > 4:
+            out["spearman_docetl_sensitivity_vs_7b_sensitivity"] = round(spearman(
+                [r["docetl_sensitivity"] for r in both], [r["sensitivity_7b"] for r in both]), 3)
+    return out
 
 
 def stream_stats(f: Path) -> dict | None:

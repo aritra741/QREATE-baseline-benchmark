@@ -16,6 +16,7 @@ most of their loss, non-join queries change little, and the columns that change 
 from __future__ import annotations
 
 import json
+import os
 import sys
 import threading
 from pathlib import Path
@@ -24,7 +25,11 @@ import run_docetl_drift as base
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-OUT = ROOT / "results" / "docetl_frozen_ollama"
+# DOCETL_FROZEN_TRIES=k: the first k queries that need a column each extract it in their own prompt; the column is
+# then frozen from the context with the most non-empty answers (a label-free choice), and the disagreement between the
+# tries is recorded as the column's sensitivity. k=1 freezes on the first query, whatever its prompt did.
+TRIES = int(os.environ.get("DOCETL_FROZEN_TRIES", "1"))
+OUT = ROOT / "results" / ("docetl_frozen_ollama" if TRIES == 1 else f"docetl_frozen{TRIES}_ollama")
 ORIGINAL_RUN_TABLE = base.run_table  # kept before main() replaces base.run_table with the frozen one
 _lock = threading.Lock()
 
@@ -49,17 +54,25 @@ def run_table_frozen(corpus: str, qid: str, sql: str, table: str, attrs: list[st
     numeric = {a for a in attrs if getattr(fields.get(f"{table}.{a}"), "value_type", "str") in ("int", "float")}
     with _lock:
         cache = load_cache(corpus, table)
-        new = [a for a in attrs if a.lower() not in cache]
+        new = [a for a in attrs if a.lower() not in cache or len(cache[a.lower()].get("tries", [])) < TRIES]
     if new:
-        # Only the columns no earlier query extracted: this query's prompt lists them (and its own SQL), and their
-        # values are frozen for every later query.
+        # Only the columns that still need an extraction: this query's prompt lists them (and its own SQL).
         s = ORIGINAL_RUN_TABLE(corpus, qid, sql, table, new, fields, out / "new", threads)
         rows = json.loads((out / "new" / "pipeline_output.json").read_text())
         with _lock:
             cache = load_cache(corpus, table)
             for a in new:
-                cache[a.lower()] = {"from_query": qid, "asked_with": sorted(x.lower() for x in new),
-                                    "numeric": a in numeric, "values": {r["doc_id"]: r.get(a.lower()) for r in rows}}
+                e = cache.setdefault(a.lower(), {"numeric": a in numeric, "tries": []})
+                e.setdefault("tries", []).append({"from_query": qid, "asked_with": sorted(x.lower() for x in new),
+                                                  "values": {r["doc_id"]: r.get(a.lower()) for r in rows}})
+                filled = lambda t: sum(v not in (None, "", -1, "Not found") for v in t["values"].values())  # noqa: E731
+                best = max(e["tries"], key=filled)
+                e["values"], e["from_query"], e["asked_with"] = best["values"], best["from_query"], best["asked_with"]
+                e["filled"] = [filled(t) for t in e["tries"]]
+                if len(e["tries"]) >= 2:
+                    t1, t2 = e["tries"][0]["values"], e["tries"][1]["values"]
+                    docs = [d for d in t1 if d in t2]
+                    e["sensitivity"] = round(sum(str(t1[d]).strip().lower() != str(t2[d]).strip().lower() for d in docs) / len(docs), 3) if docs else None
             cache_path(corpus, table).write_text(json.dumps(cache))
     else:
         s = {"documents": len(ctx.names[table]), "rows": len(ctx.names[table]), "failed": [], "truncated": 0,

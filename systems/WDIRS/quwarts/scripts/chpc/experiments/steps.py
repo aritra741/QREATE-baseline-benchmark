@@ -374,8 +374,18 @@ def i4(policy_name: str, corpus: str, frozen: bool) -> dict:
             "outputs": [f"{root}/{corpus}/streams/fixed4b{b:03d}-attribute_pool_100.jsonl" for b in I4_BUDGETS]}
 
 
+def frozen2_docetl(corpus: str) -> dict:
+    """I3b: as I3, but the first two queries that need a column both extract it, the context with more non-empty
+    answers wins (label-free), and their disagreement is the column's measured sensitivity (DOCETL_FROZEN_TRIES=2)."""
+    return {"id": f"I3b-frozen2-{corpus}", "lane": "gpu", "retries": 1,
+            "cmd": DOCETL_PRE + 'eval "$(bash ../WDIRS/quwarts/scripts/chpc/experiments/ensure_server.sh main)" && '
+                   f"DOCETL_FROZEN_TRIES=2 python -u run_docetl_frozen.py --corpus {corpus} --threads 8",
+            "outputs": [f"results/docetl_frozen2_ollama/{corpus}/complete.json"]}
+
+
 STEPS += [
-    *[frozen_docetl(c) for c in ("cspaper", "player", "art", "legal", "med")],
+    *[frozen_docetl(c) for c in ("cspaper", "player")],
+    *[frozen2_docetl(c) for c in ("cspaper", "player")],
     *[i4(p, c, True) for c in CORPORA for p in ("fcfs", "forecast", "pace")],
     *[i4("forecast", c, False) for c in CORPORA],
     # I2 on the 32B server, after the I1 loop on that server has finished
@@ -407,6 +417,7 @@ def i5(kind: str, corpus: str) -> dict:
 
 
 STEPS += [i5("alone", c) for c in CORPORA]
+STEPS += [frozen_docetl(c) for c in ("art", "legal", "med")]  # first-query freezing on the other corpora, last
 
 # I1 on the 32B, after I2 on the same server, sized to the MIG slice (15 documents per table; the 30-document 7B
 # sample contains them, so the comparison is on the same documents). Resumable: reads already made are kept.
