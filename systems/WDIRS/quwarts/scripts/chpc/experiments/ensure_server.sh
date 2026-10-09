@@ -12,7 +12,7 @@ source "${VENV:-$HOME/venvs/quwarts}/quwarts.env"
 DIR=$REPO/results/experiments/servers
 mkdir -p "$DIR" "$REPO/results/experiments/logs"
 INFO=$DIR/$NAME.json
-up() { curl -sf "http://$1/api/tags" > /dev/null 2>&1; }
+up() { curl -sf --max-time 8 "http://$1/api/tags" > /dev/null 2>&1; }
 
 if [ "$NAME" = main ] && up 127.0.0.1:46709; then echo "export OLLAMA_HOST=127.0.0.1:46709"; exit 0; fi
 if [ -f "$INFO" ]; then

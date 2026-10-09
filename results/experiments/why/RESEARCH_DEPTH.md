@@ -252,3 +252,35 @@ the principles P1–P2 with the cross-model and paired evidence; the cost lemma 
 techniques derived from them (determinacy-guided second looks, context-frozen reuse, forecast-ordered extraction) each
 tested against the prediction; the breakdown by value kind and aggregate (P5) as the consequence section; transfer to
 DocETL; lessons. QuWARTS becomes the vehicle, not the contribution.
+
+## 8. Results log (filled in as the plan runs; started 2026-10-08 evening)
+
+**Item 4, how few documents the signal needs.** Sensitivity estimated from n sampled documents per column, against
+each column's full-corpus accuracy, Spearman over 101 columns averaged over 30 draws: n = 5 gives −0.62, n = 10 gives
+−0.66, n = 20 gives −0.69, the full corpus −0.72 (`WHY/context/sample_curve.json`). The prediction (20 documents
+suffice, |ρ| > 0.6) holds; even five documents give most of the signal. A trust check costs a few dozen prompts.
+
+**Item 5, sensitivity under each kind of context change.** From the ablation logs, per column, the share of documents
+whose value changes when only one thing about the prompt changes: the description removed, the workload-use phrase
+removed, the grouping changed (the table's whole new-column set asked together), or long documents cut at the
+window. The column ranking is the same under every kind of change: description vs usage 0.65, description vs grouping
+0.60, usage vs grouping 0.71, grouping vs the two-prompt sensitivity 0.84, window vs the others 0.46–0.58 (36–42
+columns; `WHY/context/kinds_of_change.json`). Each kind predicts accuracy on its own: usage −0.75, grouping −0.71,
+window −0.58, description −0.41. Lists are the most sensitive to every kind of change (0.31–0.65), numbers the least
+(0.10–0.23). So "a column's value is determined by the document to the extent that any change of context leaves it
+alone" is one property, not four; this is prediction I1(a) confirmed from existing data before the intervention ran.
+
+**Item 6, where cell accuracy and query score come apart.** Per test query at 100% drift, the score change under the
+grouping ablation against the usage-weighted change in cell accuracy of the new columns it uses (narrow vs wide
+prompt, same documents): Spearman 0.12 over 285 queries; among the 114 queries whose score changed, 0.22, with the
+sign agreeing in 54% of cases (`WHY/context/grouping_query_deltas.json`). Mean cell accuracy does not predict which
+queries move, because a query's answer depends on particular cells (the group labels of its GROUP BY column, the rows
+its filters select), not on a column's average. The paper should say that the context effect is real and
+column-specific at cell level, and that its effect on a query has to be measured at query level; the artists result
+is the one corpus where the two agree.
+
+**I1 on research papers (7B, 870 prompts, first corpus done).** Sensitivity ranks agree across kinds of change
+(plus2 vs plus6 0.79, natural vs plus2 0.82, paraphrase vs plus6 0.97; 6 columns); sensitivity vs accuracy alone
+−0.75; mean accuracy by context 0.42 alone, 0.42 with two random columns, 0.48 with six, 0.49 in the natural group,
+0.39 with a paraphrased description; on categories, agreeing cells are right 52% of the time and disagreeing cells 14%
+(the category exception does not appear on this corpus's two category columns). Full five-corpus results follow.
