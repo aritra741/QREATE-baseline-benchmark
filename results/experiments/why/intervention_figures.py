@@ -159,6 +159,9 @@ def budget_curves():
         fo = sorted(cur.get("frozen_forecast", []), key=lambda p: p["tokens"])
         if fo:
             ax.plot([p["tokens"] / 1e6 for p in fo], [p["score"] for p in fo], marker="s", linestyle="none", color=ORANGE, label="Frozen context, forecast policy")
+        pa = sorted(cur.get("frozen_pace", []), key=lambda p: p["tokens"])
+        if pa:
+            ax.plot([p["tokens"] / 1e6 for p in pa], [p["score"] for p in pa], marker="^", linestyle="none", color=AQUA, label="Frozen context, paced")
         ax.set_xscale("log")
         ax.xaxis.set_major_locator(matplotlib.ticker.LogLocator(base=10, numticks=5))
         ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
@@ -168,8 +171,8 @@ def budget_curves():
             ax.set_ylabel("Mean query score")
         style(ax)
     fig.supxlabel("Tokens spent on extraction, millions (log scale)", fontsize=10, color=INK2, y=0.12)
-    handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=3, fontsize=8.5, frameon=False, bbox_to_anchor=(0.5, -0.01))
+    handles, labels = axes[1].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=4, fontsize=8.5, frameon=False, bbox_to_anchor=(0.5, -0.01))
     fig.tight_layout(rect=(0, 0.1, 1, 1))
     fig.savefig(OUT / "w12_budget_curves.png", dpi=180)
     plt.close(fig)

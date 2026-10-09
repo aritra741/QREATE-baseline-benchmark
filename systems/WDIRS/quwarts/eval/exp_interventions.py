@@ -199,7 +199,9 @@ def i4() -> dict:
     for c in CORPORA:
         curve = {}
         for fam, root in (("recorded", REPO / "results" / "drift_live_ollama"), ("frozen_fcfs", EXP / "I4-bgroup-fcfs" / "live"),
-                          ("frozen_forecast", EXP / "I4-bgroup-forecast" / "live"), ("frozen_unlimited", EXP / "E14-bgroup" / "live")):
+                          ("frozen_forecast", EXP / "I4-bgroup-forecast" / "live"), ("frozen_pace", EXP / "I4-bgroup-pace" / "live"),
+                          ("plain_forecast", EXP / "I4-plain-forecast" / "live"), ("recorded_pace", EXP / "E3.2-pace" / "live"),
+                          ("frozen_unlimited", EXP / "E14-bgroup" / "live")):
             pts = []
             for b in (10, 25, 50, 75, 100):
                 st = stream_stats(root / c / "streams" / f"fixed4b{b:03d}-attribute_pool_100.jsonl")
