@@ -483,6 +483,7 @@ STEPS += [stream_with("I7-windows", "player", "QUWARTS_WINDOW_SHARES=$OLDPWD/res
           stream_with("I7-windows", "cspaper", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7-windows/cspaper.json"),
           stream_with("I6-contract", "art", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/art.json"),
           stream_with("I7-windows", "art", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7-windows/art.json"),
-          stream_with("I6-contract", "legal", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/legal.json"),
-          stream_with("I6-contract", "med", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/med.json"),
-          stream_with("I7-windows", "med", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7-windows/med.json")]
+          stream_with("I6-contract", "med", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/med.json")]
+# the two long ones go to the first job's lane (faster slice), after I2b, so both lanes finish at about the same time
+STEPS += [{**stream_with("I6-contract", "legal", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/legal.json"), "lane": "gpu"},
+          {**stream_with("I7-windows", "med", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7-windows/med.json"), "lane": "gpu"}]
