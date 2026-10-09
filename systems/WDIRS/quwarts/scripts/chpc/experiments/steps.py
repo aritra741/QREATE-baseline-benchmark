@@ -450,9 +450,3 @@ STEPS += [{"id": f"I1-qwen32b-{c}", "lane": "gpu32", "retries": 1, "deps": ["I2-
 
 # I5 "chosen": the grouping derived from I1 on the 7B (columns more accurate alone get their own prompt).
 STEPS += [{**i5("chosen", c), "deps": ["G0-prompt-guard"]} for c in CORPORA]
-
-# Q4 (LITERATURE_IDEAS.md): the natural field set in two other orders, 7B, same sampled documents; on the idle lane.
-STEPS += [{"id": f"I1-order-{c}", "lane": "gpu32", "retries": 1,
-           "cmd": PRE + server("main") + f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen7b --workers 4",
-           "outputs": [f"results/experiments/I1-context/qwen7b/{c}/reads.jsonl"]}
-          for c in CORPORA]
