@@ -407,3 +407,10 @@ def i5(kind: str, corpus: str) -> dict:
 
 
 STEPS += [i5("alone", c) for c in CORPORA]
+
+# I1 on the 32B, after I2 on the same server, sized to the MIG slice (15 documents per table; the 30-document 7B
+# sample contains them, so the comparison is on the same documents). Resumable: reads already made are kept.
+STEPS += [{"id": f"I1-qwen32b-{c}", "lane": "gpu32", "retries": 1, "deps": ["I2-secondlook"],
+           "cmd": PRE + server("qwen32b") + f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen32b --docs 15 --workers 4",
+           "outputs": [f"results/experiments/I1-context/qwen32b/{c}/reads.jsonl"]}
+          for c in ("cspaper", "player", "art", "legal", "med")]
