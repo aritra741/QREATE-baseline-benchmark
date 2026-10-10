@@ -45,6 +45,7 @@ MODELS = {"qwen7b": ("main", "qwen2.5:7b-instruct"), "qwen32b": ("qwen32b", "qwe
           "llama8b": ("llama8b", "llama3.1:8b")}
 KINDS = ("alone", "plus2", "plus6", "natural", "paraphrase")
 ORDER_KINDS = ("natural_shuffled", "natural_reversed")  # Q4: the natural set in another order (one order per table)
+POSITION_KINDS = ("natural_first", "natural_last")  # layout rule: the focal column first or last in its natural group
 MAX_DOC_TOKENS = 9000  # every context then fits the 32B server's 16k window with room for the fields and the answer
 SYSTEM = "Extract only facts stated in the document. Return JSON."  # core/llm/ollama.DEFAULT_SYSTEM
 _lock = threading.Lock()
@@ -164,6 +165,10 @@ def plan(corpus: str, n_docs: int) -> list[dict]:
                 others = [x for x in others_all if x != a]
                 plus2 = sorted([a] + rng.sample(others, min(2, len(others))))
                 plus6 = sorted([a] + rng.sample(others, min(6, len(others))))
+                if a in nat0 and len(nat0) > 1:
+                    rest = [x for x in nat0 if x != a]
+                    jobs.append({"table": t, "doc": d, "kind": "natural_first", "focal": a, "attributes": [a] + rest})
+                    jobs.append({"table": t, "doc": d, "kind": "natural_last", "focal": a, "attributes": rest + [a]})
                 jobs.append({"table": t, "doc": d, "kind": "alone", "focal": a, "attributes": [a]})
                 jobs.append({"table": t, "doc": d, "kind": "plus2", "focal": a, "attributes": plus2})
                 jobs.append({"table": t, "doc": d, "kind": "plus6", "focal": a, "attributes": plus6})
@@ -284,6 +289,12 @@ def analyze() -> dict:
                         e["order_change_" + ok.split("_")[1]] = round(S.mean(vnorm(x) != vnorm(y) for x, y in both), 3)
                         have = [(kinds[ok], g) for kinds, g in items if ok in kinds]
                         e["accuracy"][ok] = round(S.mean(correct(v, g) for v, g in have), 3)
+                for pk in POSITION_KINDS:  # layout rule: the column first or last among the same fields
+                    have = [(kinds[pk], g) for kinds, g in items if pk in kinds]
+                    if len(have) >= 10:
+                        e["accuracy"][pk] = round(S.mean(correct(v, g) for v, g in have), 3)
+                        e["empty"][pk] = round(S.mean(is_null(v) for v, _ in have), 3)
+                e["gold_empty"] = round(S.mean(is_null(g) for _, g in items), 3)
                 e["accuracy_when_agree"] = round(S.mean(correct(v, g) for v, g in agree), 3) if agree else None
                 e["accuracy_when_differ"] = round(S.mean(correct(v, g) for v, g in differ), 3) if differ else None
                 e["n_agree"], e["n_differ"] = len(agree), len(differ)
@@ -313,6 +324,23 @@ def analyze() -> dict:
         m["columns_better_alone_than_natural"] = sum(r["accuracy"].get("alone", 0) > r["accuracy"].get("natural", 0) + 0.05 for r in rows)
         m["columns_better_natural_than_alone"] = sum(r["accuracy"].get("natural", 0) > r["accuracy"].get("alone", 0) + 0.05 for r in rows)
         # Q4 summary: order-only changes against set changes
+        pc = [r for r in rows if all(k in r["accuracy"] for k in POSITION_KINDS) and "natural" in r["accuracy"]]
+        if len(pc) >= 5:
+            d_acc = [r["accuracy"]["natural_last"] - r["accuracy"]["natural_first"] for r in pc]
+            d_emp = [r["empty"]["natural_last"] - r["empty"]["natural_first"] for r in pc]
+            mostly_empty = [r for r in pc if r["gold_empty"] >= 0.5]
+            mostly_filled = [r for r in pc if r["gold_empty"] < 0.5]
+            m["position_effect"] = {
+                "columns": len(pc),
+                "mean_accuracy": {k: round(S.mean(r["accuracy"][k] for r in pc), 3) for k in ("natural_first", "natural", "natural_last")},
+                "mean_empty": {k: round(S.mean(r["empty"][k] for r in pc), 3) for k in ("natural_first", "natural_last")},
+                "mean_change_first_to_last": {"accuracy": round(S.mean(d_acc), 3), "empty": round(S.mean(d_emp), 3)},
+                "columns_last_better_by_0.05": sum(x >= 0.05 for x in d_acc), "columns_first_better_by_0.05": sum(x <= -0.05 for x in d_acc),
+                "spearman_gold_empty_vs_last_minus_first_accuracy": round(spearman([r["gold_empty"] for r in pc], d_acc), 3),
+                "mostly_empty_gold": {"columns": len(mostly_empty), "last_minus_first_accuracy": round(S.mean(r["accuracy"]["natural_last"] - r["accuracy"]["natural_first"] for r in mostly_empty), 3) if mostly_empty else None},
+                "mostly_filled_gold": {"columns": len(mostly_filled), "last_minus_first_accuracy": round(S.mean(r["accuracy"]["natural_last"] - r["accuracy"]["natural_first"] for r in mostly_filled), 3) if mostly_filled else None},
+                "by_kind": {k: round(S.mean(r["accuracy"]["natural_last"] - r["accuracy"]["natural_first"] for r in pc if r["kind"] == k), 3)
+                            for k in ("number", "yes/no", "category", "list", "free text") if any(r["kind"] == k for r in pc)}}
         oc = [r for r in rows if "order_change_shuffled" in r and "natural" in r["sensitivity"]]
         if oc:
             m["order_effect"] = {"columns": len(oc),
