@@ -648,3 +648,14 @@ against the first run's 0.275, recorded 0.256; century 0.376 against 0.382; the 
 (recorded 0.170); the seven grouping queries 0.320 against 0.315; `defendant_current_status` 0.474 against 0.479,
 `judgment_year` 0.967 against 0.963. The +0.10 is the contract, not sampling: declaring the forms a workload
 compares with closes the literal gap on the columns it filters and groups by.
+
+**I1 on the 32B, all five corpora (2026-10-09 23:29; 39 columns shared with the 7B, 15 documents each on
+medical and legal, 1,575 new prompts).** The cross-model claim now rests on five corpora: a column's sensitivity on
+the 7B and on the 32B rank the same (Spearman 0.77, against 0.60 on the first three corpora), the 7B's sensitivity
+predicts the 32B's accuracy alone at −0.71, and the 32B's own sensitivity predicts its accuracy at −0.72 (the 7B:
+−0.71). The stronger model is barely less sensitive on average (0.376 against 0.394) and more sensitive on 13 of the
+39 columns, and its sensitivities to the four kinds of change rank the columns the same way (0.75–0.95, as on the
+7B: 0.82–0.93). Where the models differ is the direction of the context effect: on the 32B the natural group is the
+best context on average (0.483 against 0.46 alone, with fewer empties, 0.20 against 0.26) while on the 7B the
+contexts tie (0.37–0.41); and on both, most columns are better alone (21 and 18 of 39) with a minority better in
+the group (8 and 9). Determinacy is a property of the column and the document, measured through either model.

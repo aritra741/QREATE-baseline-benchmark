@@ -37,7 +37,10 @@ the build's prompt.](figures/w1_when_vs_how.png){width=6.5in}
 
 The timing result holds on all five corpora with the 7B model and on two with the 32B model. The size of the prompt
 effect depends on the model: it is small for the 7B model and large for the 32B model on one corpus, and we have not
-measured it on other model families.
+measured it on other model families. The intervention below was run on both models on all five corpora (39 shared
+columns): the two rank the columns' sensitivity the same way (Spearman 0.77), the 32B is barely less sensitive on
+average (0.38 against 0.39) and more sensitive on 13 of 39 columns, and on the 32B the natural group is the best
+context on average (0.48 against 0.46 alone) where on the 7B the contexts tie.
 
 We then intervened directly. For every column the drifted workload needs and the build lacks, the same thirty sampled
 documents were read in five contexts: the column alone, with two random columns of its table, with six, in the build's
@@ -139,8 +142,8 @@ medical corpus: descriptive columns, gold values that are often empty, and list-
 a 32B model a second look at 1,719 cells the 7B had served, the column asked alone, and allocated a budget of 600 looks
 three ways. Spending them on the most sensitive columns first fixed a net 110 errors per thousand looks; spreading them
 evenly, 48; at random, 148. Sensitivity does not tell where a second look pays, in either direction (the 600 least
-sensitive cells, chosen with hindsight, give 132). What it predicts is the 32B's own accuracy on the column (−0.67,
-as it predicts the 7B's, Llama's and DocETL's): in the most sensitive band the 7B is right on 14% of cells and the 32B
+sensitive cells, chosen with hindsight, give 132). What it predicts is the 32B's own accuracy on the column (−0.67 on the second-look cells, −0.71 on the
+intervention's 39 columns across five corpora, as it predicts the 7B's, Llama's and DocETL's): in the most sensitive band the 7B is right on 14% of cells and the 32B
 on 24%; in the least sensitive band 59% and 80%. The cells a stronger reader repairs are determined ones the weaker
 reader misread, which sit in low-sensitivity columns with poor accuracy, such as dates written in another format
 (an artist's death date: sensitivity 0.06, 84% of the 7B's errors fixed; birth date 0.12 and 73%). So there are two
@@ -646,8 +649,8 @@ stated reason (Section 6), and the build's prompt groups chosen by each column's
 tested (Section 1: the cell gains transfer, the query scores do not move), as have the verifier as a router of
 second looks (Section 2: it finds wrong cells, not repairable ones), the label contract and the per-column windows
 (Section 11). Not yet run: the window rule with its exemptions, replicates of the contract runs, the 32B context intervention
-on medical and legal (queued). The field-position test found no rule to state (Section 1), only a per-column
-choice.
+on medical and legal has run (Section 1: the models rank the columns the same). The field-position test found no
+rule to state (Section 1), only a per-column choice. Every intervention planned in RESEARCH_DEPTH.md has now run.
 
 # Methods
 

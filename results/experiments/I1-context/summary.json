@@ -169,50 +169,93 @@
    }
   },
   "qwen32b": {
-   "columns": 20,
+   "columns": 39,
    "sensitivity_rank_across_kinds_of_change": {
     "plus2_vs_plus6": {
-     "columns": 20,
-     "spearman": 0.911
+     "columns": 39,
+     "spearman": 0.944
     },
     "natural_vs_plus2": {
-     "columns": 14,
-     "spearman": 0.861
+     "columns": 24,
+     "spearman": 0.952
     },
     "natural_vs_plus6": {
-     "columns": 14,
-     "spearman": 0.793
+     "columns": 24,
+     "spearman": 0.94
     },
     "natural_vs_paraphrase": {
-     "columns": 14,
-     "spearman": 0.587
+     "columns": 24,
+     "spearman": 0.748
     },
     "paraphrase_vs_plus2": {
-     "columns": 20,
-     "spearman": 0.842
+     "columns": 39,
+     "spearman": 0.844
     },
     "paraphrase_vs_plus6": {
-     "columns": 20,
-     "spearman": 0.709
+     "columns": 39,
+     "spearman": 0.807
     }
    },
-   "spearman_mean_sensitivity_vs_accuracy_alone": -0.79,
+   "spearman_mean_sensitivity_vs_accuracy_alone": -0.723,
    "mean_accuracy_by_context": {
-    "alone": 0.57,
-    "plus2": 0.577,
-    "plus6": 0.61,
-    "natural": 0.662,
-    "paraphrase": 0.553
+    "alone": 0.46,
+    "plus2": 0.451,
+    "plus6": 0.45,
+    "natural": 0.483,
+    "paraphrase": 0.421
    },
    "mean_empty_by_context": {
-    "alone": 0.24,
-    "plus2": 0.243,
-    "plus6": 0.23,
-    "natural": 0.205,
-    "paraphrase": 0.183
+    "alone": 0.256,
+    "plus2": 0.222,
+    "plus6": 0.215,
+    "natural": 0.2,
+    "paraphrase": 0.226
    },
-   "columns_better_alone_than_natural": 7,
-   "columns_better_natural_than_alone": 4,
+   "columns_better_alone_than_natural": 21,
+   "columns_better_natural_than_alone": 8,
+   "position_effect": {
+    "columns": 10,
+    "mean_accuracy": {
+     "natural_first": 0.187,
+     "natural": 0.233,
+     "natural_last": 0.2
+    },
+    "mean_empty": {
+     "natural_first": 0.147,
+     "natural_last": 0.107
+    },
+    "mean_change_first_to_last": {
+     "accuracy": 0.013,
+     "empty": -0.04
+    },
+    "columns_last_better_by_0.05": 4,
+    "columns_first_better_by_0.05": 3,
+    "spearman_gold_empty_vs_last_minus_first_accuracy": 0.156,
+    "mostly_empty_gold": {
+     "columns": 6,
+     "last_minus_first_accuracy": 0.044
+    },
+    "mostly_filled_gold": {
+     "columns": 4,
+     "last_minus_first_accuracy": -0.033
+    },
+    "by_kind": {
+     "list": 0.013
+    }
+   },
+   "order_effect": {
+    "columns": 10,
+    "mean_change_shuffled": 0.666,
+    "mean_change_reversed": 0.68,
+    "mean_change_set_plus6_vs_alone": 0.753,
+    "spearman_order_change_vs_sensitivity": 0.514,
+    "accuracy_natural": 0.233,
+    "accuracy_shuffled": 0.173,
+    "columns_changing_over_0.2": 10,
+    "by_kind": {
+     "list": 0.666
+    }
+   },
    "mean_sensitivity_by_kind": {
     "number": {
      "columns": 5,
@@ -230,23 +273,23 @@
      "accuracy_alone": 0.7
     },
     "list": {
-     "columns": 4,
-     "sensitivity": 0.117,
-     "accuracy_alone": 0.567
+     "columns": 18,
+     "sensitivity": 0.538,
+     "accuracy_alone": 0.315
     },
     "free text": {
-     "columns": 8,
-     "sensitivity": 0.285,
-     "accuracy_alone": 0.433
+     "columns": 13,
+     "sensitivity": 0.275,
+     "accuracy_alone": 0.508
     }
    },
    "agreement_vs_correctness": {
     "all": {
-     "columns": 12,
-     "cells_agree": 130,
-     "cells_differ": 50,
-     "accuracy_when_agree": 0.715,
-     "accuracy_when_differ": 0.14
+     "columns": 21,
+     "cells_agree": 165,
+     "cells_differ": 150,
+     "accuracy_when_agree": 0.661,
+     "accuracy_when_differ": 0.167
     },
     "number": {
      "columns": 4,
@@ -263,11 +306,11 @@
      "accuracy_when_differ": 0.5
     },
     "list": {
-     "columns": 3,
-     "cells_agree": 36,
-     "cells_differ": 9,
-     "accuracy_when_agree": 0.667,
-     "accuracy_when_differ": 0.0
+     "columns": 12,
+     "cells_agree": 71,
+     "cells_differ": 109,
+     "accuracy_when_agree": 0.563,
+     "accuracy_when_differ": 0.165
     },
     "free text": {
      "columns": 3,
@@ -281,12 +324,12 @@
  },
  "across_models": {
   "qwen7b_vs_qwen32b": {
-   "shared_columns": 20,
-   "spearman_sensitivity": 0.599,
-   "mean_sensitivity_qwen7b": 0.249,
-   "mean_sensitivity_qwen32b": 0.207,
-   "columns_where_qwen32b_more_sensitive_by_0.05": 5,
-   "spearman_qwen7b_sensitivity_vs_qwen32b_accuracy_alone": -0.712
+   "shared_columns": 39,
+   "spearman_sensitivity": 0.768,
+   "mean_sensitivity_qwen7b": 0.394,
+   "mean_sensitivity_qwen32b": 0.376,
+   "columns_where_qwen32b_more_sensitive_by_0.05": 13,
+   "spearman_qwen7b_sensitivity_vs_qwen32b_accuracy_alone": -0.706
   }
  },
  "columns": {
@@ -2305,6 +2348,667 @@
     },
     "mean_sensitivity": 0,
     "gold_empty": 0.067,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": null,
+    "n_agree": 0,
+    "n_differ": 0
+   },
+   {
+    "corpus": "med",
+    "column": "drug.activation_conditions",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.133,
+     "plus2": 0.133,
+     "plus6": 0.2,
+     "natural": 0.133,
+     "paraphrase": 0.2,
+     "natural_shuffled": 0.2,
+     "natural_reversed": 0.267,
+     "natural_first": 0.133,
+     "natural_last": 0.2
+    },
+    "empty": {
+     "alone": 0,
+     "plus2": 0,
+     "plus6": 0.067,
+     "natural": 0,
+     "paraphrase": 0,
+     "natural_first": 0,
+     "natural_last": 0
+    },
+    "sensitivity": {
+     "plus2": 0.067,
+     "plus6": 0.267,
+     "natural": 0.2,
+     "paraphrase": 0.267
+    },
+    "mean_sensitivity": 0.2,
+    "order_change_shuffled": 0.333,
+    "order_change_reversed": 0.133,
+    "gold_empty": 0.533,
+    "accuracy_when_agree": 0.167,
+    "accuracy_when_differ": 0,
+    "n_agree": 12,
+    "n_differ": 3
+   },
+   {
+    "corpus": "med",
+    "column": "drug.manufacturer",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.333,
+     "plus2": 0.4,
+     "plus6": 0.6,
+     "natural": 0.667,
+     "paraphrase": 0.4,
+     "natural_shuffled": 0.333,
+     "natural_reversed": 0.467,
+     "natural_first": 0.267,
+     "natural_last": 0.4
+    },
+    "empty": {
+     "alone": 0.467,
+     "plus2": 0.333,
+     "plus6": 0.6,
+     "natural": 0.6,
+     "paraphrase": 0.667,
+     "natural_first": 0.2,
+     "natural_last": 0.2
+    },
+    "sensitivity": {
+     "plus2": 0.667,
+     "plus6": 0.733,
+     "natural": 0.733,
+     "paraphrase": 0.333
+    },
+    "mean_sensitivity": 0.617,
+    "order_change_shuffled": 0.533,
+    "order_change_reversed": 0.333,
+    "gold_empty": 0.6,
+    "accuracy_when_agree": 0.75,
+    "accuracy_when_differ": 0.182,
+    "n_agree": 4,
+    "n_differ": 11
+   },
+   {
+    "corpus": "med",
+    "column": "drug.mechanism_of_action",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.2,
+     "plus2": 0.067,
+     "plus6": 0.133,
+     "natural": 0.067,
+     "paraphrase": 0.2,
+     "natural_shuffled": 0.067,
+     "natural_reversed": 0,
+     "natural_first": 0.2,
+     "natural_last": 0.133
+    },
+    "empty": {
+     "alone": 0.533,
+     "plus2": 0.133,
+     "plus6": 0.133,
+     "natural": 0,
+     "paraphrase": 0.533,
+     "natural_first": 0.133,
+     "natural_last": 0
+    },
+    "sensitivity": {
+     "plus2": 0.933,
+     "plus6": 0.933,
+     "natural": 1,
+     "paraphrase": 0.467
+    },
+    "mean_sensitivity": 0.833,
+    "order_change_shuffled": 0.933,
+    "order_change_reversed": 0.933,
+    "gold_empty": 0.2,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": 0.2,
+    "n_agree": 0,
+    "n_differ": 15
+   },
+   {
+    "corpus": "med",
+    "column": "drug.recommended_usage",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.333,
+     "plus2": 0.2,
+     "plus6": 0.2,
+     "natural": 0.2,
+     "paraphrase": 0.4,
+     "natural_shuffled": 0.133,
+     "natural_reversed": 0.267,
+     "natural_first": 0.333,
+     "natural_last": 0.2
+    },
+    "empty": {
+     "alone": 0.133,
+     "plus2": 0,
+     "plus6": 0,
+     "natural": 0.067,
+     "paraphrase": 0.2,
+     "natural_first": 0.133,
+     "natural_last": 0
+    },
+    "sensitivity": {
+     "plus2": 0.667,
+     "plus6": 0.733,
+     "natural": 0.6,
+     "paraphrase": 0.4
+    },
+    "mean_sensitivity": 0.6,
+    "order_change_shuffled": 0.533,
+    "order_change_reversed": 0.533,
+    "gold_empty": 0.333,
+    "accuracy_when_agree": 0.5,
+    "accuracy_when_differ": 0.222,
+    "n_agree": 6,
+    "n_differ": 9
+   },
+   {
+    "corpus": "med",
+    "column": "drug.single_dose",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.333,
+     "plus2": 0.2,
+     "plus6": 0.133,
+     "natural": 0.2,
+     "paraphrase": 0.267,
+     "natural_shuffled": 0.2,
+     "natural_reversed": 0.267,
+     "natural_first": 0.133,
+     "natural_last": 0.2
+    },
+    "empty": {
+     "alone": 0.2,
+     "plus2": 0.067,
+     "plus6": 0,
+     "natural": 0.067,
+     "paraphrase": 0.533,
+     "natural_first": 0.133,
+     "natural_last": 0
+    },
+    "sensitivity": {
+     "plus2": 0.8,
+     "plus6": 0.733,
+     "natural": 0.867,
+     "paraphrase": 0.8
+    },
+    "mean_sensitivity": 0.8,
+    "order_change_shuffled": 0.733,
+    "order_change_reversed": 0.667,
+    "gold_empty": 0.267,
+    "accuracy_when_agree": 1,
+    "accuracy_when_differ": 0.231,
+    "n_agree": 2,
+    "n_differ": 13
+   },
+   {
+    "corpus": "med",
+    "column": "drug.storage_conditions",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.467,
+     "plus2": 0.2,
+     "plus6": 0,
+     "natural": 0.133,
+     "paraphrase": 0.2,
+     "natural_shuffled": 0.133,
+     "natural_reversed": 0.067,
+     "natural_first": 0.067,
+     "natural_last": 0.067
+    },
+    "empty": {
+     "alone": 0.467,
+     "plus2": 0.133,
+     "plus6": 0,
+     "natural": 0.067,
+     "paraphrase": 0.267,
+     "natural_first": 0,
+     "natural_last": 0
+    },
+    "sensitivity": {
+     "plus2": 0.867,
+     "plus6": 0.933,
+     "natural": 0.933,
+     "paraphrase": 0.533
+    },
+    "mean_sensitivity": 0.817,
+    "order_change_shuffled": 0.333,
+    "order_change_reversed": 0.733,
+    "gold_empty": 0.667,
+    "accuracy_when_agree": 1,
+    "accuracy_when_differ": 0.429,
+    "n_agree": 1,
+    "n_differ": 14
+   },
+   {
+    "corpus": "med",
+    "column": "drug.unsuitable_population",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.2,
+     "plus2": 0.067,
+     "plus6": 0.067,
+     "natural": 0.067,
+     "paraphrase": 0,
+     "natural_shuffled": 0.067,
+     "natural_reversed": 0.133,
+     "natural_first": 0.067,
+     "natural_last": 0.067
+    },
+    "empty": {
+     "alone": 0.267,
+     "plus2": 0.067,
+     "plus6": 0.133,
+     "natural": 0.067,
+     "paraphrase": 0,
+     "natural_first": 0.067,
+     "natural_last": 0.067
+    },
+    "sensitivity": {
+     "plus2": 0.733,
+     "plus6": 0.867,
+     "natural": 0.867,
+     "paraphrase": 0.867
+    },
+    "mean_sensitivity": 0.834,
+    "order_change_shuffled": 0.8,
+    "order_change_reversed": 0.867,
+    "gold_empty": 0.333,
+    "accuracy_when_agree": 0.5,
+    "accuracy_when_differ": 0.154,
+    "n_agree": 2,
+    "n_differ": 13
+   },
+   {
+    "corpus": "med",
+    "column": "disease.complications",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.2,
+     "plus2": 0.333,
+     "plus6": 0.2,
+     "natural": 0.267,
+     "paraphrase": 0.067,
+     "natural_shuffled": 0.2,
+     "natural_reversed": 0,
+     "natural_first": 0.267,
+     "natural_last": 0.133
+    },
+    "empty": {
+     "alone": 0.267,
+     "plus2": 0.4,
+     "plus6": 0.2,
+     "natural": 0.333,
+     "paraphrase": 0.067,
+     "natural_first": 0.333,
+     "natural_last": 0.133
+    },
+    "sensitivity": {
+     "plus2": 0.533,
+     "plus6": 0.667,
+     "natural": 0.667,
+     "paraphrase": 0.8
+    },
+    "mean_sensitivity": 0.667,
+    "order_change_shuffled": 0.933,
+    "order_change_reversed": 0.933,
+    "gold_empty": 0.6,
+    "accuracy_when_agree": 0.4,
+    "accuracy_when_differ": 0.1,
+    "n_agree": 5,
+    "n_differ": 10
+   },
+   {
+    "corpus": "med",
+    "column": "disease.epidemiology",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.133,
+     "plus2": 0.267,
+     "plus6": 0.2,
+     "natural": 0.4,
+     "paraphrase": 0.133,
+     "natural_shuffled": 0.4,
+     "natural_reversed": 0.267,
+     "natural_first": 0.2,
+     "natural_last": 0.4
+    },
+    "empty": {
+     "alone": 0.133,
+     "plus2": 0.2,
+     "plus6": 0.267,
+     "natural": 0.467,
+     "paraphrase": 0.267,
+     "natural_first": 0.267,
+     "natural_last": 0.4
+    },
+    "sensitivity": {
+     "plus2": 0.933,
+     "plus6": 0.8,
+     "natural": 0.867,
+     "paraphrase": 0.667
+    },
+    "mean_sensitivity": 0.817,
+    "order_change_shuffled": 0.667,
+    "order_change_reversed": 0.733,
+    "gold_empty": 0.6,
+    "accuracy_when_agree": 0.5,
+    "accuracy_when_differ": 0.077,
+    "n_agree": 2,
+    "n_differ": 13
+   },
+   {
+    "corpus": "med",
+    "column": "disease.risk_factors",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.133,
+     "plus2": 0.133,
+     "plus6": 0.2,
+     "natural": 0.2,
+     "paraphrase": 0.067,
+     "natural_shuffled": 0,
+     "natural_reversed": 0,
+     "natural_first": 0.2,
+     "natural_last": 0.2
+    },
+    "empty": {
+     "alone": 0.133,
+     "plus2": 0.2,
+     "plus6": 0.133,
+     "natural": 0.267,
+     "paraphrase": 0,
+     "natural_first": 0.2,
+     "natural_last": 0.267
+    },
+    "sensitivity": {
+     "plus2": 0.8,
+     "plus6": 0.867,
+     "natural": 0.933,
+     "paraphrase": 0.667
+    },
+    "mean_sensitivity": 0.817,
+    "order_change_shuffled": 0.867,
+    "order_change_reversed": 0.933,
+    "gold_empty": 0.8,
+    "accuracy_when_agree": 1,
+    "accuracy_when_differ": 0.071,
+    "n_agree": 1,
+    "n_differ": 14
+   },
+   {
+    "corpus": "med",
+    "column": "disease.common_symptoms",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.133,
+     "plus2": 0.133,
+     "plus6": 0.133,
+     "paraphrase": 0.067
+    },
+    "empty": {
+     "alone": 0.4,
+     "plus2": 0.533,
+     "plus6": 0.333,
+     "paraphrase": 0.4
+    },
+    "sensitivity": {
+     "plus2": 0.267,
+     "plus6": 0.4,
+     "paraphrase": 0.2
+    },
+    "mean_sensitivity": 0.289,
+    "gold_empty": 0.133,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": null,
+    "n_agree": 0,
+    "n_differ": 0
+   },
+   {
+    "corpus": "med",
+    "column": "disease.sequelae",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.4,
+     "plus2": 0.333,
+     "plus6": 0,
+     "paraphrase": 0.333
+    },
+    "empty": {
+     "alone": 0.4,
+     "plus2": 0.333,
+     "plus6": 0,
+     "paraphrase": 0.333
+    },
+    "sensitivity": {
+     "plus2": 0.867,
+     "plus6": 1,
+     "paraphrase": 0.6
+    },
+    "mean_sensitivity": 0.822,
+    "gold_empty": 1,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": null,
+    "n_agree": 0,
+    "n_differ": 0
+   },
+   {
+    "corpus": "med",
+    "column": "disease.affected_organs",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.133,
+     "plus2": 0.2,
+     "plus6": 0.133,
+     "paraphrase": 0
+    },
+    "empty": {
+     "alone": 0.2,
+     "plus2": 0.267,
+     "plus6": 0.333,
+     "paraphrase": 0.067
+    },
+    "sensitivity": {
+     "plus2": 0.4,
+     "plus6": 0.533,
+     "paraphrase": 0.467
+    },
+    "mean_sensitivity": 0.467,
+    "gold_empty": 0.467,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": null,
+    "n_agree": 0,
+    "n_differ": 0
+   },
+   {
+    "corpus": "med",
+    "column": "disease.drugs",
+    "kind": "list",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.267,
+     "plus2": 0.267,
+     "plus6": 0.2,
+     "paraphrase": 0.133
+    },
+    "empty": {
+     "alone": 0.133,
+     "plus2": 0,
+     "plus6": 0.067,
+     "paraphrase": 0.2
+    },
+    "sensitivity": {
+     "plus2": 0.733,
+     "plus6": 0.667,
+     "paraphrase": 0.533
+    },
+    "mean_sensitivity": 0.644,
+    "gold_empty": 0.133,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": null,
+    "n_agree": 0,
+    "n_differ": 0
+   },
+   {
+    "corpus": "legal",
+    "column": "legal.defendant_current_status",
+    "kind": "free text",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.467,
+     "plus2": 0.467,
+     "plus6": 0.267,
+     "paraphrase": 0.333
+    },
+    "empty": {
+     "alone": 0,
+     "plus2": 0.067,
+     "plus6": 0.267,
+     "paraphrase": 0.067
+    },
+    "sensitivity": {
+     "plus2": 0.2,
+     "plus6": 0.6,
+     "paraphrase": 0.467
+    },
+    "mean_sensitivity": 0.422,
+    "gold_empty": 0.2,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": null,
+    "n_agree": 0,
+    "n_differ": 0
+   },
+   {
+    "corpus": "legal",
+    "column": "legal.judge_name",
+    "kind": "free text",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.133,
+     "plus2": 0.2,
+     "plus6": 0.267,
+     "paraphrase": 0.2
+    },
+    "empty": {
+     "alone": 0,
+     "plus2": 0,
+     "plus6": 0,
+     "paraphrase": 0
+    },
+    "sensitivity": {
+     "plus2": 0.533,
+     "plus6": 0.467,
+     "paraphrase": 0.467
+    },
+    "mean_sensitivity": 0.489,
+    "gold_empty": 0,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": null,
+    "n_agree": 0,
+    "n_differ": 0
+   },
+   {
+    "corpus": "legal",
+    "column": "legal.fine_amount",
+    "kind": "free text",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.867,
+     "plus2": 0.933,
+     "plus6": 0.8,
+     "paraphrase": 0.867
+    },
+    "empty": {
+     "alone": 0.8,
+     "plus2": 0.867,
+     "plus6": 0.733,
+     "paraphrase": 0.8
+    },
+    "sensitivity": {
+     "plus2": 0.067,
+     "plus6": 0.133,
+     "paraphrase": 0
+    },
+    "mean_sensitivity": 0.067,
+    "gold_empty": 0.933,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": null,
+    "n_agree": 0,
+    "n_differ": 0
+   },
+   {
+    "corpus": "legal",
+    "column": "legal.plaintiff_current_status",
+    "kind": "free text",
+    "docs": 15,
+    "accuracy": {
+     "alone": 0.667,
+     "plus2": 0.533,
+     "plus6": 0.6,
+     "paraphrase": 0.467
+    },
+    "empty": {
+     "alone": 0.667,
+     "plus2": 0.2,
+     "plus6": 0.533,
+     "paraphrase": 0.733
+    },
+    "sensitivity": {
+     "plus2": 0.467,
+     "plus6": 0.267,
+     "paraphrase": 0.2
+    },
+    "mean_sensitivity": 0.311,
+    "gold_empty": 0.4,
+    "accuracy_when_agree": null,
+    "accuracy_when_differ": null,
+    "n_agree": 0,
+    "n_differ": 0
+   },
+   {
+    "corpus": "legal",
+    "column": "legal.judgment_year",
+    "kind": "free text",
+    "docs": 15,
+    "accuracy": {
+     "alone": 1,
+     "plus2": 1,
+     "plus6": 1,
+     "paraphrase": 1
+    },
+    "empty": {
+     "alone": 0,
+     "plus2": 0,
+     "plus6": 0,
+     "paraphrase": 0
+    },
+    "sensitivity": {
+     "plus2": 0,
+     "plus6": 0,
+     "paraphrase": 0
+    },
+    "mean_sensitivity": 0,
+    "gold_empty": 0,
     "accuracy_when_agree": null,
     "accuracy_when_differ": null,
     "n_agree": 0,
