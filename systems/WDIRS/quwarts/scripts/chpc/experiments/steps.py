@@ -540,3 +540,27 @@ STEPS += [v2(c, level="0") for c in V2_ORDER]                                   
 STEPS += [v2(c, "rep1") for c in ("cspaper", "player")]                             # replicates (noise floor)
 STEPS += [v2(c, budget=True) for c in V2_ORDER]                                     # budget curve (fcfs, 25% and 50%)
 STEPS += [v2(c, level="50") for c in V2_ORDER]
+
+
+# ------------------------------------------------------------- v2 + the item filter (replay-only re-runs, no model calls)
+# The item filter (WHY_AUDIT.md §3) changes committed values, not prompts, so every finished v2 run and ablation is
+# re-run from its own journals with the filter on: a clone of the run's root, the stronger reader's journal copied
+# too, and the planner re-planning identically from the same reads. "<src>f" is the run with the filter.
+def v2f(src: str, corpus: str, off: str = "", repair: bool = True) -> dict:
+    root, scratch = f"results/experiments/{src}f/live", f"{SCRATCH}/{src}f"
+    src_root, src_scratch = f"results/experiments/{src}/live", f"{SCRATCH}/{src}"
+    env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_PLANNER=catalogue "
+           f"QUWARTS_LIVE_ONLY=fixed4-attribute_pool/100 " + (f"QUWARTS_PLANNER_OFF={off} " if off else "")
+           + (f"QUWARTS_REPAIR_LABELS=$OLDPWD/results/experiments/V2/labels/{corpus}.json " if repair else ""))
+    return {"id": f"{src}f-{corpus}", "lane": "gpu2", "retries": 1, "deps": [f"{src}-{corpus}"],
+            "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} "
+                   f"--src-root $OLDPWD/{src_root} --src-scratch {src_scratch} && "
+                   f"([ -f $OLDPWD/{src_root}/{corpus}/repair_reads.jsonl ] && cp -n $OLDPWD/{src_root}/{corpus}/repair_reads.jsonl $OLDPWD/{root}/{corpus}/ || true) && "
+                   + server("main") + env + f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams fixed --axes attribute_pool --deadline 0 --workers 8",
+            "outputs": [f"{root}/{corpus}/streams/fixed4-attribute_pool_100.jsonl"]}
+
+
+STEPS += [v2f("V2", c) for c in V2_ORDER]
+STEPS += [v2f("V2-ablate-repair", c, repair=False) for c in V2_ORDER]
+STEPS += [v2f("V2-ablate-unit", c, off="unit", repair=False) for c in V2_ORDER]
+STEPS += [v2f("V2-ablate-windows", c, off="windows", repair=False) for c in ("cspaper", "player", "art")]

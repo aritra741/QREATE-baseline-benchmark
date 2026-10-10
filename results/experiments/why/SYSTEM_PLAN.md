@@ -41,6 +41,10 @@ once, not a model.
    reader's net repair rate is estimated per column; second looks go to columns with a positive rate, cheapest
    documents first, within a budget of 25% of the table's extraction tokens at the stronger reader's price.
 5. **Normalization and scope** as recorded (commit-time forms from the workload, documents the filter can select).
+6. **The item filter (WHY_AUDIT.md §3).** A list keeps only the items stated verbatim in the document, for the
+   columns whose probe shows that unstated items are unstable across contexts (invented) rather than stable
+   (paraphrased truths). A stronger reader's repairs of lists are mostly this restraint; the check recovers most of
+   them for nothing (recorded run: 0.250 → 0.299 on 11,001 list cells, no column losing more than 8 cells).
 
 What the planner does *not* do, and why: forecast reuse (fails under drift, I4), pace spending (fails on lumpy
 spends, I4), choose per-column prompt groups for accuracy (cells gain, queries do not, I5), route second looks by a
@@ -49,7 +53,8 @@ label-free verifier (detects under-determination, not repairability, I2b).
 ## 3. Flags
 
 `QUWARTS_PLANNER=catalogue` turns the planner on in `drift_live`; `QUWARTS_PLANNER_OFF` is a comma list of
-components to disable for ablations: `unit` (back to the recorded per-query batching), `windows`, `vocab`, `repair`.
+components to disable for ablations: `unit` (back to the recorded per-query batching), `windows`, `vocab`, `repair`,
+`itemfilter`.
 `QUWARTS_REPAIR_LABELS=<file>` supplies the labelled sample for component 4 (ten gold cells per column, drawn once
 per corpus with a fixed seed); without it the component is off. The probe's reads go through the same journal as
 every other read and are charged to the stream.

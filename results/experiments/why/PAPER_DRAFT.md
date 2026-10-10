@@ -69,6 +69,14 @@ not a semantic interaction among fields; it is the prompt's arrangement.
 *Sampling.* With a fixed temperature the same prompt changes 5% to 6% of cells between runs; DocETL, which sets no
 temperature, returns the same value 69% to 100% of the time.
 
+*Why the arrangement changes the value.* Two hypotheses: the model answers fields in prompt order (it does, 96% of
+responses) and conditions each answer on the ones before it; or some documents under-determine many fields at once
+and any perturbation re-samples them all. A field's flip rate is 0.40 when only earlier fields flipped and 0.37 when
+only later ones did, 0.48 when the document flipped on both sides and 0.12 when it flipped nowhere else, with no
+gradient by position. The arrangement effect is mostly the document's: the value of an under-determined cell is a
+draw, the prompt is one of the things that re-draws it, and the document decides how many cells are draws. The
+sequential part adds a few points in the forward direction.
+
 ## 2.2 Determinacy
 
 The disagreement between two prompts on a column predicts the column's accuracy: −0.76 over 41 columns in the
@@ -89,6 +97,10 @@ across corpora (0.75 to 0.89); used to route 600 second looks it selects cells t
 which the 32B repairs 13%, against 32% of random's. The same features predict "wrong and repaired" at 0.53. What
 predicts repair is the column: net repair rates range from −0.67 to +0.56 per look, and estimating them from ten
 labelled cells per column routes 600 looks to 189 net fixes against 59 for random, 402 per dollar against 123.
+What the stronger reader repairs is mostly restraint and precision: 38% of its repairs are lists from which it drops
+items the document does not state, 21% dates it writes in full where the weaker reader wrote the year, 10% form;
+a different fact is 20%. That is why repair is a column property, and why most of it is available without the
+stronger reader (Section 4.5).
 
 ## 2.4 What a store must do
 
@@ -158,7 +170,17 @@ spends a budget of 25% of the extraction's tokens, at the stronger reader's pric
 rate, cheapest documents first. It does not route by a cell-level verifier, which finds wrong cells and not
 repairable ones.
 
-## 4.5 Normalization and scope
+## 4.5 The item filter
+
+A list keeps only the items stated verbatim in the document. Of what a stronger reader repairs, 38% are lists to
+which the weaker reader added items the document does not state, and the check does that repair without a model:
+on the recorded run's 11,001 list cells, 0.250 to 0.299, 146 of 192 of the 32B's fixes on the second-look pool
+with 4 breaks against its 17. The check hurts where unstated items are paraphrased truths (a nationality for a
+country, a domain label), and the probe tells the two apart without labels: an invented item is unstable across
+contexts, a paraphrased truth is stable; the filter is switched on per column where unstated items are mostly
+unstable, which keeps the gains and removes every losing column.
+
+## 4.6 Normalization and scope
 
 Values are committed in the forms the workload compares (0.13 on players, 0.07 on artists), and on-demand reads
 cover only the documents a query's filter can select (up to 46% of the tokens).
