@@ -371,8 +371,8 @@ def analyze() -> dict:
                 "mean_changed": round(S.mean(r["predicate"]["changed"] for r in pr), 3),
                 "mean_accuracy": {"alone": round(S.mean(r["predicate"]["accuracy_alone"] for r in pr), 3),
                                   "with_predicate": round(S.mean(r["predicate"]["accuracy_with_predicate"] for r in pr), 3)},
-                "mean_moved_onto_a_constant": round(S.mean(r["predicate"]["moved_onto_a_constant"] for r in pr if r["predicate"]["moved_onto_a_constant"] is not None), 3),
-                "mean_moved_onto_a_constant_wrongly": round(S.mean(r["predicate"]["moved_onto_a_constant_wrongly"] for r in pr if r["predicate"]["moved_onto_a_constant_wrongly"] is not None), 3),
+                "mean_moved_onto_a_constant": (round(S.mean(x), 3) if (x := [r["predicate"]["moved_onto_a_constant"] for r in pr if r["predicate"]["moved_onto_a_constant"] is not None]) else None),
+                "mean_moved_onto_a_constant_wrongly": (round(S.mean(x), 3) if (x := [r["predicate"]["moved_onto_a_constant_wrongly"] for r in pr if r["predicate"]["moved_onto_a_constant_wrongly"] is not None]) else None),
                 "spearman_changed_vs_sensitivity": round(spearman([r["predicate"]["changed"] for r in pr], [r["mean_sensitivity"] for r in pr if "mean_sensitivity" in r]), 3) if all("mean_sensitivity" in r for r in pr) and len(pr) > 4 else None,
                 "by_kind": {k: round(S.mean(r["predicate"]["changed"] for r in pr if r["kind"] == k), 3) for k in ("number", "yes/no", "category", "list", "free text") if any(r["kind"] == k for r in pr)}}
         pc = [r for r in rows if all(k in r["accuracy"] for k in POSITION_KINDS) and "natural" in r["accuracy"]]
