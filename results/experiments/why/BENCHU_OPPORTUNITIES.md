@@ -142,3 +142,31 @@ test that human disagreement coincides with LLM two-context disagreement waits o
 A (the workload view on their benchmark, with their evaluation code) is the one that changes the paper: it makes
 Bench-U's numbers the baseline table and our planner the system. B, C and D are new knowledge each measurable in a
 few hours on hardware we have. E, F, G, H are write-ups of results in hand, placed against their observations.
+
+## 5. Status, 2026-10-10 10:15: the pipeline runs, first numbers on their metric (exact match, no judge)
+
+Bench-U's current evaluation package (`evaluation_benchu/`, their `run_eval` with the alignment ids and the join
+aliasing their ground-truth runner uses) scores the planner's served tables on their query files
+(`quwarts/eval/exp_benchu.py`): the run's final table gets their id columns, every query is executed as their
+evaluator rewrites it for the ground truth, and `run_eval` compares per column. Exact matching (their LLM judge for
+lexical variants is available through the local 7B, but it calls the model once per non-identical cell, thousands of
+calls per Select query, so it is used on samples only). The planner's run at 100% drift, ten-sample rules (V2):
+
+| dataset | queries | mean F1, scored | mean F1, unanswerable as 0 | Select | Filter | Join | Agg | Mixed | k tokens / doc / query |
+|---|---|---|---|---|---|---|---|---|---|
+| Player | 144 | 0.572 | 0.401 | 0.66 | 0.48 | 0.59 | 0.96 | 0.62 | 0.17 (their cheapest 3.8, DocETL 54) |
+| CSPaper | 86 | 0.377 | 0.377 | 0.59 | 0.26 | | 0.91 | 0.26 | 0.05 (6.2, 41) |
+| Art | 86 | 0.315 | 0.296 | 0.47 | 0.26 | | 0.50 | 0.29 | 0.05 (0.75, 6.6) |
+| Med | 132 | 0.197 | 0.125 | 0.35 | 0.16 | 0.05 | 0.53 | 0.20 | 0.47 (their Healthcare is another set) |
+| Legal | 86 | 0.397 | 0.397 | 0.52 | 0.30 | | 0.70 | 0.70 | 0.36 (6.2, 93) |
+
+Unanswerable queries are those on columns the drift workload never requested (Player's owner table, Med's
+institution table, Art's image-only `theme`): the planner on *their* workload reads them on first touch, which is
+the queued V3-benchu run; on papers that run already answers every query (F1 0.376, the same table) at 0.039k
+tokens per document per query without the build and about 0.07k with it, against their cheapest 6.2k. Their Table 3
+numbers are GPT-4.1-mini with a judge; ours are a 4-bit 7B with exact matching, so the accuracy columns are not
+like for like (their Select F1 on Player 0.84–0.89, CSPaper 0.56–0.65, Art 0.58–0.65, Legal 0.57–0.68), and the
+claim this supports is the cost one: the same families of query answered from one kept table at one to two
+orders of magnitude fewer tokens per document per query than any per-query system in their table. Their harness's
+own failures on their own queries (DuckDB rejects `avg(TIME)` on two Med aggregates; `theme` is absent from their Art
+ground truth) are left as unanswerable.
