@@ -170,3 +170,8 @@ claim this supports is the cost one: the same families of query answered from on
 orders of magnitude fewer tokens per document per query than any per-query system in their table. Their harness's
 own failures on their own queries (DuckDB rejects `avg(TIME)` on two Med aggregates; `theme` is absent from their Art
 ground truth) are left as unanswerable.
+
+*The judge's cost (probe, 2026-10-10):* with the local 7B as Bench-U's LLM judge, a Legal Select query over 570 rows
+takes about eight minutes (one call per non-identical cell) and scores 0.64–0.65 against 0.52 by exact match. The
+judge is therefore run on a stratified sample of queries when the servers are free, and reported as an uplift on the
+exact-match table rather than over every query.

@@ -172,6 +172,20 @@ lift group-by queries by 0.004 (10 queries); cells that turned from right to wro
 on filters and 0.024 on joins (4–5 queries each). The asymmetry holds on a corpus with joins, where a key that goes
 wrong loses its partner row outright.
 
+*Which columns' second looks pay at the query level* (`exp_cause.second_look_columns`): for every column with
+twenty or more second looks in the pool, the recorded table with that column's looked-at cells replaced by the 32B's
+values, scored on every test query. No column moves the mean query score by more than 0.007 (papers'
+`agent_framework` +0.007, artists' `awards` +0.003, most columns 0.000), although per-cell net repair rates run from
+−0.67 to +0.56 and the 32B's label histogram moves far toward gold's on dates and counts (total-variation distance
+1.00 → 0.07 on `awards`, 0.90 → 0.34 on `death_date`). The query gain correlates with the per-cell rate on papers
+(Spearman 0.52) and with the distributional gain on artists and players (0.55, 0.56), on five to nine columns each,
+which is to say with neither reliably. The looks cover a sample of each column's rows (30 to 670 of 200 to 1,000),
+and a query's score moves only when the changed rows are the ones its filter keeps: the first-rules papers run moved
+59 `reasoning_depth` rows chosen by price and gained 0.047; the pool's 34 rows of the same column gain 0.003. So the
+value of a second look at the query level is a property of the row, not of the column: which groups and filters the
+row sits in. A planner that knows the workload knows those rows (the scope of the queries' filters), and should spend
+second looks there first, which the current router (column rate over price) does not do.
+
 ## 6. Why the planner's score moved 0.217 → 0.138 on papers between two runs: decisions on ten samples flip
 
 The two runs differ in two thresholds and in sampling. The sensitivity ranking of the columns barely moved (mean
