@@ -59,8 +59,9 @@ def stream_stats(f: Path) -> dict | None:
 def analyze() -> dict:
     out = {"runs": {}}
     variants = {"recorded": LIVE, "v2": OUT / "live"}
-    for p in sorted(OUT.glob("ablate-*")) + sorted(OUT.glob("rep*")):
-        variants[p.name] = p / "live"
+    for p in sorted(EXP.glob("V2-*")) + sorted(EXP.glob("V2a*")):  # V2-ablate-unit, V2-rep1, V2-budget, ...; V2a*: the first rules
+        if (p / "live").exists():
+            variants[p.name[3:] if p.name.startswith("V2-") else p.name] = p / "live"
     for c in CORPORA:
         row = {}
         for name, root in variants.items():

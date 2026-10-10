@@ -674,3 +674,18 @@ system's favour. The probe (110 lone reads on ten documents) found two columns t
 second looks there). A first run without the narrow groups and the repair component scored 0.139 at 0.43M (the
 probe uncharged), so on papers the components carry the gain. The full evaluation (five corpora, ablations, levels,
 budgets, replicates) is queued on both jobs.
+
+**V2a, the planner under its first rules, all five corpora at 100% drift (2026-10-10 05:10; `V2a/summary_first_rules.json`).**
+Score and tokens (7B + 32B) against the recorded system: papers 0.217 against 0.153 at 0.73M + 0.19M against 1.16M;
+players 0.356 against 0.387 at 3.84M + 0.60M against 5.67M; artists 0.253 against 0.256 at 1.74M + 0.43M against
+6.08M; medical 0.125 against 0.115 at 5.33M + 1.86M against 14.08M; legal 0.169 against 0.170 at 5.29M + 1.26M
+against 19.77M. Ablations without the stronger reader: the unit decision alone cuts the 7B tokens by 1.8× (papers),
+1.4× (players), 3.9× (artists), 2.9× (medical), 3.8× (legal) at scores within 0.01 of the recorded unit on four
+corpora and +0.015 on medical; the second looks add +0.071 on papers (0.146 → 0.217) and +0.003 on players, and
+cost 0.010 on artists; the windows add +0.020 on papers and cost 0.021 on players. Two rule changes follow, each
+from a traced mechanism: (1) players' `draft_pick` got a window at 18% of the entry from four stated values among
+seven filled, with 43% of the lone values not stated in the document, and three filtered aggregates over two or
+three players flipped from 1 to 0 (the I7 lesson again), so a window now requires at least four stated values and
+lone values stated in at least 75% of filled cells; (2) artists' second looks were routed on rates of 0.1 (one net
+repair in ten), which is noise, and the 32B broke more than it fixed, so routing now requires a rate of at least 0.2.
+The first-rules runs are kept as V2a; V2 is re-run under the refined rules.

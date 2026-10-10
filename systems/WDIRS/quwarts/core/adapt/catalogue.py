@@ -31,6 +31,9 @@ from quwarts.core.router.context_probe import FieldSpec
 PROBE_DOCS = int(os.environ.get("QUWARTS_PROBE_DOCS", 10))
 MAX_FIELDS = int(os.environ.get("QUWARTS_MAX_FIELDS", 16))
 HEAD_SHARE = float(os.environ.get("QUWARTS_HEAD_SHARE", 0.35))
+MIN_GROUNDED = float(os.environ.get("QUWARTS_WINDOW_GROUNDED", 0.75))  # a window is learned from stated values: it describes
+# the column only when the lone values are mostly stated (players' draft_pick at 0.57 cost three filtered aggregates, V2a)
+MIN_STATED = int(os.environ.get("QUWARTS_WINDOW_STATED", 4))
 OFF = frozenset(x for x in os.environ.get("QUWARTS_PLANNER_OFF", "").split(",") if x)
 assert OFF <= {"unit", "windows", "vocab", "repair"}, OFF
 VOCAB = json.loads(Path(os.environ["QUWARTS_VOCAB"]).read_text()) if os.environ.get("QUWARTS_VOCAB") and "vocab" not in OFF else {}
@@ -135,8 +138,10 @@ def column_stats(alone: dict[str, dict[str, Any]], grouped: dict[str, dict[str, 
             why = "list"
         elif st["absence_coded"]:
             why = "coded absence"
-        elif len(positions) < 3:
-            why = "fewer than three stated values"
+        elif len(positions) < MIN_STATED:
+            why = f"fewer than {MIN_STATED} stated values"
+        elif (st["grounded"] or 0.0) < MIN_GROUNDED:
+            why = f"lone values stated in only {st['grounded']:.0%} of filled cells"
         else:
             share = min(1.0, max(0.1, round(max(positions) + 0.05, 2)))
             if share > HEAD_SHARE:

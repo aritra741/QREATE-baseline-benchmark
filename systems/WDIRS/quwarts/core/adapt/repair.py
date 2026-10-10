@@ -30,6 +30,7 @@ SYSTEM = "Extract only facts stated in the document. Return JSON."
 MODEL = os.environ.get("QUWARTS_REPAIR_MODEL", "qwen2.5:32b-instruct")
 SHARE = float(os.environ.get("QUWARTS_REPAIR_SHARE", 0.25))  # of the extraction's tokens, as the second reader's budget
 MIN_LABELLED = 8
+MIN_RATE = float(os.environ.get("QUWARTS_REPAIR_MIN_RATE", 0.2))  # at least two net repairs in ten: one is noise (V2a, art)
 _lock = threading.Lock()
 
 
@@ -130,7 +131,7 @@ class Repairer:
         for a in attrs:
             col = f"{table}.{a}"
             rate = self.rates.get(col)
-            if rate is None or rate != rate or rate <= 0:
+            if rate is None or rate != rate or rate < MIN_RATE:
                 continue
             for d, p in docs.items():
                 if d in self.labels.get(col, {}):
