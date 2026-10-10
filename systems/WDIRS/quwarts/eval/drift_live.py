@@ -1258,14 +1258,27 @@ def bar(done: int, total: int, width: int = 20) -> str:
     return "[" + "#" * k + "-" * (width - k) + f"] {done}/{total}"
 
 
-def benchu_stream(corpus: str) -> list[str]:
-    """Bench-U's queries in file order: Select, Filter, Join, Agg, Mixed, each file by query number."""
-    import re
+BENCHU_DATASET = {"cspaper": "CSPaper", "player": "Player", "art": "Art", "med": "Med", "legal": "Legal", "finan": "Finan"}
 
-    pat = re.compile(r"^attr:(Select|Filter|Join|Agg|Mixed)/([^#]+)#(\d+):")
-    order = ("Select", "Filter", "Join", "Agg", "Mixed")
-    ids = [q for q in R.context(corpus).catalog if pat.match(q)]
-    return sorted(ids, key=lambda q: (order.index(pat.match(q).group(1)), pat.match(q).group(2), int(pat.match(q).group(3))))
+
+def benchu_stream(corpus: str) -> list[str]:
+    """Bench-U's queries (Query/<Dataset>/{Select,Filter,Join,Agg,Mixed}/*.sql, split as its preprocessor splits them)
+    in file order, added to the corpus's catalogue under ids ``benchu:<Task>/<file>#<n>`` (the drift catalogue holds
+    only its Agg and Mixed queries). The context is cached per process, so the stream sees them."""
+    import sqlglot
+
+    ctx = R.context(corpus)
+    ids = []
+    base = R.RESULTS.parent / "Query" / BENCHU_DATASET[corpus]
+    for task in ("Select", "Filter", "Join", "Agg", "Mixed"):
+        for f in sorted((base / task).glob("*.sql")):
+            for i, stmt in enumerate(sqlglot.parse(f.read_text(encoding="utf-8"), error_level="ignore"), start=1):
+                if stmt is None:
+                    continue
+                qid = f"benchu:{task}/{f.stem}#{i}"
+                ctx.catalog[qid] = stmt.sql()
+                ids.append(qid)
+    return ids
 
 
 def plan(corpus: str, which: str, axes: list[str]) -> list[tuple[str, Build | None, list[str] | None]]:
