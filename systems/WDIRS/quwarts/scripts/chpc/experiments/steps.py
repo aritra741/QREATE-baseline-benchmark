@@ -526,7 +526,7 @@ def v2(corpus: str, variant: str = "", off: str = "", repair: bool = True, level
                else [f"{root}/{corpus}/streams/fixed4-attribute_pool_{level}.jsonl"])
     return {"id": sid, "lane": lane, "retries": 1, "deps": ["G0-prompt-guard"],
             "cmd": PRE + f"python ../../{EXP}/clone.py --mode {'policy' if budget else 'replay'} --corpus {corpus} --root {root} --scratch {scratch} && "
-                   + server("main") + (server("qwen32b") if repair else "") + env
+                   + server("main") + ('(eval "$(bash ../../%s/ensure_server.sh qwen32b)") && ' % EXP if repair else "") + env  # the stronger reader's server up, its host NOT exported (repair.py reads the server file)
                    + f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams {streams} --axes attribute_pool --deadline 0 --workers 8",
             "outputs": outputs}
 

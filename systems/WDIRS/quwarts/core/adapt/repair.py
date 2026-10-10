@@ -73,6 +73,10 @@ class Repairer:
     def available(self) -> bool:
         return bool(self.labels) and self.srv is not None
 
+    def labelled_docs(self, table: str, attrs) -> set:
+        """The labelled sample's documents for these columns (read with the column, so the estimate can be made)."""
+        return {d for a in attrs for d in self.labels.get(f"{table}.{a}", {})}
+
     def _ask(self, text: str, f: FieldSpec, meta: dict) -> dict:
         prompt = render_prompt(truncate(text, int(self.srv["context"]) - 1500), [f], None)
         sha = hashlib.sha256(prompt.encode()).hexdigest()
@@ -94,10 +98,11 @@ class Repairer:
         col = f"{table}.{a}"
         if col in self.rates:
             return {"rate": self.rates[col], "cached": True}
-        labelled = {d: g for d, g in self.labels.get(col, {}).items() if d in docs}
+        labelled = {d: g for d, g in self.labels.get(col, {}).items() if d in docs and d in served}
         if len(labelled) < MIN_LABELLED:
-            self.rates[col] = float("nan")
-            return {"rate": None, "reason": f"{len(labelled)} labelled documents"}
+            if not self.labels.get(col):
+                self.rates[col] = float("nan")  # no sample for this column: never
+            return {"rate": None, "reason": f"{len(labelled)} labelled documents read so far"}
         texts = {d: read_document(docs[d]) for d in labelled}
         fixes = breaks = 0
         calls = []

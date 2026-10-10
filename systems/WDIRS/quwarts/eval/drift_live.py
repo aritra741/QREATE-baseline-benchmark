@@ -1159,7 +1159,7 @@ def _plan_table(self, t: str, seen: dict, fields_seen: dict, stop_at: float) -> 
         vals, used, _ = self._read_group(t, tuple(hurt), docs, specs, stop_at, "frozen:" + ",".join(hurt))
         calls += len(used)
         fills = {a: S.mean(not is_null(vals.get(d, {}).get(a)) for d in docs) for a in hurt}
-        recovered = [a for a in hurt if fills[a] >= 0.75 * stats[f"{t}.{a}"]["fill_alone"]]
+        recovered = [a for a in hurt if fills[a] >= 0.75 * stats[f"{t}.{a}"]["fill_alone"] - 1e-9]
         narrow = ([recovered] if len(recovered) > 1 else [[a] for a in recovered]) + [[a] for a in hurt if a not in recovered]
         for d, v in vals.items():
             for a in recovered:
@@ -1202,7 +1202,10 @@ def _planner_patch(self, missing: dict, scope: dict, seen: dict, fields_seen: di
                  "probe_calls": plan["probe"]["calls"], "planned_at": plan["planned_at"], "repair": {}}
         for g in plan["groups"]:
             attrs = tuple(g["attributes"])
-            docs = [d for d in scope[t] if any(d not in self.mat.get((t, a), set()) for a in attrs)]
+            wanted = set(scope[t])
+            if self.repairer is not None and self.repairer.available():
+                wanted |= self.repairer.labelled_docs(t, attrs) & set(ctx.names[t])  # the sample is read with the column
+            docs = [d for d in sorted(wanted) if any(d not in self.mat.get((t, a), set()) for a in attrs)]
             if not docs:
                 continue
             vals, used, by = self._read_group(t, attrs, docs, fields, stop_at, "frozen:" + ",".join(attrs))
