@@ -553,8 +553,9 @@ enumerate; only 5 lack a small vocabulary the prompt does not state. Label colla
 passage to a declared label, which is what sensitivity measures; declaring the vocabulary can fix only the few columns
 where none exists. We ran it on those five. Where the column is single-valued and its labels are forms of a stated
 fact, declaring them works: artists' century goes from 0.20 to 0.38 correct and the six queries grouping by it from
-0.22 to 0.35; legal's party status and year lift the corpus from 0.170 to 0.269 and the seven grouping queries from
-0.17 to 0.32, none down, because filters now match the form the queries compare with. The fate of the rows says what
+0.22 to 0.35; legal's party status and year lift the corpus from 0.170 to 0.269 (0.270 in a second run) and the seven grouping
+queries from 0.17 to 0.32, none down, because filters now match the form the queries compare with; on artists the
+gain replicates too (0.275 and 0.279). The fate of the rows says what
 a vocabulary does: artists' "own label in another form" falls from 50% to 6%, exact rises from 27% to 52%, and merged
 rises from 23% to 43%, since once the forms agree the model's choice between '20th' and '19th-20th' is exposed as a
 judgment. Where the column is a list, listing allowed values invites selection: medical's two contracted list columns

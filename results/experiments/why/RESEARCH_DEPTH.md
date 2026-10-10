@@ -643,3 +643,8 @@ the article plus the lists' prompt at the whole costs 10% more tokens than one p
 dates: an accuracy decision, not a cost one, like I5). *I6rep on artists:* the contract's gain replicates (0.279
 against the first run's 0.275, recorded 0.256; century 0.376 against 0.382; the six grouping queries 0.392 against
 0.350), so the +0.02 on artists is not sampling.
+
+**I6rep on legal (2026-10-09 22:50).** The second run of the legal contract scores 0.270 against the first's 0.269
+(recorded 0.170); the seven grouping queries 0.320 against 0.315; `defendant_current_status` 0.474 against 0.479,
+`judgment_year` 0.967 against 0.963. The +0.10 is the contract, not sampling: declaring the forms a workload
+compares with closes the literal gap on the columns it filters and groups by.
