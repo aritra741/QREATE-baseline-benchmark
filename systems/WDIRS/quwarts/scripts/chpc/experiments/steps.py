@@ -507,3 +507,36 @@ STEPS += [{"id": "I1-position", "lane": "gpu", "retries": 1,
            "cmd": PRE + server("main") + " && ".join(f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen7b --workers 4" for c in CORPORA)
                   + " && python -m quwarts.eval.exp_intervene analyze && touch $OLDPWD/results/experiments/I1-context/position_complete",
            "outputs": ["results/experiments/I1-context/position_complete"]}]
+
+
+# ------------------------------------------------------------------------------- v2: the catalogue planner
+# SYSTEM_PLAN.md. The full system (with second looks on the 32B, so on the first job's lane where both servers run)
+# and its ablations (no stronger reader needed: the second job's lane) at 100% drift; then levels 0/50 and budgets.
+def v2(corpus: str, variant: str = "", off: str = "", repair: bool = True, level: str = "100", lane: str = "gpu",
+       budget: bool = False) -> dict:
+    name = "V2" + (f"-{variant}" if variant else "") + ("-budget" if budget else "")  # budgets: a policy clone of their own
+    sid = f"{name}-{corpus}" + (f"-L{level}" if level != "100" else "")
+    root, scratch = f"results/experiments/{name}/live", f"{SCRATCH}/{name}"
+    env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_PLANNER=catalogue "
+           + ("" if budget else f"QUWARTS_LIVE_ONLY=fixed4-attribute_pool/{level} ")
+           + (f"QUWARTS_PLANNER_OFF={off} " if off else "")
+           + (f"QUWARTS_REPAIR_LABELS=$OLDPWD/results/experiments/V2/labels/{corpus}.json " if repair else ""))
+    streams = "budget" if budget else "fixed"
+    outputs = ([f"{root}/{corpus}/streams/fixed4b{b:03d}-attribute_pool_100.jsonl" for b in I4_BUDGETS] if budget
+               else [f"{root}/{corpus}/streams/fixed4-attribute_pool_{level}.jsonl"])
+    return {"id": sid, "lane": lane, "retries": 1, "deps": ["G0-prompt-guard"],
+            "cmd": PRE + f"python ../../{EXP}/clone.py --mode {'policy' if budget else 'replay'} --corpus {corpus} --root {root} --scratch {scratch} && "
+                   + server("main") + (server("qwen32b") if repair else "") + env
+                   + f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams {streams} --axes attribute_pool --deadline 0 --workers 8",
+            "outputs": outputs}
+
+
+V2_ORDER = ["cspaper", "player", "art", "med", "legal"]
+STEPS += [v2(c) for c in V2_ORDER]                                                   # the system, 100% drift
+STEPS += [v2(c, "ablate-unit", off="unit", repair=False, lane="gpu2") for c in V2_ORDER]      # recorded batching, probe kept
+STEPS += [v2(c, "ablate-windows", off="windows", repair=False, lane="gpu2") for c in ("cspaper", "player", "art")]
+STEPS += [v2(c, "ablate-repair", repair=False, lane="gpu2") for c in V2_ORDER]      # no stronger reader
+STEPS += [v2(c, level="0") for c in V2_ORDER]                                       # no drift: the build alone
+STEPS += [v2(c, "rep1") for c in ("cspaper", "player")]                             # replicates (noise floor)
+STEPS += [v2(c, budget=True) for c in V2_ORDER]                                     # budget curve (fcfs, 25% and 50%)
+STEPS += [v2(c, level="50") for c in V2_ORDER]
