@@ -330,12 +330,13 @@ def label_fate(db: Path, t: str, a: str, gold_t: dict) -> dict | None:
             "labels_served": len(by)}
 
 
-def i6() -> dict:
-    """The label contract (I6): the contracted columns' label fate and the stream score against the recorded run."""
+def i6(exp: str = "I6-contract") -> dict:
+    """The label contract (I6): the contracted columns' label fate and the stream score against the recorded run.
+    ``exp``: the run's folder (a replicate, I6rep-contract, uses the same contract files)."""
     from quwarts.eval.exp_context import fields_of
 
-    root = EXP / "I6-contract" / "live"
-    out = {"corpora": {}}
+    root = EXP / exp / "live"
+    out = {"corpora": {}, "exp": exp}
     distinct = json.loads((EXP / "why" / "groups.json").read_text())["distinct"]
     for c in CORPORA:
         cf = EXP / "I6-contract" / f"{c}.json"
@@ -375,19 +376,20 @@ def i6() -> dict:
                           "up": sum(r1[q] > r0[q] + 1e-9 for q in common), "down": sum(r1[q] < r0[q] - 1e-9 for q in common)}
         out["corpora"][c] = {"recorded": rec, "contract": new, "complete": new is not None and rec is not None and new["queries"] == rec["queries"],
                              "columns": cols, "grouping_queries": paired}
-    return save("i6", out)
+    return save("i6" if exp == "I6-contract" else exp.lower().replace("-", "_"), out)
 
 
-def i7() -> dict:
+def i7(exp: str = "I7-windows") -> dict:
     """Per-column read windows (I7): the stream's score and tokens against the recorded run and the first-window
-    ablation (E13-head), and per-column accuracy against the window share."""
+    ablation (E13-head), and per-column accuracy against the window share. ``exp``: the run's folder, which also
+    holds the share files (I7b-windows: the rule with its exemptions)."""
     from quwarts.eval.exp_context import fields_of
     from quwarts.eval.exp_open import column_values, lookup
 
-    root = EXP / "I7-windows" / "live"
-    out = {"corpora": {}}
+    root = EXP / exp / "live"
+    out = {"corpora": {}, "exp": exp}
     for c in CORPORA:
-        wf = EXP / "I7-windows" / f"{c}.json"
+        wf = EXP / exp / f"{c}.json"
         if not wf.exists() or not json.loads(wf.read_text()):
             continue
         shares = json.loads(wf.read_text())
@@ -426,7 +428,7 @@ def i7() -> dict:
                 summary["spearman_share_vs_delta"] = round(spearman([x["share"] for x in done], [x["delta"] for x in done]), 3) if len(done) > 4 else None
         out["corpora"][c] = {"recorded": rec, "head": head, "windows": new, "complete": new is not None and rec is not None and new["queries"] == rec["queries"],
                              "summary": summary, "columns": cols}
-    return save("i7", out)
+    return save("i7" if exp == "I7-windows" else exp.lower().replace("-", "_"), out)
 
 
 def i5() -> dict:
@@ -508,8 +510,12 @@ def i5() -> dict:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("what", choices=["i3", "i4", "i5", "i6", "i7"])
+    ap.add_argument("--exp", help="i6/i7: the run's folder under results/experiments (a replicate or variant)")
     a = ap.parse_args(argv)
-    o = {"i3": i3, "i4": i4, "i5": i5, "i6": i6, "i7": i7}[a.what]()
+    if a.what in ("i6", "i7") and a.exp:
+        o = {"i6": i6, "i7": i7}[a.what](a.exp)
+    else:
+        o = {"i3": i3, "i4": i4, "i5": i5, "i6": i6, "i7": i7}[a.what]()
     print(json.dumps({k: v for k, v in o.items() if k not in ("columns", "streams")}, indent=1, default=str)[:6000])
     return 0
 

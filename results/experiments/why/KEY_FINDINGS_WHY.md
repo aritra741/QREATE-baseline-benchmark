@@ -575,7 +575,13 @@ returned the year alone; lists lose where their items sit past the window; and p
 collapse from 0.95 to 0.40, because the window was learned from the few players for whom a count is stated, while
 most players' gold is 0 and the model needs the whole entry to answer 0, otherwise leaving the cell empty. **A window
 can locate a stated value but cannot establish an absence**, so the rule must exempt columns whose values are mostly
-a coded absence and lists whose items scatter.
+a coded absence and lists whose items scatter. With those exemptions the counts return to their recorded accuracy
+and every windowed column stays within 0.07, yet players still lose 0.03: three filtered aggregates over two or
+three rows flip from 1 to 0 on single cells the draft columns' windows changed, so a per-column accuracy within
+0.02 is no safety margin for an aggregate over a narrow filter. And an exemption propagates through grouping: a
+prompt takes the largest share of the columns it asks, so artists' birth date lost its gain as soon as the lists in
+its prompt were exempt. Windows and grouping have to be planned together, and the choice is about accuracy as much
+as cost: a dates-only prompt at a tenth of the article costs 10% more than one prompt and gains 0.25 to 0.41.
 Together with determinacy from ten documents, fill rate per context, grounding rate and the cost lemma, these form a
 per-column catalogue, which is to an LLM-built database what cardinalities and selectivities are to a relational one:
 the statistics a planner needs, computed once, cheaply, and not by a model.

@@ -624,3 +624,22 @@ line is answered differently from the rest*, by up to 0.6 per column, so positio
 30-document test can set (as it set the grouping in I5), and a canonical prompt must fix the order (P2). An
 extraction harness that puts a column first because a query asked for it (DocETL's per-query maps, where the
 requested field heads the list) pays this on every such column.
+
+**I7b, the window rule with its exemptions, and I6rep on artists (2026-10-09 21:33; `WHY/i7b_windows`,
+`WHY/i6rep_contract`).** *Players:* with the two count columns exempt (whole entries again), their accuracy is the
+recorded one, the five windowed columns stay within ±0.07, tokens are 62% of recorded, and the score is still
+0.355 against 0.387 (I7: 0.366). The loss is the same three queries as in I7: filtered aggregates over two or three
+rows (`AVG(draft_pick)` and `SUM(draft_pick)`, `SUM(draft_year)` for one nationality), 1.0 → 0.0, which hinge on
+single cells that the 0.53 and 0.48 windows changed; `draft_pick` 0.70 → 0.68 and `draft_year` 0.78 → 0.77 in
+accuracy. *Per-column accuracy within 0.02 is no safety margin for an aggregate over a filter that keeps three
+rows* (the aggregate finding, again). I7's spurious gain on `fiba_world_cup` queries (+1.5 in summed score while the
+column fell from 0.86 to 0.25) is gone with the exemption, which is why I7b scores lower than I7 although its cells
+are better. *Artists:* exempting the lists took the dates' gain with it: `birth_date` is back to 0.38 (I7: 0.79)
+because its patch prompt also asks `nationality` and `birth_city`, both exempt, and a prompt takes the largest
+share, so the whole article is read again; `death_date` keeps +0.25 (its prompt's columns are all windowed); tokens
+97% of recorded, score unchanged. *Exemptions propagate through grouping*: a column's window applies only when every
+column in its prompt has one, so windows and grouping have to be planned together (a dates-only prompt at a tenth of
+the article plus the lists' prompt at the whole costs 10% more tokens than one prompt and gains 0.25–0.41 on the
+dates: an accuracy decision, not a cost one, like I5). *I6rep on artists:* the contract's gain replicates (0.279
+against the first run's 0.275, recorded 0.256; century 0.376 against 0.382; the six grouping queries 0.392 against
+0.350), so the +0.02 on artists is not sampling.
