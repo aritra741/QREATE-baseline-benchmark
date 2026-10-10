@@ -618,3 +618,6 @@ def v3_benchu(corpus: str) -> dict:
 
 # (not run: the paper keeps its own scoring, so the Bench-U-metric comparison was dropped on 2026-10-10)
 # STEPS += [v3_benchu(c) for c in V2_ORDER]
+
+
+STEPS += [v3("med", "rep1"), v3("legal", "rep1")]  # the noise floor on the two corpora with long documents (WHY_AUDIT.md §7)

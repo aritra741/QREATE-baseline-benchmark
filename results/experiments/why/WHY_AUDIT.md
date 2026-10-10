@@ -198,6 +198,18 @@ against −0.72 for the full corpus) but cannot carry a per-column binary decisi
 documents.* The final system (V3) probes twenty documents, estimates repair rates from twenty labelled cells, and
 routes only with three net repairs; the ten-sample runs are kept as the measurement of this instability.
 
+## 7. Medical: the ablation deltas are not the components' (a limit of the decomposition, and a noise floor)
+
+On medical the planner's three V3 runs (the system, without the item filter, without second looks) score 0.107,
+0.138 and 0.078, yet their final tables, decomposed against the recorded one, score 0.121, 0.118 and 0.128: the
+counterfactual with every change applied reproduces none of the three streams (0 of 43 queries identical). Medical
+patches its two tables at different queries along the stream, so each query's score depends on which table state it
+saw, not on the final table, and the three runs re-read the same documents with the sampling spread of a 7B at
+temperature 0.1 on long list-valued columns. The spread among the runs (0.06) is far above what their final values
+explain (0.01), so on medical the ablation differences belong to run-to-run variance and timing, and the paper must
+report medical with replicates and no per-component claim. A replicate of the system on medical is queued for the
+floor.
+
 ## 4. What this changes in the paper
 
 The root claim gets its mechanism (§2), the repair claim gets its mechanism and a free operator (§3), and the
