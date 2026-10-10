@@ -548,12 +548,14 @@ an invitation to select, and selection is the under-determined part. Papers and 
 ×0.88, players ×0.41 (the first-window ablation: ×0.58), artists ×0.75. Scores: papers 0.1533 → 0.1533, players
 0.387 → 0.366 (−0.021), artists 0.256 → 0.257. Per column the window is a double-edged change of context. *Artists'
 dates improve by a lot:* `birth_date` 0.38 → 0.79 and `death_date` 0.31 → 0.56 when the read stops at a tenth of the
-article, because the first paragraph states them and the rest of the article offers other dates to confuse them
-with (the window removes distractors, the same effect as a narrower prompt). *Lists lose:* `field` 0.13 → 0.03,
+article: the first paragraph states the full date, and the chained read of the whole article returns the year alone
+('1917' against '1917/6/4'), so the window removes both the distractors and the chunk reduction that coarsened the
+value (the same effect as a narrower prompt). *Lists lose:* `field` 0.13 → 0.03,
 `birth_city` 0.39 → 0.28, since items sit beyond the window. *Absence-coded counts collapse:* players'
 `nba_championships` 0.95 → 0.40 and `fiba_world_cup` 0.86 → 0.25. Their windows (0.33, 0.32) were learned from the
 17–18 players for whom a count is stated; for the majority, whose gold is 0 because nothing is stated, the model
-needs the whole entry to answer 0, and a cut entry makes it guess or leave the cell empty. *A window can locate a
+needs the whole entry to answer 0, and with a cut entry it leaves the cell empty (79 of 133 players against 0 before),
+"never null" notwithstanding. *A window can locate a
 stated value but cannot establish an absence*, so the position rule must exempt columns whose gold is mostly a
 coded absence (fill of the stated sample below about a third), and lists whose items scatter. Prediction I7 holds
 on tokens (players about half, others 12–25%) and on where losses sit (lists), fails on players' score by 0.001
