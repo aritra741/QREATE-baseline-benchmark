@@ -92,6 +92,40 @@ Two consequences, both tested today:
   head window at a tenth of the article returned the full date (I7: `birth_date` 0.38 → 0.79). So the date repairs
   the 32B makes are available from the 7B by reading less, not more.
 
+## 2b. Why the first field line is answered differently: conditioning on the content of earlier answers
+
+Papers' `agent_framework` (allowed values Other, Multi-Agent Collaboration, CoT, ToT; gold empty for most papers),
+by what precedes it in the prompt (210 reads per condition in the natural, shuffled, reversed, first and last
+orders):
+
+| what precedes the field | n | empty | 'Other' |
+|---|---|---|---|
+| nothing (the field is first) | 210 | 0.00 | 0.93 |
+| `use_agent` answered 'No' before it | 70 | 1.00 | 0.00 |
+| `use_agent` answered 'Yes' before it | 10 | 0.00 | 0.20 (a framework otherwise) |
+| `use_agent` comes after it | 150 | 0.41 | 0.51 |
+
+The model derives the framework from its own earlier answer when it has one, and falls back to the default label
+when it has none. The same priming holds for filling in general: a field is filled on 81% of documents when at
+least two thirds of the fields before it were filled, on 63% when fewer than a third were. So the position effect
+is sequential conditioning on the *content and fill* of earlier answers, which the flip test of §2 could only see
+as a small forward asymmetry because most flips are the document's. For a planner this is usable: a field that
+depends on another (a framework on whether an agent is used; a count on whether the list is empty) should follow
+it in the prompt, and a derived field should not be asked at all when its parent is known.
+
+## 3b. Why the model merges centuries: a derivable label extracted as a judgment
+
+Artists' `century` ("when the artist was active or influential") has no stated rule. Gold follows the lifespan
+(birth-century to death-century) on 74% of 709 artists; the recorded model agrees with that span on 47%, and the
+model with the declared label list on 28%. Under the contract every merge goes the same way, '19th-20th' or '20th'
+served as '20th-21st' for artists born 1880–1910 who died 1950–1990: the model grounds the label in any century
+the text mentions, including posthumous retrospectives and sales, and the declared list makes the widest label
+available. Computing the century from the birth and death dates the system already extracts would match gold on
+74% of rows against the model's 47%: *a derived attribute extracted as a judgment is a label-collapse mechanism, and
+the repair is a rule, not a reader.* The planner should derive such columns (century, age, decade) from their
+parents instead of asking for them, which the usage phrase already marks (age is defined from the dates in the
+schema).
+
 ## 4. What this changes in the paper
 
 The root claim gets its mechanism (§2), the repair claim gets its mechanism and a free operator (§3), and the
