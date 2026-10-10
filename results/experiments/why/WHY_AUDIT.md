@@ -147,13 +147,26 @@ empty 0.17 → 0.45, fact 0.19 → 0.27; query score 0.153 → 0.138):
 | wrong stayed wrong (other wrong fact) | −0.004 | −0.005 | −0.005 | 0 |
 
 Cells that became right lift the group-by score by 0.009; cells that turned from right to wrong cost 0.032, three
-and a half times as much, although the second set is smaller. *The asymmetry is the scorer's and the queries'*: a
-cell that goes wrong on a grouping or filter column leaves its true group and joins a false one, two errors in the
-result; a cell that becomes right adds one row where it belongs. A run that raises cell accuracy by turning many
-empties into values of which some are wrong therefore loses query score, which is what happened. For a system this
-says that a planner must weigh the asymmetry: an empty cell is cheaper than a wrong one for grouping and filtering,
-and restraint (the item filter, the "never null" absence value) is worth more than fill. The same decomposition on
-the other runs follows (players, both planner runs; papers under the first rules).
+and a half times as much, although the second set is smaller. The same decomposition on the first-rules run (score
+0.153 → 0.217, the counterfactual with every change reproducing 0.214) shows the other face of the same mechanism:
+
+| changed cells (first-rules run) | GROUP BY | COUNT | filter |
+|---|---|---|---|
+| became right (other fact) | +0.043 (12 queries moved) | +0.052 | +0.041 |
+| right became wrong (other fact) | +0.006 | +0.008 | +0.007 |
+| wrong stayed wrong (another wrong fact) | +0.009 | +0.011 | +0.011 |
+| empty → value, right / wrong | +0.004 / −0.006 | | |
+
+Here cells that went from right to wrong did not hurt, and cells that stayed wrong but changed label helped. *A
+GROUP BY or COUNT query scores the distribution of labels over rows, not the cells*: a change helps when it moves a
+row toward the group sizes gold has, whatever the cell's own correctness, and hurts when it moves a row out of a
+true group into a false one (two errors in the result for one cell). In the refined run the changes were of the
+second kind and per-cell accuracy rose while the score fell; in the first-rules run the second looks on
+`reasoning_depth` moved 59 rows' labels toward gold's mix and the score rose by more than the cells' accuracy did.
+For a system this says two things: an empty cell is cheaper than a wrong one on a grouping or filter column, so
+restraint (the item filter, the "never null" absence value) is worth more than fill; and a planner that could see
+a column's label distribution (the probe sees it on ten documents) could predict which columns' second looks pay
+at the query level. The decomposition on players, both runs, follows.
 
 ## 6. Why the planner's score moved 0.217 → 0.138 on papers between two runs: decisions on ten samples flip
 
