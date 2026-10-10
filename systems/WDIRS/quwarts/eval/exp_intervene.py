@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import random
 import statistics as S
 import threading
@@ -46,6 +47,7 @@ MODELS = {"qwen7b": ("main", "qwen2.5:7b-instruct"), "qwen32b": ("qwen32b", "qwe
 KINDS = ("alone", "plus2", "plus6", "natural", "paraphrase")
 ORDER_KINDS = ("natural_shuffled", "natural_reversed")  # Q4: the natural set in another order (one order per table)
 POSITION_KINDS = ("natural_first", "natural_last")  # layout rule: the focal column first or last in its natural group
+PREDICATE_KIND = "with_predicate"  # Bench-U opening D: the column alone, with its query's predicate shown in the prompt
 MAX_DOC_TOKENS = 9000  # every context then fits the 32B server's 16k window with room for the fields and the answer
 SYSTEM = "Extract only facts stated in the document. Return JSON."  # core/llm/ollama.DEFAULT_SYSTEM
 _lock = threading.Lock()
@@ -133,6 +135,28 @@ def sample_docs(corpus: str, ctx, table: str, gold_t: dict, n: int) -> list[str]
     return ok[:n]
 
 
+_PRED: dict = {}
+
+
+def predicate_for(ctx, table: str, attr: str):
+    """A test query whose predicate restricts the column: (sql, qid, conjunct), or None. The first in catalog order."""
+    from quwarts.core.adapt.controller import pushdown_conjuncts
+
+    key = (ctx.spec.name, table, attr)
+    if key not in _PRED:
+        found = None
+        for q, sql in ctx.catalog.items():
+            try:
+                cj = pushdown_conjuncts(sql, table, {attr})
+            except Exception:
+                cj = None
+            if cj and attr in cj:
+                found = (sql, q, cj)
+                break
+        _PRED[key] = found
+    return _PRED[key]
+
+
 def plan(corpus: str, n_docs: int) -> list[dict]:
     """Every prompt to send: (table, doc, kind, focal column, attributes), the natural group once per (table, doc)."""
     ctx = R.context(corpus)
@@ -165,6 +189,10 @@ def plan(corpus: str, n_docs: int) -> list[dict]:
                 others = [x for x in others_all if x != a]
                 plus2 = sorted([a] + rng.sample(others, min(2, len(others))))
                 plus6 = sorted([a] + rng.sample(others, min(6, len(others))))
+                pred = predicate_for(ctx, t, a)
+                if pred:
+                    jobs.append({"table": t, "doc": d, "kind": PREDICATE_KIND, "focal": a, "attributes": [a],
+                                 "sql": pred[0], "qid": pred[1], "conjunct": pred[2]})
                 if a in nat0 and len(nat0) > 1:
                     rest = [x for x in nat0 if x != a]
                     jobs.append({"table": t, "doc": d, "kind": "natural_first", "focal": a, "attributes": [a] + rest})
@@ -214,7 +242,7 @@ def run(corpus: str, model: str, n_docs: int, workers: int, limit: int | None) -
             if j["kind"] == "paraphrase" and j.get("description"):
                 f = replace(f, description=j["description"])
             specs.append(f)
-        prompt = render_prompt(text_of(t, j["doc"]), specs, None)
+        prompt = render_prompt(text_of(t, j["doc"]), specs, j.get("sql") if j["kind"] == PREDICATE_KIND else None)
         r = chat(srv["host"], model_name, prompt, srv["context"])
         row = {**j, "model": model_name, "prompt_sha": hashlib.sha256(prompt.encode()).hexdigest()[:16],
                "prompt_count": count_tokens(prompt), **r}
@@ -289,6 +317,18 @@ def analyze() -> dict:
                         e["order_change_" + ok.split("_")[1]] = round(S.mean(vnorm(x) != vnorm(y) for x, y in both), 3)
                         have = [(kinds[ok], g) for kinds, g in items if ok in kinds]
                         e["accuracy"][ok] = round(S.mean(correct(v, g) for v, g in have), 3)
+                if PREDICATE_KIND in {k for kinds, _ in items for k in kinds}:  # Bench-U opening D
+                    both = [(kinds["alone"], kinds[PREDICATE_KIND], g) for kinds, g in items if "alone" in kinds and PREDICATE_KIND in kinds]
+                    if len(both) >= 10:
+                        consts = {vnorm(x) for x in re.findall(r"'([^']*)'", _PRED.get((c, t, a), ("", "", ""))[2] or "")} if _PRED.get((c, t, a)) else set()
+                        e["predicate"] = {
+                            "docs": len(both), "constants": sorted(consts)[:6],
+                            "accuracy_alone": round(S.mean(correct(x, g) for x, _, g in both), 3),
+                            "accuracy_with_predicate": round(S.mean(correct(y, g) for _, y, g in both), 3),
+                            "changed": round(S.mean(vnorm(x) != vnorm(y) for x, y, _ in both), 3),
+                            "moved_onto_a_constant": round(S.mean(vnorm(y) in consts and vnorm(x) not in consts for x, y, _ in both), 3) if consts else None,
+                            "moved_onto_a_constant_wrongly": round(S.mean(vnorm(y) in consts and vnorm(x) not in consts and not correct(y, g) for x, y, g in both), 3) if consts else None,
+                            "empty_alone": round(S.mean(is_null(x) for x, _, _ in both), 3), "empty_with_predicate": round(S.mean(is_null(y) for _, y, _ in both), 3)}
                 for pk in POSITION_KINDS:  # layout rule: the column first or last among the same fields
                     have = [(kinds[pk], g) for kinds, g in items if pk in kinds]
                     if len(have) >= 10:
@@ -324,6 +364,17 @@ def analyze() -> dict:
         m["columns_better_alone_than_natural"] = sum(r["accuracy"].get("alone", 0) > r["accuracy"].get("natural", 0) + 0.05 for r in rows)
         m["columns_better_natural_than_alone"] = sum(r["accuracy"].get("natural", 0) > r["accuracy"].get("alone", 0) + 0.05 for r in rows)
         # Q4 summary: order-only changes against set changes
+        pr = [r for r in rows if "predicate" in r]
+        if len(pr) >= 5:
+            m["predicate_effect"] = {
+                "columns": len(pr),
+                "mean_changed": round(S.mean(r["predicate"]["changed"] for r in pr), 3),
+                "mean_accuracy": {"alone": round(S.mean(r["predicate"]["accuracy_alone"] for r in pr), 3),
+                                  "with_predicate": round(S.mean(r["predicate"]["accuracy_with_predicate"] for r in pr), 3)},
+                "mean_moved_onto_a_constant": round(S.mean(r["predicate"]["moved_onto_a_constant"] for r in pr if r["predicate"]["moved_onto_a_constant"] is not None), 3),
+                "mean_moved_onto_a_constant_wrongly": round(S.mean(r["predicate"]["moved_onto_a_constant_wrongly"] for r in pr if r["predicate"]["moved_onto_a_constant_wrongly"] is not None), 3),
+                "spearman_changed_vs_sensitivity": round(spearman([r["predicate"]["changed"] for r in pr], [r["mean_sensitivity"] for r in pr if "mean_sensitivity" in r]), 3) if all("mean_sensitivity" in r for r in pr) and len(pr) > 4 else None,
+                "by_kind": {k: round(S.mean(r["predicate"]["changed"] for r in pr if r["kind"] == k), 3) for k in ("number", "yes/no", "category", "list", "free text") if any(r["kind"] == k for r in pr)}}
         pc = [r for r in rows if all(k in r["accuracy"] for k in POSITION_KINDS) and "natural" in r["accuracy"]]
         if len(pc) >= 5:
             d_acc = [r["accuracy"]["natural_last"] - r["accuracy"]["natural_first"] for r in pc]

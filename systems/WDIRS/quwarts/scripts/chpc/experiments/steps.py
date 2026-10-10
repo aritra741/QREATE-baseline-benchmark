@@ -589,3 +589,11 @@ STEPS += [v3(c, "rep1") for c in ("cspaper", "player", "art")]
 STEPS += [v3(c, budget=True) for c in V2_ORDER]
 STEPS += [v3(c, level="50") for c in V2_ORDER]
 STEPS += [v3(c, level="0") for c in V2_ORDER]
+
+
+# Bench-U opening D (BENCHU_OPPORTUNITIES.md): the column alone with its query's predicate shown ("predicate
+# leakage"), 7B, the intervention's thirty documents; on the second job's lane after the replays.
+STEPS += [{"id": "I1-predicate", "lane": "gpu2", "retries": 1,
+           "cmd": PRE + server("main") + " && ".join(f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen7b --workers 4" for c in CORPORA)
+                  + " && python -m quwarts.eval.exp_intervene analyze && touch $OLDPWD/results/experiments/I1-context/predicate_complete",
+           "outputs": ["results/experiments/I1-context/predicate_complete"]}]
