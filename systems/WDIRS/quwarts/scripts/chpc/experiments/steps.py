@@ -587,8 +587,9 @@ STEPS += [v3(c, "ablate-unit", off="unit", repair=False, lane="gpu2") for c in V
 STEPS += [v3(c, "ablate-itemfilter", off="itemfilter", lane="gpu") for c in V2_ORDER]
 STEPS += [v3(c, "rep1") for c in ("cspaper", "player", "art")]
 STEPS += [v3(c, budget=True) for c in V2_ORDER]
-STEPS += [v3(c, level="50") for c in V2_ORDER]
-STEPS += [v3(c, level="0") for c in V2_ORDER]
+# levels on the second job's lane (its 7B server; the 32B server is a localhost port both jobs reach), 2026-10-10 16:10
+STEPS += [v3(c, level="50", lane="gpu2") for c in V2_ORDER]
+STEPS += [v3(c, level="0", lane="gpu2") for c in V2_ORDER]
 
 
 # Bench-U opening D (BENCHU_OPPORTUNITIES.md): the column alone with its query's predicate shown ("predicate
@@ -620,4 +621,4 @@ def v3_benchu(corpus: str) -> dict:
 # STEPS += [v3_benchu(c) for c in V2_ORDER]
 
 
-STEPS += [v3("med", "rep1"), v3("legal", "rep1")]  # the noise floor on the two corpora with long documents (WHY_AUDIT.md §7)
+STEPS += [v3("med", "rep1", lane="gpu2"), v3("legal", "rep1", lane="gpu2")]  # the noise floor on the two corpora with long documents (WHY_AUDIT.md §7)
