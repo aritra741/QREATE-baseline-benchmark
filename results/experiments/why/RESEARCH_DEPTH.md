@@ -522,3 +522,10 @@ spends 2.8–6.4× the supplement tokens, `chosen` 1.5–4.7×. The decision thi
 and consistency, harvest the per-column gains through normalization where they are form (a view rule maps 'Justice
 Flick' to 'Flick' for nothing), and read a column alone only when its emptiness or selection matters to a query and
 the document is short.
+
+**I3c on artists (2026-10-09 19:05).** The determined-context rule (up to four draws until a context fills half the
+documents) scores 0.191 against per-query DocETL's 0.188 (18 queries better, 23 worse) at 26,075 calls against 55,860
+and 33M tokens against 74M. 18 of 24 columns settle on their first context, 2 on the second, 1 on the third, 3 never
+reach half fill in four. Across the three corpora the rule holds per-query accuracy within 0.01 (papers −0.009,
+players +0.011, artists +0.004) at 13–45% of the tokens; the reduction is smallest on artists because its documents
+are short (the call, not the document, dominates) and the rule's extra draws cost whole passes over 1,000 documents.

@@ -110,17 +110,17 @@ def second_looks():
 
 def frozen_docetl():
     d = json.loads((EXP / "WHY" / "i3" / "summary.json").read_text())
-    variants = [("original", None, "Per-query (original)"), ("frozen", "frozen", "Frozen on the first context"),
-                ("frozen2", "frozen2", "Frozen on the better of two"), ("frozen2_rep", "frozen2_rep", "Same, second run"),
-                ("frozen4", "frozen4", "Frozen on a determined context")]
-    corpora = [("cspaper", "Research papers"), ("player", "Basketball players")]
-    fig, axes = plt.subplots(1, 2, figsize=(10.5, 3.9))
+    variants = [("original", None, "Per query\n(original)"), ("frozen", "frozen", "Frozen on\nfirst context"),
+                ("frozen2", "frozen2", "Frozen on\nbetter of two"), ("frozen2_rep", "frozen2_rep", "Same,\nsecond run"),
+                ("frozen4", "frozen4", "Frozen on\ndetermined\ncontext")]
+    corpora = [("cspaper", "Research papers"), ("player", "Basketball players"), ("art", "Artists")]
+    fig, axes = plt.subplots(1, 3, figsize=(14, 3.9), gridspec_kw={"width_ratios": [1.3, 1.3, 0.7]})
     colors = [MUTED, ORANGE, BLUE, BLUE, AQUA]
     for ax, (c, label) in zip(axes, corpora):
         vals, calls, names, cols = [], [], [], []
         for i, (key, var, name) in enumerate(variants):
             if var is None:
-                src = d.get("frozen", {}).get("corpora", {}).get(c)
+                src = d.get("frozen", {}).get("corpora", {}).get(c) or d.get("frozen4", {}).get("corpora", {}).get(c)
                 if not src:
                     continue
                 vals.append(src["original"])
@@ -136,7 +136,7 @@ def frozen_docetl():
         bars = ax.bar(range(len(vals)), vals, color=cols, width=0.6)
         for b, v, k in zip(bars, vals, calls):
             ax.annotate(f"{v:.3f}\n{k / 1000:.1f}k calls", (b.get_x() + b.get_width() / 2, v), xytext=(0, 3), textcoords="offset points", ha="center", fontsize=8.5)
-        ax.set_xticks(range(len(names)), [n.replace(" on ", "\non ").replace("(original)", "\n(original)").replace("Same, ", "Same,\n") for n in names], fontsize=8)
+        ax.set_xticks(range(len(names)), names, fontsize=8)
         ax.set_ylim(0, max(vals) * 1.35)
         ax.set_ylabel("Mean query score")
         ax.set_title(f"{label}", fontsize=10, loc="left", color=INK)

@@ -467,7 +467,10 @@ Freezing instead on the better of a column's first two contexts, chosen without 
 fills, recovers it: **on players DocETL then scores 0.145 to 0.164 in two runs against its own 0.108, with join
 queries at 0.029 to 0.055 against 0.022 and about 60 queries better against 35 worse, at a twelfth of the calls**; on
 papers 0.101 against 0.122 at an eighth. Keeping drawing contexts until one fills half the documents (at most four)
-gives 0.113 on papers at a fifth of the calls and 0.119 on players. The two runs differ because DocETL sets no
+gives 0.113 on papers at a fifth of the calls, 0.119 on players, and on artists 0.191 against 0.188 at 47% of the
+calls (45% of the tokens), where 18 of 24 columns are determined by their first context and three are not after
+four draws; so the determined-context rule holds per-query accuracy within 0.01 on three corpora at 13% to 45% of the
+tokens. The two runs differ because DocETL sets no
 temperature and so samples its answers: the same prompt on the same documents returns the same value only 69% to
 100% of the time, which is a third reason a stored value is not "the" value, besides the prompt's context and the
 model, and it applies to the original per-query run as well. The gain is largest where queries join and group and
@@ -477,7 +480,7 @@ across tables, is worth more to a join or a GROUP BY than a higher accuracy that
 
 ![Figure 15. DocETL's mean query score and number of model calls on the same queries: per-query extraction, every
 column frozen on its first context, frozen on the better of its first two contexts (two runs), and frozen on a
-determined context.](figures/w11_frozen_docetl.png){width=6.5in}
+determined context; artists with the determined-context rule only.](figures/w11_frozen_docetl.png){width=6.5in}
 
 Basketball players is the only corpus with joins, so the join part rests on one corpus.
 
