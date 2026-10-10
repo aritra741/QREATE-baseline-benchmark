@@ -498,7 +498,8 @@ STEPS += [stream_with("I7b-windows", "player", "QUWARTS_WINDOW_SHARES=$OLDPWD/re
           stream_with("I6rep-contract", "art", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/art.json"),
           stream_with("I7b-windows", "art", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7b-windows/art.json"),
           stream_with("I6rep-contract", "legal", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/legal.json")]
-STEPS += [{"id": f"I1-qwen32b-{c}", "lane": "gpu32", "retries": 1, "deps": ["I2-secondlook"],
+STEPS += [{"id": f"I1-qwen32b-{c}", "lane": "gpu32", "retries": 1, "deps": ["I2-secondlook"], "skip_if_outputs": False,
+           # (legal has a partial journal from an earlier hand run; the run resumes from it, so the step must not be skipped)
            "cmd": PRE + server("qwen32b") + f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen32b --docs 15 --workers 4",
            "outputs": [f"results/experiments/I1-context/qwen32b/{c}/reads.jsonl"]}
           for c in ("med", "legal")]
