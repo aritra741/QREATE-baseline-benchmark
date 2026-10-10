@@ -320,3 +320,76 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def second_look_columns(corpus: str, min_cells: int = 20) -> dict:
+    """Which columns' second looks pay at the query level, and whether that is predicted by the per-cell repair rate
+    or by how much the stronger reader's label distribution moves toward gold's. For every column with enough
+    second looks in the I2 pool, the recorded table with that column's cells replaced by the 32B's values is scored
+    on every test query; the gain is compared with the column's net repair rate and its distributional gain."""
+    from collections import Counter
+
+    from quwarts.core.represent import Config, build
+    from quwarts.core.router.executor import commit_value
+
+    ctx = R.context(corpus)
+    fields = fields_of(corpus)
+    gold = gold_by_doc(corpus)
+    design = json.loads((EXP.parent / "drift_live_ollama" / corpus / "fixed4_attribute_pool_design.json").read_text())
+    tests = list(dict.fromkeys(design["test"]))
+    pool = defaultdict(dict)
+    for line in (EXP / "I2-secondlook" / "reads.jsonl").read_text().splitlines():
+        if not line.strip():
+            continue
+        r = json.loads(line)
+        if r["corpus"] == corpus and r["doc"] not in pool[r["column"]]:
+            pool[r["column"]][r["doc"]] = r
+    out_dir = SCRATCH / "secondlooks" / corpus
+    out_dir.mkdir(parents=True, exist_ok=True)
+    base = base_db(corpus, 100)
+    scorer = CauseScorer(corpus, out_dir / "scores.json")
+    workload = dict(ctx.catalog)
+
+    def score(db: Path, name: str) -> float:
+        view = out_dir / f"{name}.view.db"
+        build(db, view, ctx.spec, fields, workload, Config(t0=True))
+        items = [(q, R.digest(view, ctx.catalog[q]), view) for q in tests]
+        scorer.run(items, lambda: False)
+        scorer.save()
+        return S.mean(scorer.get("benchmark", q, dig) or 0 for q, dig, _ in items)
+
+    rec_db = out_dir / "recorded.db"
+    shutil.copy2(base, rec_db)
+    rec = score(rec_db, "recorded")
+    rows = []
+    for col, cells in sorted(pool.items()):
+        if len(cells) < min_cells or col not in fields:
+            continue
+        t, attr = col.split(".", 1)
+        new = {str(d): commit_value(r["second"], fields[col]) for d, r in cells.items()}
+        db = out_dir / f"{attr}.db"
+        shutil.copy2(base, db)
+        write_column(db, t, attr, new)
+        sc = score(db, attr)
+        fixes = sum((not correct(r["served"], r["gold"])) and correct(r["second"], r["gold"]) for r in cells.values())
+        breaks = sum(correct(r["served"], r["gold"]) and not correct(r["second"], r["gold"]) for r in cells.values())
+        # distributional gain: total-variation distance to gold's label histogram, served against second, on the pool
+        def tv(vals):
+            n = len(vals)
+            a, g = Counter(ntext(v) for v in vals), Counter(ntext(r["gold"]) for r in cells.values())
+            return sum(abs(a[k] / n - g[k] / n) for k in set(a) | set(g)) / 2
+        rows.append({"column": col, "kind": kind_of(fields[col]), "cells": len(cells), "query_gain": round(sc - rec, 4),
+                     "net_repair_rate": round((fixes - breaks) / len(cells), 3), "fixes": fixes, "breaks": breaks,
+                     "tv_served": round(tv([r["served"] for r in cells.values()]), 3), "tv_second": round(tv([r["second"] for r in cells.values()]), 3)})
+        rows[-1]["distributional_gain"] = round(rows[-1]["tv_served"] - rows[-1]["tv_second"], 3)
+        print(f"  {col:34s} cells={len(cells):4d} gain={sc - rec:+.4f} net_rate={rows[-1]['net_repair_rate']:+.3f} tv {rows[-1]['tv_served']:.2f}->{rows[-1]['tv_second']:.2f}", flush=True)
+    from quwarts.eval.exp_why import spearman
+
+    summ = {"corpus": corpus, "recorded_score": round(rec, 4), "columns": rows}
+    if len(rows) >= 4:
+        summ["spearman_gain_vs_net_repair_rate"] = round(spearman([r["net_repair_rate"] for r in rows], [r["query_gain"] for r in rows]), 3)
+        summ["spearman_gain_vs_distributional_gain"] = round(spearman([r["distributional_gain"] for r in rows], [r["query_gain"] for r in rows]), 3)
+    (EXP / "WHY" / "cause").mkdir(parents=True, exist_ok=True)
+    (EXP / "WHY" / "cause" / f"secondlooks_{corpus}.json").write_text(json.dumps(summ, indent=1))
+    print(summ.get("spearman_gain_vs_net_repair_rate"), summ.get("spearman_gain_vs_distributional_gain"))
+    return summ
