@@ -105,9 +105,12 @@ def contract() -> dict:
     return report
 
 
-def windows() -> dict:
+def windows(refined: bool = False) -> dict:
+    """``refined`` (I7b): no window for list columns (items scatter) or for columns whose served values are stated
+    verbatim in fewer than a third of the documents they fill (a coded absence such as "0 if none": a window can locate
+    a stated value but cannot establish an absence; I7 on players)."""
     grounding = json.loads((EXP / "WHY" / "grounding" / "summary.json").read_text())["position"]
-    out_dir = EXP / "I7-windows"
+    out_dir = EXP / ("I7b-windows" if refined else "I7-windows")
     out_dir.mkdir(parents=True, exist_ok=True)
     report = {}
     for c in CORPORA:
@@ -127,10 +130,12 @@ def windows() -> dict:
             if pv is None:
                 continue
             pos = []
+            n_served = 0
             for d, path in ctx.docs.get(t, {}).items():
                 v = lookup(pv, d)
                 if is_null(v):
                     continue
+                n_served += 1
                 if (t, d) not in texts:
                     texts[(t, d)] = read_document(Path(path)).lower()
                 ok, p = found(texts[(t, d)], v)
@@ -140,10 +145,18 @@ def windows() -> dict:
             p90 = pos[int(0.9 * len(pos))] if len(pos) >= 10 else None
             share = round(p90, 3) if p90 is not None and p90 <= 0.9 else 1.0
             share = max(share, 0.1) if share < 1.0 else 1.0
+            exempt = None
+            if refined and kind_of(fields[col]) == "list":
+                exempt = "list"
+            elif refined and n_served and len(pos) < n_served / 3:
+                exempt = f"stated in {len(pos)} of {n_served} filled cells: a coded absence"
+            if exempt:
+                share = 1.0
             if share < 1.0:
                 shares[col] = share
-            rows.append({"column": col, "kind": kind_of(fields[col]), "stated_served_values": len(pos),
-                         "p90_served": round(p90, 3) if p90 is not None else None, "p90_gold": gold_p90.get(col), "share": share})
+            rows.append({"column": col, "kind": kind_of(fields[col]), "stated_served_values": len(pos), "filled": n_served,
+                         "p90_served": round(p90, 3) if p90 is not None else None, "p90_gold": gold_p90.get(col), "share": share,
+                         "exempt": exempt if refined else None})
         (out_dir / f"{c}.json").write_text(json.dumps(shares, indent=1))
         both = [(r["p90_served"], r["p90_gold"]) for r in rows if r["p90_served"] is not None and r["p90_gold"] is not None]
         report[c] = {"columns": len(rows), "windowed": len(shares), "mean_share": round(S.mean(shares.values()), 3) if shares else 1.0,
@@ -158,4 +171,4 @@ def windows() -> dict:
 
 
 if __name__ == "__main__":
-    {"contract": contract, "windows": windows}[sys.argv[1]]()
+    {"contract": contract, "windows": windows, "windows_refined": lambda: windows(True)}[sys.argv[1]]()

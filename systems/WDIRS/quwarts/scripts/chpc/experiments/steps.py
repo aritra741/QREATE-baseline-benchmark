@@ -487,3 +487,22 @@ STEPS += [stream_with("I7-windows", "player", "QUWARTS_WINDOW_SHARES=$OLDPWD/res
 # the two long ones go to the first job's lane (faster slice), after I2b, so both lanes finish at about the same time
 STEPS += [{**stream_with("I6-contract", "legal", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/legal.json"), "lane": "gpu"},
           {**stream_with("I7-windows", "med", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7-windows/med.json"), "lane": "gpu2"}]  # back to gpu2: its lane emptied first
+
+
+# ------------------------------------------------------------------------------- follow-ups queued 2026-10-09 21:10
+# gpu2 (job 2157447): the window rule with its exemptions (I7b: no window for lists or coded absences), replicates of
+# the contract runs that moved most (I6rep); gpu32 (job 2151495): the 32B context intervention on the two long
+# corpora it was skipped on; gpu: the field-position prompts (I1-position: each new column first and last in its
+# natural group) for the layout rule.
+STEPS += [stream_with("I7b-windows", "player", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7b-windows/player.json"),
+          stream_with("I6rep-contract", "art", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/art.json"),
+          stream_with("I7b-windows", "art", "QUWARTS_WINDOW_SHARES=$OLDPWD/results/experiments/I7b-windows/art.json"),
+          stream_with("I6rep-contract", "legal", "QUWARTS_LABEL_CONTRACT=$OLDPWD/results/experiments/I6-contract/legal.json")]
+STEPS += [{"id": f"I1-qwen32b-{c}", "lane": "gpu32", "retries": 1, "deps": ["I2-secondlook"],
+           "cmd": PRE + server("qwen32b") + f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen32b --docs 15 --workers 4",
+           "outputs": [f"results/experiments/I1-context/qwen32b/{c}/reads.jsonl"]}
+          for c in ("med", "legal")]
+STEPS += [{"id": "I1-position", "lane": "gpu", "retries": 1,
+           "cmd": PRE + server("main") + " && ".join(f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen7b --workers 4" for c in CORPORA)
+                  + " && python -m quwarts.eval.exp_intervene analyze && touch $OLDPWD/results/experiments/I1-context/position_complete",
+           "outputs": ["results/experiments/I1-context/position_complete"]}]
