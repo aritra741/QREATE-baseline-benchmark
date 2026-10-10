@@ -126,6 +126,47 @@ the repair is a rule, not a reader.* The planner should derive such columns (cen
 parents instead of asking for them, which the usage phrase already marks (age is defined from the dates in the
 schema).
 
+## 5. Why cell gains do not reach queries: a wrong cell costs more than a right cell earns (counterfactual tables)
+
+Method (`exp_cause.py`): take the recorded served table and the other run's values; sort every differing cell into
+form (same fact, other rendering), empty (a value appears or disappears), items (a list changes), fact (different
+content), and by whether the change made the cell right, made a right cell wrong, or left it wrong; build a table
+for each subset with the system's own representation; score every test query on it with the benchmark scorer. The
+table with every change applied reproduces the other run's stream (papers: identical query results on 42 of 59,
+identical mean, the rest being queries scored before their columns were complete).
+
+Papers, the planner's run under the refined rules against the recorded run (cell accuracy of the changed cells:
+empty 0.17 → 0.45, fact 0.19 → 0.27; query score 0.153 → 0.138):
+
+| changed cells | GROUP BY queries | COUNT | filter | numeric aggregate |
+|---|---|---|---|---|
+| became right (empty → value) | +0.004 | +0.002 | +0.002 | +0.015 |
+| became right (other fact) | +0.005 | +0.007 | +0.006 | 0 |
+| right became wrong (value → empty) | −0.013 | −0.013 | −0.008 | −0.015 |
+| right became wrong (other fact) | −0.019 | −0.024 | −0.022 | 0 |
+| wrong stayed wrong (other wrong fact) | −0.004 | −0.005 | −0.005 | 0 |
+
+Cells that became right lift the group-by score by 0.009; cells that turned from right to wrong cost 0.032, three
+and a half times as much, although the second set is smaller. *The asymmetry is the scorer's and the queries'*: a
+cell that goes wrong on a grouping or filter column leaves its true group and joins a false one, two errors in the
+result; a cell that becomes right adds one row where it belongs. A run that raises cell accuracy by turning many
+empties into values of which some are wrong therefore loses query score, which is what happened. For a system this
+says that a planner must weigh the asymmetry: an empty cell is cheaper than a wrong one for grouping and filtering,
+and restraint (the item filter, the "never null" absence value) is worth more than fill. The same decomposition on
+the other runs follows (players, both planner runs; papers under the first rules).
+
+## 6. Why the planner's score moved 0.217 → 0.138 on papers between two runs: decisions on ten samples flip
+
+The two runs differ in two thresholds and in sampling. The sensitivity ranking of the columns barely moved (mean
+change 0.03 to 0.10 across corpora), but the binary decisions did: on papers the narrow prompt for
+`agent_framework` was taken in one run and not the other, and the repair rate of `reasoning_depth` from ten labelled
+cells was +0.3 in one run and −0.1 in the other, so the second looks that moved the group-by queries (+2.75 summed
+in the first run) were not taken in the second. Medical flipped two repair decisions and one narrow prompt; players,
+artists and legal kept their decisions and their scores within 0.02. *Ten documents rank columns (Spearman −0.66
+against −0.72 for the full corpus) but cannot carry a per-column binary decision whose margin is one or two
+documents.* The final system (V3) probes twenty documents, estimates repair rates from twenty labelled cells, and
+routes only with three net repairs; the ten-sample runs are kept as the measurement of this instability.
+
 ## 4. What this changes in the paper
 
 The root claim gets its mechanism (§2), the repair claim gets its mechanism and a free operator (§3), and the
