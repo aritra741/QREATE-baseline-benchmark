@@ -159,7 +159,7 @@ class CauseScorer(R.Scorer):
         self.cache = json.loads(path.read_text()) if path.exists() else {"benchmark": {}, "tolerant": {}}
 
 
-def final_view(corpus: str, run: str, level: int, out_dir: Path) -> Path:
+def final_view(corpus: str, run: str, level: int, out_dir: Path, key: str | None = None) -> Path:
     """The run's final served table as a view: the recorded table with every cell the run read (and the stronger
     reader replaced) applied, committed with the run's field specs and represented with the full catalogue. Returns
     the view path (``<out_dir>/all.view.db``), building it when absent."""
@@ -173,7 +173,7 @@ def final_view(corpus: str, run: str, level: int, out_dir: Path) -> Path:
     root = EXP / run / "live"
     ctx = R.context(corpus)
     fields = fields_of(corpus)
-    state = root / corpus / "state" / f"fixed4-attribute_pool_{level}.json"
+    state = root / corpus / "state" / (f"{key.replace('/', '_')}.json" if key else f"fixed4-attribute_pool_{level}.json")
     if state.exists():
         from quwarts.core.router.context_probe import FieldSpec
 

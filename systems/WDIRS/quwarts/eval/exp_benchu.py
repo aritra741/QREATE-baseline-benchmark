@@ -141,11 +141,11 @@ def evaluate(ds: str, folder: Path, gt: Path, judge: str) -> dict | None:
     return json.loads(acc.read_text())
 
 
-def cost(corpus: str, run: str) -> dict:
+def cost(corpus: str, run: str, key: str = "fixed4-attribute_pool/100") -> dict:
     """Tokens per document per query over the run's test workload, build included (Bench-U's unit is thousand
     tokens per document per query, per query run alone)."""
     live = EXP / run / "live" / corpus if run != "recorded" else REPO / "results" / "drift_live_ollama" / corpus
-    stream = live / "streams" / "fixed4-attribute_pool_100.jsonl"
+    stream = live / "streams" / f"{key.replace('/', '_')}.jsonl"
     rs = [json.loads(l) for l in stream.read_text().splitlines() if l.strip()] if stream.exists() else []
     patch = sum(r["input_tokens"] + r["output_tokens"] for r in rs)
     repair = sum(v.get("tokens", 0) or 0 for r in rs for p in r.get("planner", {}).values() for v in (p.get("repair") or {}).values())
@@ -165,6 +165,7 @@ def main(argv=None) -> int:
     ap.add_argument("--datasets", default="Player,CSPaper,Art,Med,Legal")
     ap.add_argument("--judge", default="local", choices=["local", "none"])
     ap.add_argument("--limit", type=int, help="queries per dataset (smoke test)")
+    ap.add_argument("--key", help="the run's stream key, e.g. fixed4-benchu/100 (default: the drift level's stream)")
     a = ap.parse_args(argv)
     out = {"run": a.run, "judge": a.judge, "datasets": {}}
     for ds in a.datasets.split(","):
@@ -174,7 +175,7 @@ def main(argv=None) -> int:
         folders = preprocess(ds, root)
         if a.limit:
             folders = folders[: a.limit]
-        view = with_ids(final_view(corpus, a.run, a.level, SCRATCH / "views" / a.run / corpus), ds)
+        view = with_ids(final_view(corpus, a.run, a.level, SCRATCH / "views" / a.run / corpus, a.key), ds)
         by_task = defaultdict(list)
         errors = 0
         rows = []
@@ -194,7 +195,7 @@ def main(argv=None) -> int:
         summary = {t: {"queries": len(v), "mean_f1": round(S.mean(v), 3)} for t, v in by_task.items()}
         allf = [x for v in by_task.values() for x in v]
         out["datasets"][ds] = {"by_task": summary, "mean_f1": round(S.mean(allf), 3) if allf else None, "queries": len(folders),
-                              "unscored": errors, "cost": cost(corpus, a.run), "queries_detail": rows}
+                              "unscored": errors, "cost": cost(corpus, a.run, a.key or "fixed4-attribute_pool/100"), "queries_detail": rows}
         print(f"{ds}: mean F1 {out['datasets'][ds]['mean_f1']} over {len(allf)} queries ({errors} unscored); {summary}; cost {out['datasets'][ds]['cost']['k_tokens_per_doc_per_query']}k tokens/doc/query", flush=True)
     dest = EXP / "BENCHU" / f"{a.run}_{a.judge}.json"
     dest.parent.mkdir(parents=True, exist_ok=True)

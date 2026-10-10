@@ -597,3 +597,23 @@ STEPS += [{"id": "I1-predicate", "lane": "gpu2", "retries": 1,
            "cmd": PRE + server("main") + " && ".join(f"python -u -m quwarts.eval.exp_intervene run --corpus {c} --model qwen7b --workers 4" for c in CORPORA)
                   + " && python -m quwarts.eval.exp_intervene analyze && touch $OLDPWD/results/experiments/I1-context/predicate_complete",
            "outputs": ["results/experiments/I1-context/predicate_complete"]}]
+
+
+
+# -------------------------------------------------------------------- Bench-U's workload (opening A): V3's planner, all of
+# Bench-U's queries in file order from the W0 build, cloned from V3 so the frozen reads are reused; scored afterwards
+# with Bench-U's evaluator (exp_benchu --run V3-benchu --key fixed4-benchu/100).
+def v3_benchu(corpus: str) -> dict:
+    root, scratch = "results/experiments/V3-benchu/live", f"{SCRATCH}/V3-benchu"
+    env = (f"QUWARTS_LIVE_ROOT=$OLDPWD/{root} QUWARTS_SCRATCH={scratch} QUWARTS_PLANNER=catalogue QUWARTS_PROBE_DOCS=20 "
+           f"QUWARTS_REPAIR_MIN_FIXES=3 QUWARTS_LIVE_ONLY=fixed4-benchu/100 QUWARTS_REPAIR_LABELS=$OLDPWD/results/experiments/V3/labels20/{corpus}.json ")
+    return {"id": f"V3-benchu-{corpus}", "lane": "gpu", "retries": 1, "deps": [f"V3-{corpus}"],
+            "cmd": PRE + f"python ../../{EXP}/clone.py --mode replay --corpus {corpus} --root {root} --scratch {scratch} "
+                   f"--src-root $OLDPWD/results/experiments/V3/live --src-scratch {SCRATCH}/V3 && "
+                   f"([ -f $OLDPWD/results/experiments/V3/live/{corpus}/repair_reads.jsonl ] && cp -n $OLDPWD/results/experiments/V3/live/{corpus}/repair_reads.jsonl $OLDPWD/{root}/{corpus}/ || true) && "
+                   + server("main") + '(eval "$(bash ../../%s/ensure_server.sh qwen32b)") && ' % EXP + env
+                   + f"python -u -m quwarts.eval.drift_live --corpus {corpus} --run --streams benchu --deadline 0 --workers 8",
+            "outputs": [f"{root}/{corpus}/streams/fixed4-benchu_100.jsonl"]}
+
+
+STEPS += [v3_benchu(c) for c in V2_ORDER]

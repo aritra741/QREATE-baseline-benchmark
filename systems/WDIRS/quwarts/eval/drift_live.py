@@ -1258,6 +1258,16 @@ def bar(done: int, total: int, width: int = 20) -> str:
     return "[" + "#" * k + "-" * (width - k) + f"] {done}/{total}"
 
 
+def benchu_stream(corpus: str) -> list[str]:
+    """Bench-U's queries in file order: Select, Filter, Join, Agg, Mixed, each file by query number."""
+    import re
+
+    pat = re.compile(r"^attr:(Select|Filter|Join|Agg|Mixed)/([^#]+)#(\d+):")
+    order = ("Select", "Filter", "Join", "Agg", "Mixed")
+    ids = [q for q in R.context(corpus).catalog if pat.match(q)]
+    return sorted(ids, key=lambda q: (order.index(pat.match(q).group(1)), pat.match(q).group(2), int(pat.match(q).group(3))))
+
+
 def plan(corpus: str, which: str, axes: list[str]) -> list[tuple[str, Build | None, list[str] | None]]:
     """(stream key, build, stream) in run order. Paired streams start from the W0 build; fixed levels from
     their own build (built when first reached)."""
@@ -1278,6 +1288,9 @@ def plan(corpus: str, which: str, axes: list[str]) -> list[tuple[str, Build | No
             if axis in ("attribute", "attribute_pool"):
                 test = fixed_design(corpus, axis)["test"]
                 out += [(f"{FIXED}b{b:03d}-{axis}/{p}", None, test) for b in BUDGETS for p in FIXED_LEVELS]
+    if which == "benchu":  # Bench-U's own workload (BENCHU_OPPORTUNITIES.md, A): every query of its files, in file
+        # order, from the W0 build; everything outside W0 is read on demand (level 100: nothing anticipated)
+        out.append((f"{FIXED}-benchu/100", None, benchu_stream(corpus)))
     if which in ("headline", "all", "fixed+headline", "everything"):
         keys = HEADLINE if which in ("headline", "fixed+headline") else ORDER
         out += [(k, None, None) for k in ORDER if k in keys and k in ctx.designs[0]["streams"]]
@@ -1377,7 +1390,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--deadline", type=float, default=165)
     ap.add_argument("--report", action="store_true")
-    ap.add_argument("--streams", default="headline", choices=["headline", "all", "fixed", "fixed+headline", "everything", "budget"])
+    ap.add_argument("--streams", default="headline", choices=["headline", "all", "fixed", "fixed+headline", "everything", "budget", "benchu"])
     ap.add_argument("--axes", default="attribute", help="fixed levels: comma list of attribute, value, combined")
     ap.add_argument("--workers", type=int, help="concurrent model calls (default QUWARTS_WORKERS or 24)")
     a = ap.parse_args(argv)
