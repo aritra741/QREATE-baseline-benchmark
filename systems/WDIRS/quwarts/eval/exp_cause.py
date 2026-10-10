@@ -142,8 +142,8 @@ def doc_ids(db: Path, table: str) -> list:
 def write_column(db: Path, table: str, attr: str, values: dict) -> None:
     con = sqlite3.connect(db)
     try:
-        have = {r[1] for r in con.execute(f'PRAGMA table_info("{table}")')}
-        if attr not in have:
+        have = {r[1].lower() for r in con.execute(f'PRAGMA table_info("{table}")')}
+        if attr.lower() not in have:
             con.execute(f'ALTER TABLE "{table}" ADD COLUMN "{attr}" TEXT')
         for d, v in values.items():
             con.execute(f'UPDATE "{table}" SET "{attr}" = ? WHERE doc_id = ?', (None if is_null(v) else (" || ".join(map(str, v)) if isinstance(v, list) else v), d))
@@ -157,6 +157,47 @@ class CauseScorer(R.Scorer):
         super().__init__(corpus)
         self.path = path
         self.cache = json.loads(path.read_text()) if path.exists() else {"benchmark": {}, "tolerant": {}}
+
+
+def final_view(corpus: str, run: str, level: int, out_dir: Path) -> Path:
+    """The run's final served table as a view: the recorded table with every cell the run read (and the stronger
+    reader replaced) applied, committed with the run's field specs and represented with the full catalogue. Returns
+    the view path (``<out_dir>/all.view.db``), building it when absent."""
+    from quwarts.core.represent import Config, build
+    from quwarts.core.router.executor import commit_value
+
+    view = out_dir / "all.view.db"
+    if view.exists():
+        return view
+    out_dir.mkdir(parents=True, exist_ok=True)
+    root = EXP / run / "live"
+    ctx = R.context(corpus)
+    fields = fields_of(corpus)
+    state = root / corpus / "state" / f"fixed4-attribute_pool_{level}.json"
+    if state.exists():
+        from quwarts.core.router.context_probe import FieldSpec
+
+        for t, plan in json.loads(state.read_text()).get("frozen", {}).items():
+            fields = {**fields, **{k: FieldSpec(**{**v, "choices": tuple(v["choices"])}) for k, v in plan["fields"].items()}}
+    db = out_dir / "all.db"
+    shutil.copy2(base_db(corpus, level), db)
+    design = json.loads((EXP.parent / "drift_live_ollama" / corpus / "fixed4_attribute_pool_design.json").read_text())
+    columns = set(design["new_columns"])
+    if run != "recorded":
+        for t, plan in (json.loads(state.read_text()).get("frozen", {}) if state.exists() else {}).items():
+            columns |= {f"{t}.{a}" for a in plan["columns"]}  # the planner also read the other schema columns
+    for col in sorted(columns):
+        if col not in fields or run == "recorded":
+            continue
+        t, attr = col.split(".", 1)
+        new = new_values(corpus, root, level, t, attr)
+        if not new:
+            continue
+        if level == 100:
+            new = {d: commit_value(v, fields[col]) for d, v in new.items()}
+        write_column(db, t, attr, {str(d): lookup(new, str(d)) for d in doc_ids(db, t) if lookup(new, str(d)) is not None or str(d) in new})
+    build(db, view, ctx.spec, fields, dict(ctx.catalog), Config(t0=True))
+    return view
 
 
 def main(argv=None) -> int:
