@@ -173,9 +173,11 @@ extraction at the cell level, and it holds for the cheapest format change there 
 *The question, now a claim.* A serving optimization that reorders fields for cache hits changes about four
 cells in ten, concentrated in the columns that are under-determined anyway; it is a correctness constraint on the
 plan, like a non-commuting operator, and the constraint is checkable without labels (determinacy from ten documents).
-The constructive side: order is a free knob. A layout rule such as "a column whose gold is mostly empty goes after
-the fields that make its absence evident" (`use_agent` before `agent_framework`) is a zero-cost intervention we have
-not yet run.
+The constructive side: order is a free knob, and we measured it (24 columns, each first and last among the same
+fields): last beats first by 0.046 on average with fewer empties, per column by up to 0.6, numbers and categories
+gaining, lists and free text not; but the share of empty gold does not predict the direction (Spearman −0.22), so
+the layout rule we proposed does not hold and the knob has to be set per column from a small sample, like the
+grouping.
 
 *Test (one evening with the I1 harness).* Add a context kind "same set, shuffled order" and a kind "same set, prefix
 reordered as Liu et al. would" for every column; measure per-column change rate and query-score change on the

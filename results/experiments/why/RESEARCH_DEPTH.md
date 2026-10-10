@@ -609,3 +609,18 @@ line), and which columns those are is learnt from a handful of labels, not from 
 router is a per-column table of repair rates, estimated from ten cells each, with price in the denominator.* That is
 also the shape of the budget result and the context result: the column is the unit of every decision in this
 system.
+
+**I1-position, the layout rule (2026-10-09 21:56; 24 columns, 30 documents each, the focal column first or last
+among the same fields; `I1-context/summary.json`, `position_effect`).** Last beats first by 0.046 on average (0.385
+→ 0.430; the build's alphabetical order sits at 0.388) with fewer empties (0.34 → 0.30); 8 columns are better last
+by 0.05 or more and 7 better first. The gain is in numbers (+0.15: artists' `awards` 0.20 → 0.60 and players'
+`nba_championships` 0.13 → 0.43, "never null" counts that are left empty on 87% of documents when asked first and
+on 47% when last) and categories (+0.30: `agent_framework` 0.20 → 0.80, filled with 'Other' when first, left empty
+when last, which gold mostly is); lists −0.01 and free text −0.06. The rule I proposed ("a mostly-empty column goes
+last") is not what the data say: the share of empty gold does not predict the gain (Spearman −0.22; mostly-empty
+columns +0.075, the rest +0.031, on 8 and 16 columns), and the two mechanisms run in opposite directions, a count
+is *filled* when last and a label is *dropped* when last. What holds is narrower and still useful: *the first field
+line is answered differently from the rest*, by up to 0.6 per column, so position is a free per-column knob the
+30-document test can set (as it set the grouping in I5), and a canonical prompt must fix the order (P2). An
+extraction harness that puts a column first because a query asked for it (DocETL's per-query maps, where the
+requested field heads the list) pays this on every such column.

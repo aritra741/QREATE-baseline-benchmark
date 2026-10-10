@@ -60,7 +60,12 @@ again does not move (0.388 against 0.381) while single columns do: a paper's age
 25 of 30 papers, is answered 'Other' on 28 papers when it is the first field line and left empty on 25 when it is the
 eleventh or the last (accuracy 0.20 against 0.77). So "context" is not a semantic interaction among fields but the
 prompt's arrangement. A canonical prompt has to be fixed as a byte string, order included, and a serving optimization
-that reorders fields for cache hits changes the answers.
+that reorders fields for cache hits changes the answers. Position itself is a free knob: the same column asked last
+among the same fields is right 0.43 of the time against 0.39 when asked first, with fewer empties, and the effect is
+per column and up to 0.6 (a "never null" count is left empty on 87% of documents when it heads the list and on 47%
+when it closes it; a category whose gold is mostly empty is filled with 'Other' first and left empty last). The
+share of empty gold does not predict the direction, so there is no layout rule to state, only a per-column choice
+the thirty-document test can make.
 
 ![Figure 2. The context intervention on fixed documents. (a) Mean accuracy and empty-answer rate in five contexts. (b)
 Each column's accuracy alone against its accuracy in the build's group.](figures/w9_context_intervention.png){width=6.5in}
@@ -634,8 +639,8 @@ stated reason (Section 6), and the build's prompt groups chosen by each column's
 tested (Section 1: the cell gains transfer, the query scores do not move), as have the verifier as a router of
 second looks (Section 2: it finds wrong cells, not repairable ones), the label contract and the per-column windows
 (Section 11). Not yet run: the window rule with its exemptions, replicates of the contract runs, the 32B context intervention
-on medical and legal, and a field-order rule that places a mostly-empty column after the fields that make its
-absence evident (all queued).
+on medical and legal (queued). The field-position test found no rule to state (Section 1), only a per-column
+choice.
 
 # Methods
 
