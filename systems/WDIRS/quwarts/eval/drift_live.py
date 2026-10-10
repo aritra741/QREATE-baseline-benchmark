@@ -52,6 +52,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import statistics as S
 import os
 import shutil
 import sqlite3
@@ -62,6 +63,7 @@ from pathlib import Path
 from typing import Any
 
 from quwarts.core.adapt import controller as C
+from quwarts.core.router.comparator import is_null
 from quwarts.eval import drift_run as R
 
 CORPORA = ["cspaper", "art", "legal", "player", "med"]
@@ -115,6 +117,9 @@ ABLATE = frozenset(a for a in os.environ.get("QUWARTS_ABLATE", "").split(",") if
 # the documents do not state and the usage phrase only exemplifies). Unset: the field specs as recorded.
 CONTRACT = (json.loads(Path(os.environ["QUWARTS_LABEL_CONTRACT"]).read_text())
             if os.environ.get("QUWARTS_LABEL_CONTRACT") else {})
+# The catalogue planner (SYSTEM_PLAN.md; core/adapt/catalogue.py): on a table's first on-demand request, probe ten
+# documents, plan frozen prompts (windows, groups), read every remaining schema column, route second looks.
+PLANNER = os.environ.get("QUWARTS_PLANNER") == "catalogue"
 from dataclasses import replace as replace_field  # noqa: E402
 assert ABLATE <= {"rawview", "raw", "noscope", "noreuse", "nobatch", "nodesc", "nousage", "head",
                   "bfields", "bgroup", "bprompt"}, ABLATE
@@ -873,6 +878,23 @@ class Stream:
             self.st = {"pos": 0, "seen": {}, "records": [], "partial": None,
                        "mat": [[r.table, a, sorted(self.ctx.names[r.table])] for r in self.build.reads for a in r.attributes]}
         self.mat = {(t, a): set(d) for t, a, d in self.st["mat"]}
+        self.repairer = None
+        if PLANNER:
+            from quwarts.core.adapt import catalogue as K
+            from quwarts.core.adapt.repair import Repairer
+            from quwarts.eval.exp_open import correct
+
+            if "repair" not in K.OFF and os.environ.get("QUWARTS_REPAIR_LABELS"):
+                self.repairer = Repairer(folder(corpus) / "repair_reads.jsonl", os.environ["QUWARTS_REPAIR_LABELS"], correct)
+
+    def frozen_fields(self, t: str) -> dict:
+        """The planner's field specs for a table, as frozen at its first on-demand request."""
+        from quwarts.core.router.context_probe import FieldSpec
+
+        plan = self.st.get("frozen", {}).get(t)
+        if not plan:
+            return {}
+        return {k: FieldSpec(**{**v, "choices": tuple(v["choices"])}) for k, v in plan["fields"].items()}
 
     def save(self) -> None:
         self.st["mat"] = [[t, a, sorted(d)] for (t, a), d in self.mat.items()]
@@ -960,6 +982,8 @@ class Stream:
                 attrs = [a for a in batch if d not in self.mat.get((t, a), set())]
                 if attrs:
                     est += ctx.costs.read(t, d, [fields_seen[f"{t}.{a}"] for a in attrs])
+        if PLANNER and missing:
+            est = self._planner_estimate(missing, scope, seen)
         if missing and self.budget is not None:
             # Over the remaining budget the patch is skipped: the query is answered from what is extracted, and
             # later (cheaper) patches may still fit.
@@ -969,7 +993,10 @@ class Stream:
                                                               seen=[r["qid"] for r in self.st["records"]]):
                 skipped, missing = missing, {}
         shas, read_docs, fetched = [], 0, {}
-        for t in missing:
+        planner_info = {}
+        if PLANNER and missing:
+            shas, read_docs, fetched, planner_info = self._planner_patch(missing, scope, seen, fields_seen, stop_at)
+        for t in ([] if PLANNER else missing):
             batch = sorted({a for r in reads_seen if r.table == t for a in r.attributes
                             if not self.fully(t, a) and f"{t}.{a}" in fields_seen
                             and (not ABLATE & {"nobatch", "noreuse"} or a in missing[t])})
@@ -1018,6 +1045,9 @@ class Stream:
                     write_values(self.dir / "master.db", t, fresh, [a], vals, FR)
                     self.mat.setdefault((t, a), set()).update(fresh)
                     fetched[f"{t}.{a}"] = fetched.get(f"{t}.{a}", 0) + len(fresh)
+        if PLANNER:
+            for t in self.st.get("frozen", {}):
+                F = {**self.frozen_fields(t), **F}
         if missing or not built:
             self.view(seen, F, pre)  # the served view after the patch
         seconds = partial["seconds"] + (time.monotonic() - t_start)
@@ -1034,11 +1064,176 @@ class Stream:
             "cost_usd": round(charged["cost"], 6), "paid": {k: (round(v, 6) if k == "cost" else v) for k, v in paid.items()},
             "maybe_truncated_calls": sum(bool(self.caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas),
             "cut_off_calls": sum(bool(self.caller.usage.by_sha.get(x, {}).get("cut_off")) for x in shas),
-            "view": str(pre), "digest": R.digest(pre, sql)})
+            "view": str(pre), "digest": R.digest(pre, sql), **({"planner": planner_info} if PLANNER else {})})
         self.st["seen"][qid] = sql
         self.st["pos"] = pos + 1
         self.st["partial"] = None
         self.save()
+
+
+# --------------------------------------------------------------------------------- the catalogue planner
+
+def _planner_estimate(self, missing: dict, scope: dict, seen: dict) -> int:
+    """An upper bound on the planner's read for the budget check: every remaining schema column of each table, whole
+    documents (windows and the probe's reads can only make it cheaper)."""
+    from quwarts.core.adapt import catalogue as K
+
+    ctx, est = self.ctx, 0
+    for t in missing:
+        plan = self.st.get("frozen", {}).get(t)
+        if plan:
+            specs = self.frozen_fields(t)
+            for g in plan["groups"]:
+                fs = [specs[f"{t}.{a}"] for a in g["attributes"]]
+                est += sum(int(g["share"] * ctx.costs.read(t, d, fs)) for d in scope[t]
+                           if any(d not in self.mat.get((t, a), set()) for a in g["attributes"]))
+        else:
+            fields = K.schema_fields(ctx.spec, seen, t)
+            fs = [f for k, f in fields.items() if not self.fully(t, k.split(".", 1)[1])]
+            for i in range(0, len(fs), K.MAX_FIELDS):
+                est += sum(ctx.costs.read(t, d, fs[i:i + K.MAX_FIELDS]) for d in scope[t])
+    return est
+
+
+def _read_group(self, t: str, attrs: tuple, docs: list, fields: dict, stop_at: float, context: str):
+    """One frozen prompt over the documents: run, then the values and the prompt hashes behind them."""
+    from quwarts.core.router.executor import run_reads
+
+    ctx = self.ctx
+    read = C.Read(t, context, tuple(attrs))
+    vspec, root = view_spec(ctx.spec, ctx.docs, t, docs)
+    try:
+        left = left_of(stop_at)
+        if left is not None and left < 10:
+            raise Incomplete()
+        stats = run_reads(vspec, [read], {}, fields, self.caller, self.journal, WORKERS, long_documents="chain",
+                          deadline=None if left is None else left - 8)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    if stats.get("stopped_at_deadline"):
+        raise Incomplete()
+    by = rows_of(self.journal)
+    vals, used = values_and_shas({d: ctx.docs[t][d] for d in docs}, t, list(attrs), fields, by)
+    return vals, used, by
+
+
+def _plan_table(self, t: str, seen: dict, fields_seen: dict, stop_at: float) -> dict:
+    """The table's first on-demand request: the remaining schema columns, the probe (each alone on ten documents:
+    windows and absences; then the frozen groups on the same documents: sensitivity), the frozen prompts."""
+    from dataclasses import asdict
+
+    from quwarts.core.adapt import catalogue as K
+    from quwarts.core.router.corpus_features import read_document
+    from quwarts.core.router.executor import set_window_shares
+
+    ctx = self.ctx
+    fields = K.schema_fields(ctx.spec, seen, t)
+    remaining = sorted(k.split(".", 1)[1] for k in fields if not self.fully(t, k.split(".", 1)[1]))
+    if "unit" in K.OFF:  # ablation: only the workload's columns, as the recorded batching reads them
+        remaining = [a for a in remaining if f"{t}.{a}" in fields_seen]
+    specs = {f"{t}.{a}": fields[f"{t}.{a}"] for a in remaining}
+    docs = K.probe_docs(list(ctx.names[t]))
+    texts = {d: read_document(Path(ctx.docs[t][d])).lower() for d in docs}
+    alone: dict = {d: {} for d in docs}
+    calls, probe_shas = 0, []
+    for a in remaining:  # alone: where the values sit, whether the column is a coded absence
+        vals, used, _ = self._read_group(t, (a,), docs, specs, stop_at, f"probe:{a}")
+        calls += len(used)
+        probe_shas += used
+        for d, v in vals.items():
+            alone[d].update(v)
+    stats = K.column_stats(alone, {}, texts, specs, t)
+    groups = K.plan_groups(remaining, stats, t)
+    set_window_shares({f"{t}.{a}": g["share"] for g in groups for a in g["attributes"]})
+    grouped: dict = {d: {} for d in docs}
+    for g in groups:  # the frozen prompts on the probe documents: sensitivity to context (reused by the patch)
+        vals, used, _ = self._read_group(t, tuple(g["attributes"]), docs, specs, stop_at, "frozen:" + ",".join(g["attributes"]))
+        calls += len(used)
+        for d, v in vals.items():
+            grouped[d].update(v)
+    stats = K.column_stats(alone, grouped, texts, specs, t)
+    hurt = K.context_hurt(stats, t, remaining) if "unit" not in K.OFF else []
+    narrow_note = None
+    if hurt:  # the columns the whole group under-fills get a prompt of their own; if that prompt under-fills them
+        # too, each is read alone (the determined context, chosen by fill, as in the DocETL intervention)
+        vals, used, _ = self._read_group(t, tuple(hurt), docs, specs, stop_at, "frozen:" + ",".join(hurt))
+        calls += len(used)
+        fills = {a: S.mean(not is_null(vals.get(d, {}).get(a)) for d in docs) for a in hurt}
+        recovered = [a for a in hurt if fills[a] >= 0.75 * stats[f"{t}.{a}"]["fill_alone"]]
+        narrow = ([recovered] if len(recovered) > 1 else [[a] for a in recovered]) + [[a] for a in hurt if a not in recovered]
+        for d, v in vals.items():
+            for a in recovered:
+                grouped[d][a] = v.get(a)
+        for a in hurt:
+            if a not in recovered:
+                for d in docs:
+                    grouped[d][a] = alone[d].get(a)
+        groups = K.plan_groups(remaining, stats, t, narrow=narrow)
+        stats = K.column_stats(alone, grouped, texts, specs, t)
+        narrow_note = {"hurt": hurt, "recovered_in_narrow_group": recovered, "fill_in_narrow_group": {a: round(fills[a], 2) for a in hurt}}
+    for g in groups:
+        g["share"] = max(stats[f"{t}.{a}"]["share"] for a in g["attributes"]) if any(stats[f"{t}.{a}"]["share"] < 1.0 for a in g["attributes"]) else 1.0
+    return {"columns": remaining, "groups": groups, "stats": stats, "probe_docs": docs, "narrow": narrow_note,
+            "probe": {"calls": calls, "shas": probe_shas},  # the lone probe reads are charged to the planning query
+            "fields": {k: {**asdict(f), "choices": list(f.choices)} for k, f in specs.items()},
+            "planned_at": self.st["pos"]}
+
+
+def _planner_patch(self, missing: dict, scope: dict, seen: dict, fields_seen: dict, stop_at: float):
+    """The planner's reads for this query: each table's frozen prompts over the documents in scope that lack any of
+    the prompt's columns, then the stronger reader's second looks where a column's repair rate is positive."""
+    from quwarts.core.adapt import catalogue as K
+    from quwarts.core.adapt.repair import SHARE
+    from quwarts.core.router.executor import set_window_shares
+
+    ctx = self.ctx
+    shas, read_docs, fetched, info = [], 0, {}, {}
+    frozen = self.st.setdefault("frozen", {})
+    for t in missing:
+        if t not in frozen or "unit" in K.OFF:
+            frozen[t] = self._plan_table(t, seen, fields_seen, stop_at)
+            self.save()
+        plan = frozen[t]
+        if plan["planned_at"] == self.st["pos"]:
+            shas += plan["probe"]["shas"]  # the probe's lone reads (the group reads are reused by the patch below)
+        fields = self.frozen_fields(t)
+        set_window_shares({f"{t}.{a}": g["share"] for g in plan["groups"] for a in g["attributes"]})
+        tinfo = {"groups": [g["attributes"] for g in plan["groups"]], "shares": [g["share"] for g in plan["groups"]],
+                 "probe_calls": plan["probe"]["calls"], "planned_at": plan["planned_at"], "repair": {}}
+        for g in plan["groups"]:
+            attrs = tuple(g["attributes"])
+            docs = [d for d in scope[t] if any(d not in self.mat.get((t, a), set()) for a in attrs)]
+            if not docs:
+                continue
+            vals, used, by = self._read_group(t, attrs, docs, fields, stop_at, "frozen:" + ",".join(attrs))
+            shas += used
+            read_docs += len(docs)
+            if self.repairer is not None and self.repairer.available():
+                spent = charge(used, self.caller.usage, by)
+                budget = int(SHARE * (spent["input"] + spent["output"]))
+                served = {a: {d: vals[d].get(a) for d in docs if d in vals} for a in attrs}
+                paths = {d: Path(ctx.docs[t][d]) for d in docs}
+                for a in attrs:
+                    est = self.repairer.estimate(t, a, fields[f"{t}.{a}"], paths, served[a], WORKERS)
+                    if not est.get("cached"):
+                        tinfo["repair"][a] = est
+                routed = self.repairer.route(t, list(attrs), fields, paths, served, budget, WORKERS)
+                for (d, a), v in routed["updates"].items():
+                    if d in vals:
+                        vals[d][a] = v
+                tinfo["repair"][",".join(attrs)] = {k: v for k, v in routed.items() if k != "updates"}
+            write_values(self.dir / "master.db", t, docs, list(attrs), vals, fields)
+            for a in attrs:
+                self.mat.setdefault((t, a), set()).update(d for d in docs if d in vals)
+                fetched[f"{t}.{a}"] = fetched.get(f"{t}.{a}", 0) + sum(d in vals for d in docs)
+        info[t] = tinfo
+    return shas, read_docs, fetched, info
+
+
+Stream._planner_estimate = _planner_estimate
+Stream._read_group = _read_group
+Stream._plan_table = _plan_table
+Stream._planner_patch = _planner_patch
 
 
 # ------------------------------------------------------------------------------------------ scores

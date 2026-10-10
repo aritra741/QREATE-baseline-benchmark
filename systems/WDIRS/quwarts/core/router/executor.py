@@ -75,6 +75,14 @@ def window_shares() -> dict[str, float]:
     return _SHARES
 
 
+def set_window_shares(shares: dict[str, float]) -> None:
+    """The planner's windows (catalogue.py), set at run time; QUWARTS_WINDOW_SHARES, if any, is kept underneath."""
+    global _SHARES
+    if _SHARES is None:
+        window_shares()
+    _SHARES.update(shares)
+
+
 def cut_to_share(text: str, table: str, attributes, min_tokens: int = 400) -> str:
     shares = window_shares()
     if not shares:
