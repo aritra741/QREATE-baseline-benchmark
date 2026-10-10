@@ -166,7 +166,11 @@ second kind and per-cell accuracy rose while the score fell; in the first-rules 
 For a system this says two things: an empty cell is cheaper than a wrong one on a grouping or filter column, so
 restraint (the item filter, the "never null" absence value) is worth more than fill; and a planner that could see
 a column's label distribution (the probe sees it on ten documents) could predict which columns' second looks pay
-at the query level. The decomposition on players, both runs, follows.
+at the query level. Players, the planner's run under the refined rules (0.387 → 0.376; 569 changed cells, of
+which 499 are form only): the form changes move no query (±0.001 across every operator); cells that became right
+lift group-by queries by 0.004 (10 queries); cells that turned from right to wrong cost 0.011 on group-by, 0.019
+on filters and 0.024 on joins (4–5 queries each). The asymmetry holds on a corpus with joins, where a key that goes
+wrong loses its partner row outright.
 
 ## 6. Why the planner's score moved 0.217 → 0.138 on papers between two runs: decisions on ten samples flip
 
