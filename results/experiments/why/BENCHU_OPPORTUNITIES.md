@@ -175,3 +175,13 @@ ground truth) are left as unanswerable.
 takes about eight minutes (one call per non-identical cell) and scores 0.64–0.65 against 0.52 by exact match. The
 judge is therefore run on a stratified sample of queries when the servers are free, and reported as an uplift on the
 exact-match table rather than over every query.
+
+## 6. Decision, 2026-10-10 16:00: opening A is dropped
+
+The paper keeps its own scoring (structure F2 times cell F1 over our test queries); Bench-U's per-query F1 with an
+LLM judge, computed on their systems with another model, is not a like-for-like comparison and is not pursued. The
+pipeline above stays in the repository as a tool, the queued Bench-U workload runs are removed. What remains from
+this report for the paper: their reported tokens per document per query as the reference for cost (a metric-free
+quantity), and openings B, C and D, which are measured on our own data and metric (determinacy per attribute, the
+absence mechanism, and predicate leakage, the last of which is done: 47% of cells change when the query's
+predicate is shown, accuracy 0.53 → 0.48, lists most, Spearman 0.78 with sensitivity).

@@ -616,4 +616,5 @@ def v3_benchu(corpus: str) -> dict:
             "outputs": [f"{root}/{corpus}/streams/fixed4-benchu_100.jsonl"]}
 
 
-STEPS += [v3_benchu(c) for c in V2_ORDER]
+# (not run: the paper keeps its own scoring, so the Bench-U-metric comparison was dropped on 2026-10-10)
+# STEPS += [v3_benchu(c) for c in V2_ORDER]
