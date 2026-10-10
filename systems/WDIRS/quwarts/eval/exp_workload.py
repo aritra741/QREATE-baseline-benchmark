@@ -17,6 +17,7 @@ No model calls.
 from __future__ import annotations
 
 import json
+import math
 import re
 import statistics as S
 from collections import Counter, defaultdict
@@ -86,6 +87,8 @@ def num_forms(v: str) -> list[str]:
     try:
         f = float(v.replace(",", ""))
     except ValueError:
+        return [v]
+    if not math.isfinite(f):  # "inf", "nan": a string, not a number
         return [v]
     forms = {v, f"{f:g}", f"{int(f)}" if f == int(f) else f"{f}"}
     if f == int(f) and abs(f) >= 1000:

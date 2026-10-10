@@ -18,6 +18,7 @@ Components can be switched off one at a time with ``QUWARTS_PLANNER_OFF=unit,win
 from __future__ import annotations
 
 import json
+import math
 import os
 import statistics as S
 from dataclasses import replace
@@ -59,6 +60,8 @@ def num_forms(v: str) -> list[str]:
     try:
         f = float(v.replace(",", ""))
     except ValueError:
+        return [v]
+    if not math.isfinite(f):  # "inf", "nan": a string, not a number
         return [v]
     forms = {v, f"{f:g}", f"{int(f)}" if f == int(f) else f"{f}"}
     if f == int(f) and abs(f) >= 1000:
