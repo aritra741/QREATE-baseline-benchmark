@@ -60,19 +60,22 @@ def stream_stats(f: Path) -> dict | None:
 def analyze() -> dict:
     out = {"runs": {}}
     variants = {"recorded": LIVE, "v2": OUT / "live"}
-    for p in sorted(EXP.glob("V2-*")) + sorted(EXP.glob("V2a*")):  # V2-ablate-unit, V2-rep1, V2-budget, ...; V2a*: the first rules
+    for p in sorted(EXP.glob("V2-*")) + sorted(EXP.glob("V2a*")) + sorted(EXP.glob("V3*")):  # V2-ablate-unit, V2-rep1, ...; V2a*: the
+        # first rules; V3*: twenty-sample decisions (the final system) with its ablations, replicates, budgets, levels
         if (p / "live").exists():
             variants[p.name[3:] if p.name.startswith("V2-") else p.name] = p / "live"
     for c in CORPORA:
         row = {}
         for name, root in variants.items():
             for key in ("fixed4-attribute_pool_100", "fixed4-attribute_pool_0", "fixed4-attribute_pool_50",
-                        "fixed4b025-attribute_pool_100", "fixed4b050-attribute_pool_100"):
+                        "fixed4b025-attribute_pool_100", "fixed4b050-attribute_pool_100", "fixed4-benchu_100"):
                 st = stream_stats(root / c / "streams" / f"{key}.jsonl")
                 if st:
                     row.setdefault(name, {})[key] = st
         out["runs"][c] = row
-        plan = OUT / "live" / c / "state" / "fixed4-attribute_pool_100.json"
+        plan = EXP / "V3" / "live" / c / "state" / "fixed4-attribute_pool_100.json"
+        if not plan.exists():
+            plan = OUT / "live" / c / "state" / "fixed4-attribute_pool_100.json"
         if plan.exists():
             st = json.loads(plan.read_text()).get("frozen", {})
             out.setdefault("catalogue", {})[c] = {t: {"groups": v["groups"], "probe_calls": v["probe"]["calls"],
