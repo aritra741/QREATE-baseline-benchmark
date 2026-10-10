@@ -587,3 +587,11 @@ to +0.07, `single_dose` +0.07, `risk_factors` +0.03, `affected_organs` −0.03),
 list columns whose items scatter, the learned windows are safe but save less than the fixed cut, because the stated
 items the shares were learned from sit late (p90 0.77–0.93). Across the four corpora: tokens ×0.41 to ×0.89, scores
 −0.021 to +0.007, with the gains and losses concentrated in a few columns of a predictable kind.
+
+**I6 on legal (2026-10-09 20:47).** The contract on `defendant_current_status` (38 labels) and `judgment_year` (4)
+lifts the corpus from 0.170 to 0.269 and the seven grouping queries from 0.174 to 0.315 (4 up, 0 down); the status
+column goes from 0.425 to 0.479 correct with merged rows down from 25% to 15% (66 distinct labels served against 23:
+the model also combines allowed values), the year column slips from 0.996 to 0.963. Most of the corpus gain is in
+queries that *filter* on the status ('Government', 'Company'), which now match the form the queries compare with:
+the literal gap closed by declaration. The two contracted columns' prompts are in every legal patch, so all 570
+documents were re-read; a replicate run is queued to bound the sampling share of the +0.099.

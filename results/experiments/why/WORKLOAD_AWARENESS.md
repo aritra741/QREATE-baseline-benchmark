@@ -116,7 +116,8 @@ medical 0.77, legal 0.76). Grounding alone is useless (0.44), disagreement alone
 empties and sensitivity is what works. The coefficients say what a verifier should look at: an empty cell (+3.2), a
 sensitive column (+3.4), a list with an item not in the text (grounded +3.3, every item grounded −3.9, so an
 invented item is the strongest single sign of a wrong list), disagreement (+1.0). This is a few hundred bytes of
-model that transfers across corpora and costs nothing per cell. *It is the cascade router.*
+model that transfers across corpora and costs nothing per cell. It is a trust filter; as a cascade router it fails
+(I2b below): it finds wrong cells, not repairable ones.
 
 **A cascade priced in dollars, and why the accounting changes the answer.** On the 1,719 cells the 32B re-read in
 I2, routing 600 of them by six rules: counted per cell (RESEARCH_DEPTH I2) random was best; counted per dollar it is
@@ -130,7 +131,11 @@ documents should be budgeted in tokens, not in rows, and a router should weigh t
 length; LOTUS, task cascades and Cortex budget in oracle calls. Second, the whole second-look study cost between
 $0.50 and $1.40; per-query DocETL on papers spent 45.6M tokens ($4.60–9.10 at 7B rates) against 3–6M for the
 frozen variants ($0.30–0.60); the cost differences this work measures are factors of ten, and the dollar amounts
-are small enough that *accuracy per dollar*, not dollars, should be the reported quantity.
+are small enough that *accuracy per dollar*, not dollars, should be the reported quantity. The deployment (I2b,
+1,280 new 32B reads) showed the limit: the verifier's 600 cells are wrong 99% of the time, but the 32B repairs 13%
+of them against 32% of random's (net 72 for $0.52 against 89 for $0.55), and on all 2,999 cells with a second look
+"wrong and repaired" has no label-free predictor (AUROC 0.53, against 0.84 for "wrong"). A second look repairs about
+a fifth of wrong cells whoever chooses them; route by price.
 
 **A position model: how much of a document a column needs.** For each column, the relative position in the
 document of the stated gold value: on players 90% of stated values sit within the first 18.5% of the document and
@@ -139,7 +144,11 @@ document of the stated gold value: on players 90% of stated values sit within th
 column only as far as its 90th percentile would save 82% of the tokens on players, 34% on papers and artists, 26%
 on medical and 21% on legal, at a 10% miss rate by construction. This explains the "first window only" ablation
 (21–42% of tokens saved for −0.012 to +0.015) and improves on it: a per-column window learned from a sample of
-positions is a cheaper read plan than a fixed window, and it needs no model. It also needs no gold: learned from
+positions is a cheaper read plan than a fixed window, and it needs no model. Deployed (I7), it cut tokens to 41%
+(players), 75% (artists), 88% (papers) and 89% (medical) with scores −0.021 to +0.007; it improved artists' dates by
+0.25–0.41 (the first paragraph states the full date, the chained whole-article read returned the year), cut lists,
+and collapsed players' absence-coded counts (0.95 → 0.40: a window cannot establish an absence). The rule needs an
+exemption for columns whose gold is mostly a coded absence and for lists whose items scatter. It also needs no gold: learned from
 where the 7B's *own* stated values sit in the recorded run, the shares for the columns read on demand are within
 0.01–0.08 of the gold-based ones on papers, players and artists (0.18 on medical, where the model's list items sit
 later than gold's, so the learned window is the conservative one). Those are the shares the queued I7 run uses:
@@ -185,11 +194,11 @@ you which cells those are.
 
 ## 5. What is still missing
 
-Three deployments are queued behind the current 7B runs, each with a prediction written down first
-(RESEARCH_DEPTH.md §8): the verifier as the router of 600 second looks on the 32B (I2b: more net fixes per dollar
-than random and than most-sensitive-first, because it adds disagreement and empties to sensitivity); the label
-contract on the five columns that lack a vocabulary (I6: their merged rows fall by at least half, the corpus score
-moves by under 0.01, because those columns carry few rows); per-column windows on papers, players, artists and
-medical (I7: players' patch tokens fall by about half, the others' by 15–30%, scores within 0.02 of recorded). The
-"structure survives drift" result should be checked on a workload whose structure does drift (a different split of
-templates between train and test), which the benchmark does not provide.
+The three deployments have run (RESEARCH_DEPTH.md §8, with the predictions written first). The verifier as a
+router fails as its failure clause foresaw: it detects under-determination, not repairability. The label contract
+works on single-valued columns whose labels are forms of a stated fact (artists' century 0.20 → 0.38, legal 0.170 →
+0.269 with every grouping query up) and backfires on lists (medical −0.013): a vocabulary fixes form, not selection.
+The windows save 11–59% of tokens at −0.021 to +0.007, improve dates, cut lists, and cannot establish an absence.
+Still to run: the window rule with its exemptions, a per-column repairability estimate from a few labelled cells,
+and the field-order layout rule. The "structure survives drift" result should be checked on a workload whose
+structure does drift (a different split of templates between train and test), which the benchmark does not provide.

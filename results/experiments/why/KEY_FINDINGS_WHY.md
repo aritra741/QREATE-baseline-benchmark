@@ -166,13 +166,24 @@ in short documents, so most-sensitive-first gives 152 net fixes per dollar at th
 111 for the verifier's ranking, and the document's length, not the rule, sets the price of a fix. A cascade over
 documents has to be budgeted in tokens, and a router should weigh the expected fix by the length of what it must read.
 
+We then let the verifier choose: 600 second looks by the 32B routed by its score, against 600 at random and 600
+most-sensitive-first (1,280 new reads). The verifier's 600 are wrong 99% of the time, random's 60%; but the 32B
+repairs 13% of the verifier's and 32% of random's, so the verifier nets 72 fixes for $0.52 against random's 89 for
+$0.55. On all 2,999 cells that now have a second look, the same label-free features predict "wrong" with AUROC 0.84
+and "wrong and repaired by the stronger reader" with 0.53, which is chance. **The verifier detects
+under-determination, which no reader repairs; it cannot see repairability, and nothing label-free in these features
+can.** Repair rates are flat across kinds (14% to 23% of wrong cells), so a second look repairs about a fifth of
+wrong cells whoever chooses them, and the only lever left to a router is price, which is why most-sensitive-first
+(short documents) stays close to random per dollar. The verifier's use is the one it is good at: saying which cells
+not to trust.
+
 *What this lets you decide.* Before any gold data exists, asking a column twice with two cheap prompts on ten or so
 documents tells you which columns the documents determine. Where they do not, re-asking is wasted, whatever the
 model: change the specification, narrow the vocabulary, or ask a person. Where they do and the column is still wrong,
 a different reader is the repair. For categories, agreement is not evidence of correctness, and the category
 definitions themselves need checking. A verifier built from grounding, disagreement and sensitivity, which needs
-neither labels nor a model, tells which cells to trust and which to send to a stronger reader, and that routing should
-be priced per token, not per cell.
+neither labels nor a model, tells which cells not to trust; it does not tell which a stronger reader will repair, so
+route second looks by price and expect about a fifth of them to pay.
 
 # Why do aggregate queries over extracted values lose their groups?
 
@@ -529,14 +540,31 @@ merges (235 administrative cases served as civil; artists' continents; papers' t
 already lists the labels; 17 of the 25 columns read on demand are identifiers or open lists no declaration could
 enumerate; only 5 lack a small vocabulary the prompt does not state. Label collapse is mostly the model's mapping of a
 passage to a declared label, which is what sensitivity measures; declaring the vocabulary can fix only the few columns
-where none exists (a run on those five is queued).
+where none exists. We ran it on those five. Where the column is single-valued and its labels are forms of a stated
+fact, declaring them works: artists' century goes from 0.20 to 0.38 correct and the six queries grouping by it from
+0.22 to 0.35; legal's party status and year lift the corpus from 0.170 to 0.269 and the seven grouping queries from
+0.17 to 0.32, none down, because filters now match the form the queries compare with. The fate of the rows says what
+a vocabulary does: artists' "own label in another form" falls from 50% to 6%, exact rises from 27% to 52%, and merged
+rises from 23% to 43%, since once the forms agree the model's choice between '20th' and '19th-20th' is exposed as a
+judgment. Where the column is a list, listing allowed values invites selection: medical's two contracted list columns
+lose accuracy (0.20 to 0.05 on one) and the corpus loses 0.013. **A vocabulary fixes form, not selection**, and
+should be declared for single-valued columns only.
 
 Where a value sits in a document is a column property too, and it is learnable without gold. For each column read on
 demand, the 90th percentile of the position of the 7B's own served value, when it is stated verbatim, falls within
 0.01 to 0.08 of the gold-based position on papers, players and artists: players' columns need the first 29% to 53% of
 an entry, artists' dates and nationality the first tenth, while the legal corpus's on-demand columns (judge, year, the
 parties' status) sit in the last 2% of a judgment. A per-column window is a read plan that needs no model and refines
-the fixed first-window cut of the ablation (21% to 42% of tokens for −0.012 to +0.015); a run with it is queued.
+the fixed first-window cut of the ablation (21% to 42% of tokens for −0.012 to +0.015). Run on four corpora, the
+per-column windows cut tokens to 41% on players, 75% on artists, 88% on papers and 89% on medical, with scores
+unchanged on papers and artists, up 0.007 on medical and down 0.021 on players. Per column the window is a change of
+context like any other: artists' birth and death dates improve by 0.41 and 0.25 when the read stops at a tenth of
+the article, because the first paragraph states the full date and the chained read of the whole article had
+returned the year alone; lists lose where their items sit past the window; and players' championship counts
+collapse from 0.95 to 0.40, because the window was learned from the few players for whom a count is stated, while
+most players' gold is 0 and the model needs the whole entry to answer 0, otherwise leaving the cell empty. **A window
+can locate a stated value but cannot establish an absence**, so the rule must exempt columns whose values are mostly
+a coded absence and lists whose items scatter.
 Together with determinacy from ten documents, fill rate per context, grounding rate and the cost lemma, these form a
 per-column catalogue, which is to an LLM-built database what cardinalities and selectivities are to a relational one:
 the statistics a planner needs, computed once, cheaply, and not by a model.
@@ -597,9 +625,11 @@ tested beyond five corpora and three models, or on a different split of the work
 Three changes to DocETL have been tested (freezing each column on its first context, on the better of two, and on a
 determined one), and the budget policy that forecasts reuse with frozen contexts has been tested and fails for a
 stated reason (Section 6), and the build's prompt groups chosen by each column's measured context effect have been
-tested (Section 1: the cell gains transfer, the query scores do not move). Running or queued, each with its
-prediction written first (RESEARCH_DEPTH.md): the verifier as the router of second looks on the 32B (I2b), the label
-contract on the five columns that lack a vocabulary (I6), and per-column read windows (I7).
+tested (Section 1: the cell gains transfer, the query scores do not move), as have the verifier as a router of
+second looks (Section 2: it finds wrong cells, not repairable ones), the label contract and the per-column windows
+(Section 11). Not yet run: a per-column estimate of repairability from a few labelled cells, the window rule with
+its exemptions, and a field-order rule that places a mostly-empty column after the fields that make its absence
+evident.
 
 # Methods
 
@@ -642,6 +672,11 @@ fixed shuffle and the reverse on the same thirty documents and counts cells whos
 natural order's; the run-to-run rate is from the repeated streams of E1.1. The workload analysis counts, per corpus,
 the schema columns the reference and test queries use, matches each test query's template and shape against the
 reference queries, and checks each query constant for a verbatim occurrence in the documents whose gold value equals it.
+The label contract adds gold's label set as the allowed values of a column's on-demand prompt; the window runs cut
+each document to the column's learned share before the prompt is rendered (a prompt for several columns takes the
+largest share); the routed second looks re-ask the 32B for the 600 cells each rule ranks first, reusing earlier
+second looks of the same cells, and the repairability test fits the verifier's features to "wrong and repaired" with
+whole columns held out.
 
 # Appendix: example test queries
 
