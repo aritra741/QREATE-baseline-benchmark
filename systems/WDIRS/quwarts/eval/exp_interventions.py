@@ -232,6 +232,76 @@ def recorded_master(c: str) -> Path:
     return p if p.exists() else REPLAY_SCRATCH / c / "fixed4-attribute_pool_100" / "master.db"
 
 
+def journal_shas(root: Path, c: str) -> set:
+    out = set()
+    for name in ("build_reads.jsonl", "patch_reads.jsonl"):
+        f = root / c / name
+        if f.exists():
+            out |= {json.loads(l).get("prompt_sha") for l in f.read_text().splitlines() if l.strip()}
+    return out
+
+
+def served_from_journals(root: Path, c: str, exclude: set) -> dict:
+    """A cloned stream's own reads (its journal starts with a copy of the recorded one): (table, doc, attr) -> the
+    first value this run read. The stream's database is removed when it completes, so values come from here."""
+    from quwarts.eval.exp_context import load
+
+    out = {}
+    for (t, d, a), lst in load(root / c, exclude).items():
+        v = lst[0][1]
+        out[(t, d, a)] = " || ".join(str(x) for x in v) if isinstance(v, list) else v
+    return out
+
+
+class Served:
+    """Values of a run: its own journal reads where it read, the recorded committed value elsewhere."""
+
+    def __init__(self, c: str, root: Path | None):
+        self.c = c
+        self.rec = recorded_master(c)
+        self.new = served_from_journals(root, c, journal_shas(REPO / "results" / "drift_live_ollama", c)) if root else {}
+        self.cache: dict = {}
+
+    def column(self, t: str, a: str) -> dict | None:
+        from quwarts.eval.exp_open import column_values
+
+        if (t, a) not in self.cache:
+            pv = column_values(self.rec, t, a) if self.rec.exists() else None
+            if pv is not None and self.new:
+                pv = dict(pv)
+                for (tt, d, aa), v in self.new.items():
+                    if tt == t and aa == a:
+                        pv[str(d)] = v
+            self.cache[(t, a)] = pv
+        return self.cache[(t, a)]
+
+
+def label_fate_values(pv: dict | None, a: str, gold_t: dict) -> dict | None:
+    """exp_groups.fate for one column given its values per document."""
+    from collections import Counter
+
+    from quwarts.eval.exp_groups import num
+    from quwarts.eval.exp_open import lookup
+
+    if pv is None:
+        return None
+
+    def vn(v):
+        v = norm(v)
+        return v if v is None or num(v) is None else repr(round(num(v), 6))
+
+    pairs = [(vn(g[a]), vn(lookup(pv, d))) for d, g in gold_t.items() if a in g and not is_null(g[a])]
+    by = defaultdict(Counter)
+    for g, pr in pairs:
+        if pr is not None:
+            by[pr][g] += 1
+    owner = {pr: cnt.most_common(1)[0][0] for pr, cnt in by.items()}
+    cnt = Counter("empty" if pr is None else "exact" if pr == g else "other_form" if owner[pr] == g else "merged" for g, pr in pairs)
+    n = max(1, len(pairs))
+    return {"rows": len(pairs), **{k: round(cnt[k] / n, 3) for k in ("exact", "other_form", "merged", "empty")},
+            "labels_served": len(by)}
+
+
 def label_fate(db: Path, t: str, a: str, gold_t: dict) -> dict | None:
     """exp_groups.fate for one column on one database: where each gold row's label ends up (exact, its own label in
     another form, merged into a label that mostly holds another gold group, empty)."""
@@ -277,11 +347,19 @@ def i6() -> dict:
         gold = gold_by_doc(c)
         fields = fields_of(c)
         cols = {}
+        s_rec, s_new = Served(c, None), Served(c, root if new else None)
         for col, labels in contract.items():
             t, a = col.split(".", 1)
+            from quwarts.eval.exp_open import lookup
+
+            docs = [d for d, g in gold.get(t, {}).items() if a in g]
+            pv0, pv1 = s_rec.column(t, a), s_new.column(t, a)
             cols[col] = {"labels_declared": len(labels), "kind": kind_of(fields[col]) if col in fields else None,
-                         "recorded": label_fate(recorded_master(c), t, a, gold.get(t, {})),
-                         "contract": label_fate(master_db(SCRATCH / "I6-contract" / "drift_live_ollama", c), t, a, gold.get(t, {}))}
+                         "cells_reread": sum(1 for (tt, d, aa) in s_new.new if tt == t and aa == a),
+                         "accuracy_recorded": round(S.mean(correct(lookup(pv0, d), gold[t][d][a]) for d in docs), 3) if docs and pv0 else None,
+                         "accuracy_contract": round(S.mean(correct(lookup(pv1, d), gold[t][d][a]) for d in docs), 3) if docs and pv1 and new else None,
+                         "recorded": label_fate_values(pv0, a, gold.get(t, {})),
+                         "contract": label_fate_values(pv1, a, gold.get(t, {})) if new else None}
         # the test queries that group by a contracted column, paired
         qids = sorted({r["qid"] for r in distinct if r["corpus"] == c and r["column"] in contract})
         paired = None
@@ -320,13 +398,13 @@ def i7() -> dict:
         fields = fields_of(c)
         design = json.loads((REPO / "results" / "drift_live_ollama" / c / "fixed4_attribute_pool_design.json").read_text())
         cols = []
-        db_new = master_db(SCRATCH / "I7-windows" / "drift_live_ollama", c)
+        s_rec, s_new = Served(c, None), Served(c, root if new else None)
         for col in design["new_columns"]:
             if col not in fields:
                 continue
             t, a = col.split(".", 1)
-            pv0 = column_values(recorded_master(c), t, a)
-            pv1 = column_values(db_new, t, a) if db_new.exists() else None
+            pv0 = s_rec.column(t, a)
+            pv1 = s_new.column(t, a) if new else None
             if pv0 is None:
                 continue
             docs = [d for d, g in gold.get(t, {}).items() if a in g]

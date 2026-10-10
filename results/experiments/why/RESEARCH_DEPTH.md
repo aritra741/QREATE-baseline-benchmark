@@ -529,3 +529,32 @@ and 33M tokens against 74M. 18 of 24 columns settle on their first context, 2 on
 reach half fill in four. Across the three corpora the rule holds per-query accuracy within 0.01 (papers −0.009,
 players +0.011, artists +0.004) at 13–45% of the tokens; the reduction is smallest on artists because its documents
 are short (the call, not the document, dominates) and the rule's extra draws cost whole passes over 1,000 documents.
+
+**I6, the label contract, artists and medical (2026-10-09 19:34; legal running).** *Artists:* declaring the four
+labels of `century` raises the column from 0.195 to 0.382 correct and the corpus score from 0.256 to 0.275; the six
+queries that group by century go from 0.216 to 0.350, all six up. The fate of its 709 gold rows shows what the
+contract does and does not do: "own label in another form" falls from 50% to 6% ('20th century' becomes '20th'),
+exact rises from 27% to 52%, and *merged rises from 23% to 43%*: once the forms are fixed, the model's choice between
+'20th' and '19th-20th' is exposed as a judgment it gets wrong on four rows in ten. *Medical:* the two contracted
+columns are multi-valued, and listing 7 and 16 allowed values made the model select more of them: `recommended_usage`
+falls from 0.204 to 0.051 correct (17 distinct labels served against 12), `activation_conditions` from 0.153 to
+0.133; the corpus loses 0.013 and the six grouping queries fall from 0.099 to 0.054. Prediction I6 (merged rows fall
+by at least half, scores move under 0.01) fails in both directions and for a reason worth stating: *a vocabulary
+fixes form, not selection.* On a single-valued column whose labels are forms of a stated fact, the contract converts
+"other form" into "exact" and the residual is the mapping judgment; on a multi-valued column an allowed-values list is
+an invitation to select, and selection is the under-determined part. Papers and players had nothing to contract.
+
+**I7, per-column read windows, papers, players, artists (2026-10-09 19:10; medical running).** Tokens: papers
+×0.88, players ×0.41 (the first-window ablation: ×0.58), artists ×0.75. Scores: papers 0.1533 → 0.1533, players
+0.387 → 0.366 (−0.021), artists 0.256 → 0.257. Per column the window is a double-edged change of context. *Artists'
+dates improve by a lot:* `birth_date` 0.38 → 0.79 and `death_date` 0.31 → 0.56 when the read stops at a tenth of the
+article, because the first paragraph states them and the rest of the article offers other dates to confuse them
+with (the window removes distractors, the same effect as a narrower prompt). *Lists lose:* `field` 0.13 → 0.03,
+`birth_city` 0.39 → 0.28, since items sit beyond the window. *Absence-coded counts collapse:* players'
+`nba_championships` 0.95 → 0.40 and `fiba_world_cup` 0.86 → 0.25. Their windows (0.33, 0.32) were learned from the
+17–18 players for whom a count is stated; for the majority, whose gold is 0 because nothing is stated, the model
+needs the whole entry to answer 0, and a cut entry makes it guess or leave the cell empty. *A window can locate a
+stated value but cannot establish an absence*, so the position rule must exempt columns whose gold is mostly a
+coded absence (fill of the stated sample below about a third), and lists whose items scatter. Prediction I7 holds
+on tokens (players about half, others 12–25%) and on where losses sit (lists), fails on players' score by 0.001
+beyond its 0.02 margin, and missed the absence mechanism and the date gain.
