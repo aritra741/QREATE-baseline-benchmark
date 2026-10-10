@@ -560,3 +560,30 @@ stated value but cannot establish an absence*, so the position rule must exempt 
 coded absence (fill of the stated sample below about a third), and lists whose items scatter. Prediction I7 holds
 on tokens (players about half, others 12–25%) and on where losses sit (lists), fails on players' score by 0.001
 beyond its 0.02 margin, and missed the absence mechanism and the date gain.
+
+**I2b, the verifier as the router of second looks (2026-10-09 20:07; 1,280 new 32B reads, 2,999 cells with a second
+look in all; `I2-secondlook/summary.json`, `router.json`).** Routing 600 cells by the verifier's P(wrong) selects
+cells that are wrong 99% of the time (592 of 600, against 360 for random and 527 for most-sensitive-first), and the
+32B fixes 75 of them while breaking 3: net 72, $0.52, 137 net fixes per dollar. Random: net 89 (114 fixed, 25
+broken), $0.55, 163 per dollar. Most-sensitive-first: net 66, $0.44, 152 per dollar. Disagreeing-first: net 49, 88
+per dollar. P(wrong) per token: net 14 (the cheapest high-scoring cells are empties in short documents that stay
+empty). Prediction I2b fails, and in the way its failure clause foresaw: *the verifier is a detector of
+under-determination, not of repairable error.* Of the wrong cells it selects, 13% are repaired; of random's, 32%.
+Fitting the same label-free features to the outcome "wrong and repaired by the 32B" on all 2,999 cells gives AUROC
+0.53 out-of-fold by column (against 0.84 for "wrong"): *no label-free feature predicts which wrong cells a stronger
+reader repairs*, and the coefficients that do appear point away from the verifier's (less sensitive, not fully
+grounded, lists). Repair rates by kind are flat and low: lists 23% of wrong cells, numbers 19%, free text 14%
+(categories 43% and yes/no 50% on tens of cells). What is left to a router is cost: most-sensitive-first pays
+$0.44 for 600 cells because sensitive columns sit in short documents, and that, not fixability, is why it is close
+to random per dollar. The honest conclusion for the cascade section: a second look repairs about a fifth of wrong
+cells whoever chooses them; choose them by price, and spend the verifier on what it can do, which is to say which
+cells not to trust (99% precision at 600) rather than which to re-read. The repairable cells are the misreadings of
+determined columns (I2: dates fixed 73–84%), and finding those needs a per-column estimate from a few labelled cells,
+not a cell-level label-free score.
+
+**I7 on medical (2026-10-09 20:41).** Windows (shares 0.54–0.89 on 8 of 14 columns) score 0.1217 against the recorded
+0.1152 at 89% of the tokens; the first-window ablation scores 0.126 at 79%. Per column the changes are small (−0.03
+to +0.07, `single_dose` +0.07, `risk_factors` +0.03, `affected_organs` −0.03), so on a corpus of long documents with
+list columns whose items scatter, the learned windows are safe but save less than the fixed cut, because the stated
+items the shares were learned from sit late (p90 0.77–0.93). Across the four corpora: tokens ×0.41 to ×0.89, scores
+−0.021 to +0.007, with the gains and losses concentrated in a few columns of a predictable kind.
