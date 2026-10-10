@@ -689,3 +689,14 @@ three players flipped from 1 to 0 (the I7 lesson again), so a window now require
 lone values stated in at least 75% of filled cells; (2) artists' second looks were routed on rates of 0.1 (one net
 repair in ten), which is noise, and the 32B broke more than it fixed, so routing now requires a rate of at least 0.2.
 The first-rules runs are kept as V2a; V2 is re-run under the refined rules.
+
+**V2 under the refined rules, all five corpora (2026-10-10 08:00; `V2/summary.json`).** Against the recorded run:
+papers 0.138 (−0.015) at 0.42M + 0.14M tokens against 1.16M; players 0.376 (−0.011) at 3.80M + 0.60M against
+5.67M; artists 0.262 (+0.006) at 1.74M + 0.43M against 6.08M; medical 0.113 (−0.002) at 4.07M + 1.99M against
+14.08M; legal 0.165 (−0.005) at 5.29M + 0.26M against 19.77M. The first-rules run had +0.064, −0.031, −0.002,
++0.010, −0.001 on the same corpora. Taken together: *the planner holds the recorded system's accuracy within the
+run-to-run spread at a third to a quarter of the 7B tokens*, and the two runs' disagreement on papers and medical is
+the decision instability of §6 of WHY_AUDIT.md, not the rules. The unit decision alone, with no stronger reader,
+costs 1.40M, 6.11M, 6.29M, 15.60M and 20.08M when switched off against 0.42M, 3.80M, 1.74M, 4.07M and 5.29M on,
+at scores within 0.015: a factor of 1.6 to 3.8, consistent across both rule sets. V3 (twenty-sample decisions) is
+the run the evaluation section will use.
