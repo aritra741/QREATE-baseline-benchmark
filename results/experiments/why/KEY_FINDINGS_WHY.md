@@ -173,17 +173,23 @@ $0.55. On all 2,999 cells that now have a second look, the same label-free featu
 and "wrong and repaired by the stronger reader" with 0.53, which is chance. **The verifier detects
 under-determination, which no reader repairs; it cannot see repairability, and nothing label-free in these features
 can.** Repair rates are flat across kinds (14% to 23% of wrong cells), so a second look repairs about a fifth of
-wrong cells whoever chooses them, and the only lever left to a router is price, which is why most-sensitive-first
-(short documents) stays close to random per dollar. The verifier's use is the one it is good at: saying which cells
-not to trust.
+wrong cells whoever chooses them. The verifier's use is the one it is good at: saying which cells not to trust.
+**Repairability is a column property, and ten labelled cells find it.** Over the 25 columns with twenty or more
+second looks, the net repair rate ranges from −0.67 to +0.56 per look (an artist's death date +0.56, birth city
++0.54; columns where the stronger reader breaks more than it fixes at the other end). Estimating each column's rate
+from ten labelled second looks and routing 600 looks by it nets 189 fixes against 59 for random and 68 for
+most-sensitive-first, 402 fixes per dollar with price in the denominator against 123, and close to the 206 of the
+hindsight order. A stronger reader repairs misreadings of determined columns, and which columns those are is learnt
+from a handful of labels, not from label-free features. The cascade router is a per-column table of repair rates.
 
 *What this lets you decide.* Before any gold data exists, asking a column twice with two cheap prompts on ten or so
 documents tells you which columns the documents determine. Where they do not, re-asking is wasted, whatever the
 model: change the specification, narrow the vocabulary, or ask a person. Where they do and the column is still wrong,
 a different reader is the repair. For categories, agreement is not evidence of correctness, and the category
 definitions themselves need checking. A verifier built from grounding, disagreement and sensitivity, which needs
-neither labels nor a model, tells which cells not to trust; it does not tell which a stronger reader will repair, so
-route second looks by price and expect about a fifth of them to pay.
+neither labels nor a model, tells which cells not to trust; it does not tell which a stronger reader will repair.
+Label ten second looks per column, route by the column's repair rate over its price, and expect three times the
+repairs of a random allocation.
 
 # Why do aggregate queries over extracted values lose their groups?
 
@@ -627,9 +633,9 @@ determined one), and the budget policy that forecasts reuse with frozen contexts
 stated reason (Section 6), and the build's prompt groups chosen by each column's measured context effect have been
 tested (Section 1: the cell gains transfer, the query scores do not move), as have the verifier as a router of
 second looks (Section 2: it finds wrong cells, not repairable ones), the label contract and the per-column windows
-(Section 11). Not yet run: a per-column estimate of repairability from a few labelled cells, the window rule with
-its exemptions, and a field-order rule that places a mostly-empty column after the fields that make its absence
-evident.
+(Section 11). Not yet run: the window rule with its exemptions, replicates of the contract runs, the 32B context intervention
+on medical and legal, and a field-order rule that places a mostly-empty column after the fields that make its
+absence evident (all queued).
 
 # Methods
 

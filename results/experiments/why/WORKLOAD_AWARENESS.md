@@ -134,8 +134,10 @@ frozen variants ($0.30–0.60); the cost differences this work measures are fact
 are small enough that *accuracy per dollar*, not dollars, should be the reported quantity. The deployment (I2b,
 1,280 new 32B reads) showed the limit: the verifier's 600 cells are wrong 99% of the time, but the 32B repairs 13%
 of them against 32% of random's (net 72 for $0.52 against 89 for $0.55), and on all 2,999 cells with a second look
-"wrong and repaired" has no label-free predictor (AUROC 0.53, against 0.84 for "wrong"). A second look repairs about
-a fifth of wrong cells whoever chooses them; route by price.
+"wrong and repaired" has no label-free predictor (AUROC 0.53, against 0.84 for "wrong"). What does predict it is
+the column: net repair rates per column range from −0.67 to +0.56, and estimating them from ten labelled second
+looks per column routes 600 looks to 189 net fixes against 59 for random (402 per dollar against 123). The cascade
+router is a per-column table of repair rates, estimated from a handful of labels, with price in the denominator.
 
 **A position model: how much of a document a column needs.** For each column, the relative position in the
 document of the stated gold value: on players 90% of stated values sit within the first 18.5% of the document and

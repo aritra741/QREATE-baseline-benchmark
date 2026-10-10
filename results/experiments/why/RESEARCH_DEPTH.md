@@ -595,3 +595,17 @@ the model also combines allowed values), the year column slips from 0.996 to 0.9
 queries that *filter* on the status ('Government', 'Company'), which now match the form the queries compare with:
 the literal gap closed by declaration. The two contracted columns' prompts are in every legal patch, so all 570
 documents were re-read; a replicate run is queued to bound the sampling share of the +0.099.
+
+**I2b addendum: repairability is a column property, and ten labelled cells find it (`I2-secondlook/router.json`,
+`per_column_estimate_from_10_labelled`).** Over the 25 columns with 20 or more second looks, the net repair rate of a
+second look ranges from −0.67 to +0.56 per cell (median 0): artists' `death_date` +0.56, `birth_city` +0.54,
+`birth_date` +0.43, papers' `agent_framework` +0.29, legal's `defendant_current_status` +0.26, and columns where the
+32B breaks more than it fixes. Estimating each column's rate from ten labelled second looks and routing 600 looks
+to the held-out cells by that rate gives net 189 fixes (20 draws, sd 12) against 59 for random and 68 for
+most-sensitive-first; by rate per dollar 181 fixes for $0.45 (402 per dollar against 123 for random); the hindsight
+column order gives 206. So the cell-level verifier cannot see repairability (AUROC 0.53) but the column can: a
+stronger reader repairs misreadings of determined columns (dates in another format, a city named in the first
+line), and which columns those are is learnt from a handful of labels, not from label-free features. *The cascade
+router is a per-column table of repair rates, estimated from ten cells each, with price in the denominator.* That is
+also the shape of the budget result and the context result: the column is the unit of every decision in this
+system.
