@@ -659,3 +659,18 @@ predicts the 32B's accuracy alone at −0.71, and the 32B's own sensitivity pred
 best context on average (0.483 against 0.46 alone, with fewer empties, 0.20 against 0.26) while on the 7B the
 contexts tie (0.37–0.41); and on both, most columns are better alone (21 and 18 of 39) with a minority better in
 the group (8 and 9). Determinacy is a property of the column and the document, measured through either model.
+
+## 9. The catalogue planner (v2): first test (2026-10-10 02:00; SYSTEM_PLAN.md)
+
+Papers, 100% drift, replay clone, planner on with every component (`V2-test`): score 0.224 against the recorded
+0.153 (I5's 0% ceiling 0.134–0.146; the frozen-group ablation 0.131), at 0.73M tokens on the 7B plus 0.19M on the
+32B, against the recorded 1.16M. 22 queries moved by more than 0.02, 18 up; the gain sits in the GROUP BY and COUNT
+queries on `reasoning_depth` (+2.75 summed) and `agent_framework` (+1.03), whose label mix 59 and 45 second looks
+moved toward gold while per-cell accuracy moved by +0.02 and +0.03: the aggregate mechanism, this time in the
+system's favour. The probe (110 lone reads on ten documents) found two columns the whole group under-fills
+(`agent_framework` 0.8 → 0.4, `evaluation_metric` 0.5 → 0.2) and gave each its own prompt; the head prompt
+(`baseline`, `use_agent` at 28% of the document) saved a tenth of the reads. Repair rates from ten labelled cells:
+`use_agent` +0.2, `reasoning_depth` +0.2, `baseline` 0, `evaluation_dataset` 0, `performance_on_hotpotqa` −0.2 (no
+second looks there). A first run without the narrow groups and the repair component scored 0.139 at 0.43M (the
+probe uncharged), so on papers the components carry the gain. The full evaluation (five corpora, ablations, levels,
+budgets, replicates) is queued on both jobs.
