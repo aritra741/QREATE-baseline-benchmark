@@ -43,6 +43,10 @@ def prepare_gt(ds: str) -> Path:
     out.mkdir(parents=True)
     for csv in (REPO / "Query" / ds).glob("*.csv"):
         df = pd.read_csv(csv)
+        for c in df.columns:  # ids read as floats (artists: 1.0, three rows without an id) must match the documents' integer ids
+            if c.lower() == "id" and df[c].dtype.kind == "f" and df[c].dropna().mod(1).eq(0).all():
+                df = df[df[c].notna()].copy()
+                df[c] = df[c].astype(int)
         if not any(c.lower() == "id" for c in df.columns):
             if "pdf_filename" in df.columns:
                 df["id"] = df["pdf_filename"].astype(str).str.replace(r"\.pdf$", "", regex=True)
@@ -60,7 +64,7 @@ def preprocess(ds: str, root: Path) -> list[Path]:
     folders = []
     for task in ("Select", "Filter", "Join", "Agg", "Mixed"):
         for f in sorted((REPO / "Query" / ds / task).glob("*.sql")):
-            subprocess.run([PY, "-m", "evaluation.sql_preprocessor", "--dataset", ds, "--task", task, "--sql-file", str(f),
+            subprocess.run([PY, "-m", "evaluation_benchu.sql_preprocessor", "--dataset", ds, "--task", task, "--sql-file", str(f),
                             "--attributes-file", str(REPO / "Query" / ds / f"{ds}_attributes.json"), "--output-root", str(root)],
                            cwd=REPO, check=True, capture_output=True)
             folders += sorted((root / ds / task / f.stem).glob("*/"), key=lambda p: int(p.name))
@@ -95,7 +99,7 @@ def injected_sql(sql: str) -> tuple[str, str]:
     """Bench-U's alignment columns added to the select list: ``id`` for a single-table query, ``{table}.id`` for a
     join, nothing for an aggregation. Returns (sql, query type)."""
     sys.path.insert(0, str(REPO))
-    from evaluation.tools.sql_parser import SqlParser
+    from evaluation_benchu.tools.sql_parser import SqlParser
 
     parsed = SqlParser().parse(sql)
     e = parse_one(sql.rstrip(";"), read="sqlite")
@@ -111,22 +115,32 @@ def injected_sql(sql: str) -> tuple[str, str]:
     return e.sql(dialect="sqlite"), parsed.query_type
 
 
-def run_query(view: Path, folder: Path) -> dict:
-    sql = json.loads((folder / "sql.json").read_text())["sql"]
+def run_query(view: Path, folder: Path, ds: str) -> dict:
+    """The query as Bench-U's evaluator rewrites it for the ground truth (join columns aliased "table.column", the
+    alignment ids added), executed on the run's view, so result and ground truth carry the same column names."""
+    import logging
+
+    sys.path.insert(0, str(REPO))
+    from evaluation_benchu.run_eval import _inject_id_columns
+    from evaluation_benchu.tools.query_manifest import QueryManifest
+    from evaluation_benchu.tools.sql_parser import SqlParser
+
     try:
-        sql2, qtype = injected_sql(sql)
+        m = QueryManifest.from_files(sql_file=folder / "sql.json", attributes_file=REPO / "Query" / ds / f"{ds}_attributes.json", parser=SqlParser())
+        sql2, qtype = _inject_id_columns(m, logging.getLogger("benchu")), m.parsed.query_type
         con = sqlite3.connect(view)
         df = pd.read_sql_query(sql2, con)
         con.close()
         df.to_csv(folder / "result.csv", index=False)
         return {"rows": len(df), "type": qtype}
-    except Exception as e:  # a query the view cannot answer (a table never read): an empty result
-        pd.DataFrame().to_csv(folder / "result.csv", index=False)
+    except Exception as e:  # a query the view cannot answer (a column never read): no result, scored as 0 in mean_f1_all
+        if (folder / "result.csv").exists():
+            (folder / "result.csv").unlink()
         return {"rows": 0, "type": "error", "error": str(e)[:160]}
 
 
 def evaluate(ds: str, folder: Path, gt: Path, judge: str) -> dict | None:
-    cmd = [PY, "-m", "evaluation.run_eval", "--dataset", ds, "--task", folder.parent.parent.name, "--sql-file", str(folder / "sql.json"),
+    cmd = [PY, "-m", "evaluation_benchu.run_eval", "--dataset", ds, "--task", folder.parent.parent.name, "--sql-file", str(folder / "sql.json"),
            "--result-csv", str(folder / "result.csv"), "--attributes-file", str(REPO / "Query" / ds / f"{ds}_attributes.json"),
            "--gt-dir", str(gt), "--output-dir", str(folder), "--log-level", "WARNING"]
     cmd += ["--llm-provider", "openai", "--llm-model", "openai/qwen2.5:7b-instruct"] if judge == "local" else ["--llm-provider", "none"]
@@ -181,8 +195,8 @@ def main(argv=None) -> int:
         rows = []
         for folder in folders:
             task = folder.parent.parent.name
-            rq = run_query(view, folder)
-            acc = evaluate(ds, folder, gt, a.judge)
+            rq = run_query(view, folder, ds)
+            acc = evaluate(ds, folder, gt, a.judge) if rq["type"] != "error" else {"error": rq.get("error")}
             f1 = acc.get("macro_f1") if acc and "macro_f1" in acc else None
             if f1 is None:
                 errors += 1
@@ -194,9 +208,10 @@ def main(argv=None) -> int:
             print(f"  {ds} {task} {folder.parent.name}/{folder.name}: rows={rq['rows']} f1={f1}", flush=True)
         summary = {t: {"queries": len(v), "mean_f1": round(S.mean(v), 3)} for t, v in by_task.items()}
         allf = [x for v in by_task.values() for x in v]
-        out["datasets"][ds] = {"by_task": summary, "mean_f1": round(S.mean(allf), 3) if allf else None, "queries": len(folders),
-                              "unscored": errors, "cost": cost(corpus, a.run, a.key or "fixed4-attribute_pool/100"), "queries_detail": rows}
-        print(f"{ds}: mean F1 {out['datasets'][ds]['mean_f1']} over {len(allf)} queries ({errors} unscored); {summary}; cost {out['datasets'][ds]['cost']['k_tokens_per_doc_per_query']}k tokens/doc/query", flush=True)
+        out["datasets"][ds] = {"by_task": summary, "mean_f1": round(S.mean(allf), 3) if allf else None,
+                              "mean_f1_all": round(sum(allf) / len(folders), 3) if folders else None,  # unanswerable queries count as 0
+                              "queries": len(folders), "unscored": errors, "cost": cost(corpus, a.run, a.key or "fixed4-attribute_pool/100"), "queries_detail": rows}
+        print(f"{ds}: mean F1 {out['datasets'][ds]['mean_f1']} over {len(allf)} scored queries, {out['datasets'][ds]['mean_f1_all']} over all {len(folders)} ({errors} unanswerable); {summary}; cost {out['datasets'][ds]['cost']['k_tokens_per_doc_per_query']}k tokens/doc/query", flush=True)
     dest = EXP / "BENCHU" / f"{a.run}_{a.judge}.json"
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(out, indent=1))
