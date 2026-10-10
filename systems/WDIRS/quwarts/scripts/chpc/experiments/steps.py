@@ -538,8 +538,8 @@ STEPS += [v2(c, "ablate-windows", off="windows", repair=False, lane="gpu2") for 
 STEPS += [v2(c, "ablate-repair", repair=False, lane="gpu2") for c in V2_ORDER]      # no stronger reader
 STEPS += [v2(c, level="0") for c in V2_ORDER]                                       # no drift: the build alone
 STEPS += [v2(c, "rep1") for c in ("cspaper", "player")]                             # replicates (noise floor)
-STEPS += [v2(c, budget=True) for c in V2_ORDER]                                     # budget curve (fcfs, 25% and 50%)
-STEPS += [v2(c, level="50") for c in V2_ORDER]
+# (V2's budget and level-50 runs were replaced by V3's below, 2026-10-10 08:30: the decisions at ten documents and
+# ten labelled cells flip between runs, so the final system samples twenty of each)
 
 
 # ------------------------------------------------------------- v2 + the item filter (replay-only re-runs, no model calls)
@@ -564,3 +564,28 @@ STEPS += [v2f("V2", c) for c in V2_ORDER]
 STEPS += [v2f("V2-ablate-repair", c, repair=False) for c in V2_ORDER]
 STEPS += [v2f("V2-ablate-unit", c, off="unit", repair=False) for c in V2_ORDER]
 STEPS += [v2f("V2-ablate-windows", c, off="windows", repair=False) for c in ("cspaper", "player", "art")]
+
+
+
+# ------------------------------------------------------------- V3: the planner with twenty-document probes and twenty labelled cells
+# WHY_AUDIT.md §6: at ten documents the sensitivity ranking is stable (mean change 0.03-0.10) but the binary decisions
+# (narrow prompt, window, repair) flip between runs, and papers swung 0.217 -> 0.138 on one repair decision. V3 probes
+# twenty documents, estimates repair rates from twenty labelled cells and routes only with three net repairs or more.
+def v3(corpus: str, variant: str = "", off: str = "", repair: bool = True, level: str = "100", lane: str = "gpu", budget: bool = False) -> dict:
+    step = v2(corpus, variant, off, repair, level, lane, budget)
+    step["id"] = step["id"].replace("V2", "V3", 1)
+    step["cmd"] = (step["cmd"].replace("results/experiments/V2", "results/experiments/V3").replace(f"{SCRATCH}/V2", f"{SCRATCH}/V3")
+                   .replace("QUWARTS_PLANNER=catalogue ", "QUWARTS_PLANNER=catalogue QUWARTS_PROBE_DOCS=20 QUWARTS_REPAIR_MIN_FIXES=3 ")
+                   .replace("/V3/labels/", "/V3/labels20/"))
+    step["outputs"] = [o.replace("results/experiments/V2", "results/experiments/V3") for o in step["outputs"]]
+    return step
+
+
+STEPS += [v3(c) for c in V2_ORDER]
+STEPS += [v3(c, "ablate-repair", repair=False, lane="gpu2") for c in V2_ORDER]
+STEPS += [v3(c, "ablate-unit", off="unit", repair=False, lane="gpu2") for c in V2_ORDER]
+STEPS += [v3(c, "ablate-itemfilter", off="itemfilter", lane="gpu") for c in V2_ORDER]
+STEPS += [v3(c, "rep1") for c in ("cspaper", "player", "art")]
+STEPS += [v3(c, budget=True) for c in V2_ORDER]
+STEPS += [v3(c, level="50") for c in V2_ORDER]
+STEPS += [v3(c, level="0") for c in V2_ORDER]

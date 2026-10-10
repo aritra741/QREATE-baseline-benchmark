@@ -21,10 +21,11 @@ OUT = EXP / "V2"
 LABELLED = 10
 
 
-def labels() -> None:
-    """For every new column of the drift design, ten documents with a gold value, drawn with a fixed seed: the
-    labelled sample the repair component estimates a column's repair rate from (a validation set a user would label)."""
-    (OUT / "labels").mkdir(parents=True, exist_ok=True)
+def labels(n: int = LABELLED, name: str = "labels") -> None:
+    """For every new column of the drift design, ``n`` documents with a gold value, drawn with a fixed seed: the
+    labelled sample the repair component estimates a column's repair rate from (a validation set a user would label).
+    The first ten of the twenty are the ten of the smaller sample (same seed, same order)."""
+    (OUT / name).mkdir(parents=True, exist_ok=True)
     for c in CORPORA:
         ctx = R.context(c)
         gold = gold_by_doc(c)
@@ -35,9 +36,9 @@ def labels() -> None:
             docs = [d for d in sorted(ctx.names[t]) if a in gold.get(t, {}).get(d, {}) or a in gold.get(t, {}).get(d.rsplit(".", 1)[0], {})]
             rng = random.Random(f"{c}:{col}:labels")
             rng.shuffle(docs)
-            chosen = docs[:LABELLED]
+            chosen = docs[:n]
             out[col] = {d: (gold[t].get(d) or gold[t].get(d.rsplit(".", 1)[0]))[a] for d in chosen}
-        (OUT / "labels" / f"{c}.json").write_text(json.dumps(out, indent=1, default=str))
+        (OUT / name / f"{c}.json").write_text(json.dumps(out, indent=1, default=str))
         print(f"{c}: {len(out)} columns, {sum(len(v) for v in out.values())} labelled cells")
 
 
@@ -84,10 +85,12 @@ def analyze() -> dict:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["labels", "analyze"])
+    ap.add_argument("what", choices=["labels", "labels20", "analyze"])
     a = ap.parse_args(argv)
     if a.what == "labels":
         labels()
+    elif a.what == "labels20":
+        labels(20, "labels20")
     else:
         o = analyze()
         for c, row in o["runs"].items():

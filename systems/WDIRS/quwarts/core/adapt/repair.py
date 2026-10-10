@@ -31,6 +31,7 @@ MODEL = os.environ.get("QUWARTS_REPAIR_MODEL", "qwen2.5:32b-instruct")
 SHARE = float(os.environ.get("QUWARTS_REPAIR_SHARE", 0.25))  # of the extraction's tokens, as the second reader's budget
 MIN_LABELLED = 8
 MIN_RATE = float(os.environ.get("QUWARTS_REPAIR_MIN_RATE", 0.2))  # at least two net repairs in ten: one is noise (V2a, art)
+MIN_FIXES = int(os.environ.get("QUWARTS_REPAIR_MIN_FIXES", 2))  # and at least this many net repairs in the sample (V3: 3 of 20)
 _lock = threading.Lock()
 
 
@@ -63,6 +64,7 @@ class Repairer:
         self.labels = json.loads(Path(labels_path).read_text()) if labels_path else {}
         self.correct = correct  # (served, gold) -> bool, the benchmark's cell comparison
         self.rates: dict[str, float] = {}
+        self.netfix: dict[str, int] = {}
         self.done: dict[str, dict] = {}
         if journal.exists():
             for line in journal.read_text().splitlines():
@@ -119,6 +121,7 @@ class Repairer:
                 breaks += before and not after
         rate = (fixes - breaks) / len(labelled)
         self.rates[col] = rate
+        self.netfix[col] = fixes - breaks
         return {"rate": round(rate, 3), "fixes": fixes, "breaks": breaks, "labelled": len(labelled),
                 "calls": sum(not r.get("cached") for r in calls),
                 "tokens": sum(r["prompt_tokens"] + r["output_tokens"] for r in calls if not r.get("cached"))}
@@ -131,7 +134,7 @@ class Repairer:
         for a in attrs:
             col = f"{table}.{a}"
             rate = self.rates.get(col)
-            if rate is None or rate != rate or rate < MIN_RATE:
+            if rate is None or rate != rate or rate < MIN_RATE or self.netfix.get(col, 0) < MIN_FIXES:
                 continue
             for d, p in docs.items():
                 if d in self.labels.get(col, {}):
