@@ -1225,6 +1225,11 @@ def _planner_patch(self, missing: dict, scope: dict, seen: dict, fields_seen: di
                     if d in vals:
                         vals[d][a] = v
                 tinfo["repair"][",".join(attrs)] = {k: v for k, v in routed.items() if k != "updates"}
+            if "itemfilter" not in K.OFF and any(K.kind_of(fields[f"{t}.{a}"]) == "list" for a in attrs):
+                from quwarts.core.router.corpus_features import read_document
+
+                texts = {d: read_document(Path(ctx.docs[t][d])).lower() for d in docs if d in vals}
+                tinfo.setdefault("item_filter", {})[",".join(attrs)] = K.apply_item_filter(vals, texts, fields, t, attrs, plan["stats"])
             write_values(self.dir / "master.db", t, docs, list(attrs), vals, fields)
             for a in attrs:
                 self.mat.setdefault((t, a), set()).update(d for d in docs if d in vals)

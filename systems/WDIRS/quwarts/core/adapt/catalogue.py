@@ -35,7 +35,7 @@ MIN_GROUNDED = float(os.environ.get("QUWARTS_WINDOW_GROUNDED", 0.75))  # a windo
 # the column only when the lone values are mostly stated (players' draft_pick at 0.57 cost three filtered aggregates, V2a)
 MIN_STATED = int(os.environ.get("QUWARTS_WINDOW_STATED", 4))
 OFF = frozenset(x for x in os.environ.get("QUWARTS_PLANNER_OFF", "").split(",") if x)
-assert OFF <= {"unit", "windows", "vocab", "repair"}, OFF
+assert OFF <= {"unit", "windows", "vocab", "repair", "itemfilter"}, OFF
 VOCAB = json.loads(Path(os.environ["QUWARTS_VOCAB"]).read_text()) if os.environ.get("QUWARTS_VOCAB") and "vocab" not in OFF else {}
 
 
@@ -147,6 +147,19 @@ def column_stats(alone: dict[str, dict[str, Any]], grouped: dict[str, dict[str, 
             if share > HEAD_SHARE:
                 share, why = 1.0, f"values sit beyond the first {HEAD_SHARE:.0%}"
         st["share"], st["whole_document_because"] = share, why
+        # the item filter's switch (list columns): are the unstated items of the lone values unstable across the two
+        # contexts (invented: drop them) or stable (paraphrased truths such as a country for a nationality: keep them)?
+        if kind == "list" and grouped:
+            unstated = unstable = 0
+            for d in both:
+                gi = {norm(x) for x in str(gv[d]).split("||")} if not is_null(gv[d]) else set()
+                for x in (str(av[d]).split("||") if not is_null(av[d]) else []):
+                    x = x.strip()
+                    if x and position_of(texts[d], x) is None:
+                        unstated += 1
+                        unstable += norm(x) not in gi
+            st["unstated_items"], st["unstable_share"] = unstated, round(unstable / unstated, 2) if unstated else None
+            st["item_filter"] = unstated == 0 or unstable / unstated >= 0.5
         out[col] = st
     return out
 
@@ -181,3 +194,36 @@ def context_hurt(stats: dict[str, dict[str, Any]], table: str, attrs: list[str])
         if st.get("share", 1.0) >= 1.0 and fa >= 0.3 and fg < 0.5 * fa and gr >= 0.5:
             out.append(a)
     return sorted(out)
+
+
+def filter_list_items(value, text_l: str):
+    """The item filter (SYSTEM_PLAN.md, component 6): a list keeps only the items stated verbatim in the document
+    (numbers in any common form). A stronger reader's repairs of list cells are mostly restraint, dropping items the
+    weaker reader invented (38% of its repairs), and on the recorded run's list cells this check alone lifts accuracy
+    from 0.16 to 0.30 against the 32B's 0.34, with 4 breaks in 992 cells. Needs no model and no labels."""
+    if is_null(value):
+        return value
+    items = [x.strip() for x in str(value).split("||") if x.strip()]
+    if len(items) < 1:
+        return value
+    kept = [x for x in items if position_of(text_l, x) is not None]
+    return " || ".join(kept) if kept else None
+
+
+def apply_item_filter(vals: dict, texts: dict, fields: dict, table: str, attrs, stats: dict | None = None) -> int:
+    """In place, for the list columns among ``attrs`` whose catalogue entry has the filter switched on (the probe's
+    stability test; absent entry: on); returns the number of cells changed."""
+    changed = 0
+    for a in attrs:
+        f = fields.get(f"{table}.{a}")
+        if f is None or kind_of(f) != "list":
+            continue
+        if stats and not stats.get(f"{table}.{a}", {}).get("item_filter", True):
+            continue
+        for d, row in vals.items():
+            if a in row and d in texts:
+                new = filter_list_items(row[a], texts[d])
+                if norm(new) != norm(row[a]):
+                    row[a] = new
+                    changed += 1
+    return changed
