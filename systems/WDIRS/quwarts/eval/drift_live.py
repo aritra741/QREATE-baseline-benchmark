@@ -1183,7 +1183,7 @@ def _planner_patch(self, missing: dict, scope: dict, seen: dict, fields_seen: di
     """The planner's reads for this query: each table's frozen prompts over the documents in scope that lack any of
     the prompt's columns, then the stronger reader's second looks where a column's repair rate is positive."""
     from quwarts.core.adapt import catalogue as K
-    from quwarts.core.adapt.repair import SHARE
+    from quwarts.core.adapt.repair import SHARE, ROWS as R_ROWS, keeps, predicate_constants
     from quwarts.core.router.executor import set_window_shares
 
     ctx = self.ctx
@@ -1220,7 +1220,11 @@ def _planner_patch(self, missing: dict, scope: dict, seen: dict, fields_seen: di
                     est = self.repairer.estimate(t, a, fields[f"{t}.{a}"], paths, served[a], WORKERS)
                     if not est.get("cached"):
                         tinfo["repair"][a] = est
-                routed = self.repairer.route(t, list(attrs), fields, paths, served, budget, WORKERS)
+                relevant = None
+                if R_ROWS == "target":  # second looks go first to the cells a workload predicate on the column can keep
+                    consts = {a: predicate_constants(list(seen.values()), t, a) for a in attrs}
+                    relevant = lambda d, a, consts=consts, served=served: keeps(served[a].get(d), consts[a]) or not consts[a]
+                routed = self.repairer.route(t, list(attrs), fields, paths, served, budget, WORKERS, relevant)
                 for (d, a), v in routed["updates"].items():
                     if d in vals:
                         vals[d][a] = v
@@ -1338,7 +1342,7 @@ def run(corpus: str, deadline: float, which: str = "headline", axes: list[str] |
         if key.startswith(FIXED + "-") or key.startswith(FIXED + "b"):
             head, p = key.split("/")
             name, axis = head.split("-", 1)
-            build = fixed_build(corpus, axis, int(p))
+            build = fixed_build(corpus, "attribute_pool" if axis == "benchu" else axis, int(p))  # Bench-U's workload: the drift build at 100% (W0's columns)
             if prepare(corpus, caller, left_of(stop_at), build) is None:
                 lines.append(f"{corpus:8s} {key:22s} build read in progress")
                 break

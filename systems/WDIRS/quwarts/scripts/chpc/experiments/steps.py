@@ -630,3 +630,13 @@ STEPS += [v3(c, "rep2") for c in ("cspaper", "player", "art")]
 STEPS += [v3("med", "rep2", lane="gpu2"),
           v3("med", "ablate-repair-rep2", repair=False, lane="gpu2"),
           v3("med", "ablate-itemfilter-rep2", off="itemfilter", lane="gpu2")]
+
+
+def v3_rowlook(corpus: str, lane: str) -> dict:
+    """The planner with second looks routed to the rows a workload predicate on the column keeps first (WHY_AUDIT §5)."""
+    step = v3(corpus, "rowlook", lane=lane)
+    step["cmd"] = step["cmd"].replace("QUWARTS_PLANNER=catalogue ", "QUWARTS_PLANNER=catalogue QUWARTS_REPAIR_ROWS=target ")
+    return step
+
+
+STEPS += [v3_rowlook(c, "gpu") for c in ("cspaper", "art", "player")] + [v3_rowlook(c, "gpu2") for c in ("med", "legal")]

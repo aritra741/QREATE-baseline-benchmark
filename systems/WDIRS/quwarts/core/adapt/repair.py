@@ -30,6 +30,7 @@ SYSTEM = "Extract only facts stated in the document. Return JSON."
 MODEL = os.environ.get("QUWARTS_REPAIR_MODEL", "qwen2.5:32b-instruct")
 SHARE = float(os.environ.get("QUWARTS_REPAIR_SHARE", 0.25))  # of the extraction's tokens, as the second reader's budget
 MIN_LABELLED = 8
+ROWS = os.environ.get("QUWARTS_REPAIR_ROWS", "price")  # "price": rate per token; "target": rows a seen predicate keeps first
 MIN_RATE = float(os.environ.get("QUWARTS_REPAIR_MIN_RATE", 0.2))  # at least two net repairs in ten: one is noise (V2a, art)
 MIN_FIXES = int(os.environ.get("QUWARTS_REPAIR_MIN_FIXES", 2))  # and at least this many net repairs in the sample (V3: 3 of 20)
 _lock = threading.Lock()
@@ -127,7 +128,7 @@ class Repairer:
                 "tokens": sum(r["prompt_tokens"] + r["output_tokens"] for r in calls if not r.get("cached"))}
 
     def route(self, table: str, attrs: list[str], fields: dict[str, FieldSpec], docs: dict[str, Path], served: dict,
-              budget_tokens: int, workers: int) -> dict:
+              budget_tokens: int, workers: int, relevant=None) -> dict:
         """Second looks for the columns with a positive rate, cheapest documents first, within the budget.
         Returns the replacements {(doc, attr): value} and the accounting."""
         cells = []
@@ -143,7 +144,10 @@ class Repairer:
         if not cells or budget_tokens <= 0:
             return {"updates": {}, "calls": 0, "tokens": 0, "cells_considered": len(cells)}
         sizes = {d: count_tokens(read_document(docs[d])) for d in {d for _, d, _ in cells}}
-        cells.sort(key=lambda x: (-(x[0] / max(1, sizes[x[1]])), x[1], x[2]))  # rate per token, then name
+        # rate per token, then name; with ``relevant`` (a predicate on (doc, attr)) the cells a workload predicate
+        # can keep come first: a second look moves a query's score only on the rows its filter selects (WHY_AUDIT §5)
+        first = (lambda d, a: 0 if relevant(d, a) else 1) if relevant else (lambda d, a: 0)
+        cells.sort(key=lambda x: (first(x[1], x[2]), -(x[0] / max(1, sizes[x[1]])), x[1], x[2]))
         chosen, spent = [], 0
         for rate, d, a in cells:
             est = min(sizes[d], int(self.srv["context"]) - 1500) + 300
@@ -167,3 +171,42 @@ class Repairer:
                     tokens += res["prompt_tokens"] + res["output_tokens"]
         return {"updates": updates, "calls": calls, "tokens": tokens, "cells_considered": len(cells),
                 "cells_asked": len(chosen), "budget_tokens": budget_tokens, "seconds": round(time.time() - t0, 1)}
+
+
+def predicate_constants(queries, table: str, attr: str) -> set[str]:
+    """The literals the workload compares the column with (=, <>, IN, LIKE with the wildcards removed), lower-cased.
+    A column the workload only groups by or counts has none: every row of it matters equally."""
+    import sqlglot
+    from sqlglot import exp
+
+    out: set[str] = set()
+    for sql in queries:
+        try:
+            tree = sqlglot.parse_one(sql, read="sqlite")
+        except Exception:
+            continue
+        for node in tree.find_all(exp.Column):
+            if node.name != attr or (node.table and node.table != table):
+                continue
+            par = node.parent
+            lits = []
+            if isinstance(par, (exp.EQ, exp.NEQ)):
+                lits = [x for x in par.find_all(exp.Literal) if x.is_string]
+            elif isinstance(par, exp.In):
+                lits = list(par.expressions)
+            elif isinstance(par, exp.Like):
+                lits = [x for x in par.find_all(exp.Literal) if x.is_string]
+            for lit in lits:
+                v = getattr(lit, "this", None)
+                if isinstance(v, str) and v.strip("%"):
+                    out.add(" ".join(v.strip("%").lower().split()))
+    return out
+
+
+def keeps(value, constants: set[str]) -> bool:
+    """Whether the served value is one a workload predicate on the column selects (equal to or containing a constant)."""
+    if value is None or not constants:
+        return False
+    items = [x.strip() for x in str(value).split("||")] if "||" in str(value) else [str(value)]
+    items = [" ".join(x.lower().split()) for x in items]
+    return any(c == it or c in it for c in constants for it in items)
