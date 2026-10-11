@@ -55,8 +55,12 @@ def system_figure():
             ax.plot([p[0] / 1e6 for p in pts], [p[1] for p in pts], marker="o", color=MUTED, label="Recorded system, budgets 25%, 50% and unlimited")
         fam = "V3" if "V3" in runs else ("v2" if "v2" in runs else "V2a")
         v2 = (runs.get(fam) or {}).get("fixed4-attribute_pool_100")
+        bud = runs.get(fam + "-budget") or {}
+        pts = sorted([(v["tokens"] + v["repair_tokens"], v["score"]) for k, v in bud.items() if k.startswith("fixed4b") and k.endswith("attribute_pool_100")])
         if v2:
-            ax.plot([(v2["tokens"] + v2["repair_tokens"]) / 1e6], [v2["score"]], marker="*", markersize=14, linestyle="none", color=BLUE, label="Catalogue planner (7B + 32B tokens)")
+            pts.append((v2["tokens"] + v2["repair_tokens"], v2["score"]))
+        if pts:
+            ax.plot([p[0] / 1e6 for p in pts], [p[1] for p in pts], marker="*", markersize=11, color=BLUE, label="Catalogue planner, budgets 25%, 50% and unlimited (7B + 32B tokens)")
         pre = "V3-" if fam == "V3" else ("" if fam == "v2" else "V2a-")
         for key, mk, col, lab in (("ablate-unit", "s", ORANGE, "without the unit decision"), ("ablate-windows", "^", AQUA, "without windows"),
                                   ("ablate-repair", "D", YELLOW, "without second looks"), ("ablate-itemfilter", "v", INK2, "without the item filter")):
