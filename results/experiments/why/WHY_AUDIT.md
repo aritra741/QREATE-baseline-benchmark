@@ -269,3 +269,12 @@ compares with constants, which few routed columns are. The column-rate router st
 medical 0.095–0.107, legal 0.168–0.178 (0.165 with the row rule, whose legal run is a replicate since no looks were
 routed). Against recorded 0.153, 0.387, 0.256, 0.115, 0.170: inside on artists and legal, below on papers, players and
 medical; the medical gap is the filter's (both no-filter runs, 0.125 and 0.138, are above recorded).
+
+*Live check of the never-empty filter (2026-10-11 evening; `results/experiments/V3-keep`).* Prediction written before
+the run: medical reaches about 0.12, at or above the recorded 0.115, with no change elsewhere. Method: the stream of
+run 2 replayed with its own journals (every 7B and 32B read served from the journal, none made anew: the journals did
+not grow), so the filter rule is the only difference. Medical 0.133 against run 2's 0.095 (recorded 0.115; the two
+no-filter runs 0.125 and 0.138); artists 0.260 against run 2's 0.260. The prediction holds and the planner's medical
+gap to the recorded system closes. Command: `drift_live --corpus med|art --run --streams fixed --axes attribute_pool`
+with `QUWARTS_LIVE_ROOT=results/experiments/V3-keep/live`, the V3 environment, inside job 2157447 against its own 7B
+server.
