@@ -2,8 +2,8 @@
 title: "A database built by an LLM is a set of measurements: a catalogue of what each column's reads depend on, and a planner that uses it"
 ---
 
-Draft 2026-10-10. Numbers marked [v2] come from the evaluation queued today (`V2/summary.json`); every other number
-is measured (KEY_FINDINGS_WHY.md, RESEARCH_DEPTH.md §8–9). Figures are those of the key-findings document.
+Draft 2026-10-11. The evaluation is the V3 family (`V2/summary.json`, `WHY_AUDIT.md`); every other number is
+measured (KEY_FINDINGS_WHY.md, RESEARCH_DEPTH.md §8–9). Figures are those of the key-findings document.
 
 # 1. Introduction
 
@@ -37,8 +37,13 @@ get a prompt of their own, which vocabulary is declared, and where second looks 
 their price. The catalogue is to this system what cardinalities and selectivities are to a relational planner:
 cheap statistics, computed once, that are not a model.
 
-[v2] On five corpora at full drift the planner scores … against the recorded system's … and DocETL's …, at … of the
-tokens; each component's ablation lands where the measurements predict it.
+On five corpora at full drift the planner holds the recorded system's score within its run-to-run spread on three
+corpora and within 0.015 on the other two, at 27% to 89% of the recorded system's reader tokens, and one to two
+orders of magnitude below DocETL on both score and tokens; under a budget of a quarter of the recorded spend it
+scores 0.344 against 0.176 on players, 0.202 against 0.179 on artists and 0.160 against 0.098 on court judgments,
+because it reads a table once and keeps what it read. Each component's ablation lands where the measurements of
+Section 2 predict it, and where it does not (medical), the decomposition of Section 5.3 shows variance, not the
+component.
 
 Our contributions are (1) the principle, measured and decomposed into its sources, with the properties that make
 it usable (per column, cross-model, cross-system, label-free); (2) the catalogue; (3) the planner, each decision
@@ -142,8 +147,9 @@ first served; a policy that forecasts reuse loses 0.011 on average with no wins 
 afford a frozen prompt's indivisible spend. Columns the whole-document group under-fills, filled on at least 30% of
 the probe documents alone, on fewer than half as many in the group, with their lone values mostly stated in the
 document, get a prompt of their own: a narrow group if that prompt restores their fill, otherwise each alone. This
-is the fill rule that fixed DocETL, applied per column before the corpus is read. On papers the probe finds two such
-columns; on the other corpora [v2].
+is the fill rule that fixed DocETL, applied per column before the corpus is read. With twenty probe documents the
+rule fires on one medical column (`drug.manufacturer`) and on none of the other corpora; with ten it fired on two
+papers columns in one run and none in another, which is the instability of Section 6.
 
 ## 4.2 Windows
 
@@ -185,10 +191,89 @@ unstable, which keeps the gains and removes every losing column.
 Values are committed in the forms the workload compares (0.13 on players, 0.07 on artists), and on-demand reads
 cover only the documents a query's filter can select (up to 46% of the tokens).
 
-# 5. Evaluation [v2]
+# 5. Evaluation
 
-(5.1 setup; 5.2 against the recorded system and DocETL at 100% drift; 5.3 ablations; 5.4 drift and budget curves;
-5.5 cost in tokens and dollars. Filled from `V2/summary.json`.)
+## 5.1 Setup
+
+Five corpora (research papers, 200 documents; basketball players, 200 across four tables; artists, 1,000; medical,
+297 across three tables; court judgments, 570), the same test queries as the earlier sections (59, 118, 43, 43 and
+27), Qwen 2.5 7B at 4 bits as the reader and Qwen 2.5 32B as the stronger reader, both local. The recorded system is
+the one the earlier sections measured: the W0 build, then on demand one prompt per query's missing columns. The
+planner (V3) probes twenty documents per table, freezes its prompts, routes second looks by repair rates from twenty
+labelled cells with three net repairs required, and applies the item filter where the probe switches it on. Every
+run is a replay clone of the recorded run, so the build is identical and only on-demand reads are paid; a second
+run of the planner on every corpus gives the run-to-run spread; tokens are counted for the 7B and the 32B
+separately. A query's score is structure times cell accuracy as before.
+
+## 5.2 At full drift
+
+| corpus | recorded | planner (two runs) | 7B tokens, planner / recorded | 32B tokens | DocETL (score, tokens) |
+|---|---|---|---|---|---|
+| papers | 0.153 | 0.138, 0.136 | 0.52M / 1.16M | 0.20M | 0.122, 45.6M |
+| players | 0.387 | 0.377, 0.374 | 5.02M / 5.67M | 1.25M | 0.108, 316M |
+| artists | 0.256 | 0.255, 0.250 | 2.33M / 6.08M | 0.21M | 0.188, 74M |
+| medical | 0.115 | 0.107, 0.098 | 7.11M / 14.08M | 2.91M | 0.099 |
+| court judgments | 0.170 | 0.178, 0.168 | 5.33M / 19.77M | 0.52M | 0.046 |
+
+The planner keeps the recorded accuracy on artists, medical and court judgments (differences inside the two-run
+spread of 0.005 to 0.010) and loses 0.015 on papers and 0.010 on players, whose spreads are 0.002 and 0.003. Its
+reader tokens are 27% of the recorded system's on court judgments, 38% on artists, 45% on papers, 50% on medical and
+89% on players; the stronger reader adds 0.2M to 2.9M, so on players the planner with second looks spends more in all
+than the recorded system (6.3M against 5.7M) for 0.011 of score, and the second looks are the component to switch
+off there. DocETL, which extracts per query, is below the planner on every corpus by 0.016 to 0.27 at 8 to 60 times
+the tokens (its medical and legal runs were not re-costed).
+
+## 5.3 Ablations
+
+Score at full drift with one component off, and the reader tokens where the component changes them:
+
+| corpus | planner | no unit decision (tokens) | no second looks | no item filter |
+|---|---|---|---|---|
+| papers | 0.138 (0.52M) | 0.145 (1.49M) | 0.129 | 0.135 |
+| players | 0.377 (5.02M) | 0.387 (7.57M) | 0.366 | 0.370 |
+| artists | 0.255 (2.33M) | 0.262 (6.90M) | 0.257 | 0.260 |
+| medical | 0.107 (7.11M) | 0.113 (17.20M) | 0.078 | 0.138 |
+| court judgments | 0.178 (5.33M) | 0.170 (20.45M) | 0.167 | 0.168 |
+
+*The unit decision* (every remaining column of a table in frozen prompts at first touch) is what cuts the tokens,
+by 1.5 to 3.8 times, at a cost of 0.006 to 0.010 on four corpora and a gain of 0.008 on court judgments. *Second
+looks* add 0.009 on papers, 0.011 on players and court judgments, 0.029 on medical, and nothing on artists; the
+column-rate router spends them where the per-cell repair rate is high, and Section 2.3 says why that is not the
+same as where queries gain. *The item filter* adds 0.003 to 0.010 on four corpora and appears to cost 0.031 on
+medical; there, however, the three medical runs' final tables differ by 0.01 in score while the streams differ by
+0.06, because medical patches two tables at different queries and each query sees the table of its time, so the
+medical ablation is within the run-to-run and timing variance and no component claim is made for it (WHY_AUDIT.md
+§7). The decomposition of Section 2 gives the mechanism for the small losses on papers and players: the cells the
+planner changes are more often right, but a cell that turns from right to wrong on a grouping or filter column costs
+two to four times what a cell that becomes right earns.
+
+## 5.4 Drift and budget curves
+
+At 50% drift the planner scores 0.145, 0.379, 0.260, 0.111 and 0.205 against the recorded 0.147, 0.390, 0.267,
+0.117 and 0.174, at 81%, 97%, 57%, 73% and 75% of the reader tokens; at 0% both are the build. Under a budget,
+first come first served with the budget set to 25% and 50% of the recorded system's unlimited spend:
+
+| corpus | 25%: planner / recorded | 50%: planner / recorded |
+|---|---|---|
+| papers | 0.150 / 0.137 | 0.138 / 0.147 |
+| players | 0.344 / 0.176 | 0.366 / 0.293 |
+| artists | 0.202 / 0.179 | 0.254 / 0.191 |
+| medical | 0.075 / 0.079 | 0.085 / 0.104 |
+| court judgments | 0.160 / 0.098 | 0.160 / 0.146 |
+
+The budget curve is where the unit decision shows: with a quarter of the spend the planner has already read each
+touched table once and answers the rest of the stream from it, while the recorded system is still paying per query
+(players 0.344 against 0.176, court judgments 0.160 against 0.098). Medical is the exception at both budgets, for
+the reason of Section 6: its frozen reads are large and indivisible, and a budget that cannot afford one loses the
+table's columns altogether.
+
+## 5.5 Cost
+
+In the OpenRouter list prices of the two models, the planner's full-drift runs cost $0.07 (papers), $0.50 (players),
+$0.26 (artists), $1.0 (medical) and $0.58 (court judgments) against the recorded system's $0.12, $0.57, $0.61, $1.41
+and $1.98, and DocETL's $4.6 and $32 on the two corpora costed. The dollar amounts are small and the ratios are
+what matter: the planner is the cheapest system on every corpus but players, where its second looks are not worth
+their price.
 
 # 6. What the planner's failures teach
 

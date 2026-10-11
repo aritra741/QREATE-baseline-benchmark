@@ -700,3 +700,13 @@ the decision instability of §6 of WHY_AUDIT.md, not the rules. The unit decisio
 costs 1.40M, 6.11M, 6.29M, 15.60M and 20.08M when switched off against 0.42M, 3.80M, 1.74M, 4.07M and 5.29M on,
 at scores within 0.015: a factor of 1.6 to 3.8, consistent across both rule sets. V3 (twenty-sample decisions) is
 the run the evaluation section will use.
+
+**V3 complete (2026-10-11 09:00; `V2/summary.json`, figure `w13_system.png`).** At 100% drift, planner against
+recorded: papers 0.138 (replicate 0.136) against 0.153; players 0.377 (0.374) against 0.387; artists 0.255 (0.250)
+against 0.256; medical 0.107 (0.098) against 0.115; legal 0.178 (0.168) against 0.170; 7B tokens 45%, 89%, 38%, 50%
+and 27% of recorded, the 32B adding 0.2–2.9M. Ablations: the unit cuts tokens 1.5–3.8× at ≤0.010 of score (+0.008 on
+legal); second looks +0.009/+0.011/−0.002/+0.029/+0.011; item filter +0.003/+0.007/−0.005/(−0.031 medical, within
+its variance)/+0.010. Budgets (fcfs, 25% of the recorded spend): players 0.344 against 0.176, artists 0.202 against
+0.179, legal 0.160 against 0.098, papers 0.150 against 0.137, medical 0.075 against 0.079; at 50% medical 0.085
+against 0.104 (the indivisible-read failure). Level 50: within 0.011 of recorded on four corpora, +0.031 on legal,
+at 57–97% of the tokens. The paper's evaluation section (PAPER_DRAFT.md §5) is written from these.
