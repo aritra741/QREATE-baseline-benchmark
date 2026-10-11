@@ -622,3 +622,11 @@ def v3_benchu(corpus: str) -> dict:
 
 
 STEPS += [v3("med", "rep1", lane="gpu2"), v3("legal", "rep1", lane="gpu2")]  # the noise floor on the two corpora with long documents (WHY_AUDIT.md §7)
+
+# Third replicates (2026-10-11): papers and players are the two corpora where the planner sits outside the two-run
+# spread; medical's ablations differ by 0.06 while their tables explain 0.01 (WHY_AUDIT.md §7), so its ablations get
+# a second run each before any component claim.
+STEPS += [v3(c, "rep2") for c in ("cspaper", "player", "art")]
+STEPS += [v3("med", "rep2", lane="gpu2"),
+          v3("med", "ablate-repair-rep2", repair=False, lane="gpu2"),
+          v3("med", "ablate-itemfilter-rep2", off="itemfilter", lane="gpu2")]
