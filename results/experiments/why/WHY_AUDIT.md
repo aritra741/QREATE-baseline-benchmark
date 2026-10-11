@@ -200,6 +200,11 @@ routes only with three net repairs; the ten-sample runs are kept as the measurem
 
 ## 7. Medical: the ablation deltas are not the components' (a limit of the decomposition, and a noise floor)
 
+**Corrected 2026-10-11 (§8):** the decomposition used here never applied the item filter, so the three final tables
+could not differ by it. With replicates and a direct counterfactual the item filter's medical loss is real and has a
+mechanism; second looks also hold up (both no-repair runs below every system run). What remains true below is the
+timing caveat for the stream scores.
+
 On medical the planner's three V3 runs (the system, without the item filter, without second looks) score 0.107,
 0.138 and 0.078, yet their final tables, decomposed against the recorded one, score 0.121, 0.118 and 0.128: the
 counterfactual with every change applied reproduces none of the three streams (0 of 43 queries identical). Medical
@@ -215,3 +220,52 @@ floor.
 The root claim gets its mechanism (§2), the repair claim gets its mechanism and a free operator (§3), and the
 system gains a component derived from a why. The remaining observation-level rows are the position effect (no
 mechanism found) and the two benchmark artifacts, which the paper should name as artifacts.
+
+## 8. The item filter's query effect, measured directly; and row-targeted second looks (2026-10-11)
+
+*What prompted it.* Replicates on medical: the system scored 0.107, 0.098, 0.095 (and 0.092 with row-targeted looks);
+without the item filter 0.138 and 0.125, both above every system run; without second looks 0.078 and 0.092, both
+below. §7 had called these deltas variance, on the strength of final tables that, it turns out, the decomposition
+builds without the filter, so they could not differ by it.
+
+*The test.* For each corpus, the final table of the run without the filter, then the same table with the filter as
+shipped (a list cell with no item stated verbatim becomes empty) and with a never-empty variant (such a cell keeps
+the reader's value), every test query scored (`quwarts/eval/exp_filter_cf.py`, `WHY/filter_cf/summary.json`):
+
+| corpus | no filter | filter as shipped | never-empty | cells changed (emptied) |
+|---|---|---|---|---|
+| papers | 0.1353 | 0.1353 | 0.1353 | 6 (4) |
+| players | 0.3772 | 0.3772 | 0.3772 | 0 |
+| artists | 0.2625 | 0.2576 | 0.2618 | 669 (259) |
+| medical | 0.1205 | 0.0868 | 0.1231 | 537 (374) |
+| court judgments | 0.1813 | 0.1813 | 0.1813 | 244 (26) |
+
+*Prediction and verdict.* The filter was expected to carry its cell-level gain (list accuracy 0.250 → 0.299 on the
+recorded run) into query scores. It does not on any corpus: the V3 ablation's +0.003 to +0.010 on four corpora was
+run-to-run noise, and the medical loss is real (−0.034 counterfactual, −0.032 between the stream means). *Why:* on
+medical the filter emptied 374 cells, raising cell accuracy (recommended_usage 0 → 25 right of 75, diagnosis
+challenges 0 → 31 of 48), and every query that lost counts the column or filters on it with `<>`:
+`COUNT(single_dose)`, `COUNT(mechanism_of_action)` and `COUNT(unsuitable_population)` by prescription status
+(−0.37, −0.37, −0.11), `single_dose <> 'adults 20 mg'` (−0.13). COUNT(column) scores whether a value is present,
+not which; an empty cell also fails `<>` and drops its row. So *the asymmetry of §5 depends on the operator*: on a
+GROUP BY label or an equality filter a wrong value costs more than an empty one, on COUNT(column) and a negated
+filter an empty one costs more than a wrong one, because those operators read presence. The never-empty variant
+removes the loss (medical 0.1231 against 0.1205 without the filter) and is neutral elsewhere; it is now the default
+(`catalogue.filter_list_items`, `QUWARTS_ITEMFILTER_EMPTY=1` restores the V3 rule). The filter remains a cell-level
+repair at no model cost; its query-level value on these workloads is nil, because list columns enter the queries
+mostly through COUNT and filters on exact strings that neither form matches.
+
+*Row-targeted second looks* (`QUWARTS_REPAIR_ROWS=target`: cells whose value a workload predicate on the column can
+keep are asked first). Prediction: a gain where the budget binds. Result against the system's runs (three on papers,
+players, artists and medical; two on legal): papers 0.150 (0.136–0.144), players 0.373 (0.369–0.377), artists 0.257
+(0.250–0.260), medical 0.092 (0.095–0.107), legal 0.165 (0.168–0.178). The rule changed which cells were asked on
+papers (20 of 67) and medical (24 of 46), two of 162 on players and none on artists; legal routed no looks in any run.
+Verdict: fails; the papers gain (+0.006 over the best replicate) and the medical loss (−0.003 under the worst) are
+both at the edge of the spread. *Why:* the planner's reads already cover only the documents a query's filter can
+select on known columns, so the looks are scoped by construction, and the rule can reorder only columns the workload
+compares with constants, which few routed columns are. The column-rate router stays.
+
+*Noise floor, the system at full drift (all runs):* papers 0.136–0.144, players 0.369–0.377, artists 0.250–0.260,
+medical 0.095–0.107, legal 0.168–0.178 (0.165 with the row rule, whose legal run is a replicate since no looks were
+routed). Against recorded 0.153, 0.387, 0.256, 0.115, 0.170: inside on artists and legal, below on papers, players and
+medical; the medical gap is the filter's (both no-filter runs, 0.125 and 0.138, are above recorded).

@@ -1,4 +1,4 @@
-# Experiment status (2026-10-11T09:49:10-06:00)
+# Experiment status (2026-10-11T16:50:53-06:00)
 
 | Step | Lane | State | Attempts | Last event | Note |
 |---|---|---|---|---|---|
@@ -376,15 +376,15 @@
 | V3-rep1-med | gpu2 | done | 1 | ok 2026-10-10T21:10:29-06:00 |  |
 | V3-rep1-legal | gpu2 | done | 1 | ok 2026-10-10T22:12:03-06:00 |  |
 | V3-rep2-cspaper | gpu | done | 1 | ok 2026-10-11T09:49:10-06:00 |  |
-| V3-rep2-player | gpu | running-or-interrupted | 1 | start 2026-10-11T09:49:10-06:00 |  |
-| V3-rep2-art | gpu | pending | 0 |  |  |
-| V3-rep2-med | gpu2 | running-or-interrupted | 1 | start 2026-10-11T09:40:17-06:00 |  |
-| V3-ablate-repair-rep2-med | gpu2 | pending | 0 |  |  |
-| V3-ablate-itemfilter-rep2-med | gpu2 | pending | 0 |  |  |
-| V3-rowlook-cspaper | gpu | pending | 0 |  |  |
-| V3-rowlook-art | gpu | pending | 0 |  |  |
-| V3-rowlook-player | gpu | pending | 0 |  |  |
-| V3-rowlook-med | gpu2 | pending | 0 |  |  |
-| V3-rowlook-legal | gpu2 | pending | 0 |  |  |
+| V3-rep2-player | gpu | done | 1 | ok 2026-10-11T10:57:16-06:00 |  |
+| V3-rep2-art | gpu | done | 1 | ok 2026-10-11T11:59:05-06:00 |  |
+| V3-rep2-med | gpu2 | done | 1 | ok 2026-10-11T11:56:51-06:00 |  |
+| V3-ablate-repair-rep2-med | gpu2 | done | 1 | ok 2026-10-11T12:49:54-06:00 |  |
+| V3-ablate-itemfilter-rep2-med | gpu2 | done | 1 | ok 2026-10-11T15:04:23-06:00 |  |
+| V3-rowlook-cspaper | gpu | done | 1 | ok 2026-10-11T12:08:09-06:00 |  |
+| V3-rowlook-art | gpu | done | 1 | ok 2026-10-11T12:43:28-06:00 |  |
+| V3-rowlook-player | gpu | done | 1 | ok 2026-10-11T13:34:53-06:00 |  |
+| V3-rowlook-legal | gpu | done | 1 | ok 2026-10-11T14:38:40-06:00 |  |
+| V3-rowlook-med | gpu2 | done | 1 | ok 2026-10-11T16:50:53-06:00 |  |
 
 Logs: `results/experiments/logs/<step>.log`. Events: `results/experiments/status.jsonl`.

@@ -35,6 +35,7 @@ HEAD_SHARE = float(os.environ.get("QUWARTS_HEAD_SHARE", 0.35))
 MIN_GROUNDED = float(os.environ.get("QUWARTS_WINDOW_GROUNDED", 0.75))  # a window is learned from stated values: it describes
 # the column only when the lone values are mostly stated (players' draft_pick at 0.57 cost three filtered aggregates, V2a)
 MIN_STATED = int(os.environ.get("QUWARTS_WINDOW_STATED", 4))
+FILTER_KEEP = os.environ.get("QUWARTS_ITEMFILTER_EMPTY", "") != "1"  # the filter never empties a cell (set 1 for the V3 rule)
 OFF = frozenset(x for x in os.environ.get("QUWARTS_PLANNER_OFF", "").split(",") if x)
 assert OFF <= {"unit", "windows", "vocab", "repair", "itemfilter"}, OFF
 VOCAB = json.loads(Path(os.environ["QUWARTS_VOCAB"]).read_text()) if os.environ.get("QUWARTS_VOCAB") and "vocab" not in OFF else {}
@@ -210,6 +211,10 @@ def filter_list_items(value, text_l: str):
     if len(items) < 1:
         return value
     kept = [x for x in items if position_of(text_l, x) is not None]
+    if not kept and FILTER_KEEP:
+        # never empty a cell: COUNT(column) and <> filters score presence, and an emptied cell drops its row from
+        # both (medical: 0.121 without the filter, 0.087 with the emptying filter, 0.123 with this rule; WHY_AUDIT §8)
+        return value
     return " || ".join(kept) if kept else None
 
 
