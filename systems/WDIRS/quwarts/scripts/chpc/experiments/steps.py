@@ -639,4 +639,4 @@ def v3_rowlook(corpus: str, lane: str) -> dict:
     return step
 
 
-STEPS += [v3_rowlook(c, "gpu") for c in ("cspaper", "art", "player")] + [v3_rowlook(c, "gpu2") for c in ("med", "legal")]
+STEPS += [v3_rowlook(c, "gpu") for c in ("cspaper", "art", "player", "legal")] + [v3_rowlook("med", "gpu2")]
