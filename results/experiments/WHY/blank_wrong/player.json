@@ -1,0 +1,1275 @@
+{
+ "corpus": "player",
+ "run": "V3-ablate-itemfilter",
+ "rate": 0.2,
+ "cells_damaged": 329,
+ "queries": 118,
+ "mean_score": {
+  "clean": 0.6892,
+  "blank": 0.2848,
+  "wrong": 0.3796
+ },
+ "by_feature": {
+  "count a column's values": {
+   "queries": 15,
+   "blank_loss": 0.4072,
+   "wrong_loss": 0.2079,
+   "blank_hurts_more": 12,
+   "wrong_hurts_more": 0
+  },
+  "count rows": {
+   "queries": 11,
+   "blank_loss": 0.339,
+   "wrong_loss": 0.436,
+   "blank_hurts_more": 3,
+   "wrong_hurts_more": 7
+  },
+  "filter: equal or contains": {
+   "queries": 47,
+   "blank_loss": 0.4446,
+   "wrong_loss": 0.3382,
+   "blank_hurts_more": 21,
+   "wrong_hurts_more": 0
+  },
+  "filter: greater or less": {
+   "queries": 12,
+   "blank_loss": 0.7364,
+   "wrong_loss": 0.5529,
+   "blank_hurts_more": 10,
+   "wrong_hurts_more": 0
+  },
+  "filter: not equal": {
+   "queries": 24,
+   "blank_loss": 0.4067,
+   "wrong_loss": 0.2655,
+   "blank_hurts_more": 19,
+   "wrong_hurts_more": 2
+  },
+  "group by": {
+   "queries": 118,
+   "blank_loss": 0.4044,
+   "wrong_loss": 0.3096,
+   "blank_hurts_more": 63,
+   "wrong_hurts_more": 10
+  },
+  "join": {
+   "queries": 50,
+   "blank_loss": 0.4706,
+   "wrong_loss": 0.385,
+   "blank_hurts_more": 23,
+   "wrong_hurts_more": 6
+  },
+  "sum, average, min or max": {
+   "queries": 100,
+   "blank_loss": 0.4109,
+   "wrong_loss": 0.3297,
+   "blank_hurts_more": 49,
+   "wrong_hurts_more": 10
+  }
+ },
+ "per_query": {
+  "attr:player_multiagg20:q4:e223d11d": {
+   "features": [
+    "join",
+    "group by",
+    "count rows",
+    "sum, average, min or max"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.3984,
+   "wrong_loss": 0.5947
+  },
+  "attr:Splits/train.sql#4:550eb54f": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.0
+  },
+  "attr:Expanded/agg_join_expanded.sql#1:c24e0cc7": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/train.sql#70:58fad108": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: greater or less"
+   ],
+   "clean": 0.9524,
+   "blank_loss": 0.7876,
+   "wrong_loss": 0.5147
+  },
+  "attr:Splits/train.sql#37:36ff2681": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/test.sql#17:9db266f2": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains",
+    "filter: greater or less"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.9026,
+   "wrong_loss": 0.8252
+  },
+  "attr:Expanded/agg_filter_expanded.sql#12:9257bded": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.9657,
+   "blank_loss": 0.3143,
+   "wrong_loss": 0.2678
+  },
+  "attr:Splits/train.sql#47:d388188d": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/test.sql#14:a53facfd": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.2222,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Expanded/agg_filter_expanded.sql#1:c5608ae2": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Expanded/agg_filter_join_expanded.sql#1:97f4546b": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:Splits/train.sql#74:d43cbebb": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: greater or less"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.9026,
+   "wrong_loss": 0.52
+  },
+  "attr:Expanded/agg_join_expanded.sql#5:15c06c11": {
+   "features": [
+    "join",
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/train.sql#47:c40d7c13": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.0
+  },
+  "attr:player_multiagg20:q12:365f4815": {
+   "features": [
+    "join",
+    "group by",
+    "count rows",
+    "sum, average, min or max"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.4033,
+   "wrong_loss": 0.5988
+  },
+  "attr:Splits/train.sql#39:2660c7eb": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.6296,
+   "wrong_loss": 0.5
+  },
+  "attr:Splits/train.sql#39:cfc6a04a": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.6296,
+   "wrong_loss": 0.5
+  },
+  "attr:Splits/train.sql#20:610644e4": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.9149,
+   "blank_loss": 0.2585,
+   "wrong_loss": 0.1506
+  },
+  "attr:Splits/train.sql#74:d1735ba6": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: greater or less"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.9026,
+   "wrong_loss": 0.52
+  },
+  "attr:Expanded/agg_filter_expanded.sql#1:43804a60": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#4:f514a950": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.0
+  },
+  "attr:docetl_Player_v7:q0:fef776e6": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.5,
+   "wrong_loss": 0.5
+  },
+  "attr:Variations/Agg/agg_variations.sql#1:09fbc9fa": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#74:2968ff54": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: greater or less"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.9513,
+   "wrong_loss": 0.44
+  },
+  "attr:Splits/test.sql#14:e0da7fae": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/dev.sql#18:bbfca16a": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:Variations/Agg/agg_variations.sql#3:6d2eeac2": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#19:332da492": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9282,
+   "blank_loss": 0.6272,
+   "wrong_loss": 0.6067
+  },
+  "attr:Expanded/agg_filter_join_expanded.sql#4:17c50da4": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:Splits/dev.sql#11:99e28283": {
+   "features": [
+    "join",
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:Expanded/agg_join_expanded.sql#5:b42bc767": {
+   "features": [
+    "join",
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:Expanded/agg_filter_expanded.sql#14:c3259565": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.8513,
+   "blank_loss": 0.3843,
+   "wrong_loss": 0.1583
+  },
+  "attr:Splits/train.sql#51:a95139b5": {
+   "features": [
+    "join",
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:Expanded/agg_filter_expanded.sql#12:f3a1786c": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.9657,
+   "blank_loss": 0.3282,
+   "wrong_loss": 0.2539
+  },
+  "attr:Splits/dev.sql#18:b1241002": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:Splits/train.sql#44:a130f41f": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9583,
+   "blank_loss": 0.3051,
+   "wrong_loss": 0.2667
+  },
+  "attr:Expanded/agg_filter_expanded.sql#1:e3a8531c": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:player_multiagg20:q12:e0cde198": {
+   "features": [
+    "join",
+    "group by",
+    "count rows",
+    "sum, average, min or max"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.3887,
+   "wrong_loss": 0.5501
+  },
+  "attr:Splits/test.sql#2:3e923052": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9282,
+   "blank_loss": 0.6431,
+   "wrong_loss": 0.5283
+  },
+  "attr:player_multiagg20:q10:061dce02": {
+   "features": [
+    "group by",
+    "count rows",
+    "sum, average, min or max",
+    "filter: not equal"
+   ],
+   "clean": 0.5714,
+   "blank_loss": 0.4272,
+   "wrong_loss": 0.4979
+  },
+  "attr:Expanded/agg_only_expanded.sql#14:c60f4651": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9708,
+   "blank_loss": 0.3758,
+   "wrong_loss": 0.3989
+  },
+  "attr:Splits/train.sql#36:76016403": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:docetl_Player_v7:q4:7175642b": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:Expanded/agg_only_expanded.sql#10:30df06be": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.8318,
+   "blank_loss": 0.2526,
+   "wrong_loss": 0.148
+  },
+  "attr:Splits/train.sql#19:5ad6058c": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.5797,
+   "blank_loss": 0.3069,
+   "wrong_loss": 0.2629
+  },
+  "attr:Splits/dev.sql#11:6ef31688": {
+   "features": [
+    "join",
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:Variations/Agg/agg_variations.sql#1:84662181": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.2222,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#27:22ff56d3": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:Expanded/agg_join_expanded.sql#1:a91a664a": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.2222,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#28:913c76d4": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/test.sql#17:be55be91": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains",
+    "filter: greater or less"
+   ],
+   "clean": 0.9,
+   "blank_loss": 0.8026,
+   "wrong_loss": 0.7689
+  },
+  "attr:Splits/train.sql#36:267aed6c": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#4:4f11fcad": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.0
+  },
+  "attr:player_multiagg20:q10:1337ff71": {
+   "features": [
+    "group by",
+    "count rows",
+    "sum, average, min or max",
+    "filter: not equal"
+   ],
+   "clean": 0.5714,
+   "blank_loss": 0.4752,
+   "wrong_loss": 0.4243
+  },
+  "attr:Splits/test.sql#2:ab13f20a": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9164,
+   "blank_loss": 0.56,
+   "wrong_loss": 0.5008
+  },
+  "attr:Splits/train.sql#27:e518235e": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:Expanded/agg_join_expanded.sql#1:ed9dfa67": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/test.sql#3:5b6cb72b": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9282,
+   "blank_loss": 0.6431,
+   "wrong_loss": 0.5283
+  },
+  "attr:Expanded/agg_filter_expanded.sql#14:c7e1850b": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.9409,
+   "blank_loss": 0.389,
+   "wrong_loss": 0.1613
+  },
+  "attr:Expanded/agg_filter_join_expanded.sql#5:e4adf27a": {
+   "features": [
+    "join",
+    "group by",
+    "count rows",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:player_multiagg20:q4:8c5af8bb": {
+   "features": [
+    "join",
+    "group by",
+    "count rows",
+    "sum, average, min or max"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.379,
+   "wrong_loss": 0.5299
+  },
+  "attr:Splits/test.sql#3:4e167992": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.6287,
+   "blank_loss": 0.3559,
+   "wrong_loss": 0.3464
+  },
+  "attr:Splits/train.sql#68:e92c391d": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: greater or less"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.2222
+  },
+  "attr:Expanded/agg_join_expanded.sql#5:65097fb9": {
+   "features": [
+    "join",
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:docetl_Player_v7:q0:525436db": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.5,
+   "blank_loss": 0.5,
+   "wrong_loss": 0.5
+  },
+  "attr:Splits/train.sql#20:c3c663c9": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.9149,
+   "blank_loss": 0.2585,
+   "wrong_loss": 0.1506
+  },
+  "attr:Splits/train.sql#68:3aaa2fe5": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: greater or less"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/test.sql#14:07834953": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/train.sql#23:6f7d6e40": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#44:f69fe7f1": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9583,
+   "blank_loss": 0.4588,
+   "wrong_loss": 0.4204
+  },
+  "attr:player_multiagg20:q4:bbe158ad": {
+   "features": [
+    "join",
+    "group by",
+    "count rows",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9792,
+   "blank_loss": 0.3582,
+   "wrong_loss": 0.5739
+  },
+  "attr:Splits/test.sql#2:86ec6660": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9164,
+   "blank_loss": 0.6154,
+   "wrong_loss": 0.6184
+  },
+  "attr:Splits/train.sql#70:eaedaf09": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: greater or less"
+   ],
+   "clean": 0.9524,
+   "blank_loss": 0.7876,
+   "wrong_loss": 0.6971
+  },
+  "attr:Splits/train.sql#37:54c21492": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:player_join20:q7:ed16135e": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal"
+   ],
+   "clean": 0.7727,
+   "blank_loss": 0.3533,
+   "wrong_loss": 0.2208
+  },
+  "attr:Splits/train.sql#23:1909ba6e": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Expanded/agg_only_expanded.sql#14:1f093cf7": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9563,
+   "blank_loss": 0.3748,
+   "wrong_loss": 0.3435
+  },
+  "attr:Splits/train.sql#36:fe39afb8": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.2222,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#51:d89bf15c": {
+   "features": [
+    "join",
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/train.sql#20:e326cfd2": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.9149,
+   "blank_loss": 0.2585,
+   "wrong_loss": 0.1506
+  },
+  "attr:Expanded/agg_only_expanded.sql#10:a23eaa3e": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.8318,
+   "blank_loss": 0.4071,
+   "wrong_loss": 0.148
+  },
+  "attr:docetl_Player_v7:q18:adf37781": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal"
+   ],
+   "clean": 0.7727,
+   "blank_loss": 0.1664,
+   "wrong_loss": 0.253
+  },
+  "attr:Agg/agg_queries.sql#1:58b91799": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#37:38657b49": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:docetl_Player_v7:q4:120ccaad": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 0.5
+  },
+  "attr:Splits/train.sql#68:8e4ce4b5": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: greater or less"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:Agg/agg_queries.sql#1:a82f21fb": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Variations/Agg/agg_variations.sql#3:bbacce37": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.3333,
+   "blank_loss": 0.1111,
+   "wrong_loss": 0.1111
+  },
+  "attr:Splits/test.sql#17:367c3153": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains",
+    "filter: greater or less"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.8539,
+   "wrong_loss": 0.8252
+  },
+  "attr:Expanded/agg_filter_join_expanded.sql#1:6dec2e2f": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:Splits/train.sql#44:dd84024c": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9583,
+   "blank_loss": 0.4972,
+   "wrong_loss": 0.4972
+  },
+  "attr:Expanded/agg_only_expanded.sql#14:95406113": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9563,
+   "blank_loss": 0.3072,
+   "wrong_loss": 0.2618
+  },
+  "attr:Splits/dev.sql#18:013eb2e8": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 0.0
+  },
+  "attr:docetl_Player_v7:q4:dd9b4ab5": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:Splits/train.sql#70:2e3d2355": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: greater or less"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.8352,
+   "wrong_loss": 0.6352
+  },
+  "attr:Agg/agg_queries.sql#1:4b97a7c3": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#47:4820ea07": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#22:05a051ca": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.3015,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/train.sql#19:303ef1a3": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9164,
+   "blank_loss": 0.5679,
+   "wrong_loss": 0.5086
+  },
+  "attr:Expanded/agg_filter_expanded.sql#12:338a0c96": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.9657,
+   "blank_loss": 0.3836,
+   "wrong_loss": 0.3516
+  },
+  "attr:Splits/train.sql#28:51cf7ce8": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Expanded/agg_filter_join_expanded.sql#1:0535a95a": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Expanded/agg_only_expanded.sql#10:5c8ac6e2": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9149,
+   "blank_loss": 0.413,
+   "wrong_loss": 0.1506
+  },
+  "attr:Variations/Agg/agg_variations.sql#3:c63098a9": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.3333,
+   "blank_loss": 0.1111,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/test.sql#3:5e26d92b": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9164,
+   "blank_loss": 0.56,
+   "wrong_loss": 0.5008
+  },
+  "attr:Splits/train.sql#51:2c3904c8": {
+   "features": [
+    "join",
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.2222
+  },
+  "attr:Splits/train.sql#27:71575b0f": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:Splits/train.sql#23:5e5025ba": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:player_multiagg20:q12:a5be78a3": {
+   "features": [
+    "join",
+    "group by",
+    "count rows",
+    "sum, average, min or max"
+   ],
+   "clean": 0.9844,
+   "blank_loss": 0.3731,
+   "wrong_loss": 0.5832
+  },
+  "attr:Splits/train.sql#28:856ff057": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Expanded/agg_filter_join_expanded.sql#4:0a31a1d6": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:Splits/dev.sql#11:8b66cd72": {
+   "features": [
+    "join",
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  },
+  "attr:Expanded/agg_filter_expanded.sql#14:c9541d96": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.9409,
+   "blank_loss": 0.3466,
+   "wrong_loss": 0.118
+  },
+  "attr:Variations/Agg/agg_variations.sql#1:e6658259": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.2222,
+   "blank_loss": 0.2222,
+   "wrong_loss": 0.2222
+  },
+  "attr:docetl_Player_v7:q0:a5bdcfba": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:player_groupby20:q9:3e882071": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.2249,
+   "wrong_loss": 0.2213
+  },
+  "attr:Splits/train.sql#39:499af76e": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.6296,
+   "wrong_loss": 0.0
+  },
+  "attr:Expanded/agg_filter_join_expanded.sql#4:6a2d36fc": {
+   "features": [
+    "join",
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.4444
+  }
+ }
+}

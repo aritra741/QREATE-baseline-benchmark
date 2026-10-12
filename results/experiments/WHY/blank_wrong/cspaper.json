@@ -1,0 +1,669 @@
+{
+ "corpus": "cspaper",
+ "run": "V3-ablate-itemfilter",
+ "rate": 0.2,
+ "cells_damaged": 480,
+ "queries": 59,
+ "mean_score": {
+  "clean": 0.6072,
+  "blank": 0.3586,
+  "wrong": 0.4169
+ },
+ "by_feature": {
+  "count a column's values": {
+   "queries": 23,
+   "blank_loss": 0.1764,
+   "wrong_loss": 0.1092,
+   "blank_hurts_more": 7,
+   "wrong_hurts_more": 1
+  },
+  "count rows": {
+   "queries": 25,
+   "blank_loss": 0.4487,
+   "wrong_loss": 0.3238,
+   "blank_hurts_more": 13,
+   "wrong_hurts_more": 4
+  },
+  "filter: equal or contains": {
+   "queries": 50,
+   "blank_loss": 0.2884,
+   "wrong_loss": 0.2216,
+   "blank_hurts_more": 18,
+   "wrong_hurts_more": 9
+  },
+  "filter: greater or less": {
+   "queries": 3,
+   "blank_loss": 0.6667,
+   "wrong_loss": 0.8333,
+   "blank_hurts_more": 0,
+   "wrong_hurts_more": 1
+  },
+  "filter: not equal": {
+   "queries": 20,
+   "blank_loss": 0.1359,
+   "wrong_loss": 0.1173,
+   "blank_hurts_more": 8,
+   "wrong_hurts_more": 5
+  },
+  "group by": {
+   "queries": 59,
+   "blank_loss": 0.2486,
+   "wrong_loss": 0.1903,
+   "blank_hurts_more": 20,
+   "wrong_hurts_more": 11
+  },
+  "sum, average, min or max": {
+   "queries": 11,
+   "blank_loss": -0.0555,
+   "wrong_loss": 0.0565,
+   "blank_hurts_more": 0,
+   "wrong_hurts_more": 6
+  }
+ },
+ "per_query": {
+  "attr:Splits/train.sql#25:064206d5": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_groupby20:q7:b314afb6": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.7438,
+   "blank_loss": 0.4824,
+   "wrong_loss": 0.1089
+  },
+  "attr:Splits/train.sql#17:218d9884": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:Splits/dev.sql#3:8bb9c06d": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.1406,
+   "blank_loss": -0.0206,
+   "wrong_loss": -0.0206
+  },
+  "attr:Agg/agg_queries_CSPaper.sql#9:027f6bb8": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.1504,
+   "blank_loss": 0.1504,
+   "wrong_loss": -0.1504
+  },
+  "attr:Mixed/mixed_queries.sql#5:59eb2368": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0667,
+   "blank_loss": -0.0666,
+   "wrong_loss": -0.0333
+  },
+  "attr:cspaper_filter20:q12:83e559e1": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:cspaper_filter20:q18:f652a758": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains",
+    "filter: greater or less"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.5,
+   "wrong_loss": 0.5
+  },
+  "attr:Splits/train.sql#17:d0aa811e": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.5625,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_filter20:q12:fd292b75": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:cspaper_groupby20:q4:246aa029": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.75,
+   "wrong_loss": 0.5
+  },
+  "attr:cspaper_groupby20:q7:a2206701": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.2704,
+   "wrong_loss": 0.0833
+  },
+  "attr:Splits/train.sql#12:824349bd": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.0873
+  },
+  "attr:Splits/dev.sql#4:15befc14": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Agg/agg_queries_CSPaper.sql#9:2f217401": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.64,
+   "blank_loss": 0.4,
+   "wrong_loss": 0.16
+  },
+  "attr:Splits/dev.sql#4:939f67af": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.64,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#16:53ce6e40": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/test.sql#8:aadb873e": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_agg20:q16:2a7cdcfd": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal"
+   ],
+   "clean": 0.7407,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_groupby20:q4:9377abe8": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.5,
+   "wrong_loss": 0.25
+  },
+  "attr:cspaper_groupby20:q15:ff8e7ff0": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.75,
+   "wrong_loss": 0.5
+  },
+  "attr:Splits/train.sql#25:388b209c": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4762,
+   "blank_loss": 0.2671,
+   "wrong_loss": 0.2149
+  },
+  "attr:cspaper_filter20:q5:2b72568b": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.1667,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_agg20:q15:eaf15557": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.5
+  },
+  "attr:Splits/train.sql#16:ec7ab067": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/dev.sql#4:b89c6e49": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_agg20:q10:5af6ad8a": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_agg20:q16:b9b424ac": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal"
+   ],
+   "clean": 0.2857,
+   "blank_loss": -0.2857,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_agg20:q15:916d1768": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_groupby20:q13:52410a8e": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.3519,
+   "wrong_loss": 0.37
+  },
+  "attr:cspaper_agg20:q1:942b0337": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_filter20:q5:e03b81a3": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.2163,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#16:c0256576": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.16,
+   "blank_loss": 0.0246,
+   "wrong_loss": 0.0003
+  },
+  "attr:cspaper_filter20:q18:f6bc9cb0": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains",
+    "filter: greater or less"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:Splits/test.sql#8:32466102": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#12:5ea1aae0": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.4444,
+   "blank_loss": 0.4444,
+   "wrong_loss": 0.0873
+  },
+  "attr:cspaper_groupby20:q13:8d6b41fc": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0833,
+   "wrong_loss": 0.0
+  },
+  "attr:Agg/agg_queries_CSPaper.sql#7:0650079a": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.3008,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_filter20:q12:3a65f76d": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.5,
+   "wrong_loss": 0.5
+  },
+  "attr:Splits/train.sql#25:5c5b4aac": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0947,
+   "blank_loss": 0.0608,
+   "wrong_loss": 0.0682
+  },
+  "attr:cspaper_filter20:q5:40343233": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.3333,
+   "wrong_loss": 0.5
+  },
+  "attr:Agg/agg_queries_CSPaper.sql#7:e3e53bd0": {
+   "features": [
+    "group by",
+    "sum, average, min or max"
+   ],
+   "clean": 0.64,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.16
+  },
+  "attr:cspaper_groupby20:q15:280e3463": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.2,
+   "wrong_loss": 0.2
+  },
+  "attr:Mixed/mixed_queries.sql#5:6606cc83": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0667,
+   "blank_loss": -0.0666,
+   "wrong_loss": -0.0333
+  },
+  "attr:Splits/test.sql#8:29763641": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.64,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/train.sql#17:d25c0c43": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 1.0,
+   "wrong_loss": 1.0
+  },
+  "attr:cspaper_filter20:q18:b276b914": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains",
+    "filter: greater or less"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.5,
+   "wrong_loss": 1.0
+  },
+  "attr:cspaper_agg20:q10:811f750d": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.5,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_agg20:q10:4da166e6": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 0.0,
+   "blank_loss": -0.5,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_groupby20:q7:4ef2e760": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0833,
+   "wrong_loss": 0.0833
+  },
+  "attr:cspaper_agg20:q15:7c9df18e": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:Mixed/mixed_queries.sql#5:9179be86": {
+   "features": [
+    "group by",
+    "sum, average, min or max",
+    "filter: equal or contains"
+   ],
+   "clean": 0.16,
+   "blank_loss": 0.0231,
+   "wrong_loss": 0.0284
+  },
+  "attr:Splits/train.sql#12:2e779d08": {
+   "features": [
+    "group by",
+    "count a column's values",
+    "filter: equal or contains"
+   ],
+   "clean": 0.2857,
+   "blank_loss": 0.2857,
+   "wrong_loss": 0.0635
+  },
+  "attr:Agg/agg_queries_CSPaper.sql#9:3d06e8e9": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.64,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_groupby20:q13:604946a6": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.1667,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_groupby20:q15:865a4db4": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: not equal",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.4,
+   "wrong_loss": 0.0
+  },
+  "attr:cspaper_groupby20:q4:35c72e2d": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.75,
+   "wrong_loss": 0.5
+  },
+  "attr:cspaper_agg20:q1:86682092": {
+   "features": [
+    "group by",
+    "count rows",
+    "filter: equal or contains"
+   ],
+   "clean": 1.0,
+   "blank_loss": 0.5,
+   "wrong_loss": 0.0
+  },
+  "attr:Splits/dev.sql#3:31211915": {
+   "features": [
+    "group by",
+    "count a column's values"
+   ],
+   "clean": 0.0,
+   "blank_loss": 0.0,
+   "wrong_loss": 0.0
+  }
+ }
+}

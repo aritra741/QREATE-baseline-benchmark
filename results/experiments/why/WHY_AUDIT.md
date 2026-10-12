@@ -278,3 +278,41 @@ no-filter runs 0.125 and 0.138); artists 0.260 against run 2's 0.260. The predic
 gap to the recorded system closes. Command: `drift_live --corpus med|art --run --streams fixed --axes attribute_pool`
 with `QUWARTS_LIVE_ROOT=results/experiments/V3-keep/live`, the V3 environment, inside job 2157447 against its own 7B
 server.
+
+## 9. Three tests of the deck's "why" claims on existing data (2026-10-12; no new model calls)
+
+**Direction of predicate leakage** (`quwarts/eval/exp_leak_direction.py`, `WHY/leak_direction/summary.json`; the 511
+I1 pairs of the same column and document read alone and with its query's condition in the prompt). Showing the
+condition moves answers toward satisfying it: the share of rows that pass the condition rises from 0.32 alone to 0.61
+with the condition, against 0.43 in gold. Of 255 changed answers, 156 changed from failing to passing and 11 from
+passing to failing; 92 rows were wrongly admitted and 5 wrongly dropped; selection errors rise from 145 to 172. The
+model copies the condition's constant even where it is absent: papers' performance_on_NQ passes "= 'Accuracy:
+0.6294|| Accuracy: 0.6033'" on 0.87 of documents with the condition shown, 0.00 alone, 0.03 in gold; agent_framework
+"= 'Other'" 0.47 alone, 0.93 shown, 0.13 gold. Conditions that only require a value ("<> ''") make the model fill
+cells, which is mostly right (players' college 0.30 to 0.87, gold 0.87). So leakage is a bias toward the filter, not
+noise: equality conditions with specific constants are copied; non-empty conditions raise fill.
+
+**Blank against wrong, controlled** (`quwarts/eval/exp_blank_wrong.py`, `WHY/blank_wrong/<corpus>.json`). Each
+collection's final table with gold answers written into every column the test queries use; 20% of those gold cells
+blanked in one copy and replaced by a wrong value from another row of the same column in the other; every test query
+scored. Mean score clean / blank / wrong: papers 0.607 / 0.359 / 0.417; players 0.689 / 0.285 / 0.380; artists 0.660 /
+0.446 / 0.503; medical 0.252 / 0.152 / 0.191; court cases 0.689 / 0.470 / 0.558. A blank costs more than a wrong
+value on every collection, and for nearly every kind of query: grouping (blank worse on all five), counting a
+column's values (COUNT(column) counts a wrong value but not a blank: players 0.41 against 0.21, artists 0.41 against
+0.00), filters with "not equal" (a wrong value usually still passes), joins on players. The exception is queries that
+count rows (COUNT(*) grouped by a damaged column): a wrong value is worse on four of five collections, because it
+moves the row into another group (two counts wrong) while a blank removes it from one. This contradicts the deck's
+asymmetry slide conclusion ("for grouping and matching a blank does less harm than a wrong answer"): that slide
+measured answers that became wrong against answers that became right, never blank against wrong, and its inference
+does not hold. H18's conclusion (never blank an answer) holds and generalizes beyond medical.
+
+**Stated against open** (`quwarts/eval/exp_stated_open.py`, `WHY/stated_open/summary.json`; 1,205 cells of the I1
+reads; unstable = the lone answer differs from the answer under any of the other four prompts). Unstable share by
+the correct answer: blank in gold 0.42, not written word for word 0.52, written word for word in the document 0.63;
+within single-value columns 0.35, 0.49, 0.63; within lists 0.47, 0.64, 0.64. Every change counted is a different
+value under the lenient cell comparison, not a rewording. So the deck's mechanism "the model guesses because the
+document does not state the answer" is not supported: answers the document states are the most unstable. The
+document-level clustering of H5 still holds; what makes a cell unstable is closer to the document offering several
+candidate values or spans to choose from than to the answer being absent (consistent with the older result that
+verbatim presence of the gold value does not change disagreement, 48.6% against 48.8%). Untested so far: counting
+candidate mentions per document.
