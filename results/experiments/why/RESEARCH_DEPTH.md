@@ -710,3 +710,10 @@ its variance)/+0.010. Budgets (fcfs, 25% of the recorded spend): players 0.344 a
 0.179, legal 0.160 against 0.098, papers 0.150 against 0.137, medical 0.075 against 0.079; at 50% medical 0.085
 against 0.104 (the indivisible-read failure). Level 50: within 0.011 of recorded on four corpora, +0.031 on legal,
 at 57–97% of the tokens. The paper's evaluation section (PAPER_DRAFT.md §5) is written from these.
+
+**Erratum (2026-10-11).** The I1 summary counted a column without a natural-group measurement (15 of 39) as "better
+alone", reading the missing accuracy as 0. On columns measured in both contexts the 7B has 5 columns better alone by
+0.05 or more and 9 better in the natural group (24 columns; mean 0.347 alone against 0.388 grouped), the 32B 8 and 8
+(0.453 against 0.483); against two added columns the 7B has 7 and 7, against six 7 and 11 (all 39 columns). The
+conclusion stands (no consistent direction; the mean barely moves with width), the counts "18 and 9" and "21 and 18"
+above are wrong. Fixed in `exp_intervene.py`; PAPER_DRAFT and KEY_FINDINGS corrected.

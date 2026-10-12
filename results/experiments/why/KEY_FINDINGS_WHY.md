@@ -45,8 +45,9 @@ context on average (0.48 against 0.46 alone) where on the 7B the contexts tie.
 We then intervened directly. For every column the drifted workload needs and the build lacks, the same thirty sampled
 documents were read in five contexts: the column alone, with two random columns of its table, with six, in the build's
 natural group, and alone with a paraphrased description (39 columns, 5,005 prompts). **On average the context does not
-move accuracy at all, 0.37 to 0.41 in every context, and the direction of its effect is the column's own:** 18 columns
-are more accurate alone than in the group by 0.05 or more and 9 are less. How much a column's value changes between
+move accuracy at all, 0.37 to 0.41 in every context, and the direction of its effect is the column's own:** against the natural
+group (24 columns measured in both) 5 columns are more accurate alone by 0.05 or more and 9 less; against two added
+columns 7 and 7, against six 7 and 11. How much a column's value changes between
 contexts is one property of the column: its sensitivity to adding two random columns, to adding six, to the natural
 group and to a paraphrase rank the columns the same way (Spearman 0.82 to 0.93 between every pair), and so do the
 changes we had already logged, removing the description, removing the workload-use phrase, regrouping, or cutting long

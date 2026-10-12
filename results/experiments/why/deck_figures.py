@@ -1,0 +1,554 @@
+"""Charts for the findings deck (results/experiments/why/figures/deck/*.png), one per evidence slide.
+
+    ~/venvs/quwarts/bin/python results/experiments/why/deck_figures.py
+
+Palette (validated with the dataviz validator on the slide surface): blue #2A6FB0, orange #C2551F, teal #1F8A70 for
+series; gray #6F7883 only for labelled reference marks (recorded system, zero lines, baselines).
+"""
+
+import json
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.ticker import FuncFormatter  # noqa: E402
+
+HERE = Path(__file__).resolve().parent
+EXP = HERE.parent
+OUT = HERE / "figures" / "deck"
+BLUE, ORANGE, TEAL, GRAY = "#2A6FB0", "#C2551F", "#1F8A70", "#6F7883"
+SURF, INK, INK2, GRID = "#F7F5F0", "#1B2430", "#3E4957", "#DDE1E5"
+plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 16, "axes.titlesize": 17, "axes.labelsize": 16,
+                     "xtick.labelsize": 15, "ytick.labelsize": 15, "legend.fontsize": 14, "axes.edgecolor": "#B9BEC4",
+                     "axes.labelcolor": INK2, "xtick.color": INK2, "ytick.color": INK2, "text.color": INK,
+                     "figure.facecolor": SURF, "axes.facecolor": SURF, "savefig.facecolor": SURF})
+W, H = 8.6, 5.6  # inches at 200 dpi: 1720 x 1120, shown at 860 x 560 on the slide
+
+
+def fig(w=W, h=H, **kw):
+    f, ax = plt.subplots(figsize=(w, h), **kw)
+    return f, ax
+
+
+def style(ax, grid="y"):
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    if grid:
+        ax.grid(axis=grid, color=GRID, linewidth=1)
+    ax.set_axisbelow(True)
+
+
+def save(f, name):
+    OUT.mkdir(parents=True, exist_ok=True)
+    f.tight_layout()
+    f.savefig(OUT / f"{name}.png", dpi=200)
+    plt.close(f)
+    print(OUT / f"{name}.png")
+
+
+def j(p):
+    return json.loads((EXP / p).read_text())
+
+
+I1 = j("I1-context/summary.json")
+M7 = I1["per_model"]["qwen7b"]
+C7 = {c["column"]: c for c in I1["columns"]["qwen7b"]}
+C32 = {c["column"]: c for c in I1["columns"]["qwen32b"]}
+
+
+def h01():
+    pairs = M7["sensitivity_rank_across_kinds_of_change"]
+    names = {"plus2_vs_plus6": "+2 fields vs +6 fields", "natural_vs_plus2": "natural group vs +2",
+             "natural_vs_plus6": "natural group vs +6", "natural_vs_paraphrase": "natural vs paraphrase",
+             "paraphrase_vs_plus2": "paraphrase vs +2", "paraphrase_vs_plus6": "paraphrase vs +6"}
+    items = sorted(((names[k], v["spearman"]) for k, v in pairs.items()), key=lambda x: x[1])
+    f, ax = fig()
+    ax.barh([n for n, _ in items], [v for _, v in items], color=BLUE, height=0.6)
+    for i, (_, v) in enumerate(items):
+        ax.text(v + 0.01, i, f"{v:.2f}", va="center", fontsize=15, color=INK)
+    ax.axvline(0.6, color=GRAY, linestyle="--", linewidth=2)
+    ax.text(0.605, len(items) - 0.45, "predicted bar: 0.6", color=GRAY, fontsize=14)
+    ax.set_xlim(0, 1.05)
+    ax.set_xlabel("Rank agreement of column sensitivity (Spearman)")
+    style(ax, "x")
+    save(f, "h01")
+
+
+def h02():
+    d = j("WHY/context/sample_curve.json")
+    ns = [5, 10, 20]
+    mean = [-d[f"n={n}"]["spearman_mean"] for n in ns]
+    lo = [-d[f"n={n}"]["spearman_max"] for n in ns]
+    hi = [-d[f"n={n}"]["spearman_min"] for n in ns]
+    f, ax = fig()
+    ax.fill_between(ns, lo, hi, color=BLUE, alpha=0.15, linewidth=0, label="range over 30 draws")
+    ax.plot(ns, mean, marker="o", markersize=9, color=BLUE, linewidth=2.5, label="mean over 30 draws")
+    ax.axhline(-d["full"]["spearman"], color=GRAY, linestyle=":", linewidth=2)
+    ax.text(20.3, -d["full"]["spearman"] + 0.006, "all documents 0.72", color=GRAY, fontsize=14, ha="right", va="bottom")
+    ax.axhline(0.6, color=ORANGE, linestyle="--", linewidth=2)
+    ax.text(20.3, 0.6 - 0.006, "predicted bar 0.6", color=ORANGE, fontsize=14, ha="right", va="top")
+    for n, m in zip(ns, mean):
+        ax.text(n, m + 0.012, f"{m:.2f}", ha="center", fontsize=15)
+    ax.set_xticks(ns)
+    ax.set_xlabel("Unlabelled documents sampled per column")
+    ax.set_ylabel("|Spearman|, sensitivity vs accuracy")
+    ax.set_ylim(0.5, 0.78)
+    ax.legend(loc="lower right", frameon=False, bbox_to_anchor=(1, 0.08))
+    style(ax)
+    save(f, "h02")
+
+
+def h03():
+    import numpy as np
+    ctxs = [("plus2", "+2 random fields"), ("plus6", "+6 random fields"), ("natural", "its natural group")]
+    alone_b, ctx_b, means = [], [], []
+    for k, name in ctxs:
+        rows = [c for c in C7.values() if k in c["accuracy"] and "alone" in c["accuracy"]]
+        alone_b.append(sum(c["accuracy"]["alone"] > c["accuracy"][k] + 0.05 for c in rows))
+        ctx_b.append(sum(c["accuracy"][k] > c["accuracy"]["alone"] + 0.05 for c in rows))
+        means.append((len(rows), sum(c["accuracy"]["alone"] for c in rows) / len(rows), sum(c["accuracy"][k] for c in rows) / len(rows)))
+    x = np.arange(3)
+    f, ax = fig()
+    ax.bar(x - 0.19, alone_b, 0.36, color=BLUE, label="better alone (by 0.05+)")
+    ax.bar(x + 0.19, ctx_b, 0.36, color=ORANGE, label="better in company (by 0.05+)")
+    for i in range(3):
+        ax.text(x[i] - 0.19, alone_b[i] + 0.2, str(alone_b[i]), ha="center", fontsize=16)
+        ax.text(x[i] + 0.19, ctx_b[i] + 0.2, str(ctx_b[i]), ha="center", fontsize=16)
+        n, a, c = means[i]
+        ax.text(x[i], -2.6, f"{n} columns\nmean {a:.2f} → {c:.2f}", ha="center", fontsize=13, color=INK2)
+    ax.set_xticks(x); ax.set_xticklabels([n for _, n in ctxs])
+    ax.set_ylabel("Columns")
+    ax.set_ylim(0, 14)
+    ax.legend(frameon=False, loc="upper left")
+    style(ax)
+    f.subplots_adjust(bottom=0.25)
+    save(f, "h03")
+
+
+def h04():
+    xs, ys, names = [], [], []
+    for k, c in C7.items():
+        if k in C32 and c.get("mean_sensitivity") is not None and C32[k].get("mean_sensitivity") is not None:
+            xs.append(c["mean_sensitivity"]); ys.append(C32[k]["mean_sensitivity"]); names.append(k)
+    f, ax = fig()
+    ax.plot([0, 1], [0, 1], color=GRAY, linestyle="--", linewidth=1.5)
+    up = [(x, y) for x, y in zip(xs, ys) if y - x >= 0.05]
+    rest = [(x, y) for x, y in zip(xs, ys) if y - x < 0.05]
+    ax.scatter(*zip(*rest), s=90, color=BLUE, edgecolor=SURF, linewidth=1.5, label=f"32B steadier or equal ({len(rest)})")
+    ax.scatter(*zip(*up), s=90, color=ORANGE, edgecolor=SURF, linewidth=1.5, label=f"32B less steady ({len(up)})")
+    ax.text(0.97, 0.05, "Same column ranking\nSpearman 0.77", ha="right", fontsize=15, color=INK2)
+    ax.set_xlabel("Sensitivity on Qwen 7B")
+    ax.set_ylabel("Sensitivity on Qwen 32B")
+    ax.set_xlim(-0.02, 1.02); ax.set_ylim(-0.02, 1.02)
+    ax.legend(loc="upper left", frameon=False)
+    style(ax, None)
+    save(f, "h04")
+    return len(xs), len(up)
+
+
+def h05():
+    labels = ["only earlier\nfields flipped", "only later\nfields flipped", "document flipped\nelsewhere", "nothing else\nflipped"]
+    vals = [0.402, 0.365, 0.476, 0.115]
+    cols = [BLUE, BLUE, ORANGE, ORANGE]
+    f, ax = fig()
+    bars = ax.bar(range(4), vals, color=cols, width=0.62)
+    for i, v in enumerate(vals):
+        ax.text(i, v + 0.012, f"{v:.2f}", ha="center", fontsize=16)
+    ax.set_xticks(range(4)); ax.set_xticklabels(labels)
+    ax.set_ylabel("Flip rate of a field")
+    ax.set_ylim(0, 0.58)
+    ax.text(0.5, 0.535, "sequential test:\nsmall gap", ha="center", fontsize=14, color=BLUE)
+    ax.text(2.5, 0.535, "document test:\nfour times higher", ha="center", fontsize=14, color=ORANGE)
+    style(ax)
+    save(f, "h05")
+
+
+def h06():
+    xs, ys, lab = [], [], []
+    for k, c in C7.items():
+        a = c["accuracy"]
+        if "natural_first" in a and "natural_last" in a and c.get("gold_empty") is not None:
+            xs.append(c["gold_empty"]); ys.append(a["natural_last"] - a["natural_first"]); lab.append(k)
+    f, ax = fig()
+    ax.axhline(0, color=GRAY, linewidth=1.5)
+    ax.scatter(xs, ys, s=90, color=BLUE, edgecolor=SURF, linewidth=1.5)
+    for x, y, k in zip(xs, ys, lab):
+        short = k.split(".")[1]
+        if short in ("agent_framework", "awards", "nba_championships"):
+            ax.annotate(short, (x, y), xytext=(8, 4), textcoords="offset points", fontsize=14, color=INK2)
+    ax.text(0.98, 0.5, "Spearman −0.22: emptiness\ndoes not predict the gain", ha="right", fontsize=15, color=INK2, transform=ax.transAxes)
+    ax.set_xlabel("Share of gold cells that are empty")
+    ax.set_ylabel("Accuracy last minus first")
+    style(ax)
+    save(f, "h06")
+
+
+def h07():
+    a = M7["agreement_vs_correctness"]
+    kinds = [("all", "all columns"), ("number", "numbers"), ("list", "lists"), ("free text", "free text"), ("category", "categories")]
+    kinds = [(k, n) for k, n in kinds if k in a]
+    agree = [a[k]["accuracy_when_agree"] for k, _ in kinds]
+    differ = [a[k]["accuracy_when_differ"] for k, _ in kinds]
+    import numpy as np
+    x = np.arange(len(kinds))
+    f, ax = fig()
+    ax.bar(x - 0.19, agree, 0.36, color=BLUE, label="two prompts agree")
+    ax.bar(x + 0.19, differ, 0.36, color=ORANGE, label="two prompts differ")
+    for i in range(len(kinds)):
+        ax.text(x[i] - 0.19, agree[i] + 0.012, f"{agree[i]:.2f}", ha="center", fontsize=13)
+        ax.text(x[i] + 0.19, differ[i] + 0.012, f"{differ[i]:.2f}", ha="center", fontsize=13)
+    ax.set_xticks(x); ax.set_xticklabels([n for _, n in kinds])
+    ax.set_ylabel("Share of cells that are right")
+    ax.set_ylim(0, 0.8)
+    ax.legend(frameon=False, loc="upper right")
+    style(ax)
+    save(f, "h07")
+
+
+def h08():
+    xs, ys, lists = [], [], []
+    for c in C7.values():
+        p = c.get("predicate") or {}
+        if p.get("changed") is not None and c.get("mean_sensitivity") is not None and p.get("docs"):
+            xs.append(c["mean_sensitivity"]); ys.append(p["changed"]); lists.append(c["kind"] == "list")
+    f, ax = fig()
+    lx = [(x, y) for x, y, l in zip(xs, ys, lists) if l]
+    ox = [(x, y) for x, y, l in zip(xs, ys, lists) if not l]
+    if ox:
+        ax.scatter(*zip(*ox), s=100, color=BLUE, edgecolor=SURF, linewidth=1.5, label="other columns")
+    if lx:
+        ax.scatter(*zip(*lx), s=100, color=ORANGE, edgecolor=SURF, linewidth=1.5, label="list columns")
+    ax.text(0.98, 0.04, "Spearman 0.78\nyes/no 0.03 · list 0.72", ha="right", fontsize=15, color=INK2, transform=ax.transAxes)
+    ax.set_xlabel("Column sensitivity (no predicate in the prompt)")
+    ax.set_ylabel("Share of cells changed by the predicate")
+    ax.set_ylim(-0.03, 1.03)
+    ax.legend(frameon=False, loc="upper left")
+    style(ax, None)
+    save(f, "h08")
+    return len(xs)
+
+
+def bars(name, labels, vals, colors, ylabel, fmt="{:.0f}", ylim=None, note=None, horizontal=False, w=W, h=H):
+    f, ax = fig(w, h)
+    if horizontal:
+        ax.barh(range(len(vals)), vals, color=colors, height=0.6)
+        ax.set_yticks(range(len(vals))); ax.set_yticklabels(labels)
+        for i, v in enumerate(vals):
+            ax.text(v + (max(vals) * 0.015), i, fmt.format(v), va="center", fontsize=15)
+        ax.set_xlabel(ylabel)
+        if ylim:
+            ax.set_xlim(*ylim)
+        style(ax, "x")
+    else:
+        ax.bar(range(len(vals)), vals, color=colors, width=0.6)
+        ax.set_xticks(range(len(vals))); ax.set_xticklabels(labels)
+        for i, v in enumerate(vals):
+            ax.text(i, v + (max(vals) * 0.02 if v >= 0 else -max(vals) * 0.06), fmt.format(v), ha="center", fontsize=15)
+        ax.set_ylabel(ylabel)
+        if ylim:
+            ax.set_ylim(*ylim)
+        style(ax)
+    if note:
+        ax.text(0.98, 0.95, note, transform=ax.transAxes, ha="right", va="top", fontsize=14, color=INK2)
+    save(f, name)
+
+
+def h09():
+    a = j("I2-secondlook/summary.json")["allocations"]
+    bars("h09", ["most sensitive\ncolumns first\n(hypothesis)", "uniform over\ncolumns", "random\ncells"],
+         [a["by_sensitivity"]["net_per_1000_cells"], a["uniform"]["net_per_1000_cells"], a["random"]["net_per_1000_cells"]],
+         [BLUE, GRAY, GRAY], "Net repairs per 1,000 cells re-read by the 32B", ylim=(0, 175))
+
+
+def h10():
+    import numpy as np
+    f, axes = plt.subplots(1, 2, figsize=(W, H))
+    groups = [("verifier", 592 / 600, 75 / 592, BLUE), ("random", 360 / 600, 114 / 360, GRAY)]
+    for ax, (title, idx) in zip(axes, (("Selected cells that are wrong", 1), ("Wrong cells the 32B repairs", 2))):
+        vals = [g[idx] for g in groups]
+        ax.bar(range(2), vals, color=[g[3] for g in groups], width=0.6)
+        for i, v in enumerate(vals):
+            ax.text(i, v + 0.02, f"{v:.0%}", ha="center", fontsize=16)
+        ax.set_xticks(range(2)); ax.set_xticklabels([g[0] for g in groups])
+        ax.set_title(title, fontsize=16, color=INK, loc="left")
+        ax.set_ylim(0, 1.12)
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.0%}"))
+        style(ax)
+    save(f, "h10")
+
+
+def h11():
+    labels = ["list with items\nnot in the document", "year written as\na full date", "a different fact", "form only", "was empty", "other"]
+    vals = [38, 21, 20, 10, 7, 4]
+    bars("h11", labels[::-1], vals[::-1], [GRAY, GRAY, GRAY, GRAY, BLUE, BLUE], "Share of the 32B's 388 repairs (%)",
+         fmt="{:.0f}%", horizontal=True, ylim=(0, 46))
+
+
+def h12():
+    import numpy as np
+    labels = ["research papers", "basketball players"]
+    per_query = [0.122, 0.108]
+    first = [0.059, 0.054]
+    det = [0.113, 0.1545]
+    x = np.arange(2)
+    f, ax = fig()
+    ax.bar(x - 0.27, per_query, 0.25, color=GRAY, label="DocETL, per-query extraction")
+    ax.bar(x, first, 0.25, color=ORANGE, label="frozen on the first prompt (hypothesis)")
+    ax.bar(x + 0.27, det, 0.25, color=BLUE, label="frozen on a determined prompt")
+    ax.errorbar([1 + 0.27], [0.1545], yerr=[[0.0095], [0.0095]], color=INK, capsize=6, linewidth=1.5)
+    for xs, vs in ((x - 0.27, per_query), (x, first), (x + 0.27, det)):
+        for xi, v in zip(xs, vs):
+            top = v + (0.0095 if abs(xi - 1.27) < 1e-6 else 0)
+            label = "0.145–0.164" if abs(xi - 1.27) < 1e-6 else f"{v:.3f}"
+            ax.text(xi, top + 0.005, label, ha="center", fontsize=13)
+    ax.set_xticks(x); ax.set_xticklabels(labels)
+    ax.set_ylabel("Mean query score")
+    ax.set_ylim(0, 0.22)
+    ax.legend(frameon=False, loc="upper left", fontsize=13)
+    style(ax)
+    save(f, "h12")
+
+
+def h13():
+    s = j("WHY/i4/summary.json")["streams"]
+    rows = []
+    for k, v in s.items():
+        if "frozen_fcfs" in v and "frozen_forecast" in v:
+            c, b = k.split("/")
+            rows.append((f"{ {'cspaper': 'papers', 'player': 'players', 'art': 'artists', 'med': 'medical', 'legal': 'court'}[c]} {b[1:]}%",
+                         v["frozen_forecast"]["score"] - v["frozen_fcfs"]["score"]))
+    rows.sort(key=lambda r: r[1])
+    f, ax = fig()
+    ax.axvline(0, color=GRAY, linewidth=1.5)
+    for i, (n, d) in enumerate(rows):
+        ax.plot([0, d], [i, i], color=ORANGE if d < -0.002 else GRAY, linewidth=2.5)
+        ax.plot(d, i, "o", markersize=11, color=ORANGE if d < -0.002 else GRAY, markeredgecolor=SURF, markeredgewidth=1.5)
+    ax.set_yticks(range(len(rows))); ax.set_yticklabels([r[0] for r in rows])
+    ax.set_xlabel("Forecast minus first come, first served (score)")
+    ax.text(0.03, 0.97, "0 wins, 6 losses in 10 streams", transform=ax.transAxes, fontsize=15, color=INK2, va="top")
+    style(ax, "x")
+    save(f, "h13")
+
+
+def h14():
+    f, axes = plt.subplots(1, 2, figsize=(W, H), gridspec_kw={"width_ratios": [1, 2.2]})
+    ax = axes[0]
+    ax.bar([0], [0.138], color=BLUE, width=0.5)
+    ax.text(0, 0.143, "+0.138", ha="center", fontsize=16)
+    ax.set_xticks([0]); ax.set_xticklabels(["flagged\ncolumns"])
+    ax.set_ylim(-0.02, 0.17); ax.set_title("Cell accuracy", loc="left", fontsize=16)
+    style(ax)
+    ax = axes[1]
+    d = {"papers": -0.0004, "players": -0.0011, "artists": -0.0095, "medical": -0.0039, "court": -0.0046}
+    ax.axhline(0, color=GRAY, linewidth=1.5)
+    ax.bar(range(5), list(d.values()), color=ORANGE, width=0.6)
+    for i, v in enumerate(d.values()):
+        ax.text(i, v - 0.0012, f"{v:+.3f}", ha="center", va="top", fontsize=13)
+    ax.set_xticks(range(5)); ax.set_xticklabels(list(d.keys()), fontsize=14)
+    ax.set_ylim(-0.017, 0.006); ax.set_title("Query score change", loc="left", fontsize=16)
+    style(ax)
+    save(f, "h14")
+
+
+def h15():
+    cats = [("exact label", BLUE), ("own label in another form", TEAL), ("merged into another group", ORANGE)]
+    before = [27, 50, 23]
+    after = [52, 6, 43]
+    f, ax = fig(W, 5.0)
+    for row, vals in ((1, before), (0, after)):
+        left = 0
+        for (name, col), v in zip(cats, vals):
+            ax.barh(row, v, left=left, color=col, height=0.55, edgecolor=SURF, linewidth=2, label=name if row == 1 else None)
+            if v >= 10:
+                ax.text(left + v / 2, row, f"{v}%", ha="center", va="center", color="#FFFFFF", fontsize=16, fontweight="bold")
+            else:
+                ax.text(left + v / 2, row + 0.36, f"{v}%", ha="center", va="bottom", color=INK, fontsize=15)
+            left += v
+    ax.set_yticks([1, 0]); ax.set_yticklabels(["no declared\nlabels", "labels\ndeclared"])
+    ax.set_xlim(0, 101); ax.set_xlabel("Artists' century: fate of 709 gold rows (%)")
+    style(ax, None)
+    h, l = ax.get_legend_handles_labels()
+    f.legend(h, l, frameon=False, loc="lower center", ncol=2, fontsize=13)
+    f.tight_layout(rect=(0, 0.14, 1, 1))
+    OUT.mkdir(parents=True, exist_ok=True)
+    f.savefig(OUT / "h15.png", dpi=200); plt.close(f); print(OUT / "h15.png")
+
+
+def h16():
+    rows = [("birth date", 0.38, 0.79), ("death date", 0.31, 0.56), ("birth city (list)", 0.39, 0.28),
+            ("field (list)", 0.13, 0.03), ("FIBA cups (0 if none)", 0.86, 0.25), ("NBA titles (0 if none)", 0.95, 0.40)]
+    f, ax = fig()
+    for i, (n, a, b) in enumerate(rows[::-1]):
+        col = BLUE if b > a else ORANGE
+        ax.plot([a, b], [i, i], color=col, linewidth=3)
+        ax.plot(a, i, "o", color=GRAY, markersize=10, markeredgecolor=SURF, markeredgewidth=1.5)
+        ax.plot(b, i, "o", color=col, markersize=12, markeredgecolor=SURF, markeredgewidth=1.5)
+    ax.set_yticks(range(len(rows))); ax.set_yticklabels([r[0] for r in rows[::-1]], fontsize=14)
+    ax.set_xlim(0, 1)
+    ax.set_xlabel("Cell accuracy: whole document (gray) → window")
+    style(ax, "x")
+    save(f, "h16")
+
+
+def asym():
+    rows = [("papers: became right", 0.009), ("papers: right → wrong", -0.032), ("players: became right (group by)", 0.004),
+            ("players: right → wrong (group by)", -0.011), ("players: right → wrong (filters)", -0.019),
+            ("players: right → wrong (joins)", -0.024), ("players: form only (499 cells)", 0.001)]
+    f, ax = fig()
+    ax.axvline(0, color=GRAY, linewidth=1.5)
+    for i, (n, v) in enumerate(rows[::-1]):
+        col = BLUE if v > 0.002 else (ORANGE if v < 0 else GRAY)
+        ax.barh(i, v, color=col, height=0.6)
+        ax.text(v + (0.001 if v >= 0 else -0.001), i, f"{v:+.3f}", va="center", ha="left" if v >= 0 else "right", fontsize=14)
+    ax.set_yticks(range(len(rows))); ax.set_yticklabels([r[0] for r in rows[::-1]], fontsize=14)
+    ax.set_xlim(-0.042, 0.018)
+    ax.set_xlabel("Effect on the mean query score")
+    style(ax, "x")
+    save(f, "asymmetry")
+
+
+CORP = [("cspaper", "papers"), ("player", "players"), ("art", "artists"), ("med", "medical"), ("legal", "court")]
+REC = {"cspaper": 0.153, "player": 0.387, "art": 0.256, "med": 0.115, "legal": 0.170}
+RUNS = {"cspaper": [0.138, 0.136, 0.144], "player": [0.377, 0.374, 0.369], "art": [0.255, 0.250, 0.260],
+        "med": [0.107, 0.098, 0.095], "legal": [0.178, 0.168]}
+
+
+def h17():
+    row = {"cspaper": 0.150, "player": 0.373, "art": 0.257, "med": 0.092}
+    f, axes = plt.subplots(1, 4, figsize=(W, H))
+    for ax, (c, n) in zip(axes, CORP[:4]):
+        r = RUNS[c]
+        ax.plot([0] * len(r), r, "o", color=BLUE, markersize=11, markeredgecolor=SURF, markeredgewidth=1.5, label="system runs")
+        ax.plot([1], [row[c]], "D", color=ORANGE, markersize=12, markeredgecolor=SURF, markeredgewidth=1.5, label="row-targeted")
+        lo, hi = min(r + [row[c]]), max(r + [row[c]])
+        pad = max(0.01, (hi - lo) * 0.6)
+        ax.set_ylim(lo - pad, hi + pad)
+        ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(5))
+        ax.set_xlim(-0.6, 1.6); ax.set_xticks([])
+        ax.set_title(n, fontsize=16, loc="left")
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.3f}"))
+        style(ax)
+    axes[0].set_ylabel("Mean query score")
+    h, l = axes[0].get_legend_handles_labels()
+    f.legend(h, l, loc="lower center", ncol=2, frameon=False, bbox_to_anchor=(0.5, -0.01))
+    f.tight_layout(rect=(0, 0.08, 1, 1))
+    OUT.mkdir(parents=True, exist_ok=True)
+    f.savefig(OUT / "h17.png", dpi=200); plt.close(f); print(OUT / "h17.png")
+
+
+def h18():
+    import numpy as np
+    d = {"artists": (0.2625, 0.2576, 0.2618), "medical": (0.1205, 0.0868, 0.1231)}
+    x = np.arange(2)
+    f, ax = fig()
+    for k, (lab, col) in enumerate((("no filter", GRAY), ("filter as built (empties cells)", ORANGE), ("never-empty filter", BLUE))):
+        vals = [d[c][k] for c in d]
+        ax.bar(x + (k - 1) * 0.27, vals, 0.25, color=col, label=lab)
+        for xi, v in zip(x + (k - 1) * 0.27, vals):
+            ax.text(xi, v + 0.004, f"{v:.3f}", ha="center", fontsize=13)
+    ax.set_xticks(x); ax.set_xticklabels(list(d.keys()))
+    ax.set_ylabel("Mean query score, same final table")
+    ax.set_ylim(0, 0.34)
+    ax.legend(frameon=False, loc="upper right", fontsize=13)
+    ax.text(0.02, 0.97, "papers, players, court: no change", transform=ax.transAxes, fontsize=14, color=INK2, va="top")
+    style(ax)
+    save(f, "h18")
+
+
+def fulldrift():
+    f, axes = plt.subplots(1, 5, figsize=(W, H))
+    keep = {"med": 0.133}
+    docetl = {"cspaper": 0.122, "player": 0.108, "art": 0.188, "med": 0.099, "legal": 0.046}
+    for ax, (c, n) in zip(axes, CORP):
+        ax.axhline(REC[c], color=GRAY, linestyle="--", linewidth=2, label="recorded system")
+        ax.plot([0] * len(RUNS[c]), RUNS[c], "o", color=BLUE, markersize=11, markeredgecolor=SURF, markeredgewidth=1.5, label="planner runs")
+        if c in keep:
+            ax.plot([0], [keep[c]], "D", color=TEAL, markersize=12, markeredgecolor=SURF, markeredgewidth=1.5, label="planner, never-empty filter")
+        ax.plot([1], [docetl[c]], "X", color=ORANGE, markersize=12, markeredgecolor=SURF, markeredgewidth=1, label="DocETL")
+        vals = RUNS[c] + [REC[c], docetl[c]] + ([keep[c]] if c in keep else [])
+        ax.set_ylim(min(vals) - 0.02, max(vals) + 0.02)
+        ax.set_xlim(-0.7, 1.7); ax.set_xticks([])
+        ax.set_title(n, fontsize=15, loc="left")
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.2f}"))
+        ax.tick_params(axis="y", labelsize=13)
+        style(ax)
+    axes[0].set_ylabel("Mean query score")
+    hs, ls = {}, {}
+    for ax in axes:
+        for h, l in zip(*ax.get_legend_handles_labels()):
+            hs.setdefault(l, h)
+    f.legend(list(hs.values()), list(hs.keys()), loc="lower center", ncol=2, frameon=False, fontsize=13, bbox_to_anchor=(0.5, -0.01))
+    f.tight_layout(rect=(0, 0.13, 1, 1))
+    OUT.mkdir(parents=True, exist_ok=True)
+    f.savefig(OUT / "fulldrift.png", dpi=200); plt.close(f); print(OUT / "fulldrift.png")
+
+
+def tokens():
+    plan = {"cspaper": 0.52, "player": 5.02, "art": 2.33, "med": 7.11, "legal": 5.33}
+    rec = {"cspaper": 1.16, "player": 5.67, "art": 6.08, "med": 14.08, "legal": 19.77}
+    rows = [(n, plan[c] / rec[c]) for c, n in CORP]
+    bars("tokens", [r[0] for r in rows][::-1], [r[1] * 100 for r in rows][::-1], BLUE,
+         "Planner's 7B tokens as a share of recorded (%)", fmt="{:.0f}%", horizontal=True, ylim=(0, 105), w=W, h=H)
+
+
+def budget():
+    import numpy as np
+    b25 = {"cspaper": (0.150, 0.137), "player": (0.344, 0.176), "art": (0.202, 0.179), "med": (0.075, 0.079), "legal": (0.160, 0.098)}
+    b50 = {"cspaper": (0.138, 0.147), "player": (0.366, 0.293), "art": (0.254, 0.191), "med": (0.085, 0.104), "legal": (0.160, 0.146)}
+    f, axes = plt.subplots(1, 2, figsize=(W + 2.2, H), sharey=True)
+    x = np.arange(5)
+    for ax, (title, d) in zip(axes, (("a quarter of the recorded spend", b25), ("half of the recorded spend", b50))):
+        p = [d[c][0] for c, _ in CORP]; r = [d[c][1] for c, _ in CORP]
+        ax.bar(x - 0.2, p, 0.38, color=BLUE, label="planner")
+        ax.bar(x + 0.2, r, 0.38, color=GRAY, label="recorded system")
+        ax.set_xticks(x); ax.set_xticklabels([n for _, n in CORP], fontsize=14)
+        ax.set_title(f"Budget: {title}", loc="left", fontsize=16)
+        for xi, v in zip(x - 0.2, p):
+            ax.text(xi, v + 0.006, f"{v:.2f}", ha="center", fontsize=12)
+        for xi, v in zip(x + 0.2, r):
+            ax.text(xi, v + 0.006, f"{v:.2f}", ha="center", fontsize=12, color=INK2)
+        style(ax)
+    axes[0].set_ylabel("Mean query score")
+    h, l = axes[0].get_legend_handles_labels()
+    f.legend(h, l, frameon=False, loc="lower center", ncol=2)
+    f.tight_layout(rect=(0, 0.08, 1, 1))
+    OUT.mkdir(parents=True, exist_ok=True)
+    f.savefig(OUT / "budget.png", dpi=200); plt.close(f); print(OUT / "budget.png")
+
+
+def ablations():
+    import numpy as np
+    f, axes = plt.subplots(1, 2, figsize=(W + 2.2, H), gridspec_kw={"width_ratios": [1, 1.4]})
+    ratio = {"cspaper": 1.49 / 0.52, "player": 7.57 / 5.02, "art": 6.90 / 2.33, "med": 17.20 / 7.11, "legal": 20.45 / 5.33}
+    ax = axes[0]
+    ax.barh(range(5), [ratio[c] for c, _ in CORP][::-1], color=BLUE, height=0.6)
+    ax.set_yticks(range(5)); ax.set_yticklabels([n for _, n in CORP][::-1])
+    for i, v in enumerate([ratio[c] for c, _ in CORP][::-1]):
+        ax.text(v + 0.05, i, f"{v:.1f}×", va="center", fontsize=14)
+    ax.set_xlim(0, 4.4)
+    ax.set_title("Unit decision: token saving", loc="left", fontsize=16)
+    style(ax, "x")
+    ax = axes[1]
+    looks = {"cspaper": 0.138 - 0.129, "player": 0.377 - 0.366, "art": 0.255 - 0.257,
+             "med": (0.107 + 0.098 + 0.095) / 3 - (0.078 + 0.092) / 2, "legal": 0.178 - 0.167}
+    filt = {"cspaper": 0.0, "player": 0.0, "art": 0.2576 - 0.2625, "med": 0.0868 - 0.1205, "legal": 0.0}
+    x = np.arange(5)
+    ax.axhline(0, color=GRAY, linewidth=1.5)
+    ax.bar(x - 0.2, [looks[c] for c, _ in CORP], 0.38, color=BLUE, label="second looks (stream runs)")
+    ax.bar(x + 0.2, [filt[c] for c, _ in CORP], 0.38, color=ORANGE, label="item filter as built (same table)")
+    ax.set_xticks(x); ax.set_xticklabels([n for _, n in CORP], fontsize=14)
+    ax.set_title("What each component adds to the score", loc="left", fontsize=16)
+    style(ax)
+    h, l = ax.get_legend_handles_labels()
+    f.legend(h, l, frameon=False, loc="lower center", ncol=2, fontsize=14)
+    f.tight_layout(rect=(0, 0.08, 1, 1))
+    OUT.mkdir(parents=True, exist_ok=True)
+    f.savefig(OUT / "ablations.png", dpi=200); plt.close(f); print(OUT / "ablations.png")
+
+
+if __name__ == "__main__":
+    h01(); h02(); h03(); print("h04", h04()); h05(); h06(); h07(); print("h08 columns", h08())
+    h09(); h10(); h11(); h12(); h13(); h14(); h15(); h16(); asym(); h17(); h18()
+    fulldrift(); tokens(); budget(); ablations()

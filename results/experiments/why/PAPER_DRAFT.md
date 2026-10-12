@@ -62,7 +62,9 @@ the product of a structure score and a cell score.
 *Context.* For every column the drifted workload needs and the build lacks, thirty documents were read in five
 contexts: the column alone, with two random columns of its table, with six, in the build's natural group, and alone
 with a paraphrased description (39 columns, 5,005 prompts). The mean accuracy is the same in every context (0.37 to
-0.41); the direction of the effect is each column's own, 18 columns more accurate alone by 0.05 or more and 9 less.
+0.41 over the same 39 columns for alone, two and six added columns, and paraphrase); the direction of the effect is each
+column's own: against two added columns 7 columns are better alone by 0.05 or more and 7 worse, against six 7 and 11, and
+against the natural group (24 columns measured in both) 5 and 9.
 Then the same fields in another order: shuffling changes 40% of cells, reversing 44%, as much as adding six columns;
 a "never null" count is left empty on 87% of documents when it heads the list and 47% when it closes it; a category
 whose gold is mostly empty is filled with 'Other' first and left empty last (0.20 against 0.77 correct). Context is

@@ -361,8 +361,14 @@ def analyze() -> dict:
                                          for k in KINDS if any(k in r["accuracy"] for r in rows)}
         m["mean_empty_by_context"] = {k: round(S.mean(r["empty"][k] for r in rows if k in r["empty"]), 3)
                                       for k in KINDS if any(k in r["empty"] for r in rows)}
-        m["columns_better_alone_than_natural"] = sum(r["accuracy"].get("alone", 0) > r["accuracy"].get("natural", 0) + 0.05 for r in rows)
-        m["columns_better_natural_than_alone"] = sum(r["accuracy"].get("natural", 0) > r["accuracy"].get("alone", 0) + 0.05 for r in rows)
+        # only columns measured in both contexts (a column without a natural group is not "better alone"; fixed 2026-10-11:
+        # the earlier count read a missing context as 0 and reported 18 instead of 5 on the 7B)
+        both = [r for r in rows if "alone" in r["accuracy"] and "natural" in r["accuracy"]]
+        m["columns_compared_alone_vs_natural"] = len(both)
+        m["mean_accuracy_alone_vs_natural_same_columns"] = ({"alone": round(S.mean(r["accuracy"]["alone"] for r in both), 3),
+                                                             "natural": round(S.mean(r["accuracy"]["natural"] for r in both), 3)} if both else None)
+        m["columns_better_alone_than_natural"] = sum(r["accuracy"]["alone"] > r["accuracy"]["natural"] + 0.05 for r in both)
+        m["columns_better_natural_than_alone"] = sum(r["accuracy"]["natural"] > r["accuracy"]["alone"] + 0.05 for r in both)
         # Q4 summary: order-only changes against set changes
         pr = [r for r in rows if "predicate" in r]
         if len(pr) >= 5:
