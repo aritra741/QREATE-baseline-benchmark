@@ -3,7 +3,7 @@
     ~/venvs/quwarts/bin/python results/experiments/why/deck_figures.py
 
 Palette (validated with the dataviz validator on the slide surface): blue #2A6FB0, orange #C2551F, teal #1F8A70 for
-series; gray #6F7883 only for labelled reference marks (recorded system, zero lines, baselines).
+series; gray #6F7883 only for labelled reference marks (DocETL, the version without the planner, zero lines).
 """
 
 import json
@@ -457,32 +457,90 @@ def h18():
     save(f, "h18")
 
 
-def fulldrift():
+# DocETL, the external baseline, scored on exactly our test queries (court cases: the 21 of 27 it answered; our
+# system is scored on the same 21 there). Tokens: DocETL's on those queries; ours = the initial build + on-demand
+# reads by both models (raw tokens, the 32B's counted like the 7B's).
+DOCETL_TEST = {"cspaper": 0.105, "player": 0.081, "art": 0.167, "med": 0.072, "legal": 0.057}
+OURS_TEST = {"cspaper": [0.138, 0.136, 0.144], "player": [0.377, 0.374, 0.369], "art": [0.255, 0.250, 0.260],
+             "med": [0.107, 0.098, 0.095], "legal": [0.155, 0.142]}
+NOREREAD_TEST = {"cspaper": [0.129], "player": [0.366], "art": [0.257], "med": [0.078, 0.092], "legal": [0.140]}
+DOCETL_TOK = {"cspaper": 20.7, "player": 190.6, "art": 57.9, "med": 88.8, "legal": 333.0}
+BUILD_TOK = {"cspaper": 0.40, "player": 2.04, "art": 2.43, "med": 2.55, "legal": 4.56}
+ONDEMAND_TOK = {"cspaper": 0.52 + 0.20, "player": 5.02 + 1.25, "art": 2.33 + 0.21, "med": 7.11 + 2.91, "legal": 5.33 + 0.52}
+
+
+def baseline_scores():
+    import numpy as np
+    x = np.arange(5)
+    f, ax = fig(W + 1.4, H)
+    d = [DOCETL_TEST[c] for c, _ in CORP]
+    o = [S_mean(OURS_TEST[c]) for c, _ in CORP]
+    n = [S_mean(NOREREAD_TEST[c]) for c, _ in CORP]
+    ax.bar(x - 0.27, d, 0.25, color=GRAY, label="DocETL (baseline)")
+    ax.bar(x, o, 0.25, color=BLUE, label="our system")
+    ax.bar(x + 0.27, n, 0.25, color=TEAL, label="our system without re-reads (no correct answers used)")
+    for c_i, (c, _) in enumerate(CORP):
+        for v in OURS_TEST[c]:
+            ax.plot(c_i, v, "o", color=INK, markersize=5)
+    for xs, vs in ((x - 0.27, d), (x, o), (x + 0.27, n)):
+        for xi, v in zip(xs, vs):
+            ax.text(xi, v + 0.008, f"{v:.2f}", ha="center", fontsize=12)
+    ax.set_xticks(x); ax.set_xticklabels([nm for _, nm in CORP])
+    ax.set_ylabel("Average query score, test queries")
+    ax.set_ylim(0, 0.42)
+    style(ax)
+    h, l = ax.get_legend_handles_labels()
+    f.legend(h, l, frameon=False, loc="lower center", ncol=3, fontsize=13)
+    f.tight_layout(rect=(0, 0.08, 1, 1))
+    OUT.mkdir(parents=True, exist_ok=True)
+    f.savefig(OUT / "baseline_scores.png", dpi=200); plt.close(f); print(OUT / "baseline_scores.png")
+
+
+def baseline_tokens():
+    import numpy as np
+    f, ax = fig(W, H)
+    y = np.arange(5)[::-1]
+    ours = [BUILD_TOK[c] + ONDEMAND_TOK[c] for c, _ in CORP]
+    doc = [DOCETL_TOK[c] for c, _ in CORP]
+    ax.barh(y + 0.2, doc, 0.38, color=GRAY, label="DocETL")
+    ax.barh(y - 0.2, ours, 0.38, color=BLUE, label="our system (initial build included)")
+    for yi, a, b in zip(y, ours, doc):
+        ax.text(b * 1.15, yi + 0.2, f"{b:.0f}M", va="center", fontsize=13)
+        ax.text(a * 1.15, yi - 0.2, f"{a:.1f}M  ({b / a:.0f} times fewer)", va="center", fontsize=13)
+    ax.set_xscale("log")
+    ax.set_xlim(0.5, 3000)
+    ax.set_yticks(y); ax.set_yticklabels([nm for _, nm in CORP])
+    ax.set_xlabel("Tokens read by the models, millions (log scale)")
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+    style(ax, "x")
+    h, l = ax.get_legend_handles_labels()
+    f.legend(h, l, frameon=False, loc="lower center", ncol=2, fontsize=13)
+    f.tight_layout(rect=(0, 0.07, 1, 1))
+    OUT.mkdir(parents=True, exist_ok=True)
+    f.savefig(OUT / "baseline_tokens.png", dpi=200); plt.close(f); print(OUT / "baseline_tokens.png")
+
+
+def noplanner():
     f, axes = plt.subplots(1, 5, figsize=(W, H))
-    keep = {"med": 0.133}
-    docetl = {"cspaper": 0.122, "player": 0.108, "art": 0.188, "med": 0.099, "legal": 0.046}
     for ax, (c, n) in zip(axes, CORP):
-        ax.axhline(REC[c], color=GRAY, linestyle="--", linewidth=2, label="baseline system")
+        ax.axhline(REC[c], color=GRAY, linestyle="--", linewidth=2, label="without the planner (one prompt per query)")
         ax.plot([0] * len(RUNS[c]), RUNS[c], "o", color=BLUE, markersize=11, markeredgecolor=SURF, markeredgewidth=1.5, label="our system (repeat runs)")
-        if c in keep:
-            ax.plot([0], [keep[c]], "D", color=TEAL, markersize=12, markeredgecolor=SURF, markeredgewidth=1.5, label="our system, fixed list cleanup")
-        ax.plot([1], [docetl[c]], "X", color=ORANGE, markersize=12, markeredgecolor=SURF, markeredgewidth=1, label="DocETL")
-        vals = RUNS[c] + [REC[c], docetl[c]] + ([keep[c]] if c in keep else [])
+        vals = RUNS[c] + [REC[c]]
         ax.set_ylim(min(vals) - 0.02, max(vals) + 0.02)
-        ax.set_xlim(-0.7, 1.7); ax.set_xticks([])
-        ax.set_title(n, fontsize=15, loc="left")
+        ax.set_xlim(-0.7, 0.7); ax.set_xticks([])
+        ax.set_title(n, fontsize=14, loc="center")
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.2f}"))
         ax.tick_params(axis="y", labelsize=13)
         style(ax)
-    axes[0].set_ylabel("Mean query score")
-    hs, ls = {}, {}
+    axes[0].set_ylabel("Average query score")
+    hs = {}
     for ax in axes:
         for h, l in zip(*ax.get_legend_handles_labels()):
             hs.setdefault(l, h)
-    f.legend(list(hs.values()), list(hs.keys()), loc="lower center", ncol=2, frameon=False, fontsize=13, bbox_to_anchor=(0.5, -0.01))
-    f.tight_layout(rect=(0, 0.13, 1, 1))
+    f.legend(list(hs.values()), list(hs.keys()), loc="lower center", ncol=1, frameon=False, fontsize=13, bbox_to_anchor=(0.5, -0.01))
+    f.tight_layout(rect=(0, 0.14, 1, 1))
     OUT.mkdir(parents=True, exist_ok=True)
-    f.savefig(OUT / "fulldrift.png", dpi=200); plt.close(f); print(OUT / "fulldrift.png")
+    f.savefig(OUT / "noplanner.png", dpi=200); plt.close(f); print(OUT / "noplanner.png")
 
 
 def tokens():
@@ -490,7 +548,7 @@ def tokens():
     rec = {"cspaper": 1.16, "player": 5.67, "art": 6.08, "med": 14.08, "legal": 19.77}
     rows = [(n, plan[c] / rec[c]) for c, n in CORP]
     bars("tokens", [r[0] for r in rows][::-1], [r[1] * 100 for r in rows][::-1], BLUE,
-         "Our system's model usage as a share of the baseline's (%)", fmt="{:.0f}%", horizontal=True, ylim=(0, 105), w=W, h=H)
+         "Small-model tokens while queries arrive, as a share of\nthe version without the planner (%)", fmt="{:.0f}%", horizontal=True, ylim=(0, 105), w=W, h=H)
 
 
 def budget():
@@ -499,23 +557,27 @@ def budget():
     b50 = {"cspaper": (0.138, 0.147), "player": (0.366, 0.293), "art": (0.254, 0.191), "med": (0.085, 0.104), "legal": (0.160, 0.146)}
     f, axes = plt.subplots(1, 2, figsize=(W + 2.2, H), sharey=True)
     x = np.arange(5)
-    for ax, (title, d) in zip(axes, (("25% of the baseline's spending", b25), ("50% of the baseline's spending", b50))):
+    for ax, (title, d) in zip(axes, (("budget 25%", b25), ("budget 50%", b50))):
         p = [d[c][0] for c, _ in CORP]; r = [d[c][1] for c, _ in CORP]
-        ax.bar(x - 0.2, p, 0.38, color=BLUE, label="planner")
-        ax.bar(x + 0.2, r, 0.38, color=GRAY, label="baseline system")
+        ax.bar(x - 0.2, p, 0.38, color=BLUE, label="our system")
+        ax.bar(x + 0.2, r, 0.38, color=GRAY, label="without the planner")
         ax.set_xticks(x); ax.set_xticklabels([n for _, n in CORP], fontsize=14)
-        ax.set_title(f"Budget: {title}", loc="left", fontsize=16)
+        ax.set_title(title, loc="left", fontsize=16)
         for xi, v in zip(x - 0.2, p):
             ax.text(xi, v + 0.006, f"{v:.2f}", ha="center", fontsize=12)
         for xi, v in zip(x + 0.2, r):
             ax.text(xi, v + 0.006, f"{v:.2f}", ha="center", fontsize=12, color=INK2)
         style(ax)
-    axes[0].set_ylabel("Mean query score")
+    axes[0].set_ylabel("Average query score")
     h, l = axes[0].get_legend_handles_labels()
     f.legend(h, l, frameon=False, loc="lower center", ncol=2)
     f.tight_layout(rect=(0, 0.08, 1, 1))
     OUT.mkdir(parents=True, exist_ok=True)
     f.savefig(OUT / "budget.png", dpi=200); plt.close(f); print(OUT / "budget.png")
+
+
+def S_mean(v):
+    return sum(v) / len(v)
 
 
 def ablations():
@@ -551,4 +613,4 @@ def ablations():
 if __name__ == "__main__":
     h01(); h02(); h03(); print("h04", h04()); h05(); h06(); h07(); print("h08 columns", h08())
     h09(); h10(); h11(); h12(); h13(); h14(); h15(); h16(); asym(); h17(); h18()
-    fulldrift(); tokens(); budget(); ablations()
+    baseline_scores(); baseline_tokens(); noplanner(); tokens(); budget(); ablations()
