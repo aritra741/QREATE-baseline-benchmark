@@ -79,6 +79,9 @@ def main(argv=None) -> int:
         issues = []
         if not rows:
             issues.append("empty answer on the correct data")
+        blanks = sum(1 for row in rows for v in row if v is None or (isinstance(v, str) and v.strip().lower() in ("", "null")))
+        if blanks:
+            issues.append(f"{blanks} empty, NULL or 'null' value(s) in the correct answer (group key or cell)")
         if not schema_from_sql(sql).get("is_aggregation"):
             issues.append("not an aggregation query (the scorer only scores aggregations)")
         flags = audit(sql, fields, {}, None)["unrealistic"]
