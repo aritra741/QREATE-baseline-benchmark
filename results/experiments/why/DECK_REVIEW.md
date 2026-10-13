@@ -27,10 +27,11 @@ problem would do in the meeting.
    not of real workloads. The slide says this in its footer, but the verdict ("Wrong") and the "What it means" read as
    general findings.
 
-5. **Two different meanings of "correct".** Per-answer accuracy (H3, H7, H9, H10, H11, H14) uses a lenient
-   comparison (containment, number forms). Query scores use exact values. We saw the gap directly: damaging answers
-   the lenient check called "correct" raised query scores. H14's puzzle ("answers more accurate, queries not better")
-   is at least partly this mismatch, which the slide does not say.
+5. **Two different meanings of "correct" (measured: small).** Per-answer accuracy (`exp_open.correct`) ignores case
+   and accepts any number within 20% of the correct one; filters, groups and joins compare values exactly in SQL. In
+   the I1 lone reads this affects 14 of 301 answers counted correct (5%): 11 differ only in case ("french" for
+   "French"), 3 are different numbers within 20% (draft pick 42 for 35). Too small to explain H14; the earlier
+   remark that it does was overstated.
 
 6. **Absolute scores are low and never explained.** Our system scores 0.10 to 0.37, DocETL 0.06 to 0.17. The
    advisor will ask what 0.15 means, how the score is computed (it is defined nowhere in the deck), and whether "beats
@@ -153,4 +154,4 @@ not this update; DocETL is compared by relative trend. So A6, A7, A9 stay as sta
   belongs to the query.
 - Found on the way: the large model copied the prompt's field note ("Never null: always give a value. Workload use:
   grouped by its value.") into 41 of 2,999 re-read answers, all on artists' composition.
-- Still open: A1 for H2 (the 5/10/20-document curve uses single samples), A5 (lenient vs exact "correct").
+- Still open: A1 for H2 (the 5/10/20-document curve uses single samples). A5 measured: 5% of answers, small.
