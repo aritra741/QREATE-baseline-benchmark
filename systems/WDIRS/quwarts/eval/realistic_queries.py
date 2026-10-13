@@ -6,17 +6,22 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import os
+
 QDIR = Path(__file__).resolve().parents[4] / "Query" / "Realistic"
+# QUWARTS_REALISTIC=v2: the relational version (grouped tables, HAVING, top-k, subqueries; Query/Realistic/v2), ids real2:
+VERSION = os.environ.get("QUWARTS_REALISTIC", "v1")
 
 
 def load(corpus: str) -> list[tuple[str, str, str]]:
     """(id, question, sql) in file order."""
     out = []
-    for block in re.split(r";\s*\n", (QDIR / f"{corpus}.sql").read_text()):
+    path, prefix = (QDIR / f"{corpus}.sql", "real") if VERSION == "v1" else (QDIR / VERSION / f"{corpus}.sql", "real" + VERSION[1:])
+    for block in re.split(r";\s*\n", path.read_text()):
         m = re.search(r"--\s*(QJ?\d+):\s*(.*)", block)
         sql = "\n".join(x for x in block.splitlines() if not x.strip().startswith("--")).strip()
         if m and sql:
-            out.append((f"real:{corpus}#{m.group(1)}", m.group(2).strip(), sql))
+            out.append((f"{prefix}:{corpus}#{m.group(1)}", m.group(2).strip(), sql))
     return out
 
 

@@ -55,7 +55,8 @@ ANSWER_ROOM = 512
 MARGIN = 256  # chat template and DocETL's own wrapping around the prompt
 # QUWARTS_WORKLOAD=realistic: the realistic workload (Query/Realistic) instead of the drift test queries, in its own root
 WORKLOAD = os.environ.get("QUWARTS_WORKLOAD", "drift")
-OUT = ROOT / "results" / ("docetl_realistic_ollama" if WORKLOAD == "realistic" else "docetl_drift_ollama")
+_V = os.environ.get("QUWARTS_REALISTIC", "v1")
+OUT = ROOT / "results" / (("docetl_realistic_ollama" if _V == "v1" else f"docetl_realistic_{_V}_ollama") if WORKLOAD == "realistic" else "docetl_drift_ollama")
 HEADLINE = ("attribute/100", "value/100", "attribute/0", "value/0", "combined/0")
 TOKENS = {"prompt": 0, "completion": 0, "calls": 0}
 _lock = threading.Lock()
