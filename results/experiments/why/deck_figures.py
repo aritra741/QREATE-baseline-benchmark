@@ -610,7 +610,56 @@ def ablations():
     f.savefig(OUT / "ablations.png", dpi=200); plt.close(f); print(OUT / "ablations.png")
 
 
+def resend():
+    """Same prompt sent twice against a different prompt (WHY/repeat): share of answers that change."""
+    d = j("WHY/repeat/summary.json")["t01"]["all"]
+    kinds = [("plus2", "add 2\nquestions"), ("plus6", "add 6\nquestions"), ("paraphrase", "reworded"),
+             ("with_predicate", "query's condition\nshown")]
+    series = [("same prompt sent twice", BLUE, lambda k: d["same prompt twice"][k]["changed"]),
+              ("alone vs this prompt", ORANGE, lambda k: d["alone vs this prompt"][k]["changed"]),
+              ("change caused by the prompt\n(holds when both are resent)", TEAL, lambda k: d["stable effect"][k]["changed"])]
+    f, ax = fig()
+    w = 0.26
+    for i, (lab, col, get) in enumerate(series):
+        xs = [x + (i - 1) * w for x in range(len(kinds))]
+        vs = [get(k) for k, _ in kinds]
+        ax.bar(xs, vs, width=w - 0.03, color=col, label=lab)
+        for x, v in zip(xs, vs):
+            ax.text(x, v + 0.01, f"{v * 100:.0f}%", ha="center", fontsize=13, color=INK)
+    ax.set_xticks(range(len(kinds)))
+    ax.set_xticklabels([n for _, n in kinds])
+    ax.set_ylim(0, 0.62)
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v * 100:.0f}%"))
+    ax.set_ylabel("Share of answers that change")
+    ax.legend(frameon=False, loc="upper left", fontsize=13)
+    style(ax)
+    save(f, "resend")
+
+
+def blank_wrong():
+    """Controlled damage (WHY/blank_wrong): the same 20% of correct answers blanked or replaced by a wrong value."""
+    names = [("cspaper", "papers"), ("player", "players"), ("art", "artists"), ("med", "medical"), ("legal", "court\ncases")]
+    ms = {c: j(f"WHY/blank_wrong/{c}.json")["mean_score"] for c, _ in names}
+    series = [("all answers correct", GRAY, "clean"), ("20% replaced by a wrong value", BLUE, "wrong"),
+              ("the same 20% left blank", ORANGE, "blank")]
+    f, ax = fig()
+    w = 0.26
+    for i, (lab, col, key) in enumerate(series):
+        xs = [x + (i - 1) * w for x in range(len(names))]
+        vs = [ms[c][key] for c, _ in names]
+        ax.bar(xs, vs, width=w - 0.03, color=col, label=lab)
+        for x, v in zip(xs, vs):
+            ax.text(x, v + 0.01, f"{v:.2f}", ha="center", fontsize=12, color=INK)
+    ax.set_xticks(range(len(names)))
+    ax.set_xticklabels([n for _, n in names])
+    ax.set_ylim(0, 0.78)
+    ax.set_ylabel("Average query score")
+    ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.16), fontsize=13, ncol=3, handlelength=1.2, columnspacing=1.0)
+    style(ax)
+    save(f, "blank_wrong")
+
+
 if __name__ == "__main__":
     h01(); h02(); h03(); print("h04", h04()); h05(); h06(); h07(); print("h08 columns", h08())
     h09(); h10(); h11(); h12(); h13(); h14(); h15(); h16(); asym(); h17(); h18()
-    baseline_scores(); baseline_tokens(); noplanner(); tokens(); budget(); ablations()
+    baseline_scores(); baseline_tokens(); noplanner(); tokens(); budget(); ablations(); resend(); blank_wrong()
