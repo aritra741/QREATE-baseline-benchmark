@@ -442,3 +442,34 @@ are all exactly right in run V3's final table; predicted exact share = mean over
 p). MIN/MAX (60): correlation 0.30, observed 0.133 where 0.007 is predicted: only the extreme row must be right.
 Re-reads, court cases: V3 335 looks at defendant_current_status, -0.008; V3-rep1 none. Deck v48: group-size slides;
 re-read verdict changed to Wrong (paired -0.011 to +0.016, zero on medical).
+
+## 14. Data profile against query features (2026-10-12)
+
+`exp_profile.py`, `WHY/profile/summary.json`. Five collections cannot separate collection-level traits, so each column a
+test query touches is profiled from the data (kind, blank share, share of correct answers written word for word,
+distinct values per row, document length; plus our exact accuracy on it), and each query's columns are tagged by role
+(aggregated, grouped by, filtered on, join key).
+
+Profiles differ sharply: players' used columns are numbers and names, 81% written in the text, our exact accuracy
+median 0.89, documents 1.9k tokens; medical's are lists (21 of 22), 34% blank, 91% written, 11k-token documents,
+accuracy 0.29; artists' correct answers are written in the text only 18% of the time (annotator labels), accuracy 0.45;
+papers 39% written, 0.63; court cases free text, 4.4k tokens, 0.52.
+
+**The grouping column decides; the aggregated column does not.** Within collections, rank correlation of a query's
+score (20%) with the exact accuracy of its weakest column in each role: grouped by 0.70 (players), 0.53 (artists),
+0.32 (court cases), 0.21 (medical), 0.03 (papers); aggregated 0.04, -0.02, -0.08, -0.37, -0.49; filtered on mixed
+(artists 0.77, others -0.10 to 0.31). Mechanism: a wrong group key moves a row into another group, so two groups and
+possibly a spurious one are wrong (structure), while a wrong aggregated value only shifts one group's number (and is
+forgiven up to the tolerance). The kind of the key matters only through its accuracy: artists' category keys 0.54,
+free-text and list keys 0.10 and 0.12; players' free-text keys (team names, read well) 0.60.
+
+**Joins cost what the key's agreement costs.** Joins occur only in players (team name, city name) and medical (disease
+name), all extracted text. Share of rows whose key finds a match on the other side: players team -> team table:
+correct data 0.63, ours 0.75 in all three runs, DocETL 0.19 (0.00 to 0.42 over 49 queries); team location -> city:
+0.93, 0.97, DocETL 0.20 (0.07 to 0.71); medical drug's disease -> disease: correct data 0.12, ours 0.05, DocETL 0.11.
+A join needs the two sides to agree with each other, not with the truth: our player-side key is exact only 0.55 of the
+time but matches 0.75, because both sides are read once with fixed prompts. DocETL rereads each side per query with a
+new prompt; its key accuracy for the same column swings from 0.10 to 1.00 between queries. Consequence: our scores are
+flat over 0 / 1 / 2+ joins on players (0.372 / 0.398 / 0.373), DocETL's fall (0.125 / 0.033 / 0.008) with structure
+0.65 -> 0.29. Medical is the breakdown: the data itself barely supports the join (12% of drugs name a disease that has
+its own row), so no system gains from it (ours 0.102 -> 0.091, structure 0.36 -> 0.23).
