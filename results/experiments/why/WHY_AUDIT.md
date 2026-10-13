@@ -473,3 +473,23 @@ new prompt; its key accuracy for the same column swings from 0.10 to 1.00 betwee
 flat over 0 / 1 / 2+ joins on players (0.372 / 0.398 / 0.373), DocETL's fall (0.125 / 0.033 / 0.008) with structure
 0.65 -> 0.29. Medical is the breakdown: the data itself barely supports the join (12% of drugs name a disease that has
 its own row), so no system gains from it (ours 0.102 -> 0.091, structure 0.36 -> 0.23).
+
+## 15. The benchmark's join split (2026-10-12)
+
+`exp_joinsplit.py`, `WHY/joinsplit/summary.json`. Query/<Corpus>/Join/join_queries.sql: 20 row-returning join queries
+each for players and medical (binary_join, multi_table_join); none were in the drift workload. Our final tables (run
+V3, three runs) answer 10 of each; the owner (players) and institution (medical) tables were never read, because no
+drift query needed them. Rows carry document ids, so the join itself is measured apart from the projected values.
+
+- **Players.** player.team -> team.team_name links 0.67 of the correct (player, team) pairs at precision 0.97; team.location
+  -> city.city_name links 1.00 at 0.97. Three-table joins link 0.674 against 0.67 predicted by multiplying the hops (weak
+  test: one hop is perfect). Our player-side key is exactly right 0.546 of the time; the team side 1.00.
+- **Rows of a join query are right when the pair is linked and every projected value is right.** Predicted row recall =
+  pair recall x product of the projected columns' exact accuracies; rank correlation with the observed row recall (0%)
+  0.915 over the 10 queries, mean 0.219 predicted against 0.256 observed. Row recall ranges from 0.02 to 0.86 across
+  queries with the same join, set by the weakest projected column (a column read right 6% of the time gives 0.02 to 0.07).
+- **Medical's join fails by schema, not by reading.** drug.disease_name is a list in 64% of correct rows ("Motion
+  Sickness||Nausea||Vomiting"), disease.disease_name a single name, and the queries join with "=". Exact string match:
+  0.117 of drugs in the correct data, 0.055 in ours; any list item matching a disease name (case-blind): 0.394 and 0.396.
+  Correct data links 11 (drug, disease) pairs; ours finds 1 of them (precision 0.2). With item-level matching our table
+  supports the join as well as the correct data does.

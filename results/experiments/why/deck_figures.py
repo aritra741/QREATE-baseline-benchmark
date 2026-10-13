@@ -707,7 +707,29 @@ def groupsize():
     style(a2)
     save(f, "groupsize")
 
+
+def roles_chart():
+    """Within-collection rank correlation of a query's score with the accuracy of its weakest column per role."""
+    d = j("WHY/profile/summary.json")["by_role_accuracy"]
+    names = [("player", "players"), ("art", "artists"), ("legal", "court\ncases"), ("med", "medical"), ("cspaper", "papers")]
+    series = [("grouped by", "grouping column", BLUE), ("aggregated", "aggregated column", ORANGE)]
+    f, ax = fig()
+    w = 0.36
+    for i, (role, lab, col) in enumerate(series):
+        xs = [x + (i - 0.5) * w for x in range(len(names))]
+        vs = [d[role].get(c, {}).get("rank_correlation", 0.0) for c, _ in names]
+        ax.bar(xs, vs, width=w - 0.03, color=col, label=lab)
+        for x, v in zip(xs, vs):
+            ax.text(x, v + (0.02 if v >= 0 else -0.06), f"{v:.2f}", ha="center", fontsize=12, color=INK)
+    ax.axhline(0, color=GRAY, linewidth=1)
+    ax.set_xticks(range(len(names))); ax.set_xticklabels([n for _, n in names])
+    ax.set_ylim(-0.6, 0.85)
+    ax.set_ylabel("Link between a column's accuracy\nand the query's score (rank correlation)")
+    ax.legend(frameon=False, loc="upper right", fontsize=13)
+    style(ax)
+    save(f, "roles")
+
 if __name__ == "__main__":
     h01(); h02(); h03(); print("h04", h04()); h05(); h06(); h07(); print("h08 columns", h08())
     h09(); h10(); h11(); h12(); h13(); h14(); h15(); h16(); asym(); h17(); h18()
-    baseline_scores(); baseline_tokens(); noplanner(); tokens(); budget(); ablations(); resend(); blank_wrong(); groupsize()
+    baseline_scores(); baseline_tokens(); noplanner(); tokens(); budget(); ablations(); resend(); blank_wrong(); groupsize(); roles_chart()
