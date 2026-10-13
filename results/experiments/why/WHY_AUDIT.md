@@ -316,3 +316,46 @@ document-level clustering of H5 still holds; what makes a cell unstable is close
 candidate values or spans to choose from than to the answer being absent (consistent with the older result that
 verbatim presence of the gold value does not change disagreement, 48.6% against 48.8%). Untested so far: counting
 candidate mentions per document.
+
+## 10. Corrections and the resend test (2026-10-12)
+
+**Parser error in §9.** `exp_leak_direction`, `exp_stated_open` and `exp_why_change` read the model's reply with a
+plain `json.loads(...)["fields"][column]`. The system reads replies with `probes.parse_fields`, which strips code
+fences and matches a renamed key back to its field (art's `field` is often answered as "primary artistic field").
+The plain reader missed 1,349 filled answers (medical 851 of 2,400 reads, players 209, artists 119, papers 91, court
+cases 79), counting them as blanks. All three now use `parse_fields`; the I1 summary and the deck's instability
+numbers always did, and are unaffected. Rerun results:
+- Leakage direction holds: pass rate alone 0.49, with the condition 0.71, gold 0.43; 118 answers moved to passing, 8
+  to failing; 93 wrongly admitted, 2 wrongly dropped.
+- Stated against open, corrected: unstable share by correct answer is flat (blank 0.53, not word for word 0.49,
+  written word for word 0.56). The divide is the column kind: lists 0.66 / 0.83 / 0.78, single values 0.32 / 0.40 /
+  0.29. For single values, answers the document states are the most stable. §9's "answers the document states are
+  the most unstable" was an artifact of the parser and is withdrawn.
+- What changes (`exp_why_change`, 1,333 changed pairs): blank against filled 35% (not 70%), a value not written in
+  the document 28%, one answer contains the other 18%, another value written in the document 12.5%, list items
+  added or dropped 6%.
+- When the correct answer is written in the document (`exp_why_fill`, 434 cells), a cell flips between answering and
+  blank in 0.14 of documents under 5k characters and 0.26 of documents of 15k to 40k; 0.10 when the answer is written
+  10 or more times. Truncation is ruled out: Ollama received every prompt whole (prompt_eval_count within 24 tokens
+  of our count; documents capped at 9,000 tokens).
+
+**Resend test** (`quwarts/eval/exp_repeat.py`, `I1-context/qwen7b-repeat-t01/`, `WHY/repeat/summary.json`). Every
+single-column I1 prompt (5,331; prompt hash checked against the recorded one) sent again with the same settings
+(temperature 0.1, num_ctx 32768, qwen2.5 7B, two servers of 8 slots). Share of answers that change, 1,205 cells:
+
+| prompt | same prompt sent twice | alone vs this prompt | prompt effect that survives a resend* |
+|---|---|---|---|
+| plus 2 columns | 0.125 | 0.375 | 0.194 |
+| plus 6 columns | 0.127 | 0.411 | 0.231 |
+| reworded description | 0.109 | 0.307 | 0.159 |
+| query condition shown | 0.096 | 0.496 | 0.354 |
+
+*both sends of the lone prompt agree, both sends of the other prompt agree, and the two differ.
+
+Lists: same prompt twice 0.19 to 0.24, alone vs plus 2 0.59, surviving effect 0.27. Single values: same prompt twice
+0.03 to 0.06, alone vs plus 2 0.20, surviving effect 0.14 (plus 6: 0.19; condition shown: 0.31). Accuracy is the same
+on both sends (0.411 and 0.411): resampling moves which cells are right, not how many. So about a third of I1's
+measured instability is resampling at temperature 0.1 (more for lists, where it is about 40%); the rest is caused by
+the prompt, and the largest prompt effect is showing the query's condition. The 26% resend change of §9's wide
+"natural" prompts is not representative of single-column prompts. Most resampling-prone columns are medical text
+lists (risk_factors 0.48, recommended_usage 0.36, mechanism_of_action 0.36).

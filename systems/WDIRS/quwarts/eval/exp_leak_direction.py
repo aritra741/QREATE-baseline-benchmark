@@ -15,6 +15,7 @@ from pathlib import Path
 
 from quwarts.core.adapt import catalogue as K
 from quwarts.core.router.comparator import is_null
+from quwarts.core.router.probes import parse_fields
 from quwarts.eval.exp_analysis import gold_by_doc
 
 ROOT = Path(__file__).resolve().parents[4] / "results" / "experiments" / "I1-context"
@@ -22,10 +23,8 @@ CORPORA = ["cspaper", "player", "art", "med", "legal"]
 
 
 def answer(r: dict, attr: str):
-    try:
-        v = json.loads(r["response"]).get("fields", {}).get(attr)
-    except Exception:
-        return None
+    """The answer as the system reads it (code fences stripped, renamed keys matched back to the field)."""
+    v = parse_fields(r["response"], r["attributes"]).get(attr)
     if isinstance(v, list):
         v = " || ".join(str(x) for x in v)
     return None if is_null(v) else v
