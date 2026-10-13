@@ -1,0 +1,3396 @@
+{
+ "cspaper": {
+  "queries": 59,
+  "unrealistic": 11,
+  "by_rule": {
+   "R4": 4,
+   "R5": 8
+  },
+  "label_mismatch": 6,
+  "generated_by_substitution": 59,
+  "unrealistic_among_substituted": 11,
+  "unrealistic_among_original": 0,
+  "joins_without_aggregation": 0,
+  "realistic_queries": [
+   "attr:Splits/train.sql#25:064206d5",
+   "attr:cspaper_groupby20:q7:b314afb6",
+   "attr:Splits/train.sql#17:218d9884",
+   "attr:Agg/agg_queries_CSPaper.sql#9:027f6bb8",
+   "attr:Mixed/mixed_queries.sql#5:59eb2368",
+   "attr:cspaper_filter20:q12:83e559e1",
+   "attr:cspaper_filter20:q18:f652a758",
+   "attr:Splits/train.sql#17:d0aa811e",
+   "attr:cspaper_filter20:q12:fd292b75",
+   "attr:cspaper_groupby20:q4:246aa029",
+   "attr:cspaper_groupby20:q7:a2206701",
+   "attr:Splits/train.sql#12:824349bd",
+   "attr:Agg/agg_queries_CSPaper.sql#9:2f217401",
+   "attr:Splits/dev.sql#4:939f67af",
+   "attr:cspaper_agg20:q16:2a7cdcfd",
+   "attr:cspaper_groupby20:q4:9377abe8",
+   "attr:cspaper_groupby20:q15:ff8e7ff0",
+   "attr:Splits/train.sql#25:388b209c",
+   "attr:cspaper_filter20:q5:2b72568b",
+   "attr:cspaper_agg20:q15:eaf15557",
+   "attr:cspaper_agg20:q10:5af6ad8a",
+   "attr:cspaper_agg20:q16:b9b424ac",
+   "attr:cspaper_agg20:q15:916d1768",
+   "attr:cspaper_groupby20:q13:52410a8e",
+   "attr:cspaper_agg20:q1:942b0337",
+   "attr:cspaper_filter20:q5:e03b81a3",
+   "attr:cspaper_filter20:q18:f6bc9cb0",
+   "attr:Splits/train.sql#12:5ea1aae0",
+   "attr:cspaper_groupby20:q13:8d6b41fc",
+   "attr:Agg/agg_queries_CSPaper.sql#7:0650079a",
+   "attr:cspaper_filter20:q12:3a65f76d",
+   "attr:cspaper_filter20:q5:40343233",
+   "attr:Agg/agg_queries_CSPaper.sql#7:e3e53bd0",
+   "attr:cspaper_groupby20:q15:280e3463",
+   "attr:Splits/test.sql#8:29763641",
+   "attr:Splits/train.sql#17:d25c0c43",
+   "attr:cspaper_filter20:q18:b276b914",
+   "attr:cspaper_agg20:q10:811f750d",
+   "attr:cspaper_agg20:q10:4da166e6",
+   "attr:cspaper_groupby20:q7:4ef2e760",
+   "attr:cspaper_agg20:q15:7c9df18e",
+   "attr:Splits/train.sql#12:2e779d08",
+   "attr:Agg/agg_queries_CSPaper.sql#9:3d06e8e9",
+   "attr:cspaper_groupby20:q13:604946a6",
+   "attr:cspaper_groupby20:q15:865a4db4",
+   "attr:cspaper_groupby20:q4:35c72e2d",
+   "attr:cspaper_agg20:q1:86682092",
+   "attr:Splits/dev.sql#3:31211915"
+  ],
+  "rows": [
+   {
+    "qid": "attr:Splits/train.sql#25:064206d5",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 25: train (agg_filter) id=agg_filter_cspaper_gen_72 */ SELECT performance_on_NQ, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_reranker = 'Yes' GROUP BY performance_on_NQ"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q7:b314afb6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method <> '' THEN 'Other' END AS retrieval_family, agent_framework, COUNT(*) AS paper_count FROM cspaper WHERE retrieval_method <> '' AND agent_framework IN ('Other', 'Multi-Agent Collaboration') GROUP BY retrieval_family, agent_framework"
+   },
+   {
+    "qid": "attr:Splits/train.sql#17:218d9884",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 17: train (agg_filter) id=agg_filter_cspaper_gen_86 */ SELECT use_agent, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_knowledge_graph = 'Yes' GROUP BY use_agent"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#3:8bb9c06d",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R4 grouped by identifier-like performance_on_hotpotqa"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: dev (agg_only) id=agg_only_cspaper_gen_3 */ SELECT performance_on_hotpotqa, COUNT(paper_name) AS count_papers FROM cspaper GROUP BY performance_on_hotpotqa"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_CSPaper.sql#9:027f6bb8",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: aggregation (cspaper) */ SELECT reasoning_depth, COUNT(uses_reranker) AS count_uses_reranker FROM cspaper GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#5:59eb2368",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 5: filter5_agg1 (cspaper) */ SELECT retrieval_method, SUM(baseline_amount) AS sum_baseline_amount FROM cspaper WHERE uses_reranker = 'No' OR performance_on_hotpotqa = 'F1: 62.2' OR baseline = 'Traditional RAG' GROUP BY retrieval_method"
+   },
+   {
+    "qid": "attr:cspaper_filter20:q12:83e559e1",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT agent_framework, COUNT(*) AS paper_count FROM cspaper WHERE data_modality LIKE '%Image%' AND agent_framework IN ('Other', 'Multi-Agent Collaboration') GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:cspaper_filter20:q18:f652a758",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT agent_framework, COUNT(*) AS paper_count FROM cspaper WHERE baseline_amount >= 5 AND agent_framework IN ('Other', 'Multi-Agent Collaboration') GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:Splits/train.sql#17:d0aa811e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 17: train (agg_filter) id=agg_filter_cspaper_gen_86 */ SELECT agent_framework, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_knowledge_graph = 'Yes' GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:cspaper_filter20:q12:fd292b75",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE data_modality LIKE '%Image%' AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q4:246aa029",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT reasoning_depth, uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth IN ('single-hop', 'multi-hop') AND uses_reranker IN ('Yes', 'No') GROUP BY reasoning_depth, uses_reranker"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q7:a2206701",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method <> '' THEN 'Other' END AS retrieval_family, reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE retrieval_method <> '' AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY retrieval_family, reasoning_depth"
+   },
+   {
+    "qid": "attr:Splits/train.sql#12:824349bd",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 12: train (agg_filter) id=agg_filter_cspaper_gen_83 */ SELECT uses_reranker, COUNT(paper_name) AS count_papers FROM cspaper WHERE reasoning_depth = 'multi-hop' GROUP BY uses_reranker"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#4:15befc14",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 4: dev (agg_filter) id=agg_filter_cspaper_gen_98 */ SELECT uses_reranker, COUNT(paper_name) AS count_papers FROM cspaper WHERE performance_on_hotpotqa = 'EM: 63.3|| F1: 76.9' GROUP BY uses_reranker"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_CSPaper.sql#9:2f217401",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: aggregation (cspaper) */ SELECT topic, COUNT(evaluation_dataset) AS count_uses_reranker FROM cspaper GROUP BY topic"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#4:939f67af",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 4: dev (agg_filter) id=agg_filter_cspaper_gen_98 */ SELECT agent_framework, COUNT(paper_name) AS count_papers FROM cspaper WHERE data_modality = 'Text' GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:Splits/train.sql#16:53ce6e40",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 16: train (agg_filter) id=agg_filter_cspaper_gen_82 */ SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper WHERE performance_on_NQ = 'Accuracy: 0.6294|| Accuracy: 0.6033' GROUP BY retrieval_method"
+   },
+   {
+    "qid": "attr:Splits/test.sql#8:aadb873e",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 8: test (agg_filter) id=agg_filter_cspaper_gen_19 */ SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE performance_on_NQ = 'Inclusive Recall@5: 0.686|| reasoning Recall@5: 0.690|| fact_single Recall@5: 0.705|| summary Recall@5: 0.719' GROUP BY topic"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q16:2a7cdcfd",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT agent_framework, COUNT(*) AS paper_count FROM cspaper WHERE agent_framework <> '' GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q4:9377abe8",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT use_agent, uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE use_agent IN ('Yes', 'No') AND uses_reranker IN ('Yes', 'No') GROUP BY use_agent, uses_reranker"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q15:ff8e7ff0",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality <> '' THEN 'Other' END AS modality_family, agent_framework, COUNT(*) AS paper_count FROM cspaper WHERE data_modality <> '' AND agent_framework IN ('Other', 'Multi-Agent Collaboration') GROUP BY modality_family, agent_framework"
+   },
+   {
+    "qid": "attr:Splits/train.sql#25:388b209c",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 25: train (agg_filter) id=agg_filter_cspaper_gen_72 */ SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper WHERE agent_framework = 'Other' GROUP BY retrieval_method"
+   },
+   {
+    "qid": "attr:cspaper_filter20:q5:2b72568b",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%General%' THEN 'General' WHEN application_domain <> '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth = 'single-hop' AND application_domain <> '' GROUP BY domain_family"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q15:eaf15557",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_baselines for MAX(baseline_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT agent_framework, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE agent_framework IN ('Other', 'Multi-Agent Collaboration') AND NOT baseline_amount IS NULL GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:Splits/train.sql#16:ec7ab067",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 16: train (agg_filter) id=agg_filter_cspaper_gen_82 */ SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper WHERE performance_on_hotpotqa = 'EM: 63.3|| F1: 76.9' GROUP BY retrieval_method"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#4:b89c6e49",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 4: dev (agg_filter) id=agg_filter_cspaper_gen_98 */ SELECT uses_reranker, COUNT(paper_name) AS count_papers FROM cspaper WHERE performance_on_NQ = 'TeaRAG-8B: EM: 50.06|| F1: 59.71|| TeaRAG-14B: EM: 50.33|| F1: 60.31' GROUP BY uses_reranker"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q10:5af6ad8a",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_baselines for AVG(baseline_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT use_agent, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE use_agent IN ('Yes', 'No') AND NOT baseline_amount IS NULL GROUP BY use_agent"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q16:b9b424ac",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth <> '' GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q15:916d1768",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_baselines for MAX(baseline_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT reasoning_depth, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE reasoning_depth IN ('single-hop', 'multi-hop') AND NOT baseline_amount IS NULL GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q13:52410a8e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%General%' THEN 'General' WHEN application_domain <> '' THEN 'Other' END AS domain_family, agent_framework, COUNT(*) AS paper_count FROM cspaper WHERE application_domain <> '' AND agent_framework IN ('Other', 'Multi-Agent Collaboration') GROUP BY domain_family, agent_framework"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q1:942b0337",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:cspaper_filter20:q5:e03b81a3",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%General%' THEN 'General' WHEN application_domain <> '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count FROM cspaper WHERE agent_framework = 'Other' AND application_domain <> '' GROUP BY domain_family"
+   },
+   {
+    "qid": "attr:Splits/train.sql#16:c0256576",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R4 grouped by identifier-like performance_on_hotpotqa"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 16: train (agg_filter) id=agg_filter_cspaper_gen_82 */ SELECT performance_on_hotpotqa, COUNT(paper_name) AS count_papers FROM cspaper WHERE data_modality = 'Text' GROUP BY performance_on_hotpotqa"
+   },
+   {
+    "qid": "attr:cspaper_filter20:q18:f6bc9cb0",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE baseline_amount >= 5 AND reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:Splits/test.sql#8:32466102",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 8: test (agg_filter) id=agg_filter_cspaper_gen_19 */ SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE performance_on_hotpotqa = 'EM: 46.89|| CEM: 55.93|| F1: 59.57' GROUP BY topic"
+   },
+   {
+    "qid": "attr:Splits/train.sql#12:5ea1aae0",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 12: train (agg_filter) id=agg_filter_cspaper_gen_83 */ SELECT uses_reranker, COUNT(paper_name) AS count_papers FROM cspaper WHERE agent_framework = 'Other' GROUP BY uses_reranker"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q13:8d6b41fc",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%General%' THEN 'General' WHEN application_domain <> '' THEN 'Other' END AS domain_family, use_agent, COUNT(*) AS paper_count FROM cspaper WHERE application_domain <> '' AND use_agent IN ('Yes', 'No') GROUP BY domain_family, use_agent"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_CSPaper.sql#7:0650079a",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: aggregation (cspaper) */ SELECT reasoning_depth, MAX(baseline_amount) AS max_baseline_amount FROM cspaper GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:cspaper_filter20:q12:3a65f76d",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT use_agent, COUNT(*) AS paper_count FROM cspaper WHERE data_modality LIKE '%Image%' AND use_agent IN ('Yes', 'No') GROUP BY use_agent"
+   },
+   {
+    "qid": "attr:Splits/train.sql#25:5c5b4aac",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R4 grouped by identifier-like performance_on_hotpotqa"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 25: train (agg_filter) id=agg_filter_cspaper_gen_72 */ SELECT performance_on_hotpotqa, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_reranker = 'Yes' GROUP BY performance_on_hotpotqa"
+   },
+   {
+    "qid": "attr:cspaper_filter20:q5:40343233",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%General%' THEN 'General' WHEN application_domain <> '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count FROM cspaper WHERE use_agent = 'Yes' AND application_domain <> '' GROUP BY domain_family"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_CSPaper.sql#7:e3e53bd0",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: aggregation (cspaper) */ SELECT agent_framework, MAX(baseline_amount) AS max_baseline_amount FROM cspaper GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q15:280e3463",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality <> '' THEN 'Other' END AS modality_family, use_agent, COUNT(*) AS paper_count FROM cspaper WHERE data_modality <> '' AND use_agent IN ('Yes', 'No') GROUP BY modality_family, use_agent"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#5:6606cc83",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 5: filter5_agg1 (cspaper) */ SELECT retrieval_method, SUM(baseline_amount) AS sum_baseline_amount FROM cspaper WHERE uses_reranker = 'No' OR performance_on_NQ = 'COCOM-light (\u03be=4) EM: 0.539|| COCOM-light (\u03be=16) EM: 0.492|| COCOM-light (\u03be=128) EM: 0.444|| COCOM (\u03be=4) EM: 0.554|| COCOM (\u03be=16) EM: 0.539|| COCOM (\u03be=128) EM: 0.511' OR baseline = 'Traditional RAG' GROUP BY retrieval_method"
+   },
+   {
+    "qid": "attr:Splits/test.sql#8:29763641",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 8: test (agg_filter) id=agg_filter_cspaper_gen_19 */ SELECT agent_framework, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'General' GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:Splits/train.sql#17:d25c0c43",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 17: train (agg_filter) id=agg_filter_cspaper_gen_86 */ SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_knowledge_graph = 'Yes' GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:cspaper_filter20:q18:b276b914",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT use_agent, COUNT(*) AS paper_count FROM cspaper WHERE baseline_amount >= 5 AND use_agent IN ('Yes', 'No') GROUP BY use_agent"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q10:811f750d",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_baselines for AVG(baseline_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT reasoning_depth, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE reasoning_depth IN ('single-hop', 'multi-hop') AND NOT baseline_amount IS NULL GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q10:4da166e6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_baselines for AVG(baseline_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT agent_framework, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE agent_framework IN ('Other', 'Multi-Agent Collaboration') AND NOT baseline_amount IS NULL GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q7:4ef2e760",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method <> '' THEN 'Other' END AS retrieval_family, use_agent, COUNT(*) AS paper_count FROM cspaper WHERE retrieval_method <> '' AND use_agent IN ('Yes', 'No') GROUP BY retrieval_family, use_agent"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q15:7c9df18e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_baselines for MAX(baseline_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT use_agent, MAX(baseline_amount) AS max_baselines FROM cspaper WHERE use_agent IN ('Yes', 'No') AND NOT baseline_amount IS NULL GROUP BY use_agent"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#5:9179be86",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R4 grouped by identifier-like performance_on_hotpotqa",
+     "R5 filter on a long literal"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 5: filter5_agg1 (cspaper) */ SELECT performance_on_hotpotqa, SUM(baseline_amount) AS sum_baseline_amount FROM cspaper WHERE uses_reranker = 'No' OR performance_on_hotpotqa = 'EM: 42.2|| F1: 57.0|| Acc: 58.4' OR baseline = 'Traditional RAG' GROUP BY performance_on_hotpotqa"
+   },
+   {
+    "qid": "attr:Splits/train.sql#12:2e779d08",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 12: train (agg_filter) id=agg_filter_cspaper_gen_83 */ SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE topic = 'Retrieval-Augmented Generation' GROUP BY reasoning_depth"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_CSPaper.sql#9:3d06e8e9",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: aggregation (cspaper) */ SELECT agent_framework, COUNT(uses_reranker) AS count_uses_reranker FROM cspaper GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q13:604946a6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%General%' THEN 'General' WHEN application_domain <> '' THEN 'Other' END AS domain_family, reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE application_domain <> '' AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY domain_family, reasoning_depth"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q15:865a4db4",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality <> '' THEN 'Other' END AS modality_family, reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE data_modality <> '' AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY modality_family, reasoning_depth"
+   },
+   {
+    "qid": "attr:cspaper_groupby20:q4:35c72e2d",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT agent_framework, uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE agent_framework IN ('Other', 'Multi-Agent Collaboration') AND uses_reranker IN ('Yes', 'No') GROUP BY agent_framework, uses_reranker"
+   },
+   {
+    "qid": "attr:cspaper_agg20:q1:86682092",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT agent_framework, COUNT(*) AS paper_count FROM cspaper WHERE agent_framework IN ('Other', 'Multi-Agent Collaboration') GROUP BY agent_framework"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#3:31211915",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: dev (agg_only) id=agg_only_cspaper_gen_3 */ SELECT performance_on_NQ, COUNT(paper_name) AS count_papers FROM cspaper GROUP BY performance_on_NQ"
+   }
+  ]
+ },
+ "player": {
+  "queries": 118,
+  "unrealistic": 63,
+  "by_rule": {
+   "R1": 21,
+   "R3": 56,
+   "R4": 1,
+   "R6": 13
+  },
+  "label_mismatch": 96,
+  "generated_by_substitution": 118,
+  "unrealistic_among_substituted": 63,
+  "unrealistic_among_original": 0,
+  "joins_without_aggregation": 0,
+  "realistic_queries": [
+   "attr:player_multiagg20:q4:e223d11d",
+   "attr:Splits/train.sql#4:550eb54f",
+   "attr:Expanded/agg_filter_expanded.sql#12:9257bded",
+   "attr:Expanded/agg_filter_expanded.sql#1:c5608ae2",
+   "attr:Expanded/agg_filter_join_expanded.sql#1:97f4546b",
+   "attr:player_multiagg20:q12:365f4815",
+   "attr:Splits/train.sql#39:cfc6a04a",
+   "attr:Splits/train.sql#20:610644e4",
+   "attr:Expanded/agg_filter_expanded.sql#1:43804a60",
+   "attr:Splits/train.sql#4:f514a950",
+   "attr:docetl_Player_v7:q0:fef776e6",
+   "attr:Variations/Agg/agg_variations.sql#1:09fbc9fa",
+   "attr:Variations/Agg/agg_variations.sql#3:6d2eeac2",
+   "attr:Splits/train.sql#19:332da492",
+   "attr:Expanded/agg_filter_expanded.sql#12:f3a1786c",
+   "attr:Expanded/agg_filter_expanded.sql#1:e3a8531c",
+   "attr:player_multiagg20:q12:e0cde198",
+   "attr:player_multiagg20:q10:061dce02",
+   "attr:Expanded/agg_only_expanded.sql#14:c60f4651",
+   "attr:docetl_Player_v7:q4:7175642b",
+   "attr:Expanded/agg_only_expanded.sql#10:30df06be",
+   "attr:Splits/train.sql#19:5ad6058c",
+   "attr:Variations/Agg/agg_variations.sql#1:84662181",
+   "attr:Splits/train.sql#4:4f11fcad",
+   "attr:player_multiagg20:q10:1337ff71",
+   "attr:Splits/test.sql#2:ab13f20a",
+   "attr:player_multiagg20:q4:8c5af8bb",
+   "attr:Splits/test.sql#3:4e167992",
+   "attr:docetl_Player_v7:q0:525436db",
+   "attr:Splits/train.sql#20:c3c663c9",
+   "attr:Splits/train.sql#68:3aaa2fe5",
+   "attr:Splits/train.sql#23:6f7d6e40",
+   "attr:Splits/test.sql#2:86ec6660",
+   "attr:Splits/train.sql#23:1909ba6e",
+   "attr:Expanded/agg_only_expanded.sql#14:1f093cf7",
+   "attr:Splits/train.sql#20:e326cfd2",
+   "attr:Expanded/agg_only_expanded.sql#10:a23eaa3e",
+   "attr:docetl_Player_v7:q18:adf37781",
+   "attr:Agg/agg_queries.sql#1:58b91799",
+   "attr:Agg/agg_queries.sql#1:a82f21fb",
+   "attr:Variations/Agg/agg_variations.sql#3:bbacce37",
+   "attr:Expanded/agg_filter_join_expanded.sql#1:6dec2e2f",
+   "attr:Expanded/agg_only_expanded.sql#14:95406113",
+   "attr:docetl_Player_v7:q4:dd9b4ab5",
+   "attr:Agg/agg_queries.sql#1:4b97a7c3",
+   "attr:Splits/train.sql#19:303ef1a3",
+   "attr:Expanded/agg_filter_expanded.sql#12:338a0c96",
+   "attr:Expanded/agg_filter_join_expanded.sql#1:0535a95a",
+   "attr:Variations/Agg/agg_variations.sql#3:c63098a9",
+   "attr:Splits/test.sql#3:5e26d92b",
+   "attr:Splits/train.sql#23:5e5025ba",
+   "attr:Splits/train.sql#28:856ff057",
+   "attr:Variations/Agg/agg_variations.sql#1:e6658259",
+   "attr:player_groupby20:q9:3e882071",
+   "attr:Splits/train.sql#39:499af76e"
+  ],
+  "rows": [
+   {
+    "qid": "attr:player_multiagg20:q4:e223d11d",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(p.draft_pick)",
+     "label total_recorded_olympic_golds for SUM(CASE WHEN NOT p.olympic_gold_medals IS NULL THEN p.olympic_gold_medals ELSE 0 END)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.draft_pick) AS avg_age, SUM(CASE WHEN NOT p.olympic_gold_medals IS NULL THEN p.olympic_gold_medals ELSE 0 END) AS total_recorded_olympic_golds FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2"
+   },
+   {
+    "qid": "attr:Splits/train.sql#4:550eb54f",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 4: train (agg_only) id=agg_only_gen_3 */ SELECT position, COUNT(draft_pick) AS count_mvp_awards FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:Expanded/agg_join_expanded.sql#1:c24e0cc7",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_player_mvp_awards for MAX(player.draft_year)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 1: agg_join (city, player, team) */ SELECT player.position, MAX(player.draft_year) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#70:58fad108",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label sum_player_mvp_awards for SUM(player.nba_championships)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 70: train (agg_filter_join) id=agg_filter_join_gen_298 */ SELECT player.team, SUM(player.nba_championships) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE player.age > 28 GROUP BY player.team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#37:36ff2681",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 37: train (agg_filter) id=agg_filter_gen_119 */ SELECT position, SUM(nba_championships) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'American-born naturalized Azerbaijani') OR (nationality <> 'Greek-American') GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/test.sql#17:9db266f2",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 AVG(draft_year)",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label avg_player_age for AVG(player.draft_year)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 17: test (agg_filter_join) id=agg_filter_join_gen_288 */ SELECT player.team, AVG(player.draft_year) AS avg_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (city.city_name = 'Los Angeles') OR (player.mvp_awards >= 1) GROUP BY player.team"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_expanded.sql#12:9257bded",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 12: agg_filter (player, team) */ SELECT team, MIN(draft_pick) AS min_mvp_awards FROM player WHERE (nationality = 'Dutch' AND team <> 'Lokomotiv Kuban') OR (team <> 'Saski Baskonia') GROUP BY team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#47:d388188d",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label min_player_olympic_gold_medals for MIN(player.nba_championships)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 47: train (agg_join) id=agg_join_gen_21 */ SELECT player.position, MIN(player.nba_championships) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/test.sql#14:a53facfd",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_player_mvp_awards for MAX(player.nba_championships)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 14: test (agg_join) id=agg_join_gen_4 */ SELECT player.position, MAX(player.nba_championships) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_expanded.sql#1:c5608ae2",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 1: agg_filter (player) */ SELECT nationality, AVG(draft_pick) AS avg_age FROM player WHERE nationality = 'Serbian' GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_join_expanded.sql#1:97f4546b",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_player_olympic_gold_medals for MIN(player.draft_year)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 1: agg_filter_join (player, team) */ SELECT player.position, MIN(player.draft_year) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name WHERE team.location = 'Boston' GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#74:d43cbebb",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label min_player_olympic_gold_medals for MIN(player.fiba_world_cup)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 74: train (agg_filter_join) id=agg_filter_join_gen_184 */ SELECT player.nationality, MIN(player.fiba_world_cup) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE player.age < 35 GROUP BY player.nationality"
+   },
+   {
+    "qid": "attr:Expanded/agg_join_expanded.sql#5:15c06c11",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 5: agg_join (city, player, team) */ SELECT player.position, COUNT(player.draft_year) AS count_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#47:c40d7c13",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label min_player_olympic_gold_medals for MIN(player.draft_pick)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 47: train (agg_join) id=agg_join_gen_21 */ SELECT player.position, MIN(player.draft_pick) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:player_multiagg20:q12:365f4815",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(p.draft_pick)",
+     "label mvp_winner_count for SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END)",
+     "label team_titles for MAX(t.championship)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.draft_pick) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, MAX(t.championship) AS team_titles FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2"
+   },
+   {
+    "qid": "attr:Splits/train.sql#39:2660c7eb",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_pick)"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 39: train (agg_filter) id=agg_filter_gen_200 */ SELECT team, SUM(draft_pick) AS sum_olympic_gold_medals FROM player WHERE (nationality <> 'Nigerian-American' AND team = 'Lokomotiv Kuban') OR (team = 'Saski Baskonia') GROUP BY team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#39:cfc6a04a",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 39: train (agg_filter) id=agg_filter_gen_200 */ SELECT team, SUM(fiba_world_cup) AS sum_olympic_gold_medals FROM player WHERE (nationality <> 'Nigerian-American' AND team = 'Lokomotiv Kuban') OR (team = 'Saski Baskonia') GROUP BY team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#20:610644e4",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 20: train (agg_only) id=agg_only_gen_17 */ SELECT nationality, COUNT(draft_pick) AS count_age FROM player GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Splits/train.sql#74:d1735ba6",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label min_player_olympic_gold_medals for MIN(player.draft_pick)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 74: train (agg_filter_join) id=agg_filter_join_gen_184 */ SELECT player.nationality, MIN(player.draft_pick) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE player.age < 35 GROUP BY player.nationality"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_expanded.sql#1:43804a60",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 1: agg_filter (player) */ SELECT nationality, AVG(nba_championships) AS avg_age FROM player WHERE nationality = 'Serbian' GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Splits/train.sql#4:f514a950",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 4: train (agg_only) id=agg_only_gen_3 */ SELECT position, COUNT(draft_year) AS count_mvp_awards FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:docetl_Player_v7:q0:fef776e6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT position, AVG(draft_pick) AS avg_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+   },
+   {
+    "qid": "attr:Variations/Agg/agg_variations.sql#1:09fbc9fa",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_olympic_gold_medals for MAX(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Inspiration: Query 1 (agg_queries.sql) */ /* Variation: Changed MIN to MAX for olympic_gold_medals grouped by position. */ SELECT position, MAX(draft_year) AS max_olympic_gold_medals FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#74:2968ff54",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label min_player_olympic_gold_medals for MIN(player.draft_year)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 74: train (agg_filter_join) id=agg_filter_join_gen_184 */ SELECT player.nationality, MIN(player.draft_year) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE player.age < 35 GROUP BY player.nationality"
+   },
+   {
+    "qid": "attr:Splits/test.sql#14:e0da7fae",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_player_mvp_awards for MAX(player.draft_year)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 14: test (agg_join) id=agg_join_gen_4 */ SELECT player.position, MAX(player.draft_year) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#18:bbfca16a",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 AVG(draft_year)",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label avg_player_age for AVG(player.draft_year)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 18: dev (agg_filter_join) id=agg_filter_join_gen_12 */ SELECT player.nationality, AVG(player.draft_year) AS avg_player_age FROM player JOIN team ON player.team = team.team_name WHERE (player.nationality = 'French') OR (player.team = 'Lokomotiv Kuban') GROUP BY player.nationality"
+   },
+   {
+    "qid": "attr:Variations/Agg/agg_variations.sql#3:6d2eeac2",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_age for MIN(draft_year)",
+     "label max_age for MAX(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Inspiration: Query 3 (agg_queries.sql) */ /* Variation: Instead of AVG(age), calculate MIN and MAX age per position. */ SELECT position, MIN(draft_year) AS min_age, MAX(draft_year) AS max_age FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#19:332da492",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 19: train (agg_only) id=agg_only_gen_98 */ SELECT nationality, team, MIN(draft_year) AS min_mvp_awards FROM player GROUP BY nationality, team"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_join_expanded.sql#4:17c50da4",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused"
+    ],
+    "label_mismatch": [
+     "label avg_player_age for AVG(player.fiba_world_cup)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 4: agg_filter_join (city, player, team) */ SELECT player.position, AVG(player.fiba_world_cup) AS avg_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (player.team = 'Cedevita Olimpija') OR (team.location = 'Boston') GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#11:99e28283",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 11: dev (agg_join) id=agg_join_expanded_7 */ SELECT player.position, COUNT(player.fiba_world_cup) AS count_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Expanded/agg_join_expanded.sql#5:b42bc767",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 5: agg_join (city, player, team) */ SELECT player.position, COUNT(player.draft_pick) AS count_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_expanded.sql#14:c3259565",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 14: agg_filter (player) */ SELECT nationality, SUM(fiba_world_cup) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'Serbian') OR (nationality <> 'Nigerian-American') GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Splits/train.sql#51:a95139b5",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 51: train (agg_join) id=agg_join_expanded_5 */ SELECT player.position, COUNT(player.nba_championships) AS count_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_expanded.sql#12:f3a1786c",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 12: agg_filter (player, team) */ SELECT team, MIN(nba_championships) AS min_mvp_awards FROM player WHERE (nationality = 'Dutch' AND team <> 'Lokomotiv Kuban') OR (team <> 'Saski Baskonia') GROUP BY team"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#18:b1241002",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label avg_player_age for AVG(player.nba_championships)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 18: dev (agg_filter_join) id=agg_filter_join_gen_12 */ SELECT player.nationality, AVG(player.nba_championships) AS avg_player_age FROM player JOIN team ON player.team = team.team_name WHERE (player.nationality = 'French') OR (player.team = 'Lokomotiv Kuban') GROUP BY player.nationality"
+   },
+   {
+    "qid": "attr:Splits/train.sql#44:a130f41f",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_player_olympic_gold_medals for MAX(player.nba_championships)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 44: train (agg_join) id=agg_join_gen_16 */ SELECT player.team, MAX(player.nba_championships) AS max_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name GROUP BY player.team"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_expanded.sql#1:e3a8531c",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 1: agg_filter (player) */ SELECT nationality, AVG(fiba_world_cup) AS avg_age FROM player WHERE nationality = 'Serbian' GROUP BY nationality"
+   },
+   {
+    "qid": "attr:player_multiagg20:q12:e0cde198",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(p.nba_championships)",
+     "label mvp_winner_count for SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END)",
+     "label team_titles for MAX(t.championship)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.nba_championships) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, MAX(t.championship) AS team_titles FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2"
+   },
+   {
+    "qid": "attr:Splits/test.sql#2:3e923052",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_year)"
+    ],
+    "label_mismatch": [
+     "label sum_mvp_awards for SUM(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 2: test (agg_only) id=agg_only_gen_104 */ SELECT nationality, team, SUM(draft_year) AS sum_mvp_awards FROM player GROUP BY nationality, team"
+   },
+   {
+    "qid": "attr:player_multiagg20:q10:061dce02",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_population for AVG(area)",
+     "label max_population for MAX(area)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT state_name, COUNT(*) AS city_count, AVG(area) AS avg_population, MAX(area) AS max_population, SUM(area) AS total_area FROM city WHERE state_name <> '' AND NOT area IS NULL AND NOT area IS NULL GROUP BY state_name HAVING COUNT(*) >= 2"
+   },
+   {
+    "qid": "attr:Expanded/agg_only_expanded.sql#14:c60f4651",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 14: agg_only (player, team) */ SELECT team, MIN(draft_year) AS min_mvp_awards FROM player GROUP BY team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#36:76016403",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 36: train (agg_filter) id=agg_filter_gen_115 */ SELECT position, SUM(fiba_world_cup) AS sum_olympic_gold_medals FROM player WHERE (nationality <> 'French') OR (nationality = 'Greek-American') GROUP BY position"
+   },
+   {
+    "qid": "attr:docetl_Player_v7:q4:7175642b",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label total_mvp_awards for SUM(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT position, SUM(fiba_world_cup) AS total_mvp_awards FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+   },
+   {
+    "qid": "attr:Expanded/agg_only_expanded.sql#10:30df06be",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 10: agg_only (player) */ SELECT nationality, SUM(nba_championships) AS sum_olympic_gold_medals FROM player GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Splits/train.sql#19:5ad6058c",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 19: train (agg_only) id=agg_only_gen_98 */ SELECT nationality, college, MIN(mvp_awards) AS min_mvp_awards FROM player GROUP BY nationality, college"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#11:6ef31688",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 11: dev (agg_join) id=agg_join_expanded_7 */ SELECT player.position, COUNT(player.draft_year) AS count_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Variations/Agg/agg_variations.sql#1:84662181",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_olympic_gold_medals for MAX(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Inspiration: Query 1 (agg_queries.sql) */ /* Variation: Changed MIN to MAX for olympic_gold_medals grouped by position. */ SELECT position, MAX(fiba_world_cup) AS max_olympic_gold_medals FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#27:22ff56d3",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_year)",
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 27: train (agg_filter) id=agg_filter_gen_120 */ SELECT position, SUM(draft_year) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'American-born naturalized Azerbaijani' AND nationality <> 'Greek-American') OR (team <> 'Rochester Royals') GROUP BY position"
+   },
+   {
+    "qid": "attr:Expanded/agg_join_expanded.sql#1:a91a664a",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_player_mvp_awards for MAX(player.nba_championships)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 1: agg_join (city, player, team) */ SELECT player.position, MAX(player.nba_championships) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#28:913c76d4",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_pick)"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 28: train (agg_filter) id=agg_filter_gen_33 */ SELECT nationality, SUM(draft_pick) AS sum_olympic_gold_medals FROM player WHERE nationality = 'Serbian' GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Splits/test.sql#17:be55be91",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label avg_player_age for AVG(player.nba_championships)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 17: test (agg_filter_join) id=agg_filter_join_gen_288 */ SELECT player.team, AVG(player.nba_championships) AS avg_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (city.city_name = 'Los Angeles') OR (player.mvp_awards >= 1) GROUP BY player.team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#36:267aed6c",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 36: train (agg_filter) id=agg_filter_gen_115 */ SELECT position, SUM(nba_championships) AS sum_olympic_gold_medals FROM player WHERE (nationality <> 'French') OR (nationality = 'Greek-American') GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#4:4f11fcad",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 4: train (agg_only) id=agg_only_gen_3 */ SELECT position, COUNT(fiba_world_cup) AS count_mvp_awards FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:player_multiagg20:q10:1337ff71",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT state_name, COUNT(*) AS city_count, AVG(population) AS avg_population, MAX(population) AS max_population, SUM(area) AS total_area FROM city WHERE state_name <> '' AND NOT population IS NULL AND NOT area IS NULL GROUP BY state_name HAVING COUNT(*) >= 2"
+   },
+   {
+    "qid": "attr:Splits/test.sql#2:ab13f20a",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_mvp_awards for SUM(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 2: test (agg_only) id=agg_only_gen_104 */ SELECT nationality, team, SUM(nba_championships) AS sum_mvp_awards FROM player GROUP BY nationality, team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#27:e518235e",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 27: train (agg_filter) id=agg_filter_gen_120 */ SELECT position, SUM(nba_championships) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'American-born naturalized Azerbaijani' AND nationality <> 'Greek-American') OR (team <> 'Rochester Royals') GROUP BY position"
+   },
+   {
+    "qid": "attr:Expanded/agg_join_expanded.sql#1:ed9dfa67",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_player_mvp_awards for MAX(player.draft_pick)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 1: agg_join (city, player, team) */ SELECT player.position, MAX(player.draft_pick) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/test.sql#3:5b6cb72b",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_year)"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: test (agg_only) id=agg_only_gen_94 */ SELECT nationality, team, SUM(draft_year) AS sum_olympic_gold_medals FROM player GROUP BY nationality, team"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_expanded.sql#14:c7e1850b",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_year)",
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 14: agg_filter (player) */ SELECT nationality, SUM(draft_year) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'Serbian') OR (nationality <> 'Nigerian-American') GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_join_expanded.sql#5:e4adf27a",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table player joined but unused",
+     "R4 grouped by identifier-like ownership"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 5: agg_filter_join (player, team) */ SELECT team.ownership, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name WHERE team.ownership = 'Glen Taylor' GROUP BY team.ownership"
+   },
+   {
+    "qid": "attr:player_multiagg20:q4:8c5af8bb",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(p.nba_championships)",
+     "label total_recorded_olympic_golds for SUM(CASE WHEN NOT p.olympic_gold_medals IS NULL THEN p.olympic_gold_medals ELSE 0 END)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.nba_championships) AS avg_age, SUM(CASE WHEN NOT p.olympic_gold_medals IS NULL THEN p.olympic_gold_medals ELSE 0 END) AS total_recorded_olympic_golds FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2"
+   },
+   {
+    "qid": "attr:Splits/test.sql#3:4e167992",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: test (agg_only) id=agg_only_gen_94 */ SELECT nationality, college, SUM(olympic_gold_medals) AS sum_olympic_gold_medals FROM player GROUP BY nationality, college"
+   },
+   {
+    "qid": "attr:Splits/train.sql#68:e92c391d",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_pick)"
+    ],
+    "label_mismatch": [
+     "label sum_player_mvp_awards for SUM(player.draft_pick)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 68: train (agg_filter_join) id=agg_filter_join_gen_78 */ SELECT player.position, SUM(player.draft_pick) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name WHERE (player.age < 35) OR (team.championship > 0) GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Expanded/agg_join_expanded.sql#5:65097fb9",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 5: agg_join (city, player, team) */ SELECT player.position, COUNT(player.fiba_world_cup) AS count_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:docetl_Player_v7:q0:525436db",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT position, AVG(nba_championships) AS avg_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#20:c3c663c9",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 20: train (agg_only) id=agg_only_gen_17 */ SELECT nationality, COUNT(draft_year) AS count_age FROM player GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Splits/train.sql#68:3aaa2fe5",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_player_mvp_awards for SUM(player.nba_championships)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 68: train (agg_filter_join) id=agg_filter_join_gen_78 */ SELECT player.position, SUM(player.nba_championships) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name WHERE (player.age < 35) OR (team.championship > 0) GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/test.sql#14:07834953",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_player_mvp_awards for MAX(player.draft_pick)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 14: test (agg_join) id=agg_join_gen_4 */ SELECT player.position, MAX(player.draft_pick) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#23:6f7d6e40",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 23: train (agg_filter) id=agg_filter_gen_129 */ SELECT position, MIN(draft_pick) AS min_mvp_awards FROM player WHERE nationality = 'American-born naturalized Azerbaijani' GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#44:f69fe7f1",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_player_olympic_gold_medals for MAX(player.fiba_world_cup)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 44: train (agg_join) id=agg_join_gen_16 */ SELECT player.team, MAX(player.fiba_world_cup) AS max_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name GROUP BY player.team"
+   },
+   {
+    "qid": "attr:player_multiagg20:q4:bbe158ad",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 AVG(draft_year)"
+    ],
+    "label_mismatch": [
+     "label avg_age for AVG(p.draft_year)",
+     "label total_recorded_olympic_golds for SUM(CASE WHEN NOT p.olympic_gold_medals IS NULL THEN p.olympic_gold_medals ELSE 0 END)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.draft_year) AS avg_age, SUM(CASE WHEN NOT p.olympic_gold_medals IS NULL THEN p.olympic_gold_medals ELSE 0 END) AS total_recorded_olympic_golds FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2"
+   },
+   {
+    "qid": "attr:Splits/test.sql#2:86ec6660",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_mvp_awards for SUM(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 2: test (agg_only) id=agg_only_gen_104 */ SELECT nationality, team, SUM(fiba_world_cup) AS sum_mvp_awards FROM player GROUP BY nationality, team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#70:eaedaf09",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label sum_player_mvp_awards for SUM(player.fiba_world_cup)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 70: train (agg_filter_join) id=agg_filter_join_gen_298 */ SELECT player.team, SUM(player.fiba_world_cup) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE player.age > 28 GROUP BY player.team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#37:54c21492",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 37: train (agg_filter) id=agg_filter_gen_119 */ SELECT position, SUM(fiba_world_cup) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'American-born naturalized Azerbaijani') OR (nationality <> 'Greek-American') GROUP BY position"
+   },
+   {
+    "qid": "attr:player_join20:q7:ed16135e",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_city_population for MAX(c.area)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "SELECT c.state_name, MAX(c.area) AS max_city_population FROM team AS t JOIN city AS c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name <> '' GROUP BY c.state_name"
+   },
+   {
+    "qid": "attr:Splits/train.sql#23:1909ba6e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 23: train (agg_filter) id=agg_filter_gen_129 */ SELECT position, MIN(draft_year) AS min_mvp_awards FROM player WHERE nationality = 'American-born naturalized Azerbaijani' GROUP BY position"
+   },
+   {
+    "qid": "attr:Expanded/agg_only_expanded.sql#14:1f093cf7",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 14: agg_only (player, team) */ SELECT team, MIN(fiba_world_cup) AS min_mvp_awards FROM player GROUP BY team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#36:fe39afb8",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_pick)",
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 36: train (agg_filter) id=agg_filter_gen_115 */ SELECT position, SUM(draft_pick) AS sum_olympic_gold_medals FROM player WHERE (nationality <> 'French') OR (nationality = 'Greek-American') GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#51:d89bf15c",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 51: train (agg_join) id=agg_join_expanded_5 */ SELECT player.position, COUNT(player.fiba_world_cup) AS count_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#20:e326cfd2",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 20: train (agg_only) id=agg_only_gen_17 */ SELECT nationality, COUNT(fiba_world_cup) AS count_age FROM player GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Expanded/agg_only_expanded.sql#10:a23eaa3e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 10: agg_only (player) */ SELECT nationality, SUM(fiba_world_cup) AS sum_olympic_gold_medals FROM player GROUP BY nationality"
+   },
+   {
+    "qid": "attr:docetl_Player_v7:q18:adf37781",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_population for AVG(area)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT state_name, AVG(area) AS avg_population FROM city WHERE state_name <> '' GROUP BY state_name"
+   },
+   {
+    "qid": "attr:Agg/agg_queries.sql#1:58b91799",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_olympic_gold_medals for MIN(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 1: aggregation (player) */ SELECT position, MIN(nba_championships) AS min_olympic_gold_medals FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#37:38657b49",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_year)",
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 37: train (agg_filter) id=agg_filter_gen_119 */ SELECT position, SUM(draft_year) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'American-born naturalized Azerbaijani') OR (nationality <> 'Greek-American') GROUP BY position"
+   },
+   {
+    "qid": "attr:docetl_Player_v7:q4:120ccaad",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_year)"
+    ],
+    "label_mismatch": [
+     "label total_mvp_awards for SUM(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT position, SUM(draft_year) AS total_mvp_awards FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#68:8e4ce4b5",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_year)"
+    ],
+    "label_mismatch": [
+     "label sum_player_mvp_awards for SUM(player.draft_year)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 68: train (agg_filter_join) id=agg_filter_join_gen_78 */ SELECT player.position, SUM(player.draft_year) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name WHERE (player.age < 35) OR (team.championship > 0) GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Agg/agg_queries.sql#1:a82f21fb",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_olympic_gold_medals for MIN(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 1: aggregation (player) */ SELECT position, MIN(draft_pick) AS min_olympic_gold_medals FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:Variations/Agg/agg_variations.sql#3:bbacce37",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_age for MIN(nba_championships)",
+     "label max_age for MAX(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Inspiration: Query 3 (agg_queries.sql) */ /* Variation: Instead of AVG(age), calculate MIN and MAX age per position. */ SELECT position, MIN(nba_championships) AS min_age, MAX(nba_championships) AS max_age FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/test.sql#17:367c3153",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label avg_player_age for AVG(player.draft_pick)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 17: test (agg_filter_join) id=agg_filter_join_gen_288 */ SELECT player.team, AVG(player.draft_pick) AS avg_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (city.city_name = 'Los Angeles') OR (player.mvp_awards >= 1) GROUP BY player.team"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_join_expanded.sql#1:6dec2e2f",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_player_olympic_gold_medals for MIN(player.draft_pick)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 1: agg_filter_join (player, team) */ SELECT player.position, MIN(player.draft_pick) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name WHERE team.location = 'Boston' GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#44:dd84024c",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label max_player_olympic_gold_medals for MAX(player.draft_pick)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 44: train (agg_join) id=agg_join_gen_16 */ SELECT player.team, MAX(player.draft_pick) AS max_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name GROUP BY player.team"
+   },
+   {
+    "qid": "attr:Expanded/agg_only_expanded.sql#14:95406113",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 14: agg_only (player, team) */ SELECT team, MIN(draft_pick) AS min_mvp_awards FROM player GROUP BY team"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#18:013eb2e8",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label avg_player_age for AVG(player.fiba_world_cup)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 18: dev (agg_filter_join) id=agg_filter_join_gen_12 */ SELECT player.nationality, AVG(player.fiba_world_cup) AS avg_player_age FROM player JOIN team ON player.team = team.team_name WHERE (player.nationality = 'French') OR (player.team = 'Lokomotiv Kuban') GROUP BY player.nationality"
+   },
+   {
+    "qid": "attr:docetl_Player_v7:q4:dd9b4ab5",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label total_mvp_awards for SUM(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT position, SUM(nba_championships) AS total_mvp_awards FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#70:2e3d2355",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_pick)",
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label sum_player_mvp_awards for SUM(player.draft_pick)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 70: train (agg_filter_join) id=agg_filter_join_gen_298 */ SELECT player.team, SUM(player.draft_pick) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE player.age > 28 GROUP BY player.team"
+   },
+   {
+    "qid": "attr:Agg/agg_queries.sql#1:4b97a7c3",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_olympic_gold_medals for MIN(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 1: aggregation (player) */ SELECT position, MIN(draft_year) AS min_olympic_gold_medals FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#47:4820ea07",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [
+     "label min_player_olympic_gold_medals for MIN(player.draft_year)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 47: train (agg_join) id=agg_join_gen_21 */ SELECT player.position, MIN(player.draft_year) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#22:05a051ca",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 22: train (agg_filter) id=agg_filter_gen_84 */ SELECT position, COUNT(*) AS count_all FROM player WHERE (nationality <> 'American' AND nationality = 'Canadian') OR (college = 'New York University') GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#19:303ef1a3",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 19: train (agg_only) id=agg_only_gen_98 */ SELECT nationality, team, MIN(draft_pick) AS min_mvp_awards FROM player GROUP BY nationality, team"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_expanded.sql#12:338a0c96",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 12: agg_filter (player, team) */ SELECT team, MIN(fiba_world_cup) AS min_mvp_awards FROM player WHERE (nationality = 'Dutch' AND team <> 'Lokomotiv Kuban') OR (team <> 'Saski Baskonia') GROUP BY team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#28:51cf7ce8",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_year)"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 28: train (agg_filter) id=agg_filter_gen_33 */ SELECT nationality, SUM(draft_year) AS sum_olympic_gold_medals FROM player WHERE nationality = 'Serbian' GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_join_expanded.sql#1:0535a95a",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 1: agg_filter_join (player, team) */ SELECT player.position, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name WHERE team.ownership = 'Paul Allen' GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Expanded/agg_only_expanded.sql#10:5c8ac6e2",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_year)"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 10: agg_only (player) */ SELECT nationality, SUM(draft_year) AS sum_olympic_gold_medals FROM player GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Variations/Agg/agg_variations.sql#3:c63098a9",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_age for MIN(fiba_world_cup)",
+     "label max_age for MAX(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Inspiration: Query 3 (agg_queries.sql) */ /* Variation: Instead of AVG(age), calculate MIN and MAX age per position. */ SELECT position, MIN(fiba_world_cup) AS min_age, MAX(fiba_world_cup) AS max_age FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/test.sql#3:5e26d92b",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: test (agg_only) id=agg_only_gen_94 */ SELECT nationality, team, SUM(nba_championships) AS sum_olympic_gold_medals FROM player GROUP BY nationality, team"
+   },
+   {
+    "qid": "attr:Splits/train.sql#51:2c3904c8",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused",
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 51: train (agg_join) id=agg_join_expanded_5 */ SELECT player.position, COUNT(player.draft_year) AS count_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#27:71575b0f",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 27: train (agg_filter) id=agg_filter_gen_120 */ SELECT position, SUM(fiba_world_cup) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'American-born naturalized Azerbaijani' AND nationality <> 'Greek-American') OR (team <> 'Rochester Royals') GROUP BY position"
+   },
+   {
+    "qid": "attr:Splits/train.sql#23:5e5025ba",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_mvp_awards for MIN(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 23: train (agg_filter) id=agg_filter_gen_129 */ SELECT position, MIN(fiba_world_cup) AS min_mvp_awards FROM player WHERE nationality = 'American-born naturalized Azerbaijani' GROUP BY position"
+   },
+   {
+    "qid": "attr:player_multiagg20:q12:a5be78a3",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 AVG(draft_year)"
+    ],
+    "label_mismatch": [
+     "label avg_age for AVG(p.draft_year)",
+     "label mvp_winner_count for SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END)",
+     "label team_titles for MAX(t.championship)"
+    ],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.draft_year) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, MAX(t.championship) AS team_titles FROM player AS p JOIN team AS t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2"
+   },
+   {
+    "qid": "attr:Splits/train.sql#28:856ff057",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(fiba_world_cup)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 28: train (agg_filter) id=agg_filter_gen_33 */ SELECT nationality, SUM(fiba_world_cup) AS sum_olympic_gold_medals FROM player WHERE nationality = 'Serbian' GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_join_expanded.sql#4:0a31a1d6",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 AVG(draft_year)",
+     "R3 table city joined but unused"
+    ],
+    "label_mismatch": [
+     "label avg_player_age for AVG(player.draft_year)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 4: agg_filter_join (city, player, team) */ SELECT player.position, AVG(player.draft_year) AS avg_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (player.team = 'Cedevita Olimpija') OR (team.location = 'Boston') GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#11:8b66cd72",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table team joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 11: dev (agg_join) id=agg_join_expanded_7 */ SELECT player.position, COUNT(player.nba_championships) AS count_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY player.position"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_expanded.sql#14:c9541d96",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(draft_pick)",
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(draft_pick)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 14: agg_filter (player) */ SELECT nationality, SUM(draft_pick) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'Serbian') OR (nationality <> 'Nigerian-American') GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Variations/Agg/agg_variations.sql#1:e6658259",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_olympic_gold_medals for MAX(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Inspiration: Query 1 (agg_queries.sql) */ /* Variation: Changed MIN to MAX for olympic_gold_medals grouped by position. */ SELECT position, MAX(nba_championships) AS max_olympic_gold_medals FROM player GROUP BY position"
+   },
+   {
+    "qid": "attr:docetl_Player_v7:q0:a5bdcfba",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 AVG(draft_year)"
+    ],
+    "label_mismatch": [
+     "label avg_age for AVG(draft_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT position, AVG(draft_year) AS avg_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+   },
+   {
+    "qid": "attr:player_groupby20:q9:3e882071",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT college, COUNT(*) AS player_count FROM player WHERE college <> '' GROUP BY college"
+   },
+   {
+    "qid": "attr:Splits/train.sql#39:499af76e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_olympic_gold_medals for SUM(nba_championships)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 39: train (agg_filter) id=agg_filter_gen_200 */ SELECT team, SUM(nba_championships) AS sum_olympic_gold_medals FROM player WHERE (nationality <> 'Nigerian-American' AND team = 'Lokomotiv Kuban') OR (team = 'Saski Baskonia') GROUP BY team"
+   },
+   {
+    "qid": "attr:Expanded/agg_filter_join_expanded.sql#4:6a2d36fc",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table city joined but unused"
+    ],
+    "label_mismatch": [
+     "label avg_player_age for AVG(player.draft_pick)"
+    ],
+    "joins": 2,
+    "aggregates": true,
+    "sql": "/* Query 4: agg_filter_join (city, player, team) */ SELECT player.position, AVG(player.draft_pick) AS avg_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (player.team = 'Cedevita Olimpija') OR (team.location = 'Boston') GROUP BY player.position"
+   }
+  ]
+ },
+ "art": {
+  "queries": 43,
+  "unrealistic": 7,
+  "by_rule": {
+   "R1": 7,
+   "R4": 1
+  },
+  "label_mismatch": 12,
+  "generated_by_substitution": 43,
+  "unrealistic_among_substituted": 7,
+  "unrealistic_among_original": 0,
+  "joins_without_aggregation": 0,
+  "realistic_queries": [
+   "attr:Splits/train.sql#27:55d60fee",
+   "attr:Agg/agg_queries_Art.sql#5:f3e92fa3",
+   "attr:Mixed/mixed_queries.sql#3:ef6d70a6",
+   "attr:Agg/agg_queries_Art.sql#5:dcafb44f",
+   "attr:art_filter20:q13:c424f672",
+   "attr:Splits/train.sql#27:c99058e1",
+   "attr:Agg/agg_queries_Art.sql#7:4e3cb980",
+   "attr:Mixed/mixed_queries.sql#3:a4ee0194",
+   "attr:Splits/test.sql#3:9eeb6beb",
+   "attr:Splits/train.sql#5:67f357ed",
+   "attr:Splits/train.sql#28:afa7f142",
+   "attr:art_agg20:q8:66165f93",
+   "attr:Splits/train.sql#21:74ce44ea",
+   "attr:Splits/test.sql#10:c595d1d2",
+   "attr:Splits/train.sql#22:97eeb866",
+   "attr:Mixed/mixed_queries.sql#3:cf2c2d1e",
+   "attr:Agg/agg_queries_Art.sql#6:ab4b024e",
+   "attr:Splits/train.sql#16:08521cf9",
+   "attr:art_agg20:q5:d9058099",
+   "attr:art_groupby20:q11:21f7123a",
+   "attr:Splits/train.sql#5:8e4ff051",
+   "attr:Splits/train.sql#16:5d68ee13",
+   "attr:Splits/train.sql#5:81a928e2",
+   "attr:Splits/dev.sql#9:867252a6",
+   "attr:Splits/train.sql#27:7aa1a711",
+   "attr:art_filter20:q7:1598749a",
+   "attr:Agg/agg_queries_Art.sql#5:164b864e",
+   "attr:Agg/agg_queries_Art.sql#7:bd5e46d4",
+   "attr:Splits/train.sql#22:d786f8fe",
+   "attr:Splits/train.sql#39:2e7405c3",
+   "attr:Splits/train.sql#28:16bc6ec7",
+   "attr:Splits/train.sql#39:9c6472a3",
+   "attr:Agg/agg_queries_Art.sql#9:51620e5f",
+   "attr:Agg/agg_queries_Art.sql#7:235452ad",
+   "attr:Splits/train.sql#7:8c2a0c6b",
+   "attr:Agg/agg_queries_Art.sql#9:9490bfab"
+  ],
+  "rows": [
+   {
+    "qid": "attr:Splits/train.sql#27:55d60fee",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 27: train (agg_filter) id=agg_filter_art_gen_1092 */ SELECT nationality, MAX(age) AS max_age FROM art WHERE tone = 'Warm' GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Art.sql#5:f3e92fa3",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 5: aggregation (art) */ SELECT zodiac, COUNT(birth_date) AS count_art_institution FROM art GROUP BY zodiac"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#3:ef6d70a6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: filter3_agg1 (art) */ SELECT genre, AVG(awards) AS avg_age FROM art WHERE birth_country = 'British India' OR teaching <> 0 GROUP BY genre"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Art.sql#5:dcafb44f",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 5: aggregation (art) */ SELECT zodiac, COUNT(death_date) AS count_art_institution FROM art GROUP BY zodiac"
+   },
+   {
+    "qid": "attr:art_filter20:q13:c424f672",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT nationality, COUNT(*) AS artist_count FROM art WHERE tone IN ('Bright', 'Dark') AND nationality <> '' GROUP BY nationality HAVING COUNT(*) >= 5"
+   },
+   {
+    "qid": "attr:Splits/train.sql#27:c99058e1",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 27: train (agg_filter) id=agg_filter_art_gen_1092 */ SELECT death_city, MAX(age) AS max_age FROM art WHERE tone = 'Warm' GROUP BY death_city"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Art.sql#7:4e3cb980",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: aggregation (art) */ SELECT field, MAX(age) AS max_age FROM art GROUP BY field"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#3:a4ee0194",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: filter3_agg1 (art) */ SELECT composition, AVG(age) AS avg_age FROM art WHERE birth_country = 'British India' OR teaching <> 0 GROUP BY composition"
+   },
+   {
+    "qid": "attr:Splits/test.sql#3:9eeb6beb",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_age for SUM(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: test (agg_only) id=agg_queries_Art_8 */ SELECT birth_continent, SUM(awards) AS sum_age FROM art GROUP BY birth_continent"
+   },
+   {
+    "qid": "attr:Splits/train.sql#5:67f357ed",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 5: train (agg_only) id=agg_only_art_gen_50 */ SELECT marriage, COUNT(century) AS count_artists FROM art GROUP BY marriage"
+   },
+   {
+    "qid": "attr:Splits/train.sql#28:afa7f142",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_age for MIN(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 28: train (agg_filter) id=agg_filter_art_gen_1187 */ SELECT marriage, MIN(awards) AS min_age FROM art WHERE teaching = 1 GROUP BY marriage"
+   },
+   {
+    "qid": "attr:Splits/train.sql#21:69a8aa51",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(age)"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 21: train (agg_filter) id=agg_filter_art_gen_1152 */ SELECT death_city, SUM(age) AS sum_age FROM art WHERE tone = 'Warm' GROUP BY death_city"
+   },
+   {
+    "qid": "attr:art_agg20:q8:66165f93",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT nationality, COUNT(*) AS artist_count FROM art WHERE nationality <> '' GROUP BY nationality HAVING COUNT(*) >= 15"
+   },
+   {
+    "qid": "attr:Splits/train.sql#21:74ce44ea",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_age for SUM(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 21: train (agg_filter) id=agg_filter_art_gen_1152 */ SELECT color, SUM(awards) AS sum_age FROM art WHERE tone = 'Warm' GROUP BY color"
+   },
+   {
+    "qid": "attr:Splits/test.sql#10:c595d1d2",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_age for SUM(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 10: test (agg_filter) id=agg_filter_art_gen_919 */ SELECT art_movement, SUM(awards) AS sum_age FROM art WHERE marriage = 'Married' GROUP BY art_movement"
+   },
+   {
+    "qid": "attr:Splits/train.sql#22:97eeb866",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_age for MAX(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 22: train (agg_filter) id=agg_filter_art_gen_179 */ SELECT zodiac, MAX(awards) AS max_age FROM art WHERE birth_continent = 'Europe' GROUP BY zodiac"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#3:cf2c2d1e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: filter3_agg1 (art) */ SELECT field, AVG(age) AS avg_age FROM art WHERE birth_country = 'British India' OR teaching <> 0 GROUP BY field"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Art.sql#6:ab4b024e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_age for MIN(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 6: aggregation (art) */ SELECT teaching, MIN(awards) AS min_age FROM art GROUP BY teaching"
+   },
+   {
+    "qid": "attr:Splits/train.sql#16:08521cf9",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 16: train (agg_only) id=agg_only_art_gen_3 */ SELECT birth_continent, AVG(awards) AS avg_age FROM art GROUP BY birth_continent"
+   },
+   {
+    "qid": "attr:art_agg20:q5:d9058099",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT century, AVG(age) AS avg_age FROM art WHERE century <> '' AND age BETWEEN 25 AND 105 GROUP BY century"
+   },
+   {
+    "qid": "attr:art_groupby20:q11:21f7123a",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT nationality, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE nationality IN ('German', 'Italian', 'Japanese', 'British', 'Russian', 'French') AND NOT teaching IS NULL GROUP BY nationality, teaching_status"
+   },
+   {
+    "qid": "attr:Splits/test.sql#10:954c2860",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(age)",
+     "R4 grouped by identifier-like death_date"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 10: test (agg_filter) id=agg_filter_art_gen_919 */ SELECT death_date, SUM(age) AS sum_age FROM art WHERE marriage = 'Married' GROUP BY death_date"
+   },
+   {
+    "qid": "attr:Splits/train.sql#21:e8a6e851",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(age)"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 21: train (agg_filter) id=agg_filter_art_gen_1152 */ SELECT field, SUM(age) AS sum_age FROM art WHERE tone = 'Warm' GROUP BY field"
+   },
+   {
+    "qid": "attr:Splits/train.sql#7:0a4cc27f",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(age)"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: train (agg_only) id=agg_only_art_gen_49 */ SELECT death_city, SUM(age) AS sum_age FROM art GROUP BY death_city"
+   },
+   {
+    "qid": "attr:Splits/train.sql#5:8e4ff051",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 5: train (agg_only) id=agg_only_art_gen_50 */ SELECT century, COUNT(name) AS count_artists FROM art GROUP BY century"
+   },
+   {
+    "qid": "attr:Splits/train.sql#16:5d68ee13",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 16: train (agg_only) id=agg_only_art_gen_3 */ SELECT century, AVG(age) AS avg_age FROM art GROUP BY century"
+   },
+   {
+    "qid": "attr:Splits/train.sql#5:81a928e2",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 5: train (agg_only) id=agg_only_art_gen_50 */ SELECT marriage, COUNT(birth_city) AS count_artists FROM art GROUP BY marriage"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#9:867252a6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: dev (agg_filter) id=agg_filter_art_gen_623 */ SELECT nationality, MAX(age) AS max_age FROM art WHERE age > 0 GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Splits/train.sql#27:7aa1a711",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_age for MAX(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 27: train (agg_filter) id=agg_filter_art_gen_1092 */ SELECT color, MAX(awards) AS max_age FROM art WHERE tone = 'Warm' GROUP BY color"
+   },
+   {
+    "qid": "attr:art_filter20:q7:1598749a",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color <> '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE nationality IN ('French', 'German', 'Japanese', 'British') AND color <> '' GROUP BY color_family"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Art.sql#5:164b864e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 5: aggregation (art) */ SELECT zodiac, COUNT(nationality) AS count_art_institution FROM art GROUP BY zodiac"
+   },
+   {
+    "qid": "attr:Splits/train.sql#7:9c97787e",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(age)"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: train (agg_only) id=agg_only_art_gen_49 */ SELECT nationality, SUM(age) AS sum_age FROM art GROUP BY nationality"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Art.sql#7:bd5e46d4",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: aggregation (art) */ SELECT composition, MAX(age) AS max_age FROM art GROUP BY composition"
+   },
+   {
+    "qid": "attr:Splits/test.sql#10:43b4666e",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(age)"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 10: test (agg_filter) id=agg_filter_art_gen_919 */ SELECT art_movement, SUM(age) AS sum_age FROM art WHERE century = '20th-21st' GROUP BY art_movement"
+   },
+   {
+    "qid": "attr:Splits/train.sql#22:d786f8fe",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 22: train (agg_filter) id=agg_filter_art_gen_179 */ SELECT zodiac, MAX(age) AS max_age FROM art WHERE century = '19th-20th' GROUP BY zodiac"
+   },
+   {
+    "qid": "attr:Splits/train.sql#39:2e7405c3",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_age for AVG(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 39: train (agg_filter) id=agg_filter_art_gen_219 */ SELECT zodiac, AVG(awards) AS avg_age FROM art WHERE marriage = 'Married' GROUP BY zodiac"
+   },
+   {
+    "qid": "attr:Splits/train.sql#28:16bc6ec7",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 28: train (agg_filter) id=agg_filter_art_gen_1187 */ SELECT century, MIN(age) AS min_age FROM art WHERE teaching = 1 GROUP BY century"
+   },
+   {
+    "qid": "attr:Splits/train.sql#39:9c6472a3",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 39: train (agg_filter) id=agg_filter_art_gen_219 */ SELECT zodiac, AVG(age) AS avg_age FROM art WHERE century = '19th-20th' GROUP BY zodiac"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Art.sql#9:51620e5f",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: aggregation (art) */ SELECT century, MIN(age) AS min_age FROM art GROUP BY century"
+   },
+   {
+    "qid": "attr:Splits/test.sql#3:5c71da52",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R1 SUM(age)"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: test (agg_only) id=agg_queries_Art_8 */ SELECT century, SUM(age) AS sum_age FROM art GROUP BY century"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Art.sql#7:235452ad",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: aggregation (art) */ SELECT death_city, MAX(age) AS max_age FROM art GROUP BY death_city"
+   },
+   {
+    "qid": "attr:Splits/train.sql#7:8c2a0c6b",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label sum_age for SUM(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: train (agg_only) id=agg_only_art_gen_49 */ SELECT color, SUM(awards) AS sum_age FROM art GROUP BY color"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Art.sql#9:9490bfab",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_age for MIN(awards)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: aggregation (art) */ SELECT birth_continent, MIN(awards) AS min_age FROM art GROUP BY birth_continent"
+   }
+  ]
+ },
+ "med": {
+  "queries": 43,
+  "unrealistic": 23,
+  "by_rule": {
+   "R3": 6,
+   "R4": 9,
+   "R5": 2,
+   "R6": 12
+  },
+  "label_mismatch": 0,
+  "generated_by_substitution": 43,
+  "unrealistic_among_substituted": 23,
+  "unrealistic_among_original": 0,
+  "joins_without_aggregation": 0,
+  "realistic_queries": [
+   "attr:Splits/train.sql#36:6a27c9b5",
+   "attr:Splits/test.sql#7:85426824",
+   "attr:Splits/dev.sql#2:afe5e656",
+   "attr:Splits/train.sql#41:ce0c297d",
+   "attr:Splits/test.sql#7:0251f786",
+   "attr:Splits/train.sql#17:867fdf49",
+   "attr:Splits/train.sql#46:cad60d9e",
+   "attr:Splits/train.sql#42:6b966dbf",
+   "attr:Splits/train.sql#17:2380388b",
+   "attr:Splits/test.sql#7:133e088b",
+   "attr:Splits/train.sql#46:cf647aa6",
+   "attr:Splits/train.sql#36:9fa26c17",
+   "attr:Splits/dev.sql#2:3d9ec4b5",
+   "attr:Splits/test.sql#6:1f896440",
+   "attr:Splits/train.sql#36:24bd9eda",
+   "attr:Splits/train.sql#42:a7be6267",
+   "attr:Splits/train.sql#46:c8acd9e6",
+   "attr:Splits/test.sql#6:586cdd06",
+   "attr:Splits/train.sql#17:5179f971",
+   "attr:Splits/test.sql#6:7ed36ed4"
+  ],
+  "rows": [
+   {
+    "qid": "attr:Splits/train.sql#36:6a27c9b5",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 36: train (agg_filter) id=agg_filter_med_gen_61 */ SELECT prescription_status, COUNT(recommended_usage) AS count_side_effects FROM drug WHERE administration_route <> 'inhalation' GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#2:eed40a53",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R4 grouped by identifier-like manufacturer"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 2: dev (agg_only) id=agg_only_med_gen_9 */ SELECT manufacturer, COUNT(*) AS count_all FROM drug GROUP BY manufacturer"
+   },
+   {
+    "qid": "attr:Splits/test.sql#7:85426824",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: test (agg_filter) id=agg_filter_med_gen_65 */ SELECT prescription_status, COUNT(manufacturer) AS count_side_effects FROM drug WHERE administration_route = 'subcutaneous' GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#2:afe5e656",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 2: dev (agg_only) id=agg_only_med_gen_9 */ SELECT recommended_usage, COUNT(*) AS count_all FROM drug GROUP BY recommended_usage"
+   },
+   {
+    "qid": "attr:Splits/train.sql#57:18795eef",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table drug joined but unused",
+     "R4 grouped by identifier-like complications"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 57: train (agg_join) id=agg_join_med_gen_28 */ SELECT disease.complications, COUNT(disease.treatments) AS count_disease_treatments FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.complications"
+   },
+   {
+    "qid": "attr:Splits/train.sql#41:ce0c297d",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 41: train (agg_join) id=agg_join_med_gen_3 */ SELECT drug.activation_conditions, COUNT(disease.disease_name) AS count_disease_disease_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.activation_conditions"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#9:bf2a0d62",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: dev (agg_filter) id=agg_filter_med_gen_26 */ SELECT prescription_status, COUNT(mechanism_of_action) AS count_generic_name FROM drug WHERE (administration_route = 'injection') AND (administration_route <> 'subcutaneous') GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/test.sql#7:0251f786",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: test (agg_filter) id=agg_filter_med_gen_65 */ SELECT prescription_status, COUNT(mechanism_of_action) AS count_side_effects FROM drug WHERE administration_route = 'subcutaneous' GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#17:867fdf49",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 17: train (agg_only) id=agg_only_med_gen_10 */ SELECT administration_route, COUNT(unsuitable_population) AS count_generic_name FROM drug GROUP BY administration_route"
+   },
+   {
+    "qid": "attr:Splits/train.sql#46:cad60d9e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 46: train (agg_join) id=agg_join_med_gen_7 */ SELECT drug.prescription_status, COUNT(disease.sequelae) AS count_disease_treatments FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#42:6b966dbf",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 42: train (agg_join) id=agg_join_med_gen_10 */ SELECT drug.storage_conditions, COUNT(disease.disease_name) AS count_disease_disease_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.storage_conditions"
+   },
+   {
+    "qid": "attr:Splits/train.sql#28:ab165c7a",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 28: train (agg_filter) id=agg_filter_med_gen_76 */ SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE (unsuitable_population = 'patients with severe psychiatric illness' AND unsuitable_population <> 'pregnant women') OR (unsuitable_population <> 'pediatric patients||pregnant women||breastfeeding women||patients receiving strong CYP3A inhibitors') GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#49:beed0181",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R4 grouped by identifier-like epidemiology"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 49: train (agg_join) id=agg_join_med_gen_23 */ SELECT disease.epidemiology, COUNT(drug.generic_name) AS count_drug_generic_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.epidemiology"
+   },
+   {
+    "qid": "attr:Splits/train.sql#33:4c6694de",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 33: train (agg_filter) id=agg_filter_med_gen_28 */ SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE (manufacturer = 'Forest Pharmaceuticals, Inc.' AND manufacturer <> 'Bayer') OR (pharmaceutical_form <> 'injection') GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#17:2380388b",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 17: train (agg_only) id=agg_only_med_gen_10 */ SELECT administration_route, COUNT(single_dose) AS count_generic_name FROM drug GROUP BY administration_route"
+   },
+   {
+    "qid": "attr:Splits/train.sql#33:93b35e18",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal",
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 33: train (agg_filter) id=agg_filter_med_gen_28 */ SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE (recommended_usage = 'before meals||swallowed with water||at fixed time' AND recommended_usage <> 'take with food') OR (pharmaceutical_form <> 'injection') GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/test.sql#7:133e088b",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: test (agg_filter) id=agg_filter_med_gen_65 */ SELECT prescription_status, COUNT(single_dose) AS count_side_effects FROM drug WHERE administration_route = 'subcutaneous' GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#9:0976d6b5",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: dev (agg_filter) id=agg_filter_med_gen_26 */ SELECT prescription_status, COUNT(activation_conditions) AS count_generic_name FROM drug WHERE (administration_route = 'injection') AND (administration_route <> 'subcutaneous') GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#28:02ad1cdd",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 28: train (agg_filter) id=agg_filter_med_gen_76 */ SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE (manufacturer = 'Bayer' AND manufacturer <> 'Ironwood Pharmaceuticals, Inc.||AbbVie||Astellas||Astra Zeneca') OR (manufacturer <> 'Ascend Laboratories, LLC') GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#49:4f3e7c6f",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R4 grouped by identifier-like complications"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 49: train (agg_join) id=agg_join_med_gen_23 */ SELECT disease.complications, COUNT(drug.generic_name) AS count_drug_generic_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.complications"
+   },
+   {
+    "qid": "attr:Splits/train.sql#57:bc0eda36",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table drug joined but unused",
+     "R4 grouped by identifier-like drugs"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 57: train (agg_join) id=agg_join_med_gen_28 */ SELECT disease.drugs, COUNT(disease.treatments) AS count_disease_treatments FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.drugs"
+   },
+   {
+    "qid": "attr:Splits/test.sql#9:c12243ae",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: test (agg_filter) id=agg_filter_med_gen_120 */ SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (single_dose <> 'adults 250-500mg||children 15mg/kg daily' AND prescription_status = 'unclassified') OR (single_dose = 'adults 2 mg') GROUP BY administration_route"
+   },
+   {
+    "qid": "attr:Splits/train.sql#33:6c8af8bc",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal",
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 33: train (agg_filter) id=agg_filter_med_gen_28 */ SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE (storage_conditions = 'keep tightly closed||store in a tight, light-resistant container||child-resistant closure' AND storage_conditions <> 'refrigerate') OR (pharmaceutical_form <> 'injection') GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#47:709932b1",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table disease joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 47: train (agg_join) id=agg_join_med_gen_8 */ SELECT drug.recommended_usage, COUNT(*) AS count_all FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.recommended_usage"
+   },
+   {
+    "qid": "attr:Splits/train.sql#47:1239ef06",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table disease joined but unused",
+     "R4 grouped by identifier-like manufacturer"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 47: train (agg_join) id=agg_join_med_gen_8 */ SELECT drug.manufacturer, COUNT(*) AS count_all FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.manufacturer"
+   },
+   {
+    "qid": "attr:Splits/train.sql#28:326b87f1",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 28: train (agg_filter) id=agg_filter_med_gen_76 */ SELECT activation_conditions, COUNT(side_effects) AS count_side_effects FROM drug WHERE (pharmaceutical_form = 'tablet' AND pharmaceutical_form <> 'solution') OR (pharmaceutical_form <> 'spray') GROUP BY activation_conditions"
+   },
+   {
+    "qid": "attr:Splits/train.sql#46:cf647aa6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 46: train (agg_join) id=agg_join_med_gen_7 */ SELECT drug.activation_conditions, COUNT(disease.treatments) AS count_disease_treatments FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.activation_conditions"
+   },
+   {
+    "qid": "attr:Splits/test.sql#9:5bc7e3e4",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: test (agg_filter) id=agg_filter_med_gen_120 */ SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (storage_conditions <> 'store at room temperature||avoid freezing||store below 25C or 77F' AND prescription_status = 'unclassified') OR (storage_conditions = 'store at room temperature') GROUP BY administration_route"
+   },
+   {
+    "qid": "attr:Splits/train.sql#36:9fa26c17",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 36: train (agg_filter) id=agg_filter_med_gen_61 */ SELECT prescription_status, COUNT(single_dose) AS count_side_effects FROM drug WHERE administration_route <> 'inhalation' GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#57:7e4cd6ac",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table drug joined but unused",
+     "R4 grouped by identifier-like risk_factors"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 57: train (agg_join) id=agg_join_med_gen_28 */ SELECT disease.risk_factors, COUNT(disease.treatments) AS count_disease_treatments FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.risk_factors"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#2:3d9ec4b5",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 2: dev (agg_only) id=agg_only_med_gen_9 */ SELECT storage_conditions, COUNT(*) AS count_all FROM drug GROUP BY storage_conditions"
+   },
+   {
+    "qid": "attr:Splits/train.sql#49:44ad8347",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R4 grouped by identifier-like affected_organs"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 49: train (agg_join) id=agg_join_med_gen_23 */ SELECT disease.affected_organs, COUNT(drug.generic_name) AS count_drug_generic_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.affected_organs"
+   },
+   {
+    "qid": "attr:Splits/test.sql#6:1f896440",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 6: test (agg_filter) id=agg_filter_med_gen_77 */ SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE manufacturer <> 'Bayer' GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/test.sql#9:89669ef3",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: test (agg_filter) id=agg_filter_med_gen_120 */ SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (manufacturer <> 'Galderma Laboratories, L.P.' AND prescription_status = 'unclassified') OR (manufacturer = 'Bayer') GROUP BY administration_route"
+   },
+   {
+    "qid": "attr:Splits/train.sql#36:24bd9eda",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 36: train (agg_filter) id=agg_filter_med_gen_61 */ SELECT prescription_status, COUNT(unsuitable_population) AS count_side_effects FROM drug WHERE administration_route <> 'inhalation' GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#42:a7be6267",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 42: train (agg_join) id=agg_join_med_gen_10 */ SELECT drug.recommended_usage, COUNT(disease.disease_name) AS count_disease_disease_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.recommended_usage"
+   },
+   {
+    "qid": "attr:Splits/train.sql#42:36133d40",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R4 grouped by identifier-like manufacturer"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 42: train (agg_join) id=agg_join_med_gen_10 */ SELECT drug.manufacturer, COUNT(disease.disease_name) AS count_disease_disease_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.manufacturer"
+   },
+   {
+    "qid": "attr:Splits/train.sql#46:c8acd9e6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 46: train (agg_join) id=agg_join_med_gen_7 */ SELECT drug.prescription_status, COUNT(disease.common_symptoms) AS count_disease_treatments FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.prescription_status"
+   },
+   {
+    "qid": "attr:Splits/test.sql#6:586cdd06",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 6: test (agg_filter) id=agg_filter_med_gen_77 */ SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE storage_conditions <> 'store at room temperature' GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#17:5179f971",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 17: train (agg_only) id=agg_only_med_gen_10 */ SELECT administration_route, COUNT(mechanism_of_action) AS count_generic_name FROM drug GROUP BY administration_route"
+   },
+   {
+    "qid": "attr:Splits/dev.sql#9:8557f23f",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 9: dev (agg_filter) id=agg_filter_med_gen_26 */ SELECT prescription_status, COUNT(single_dose) AS count_generic_name FROM drug WHERE (administration_route = 'injection') AND (administration_route <> 'subcutaneous') GROUP BY prescription_status"
+   },
+   {
+    "qid": "attr:Splits/train.sql#47:cffaa90c",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R3 table disease joined but unused"
+    ],
+    "label_mismatch": [],
+    "joins": 1,
+    "aggregates": true,
+    "sql": "/* Query 47: train (agg_join) id=agg_join_med_gen_8 */ SELECT drug.storage_conditions, COUNT(*) AS count_all FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.storage_conditions"
+   },
+   {
+    "qid": "attr:Splits/test.sql#6:7ed36ed4",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 6: test (agg_filter) id=agg_filter_med_gen_77 */ SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE single_dose <> 'adults 20 mg' GROUP BY prescription_status"
+   }
+  ]
+ },
+ "legal": {
+  "queries": 27,
+  "unrealistic": 3,
+  "by_rule": {
+   "R5": 1,
+   "R6": 3
+  },
+  "label_mismatch": 10,
+  "generated_by_substitution": 27,
+  "unrealistic_among_substituted": 3,
+  "unrealistic_among_original": 0,
+  "joins_without_aggregation": 0,
+  "realistic_queries": [
+   "attr:legal_filter20:q2:00138658",
+   "attr:legal_filter20:q2:8557ea90",
+   "attr:Splits/train.sql#10:766c3796",
+   "attr:legal_filter20:q1:bb430ab6",
+   "attr:Agg/agg_queries_Legal.sql#7:61dda821",
+   "attr:Mixed/mixed_queries.sql#3:37951703",
+   "attr:legal_groupby20:q4:34fc5814",
+   "attr:Splits/train.sql#1:c377a83c",
+   "attr:Splits/train.sql#11:0eeb16a6",
+   "attr:Splits/train.sql#1:3f759458",
+   "attr:Splits/train.sql#12:66cde6f4",
+   "attr:Agg/agg_queries_Legal.sql#6:ed968b3e",
+   "attr:Mixed/mixed_queries.sql#3:bf8bbd77",
+   "attr:legal_filter20:q13:00dc4d77",
+   "attr:Mixed/mixed_queries.sql#3:862679f6",
+   "attr:Splits/train.sql#10:954e6b4c",
+   "attr:Splits/train.sql#40:ea9ea1f6",
+   "attr:Splits/train.sql#11:ca4a9b46",
+   "attr:Splits/train.sql#12:3fbea6ff",
+   "attr:Agg/agg_queries_Legal.sql#7:ba4df42c",
+   "attr:Agg/agg_queries_Legal.sql#7:7e28d7bb",
+   "attr:legal_filter20:q2:63b03320",
+   "attr:Splits/train.sql#1:b4866c84",
+   "attr:Agg/agg_queries_Legal.sql#8:8bef48e5"
+  ],
+  "rows": [
+   {
+    "qid": "attr:legal_filter20:q2:00138658",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE fine_amount IN ('0', '5000', '20000') GROUP BY case_family"
+   },
+   {
+    "qid": "attr:legal_filter20:q2:8557ea90",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE defendant_current_status IN ('Organization', 'Company', 'Government') GROUP BY case_family"
+   },
+   {
+    "qid": "attr:Splits/train.sql#10:766c3796",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_hearing_year for MIN(judgment_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 10: train (agg_only) id=agg_only_legal_gen_88 */ SELECT evidence, MIN(judgment_year) AS min_hearing_year FROM legal GROUP BY evidence"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#4:ceb4d997",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 4: filter4_agg1 (legal) */ SELECT verdict, MIN(legal_basis_num) AS min_legal_basis_num FROM legal WHERE fine_amount = '20000' AND defendant <> 'Construction, Forestry, Mining and Energy Union' AND fine_amount <> '70000' GROUP BY verdict"
+   },
+   {
+    "qid": "attr:legal_filter20:q1:bb430ab6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_statutes for AVG(legal_basis_num)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE judgment_year = '2009' AND case_number >= 3 GROUP BY verdict_family"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Legal.sql#7:61dda821",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: aggregation (legal) */ SELECT fine_amount, MAX(legal_basis_num) AS max_legal_basis_num FROM legal GROUP BY fine_amount"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#3:37951703",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: filter3_agg1 (legal) */ SELECT fine_amount, MAX(legal_basis_num) AS max_legal_basis_num FROM legal WHERE verdict <> 'Dismissed' OR first_judge <> 0 GROUP BY fine_amount"
+   },
+   {
+    "qid": "attr:legal_groupby20:q4:34fc5814",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN case_number = 0 THEN 'none' WHEN case_number <= 4 THEN '1_to_4' ELSE '5_or_more' END AS precedent_band, judgment_year, COUNT(*) AS case_count FROM legal WHERE judgment_year IN ('2006', '2007', '2009') AND NOT case_number IS NULL GROUP BY precedent_band, judgment_year"
+   },
+   {
+    "qid": "attr:Splits/train.sql#1:c377a83c",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 1: train (agg_only) id=agg_only_legal_gen_12 */ SELECT judgment_year, MAX(hearing_year) AS max_hearing_year FROM legal GROUP BY judgment_year"
+   },
+   {
+    "qid": "attr:Splits/train.sql#11:0eeb16a6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_hearing_year for MIN(fine_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 11: train (agg_only) id=agg_only_legal_gen_105 */ SELECT first_judge, MIN(fine_amount) AS min_hearing_year FROM legal GROUP BY first_judge"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#4:5da01b31",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 4: filter4_agg1 (legal) */ SELECT verdict, MIN(legal_basis_num) AS min_legal_basis_num FROM legal WHERE judge_name = 'McKerracher' AND defendant <> 'Construction, Forestry, Mining and Energy Union' AND judge_name <> 'Merkel' GROUP BY verdict"
+   },
+   {
+    "qid": "attr:Splits/train.sql#1:3f759458",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_hearing_year for MAX(judgment_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 1: train (agg_only) id=agg_only_legal_gen_12 */ SELECT case_type, MAX(judgment_year) AS max_hearing_year FROM legal GROUP BY case_type"
+   },
+   {
+    "qid": "attr:Splits/train.sql#12:66cde6f4",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_hearing_year for MAX(judgment_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 12: train (agg_only) id=agg_only_legal_gen_106 */ SELECT first_judge, MAX(judgment_year) AS max_hearing_year FROM legal GROUP BY first_judge"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Legal.sql#6:ed968b3e",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 6: aggregation (legal) */ SELECT judgment_year, MIN(legal_basis_num) AS min_legal_basis_num FROM legal GROUP BY judgment_year"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#3:bf8bbd77",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: filter3_agg1 (legal) */ SELECT defendant_current_status, MAX(legal_basis_num) AS max_legal_basis_num FROM legal WHERE verdict <> 'Dismissed' OR first_judge <> 0 GROUP BY defendant_current_status"
+   },
+   {
+    "qid": "attr:legal_filter20:q13:00dc4d77",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label avg_statutes for AVG(legal_basis_num)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant <> '' THEN 'Other' END AS applicant_nation, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE judgment_year = '2006' AND nationality_for_applicant <> '' GROUP BY applicant_nation"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#3:862679f6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 3: filter3_agg1 (legal) */ SELECT nationality_for_applicant, MAX(legal_basis_num) AS max_legal_basis_num FROM legal WHERE judgment_year <> '2006' OR first_judge <> 0 GROUP BY nationality_for_applicant"
+   },
+   {
+    "qid": "attr:Splits/train.sql#10:954e6b4c",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_hearing_year for MIN(fine_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 10: train (agg_only) id=agg_only_legal_gen_88 */ SELECT evidence, MIN(fine_amount) AS min_hearing_year FROM legal GROUP BY evidence"
+   },
+   {
+    "qid": "attr:Splits/train.sql#40:ea9ea1f6",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 40: train (agg_filter) id=agg_filter_legal_gen_213 */ SELECT judgment_year, MAX(legal_basis_num) AS max_legal_basis_num FROM legal WHERE evidence = 1 GROUP BY judgment_year"
+   },
+   {
+    "qid": "attr:Splits/train.sql#11:ca4a9b46",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label min_hearing_year for MIN(judgment_year)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 11: train (agg_only) id=agg_only_legal_gen_105 */ SELECT first_judge, MIN(judgment_year) AS min_hearing_year FROM legal GROUP BY first_judge"
+   },
+   {
+    "qid": "attr:Splits/train.sql#12:3fbea6ff",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_hearing_year for MAX(fine_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 12: train (agg_only) id=agg_only_legal_gen_106 */ SELECT first_judge, MAX(fine_amount) AS max_hearing_year FROM legal GROUP BY first_judge"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Legal.sql#7:ba4df42c",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: aggregation (legal) */ SELECT judge_name, MAX(legal_basis_num) AS max_legal_basis_num FROM legal GROUP BY judge_name"
+   },
+   {
+    "qid": "attr:Mixed/mixed_queries.sql#4:4ea3afc9",
+    "generated_by_substitution": true,
+    "unrealistic": [
+     "R5 filter on a long literal",
+     "R6 one column compared with both = and <>"
+    ],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 4: filter4_agg1 (legal) */ SELECT verdict, MIN(legal_basis_num) AS min_legal_basis_num FROM legal WHERE plaintiff_current_status = 'Membership Of The District __xecutive Committee_ Of The Bnp For The Noakhali District Of Bangladesh.' AND defendant <> 'Construction, Forestry, Mining and Energy Union' AND plaintiff_current_status <> 'Barrister On The Roll Of The Supreme Court Of Queensland' GROUP BY verdict"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Legal.sql#7:7e28d7bb",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 7: aggregation (legal) */ SELECT defendant_current_status, MAX(legal_basis_num) AS max_legal_basis_num FROM legal GROUP BY defendant_current_status"
+   },
+   {
+    "qid": "attr:legal_filter20:q2:63b03320",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, COUNT(*) AS case_count FROM legal WHERE judge_name IN ('Tracey', 'Flick', 'Greenwood') GROUP BY case_family"
+   },
+   {
+    "qid": "attr:Splits/train.sql#1:b4866c84",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [
+     "label max_hearing_year for MAX(fine_amount)"
+    ],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 1: train (agg_only) id=agg_only_legal_gen_12 */ SELECT case_type, MAX(fine_amount) AS max_hearing_year FROM legal GROUP BY case_type"
+   },
+   {
+    "qid": "attr:Agg/agg_queries_Legal.sql#8:8bef48e5",
+    "generated_by_substitution": true,
+    "unrealistic": [],
+    "label_mismatch": [],
+    "joins": 0,
+    "aggregates": true,
+    "sql": "/* Query 8: aggregation (legal) */ SELECT judgment_year, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal GROUP BY judgment_year"
+   }
+  ]
+ }
+}
