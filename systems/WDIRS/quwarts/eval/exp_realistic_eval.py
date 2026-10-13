@@ -22,16 +22,19 @@ from quwarts.eval.realistic_queries import load, register
 
 CORPORA = ["cspaper", "player", "art", "med", "legal"]
 QVIEWS = Path("/scratch/general/vast/u1592362/quwarts_exp/RW-qviews")
-DOCETL = EXP.parent / "docetl_realistic_ollama"
+from quwarts.eval.realistic_queries import VERSION
+
+DOCETL = EXP.parent / ("docetl_realistic_ollama" if VERSION == "v1" else f"docetl_realistic_{VERSION}_ollama")
 KEY = "fixed4-realistic_100"
 TMP = Path("/scratch/general/vast/u1592362/quwarts_exp/RW-score-tmp")
-SYSTEMS = {"our system (no re-reads)": ["RW-norereads-V3", "RW-norereads-V3-rep1", "RW-norereads-V3-rep2"],
-           "our system": ["RW-V3", "RW-V3-rep1", "RW-V3-rep2"]}
+SYSTEMS = ({"our system (no re-reads)": ["RW-norereads-V3", "RW-norereads-V3-rep1", "RW-norereads-V3-rep2"],
+            "our system": ["RW-V3", "RW-V3-rep1", "RW-V3-rep2"]} if VERSION == "v1" else
+           {"our system": [f"RW{VERSION[1:]}-V3", f"RW{VERSION[1:]}-V3-rep1", f"RW{VERSION[1:]}-V3-rep2"]})
 
 
 def main(argv=None) -> int:
     corpora = (argv or sys.argv[1:]) or CORPORA
-    dest = EXP / "WHY" / "realistic"
+    dest = EXP / "WHY" / ("realistic" if VERSION == "v1" else f"realistic{VERSION[1:]}")
     dest.mkdir(parents=True, exist_ok=True)
     for c in corpora:
         ctx = D.R.context(c)

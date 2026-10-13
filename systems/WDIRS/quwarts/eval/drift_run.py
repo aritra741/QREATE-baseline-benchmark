@@ -136,6 +136,10 @@ def context(corpus: str) -> SimpleNamespace:
     _memoize_table_attributes()
     spec, _train, _test, _run, docs = MS.context(corpus)
     w0 = dict(json.loads((ROOT / corpus / "build.json").read_text())["build"])
+    if os.environ.get("QUWARTS_W0_REALISTIC") == "1":  # the realistic build workload (Query/Realistic/<version>/<corpus>_build.sql)
+        from quwarts.eval.realistic_queries import load_build
+
+        w0 = load_build(corpus)
     # QUWARTS_W0_FRACTION (E12): keep a seeded random share of the build workload (the "train" queries); the test
     # queries are unchanged, so a smaller share leaves more of the columns they need to drift. 1.0: as recorded.
     frac = float(os.environ.get("QUWARTS_W0_FRACTION", 1.0))
