@@ -53,7 +53,9 @@ API_BASE = "http://" + os.environ.get("OLLAMA_HOST", "127.0.0.1:11434").removepr
 NUM_CTX = int(os.environ.get("OLLAMA_NUM_CTX", "32768"))
 ANSWER_ROOM = 512
 MARGIN = 256  # chat template and DocETL's own wrapping around the prompt
-OUT = ROOT / "results" / "docetl_drift_ollama"
+# QUWARTS_WORKLOAD=realistic: the realistic workload (Query/Realistic) instead of the drift test queries, in its own root
+WORKLOAD = os.environ.get("QUWARTS_WORKLOAD", "drift")
+OUT = ROOT / "results" / ("docetl_realistic_ollama" if WORKLOAD == "realistic" else "docetl_drift_ollama")
 HEADLINE = ("attribute/100", "value/100", "attribute/0", "value/0", "combined/0")
 TOKENS = {"prompt": 0, "completion": 0, "calls": 0}
 _lock = threading.Lock()
@@ -105,6 +107,10 @@ def queries(corpus: str) -> list[str]:
     """Run order: the drift test queries first (the charts need them), then W0, then the headline streams."""
 
     ctx = R.context(corpus)
+    if WORKLOAD == "realistic":
+        from quwarts.eval.realistic_queries import register
+
+        return register(ctx, corpus)
     design = json.loads((D.folder(corpus) / "fixed4_attribute_pool_design.json").read_text())
     streams = ctx.designs[0]["streams"]
     order = list(dict.fromkeys(design["test"]))

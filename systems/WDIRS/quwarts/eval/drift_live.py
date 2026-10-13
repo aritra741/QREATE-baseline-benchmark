@@ -1065,6 +1065,10 @@ class Stream:
             "maybe_truncated_calls": sum(bool(self.caller.usage.by_sha.get(x, {}).get("maybe_truncated")) for x in shas),
             "cut_off_calls": sum(bool(self.caller.usage.by_sha.get(x, {}).get("cut_off")) for x in shas),
             "view": str(pre), "digest": R.digest(pre, sql), **({"planner": planner_info} if PLANNER else {})})
+        if os.environ.get("QUWARTS_KEEP_QUERY_VIEWS"):  # every query's scored view, for rescoring (e.g. other tolerances)
+            keep = Path(os.environ["QUWARTS_KEEP_QUERY_VIEWS"]) / self.corpus / self.key.replace("/", "_")
+            keep.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(pre, keep / f"{pos:04d}.db")
         self.st["seen"][qid] = sql
         self.st["pos"] = pos + 1
         self.st["partial"] = None
@@ -1305,6 +1309,11 @@ def plan(corpus: str, which: str, axes: list[str]) -> list[tuple[str, Build | No
             if axis in ("attribute", "attribute_pool"):
                 test = fixed_design(corpus, axis)["test"]
                 out += [(f"{FIXED}b{b:03d}-{axis}/{p}", None, test) for b in BUDGETS for p in FIXED_LEVELS]
+    if which == "realistic":  # the realistic workload (Query/Realistic, eval/realistic_queries.py): every query an
+        # aggregate a real user would ask; from the W0 build, everything outside W0 read on demand (level 100)
+        from quwarts.eval.realistic_queries import register
+
+        out.append((f"{FIXED}-realistic/100", None, register(ctx, corpus)))
     if which == "benchu":  # Bench-U's own workload (BENCHU_OPPORTUNITIES.md, A): every query of its files, in file
         # order, from the W0 build; everything outside W0 is read on demand (level 100: nothing anticipated)
         out.append((f"{FIXED}-benchu/100", None, benchu_stream(corpus)))
@@ -1342,7 +1351,7 @@ def run(corpus: str, deadline: float, which: str = "headline", axes: list[str] |
         if key.startswith(FIXED + "-") or key.startswith(FIXED + "b"):
             head, p = key.split("/")
             name, axis = head.split("-", 1)
-            build = fixed_build(corpus, "attribute_pool" if axis == "benchu" else axis, int(p))  # Bench-U's workload: the drift build at 100% (W0's columns)
+            build = fixed_build(corpus, "attribute_pool" if axis in ("benchu", "realistic") else axis, int(p))  # Bench-U's workload: the drift build at 100% (W0's columns)
             if prepare(corpus, caller, left_of(stop_at), build) is None:
                 lines.append(f"{corpus:8s} {key:22s} build read in progress")
                 break
@@ -1407,7 +1416,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--deadline", type=float, default=165)
     ap.add_argument("--report", action="store_true")
-    ap.add_argument("--streams", default="headline", choices=["headline", "all", "fixed", "fixed+headline", "everything", "budget", "benchu"])
+    ap.add_argument("--streams", default="headline", choices=["headline", "all", "fixed", "fixed+headline", "everything", "budget", "benchu", "realistic"])
     ap.add_argument("--axes", default="attribute", help="fixed levels: comma list of attribute, value, combined")
     ap.add_argument("--workers", type=int, help="concurrent model calls (default QUWARTS_WORKERS or 24)")
     a = ap.parse_args(argv)

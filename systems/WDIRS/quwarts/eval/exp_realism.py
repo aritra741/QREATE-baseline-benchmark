@@ -47,7 +47,7 @@ def audit(sql: str, fields: dict, distinct: dict, median_group: float | None = N
     flags = []
     for agg in tree.find_all(exp.AggFunc):
         cols = list(agg.find_all(exp.Column))
-        if isinstance(agg, exp.Count) or not cols or agg.find(exp.Case):
+        if isinstance(agg, exp.Count) or not cols or agg.find(exp.Case) or agg.find(exp.Cast):
             continue
         for c in cols:
             f = fields.get(full(c))
@@ -66,6 +66,22 @@ def audit(sql: str, fields: dict, distinct: dict, median_group: float | None = N
         for c in tree.find_all(exp.Column):
             if id(c) not in join_cols:
                 used[alias.get(c.table, c.table) if c.table else single] += 1
+        # COUNT(*) counts the rows of the table in FROM (players per team); a table in two join conditions links
+        # two others (player -> team -> city) and is used when the table it leads to is
+        if any(isinstance(a, exp.Count) and (a.this is None or isinstance(a.this, exp.Star)) for a in tree.find_all(exp.AggFunc)):
+            frm = tree.find(exp.From)
+            if frm is not None and frm.find(exp.Table) is not None:
+                used[frm.find(exp.Table).name] += 1
+        links = defaultdict(set)
+        for j in tree.find_all(exp.Join):
+            on = j.args.get("on")
+            if on is not None:
+                ts = {alias.get(c.table, c.table) for c in on.find_all(exp.Column)}
+                for t in ts:
+                    links[t] |= ts - {t}
+        for t in tables:
+            if not used.get(t) and len(links[t]) >= 2 and any(used.get(o) for o in links[t]):
+                used[t] += 1
         for t in tables:
             if not used.get(t):
                 flags.append(f"R3 table {t} joined but unused")
