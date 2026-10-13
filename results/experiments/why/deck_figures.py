@@ -669,7 +669,45 @@ def blank_wrong():
     save(f, "blank_wrong")
 
 
+
+def groupsize():
+    """Exactness by group size (WHY/groupsize) and the p^n check (WHY/pn)."""
+    import statistics as St
+    rows = j("WHY/groupsize/summary.json")["queries"]
+    bins = [(1, 2, "1-2"), (3, 9, "3-9"), (10, 49, "10-49"), (50, 10**9, "50+")]
+    fams = [("COUNT, SUM or AVG", BLUE, ("COUNT(*)", "COUNT(column)", "SUM", "AVG")), ("MIN or MAX", ORANGE, ("MIN/MAX",))]
+    f, (a1, a2) = plt.subplots(1, 2, figsize=(W, H), gridspec_kw={"width_ratios": [1.25, 1]})
+    for lab, col, cls in fams:
+        xs, ys, ns = [], [], []
+        for i, (lo, hi, _) in enumerate(bins):
+            b = [r["values_0"] for r in rows if r["class"] in cls and lo <= r["median_group"] <= hi]
+            if b:
+                xs.append(i); ys.append(St.mean(b)); ns.append(len(b))
+        a1.plot(xs, ys, marker="o", markersize=8, linewidth=2.5, color=col, label=lab)
+        for x, y, n in zip(xs, ys, ns):
+            dy = 0.03 if col == ORANGE else -0.07
+            a1.text(x + (0.12 if x == 0 else 0), y + dy, f"{y:.2f} ({n})", ha="left" if x == 0 else "center", fontsize=11, color=INK)
+    a1.set_xticks(range(len(bins))); a1.set_xticklabels([b[2] for b in bins])
+    a1.set_xlabel("Rows behind each result value")
+    a1.set_ylabel("Share of result values exactly right")
+    a1.set_ylim(-0.08, 0.92)
+    a1.set_xlim(-0.3, 3.4)
+    a1.legend(frameon=False, loc="upper right", fontsize=12)
+    style(a1)
+    pn = j("WHY/pn/summary.json")["bins"]["COUNT, SUM, AVG"]
+    labs = [k for k in ("below 0.05", "0.05-0.2", "0.2-0.5", "0.5-1") if k in pn]
+    x = range(len(labs))
+    a2.bar([i - 0.2 for i in x], [pn[k]["predicted"] for k in labs], 0.38, color=GRAY, label="predicted: p to the power n")
+    a2.bar([i + 0.2 for i in x], [pn[k]["observed"] for k in labs], 0.38, color=BLUE, label="observed")
+    a2.set_xticks(list(x)); a2.set_xticklabels(["<.05", ".05-.2", ".2-.5", ".5-1"])
+    a2.set_xlabel("Predicted share exactly right")
+    a2.set_ylim(0, 0.85)
+    a2.legend(frameon=False, loc="upper left", fontsize=11)
+    a2.set_title("COUNT, SUM, AVG", fontsize=14, color=INK2)
+    style(a2)
+    save(f, "groupsize")
+
 if __name__ == "__main__":
     h01(); h02(); h03(); print("h04", h04()); h05(); h06(); h07(); print("h08 columns", h08())
     h09(); h10(); h11(); h12(); h13(); h14(); h15(); h16(); asym(); h17(); h18()
-    baseline_scores(); baseline_tokens(); noplanner(); tokens(); budget(); ablations(); resend(); blank_wrong()
+    baseline_scores(); baseline_tokens(); noplanner(); tokens(); budget(); ablations(); resend(); blank_wrong(); groupsize()

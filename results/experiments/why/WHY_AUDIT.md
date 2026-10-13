@@ -434,3 +434,11 @@ test query moved). So "without re-reads, medical ties DocETL" was a comparison b
 of re-reads: any two medical runs differ in 22 to 32% of the new columns' cells (papers 6 to 9%), with or without
 re-reads, while the re-reads touch 40 of 1,386 cells. Run-to-run variation is the resend effect at table scale and
 follows the column kind (medical's columns are free-text lists).
+
+**p to the power n** (`exp_pn.py`, `WHY/pn`): for single-table queries, p = share of the table's rows whose used columns
+are all exactly right in run V3's final table; predicted exact share = mean over result values of p^n. COUNT, SUM, AVG
+(142 queries): rank correlation with the observed exact share 0.59; by bins of the prediction, predicted 0.007 / 0.109 /
+0.377 / 0.725 against observed 0.023 / 0.032 / 0.271 / 0.568 (over-predicts: rows wrongly added to a group are not in
+p). MIN/MAX (60): correlation 0.30, observed 0.133 where 0.007 is predicted: only the extreme row must be right.
+Re-reads, court cases: V3 335 looks at defendant_current_status, -0.008; V3-rep1 none. Deck v48: group-size slides;
+re-read verdict changed to Wrong (paired -0.011 to +0.016, zero on medical).
