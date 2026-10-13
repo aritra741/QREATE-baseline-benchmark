@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import random
 import sqlite3
 from pathlib import Path
@@ -363,14 +364,20 @@ def is_null(v) -> bool:
     return v is None or str(v).strip().lower() in NULLS
 
 
-def same_value(x, y) -> bool:
-    """Equal after normalization; numbers within 20% (as cell F1@0.20)."""
+# Relative error allowed between two numbers for an answer to count as the same value. 0.2 in every result so far;
+# QUWARTS_ANSWER_TOL reruns any analysis at another tolerance (0, 0.05, 0.10 are reported beside 0.20).
+ANSWER_TOL = float(os.environ.get("QUWARTS_ANSWER_TOL", "0.2"))
+
+
+def same_value(x, y, tol: float | None = None) -> bool:
+    """Equal after normalization (case and outer spaces ignored); numbers within ``tol`` relative error."""
 
     from quwarts.core.router.comparator import as_number
 
+    tol = ANSWER_TOL if tol is None else tol
     a, b = as_number(x), as_number(y)
     if a is not None and b is not None:
-        return abs(a - b) <= 0.2 * max(abs(a), abs(b)) if (a or b) else True
+        return abs(a - b) <= tol * max(abs(a), abs(b)) if (a or b) else True
     return str(x).strip().lower() == str(y).strip().lower()
 
 

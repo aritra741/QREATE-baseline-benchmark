@@ -375,3 +375,31 @@ H9 corrected: list fix rates by the 32B are column-specific (artists' field 76 o
 art.composition (all wrong; 25 with a blank correct answer), whose gold values are annotator labels ("Balanced",
 "Symmetrical") not written in the biographies; 12 fixed. The 32B copied the prompt's field note into 41 composition
 answers.
+
+## 12. Scores at 0, 5, 10 and 20% tolerance (2026-10-12)
+
+Two different tolerances were in use, both at 20%. Per-answer accuracy (`exp_open.correct`) allowed numbers within
+20% of the correct one (relative error); case was always ignored, which is intended. Query scores (structure F2 x cell
+F1@tau, `spp.aggregation_metrics`) allow a result cell's error up to tau of the range of the correct values in that
+result column. Both are now reported at 0, 5, 10 and 20% (`QUWARTS_ANSWER_TOL`; `exp_tolerance.py`, `exp_tau.py`;
+`WHY/tolerance`, `WHY/tau/<corpus>.json`).
+
+Per-answer accuracy over the 5,331 single-column I1 reads: 0.409 / 0.409 / 0.409 / 0.411. Only three columns gain at 20%
+(NBA titles 11 for 13, awards 5 for 4, draft pick 42 for 35); H7 unchanged.
+
+Query scores on the test queries, DocETL against our system (mean of runs) against ours without re-reads:
+
+| collection | 0% | 5% | 10% | 20% |
+|---|---|---|---|---|
+| papers (59) | .005 / .007 / .012 | .050 / .062 / .053 | .079 / .100 / .086 | .105 / .139 / .129 |
+| players (118) | .054 / .283 / .283 | .066 / .334 / .333 | .070 / .350 / .348 | .081 / .378 / .377 |
+| artists (43) | .049 / .062 / .062 | .103 / .151 / .172 | .129 / .193 / .205 | .167 / .253 / .257 |
+| medical (43) | .021 / .052 / .030 | .035 / .072 / .035 | .056 / .089 / .061 | .072 / .098 / .069 |
+| court cases (21) | .017 / .044 / .041 | .032 / .100 / .094 | .035 / .126 / .120 | .057 / .161 / .159 |
+
+DocETL's scores reproduce its recorded 20% values exactly (its per-query databases are saved). Ours are rescored on each
+run's final served table (final view plus the list-item filter as the runs applied it), because the table at each
+query's position was not kept; at 20% this matches the recorded scores within 0.005 on papers, players and artists, and
+differs by up to 0.016 on medical and 0.019 on court cases. Our system is above DocETL at every tolerance on every
+collection. Without re-reads it is above at every tolerance except medical, where it ties DocETL at 5% to 20% on the
+rescored tables (recorded at 20%: 0.085 against 0.072, a gap smaller than the rescoring difference).

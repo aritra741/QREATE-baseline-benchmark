@@ -34,8 +34,8 @@ HOME_SCRATCH = Path.home() / "quwarts_scratch" / "drift_live_ollama"
 CORPORA = ["cspaper", "player", "art", "med", "legal"]
 
 
-def correct(pred, gold) -> bool:
-    return is_null(pred) if is_null(gold) else (not is_null(pred) and same_value(pred, gold))
+def correct(pred, gold, tol: float | None = None) -> bool:
+    return is_null(pred) if is_null(gold) else (not is_null(pred) and same_value(pred, gold, tol))
 
 
 def column_values(db: Path, table: str, col: str) -> dict[str, object] | None:
