@@ -68,9 +68,18 @@ def h01():
     ax.barh([n for n, _ in items], [v for _, v in items], color=BLUE, height=0.6)
     for i, (_, v) in enumerate(items):
         ax.text(v + 0.01, i, f"{v:.2f}", va="center", fontsize=15, color=INK)
-    ax.axvline(0.6, color=GRAY, linestyle="--", linewidth=2)
-    ax.text(0.605, len(items) - 0.45, "pass mark: 0.6", color=GRAY, fontsize=14)
+    # reference levels measured from the data (WHY/references): chance with the columns shuffled, and the agreement of
+    # one kind of change with itself when every prompt is sent again
+    ref = j("WHY/references/summary.json")["H1"]
+    chance = max(v["chance_95"] for k, v in ref.items() if "chance_95" in v)
+    rep = ref["repeat level (same change, measured twice)"].values()
+    ax.axvspan(0, chance, color=GRAY, alpha=0.15, linewidth=0)
+    top = len(items) - 0.62
+    ax.text(0.01, top, f"chance: below {chance:.2f}", color=INK2, fontsize=13, ha="left", va="bottom")
+    ax.axvspan(min(rep), max(rep), color=TEAL, alpha=0.25, linewidth=0)
+    ax.text(max(rep), -0.45, f"same change measured twice: {min(rep):.2f} to {max(rep):.2f}", color=TEAL, fontsize=13, ha="right", va="top")
     ax.set_xlim(0, 1.05)
+    ax.set_ylim(-0.85, len(items) - 0.1)
     ax.set_xlabel("Do both changes pick the same unstable columns?\n(1 = same order, 0 = unrelated)")
     style(ax, "x")
     save(f, "h01")
@@ -86,16 +95,17 @@ def h02():
     ax.fill_between(ns, lo, hi, color=BLUE, alpha=0.15, linewidth=0, label="range over 30 draws")
     ax.plot(ns, mean, marker="o", markersize=9, color=BLUE, linewidth=2.5, label="mean over 30 draws")
     ax.axhline(-d["full"]["spearman"], color=GRAY, linestyle=":", linewidth=2)
-    ax.text(20.3, -d["full"]["spearman"] + 0.006, "using all documents: 0.72", color=GRAY, fontsize=14, ha="right", va="bottom")
-    ax.axhline(0.6, color=ORANGE, linestyle="--", linewidth=2)
-    ax.text(20.3, 0.6 - 0.006, "pass mark: 0.6", color=ORANGE, fontsize=14, ha="right", va="top")
+    ax.text(4.8, -d["full"]["spearman"] + 0.008, "using all documents: 0.72", color=GRAY, fontsize=14, ha="left", va="bottom")
+    chance = 1.96 / (d["columns"] - 1) ** 0.5  # 95% of shuffles of 101 columns fall below this
+    ax.axhspan(0, chance, color=GRAY, alpha=0.15, linewidth=0)
+    ax.text(4.8, chance - 0.01, f"chance: below {chance:.2f}", color=INK2, fontsize=14, ha="left", va="top")
     for n, m in zip(ns, mean):
-        ax.text(n, m + 0.012, f"{m:.2f}", ha="center", fontsize=15)
+        ax.text(n, m + 0.012 if n < 20 else m - 0.035, f"{m:.2f}", ha="center", fontsize=15)
     ax.set_xticks(ns)
     ax.set_xlabel("Documents tested per column (no correct answers needed)")
-    ax.set_ylabel("Match with the true accuracy order\n(1 = same order)")
-    ax.set_ylim(0.5, 0.78)
-    ax.legend(loc="lower right", frameon=False, bbox_to_anchor=(1, 0.08))
+    ax.set_ylabel("How well instability picks out\nthe less accurate columns\n(rank correlation, sign flipped)")
+    ax.set_ylim(0, 0.8)
+    ax.legend(loc="center right", frameon=False, bbox_to_anchor=(1, 0.45))
     style(ax)
     save(f, "h02")
 

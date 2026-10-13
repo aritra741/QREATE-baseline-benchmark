@@ -132,3 +132,25 @@ Tested and holding: H1 (with chance removed), H3 (changed answers are wrong both
 - A5: report per-answer accuracy with the query scorer's exact comparison next to the lenient one, about an hour.
 - A6/A7: one slide defining the score and DocETL's setup; needs the DocETL run config.
 - A9, E20 to E24: decisions for you and the advisor, not edits.
+
+## Status after deck v46 (2026-10-12)
+
+Scope set by the user: the thesis is ours to find; held-out queries and frontier-model DocETL runs are for the paper,
+not this update; DocETL is compared by relative trend. So A6, A7, A9 stay as stated limits.
+
+- **A2 retracted.** Resending the same prompt moves at most 4 of 40 columns by 5 points of accuracy
+  (`WHY/references`), against 14 to 18 between prompts. H3's counts are well above chance. The slide now says so.
+- **A3, C (H9):** the reason I wrote yesterday ("the large model rarely fixes lists") was wrong: list fix rates run
+  from 14% (artists' field) to 79% (birth city). Replaced with: instability does not predict fixability (-0.11 over
+  32 columns, chance range 0.35), and the arm is one column.
+- **C (H10):** reason now measured: 445 of the checker's 600 picks are artists' composition, whose correct answers are
+  an annotator's own words never written in the text; 12 of 445 fixed.
+- **C (H7):** resend gives the reason a test: same prompt twice, answers that differ are right 7% of the time, 45% when
+  they agree.
+- **C (H6, H11, H16):** marked as one column / not yet tested.
+- **B11 to B17, D18 (H1, H2), F27:** fixed. H1 and H2 charts show chance and repeat levels instead of 0.6.
+- **E20:** thesis on the main-idea slide and the conclusion: variation belongs to the column, the cost of an error
+  belongs to the query.
+- Found on the way: the large model copied the prompt's field note ("Never null: always give a value. Workload use:
+  grouped by its value.") into 41 of 2,999 re-read answers, all on artists' composition.
+- Still open: A1 for H2 (the 5/10/20-document curve uses single samples), A5 (lenient vs exact "correct").

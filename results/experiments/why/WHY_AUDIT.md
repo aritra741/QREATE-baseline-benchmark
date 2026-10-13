@@ -359,3 +359,19 @@ measured instability is resampling at temperature 0.1 (more for lists, where it 
 the prompt, and the largest prompt effect is showing the query's condition. The 26% resend change of §9's wide
 "natural" prompts is not representative of single-column prompts. Most resampling-prone columns are medical text
 lists (risk_factors 0.48, recommended_usage 0.36, mechanism_of_action 0.36).
+
+## 11. Reference levels and two corrected reasons (2026-10-12)
+
+`quwarts/eval/exp_references.py`, `WHY/references/summary.json` (40 columns with all four single-column prompts and
+their resends). H1: rank agreement of column instability between kinds of change 0.84 to 0.93 (90% document
+resampling ranges 0.75 to 0.94); 95% of column shuffles stay below 0.32; the same change measured on first sends and on
+resends agrees at 0.955 to 0.989. H3: between alone and another prompt 12 to 18 columns gain or lose 5 or more points;
+between a prompt and its own resend 0 to 4. H7: alone vs plus 2, agreeing answers right 0.561, differing 0.149 (745 and
+455); alone vs its own resend, 0.454 and 0.066 (1,049 and 151).
+
+H9 corrected: list fix rates by the 32B are column-specific (artists' field 76 of 527 wrong fixed, 14%; birth city 59 of
+75, 79%; all lists under the uniform rule 15 of 121). Instability vs fix rate over 32 columns: Spearman -0.114. The
+"most unstable first" arm is a single column (art.field, 600 cells). H10: the checker put 445 of 600 re-reads on
+art.composition (all wrong; 25 with a blank correct answer), whose gold values are annotator labels ("Balanced",
+"Symmetrical") not written in the biographies; 12 fixed. The 32B copied the prompt's field note into 41 composition
+answers.
