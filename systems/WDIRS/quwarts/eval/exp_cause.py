@@ -88,7 +88,7 @@ def operators(sql: str) -> list[str]:
     return ops or ["select"]
 
 
-def new_values(corpus: str, root: Path, level: int, table: str, attr: str) -> dict | None:
+def new_values(corpus: str, root: Path, level: int, table: str, attr: str, second_looks: bool = True) -> dict | None:
     """The other run's served values for a column: at level 0 its build database; at 100 the journal reads with the
     stronger reader's replacements applied."""
     if level == 0:
@@ -114,7 +114,7 @@ def new_values(corpus: str, root: Path, level: int, table: str, attr: str) -> di
     if not pv:
         return None
     rep = root / corpus / "repair_reads.jsonl"
-    if rep.exists():
+    if rep.exists() and second_looks:
         for line in rep.read_text().splitlines():
             if not line.strip():
                 continue
@@ -159,7 +159,7 @@ class CauseScorer(R.Scorer):
         self.cache = json.loads(path.read_text()) if path.exists() else {"benchmark": {}, "tolerant": {}}
 
 
-def final_view(corpus: str, run: str, level: int, out_dir: Path, key: str | None = None) -> Path:
+def final_view(corpus: str, run: str, level: int, out_dir: Path, key: str | None = None, second_looks: bool = True) -> Path:
     """The run's final served table as a view: the recorded table with every cell the run read (and the stronger
     reader replaced) applied, committed with the run's field specs and represented with the full catalogue. Returns
     the view path (``<out_dir>/all.view.db``), building it when absent."""
@@ -190,7 +190,7 @@ def final_view(corpus: str, run: str, level: int, out_dir: Path, key: str | None
         if col not in fields or run == "recorded":
             continue
         t, attr = col.split(".", 1)
-        new = new_values(corpus, root, level, t, attr)
+        new = new_values(corpus, root, level, t, attr, second_looks)
         if not new:
             continue
         if level == 100:

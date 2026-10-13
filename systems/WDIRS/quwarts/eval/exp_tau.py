@@ -53,7 +53,7 @@ def score_multi(corpus: str, items: list[tuple[str, Path]]) -> dict[str, dict[fl
     out = {}
     for qid, db in items:
         sql = ctx.catalog[qid]
-        res = {t: 0.0 for t in TAUS}
+        res = {t: 0.0 for t in TAUS} | {"structure": 0.0, "cell": {t: 0.0 for t in TAUS}}
         try:
             psql = official_sql(sql, str(db), preds, query_id=qid)
             gold_rows = execute(gold_conn, sql)
@@ -67,18 +67,20 @@ def score_multi(corpus: str, items: list[tuple[str, Path]]) -> dict[str, dict[fl
                 p = predicted_table_from_rows(pred_rows, gold=g)
                 m = json_ready_metrics(evaluate_aggregation_tables(p, g, config=config))
                 s = float(m["rank"]["structure_fbeta_score"])
+                res["structure"] = round(s, 4)
                 for k, v in m["rank"]["cell_f1"].items():
                     for t in TAUS:
                         if abs(float(k) - t) < 1e-9:
                             res[t] = round(s * float(v), 4)
+                            res["cell"][t] = round(float(v), 4)
         except Exception as exc:  # noqa: BLE001 - a query that fails to run scores 0, as in the recorded scores
-            res = {t: 0.0 for t in TAUS} | {"error": str(exc)[:200]}
+            res = {t: 0.0 for t in TAUS} | {"structure": 0.0, "cell": {t: 0.0 for t in TAUS}, "error": str(exc)[:200]}
         out[qid] = res
     gold_conn.close()
     return out
 
 
-def served_view(corpus: str, run: str, out: Path) -> Path:
+def served_view(corpus: str, run: str, out: Path, second_looks: bool = True) -> Path:
     """The run's final table as it served queries: exp_cause.final_view (every cell the run read, the stronger
     reader's replacements applied) plus the list-item filter on the columns the run's plan switched it on for, with
     the rule the recorded runs used (a cell with no stated item is emptied: QUWARTS_ITEMFILTER_EMPTY=1)."""
@@ -97,7 +99,7 @@ def served_view(corpus: str, run: str, out: Path) -> Path:
         return view
     R = D.R
     ctx = R.context(corpus)
-    src = final_view(corpus, run, 100, out).with_name("all.db")
+    src = final_view(corpus, run, 100, out, second_looks=second_looks).with_name("all.db")
     st = json.loads((EXP / run / "live" / corpus / "state" / "fixed4-attribute_pool_100.json").read_text())
     fields = fields_of(corpus)
     for t, plan in st.get("frozen", {}).items():
@@ -137,7 +139,9 @@ def main(argv=None) -> int:
         doc_items = [(q, DOCETL / c / "db" / f"{safe(q)}.db") for q in tests if q in per_doc and (DOCETL / c / "db" / f"{safe(q)}.db").exists()]
         common = [q for q, _ in doc_items]
         res = {"corpus": c, "test_queries": len(tests), "docetl_answered": len(common), "systems": {}}
+        per_query = {"DocETL": {}}
         d = score_multi(c, doc_items)
+        per_query["DocETL"]["DocETL"] = d
         res["systems"]["DocETL"] = {"runs": [{"recorded_20": round(S.mean(per_doc[q]["benchmark"] for q in common), 4),
                                               **{f"{t:.0%}": round(S.mean(d[q][t] for q in common), 4) for t in TAUS}}]}
         for name, runs in OURS.items():
@@ -149,12 +153,14 @@ def main(argv=None) -> int:
                 rec = {json.loads(x)["qid"]: json.loads(x).get("benchmark") or 0.0 for x in stream.read_text().splitlines() if x.strip()}
                 view = served_view(c, run, sp / "fv" / f"{c}_{run}")
                 o = score_multi(c, [(q, view) for q in tests])
+                per_query.setdefault(name, {})[run] = {q: {**o[q], "recorded_20": rec.get(q)} for q in tests}
                 rows.append({"run": run, "recorded_20_all": round(S.mean(rec.get(q, 0.0) for q in tests), 4),
                              "recorded_20": round(S.mean(rec.get(q, 0.0) for q in common), 4),
                              **{f"{t:.0%}": round(S.mean(o[q][t] for q in common), 4) for t in TAUS}})
             if rows:
                 res["systems"][name] = {"runs": rows}
         (dest / f"{c}.json").write_text(json.dumps(res, indent=1))
+        (dest / f"{c}_per_query.json").write_text(json.dumps(per_query, default=str))
         print(c, json.dumps(res["systems"]), flush=True)
     return 0
 

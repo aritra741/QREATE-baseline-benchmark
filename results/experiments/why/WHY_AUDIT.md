@@ -403,3 +403,34 @@ query's position was not kept; at 20% this matches the recorded scores within 0.
 differs by up to 0.016 on medical and 0.019 on court cases. Our system is above DocETL at every tolerance on every
 collection. Without re-reads it is above at every tolerance except medical, where it ties DocETL at 5% to 20% on the
 rescored tables (recorded at 20%: 0.085 against 0.072, a gap smaller than the rescoring difference).
+
+## 13. Aggregation types, group size, and what re-reads really change (2026-10-12)
+
+Per-query scores at 0/5/10/20% now saved (`WHY/tau/<corpus>_per_query.json`: each run's score, structure F2 and cell
+F1 per tolerance). `exp_aggtype.py` (`WHY/aggtype`), `exp_groupsize.py` (`WHY/groupsize`), `exp_reread_effect.py`
+(`WHY/reread_effect`).
+
+**By aggregation type alone there is no consistent order across collections** (MIN/MAX: players 0.27, artists 0.27,
+court cases 0.15, papers 0.03 at 20%). Splitting by whether the aggregated column was newly read under drift does not
+separate either (and is not a meaningful split: build columns are model-extracted too).
+
+**Group size explains exactness.** Group size = rows behind each result value in the correct data (the query with every
+aggregate replaced by COUNT(*), on the gold tables), median per query. Our system's value score (cell F1) at 0%, all
+collections: COUNT(*) 0.21 for groups of 1-2 rows, 0.00 at 3 and more; COUNT(column) 0.09 / 0.17 / 0.01 / 0.00 (1-2,
+3-9, 10-49, 50+); SUM 0.45 / 0.19 / 0.01 / 0.00; AVG 0.44 / - / 0.00 / 0.00; MIN/MAX 0.26 / 0.61 / 0.15 / 0.16. Within
+players alone (the one collection with enough queries per size): SUM 0.68 / 0.31 / 0.01, AVG 0.54 / - / 0.00,
+COUNT(column) 0.71 / - / 0.00, MIN/MAX 0.44 / 0.57 / 0.15. Mechanism: an exact COUNT, SUM or AVG needs every row in
+the group right (its value and its membership), so exactness falls roughly as p^n; MIN/MAX needs only the extreme row,
+so it keeps 0.15 in large groups. The prediction that AVG would recover at 20% in large groups failed: AVG at 20% falls
+too (0.58 to 0.17), so wrong rows are not small errors that averaging dilutes. Breakdown: artists' small groups are
+bad (SUM 0.05 at 0%), because they aggregate a column read badly (awards); group size is one factor, the column's own
+accuracy the other. Rows and groups (structure F2) move the opposite way: 0.24 to 0.45 for groups of 1-2 rows, 0.7 to
+0.9 for 10 and more.
+
+**Re-reads (paired within each run: the same final table with and without its second looks).** Score change at 20%:
+papers +0.003, +0.006, +0.016 (69-128 looks at agent_framework); players -0.011, +0.002, +0.004 (160-186 looks at NBA
+titles and FIBA world cup); artists -0.005, -0.003 (382 looks at awards); medical 0, 0, 0 (40 looks at single dose, no
+test query moved). So "without re-reads, medical ties DocETL" was a comparison between different runs, not an effect
+of re-reads: any two medical runs differ in 22 to 32% of the new columns' cells (papers 6 to 9%), with or without
+re-reads, while the re-reads touch 40 of 1,386 cells. Run-to-run variation is the resend effect at table scale and
+follows the column kind (medical's columns are free-text lists).
