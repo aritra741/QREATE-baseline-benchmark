@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from collections import Counter
 from dataclasses import dataclass, field
@@ -191,6 +192,13 @@ def parse_fields(text: str, names: list[str] | None = None) -> dict[str, Any]:
             payload = json.loads(body[start : end + 1])
         except json.JSONDecodeError:
             payload = None
+            # Opt-in (QUWARTS_PARSE_FIRST_OBJECT=1, off for every recorded run): a reply that is a JSON object
+            # followed by commentary (common for hosted models) is read as its first complete object.
+            if os.environ.get("QUWARTS_PARSE_FIRST_OBJECT") == "1":
+                try:
+                    payload, _ = json.JSONDecoder().raw_decode(body[start:])
+                except json.JSONDecodeError:
+                    payload = None
         if isinstance(payload, dict):
             if isinstance(payload.get("fields"), dict):
                 return align_keys(payload["fields"], names)

@@ -1232,6 +1232,13 @@ Your main result must be sent via send_output. The updated_scratchpad is only fo
                                         output_dict[key] = value
                                 except Exception:
                                     pass
+                    # QuWARTS harness fix (opt-in, DOCETL_STR_COERCE=1): the literal_eval above turns a
+                    # string "2008" into 2008, which then fails a declared string type and drops the
+                    # document. A number answered for a declared string field is kept as its text.
+                    if os.environ.get("DOCETL_STR_COERCE") == "1":
+                        for key, value in output_dict.items():
+                            if str(schema.get(key, "")).lower() in ("str", "string", "text") and isinstance(value, (int, float)) and not isinstance(value, bool):
+                                output_dict[key] = str(value)
                     outputs.append(output_dict)
                 except json.JSONDecodeError:
                     raise InvalidOutputError(
