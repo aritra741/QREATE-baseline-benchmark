@@ -34,7 +34,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence")
+ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared")
 
 
 def mask(sql: str) -> str:
@@ -63,6 +63,12 @@ def main(argv=None) -> int:
     c = a.corpus
     ctx = D.R.context(c)
     cat = catalogs(c)
+    if any(q.startswith("conflict:") for q in a.qids) or a.qids == ["conflict:all"]:
+        from quwarts.eval.validate_conflicts import load as load_conflicts
+
+        cat.update(load_conflicts(c))
+        if a.qids == ["conflict:all"]:
+            a.qids = [q for q in cat if q.startswith(f"conflict:{c}#")]
     for q in a.qids:
         ctx.catalog.setdefault(q, cat[q])
     RD.track_tokens()
@@ -116,9 +122,9 @@ def main(argv=None) -> int:
                     descriptions[x] = f"{descriptions[x] or x}. {tail}"
         shown = mask(sql) if a.arm == "masked" else sql
         template = RD.prompt_template(table, attrs, numeric, shown, descriptions)
-        if a.arm == "nosql":
+        if a.arm in ("nosql", "shared"):
             template = template.replace(f"for this natural-language query:\n{sql}\n\n", ".\n\n")
-            assert sql not in template
+            assert not sql or sql not in template
         texts = {d: Path(p).read_text(errors="ignore") for d, p in ctx.docs[table].items()}
         if a.arm == "chunked":
             size = chunked.chunk_tokens(int(V3["window_tokens"]))
@@ -164,10 +170,29 @@ def main(argv=None) -> int:
         stats_path.write_text(json.dumps(stats, indent=1))
         return stats
 
+    shared_tables, shared_numeric = {}, {}
+    if a.arm == "shared":  # one read of each table, the union of all the queries' columns, no query in the prompt
+        fields_u, reads_u = D.C.design(ctx.spec, {q: cat[q] for q in a.qids})
+        for r in reads_u:
+            if r.table not in ctx.names or not r.attributes:
+                continue
+            out = root / "_shared" / f"table_{r.table}"
+            out.mkdir(parents=True, exist_ok=True)
+            s_ = run_table("shared", "", r.table, list(r.attributes), fields_u, out)
+            shared_tables[r.table] = json.loads((out / "pipeline_output.json").read_text())
+            shared_numeric[r.table] = {x.lower() for x in s_["numeric"]}
     for qid in a.qids:
         if qid in per:
             continue
         sql = cat[qid]
+        if a.arm == "shared":
+            db = RD.build_db(c, sql, {t: [dict(x) for x in v] for t, v in shared_tables.items()}, shared_numeric, root / "db" / f"{RD.safe(qid)}.db")
+            sc = score_multi(c, [(qid, db)])[qid]
+            per[qid] = {"score": {f"{t:.0%}": sc.get(t) for t in TAUS}, "tables": sorted(shared_tables), "prompt_tokens": 0,
+                        "completion_tokens": 0, "calls": 0, "failed_docs": 0, "seconds": 0, "note": "answered from the shared read (tokens in _shared)"}
+            per_path.write_text(json.dumps(per, indent=1))
+            print(f"shared   {c:8s} {qid:40s} score@20 {per[qid]['score']['20%']:.3f} @0 {per[qid]['score']['0%']:.3f}", flush=True)
+            continue
         fields, reads = D.C.design(ctx.spec, {qid: sql})
         tables, numeric, stats = {}, {}, []
         for r in reads:

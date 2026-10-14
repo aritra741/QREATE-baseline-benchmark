@@ -214,3 +214,16 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def load(c: str, path: Path | None = None) -> dict[str, str]:
+    """The collection's conflict queries {query id: natural SQL}; their answer keys go into the scorer's REFERENCE."""
+    from quwarts.eval.exp_tau import EXP, REFERENCE
+
+    path = path or EXP.parents[1] / "Query" / "Realistic" / "conflict" / f"{c}.sql"
+    out = {}
+    for g in parse(path):
+        for q in g["queries"]:
+            out[qid(c, q["id"])] = q["sql"]
+            REFERENCE[qid(c, q["id"])] = q["key"]
+    return out
