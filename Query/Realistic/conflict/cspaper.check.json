@@ -1,283 +1,258 @@
 {
  "summary": {
   "corpus": "cspaper",
-  "groups": 6,
-  "queries": 17,
+  "groups": 5,
+  "questions": 10,
   "groups_with_problems": 0,
   "by_type": {
-   "list-vs-one": 4,
-   "fine-vs-coarse": 2
+   "fine-vs-coarse": 2,
+   "number-vs-text": 1,
+   "list-vs-one": 2
   }
  },
  "groups": [
   {
    "group": "G1",
-   "about": "cspaper.retrieval_method lists every retrieval method a paper combines (35 of 199 papers list two or more; 23 more state 'Hybrid Retrieval' alone); G1a counts a paper under every method it lists, G1b wants one method per paper with any combination counted as hybrid retrieval, G1c needs to see which dense-retrieval papers list another method too",
+   "about": "cspaper.retrieval_method lists every retrieval method a paper names (35 of 199 papers name two or more); G1a counts a paper under each method it names (needs the list as stated), G1b counts each paper once, a combination of methods as hybrid retrieval (needs one value per paper)",
    "type": "list-vs-one",
    "column": "cspaper.retrieval_method",
    "problems": [],
    "queries": {
     "G1a": {
-     "question": "For single-hop and multi-hop papers, how many use dense retrieval, sparse retrieval, graph-based retrieval, hybrid retrieval and web search, counting a paper that lists several methods under every method it lists?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "For single-hop and multi-hop papers, how many use dense retrieval, sparse retrieval, graph-based retrieval, hybrid retrieval and web search? A paper counts under every method it names.",
+     "natural": "SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN retrieval_method LIKE '%Dense%' THEN 1 ELSE 0 END) AS dense, SUM(CASE WHEN retrieval_method LIKE '%Sparse%' THEN 1 ELSE 0 END) AS sparse, SUM(CASE WHEN retrieval_method LIKE '%Graph%' THEN 1 ELSE 0 END) AS graph_based, SUM(CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 1 ELSE 0 END) AS hybrid, SUM(CASE WHEN retrieval_method LIKE '%Web%' THEN 1 ELSE 0 END) AS web_search FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth;",
+     "key": "SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN retrieval_method LIKE '%Dense%' THEN 1 ELSE 0 END) AS dense, SUM(CASE WHEN retrieval_method LIKE '%Sparse%' THEN 1 ELSE 0 END) AS sparse, SUM(CASE WHEN retrieval_method LIKE '%Graph%' THEN 1 ELSE 0 END) AS graph_based, SUM(CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 1 ELSE 0 END) AS hybrid, SUM(CASE WHEN retrieval_method LIKE '%Web%' THEN 1 ELSE 0 END) AS web_search FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth;",
+     "key_rows": 2,
+     "natural_length": 522
     },
     "G1b": {
-     "question": "For each retrieval method, counting a paper that lists two or more methods as hybrid retrieval, how many papers are there, how many use a reranker, and how many baselines do they compare against on average?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 6
-    },
-    "G1c": {
-     "question": "Among papers that use dense retrieval, how many use it as their only retrieval method and how many list it together with another method (sparse, graph-based, hybrid, web search or other), and how many of each use a reranker and support multi-turn retrieval?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "For each retrieval method, how many papers use it, how many of them use a reranker, and how many baselines do they compare against on average? A paper that combines two or more methods counts as hybrid retrieval.",
+     "natural": "SELECT retrieval_method, COUNT(*) AS papers, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS with_reranker, AVG(baseline_amount) AS average_baselines FROM cspaper WHERE retrieval_method <> '' GROUP BY retrieval_method;",
+     "key": "SELECT CASE WHEN retrieval_method LIKE '%||%' THEN 'Hybrid Retrieval' ELSE retrieval_method END AS retrieval_method, COUNT(*) AS papers, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS with_reranker, AVG(baseline_amount) AS average_baselines FROM cspaper WHERE retrieval_method <> '' GROUP BY CASE WHEN retrieval_method LIKE '%||%' THEN 'Hybrid Retrieval' ELSE retrieval_method END;",
+     "key_rows": 6,
+     "natural_length": 228
     }
    },
-   "forms": {
-    "G1b": {
-     "update": "UPDATE cspaper SET retrieval_method = CASE WHEN instr(retrieval_method, '||') > 0 THEN 'Hybrid Retrieval' ELSE retrieval_method END",
-     "rows_changed": 200,
-     "scores": {
-      "G1a": {
-       "0%": 0.25,
-       "20%": 0.25
-      },
-      "G1b": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G1c": {
-       "0%": 0.3704,
-       "20%": 0.3704
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G1a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G1b": {
+      "0%": 0.0125,
+      "20%": 0.075
+     }
+    },
+    "FORM G1b": {
+     "rows_changed": 35,
+     "G1a": {
+      "0%": 0.25,
+      "20%": 0.25
+     },
+     "G1b": {
+      "0%": 1.0,
+      "20%": 1.0
      }
     }
    }
   },
   {
    "group": "G2",
-   "about": "cspaper.application_domain lists every domain a paper targets (39 of 199 papers list two or more, often General together with a specific domain); G2a counts a paper under every specific domain it lists, G2b needs General, Academic and Other separately, G2c wants one domain per paper (medical, finance, education, legal, or general and other)",
+   "about": "cspaper.application_domain lists every domain a paper targets (39 of 199 papers name two or more, often General plus a specific domain); G2a counts a paper under each domain it names (needs the list as stated), G2b counts each paper once under its specific domain (needs one value per paper)",
    "type": "list-vs-one",
    "column": "cspaper.application_domain",
    "problems": [],
    "queries": {
     "G2a": {
-     "question": "For papers with and without an agent, how many target medical, finance, education, legal and academic applications, counting a paper under every domain it lists?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "For papers with and without an agent, how many are general-purpose and how many target medicine, education, finance and academic research? A paper counts under every domain it names.",
+     "natural": "SELECT use_agent, COUNT(*) AS papers, SUM(CASE WHEN application_domain LIKE '%General%' THEN 1 ELSE 0 END) AS general_purpose, SUM(CASE WHEN application_domain LIKE '%Medical%' THEN 1 ELSE 0 END) AS medical, SUM(CASE WHEN application_domain LIKE '%Education%' THEN 1 ELSE 0 END) AS education, SUM(CASE WHEN application_domain LIKE '%Finance%' THEN 1 ELSE 0 END) AS finance, SUM(CASE WHEN application_domain LIKE '%Academic%' THEN 1 ELSE 0 END) AS academic FROM cspaper WHERE application_domain <> '' GROUP BY use_agent;",
+     "key": "SELECT use_agent, COUNT(*) AS papers, SUM(CASE WHEN application_domain LIKE '%General%' THEN 1 ELSE 0 END) AS general_purpose, SUM(CASE WHEN application_domain LIKE '%Medical%' THEN 1 ELSE 0 END) AS medical, SUM(CASE WHEN application_domain LIKE '%Education%' THEN 1 ELSE 0 END) AS education, SUM(CASE WHEN application_domain LIKE '%Finance%' THEN 1 ELSE 0 END) AS finance, SUM(CASE WHEN application_domain LIKE '%Academic%' THEN 1 ELSE 0 END) AS academic FROM cspaper WHERE application_domain <> '' GROUP BY use_agent;",
+     "key_rows": 2,
+     "natural_length": 519
     },
     "G2b": {
-     "question": "For single-hop and multi-hop papers, how many are general-purpose (list the General domain), how many target academic use, and how many target some other application, counting a paper under every domain it lists?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
-    },
-    "G2c": {
-     "question": "For each application domain (medical, finance, education, legal, or general and other; a paper naming several of the first four goes to the first in that order), how many papers are there, how many use a reranker, and how many support multi-turn retrieval?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 5
+     "question": "Counting each paper once under its specific application domain (General only if it names no other domain, Multiple if it names two or more specific ones), how many papers are there per domain, how many study multi-hop reasoning, and how many use a knowledge graph?",
+     "natural": "SELECT application_domain, COUNT(*) AS papers, SUM(CASE WHEN reasoning_depth = 'multi-hop' THEN 1 ELSE 0 END) AS multi_hop, SUM(CASE WHEN uses_knowledge_graph = 'Yes' THEN 1 ELSE 0 END) AS with_knowledge_graph FROM cspaper WHERE application_domain <> '' GROUP BY application_domain;",
+     "key": "SELECT CASE WHEN application_domain NOT LIKE '%||%' THEN application_domain WHEN length(application_domain) - length(replace(application_domain, '||', '')) = 2 AND application_domain LIKE '%General%' THEN trim(replace(replace(application_domain, 'General||', ''), '|| General', '')) ELSE 'Multiple' END AS application_domain, COUNT(*) AS papers, SUM(CASE WHEN reasoning_depth = 'multi-hop' THEN 1 ELSE 0 END) AS multi_hop, SUM(CASE WHEN uses_knowledge_graph = 'Yes' THEN 1 ELSE 0 END) AS with_knowledge_graph FROM cspaper WHERE application_domain <> '' GROUP BY CASE WHEN application_domain NOT LIKE '%||%' THEN application_domain WHEN length(application_domain) - length(replace(application_domain, '||', '')) = 2 AND application_domain LIKE '%General%' THEN trim(replace(replace(application_domain, 'General||', ''), '|| General', '')) ELSE 'Multiple' END;",
+     "key_rows": 10,
+     "natural_length": 282
     }
    },
-   "forms": {
-    "G2c": {
-     "update": "UPDATE cspaper SET application_domain = CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Legal%' THEN 'Legal' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%Government%' THEN 'Government' WHEN application_domain LIKE '%Sports%' THEN 'Sports' WHEN application_domain LIKE '%Art%' THEN 'Art' WHEN application_domain LIKE '%General%' THEN 'General' ELSE application_domain END WHERE application_domain IS NOT NULL AND application_domain <> ''",
-     "rows_changed": 199,
-     "scores": {
-      "G2a": {
-       "0%": 0.3333,
-       "20%": 0.5833
-      },
-      "G2b": {
-       "0%": 0.25,
-       "20%": 0.25
-      },
-      "G2c": {
-       "0%": 1.0,
-       "20%": 1.0
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G2a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G2b": {
+      "0%": 0.0858,
+      "20%": 0.1287
+     }
+    },
+    "FORM G2b": {
+     "rows_changed": 39,
+     "G2a": {
+      "0%": 0.1667,
+      "20%": 0.4167
+     },
+     "G2b": {
+      "0%": 1.0,
+      "20%": 1.0
      }
     }
    }
   },
   {
    "group": "G3",
-   "about": "cspaper.data_modality lists every kind of input a paper handles (50 of 192 papers list two or more); G3a wants one input class per paper (images or audio / tables or code / text only), G3b counts the kinds listed, G3c needs each kind separately",
-   "type": "list-vs-one",
-   "column": "cspaper.data_modality",
+   "about": "cspaper.performance_on_hotpotqa is the HotpotQA result as the paper states it (31 papers; metric names, model variants, several numbers); G3a needs each paper's best answer F1 as one number on a 0-100 scale (empty when the paper reports no answer F1), G3b needs the stated text to see which metrics are reported",
+   "type": "number-vs-text",
+   "column": "cspaper.performance_on_hotpotqa",
    "problems": [],
    "queries": {
     "G3a": {
-     "question": "For each kind of input data (papers that handle images or audio; papers that handle tables or code but no images or audio; text-only papers), how many papers are there, how many use a knowledge graph, and how many baselines do they compare against on average?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 3
+     "question": "For papers with and without an agent, what are the lowest and the highest answer F1 reported on HotpotQA, taking each paper's best F1 on a 0-100 scale?",
+     "natural": "SELECT use_agent, MIN(performance_on_hotpotqa) AS lowest_hotpotqa_f1, MAX(performance_on_hotpotqa) AS best_hotpotqa_f1 FROM cspaper WHERE performance_on_hotpotqa <> '' GROUP BY use_agent;",
+     "key": "SELECT use_agent, MIN(f1) AS lowest_hotpotqa_f1, MAX(f1) AS best_hotpotqa_f1 FROM (SELECT use_agent, CASE paper_name WHEN 'learning to Refine Query for Retrieval Augmented Generation (RQ-RAG)' THEN 62.6 WHEN 'A Multi-Source Retrieval Question Answering Framework Based on RAG' THEN 30.66 WHEN 'DR-RAG: Applying Dynamic Document Relevance to RetrievalAugmented Generation for Question-Answering' THEN 62.87 WHEN 'Enhancing Retrieval and Managing Retrieval: A Four-Module Synergy for Improved Quality and Efficiency in RAG Systems' THEN 57.59 WHEN 'SMART-RAG: Selection using Determinantal Matrices for Augmented Retrieval' THEN 40.8 WHEN 'OPEN-RAG: Enhanced Retrieval-Augmented Reasoning with Open-Source Large Language Models' THEN 76.9 WHEN 'DMQR-RAG: DIVERSE MULTI-QUERY REWRITING FOR RETRIEVAL-AUGMENTED GENERATION' THEN 53.99 WHEN 'MBA-RAG: a Bandit Approach for Adaptive Retrieval-Augmented Generation through Question Complexity' THEN 53.3 WHEN 'Post-training an LLM for RAG? Train on Self-Generated Demonstrations' THEN 75.9 WHEN 'Vendi-RAG: Adaptively Trading-Off Diversity And Quality Significantly Improves Retrieval Augmented Generation With LLMs' THEN 57.0 WHEN 'Unveiling Knowledge Utilization Mechanisms in LLM-based Retrieval-Augmented Generation' THEN 59.57 WHEN 'KARE-RAG: Knowledge-Aware Refinement and Enhancement for RAG' THEN 46.45 WHEN 'BEE-RAG: Balanced Entropy Engineering for Retrieval-Augmented Generation' THEN 44.81 WHEN 'Transforming Questions and Documents for Semantically Aligned Retrieval-Augmented Generation' THEN 67.5 WHEN 'CORE: LOSSLESS COMPRESSION FOR RETRIEVALAUGMENTED LLMS VIA REINFORCEMENT LEARNING' THEN 46.35 WHEN 'TeaRAG: A Token-Efficient Agentic Retrieval-Augmented Generation Framework' THEN 63.14 WHEN 'Answering-Students-Questions-on-Course-Forums-Using-Multiple-Chain-of-Thought-Reasoning-and-Finetuni' THEN 62.2 END AS f1 FROM cspaper) WHERE f1 IS NOT NULL GROUP BY use_agent;",
+     "key_rows": 2,
+     "natural_length": 187
     },
     "G3b": {
-     "question": "How many papers handle one kind of input, two kinds, and three or more kinds (counting text, images, audio, tables and code separately), and how many of them study multi-hop reasoning?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 3
-    },
-    "G3c": {
-     "question": "For single-hop and multi-hop papers, how many handle tables, code, images and audio, counting a paper under every kind of input it handles?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "For papers with and without a reranker that report HotpotQA results, how many report an F1 score and how many report accuracy?",
+     "natural": "SELECT uses_reranker, COUNT(*) AS papers, SUM(CASE WHEN performance_on_hotpotqa LIKE '%F1%' THEN 1 ELSE 0 END) AS report_f1, SUM(CASE WHEN performance_on_hotpotqa LIKE '%Acc%' THEN 1 ELSE 0 END) AS report_accuracy FROM cspaper WHERE performance_on_hotpotqa <> '' AND uses_reranker IN ('Yes', 'No') GROUP BY uses_reranker;",
+     "key": "SELECT uses_reranker, COUNT(*) AS papers, SUM(CASE WHEN performance_on_hotpotqa LIKE '%F1%' THEN 1 ELSE 0 END) AS report_f1, SUM(CASE WHEN performance_on_hotpotqa LIKE '%Acc%' THEN 1 ELSE 0 END) AS report_accuracy FROM cspaper WHERE performance_on_hotpotqa <> '' AND uses_reranker IN ('Yes', 'No') GROUP BY uses_reranker;",
+     "key_rows": 2,
+     "natural_length": 321
     }
    },
-   "forms": {
-    "G3a": {
-     "update": "UPDATE cspaper SET data_modality = CASE WHEN data_modality LIKE '%Image%' THEN 'Image' WHEN data_modality LIKE '%Audio%' THEN 'Audio' WHEN data_modality LIKE '%Table%' THEN 'Table' WHEN data_modality LIKE '%Code%' THEN 'Code' WHEN data_modality LIKE '%Text%' THEN 'Text' ELSE data_modality END",
-     "rows_changed": 200,
-     "scores": {
-      "G3a": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G3b": {
-       "0%": 0.0,
-       "20%": 0.0
-      },
-      "G3c": {
-       "0%": 0.5,
-       "20%": 0.5
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G3a": {
+      "0%": 0.0,
+      "20%": 0.0
+     },
+     "G3b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G3a": {
+     "rows_changed": 31,
+     "G3a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G3b": {
+      "0%": 0.0,
+      "20%": 0.0
      }
     }
    }
   },
   {
    "group": "G4",
-   "about": "cspaper.generator_model names the specific generator models of 185 papers (GPT-4o, gpt-3.5-turbo, Llama-3.1-8B-Instruct, ...); G4a wants the model family (GPT, Llama, Qwen, Mistral), G4b needs the specific GPT version",
+   "about": "cspaper.data_modality lists the input types a paper handles (Text, Image, Table, Code, Audio; 53 papers name more than text alone); G4a counts papers per stated input type (needs the list as stated), G4b compares text-only with multimodal papers (needs one coarse value per paper)",
    "type": "fine-vs-coarse",
-   "column": "cspaper.generator_model",
+   "column": "cspaper.data_modality",
    "problems": [],
    "queries": {
     "G4a": {
-     "question": "For papers with and without an agent, how many use as a generator a model whose name contains GPT (OpenAI's GPT and ChatGPT models, but also GPT-2 and GPT-Neo), a Llama model, a Qwen model, and a Mistral or Mixtral model, counting a paper under every model family it uses?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "For single-hop and multi-hop papers, how many handle images, tables, code and audio as input?",
+     "natural": "SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN data_modality LIKE '%Image%' THEN 1 ELSE 0 END) AS image, SUM(CASE WHEN data_modality LIKE '%Table%' THEN 1 ELSE 0 END) AS tables, SUM(CASE WHEN data_modality LIKE '%Code%' THEN 1 ELSE 0 END) AS code, SUM(CASE WHEN data_modality LIKE '%Audio%' THEN 1 ELSE 0 END) AS audio FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth;",
+     "key": "SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN data_modality LIKE '%Image%' THEN 1 ELSE 0 END) AS image, SUM(CASE WHEN data_modality LIKE '%Table%' THEN 1 ELSE 0 END) AS tables, SUM(CASE WHEN data_modality LIKE '%Code%' THEN 1 ELSE 0 END) AS code, SUM(CASE WHEN data_modality LIKE '%Audio%' THEN 1 ELSE 0 END) AS audio FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth;",
+     "key_rows": 2,
+     "natural_length": 421
     },
     "G4b": {
-     "question": "For single-hop and multi-hop papers, how many use GPT-4o (including GPT-4o-mini and ChatGPT-4o), another GPT-4 model (such as GPT-4, GPT-4 Turbo, GPT-4V, GPT-4.1 or ChatGPT-4), and GPT-3.5 as a generator? A ChatGPT entry without a version number is not counted as GPT-3.5.",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "How do text-only papers compare with multimodal papers (any image, table, code or audio input): how many are there, how many use an agent, and how many use a reranker?",
+     "natural": "SELECT data_modality, COUNT(*) AS papers, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS with_agent, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS with_reranker FROM cspaper WHERE data_modality IN ('Text', 'Multimodal') GROUP BY data_modality;",
+     "key": "SELECT CASE WHEN data_modality = 'Text' THEN 'Text' ELSE 'Multimodal' END AS data_modality, COUNT(*) AS papers, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS with_agent, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS with_reranker FROM cspaper WHERE data_modality <> '' AND data_modality <> 'proprietary enterprise dataset' GROUP BY CASE WHEN data_modality = 'Text' THEN 'Text' ELSE 'Multimodal' END;",
+     "key_rows": 2,
+     "natural_length": 262
     }
    },
-   "forms": {
-    "G4a": {
-     "update": "UPDATE cspaper SET generator_model = COALESCE(NULLIF(rtrim(CASE WHEN generator_model LIKE '%GPT%' THEN 'GPT|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Llama%' THEN 'Llama|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Qwen%' THEN 'Qwen|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Mistral%' OR generator_model LIKE '%Mixtral%' THEN 'Mistral|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Gemini%' THEN 'Gemini|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Claude%' THEN 'Claude|| ' ELSE '' END, '| '), ''), 'Other') WHERE generator_model IS NOT NULL AND generator_model <> '' AND generator_model <> 'null'",
-     "rows_changed": 185,
-     "scores": {
-      "G4a": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G4b": {
-       "0%": 0.25,
-       "20%": 0.25
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G4a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G4b": {
+      "0%": 0.3704,
+      "20%": 0.3704
+     }
+    },
+    "FORM G4b": {
+     "rows_changed": 53,
+     "G4a": {
+      "0%": 0.3,
+      "20%": 0.3
+     },
+     "G4b": {
+      "0%": 1.0,
+      "20%": 1.0
      }
     }
    }
   },
   {
    "group": "G5",
-   "about": "cspaper.evaluation_metric lists every metric a paper reports (169 of 193 papers list two or more); G5a wants only whether a paper reports the standard answer metrics (F1, exact match, accuracy, ROUGE), G5b counts the metrics listed, G5c needs the retrieval ranking metrics, which are none of the four",
+   "about": "cspaper.generator_model lists the generator models as each paper spells them (Llama2-7B, Llama 2 7B, LLaMA-2-7b, Qwen-2.5-7B, GPT-4o, ...); G5a needs model versions under one spelling (Llama 2, Llama 3, Qwen2.5), G5b needs one coarse class per paper (proprietary only, open-weight only, both)",
    "type": "fine-vs-coarse",
-   "column": "cspaper.evaluation_metric",
+   "column": "cspaper.generator_model",
    "problems": [],
    "queries": {
     "G5a": {
-     "question": "For single-hop and multi-hop papers, how many report F1, exact match, accuracy and ROUGE, counting every metric a paper reports?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "For single-hop and multi-hop papers, how many papers are there, and how many use a Llama 2 model, a Llama 3 model (any 3.x release) and a Qwen2.5 model as a generator?",
+     "natural": "SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN generator_model LIKE '%Llama 2%' THEN 1 ELSE 0 END) AS llama_2, SUM(CASE WHEN generator_model LIKE '%Llama 3%' THEN 1 ELSE 0 END) AS llama_3, SUM(CASE WHEN generator_model LIKE '%Qwen2.5%' THEN 1 ELSE 0 END) AS qwen_2_5 FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth;",
+     "key": "SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN (replace(replace(replace(lower(generator_model), ' ', ''), '-', ''), 'shearedllama2.7b', '') LIKE '%llama2%' OR replace(replace(lower(generator_model), ' ', ''), '-', '') LIKE '%llama7bchat%') THEN 1 ELSE 0 END) AS llama_2, SUM(CASE WHEN (replace(replace(lower(generator_model), ' ', ''), '-', '') LIKE '%llama3%' OR replace(replace(lower(generator_model), ' ', ''), '-', '') LIKE '%llama8binstruct%') THEN 1 ELSE 0 END) AS llama_3, SUM(CASE WHEN replace(replace(lower(generator_model), ' ', ''), '-', '') LIKE '%qwen2.5%' THEN 1 ELSE 0 END) AS qwen_2_5 FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth;",
+     "key_rows": 2,
+     "natural_length": 369
     },
     "G5b": {
-     "question": "Do papers that report more metrics compare against more baselines? Counting each listed metric separately (each cutoff such as Recall@1 and Recall@5 counts as its own metric), for papers reporting one metric, two or three, and four or more: how many papers, and how many baselines on average?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 3
-    },
-    "G5c": {
-     "question": "For papers with and without a reranker, how many report a retrieval ranking metric (Recall@k including R@k, MRR, nDCG, or a hit rate such as Hit@k, Hits@k or HR@k), out of how many papers that report any metric?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "How do papers that use only proprietary generator models (such as GPT, Claude or Gemini), only open-weight models (such as Llama, Qwen or Mistral), or both compare: how many papers are in each group, how many use an agent, and how many baselines do they compare against on average?",
+     "natural": "SELECT generator_model, COUNT(*) AS papers, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS with_agent, AVG(baseline_amount) AS average_baselines FROM cspaper WHERE generator_model IN ('Proprietary', 'Open-weight', 'Both') GROUP BY generator_model;",
+     "key": "SELECT CASE WHEN (replace(replace(replace(lower(generator_model), 'gpt-neo', ''), 'gpt-2', ''), 'gpt-based', '') LIKE '%gpt%' OR lower(generator_model) LIKE '%claude%' OR lower(generator_model) LIKE '%gemini%' OR lower(generator_model) LIKE '%palm%' OR lower(generator_model) LIKE '%o3-mini%' OR lower(generator_model) LIKE '%openai o3%' OR lower(generator_model) LIKE '%sabia%' OR lower(generator_model) LIKE '%text-embedding%' OR lower(generator_model) LIKE '%qwen-vl-plus%' OR lower(generator_model) LIKE '%mistral large%' OR lower(generator_model) LIKE '%openrouter%') AND (replace(lower(generator_model), 'ollama', '') LIKE '%llama%' OR replace(lower(generator_model), 'mistral large', '') LIKE '%mistral%' OR replace(lower(generator_model), 'qwen-vl-plus', '') LIKE '%qwen%' OR lower(generator_model) LIKE '%mixtral%' OR lower(generator_model) LIKE '%qwq%' OR lower(generator_model) LIKE '%phi%' OR lower(generator_model) LIKE '%gemma%' OR lower(generator_model) LIKE '%falcon%' OR lower(generator_model) LIKE '%t5%' OR lower(generator_model) LIKE '%bert%' OR lower(generator_model) LIKE '%opt-%' OR lower(generator_model) LIKE '%bloom%' OR lower(generator_model) LIKE '%gpt-neo%' OR lower(generator_model) LIKE '%gpt-2%' OR lower(generator_model) LIKE '%vicuna%' OR lower(generator_model) LIKE '%baichuan%' OR lower(generator_model) LIKE '%glm%' OR lower(generator_model) LIKE '%deepseek%' OR lower(generator_model) LIKE '%minicpm%' OR lower(generator_model) LIKE '%llava%' OR lower(generator_model) LIKE '%unifiedqa%' OR lower(generator_model) LIKE '%aya%' OR lower(generator_model) LIKE '%flan%' OR lower(generator_model) LIKE '%ui-tars%' OR lower(generator_model) LIKE '%oransight%' OR lower(generator_model) LIKE '%smallcap%' OR lower(generator_model) LIKE '%lambada%') THEN 'Both' WHEN (replace(replace(replace(lower(generator_model), 'gpt-neo', ''), 'gpt-2', ''), 'gpt-based', '') LIKE '%gpt%' OR lower(generator_model) LIKE '%claude%' OR lower(generator_model) LIKE '%gemini%' OR lower(generator_model) LIKE '%palm%' OR lower(generator_model) LIKE '%o3-mini%' OR lower(generator_model) LIKE '%openai o3%' OR lower(generator_model) LIKE '%sabia%' OR lower(generator_model) LIKE '%text-embedding%' OR lower(generator_model) LIKE '%qwen-vl-plus%' OR lower(generator_model) LIKE '%mistral large%' OR lower(generator_model) LIKE '%openrouter%') THEN 'Proprietary' WHEN (replace(lower(generator_model), 'ollama', '') LIKE '%llama%' OR replace(lower(generator_model), 'mistral large', '') LIKE '%mistral%' OR replace(lower(generator_model), 'qwen-vl-plus', '') LIKE '%qwen%' OR lower(generator_model) LIKE '%mixtral%' OR lower(generator_model) LIKE '%qwq%' OR lower(generator_model) LIKE '%phi%' OR lower(generator_model) LIKE '%gemma%' OR lower(generator_model) LIKE '%falcon%' OR lower(generator_model) LIKE '%t5%' OR lower(generator_model) LIKE '%bert%' OR lower(generator_model) LIKE '%opt-%' OR lower(generator_model) LIKE '%bloom%' OR lower(generator_model) LIKE '%gpt-neo%' OR lower(generator_model) LIKE '%gpt-2%' OR lower(generator_model) LIKE '%vicuna%' OR lower(generator_model) LIKE '%baichuan%' OR lower(generator_model) LIKE '%glm%' OR lower(generator_model) LIKE '%deepseek%' OR lower(generator_model) LIKE '%minicpm%' OR lower(generator_model) LIKE '%llava%' OR lower(generator_model) LIKE '%unifiedqa%' OR lower(generator_model) LIKE '%aya%' OR lower(generator_model) LIKE '%flan%' OR lower(generator_model) LIKE '%ui-tars%' OR lower(generator_model) LIKE '%oransight%' OR lower(generator_model) LIKE '%smallcap%' OR lower(generator_model) LIKE '%lambada%') THEN 'Open-weight' ELSE 'Unknown' END AS generator_model, COUNT(*) AS papers, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS with_agent, AVG(baseline_amount) AS average_baselines FROM cspaper WHERE generator_model <> '' AND CASE WHEN (replace(replace(replace(lower(generator_model), 'gpt-neo', ''), 'gpt-2', ''), 'gpt-based', '') LIKE '%gpt%' OR lower(generator_model) LIKE '%claude%' OR lower(generator_model) LIKE '%gemini%' OR lower(generator_model) LIKE '%palm%' OR lower(generator_model) LIKE '%o3-mini%' OR lower(generator_model) LIKE '%openai o3%' OR lower(generator_model) LIKE '%sabia%' OR lower(generator_model) LIKE '%text-embedding%' OR lower(generator_model) LIKE '%qwen-vl-plus%' OR lower(generator_model) LIKE '%mistral large%' OR lower(generator_model) LIKE '%openrouter%') AND (replace(lower(generator_model), 'ollama', '') LIKE '%llama%' OR replace(lower(generator_model), 'mistral large', '') LIKE '%mistral%' OR replace(lower(generator_model), 'qwen-vl-plus', '') LIKE '%qwen%' OR lower(generator_model) LIKE '%mixtral%' OR lower(generator_model) LIKE '%qwq%' OR lower(generator_model) LIKE '%phi%' OR lower(generator_model) LIKE '%gemma%' OR lower(generator_model) LIKE '%falcon%' OR lower(generator_model) LIKE '%t5%' OR lower(generator_model) LIKE '%bert%' OR lower(generator_model) LIKE '%opt-%' OR lower(generator_model) LIKE '%bloom%' OR lower(generator_model) LIKE '%gpt-neo%' OR lower(generator_model) LIKE '%gpt-2%' OR lower(generator_model) LIKE '%vicuna%' OR lower(generator_model) LIKE '%baichuan%' OR lower(generator_model) LIKE '%glm%' OR lower(generator_model) LIKE '%deepseek%' OR lower(generator_model) LIKE '%minicpm%' OR lower(generator_model) LIKE '%llava%' OR lower(generator_model) LIKE '%unifiedqa%' OR lower(generator_model) LIKE '%aya%' OR lower(generator_model) LIKE '%flan%' OR lower(generator_model) LIKE '%ui-tars%' OR lower(generator_model) LIKE '%oransight%' OR lower(generator_model) LIKE '%smallcap%' OR lower(generator_model) LIKE '%lambada%') THEN 'Both' WHEN (replace(replace(replace(lower(generator_model), 'gpt-neo', ''), 'gpt-2', ''), 'gpt-based', '') LIKE '%gpt%' OR lower(generator_model) LIKE '%claude%' OR lower(generator_model) LIKE '%gemini%' OR lower(generator_model) LIKE '%palm%' OR lower(generator_model) LIKE '%o3-mini%' OR lower(generator_model) LIKE '%openai o3%' OR lower(generator_model) LIKE '%sabia%' OR lower(generator_model) LIKE '%text-embedding%' OR lower(generator_model) LIKE '%qwen-vl-plus%' OR lower(generator_model) LIKE '%mistral large%' OR lower(generator_model) LIKE '%openrouter%') THEN 'Proprietary' WHEN (replace(lower(generator_model), 'ollama', '') LIKE '%llama%' OR replace(lower(generator_model), 'mistral large', '') LIKE '%mistral%' OR replace(lower(generator_model), 'qwen-vl-plus', '') LIKE '%qwen%' OR lower(generator_model) LIKE '%mixtral%' OR lower(generator_model) LIKE '%qwq%' OR lower(generator_model) LIKE '%phi%' OR lower(generator_model) LIKE '%gemma%' OR lower(generator_model) LIKE '%falcon%' OR lower(generator_model) LIKE '%t5%' OR lower(generator_model) LIKE '%bert%' OR lower(generator_model) LIKE '%opt-%' OR lower(generator_model) LIKE '%bloom%' OR lower(generator_model) LIKE '%gpt-neo%' OR lower(generator_model) LIKE '%gpt-2%' OR lower(generator_model) LIKE '%vicuna%' OR lower(generator_model) LIKE '%baichuan%' OR lower(generator_model) LIKE '%glm%' OR lower(generator_model) LIKE '%deepseek%' OR lower(generator_model) LIKE '%minicpm%' OR lower(generator_model) LIKE '%llava%' OR lower(generator_model) LIKE '%unifiedqa%' OR lower(generator_model) LIKE '%aya%' OR lower(generator_model) LIKE '%flan%' OR lower(generator_model) LIKE '%ui-tars%' OR lower(generator_model) LIKE '%oransight%' OR lower(generator_model) LIKE '%smallcap%' OR lower(generator_model) LIKE '%lambada%') THEN 'Open-weight' ELSE 'Unknown' END <> 'Unknown' GROUP BY CASE WHEN (replace(replace(replace(lower(generator_model), 'gpt-neo', ''), 'gpt-2', ''), 'gpt-based', '') LIKE '%gpt%' OR lower(generator_model) LIKE '%claude%' OR lower(generator_model) LIKE '%gemini%' OR lower(generator_model) LIKE '%palm%' OR lower(generator_model) LIKE '%o3-mini%' OR lower(generator_model) LIKE '%openai o3%' OR lower(generator_model) LIKE '%sabia%' OR lower(generator_model) LIKE '%text-embedding%' OR lower(generator_model) LIKE '%qwen-vl-plus%' OR lower(generator_model) LIKE '%mistral large%' OR lower(generator_model) LIKE '%openrouter%') AND (replace(lower(generator_model), 'ollama', '') LIKE '%llama%' OR replace(lower(generator_model), 'mistral large', '') LIKE '%mistral%' OR replace(lower(generator_model), 'qwen-vl-plus', '') LIKE '%qwen%' OR lower(generator_model) LIKE '%mixtral%' OR lower(generator_model) LIKE '%qwq%' OR lower(generator_model) LIKE '%phi%' OR lower(generator_model) LIKE '%gemma%' OR lower(generator_model) LIKE '%falcon%' OR lower(generator_model) LIKE '%t5%' OR lower(generator_model) LIKE '%bert%' OR lower(generator_model) LIKE '%opt-%' OR lower(generator_model) LIKE '%bloom%' OR lower(generator_model) LIKE '%gpt-neo%' OR lower(generator_model) LIKE '%gpt-2%' OR lower(generator_model) LIKE '%vicuna%' OR lower(generator_model) LIKE '%baichuan%' OR lower(generator_model) LIKE '%glm%' OR lower(generator_model) LIKE '%deepseek%' OR lower(generator_model) LIKE '%minicpm%' OR lower(generator_model) LIKE '%llava%' OR lower(generator_model) LIKE '%unifiedqa%' OR lower(generator_model) LIKE '%aya%' OR lower(generator_model) LIKE '%flan%' OR lower(generator_model) LIKE '%ui-tars%' OR lower(generator_model) LIKE '%oransight%' OR lower(generator_model) LIKE '%smallcap%' OR lower(generator_model) LIKE '%lambada%') THEN 'Both' WHEN (replace(replace(replace(lower(generator_model), 'gpt-neo', ''), 'gpt-2', ''), 'gpt-based', '') LIKE '%gpt%' OR lower(generator_model) LIKE '%claude%' OR lower(generator_model) LIKE '%gemini%' OR lower(generator_model) LIKE '%palm%' OR lower(generator_model) LIKE '%o3-mini%' OR lower(generator_model) LIKE '%openai o3%' OR lower(generator_model) LIKE '%sabia%' OR lower(generator_model) LIKE '%text-embedding%' OR lower(generator_model) LIKE '%qwen-vl-plus%' OR lower(generator_model) LIKE '%mistral large%' OR lower(generator_model) LIKE '%openrouter%') THEN 'Proprietary' WHEN (replace(lower(generator_model), 'ollama', '') LIKE '%llama%' OR replace(lower(generator_model), 'mistral large', '') LIKE '%mistral%' OR replace(lower(generator_model), 'qwen-vl-plus', '') LIKE '%qwen%' OR lower(generator_model) LIKE '%mixtral%' OR lower(generator_model) LIKE '%qwq%' OR lower(generator_model) LIKE '%phi%' OR lower(generator_model) LIKE '%gemma%' OR lower(generator_model) LIKE '%falcon%' OR lower(generator_model) LIKE '%t5%' OR lower(generator_model) LIKE '%bert%' OR lower(generator_model) LIKE '%opt-%' OR lower(generator_model) LIKE '%bloom%' OR lower(generator_model) LIKE '%gpt-neo%' OR lower(generator_model) LIKE '%gpt-2%' OR lower(generator_model) LIKE '%vicuna%' OR lower(generator_model) LIKE '%baichuan%' OR lower(generator_model) LIKE '%glm%' OR lower(generator_model) LIKE '%deepseek%' OR lower(generator_model) LIKE '%minicpm%' OR lower(generator_model) LIKE '%llava%' OR lower(generator_model) LIKE '%unifiedqa%' OR lower(generator_model) LIKE '%aya%' OR lower(generator_model) LIKE '%flan%' OR lower(generator_model) LIKE '%ui-tars%' OR lower(generator_model) LIKE '%oransight%' OR lower(generator_model) LIKE '%smallcap%' OR lower(generator_model) LIKE '%lambada%') THEN 'Open-weight' ELSE 'Unknown' END;",
+     "key_rows": 3,
+     "natural_length": 254
     }
    },
-   "forms": {
-    "G5a": {
-     "update": "UPDATE cspaper SET evaluation_metric = COALESCE(NULLIF(rtrim(CASE WHEN evaluation_metric LIKE '%F1%' THEN 'F1|| ' ELSE '' END || CASE WHEN instr(evaluation_metric, 'EM') > 0 OR evaluation_metric LIKE '%Exact Match%' THEN 'EM|| ' ELSE '' END || CASE WHEN evaluation_metric LIKE '%Accuracy%' THEN 'Accuracy|| ' ELSE '' END || CASE WHEN evaluation_metric LIKE '%ROUGE%' THEN 'ROUGE|| ' ELSE '' END, '| '), ''), 'other') WHERE evaluation_metric IS NOT NULL AND evaluation_metric <> ''",
-     "rows_changed": 193,
-     "scores": {
-      "G5a": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G5b": {
-       "0%": 0.0,
-       "20%": 0.0
-      },
-      "G5c": {
-       "0%": 0.5,
-       "20%": 0.5
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G5a": {
+      "0%": 0.375,
+      "20%": 0.375
+     },
+     "G5b": {
+      "0%": 0.0,
+      "20%": 0.0
      }
-    }
-   }
-  },
-  {
-   "group": "G6",
-   "about": "cspaper.evaluation_dataset names every benchmark a paper evaluates on (119 of 193 papers list two or more); G6a wants one benchmark category per paper (multi-hop QA / open-domain QA / other), G6b needs the individual multi-hop benchmarks, G6c counts the benchmarks listed",
-   "type": "list-vs-one",
-   "column": "cspaper.evaluation_dataset",
-   "problems": [],
-   "queries": {
-    "G6a": {
-     "question": "Grouping papers by the benchmarks they evaluate on (a multi-hop QA benchmark: HotpotQA, 2WikiMultihopQA or MuSiQue; otherwise an open-domain QA benchmark: Natural Questions, TriviaQA or PopQA; otherwise other datasets), how many papers are in each group, how many use an agent, and how many baselines do they compare against on average?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 3
     },
-    "G6b": {
-     "question": "For multi-hop papers with and without an agent, how many evaluate on HotpotQA, on 2WikiMultihopQA and on MuSiQue?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+    "FORM G5a": {
+     "rows_changed": 77,
+     "G5a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G5b": {
+      "0%": 0.0,
+      "20%": 0.0
+     }
     },
-    "G6c": {
-     "question": "Do papers that evaluate on more benchmarks compare against more baselines? Counting each listed dataset separately, for papers evaluating on one benchmark, two or three, and four or more: how many papers, how many study multi-hop reasoning, and how many baselines on average?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 3
-    }
-   },
-   "forms": {
-    "G6a": {
-     "update": "UPDATE cspaper SET evaluation_dataset = CASE WHEN evaluation_dataset LIKE '%HotpotQA%' THEN 'HotpotQA' WHEN evaluation_dataset LIKE '%2Wiki%' THEN '2WikiMultihopQA' WHEN evaluation_dataset LIKE '%MuSiQue%' THEN 'MuSiQue' WHEN evaluation_dataset LIKE '%Natural%Q%' OR ('||' || REPLACE(evaluation_dataset, ' ', '') || '||') LIKE '%||NQ||%' OR ('||' || REPLACE(evaluation_dataset, ' ', '') || '||') LIKE '%||NQ-Open||%' OR evaluation_dataset LIKE '%KILT NQ%' THEN 'Natural Questions' WHEN evaluation_dataset LIKE '%Trivia%QA%' THEN 'TriviaQA' WHEN evaluation_dataset LIKE '%PopQA%' THEN 'PopQA' ELSE evaluation_dataset END WHERE evaluation_dataset IS NOT NULL AND evaluation_dataset <> ''",
-     "rows_changed": 193,
-     "scores": {
-      "G6a": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G6b": {
-       "0%": 0.5,
-       "20%": 0.5
-      },
-      "G6c": {
-       "0%": 0.0,
-       "20%": 0.2222
-      }
+    "FORM G5b": {
+     "rows_changed": 185,
+     "G5a": {
+      "0%": 0.25,
+      "20%": 0.25
+     },
+     "G5b": {
+      "0%": 1.0,
+      "20%": 1.0
      }
     }
    }

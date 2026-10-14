@@ -1,337 +1,353 @@
 {
  "summary": {
   "corpus": "med",
-  "groups": 8,
-  "queries": 17,
+  "groups": 7,
+  "questions": 14,
   "groups_with_problems": 0,
   "by_type": {
-   "number-vs-text": 1,
-   "list-vs-one": 3,
+   "join-spelling": 1,
    "fine-vs-coarse": 3,
-   "join-spelling": 1
+   "list-vs-one": 1,
+   "number-vs-text": 2
   }
  },
  "groups": [
   {
    "group": "G1",
-   "about": "disease.disease_type lists every classification of a disease; G1a counts a disease under each classification it has, G1b files each disease under one class by a stated precedence (the single label a one-type categoriser would store)",
+   "about": "disease.disease_type lists every class a disease belongs to; G1a groups by a disease's main type and needs one type per row, G1b counts a disease under every type it has and needs the full list",
    "type": "list-vs-one",
    "column": "disease.disease_type",
    "problems": [],
    "queries": {
     "G1a": {
-     "question": "Per expected outcome (high mortality; otherwise chronic; otherwise other or not stated): how many diseases have an inflammatory, an infectious, a vascular and a degenerative component, counting a disease under every classification it has?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 3
+     "question": "For each main disease type, how many diseases are there, and how many of them are chronic and how many have a high mortality?",
+     "natural": "SELECT disease_type, COUNT(*) AS diseases, SUM(CASE WHEN prognosis LIKE '%chronic%' THEN 1 ELSE 0 END) AS chronic, SUM(CASE WHEN prognosis LIKE '%high_mortality%' THEN 1 ELSE 0 END) AS high_mortality FROM disease WHERE disease_type <> '' GROUP BY disease_type;",
+     "key": "SELECT disease_type, COUNT(*) AS diseases, SUM(CASE WHEN prognosis LIKE '%chronic%' THEN 1 ELSE 0 END) AS chronic, SUM(CASE WHEN prognosis LIKE '%high_mortality%' THEN 1 ELSE 0 END) AS high_mortality FROM (SELECT CASE disease_name WHEN 'Asthma' THEN 'allergic' WHEN 'Microcytic Anemia' THEN 'nutritional' WHEN 'Celiac Disease' THEN 'autoimmune' WHEN 'Chronic Fatigue Syndrome||myalgic encephalomyelitis' THEN 'idiopathic' WHEN 'Heart Failure' THEN 'vascular' WHEN 'Acne' THEN 'inflammatory' WHEN 'Immune Reconstitution Syndrome (IRS)' THEN 'inflammatory' ELSE TRIM(CASE WHEN instr(disease_type, '||') > 0 THEN substr(disease_type, 1, instr(disease_type, '||') - 1) ELSE disease_type END) END AS disease_type, prognosis FROM disease WHERE disease_type <> '') GROUP BY disease_type;",
+     "key_rows": 16,
+     "natural_length": 260
     },
     "G1b": {
-     "question": "Counting each disease once, under the first of these classes it has (infectious; cancer; psychiatric; genetic; vascular; inflammatory or autoimmune; other): how many diseases are in each class, and how many of them are chronic and how many have high mortality?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 7
+     "question": "How many diseases are classified as inflammatory, as infectious, as vascular, as degenerative and as psychiatric?",
+     "natural": "SELECT SUM(CASE WHEN disease_type LIKE '%inflammatory%' THEN 1 ELSE 0 END) AS inflammatory, SUM(CASE WHEN disease_type LIKE '%infectious%' THEN 1 ELSE 0 END) AS infectious, SUM(CASE WHEN disease_type LIKE '%vascular%' THEN 1 ELSE 0 END) AS vascular, SUM(CASE WHEN disease_type LIKE '%degenerative%' THEN 1 ELSE 0 END) AS degenerative, SUM(CASE WHEN disease_type LIKE '%psychiatric%' THEN 1 ELSE 0 END) AS psychiatric FROM disease;",
+     "key": "SELECT SUM(CASE WHEN disease_type LIKE '%inflammatory%' THEN 1 ELSE 0 END) AS inflammatory, SUM(CASE WHEN disease_type LIKE '%infectious%' THEN 1 ELSE 0 END) AS infectious, SUM(CASE WHEN disease_type LIKE '%vascular%' THEN 1 ELSE 0 END) AS vascular, SUM(CASE WHEN disease_type LIKE '%degenerative%' THEN 1 ELSE 0 END) AS degenerative, SUM(CASE WHEN disease_type LIKE '%psychiatric%' THEN 1 ELSE 0 END) AS psychiatric FROM disease;",
+     "key_rows": 1,
+     "natural_length": 430
     }
    },
-   "forms": {
-    "G1b": {
-     "update": "UPDATE disease SET disease_type = CASE WHEN disease_type LIKE '%infectious%' THEN 'infectious' WHEN disease_type LIKE '%neoplastic%' THEN 'neoplastic' WHEN disease_type LIKE '%psychiatric%' THEN 'psychiatric' WHEN disease_type LIKE '%genetic%' THEN 'genetic' WHEN disease_type LIKE '%vascular%' THEN 'vascular' WHEN disease_type LIKE '%inflammatory%' THEN 'inflammatory' WHEN disease_type LIKE '%autoimmune%' THEN 'autoimmune' ELSE 'others' END WHERE disease_type <> ''",
-     "rows_changed": 90,
-     "scores": {
-      "G1a": {
-       "0%": 0.4,
-       "20%": 0.6667
-      },
-      "G1b": {
-       "0%": 1.0,
-       "20%": 1.0
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G1a": {
+      "0%": 0.0797,
+      "20%": 0.1116
+     },
+     "G1b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G1a": {
+     "rows_changed": 52,
+     "G1a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G1b": {
+      "0%": 0.0,
+      "20%": 0.0
      }
     }
    }
   },
   {
    "group": "G2",
-   "about": "disease.treatments lists every treatment modality; G2a counts the modalities and asks whether surgery is among them, G2b files each disease under its most invasive common treatment (the single label a 'main treatment' reader would store)",
-   "type": "list-vs-one",
+   "about": "disease.treatments lists each treatment modality as stated (oral_medication, injection, surgery, dietary_intervention, ...); G2a needs the kinds of treatment (medication, procedure, lifestyle), G2b the stated modalities",
+   "type": "fine-vs-coarse",
    "column": "disease.treatments",
    "problems": [],
    "queries": {
     "G2a": {
-     "question": "Per kind of disease (infectious; cancer; psychiatric; inflammatory or autoimmune; other, taking the first that applies): how many diseases, how many different kinds of treatment such a disease receives on average, and how many of them are treated with surgery?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 5
+     "question": "For chronic and other diseases, how many are treated with medication of any kind, how many with surgery or another procedure, and how many with lifestyle or diet changes?",
+     "natural": "SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS course, COUNT(*) AS diseases, SUM(CASE WHEN treatments LIKE '%medication%' THEN 1 ELSE 0 END) AS medication, SUM(CASE WHEN treatments LIKE '%procedure%' THEN 1 ELSE 0 END) AS procedure, SUM(CASE WHEN treatments LIKE '%lifestyle%' THEN 1 ELSE 0 END) AS lifestyle FROM disease WHERE treatments <> '' GROUP BY course;",
+     "key": "SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS course, COUNT(*) AS diseases, SUM(CASE WHEN treatments LIKE '%medication%' THEN 1 ELSE 0 END) AS medication, SUM(CASE WHEN treatments LIKE '%procedure%' THEN 1 ELSE 0 END) AS procedure, SUM(CASE WHEN treatments LIKE '%lifestyle%' THEN 1 ELSE 0 END) AS lifestyle FROM (SELECT prognosis, CASE treatments WHEN 'oral_medication||injection' THEN 'medication' WHEN 'oral_medication||lifestyle_modification||dietary_intervention||regular_exercise' THEN 'medication||lifestyle' WHEN 'oral_medication||other' THEN 'medication||other' WHEN 'oral_medication||dietary_intervention' THEN 'medication||lifestyle' WHEN 'injection||dietary_intervention||lifestyle_modification' THEN 'medication||lifestyle' WHEN 'oral_medication||surgery' THEN 'medication||procedure' WHEN 'oral_medication||lifestyle_modification||dietary_intervention' THEN 'medication||lifestyle' WHEN 'chemotherapy||radiotherapy||surgery' THEN 'medication||procedure' WHEN 'chemotherapy||stem cell transplantation' THEN 'medication||procedure' WHEN 'physical_therapy||injection||oral_medication||device_implantation' THEN 'medication||procedure||physical or psychological therapy' WHEN 'lifestyle_modification||oral_medication||dietary_intervention' THEN 'medication||lifestyle' WHEN 'oral_medication' THEN 'medication' WHEN 'injection' THEN 'medication' WHEN 'oral_medication||inhaler||dietary_intervention' THEN 'medication||lifestyle' WHEN 'dietary_intervention' THEN 'lifestyle' WHEN 'oral_medication||psychotherapy||lifestyle_modification' THEN 'medication||lifestyle||physical or psychological therapy' WHEN 'oral_medication||injection||surgery||dietary_intervention||others' THEN 'medication||procedure||lifestyle||other' WHEN 'surgery||drug_therapy||lifestyle_modification||others' THEN 'medication||procedure||lifestyle||other' WHEN 'surgery||hormone_therapy||chemotherapy' THEN 'medication||procedure' WHEN 'oral_medication||lifestyle_modification||surgery' THEN 'medication||procedure||lifestyle' WHEN 'physical_therapy||oral_medication||surgery' THEN 'medication||procedure||physical or psychological therapy' WHEN 'oral_medication||lifestyle_modification||others' THEN 'medication||lifestyle||other' WHEN 'oral_medication||others' THEN 'medication||other' WHEN 'injection||oral_medication' THEN 'medication' WHEN 'psychotherapy' THEN 'physical or psychological therapy' WHEN 'surgery' THEN 'procedure' WHEN 'vaccination||oral_medication' THEN 'medication' WHEN 'injection||laboratory_test||dietary_intervention||lifestyle_modification' THEN 'medication||lifestyle||other' WHEN 'oral_medication||lifestyle_modification||dietary_intervention||others' THEN 'medication||lifestyle||other' WHEN 'oral_medication||physical_therapy||lifestyle_modification||surgery||injection||dietary_intervention' THEN 'medication||procedure||lifestyle||physical or psychological therapy' WHEN 'oral_medication||lifestyle_modification' THEN 'medication||lifestyle' WHEN 'surgery||oral_medication' THEN 'medication||procedure' WHEN 'oral_medication||surgery||physical_therapy||psychotherapy||others' THEN 'medication||procedure||physical or psychological therapy||other' WHEN 'psychotherapy||physical_therapy||lifestyle_modification' THEN 'lifestyle||physical or psychological therapy' WHEN 'oral_medication||psychotherapy||lifestyle_modification||dietary_intervention||regular_exercise||relaxation_techniques||meditation' THEN 'medication||lifestyle||physical or psychological therapy' WHEN 'surgery||radiotherapy||chemotherapy||biological_therapy||dietary_intervention' THEN 'medication||procedure||lifestyle' WHEN 'oral_medication||injection||surgery||lifestyle_modification||dietary_intervention||physical_therapy' THEN 'medication||procedure||lifestyle||physical or psychological therapy' WHEN 'oral_medication||chemotherapy||lifestyle_modification' THEN 'medication||lifestyle' WHEN 'physical_therapy||surgery||lifestyle_modification||others' THEN 'procedure||lifestyle||physical or psychological therapy||other' WHEN 'dietary_intervention||oral_medication' THEN 'medication||lifestyle' WHEN 'oral_medication||physical_therapy' THEN 'medication||physical or psychological therapy' WHEN 'chemotherapy' THEN 'medication' WHEN 'psychotherapy||oral_medication' THEN 'medication||physical or psychological therapy' WHEN 'lifestyle_modification||oral_medication||surgery||others' THEN 'medication||procedure||lifestyle||other' WHEN 'oral_medication||injection||surgery' THEN 'medication||procedure' WHEN 'oral_medication||injection||lifestyle_modification||dietary_intervention' THEN 'medication||lifestyle' WHEN 'injection||oral_medication||dietary_intervention||lifestyle_modification||surgery' THEN 'medication||procedure||lifestyle' WHEN 'physical_therapy||lifestyle_modification||dietary_intervention||oral_medication' THEN 'medication||lifestyle||physical or psychological therapy' WHEN 'injection||chemotherapy||immunotherapy' THEN 'medication' WHEN 'lifestyle_modification||dietary_intervention' THEN 'lifestyle' ELSE treatments END AS treatments FROM disease WHERE treatments <> '') GROUP BY course;",
+     "key_rows": 2,
+     "natural_length": 393
     },
     "G2b": {
-     "question": "By the most invasive of the three common treatments a disease receives (surgery if it is treated with surgery; else injection; else oral medication; else none of these three): how many diseases, and how many of them are chronic?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 4
+     "question": "How many diseases are treated with surgery, with injections, with lifestyle changes, with a diet, and with physical therapy?",
+     "natural": "SELECT SUM(CASE WHEN treatments LIKE '%surgery%' THEN 1 ELSE 0 END) AS surgery, SUM(CASE WHEN treatments LIKE '%injection%' THEN 1 ELSE 0 END) AS injection, SUM(CASE WHEN treatments LIKE '%lifestyle_modification%' THEN 1 ELSE 0 END) AS lifestyle_modification, SUM(CASE WHEN treatments LIKE '%dietary_intervention%' THEN 1 ELSE 0 END) AS dietary_intervention, SUM(CASE WHEN treatments LIKE '%physical_therapy%' THEN 1 ELSE 0 END) AS physical_therapy FROM disease;",
+     "key": "SELECT SUM(CASE WHEN treatments LIKE '%surgery%' THEN 1 ELSE 0 END) AS surgery, SUM(CASE WHEN treatments LIKE '%injection%' THEN 1 ELSE 0 END) AS injection, SUM(CASE WHEN treatments LIKE '%lifestyle_modification%' THEN 1 ELSE 0 END) AS lifestyle_modification, SUM(CASE WHEN treatments LIKE '%dietary_intervention%' THEN 1 ELSE 0 END) AS dietary_intervention, SUM(CASE WHEN treatments LIKE '%physical_therapy%' THEN 1 ELSE 0 END) AS physical_therapy FROM disease;",
+     "key_rows": 1,
+     "natural_length": 462
     }
    },
-   "forms": {
-    "G2b": {
-     "update": "UPDATE disease SET treatments = CASE WHEN treatments LIKE '%surgery%' THEN 'surgery' WHEN treatments LIKE '%injection%' THEN 'injection' WHEN treatments LIKE '%oral_medication%' THEN 'oral_medication' ELSE 'others' END WHERE treatments <> ''",
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G2a": {
+      "0%": 0.25,
+      "20%": 0.5
+     },
+     "G2b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G2a": {
      "rows_changed": 89,
-     "scores": {
-      "G2a": {
-       "0%": 0.6667,
-       "20%": 0.6667
-      },
-      "G2b": {
-       "0%": 1.0,
-       "20%": 1.0
-      }
+     "G2a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G2b": {
+      "0%": 0.0,
+      "20%": 0.0
      }
     }
    }
   },
   {
    "group": "G3",
-   "about": "disease.pathogenesis states the fine mechanism (infectious_bacterial, infectious_viral, genetic_mutation, ...); G3a needs the germ type, G3b only the broad mechanism (infectious, genetic, ...) that a merged form keeps",
-   "type": "fine-vs-coarse",
-   "column": "disease.pathogenesis",
+   "about": "drug.disease_name lists the conditions a label treats as the label words them; G3a joins the disease table and needs each drug's main condition stored in the disease table's spelling, G3b needs every stated condition",
+   "type": "join-spelling",
+   "column": "drug.disease_name",
    "problems": [],
    "queries": {
     "G3a": {
-     "question": "Among diseases whose stated mechanisms include an infection: how many are bacterial, how many viral (and not also bacterial), and how many parasitic (neither bacterial nor viral), and how many of each are treated with oral medication and how many with injections?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 3
+     "question": "For each disease the collection describes, how many drug labels are mainly for it, and how many of those need a prescription?",
+     "natural": "SELECT disease.disease_name, COUNT(*) AS drugs, SUM(CASE WHEN drug.prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.disease_name;",
+     "key": "SELECT disease.disease_name, COUNT(*) AS drugs, SUM(CASE WHEN drug.prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM drug JOIN disease ON disease.disease_name = CASE drug.disease_name WHEN 'Major depressive disorder||Cancer-related anxiety||Cancer-related depression||Eating disorders||Headaches||Substance abuse||Alcohol abuse||Opioid abuse||Smoking||Cocaine abuse' THEN 'Major Depressive Disorder' WHEN 'Gastroesophageal reflux disease||Peptic ulcer disease' THEN 'Gastroesophageal Reflux Disease||GERD' WHEN 'Gastroesophageal reflux disease||Gastric acid-related disorders' THEN 'Gastroesophageal Reflux Disease||GERD' WHEN 'Gastroesophageal Reflux Disease||Esophagitis||Zollinger-Ellison Syndrome||Multiple Endocrine Adenomas' THEN 'Gastroesophageal Reflux Disease||GERD' WHEN 'Attention Deficit Hyperactivity Disorder||High Blood Pressure' THEN 'Attention-Deficit Hyperactivity Disorder' WHEN 'Attention Deficit Hyperactivity Disorder' THEN 'Attention-Deficit Hyperactivity Disorder' WHEN 'ADHD||attention deficit disorder||narcolepsy||depression||obesity' THEN 'Attention-Deficit Hyperactivity Disorder' WHEN 'Irritable Bowel Syndrome with Constipation||Chronic Idiopathic Constipation||Functional Constipation' THEN 'Irritable Bowel Syndrome' WHEN 'Post transplantation diabetes mellitus||Impaired glucose tolerance||Diabetes Mellitus' THEN 'Diabetes Mellitus' WHEN 'Diabetes||Heart Disease||Urinary Tract Infections||Gastric Ulcers||Candida Infection||Dengue Fever' THEN 'Diabetes Mellitus' WHEN 'Type 2 Diabetes' THEN 'Type 2 Diabetes Mellitus' WHEN 'Hypertension||Heart Diseases||Kidney Failure||Liver Failure' THEN 'Hypertension' WHEN 'Hypertension||Chronic kidney disease||Severe congestive heart failure||Volume depletion' THEN 'Hypertension' WHEN 'Periodontal disease' THEN 'Periodontal Disease' WHEN 'Depression||Obsessive-Compulsive Disorder||Panic Disorder||Bulimia Nervosa' THEN 'Depression' WHEN 'treatment-resistant depression' THEN 'Major Depressive Disorder' WHEN 'severe eosinophilic asthma||eosinophilic granulomatosis with polyangiitis||chronic obstructive pulmonary disease' THEN 'Asthma' WHEN 'Herpes labialis||Herpes simplex' THEN 'Herpes Simplex Virus Infection||cold sores||genital herpes' WHEN 'Herpes simplex||Genital herpes||Shingles||Chicken pox||Cold sores||Epstein-Barr virus infection' THEN 'Herpes Simplex Virus Infection||cold sores||genital herpes' WHEN 'osteoarthritis||rheumatoid arthritis||gout||ankylosing spondylitis||tendinitis||bursitis' THEN 'Osteoarthritis' WHEN 'Generalized Anxiety Disorder||Panic Disorder' THEN 'Anxiety Disorders' WHEN 'Alcohol withdrawal||Anxiety disorders||Muscle spasms||Stiffness||Seizures||Panic attacks||Vertigo||Insomnia' THEN 'Anxiety Disorders' WHEN 'Human immunodeficiency virus infection||diabetes mellitus||gastrointestinal disorders||peptic ulcers||tuberculosis||Mycobacteria kansasii infection||Mycobacteria xenopi infection' THEN 'Tuberculosis' WHEN 'Metastatic Colorectal Cancer||Gastrointestinal Stromal Tumour' THEN 'Metastatic Colorectal Cancer||mCRC' WHEN 'HIV infection||AIDS' THEN 'HIV-1 Infection' WHEN 'acute graft-vs-host disease' THEN 'Acute Graft-Versus-Host Disease' WHEN 'Cystic fibrosis' THEN 'Cystic Fibrosis' WHEN 'cancer' THEN 'Cancer' ELSE drug.disease_name END GROUP BY disease.disease_name;",
+     "key_rows": 22,
+     "natural_length": 246
     },
     "G3b": {
-     "question": "Per disease mechanism (infectious, genetic, cancer, inflammatory or autoimmune, vascular or degenerative, other; a disease with several mechanisms is counted under the first of these): how many diseases, how many are chronic, and how many are treated with surgery?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 6
+     "question": "How many drug labels list panic, an ulcer, gout, diabetes and heart failure among the conditions they treat?",
+     "natural": "SELECT SUM(CASE WHEN disease_name LIKE '%panic%' THEN 1 ELSE 0 END) AS panic, SUM(CASE WHEN disease_name LIKE '%ulcer%' THEN 1 ELSE 0 END) AS ulcer, SUM(CASE WHEN disease_name LIKE '%gout%' THEN 1 ELSE 0 END) AS gout, SUM(CASE WHEN disease_name LIKE '%diabetes%' THEN 1 ELSE 0 END) AS diabetes, SUM(CASE WHEN disease_name LIKE '%heart failure%' THEN 1 ELSE 0 END) AS heart_failure FROM drug;",
+     "key": "SELECT SUM(CASE WHEN disease_name LIKE '%panic%' THEN 1 ELSE 0 END) AS panic, SUM(CASE WHEN disease_name LIKE '%ulcer%' THEN 1 ELSE 0 END) AS ulcer, SUM(CASE WHEN disease_name LIKE '%gout%' THEN 1 ELSE 0 END) AS gout, SUM(CASE WHEN disease_name LIKE '%diabetes%' THEN 1 ELSE 0 END) AS diabetes, SUM(CASE WHEN disease_name LIKE '%heart failure%' THEN 1 ELSE 0 END) AS heart_failure FROM drug;",
+     "key_rows": 1,
+     "natural_length": 391
     }
    },
-   "forms": {
-    "G3b": {
-     "update": "UPDATE disease SET pathogenesis = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(pathogenesis, 'infectious_bacterial', 'infectious'), 'infectious_viral', 'infectious'), 'infectious_parasitic', 'infectious'), 'infectious_fungal', 'infectious'), 'genetic_mutation', 'genetic'), 'metabolic_disorder', 'metabolic'), 'endocrine_disorder', 'endocrine'), 'nutritional_deficiency', 'nutritional')",
-     "rows_changed": 100,
-     "scores": {
-      "G3a": {
-       "0%": 0.0,
-       "20%": 0.0
-      },
-      "G3b": {
-       "0%": 1.0,
-       "20%": 1.0
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G3a": {
+      "0%": 0.1515,
+      "20%": 0.1515
+     },
+     "G3b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G3a": {
+     "rows_changed": 28,
+     "G3a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G3b": {
+      "0%": 0.0,
+      "20%": 0.0
      }
     }
    }
   },
   {
    "group": "G4",
-   "about": "drug.unsuitable_population states each group that should avoid the drug as the label words it (children under 6, nursing mothers, geriatric patients, ...); G4a needs only four broad groups, G4b the youngest stated age limit for children, G4c the breastfeeding warning. ALT G4a is the broad-group normalisation; ALT G4b is a children-only extraction (a per-question prompt that asks only about children). Each breaks the others.",
-   "type": "fine-vs-coarse",
-   "column": "drug.unsuitable_population",
+   "about": "drug.dosage_frequency states the schedule in words ('twice a day', 'every 4-6 hours', several schedules joined); G4a needs the most doses a day as a number, G4c one wording per schedule ('twice a day' = 'twice daily'), G4b the stated wording (hours, 'as needed')",
+   "type": "number-vs-text",
+   "column": "drug.dosage_frequency",
    "problems": [],
    "queries": {
     "G4a": {
-     "question": "Among drugs for people (veterinary labels for dogs and puppies left out), per prescription status (prescription only, over the counter, other or not stated): how many drugs name groups that should avoid them, and how many should be avoided in pregnancy, by children (including infants and pediatric patients), by the elderly (including geriatric patients, older adults and people of old age), and by patients with liver or kidney problems (including hepatic or renal impairment, nephropathy, and a low creatinine clearance or glomerular filtration rate)?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 3
-    },
-    "G4b": {
-     "question": "Among drugs whose label names children, infants or pediatric patients among those who should not take it (a warning about nursing infants counts as breastfeeding, not as children): how many labels set the age limit at under 2 years (including infants, younger than 1 year and younger than two months), under 6 years, under 12 to 18 years, or state no age (the youngest limit stated counts), and how many of each are prescription-only?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 4
+     "question": "Grouping drugs by the most doses a day their label allows, how many drugs are in each group and how many of them need a prescription?",
+     "natural": "SELECT dosage_frequency, COUNT(*) AS drugs, SUM(CASE WHEN prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM drug WHERE dosage_frequency IS NOT NULL GROUP BY dosage_frequency;",
+     "key": "SELECT dosage_frequency, COUNT(*) AS drugs, SUM(CASE WHEN prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM (SELECT CASE dosage_frequency WHEN '2 or 3 times a day' THEN 3 WHEN '2 or 3 times daily' THEN 3 WHEN '3-4 times per day||once daily' THEN 4 WHEN 'continuous infusion||three times a day||once or twice a day||once every 8 hours' THEN 3 WHEN 'every 12 hours||every 24 hours' THEN 2 WHEN 'every 4 to 6 hours as needed' THEN 6 WHEN 'every 4-6 hours' THEN 6 WHEN 'every 4-6 hours||3 to 4 times a day' THEN 6 WHEN 'every 6 to 8 hours || every 6 hours' THEN 4 WHEN 'every 6-8 hours||maximum 4 doses per day' THEN 4 WHEN 'every 8 hours' THEN 3 WHEN 'every 8 hours||every 8-12 hours||every 12 hours' THEN 3 WHEN 'every four hours as needed' THEN 6 WHEN 'once a day' THEN 1 WHEN 'once a day||once daily' THEN 1 WHEN 'once daily' THEN 1 WHEN 'once daily || three times daily' THEN 3 WHEN 'once daily||not more than once per day||not more than once in every 48 hours' THEN 1 WHEN 'once daily||twice a day' THEN 2 WHEN 'once daily||twice daily' THEN 2 WHEN 'once every 4 to eight hours' THEN 6 WHEN 'once or thrice daily' THEN 3 WHEN 'once or twice a day' THEN 2 WHEN 'three times a day' THEN 3 WHEN 'three times daily||twice daily' THEN 3 WHEN 'three times per day' THEN 3 WHEN 'twice a day' THEN 2 WHEN 'twice daily' THEN 2 WHEN 'twice every 24 hours || thrice daily' THEN 3 WHEN 'up to three times a day' THEN 3 ELSE NULL END AS dosage_frequency, prescription_status FROM drug) WHERE dosage_frequency IS NOT NULL GROUP BY dosage_frequency;",
+     "key_rows": 5,
+     "natural_length": 211
     },
     "G4c": {
-     "question": "Among drugs for people whose route is stated, taken by mouth or by another route: how many should be avoided in pregnancy, and how many of those also when breastfeeding (breastfeeding or nursing women, mothers or infants)?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "For prescription-only drugs and the others, how many labels give a dosing schedule, and how many give it as once, twice, three times or four times a day (not as an hour interval)?",
+     "natural": "SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN dosage_frequency LIKE '%once daily%' THEN 1 ELSE 0 END) AS once_daily, SUM(CASE WHEN dosage_frequency LIKE '%twice daily%' THEN 1 ELSE 0 END) AS twice_daily, SUM(CASE WHEN dosage_frequency LIKE '%three times daily%' THEN 1 ELSE 0 END) AS three_times_daily, SUM(CASE WHEN dosage_frequency LIKE '%four times daily%' THEN 1 ELSE 0 END) AS four_times_daily FROM drug WHERE dosage_frequency <> '' GROUP BY status;",
+     "key": "SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN dosage_frequency LIKE '%once daily%' THEN 1 ELSE 0 END) AS once_daily, SUM(CASE WHEN dosage_frequency LIKE '%twice daily%' THEN 1 ELSE 0 END) AS twice_daily, SUM(CASE WHEN dosage_frequency LIKE '%three times daily%' THEN 1 ELSE 0 END) AS three_times_daily, SUM(CASE WHEN dosage_frequency LIKE '%four times daily%' THEN 1 ELSE 0 END) AS four_times_daily FROM (SELECT prescription_status, CASE dosage_frequency WHEN '2 or 3 times a day' THEN 'twice daily||three times daily' WHEN '2 or 3 times daily' THEN 'twice daily||three times daily' WHEN '3-4 times per day||once daily' THEN 'three times daily||four times daily||once daily' WHEN 'continuous infusion||three times a day||once or twice a day||once every 8 hours' THEN 'continuous infusion||three times daily||once daily||twice daily||every 8 hours' WHEN 'every 4 to 6 hours as needed' THEN 'every 4-6 hours as needed' WHEN 'every 4-6 hours||3 to 4 times a day' THEN 'every 4-6 hours||three times daily||four times daily' WHEN 'every 6 to 8 hours || every 6 hours' THEN 'every 6-8 hours||every 6 hours' WHEN 'every 6-8 hours||maximum 4 doses per day' THEN 'every 6-8 hours||up to four times daily' WHEN 'every four hours as needed' THEN 'every 4 hours as needed' WHEN 'once a day' THEN 'once daily' WHEN 'once a day||once daily' THEN 'once daily' WHEN 'once daily || three times daily' THEN 'once daily||three times daily' WHEN 'once daily||not more than once per day||not more than once in every 48 hours' THEN 'once daily||not more than once every 48 hours' WHEN 'once daily||twice a day' THEN 'once daily||twice daily' WHEN 'once every 4 to eight hours' THEN 'every 4-8 hours' WHEN 'once or thrice daily' THEN 'once daily||three times daily' WHEN 'once or twice a day' THEN 'once daily||twice daily' WHEN 'three times a day' THEN 'three times daily' WHEN 'three times per day' THEN 'three times daily' WHEN 'twice a day' THEN 'twice daily' WHEN 'twice every 24 hours || thrice daily' THEN 'twice daily||three times daily' WHEN 'up to three times a day' THEN 'up to three times daily' ELSE dosage_frequency END AS dosage_frequency FROM drug WHERE dosage_frequency <> '') GROUP BY status;",
+     "key_rows": 2,
+     "natural_length": 553
     }
    },
-   "forms": {
-    "G4a": {
-     "update": "UPDATE drug SET unsuitable_population = COALESCE(NULLIF(RTRIM(CASE WHEN unsuitable_population LIKE '%pregnan%' THEN 'pregnant women||' ELSE '' END || CASE WHEN (unsuitable_population LIKE '%child%' OR unsuitable_population LIKE '%pediatric%' OR REPLACE(unsuitable_population, 'nursing infants', '') LIKE '%infant%') THEN 'children||' ELSE '' END || CASE WHEN (unsuitable_population LIKE '%elderly%' OR unsuitable_population LIKE '%older adult%' OR unsuitable_population LIKE '%geriatric%' OR unsuitable_population LIKE '%old age%') THEN 'elderly||' ELSE '' END || CASE WHEN (unsuitable_population LIKE '%liver%' OR unsuitable_population LIKE '%hepatic%' OR unsuitable_population LIKE '%kidney%' OR unsuitable_population LIKE '%renal%' OR unsuitable_population LIKE '%nephro%' OR unsuitable_population LIKE '%creatinine%' OR unsuitable_population LIKE '%glomerular%') THEN 'patients with liver or kidney problems' ELSE '' END, '|'), ''), 'other groups') WHERE unsuitable_population <> '' AND unsuitable_population NOT LIKE '%dog%' AND unsuitable_population NOT LIKE '%pupp%'",
-     "rows_changed": 57,
-     "scores": {
-      "G4a": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G4b": {
-       "0%": 0.0,
-       "20%": 0.0
-      },
-      "G4c": {
-       "0%": 0.5,
-       "20%": 0.75
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G4a": {
+      "0%": 0.0,
+      "20%": 0.0114
+     },
+     "G4c": {
+      "0%": 0.3,
+      "20%": 0.4
      }
     },
-    "G4b": {
-     "update": "UPDATE drug SET unsuitable_population = CASE WHEN NOT (unsuitable_population LIKE '%child%' OR unsuitable_population LIKE '%pediatric%' OR REPLACE(unsuitable_population, 'nursing infants', '') LIKE '%infant%') THEN '' WHEN (unsuitable_population LIKE '%under 2 %' OR unsuitable_population LIKE '%younger than 1||%' OR unsuitable_population LIKE '%younger than 1' OR unsuitable_population LIKE '%two months%' OR unsuitable_population LIKE '%under one year%' OR REPLACE(unsuitable_population, 'nursing infants', '') LIKE '%infant%') THEN 'children under 2 years' WHEN unsuitable_population LIKE '%under 6%' THEN 'children under 6 years' WHEN unsuitable_population LIKE '%under 12%' THEN 'children under 12 years' WHEN unsuitable_population LIKE '%under 18%' OR unsuitable_population LIKE '%age of 18%' THEN 'children under 18 years' ELSE 'children' END",
+    "FORM G4a": {
      "rows_changed": 100,
-     "scores": {
-      "G4a": {
-       "0%": 0.3333,
-       "20%": 0.5333
-      },
-      "G4b": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G4c": {
-       "0%": 0.0,
-       "20%": 0.0
-      }
+     "G4a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G4c": {
+      "0%": 0.1,
+      "20%": 0.1
+     }
+    },
+    "FORM G4c": {
+     "rows_changed": 31,
+     "G4a": {
+      "0%": 0.0,
+      "20%": 0.0105
+     },
+     "G4c": {
+      "0%": 1.0,
+      "20%": 1.0
      }
     }
    }
   },
   {
    "group": "G5",
-   "about": "drug.dosage_frequency states the schedule in words ('twice a day', 'every 4 to 6 hours as needed', several schedules joined by ||); G5a reads it as the most doses a day it allows, G5b needs the stated intervals in hours, ranges and choices, 'as needed' and the number of schedules. ALT G5a is the doses-a-day parse, written back as 'N times a day' (schedules that are not per day are kept as stated).",
+   "about": "drug.single_dose states population + dose pairs as text ('adults 10 mg || children 5 mg'); G5a needs the highest adult dose as a number of mg, G5b needs the stated text (weight-based doses)",
    "type": "number-vs-text",
-   "column": "drug.dosage_frequency",
+   "column": "drug.single_dose",
    "problems": [],
    "queries": {
     "G5a": {
-     "question": "Reading each drug's dosing schedule as the most doses a day it allows (every 4 hours or 6 times = 6; every 6 hours or 4 times = 4; every 8 hours or 3 times = 3; every 12 hours or twice = 2; once a day or every 24 hours = 1; a range or choice such as 'every 4 to 6 hours' or 'once or twice a day' counts at its higher end, 'up to three times a day' as 3, an 'as needed' schedule by its interval, and with several schedules the highest counts; weekly, single-dose, session and treatment-cycle schedules and continuous infusions are left out): per prescription status (prescription only, other or not stated), how many drugs, the average of that number, and how many allow three or more doses a day?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "How many drugs have a highest adult dose under 10 mg, from 10 to 99 mg, and 100 mg or more, and how many of each need a prescription?",
+     "natural": "SELECT CASE WHEN CAST(single_dose AS REAL) < 10 THEN 'under 10 mg' WHEN CAST(single_dose AS REAL) < 100 THEN '10 to 99 mg' ELSE '100 mg or more' END AS dose_range, COUNT(*) AS drugs, SUM(CASE WHEN prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM drug WHERE single_dose IS NOT NULL GROUP BY dose_range;",
+     "key": "SELECT CASE WHEN CAST(mg AS REAL) < 10 THEN 'under 10 mg' WHEN CAST(mg AS REAL) < 100 THEN '10 to 99 mg' ELSE '100 mg or more' END AS dose_range, COUNT(*) AS drugs, SUM(CASE WHEN prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM (SELECT CASE single_dose WHEN 'adults 25 milligrams' THEN 25 WHEN 'adults 400 mcg' THEN 0.4 WHEN 'adults 4 g piperacillin + 0.5 g tazobactam' THEN 4000 WHEN 'Esophageal-gastric varices bleeding 0.025 mg/hour intravenous infusion || Prevention of pancreatic complications 0.1 mg subcutaneous injection || Gastrointestinal pancreatic endocrine tumors 0.05 mg subcutaneous injection || Acromegaly 0.05~0.1 mg subcutaneous injection' THEN 0.1 WHEN 'adults 10-40 mg once a day||cardiovascular prevention 40 mg per day||post-transplant (immunosuppressive therapy) 20 mg per day (up to 40 mg)||renal or hepatic insufficiency 10 mg per day' THEN 40 WHEN 'adults 2 mg' THEN 2 WHEN 'adults 40 mg' THEN 40 WHEN 'adults 12.5 mg (Day 1)||adults 12.5 mg twice/d (for 2 days)||adults 25 mg twice/d (for 4 days)||adults 50 mg twice/d (for 7 days)||adults 100 mg twice/d (for 7 days)' THEN 100 WHEN 'adults 20 mg' THEN 20 WHEN 'adults 500 mg||children 12 mg per 2' THEN 500 WHEN 'adults 500mcg||adults 250mcg' THEN 0.5 WHEN 'adults 20 mg||pediatric patients 0.5 mg/kg/dose or 1 mg/kg/dose' THEN 20 WHEN 'adults 1 mg norethindrone acetate and 10 mcg ethinyl estradiol per tablet' THEN 1 WHEN 'adults 500 mg' THEN 500 WHEN 'adults 12.5 mg (Day 1)||adults 12.5 mg twice daily (for 2 days)||adults 25 mg twice daily (for 4 days)||adults 50 mg twice daily (for 7 days)||adults 100 mg twice daily (for 7 days)' THEN 100 WHEN 'adults 25 mg || elderly 30-50 mg || adolescents 30-50 mg' THEN 25 WHEN 'children and adolescents up to 54mg daily||adults up to 72mg daily' THEN 72 WHEN 'adults 250 mg || adults 500 mg || adults 750 mg || adults 1000 mg' THEN 1000 WHEN 'adults 600 mg' THEN 600 WHEN 'adults 1-2 tablets 500mg||adults 1 tablet 750mg||children 1 drop/kg (not exceeding 35 drops)||children see weight-based mL dosing' THEN 1000 WHEN 'adults 1 mg || adults 2 mg' THEN 2 WHEN '15 mg' THEN 15 WHEN 'adults 25-50 mg' THEN 50 WHEN 'adults sinusitis 500 mg||adults acute exacerbation of chronic bronchitis 250-500 mg||adults skin and soft tissue infections 250-500 mg||adults creatinine clearance 250 mg/24h||adults creatinine clearance 500 mg/24h||adults creatinine clearance 500 mg/12h||adults 50-20 mL/min 125-500 mg/24h||adults 19-10 mL/min 125-500 mg/24h||adults 10 mL/min 125-250 mg/24-48h' THEN 500 WHEN 'adults 5 mg||adults 10 mg||children over 6 years 2.5 mg||children over 6 years 5 mg' THEN 10 WHEN '125 to 250 mg || 250 to 500 mg' THEN 500 WHEN 'adults 400 mg' THEN 400 WHEN 'adults 10 mg || adults 25 mg' THEN 25 WHEN 'adults 30 mg 1-2 tablets || adults 60 mg 1 tablet' THEN 60 WHEN 'adults 160 mg' THEN 160 WHEN 'adults 300 mg' THEN 300 WHEN 'newborns 0.5 mg/kg/dose || pediatric patients <30 kg 1 mg/kg/dose || pediatric patients \u226530 kg adult dosage || adults \u226560 kg 20 mg || adults <60 kg 15 mg' THEN 20 WHEN 'adults and children 12 years old and older weighing 40 kg or more 1 tablet of 500 mg + 125 mg' THEN 500 WHEN 'adults 1 mg' THEN 1 WHEN 'adults and children over 12 years 200 mg each 8 hours up to 400 mg each 8-12 hours || children 6-12 years 200 mg each 8-12 hours up to 400 mg each 12 hours || adults and children over 12 years (prevention) 400 mg each 12 hours || children 6-12 years (prevention) 200-400 mg each 12 hours || adults and children over 12 years (hyperammonemia) 400 mg each 8 hours || children 6-12 years (hyperammonemia) 200-300 mg each 8 hours' THEN 400 WHEN 'most patients 5 mg || patients with severe renal impairment 2.5 mg || patients with moderate hepatic impairment 2.5 mg' THEN 5 WHEN 'adults 5 mg || adults 10 mg || adults 20 mg' THEN 20 WHEN 'adults 100 mg' THEN 100 WHEN 'adults 250-500mg||children 15mg/kg daily' THEN 500 WHEN '250 mg capsule||500 mg tablet||500 mg intravenous' THEN 500 WHEN 'oral 400mg||oral 800mg' THEN 800 WHEN 'adults 25 mg (oral capsule)||adults 1 mg (intravenous)||adults 10-20 mg (oral, equivalent to 1 mg IV)' THEN 25 WHEN 'patients with severe asthma aged 12 years and older 100 mg || adult patients with EGPA 3x100 mg' THEN 300 WHEN 'adults and adolescents (12 years and older) initial 400 mg (two 200 mg injections) || adults and adolescents (12 years and older) initial 600 mg (two 300 mg injections) || adults initial 600 mg (two 300 mg injections) || pediatric patients 15 to <30 kg 600 mg (two 300 mg injections) || pediatric patients 30 to <60 kg 400 mg (two 200 mg injections) || pediatric patients 60 kg or more 600 mg (two 300 mg injections)' THEN 600 ELSE NULL END AS mg, prescription_status FROM drug) WHERE mg IS NOT NULL GROUP BY dose_range;",
+     "key_rows": 3,
+     "natural_length": 339
     },
     "G5b": {
-     "question": "Among drugs whose route is stated, taken by mouth or by another route: how many state a dosing schedule, how many state at least one schedule as an interval in hours (e.g. 'every 8 hours'), how many give a range or a choice of frequencies (e.g. 'every 4-6 hours', '3 to 4 times a day', 'once or twice a day'), how many are taken as needed, and how many state more than one schedule?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "For prescription-only drugs and the others, how many drug labels state a single dose, and how many of them give a dose per kilogram of body weight?",
+     "natural": "SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN single_dose LIKE '%/kg%' THEN 1 ELSE 0 END) AS per_kg FROM drug WHERE single_dose <> '' GROUP BY status;",
+     "key": "SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN single_dose LIKE '%/kg%' THEN 1 ELSE 0 END) AS per_kg FROM drug WHERE single_dose <> '' GROUP BY status;",
+     "key_rows": 2,
+     "natural_length": 249
     }
    },
-   "forms": {
-    "G5a": {
-     "update": "UPDATE drug SET dosage_frequency = CASE CASE WHEN dosage_frequency LIKE '%continuous%' THEN NULL WHEN dosage_frequency LIKE '%every 4 %hour%' OR dosage_frequency LIKE '%every 4-%hour%' OR dosage_frequency LIKE '%every four hour%' OR dosage_frequency LIKE '%6 times%' THEN 6 WHEN dosage_frequency LIKE '%every 6%hour%' OR dosage_frequency LIKE '%4 times%' OR dosage_frequency LIKE '%four times%' OR dosage_frequency LIKE '%4 doses%' THEN 4 WHEN dosage_frequency LIKE '%every 8%hour%' OR dosage_frequency LIKE '%3 times%' OR dosage_frequency LIKE '%three times%' OR dosage_frequency LIKE '%thrice%' THEN 3 WHEN dosage_frequency LIKE '%every 12%hour%' OR dosage_frequency LIKE '%twice%' OR dosage_frequency LIKE '%2 times%' THEN 2 WHEN dosage_frequency LIKE '%once daily%' OR dosage_frequency LIKE '%once a day%' OR dosage_frequency LIKE '%once per day%' OR dosage_frequency LIKE '%every 24 hour%' THEN 1 END WHEN 6 THEN '6 times a day' WHEN 4 THEN '4 times a day' WHEN 3 THEN '3 times a day' WHEN 2 THEN '2 times a day' WHEN 1 THEN 'once a day' ELSE dosage_frequency END WHERE dosage_frequency <> ''",
-     "rows_changed": 57,
-     "scores": {
-      "G5a": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G5b": {
-       "0%": 0.5,
-       "20%": 0.6
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G5a": {
+      "0%": 0.0,
+      "20%": 0.0
+     },
+     "G5b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G5a": {
+     "rows_changed": 100,
+     "G5a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G5b": {
+      "0%": 0.0,
+      "20%": 0.0
      }
     }
    }
   },
   {
    "group": "G6",
-   "about": "drug.disease_name lists the conditions on a label as the label words them and is the join key to disease.disease_name; G6a joins label conditions to diseases and accepts both the label's wording (through a stated list of other names) and the disease table's names, G6b counts the conditions as the label lists them. ALT G6a is entity resolution: each label condition rewritten to the disease table's name, one entry per resolved disease (so 'Herpes simplex||Genital herpes||...||Cold sores' keeps one 'Herpes Simplex Virus Infection'); it keeps G6a and changes the label's own count of conditions.",
-   "type": "join-spelling",
-   "column": "drug.disease_name",
+   "about": "drug.unsuitable_population states each group to avoid the drug as the label words it ('nursing mothers', 'geriatric patients', 'renal insufficiency', 'patients with glaucoma'); G6a needs standard population groups, G6b the stated conditions",
+   "type": "fine-vs-coarse",
+   "column": "drug.unsuitable_population",
    "problems": [],
    "queries": {
     "G6a": {
-     "question": "Per kind of disease (infectious; psychiatric; metabolic or endocrine; other, taking the first that applies): how many drug-disease treatment pairs are there, and in how many is the drug prescription-only? A drug treats a disease when its label names the disease by the disease's (first) name, ignoring case, or by one of these other names: Attention Deficit Hyperactivity Disorder, ADHD or attention deficit disorder for Attention-Deficit Hyperactivity Disorder; Urinary Tract Infections for Urinary Tract Infection; HIV infection or human immunodeficiency virus infection for HIV-1 Infection; acute graft-vs-host disease for Acute Graft-Versus-Host Disease; herpes simplex, herpes labialis, cold sores or genital herpes for Herpes Simplex Virus Infection; type 2 diabetes for Type 2 Diabetes Mellitus; diabetes for Diabetes Mellitus; flu for Influenza; high blood pressure for Hypertension; sinusitis for Sinus Infection; otitis media for Ear Infections; bronchial asthma for Asthma.",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 4
+     "question": "For prescription-only drugs and the others, how many labels name groups who should avoid the drug, and how many of them warn against use in pregnancy, while breastfeeding, in children, in the elderly, and in patients with kidney or with liver problems?",
+     "natural": "SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN unsuitable_population LIKE '%pregnan%' THEN 1 ELSE 0 END) AS pregnancy, SUM(CASE WHEN unsuitable_population LIKE '%breastfeed%' THEN 1 ELSE 0 END) AS breastfeeding, SUM(CASE WHEN unsuitable_population LIKE '%children%' THEN 1 ELSE 0 END) AS children, SUM(CASE WHEN unsuitable_population LIKE '%elderly%' THEN 1 ELSE 0 END) AS elderly, SUM(CASE WHEN unsuitable_population LIKE '%kidney%' THEN 1 ELSE 0 END) AS kidney_problems, SUM(CASE WHEN unsuitable_population LIKE '%liver%' THEN 1 ELSE 0 END) AS liver_problems FROM drug WHERE unsuitable_population <> '' GROUP BY status;",
+     "key": "SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN unsuitable_population LIKE '%pregnan%' THEN 1 ELSE 0 END) AS pregnancy, SUM(CASE WHEN unsuitable_population LIKE '%breastfeed%' THEN 1 ELSE 0 END) AS breastfeeding, SUM(CASE WHEN unsuitable_population LIKE '%children%' THEN 1 ELSE 0 END) AS children, SUM(CASE WHEN unsuitable_population LIKE '%elderly%' THEN 1 ELSE 0 END) AS elderly, SUM(CASE WHEN unsuitable_population LIKE '%kidney%' THEN 1 ELSE 0 END) AS kidney_problems, SUM(CASE WHEN unsuitable_population LIKE '%liver%' THEN 1 ELSE 0 END) AS liver_problems FROM (SELECT prescription_status, CASE unsuitable_population WHEN 'children under 18||pregnant women||breastfeeding women||patients with active liver disease||patients with persistent elevated transaminases||patients with hereditary problems of galactose intolerance, Lapp lactase deficiency, or glucose-galactose malabsorption' THEN 'pregnancy||breastfeeding||children||liver problems||other conditions' WHEN 'patients using antidepressants' THEN 'other conditions' WHEN 'pregnant women' THEN 'pregnancy' WHEN 'patients with cyst on the ovary||patients with fibroid tumor of the uterus||patients with inflamed veins due to blood clots||patients with endometriosis||patients with liver disease||patients with depression||patients with unusual vaginal bleeding||pregnant women' THEN 'pregnancy||liver problems||other conditions' WHEN 'patients with severe psychiatric illness' THEN 'other conditions' WHEN 'children under 18 years of age' THEN 'children' WHEN 'children under 6 years||children under 12 years (for some products)||patients with breathing problems||patients with diabetes||patients with glaucoma||patients with heart problems||patients with high blood pressure||patients with kidney problems||patients with liver disease||patients with seizures||patients with stomach/intestinal problems||patients with overactive thyroid||patients with urination problems||elderly' THEN 'children||elderly||kidney problems||liver problems||other conditions' WHEN 'children younger than 1||pediatric patients with pneumonia who are judged to be inappropriate for oral therapy' THEN 'children||other conditions' WHEN 'individuals with cardiovascular diseases' THEN 'other conditions' WHEN 'pregnant women (unless clearly needed)||breastfeeding women' THEN 'pregnancy||breastfeeding' WHEN 'patients with moderate or severe renal insufficiency' THEN 'kidney problems' WHEN 'children' THEN 'children' WHEN 'people with moderate to severe kidney disease||people with AST or ALT values of 2.5 to 10 times the upper limit of normal||people with total bilirubin levels of 1.5 to 3 times the upper limit of normal||pregnant women||people allergic to Bendeka or polyethylene glycol 400, propylene glycol, or monothioglycerol' THEN 'pregnancy||kidney problems||liver problems||other conditions' WHEN 'women with current or past breast cancer||pregnant women||nursing infants' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'diabetes mellitus at the time of transplant||history of antidiabetic therapy||unable to consent||steroid pulse therapy in the 2\u2009weeks prior to OGTT||pregnancy||breast feeding||estimated glomerular filtration rate (eGFR) \u226430\u2009mL/min/1.73\u2009m2||current substance abuse (including alcohol)||any major illness or comorbidity that may result in death within 12\u2009months' THEN 'pregnancy||breastfeeding||kidney problems||other conditions' WHEN 'pediatric patients||patients with cognitive impairment or mental disabilities||patients with neuromuscular diseases such as Parkinson''s disease or multiple sclerosis' THEN 'children||other conditions' WHEN 'children under 6 years||children under 12 years (for some forms)||patients with breathing problems||patients with diabetes||patients with glaucoma||patients with heart problems||patients with high blood pressure||patients with kidney problems||patients with liver disease||patients with seizures||patients with stomach/intestinal problems||patients with overactive thyroid||patients with urination problems||elderly||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||children||elderly||kidney problems||liver problems||other conditions' WHEN 'tetracycline allergy||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'allergy to Pamelor or similar medicines||currently taking or recently taken MAO inhibitors||recent heart attack' THEN 'other conditions' WHEN 'children under 6||patients with allergy or hypersensitivity to methylphenidate HCI||patients with anxiety||patients with glaucoma||patients with tics or history of Tourette\u2019s syndrome||patients taking monoamine oxidase inhibitors (MAOIs)||patients with heart or mental problems||patients with seizures||patients with abnormal brain wave tests||patients with circulation problems||patients with esophagus, stomach or intestine problems||pregnant women||nursing mothers' THEN 'pregnancy||breastfeeding||children||other conditions' WHEN 'pregnant or breastfeeding women' THEN 'pregnancy||breastfeeding' WHEN 'patients with kidney disease||patients with liver disease||older adults' THEN 'elderly||kidney problems||liver problems' WHEN 'Allergy to Lopid||Gallbladder disease||Liver disease||Taking Repaglinide||Pregnant women||Nursing women' THEN 'pregnancy||breastfeeding||liver problems||other conditions' WHEN 'people with liver complications||people with kidney problems||pregnant women (except with medical recommendation)||children under 12 (without medical advice)||people allergic to any components' THEN 'pregnancy||children||kidney problems||liver problems||other conditions' WHEN 'allergic to Tolterodine or Fesoterodine fumarate||untreated or uncontrolled narrow-angle glaucoma||blockage of the urinary tract||blockage of the stomach||blockage of the intestines' THEN 'other conditions' WHEN 'pediatric patients||pregnant women||breastfeeding women||patients receiving strong CYP3A inhibitors' THEN 'pregnancy||breastfeeding||children||other conditions' WHEN 'patients who are hypersensitive to animal\u2014specifically avian-based\u2014proteins' THEN 'other conditions' WHEN 'Patients with liver or kidney problem' THEN 'kidney problems||liver problems' WHEN 'children under 6 years||children under 12 years||patients with glaucoma||patients with bronchitis||patients with emphysema||patients with high blood pressure||patients with kidney disease||asthmatics||pregnant women||breastfeeding mothers' THEN 'pregnancy||breastfeeding||children||kidney problems||other conditions' WHEN 'children||adolescents||pregnant women||breast-feeding women||patients with epilepsy||patients with history of tendon problems with quinolones||patients with glucose-6-phosphate dehydrogenase deficiency||patients with kidney disease' THEN 'pregnancy||breastfeeding||children||kidney problems||other conditions' WHEN 'children taking ibuprofen or ASA||children allergic to ibuprofen, ASA, salicylates, NSAIDs, or any inactive ingredients||children right before or after heart surgery' THEN 'other conditions' WHEN 'patients with asthma||patients allergic to aclidinium bromide||patients allergic to formoterol fumarate||patients allergic to any of the other ingredients' THEN 'other conditions' WHEN 'children under 6 years||breastfeeding women' THEN 'breastfeeding||children' WHEN 'individuals with histories of significant allergies and/or asthma' THEN 'other conditions' WHEN 'patients with cataracts||patients with kidney disease||patients with diabetic retinopathy||patients with optic neuritis||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||kidney problems||other conditions' WHEN 'patients with creatinine clearance <50 mL/min||patients with significant or unstable cardiac disease||patients with autoimmune disorders||patients with preexisting ophthalmologic disorders||pregnant women||nursing mothers||pediatric patients below the age of 18 years' THEN 'pregnancy||breastfeeding||children||kidney problems||other conditions' WHEN 'pregnant women||nursing mothers' THEN 'pregnancy||breastfeeding' WHEN 'pregnant dogs||nursing dogs||dogs with diabetes||dogs taking Novocox||dogs taking Metacam||dogs taking Rimadyl||dogs taking NSAIDs' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'pregnant women||elderly people||patients with nephropathy||patients with neuropathy||patients with cardiovascular disorders' THEN 'pregnancy||elderly||kidney problems||other conditions' WHEN 'patients with pancreatitis||patients with hepatic decompensation||patients with severe peripheral neuropathy||pregnant women (with caution)||patients with history of lactic acidosis' THEN 'pregnancy||liver problems||other conditions' WHEN 'children under 2 years old||pregnant women' THEN 'pregnancy||children' WHEN 'hypersensitivity to beta-lactamics||moderate or serious renal alteration||hepatic alteration||granulocytopenia less than 1,000/mm3||thrombocytopenia less than 50,000/mm3' THEN 'kidney problems||liver problems||other conditions' WHEN 'children under 12 years||pregnant women||nursing women||patients with persistent/chronic cough||patients with shortness of breath||patients with chronic lung disease||patients taking MAOI||patients taking SSRI||patients taking medications for depression, psychiatric, or emotional conditions, or Parkinson''s disease' THEN 'pregnancy||breastfeeding||children||other conditions' WHEN 'nursing mothers||infants' THEN 'breastfeeding||children' WHEN 'people allergic to azelaic acid or any other ingredient listed in the gel' THEN 'other conditions' WHEN 'pediatric patients||geriatric patients||pregnant women||nursing mothers||patients with allergy to aminoglycoside antibiotics||patients with breathing problems||patients with kidney problems||patients with myasthenia gravis||patients with Parkinson''s disease||patients with hearing or balance problems' THEN 'pregnancy||breastfeeding||children||elderly||kidney problems||other conditions' WHEN 'patients hypersensitive to glimepiride||patients hypersensitive to other sulfonylureas||patients hypersensitive to other sulfonamides||patients with type I diabetes mellitus||patients with diabetic ketoacidosis||patients with diabetic precoma or coma||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'individuals with hypersensitivity to any component of the drug or other rifamycin antibiotics||patients with intestinal obstruction||patients with ulcerative colitis' THEN 'other conditions' WHEN 'Pregnant females||Young puppies||Pets with unspecified conditions' THEN 'pregnancy||other conditions' WHEN 'pregnant women || women planning to become pregnant || breastfeeding women || patients with severe liver disease || patients with severe kidney disease || patients with high triglycerides || patients allergic to retinoids' THEN 'pregnancy||breastfeeding||kidney problems||liver problems||other conditions' WHEN 'patients with severe bradycardia||heart block greater than first degree||patients with cardiogenic shock||decompensated cardiac failure||sick sinus syndrome (unless a permanent pacemaker is in place)||patients with severe hepatic impairment (Child-Pugh greater than B)||hypersensitive to any component of this product||children under 18' THEN 'children||liver problems||other conditions' WHEN 'pregnant women||breastfeeding women||children' THEN 'pregnancy||breastfeeding||children' WHEN 'Women using oral contraceptives' THEN 'other conditions' WHEN 'patients taking nitrate containing medicines for cardiac insufficiency||patients with heart failure II stage||angina||complex forms of arrhythmias||resistant hypertension||states associated with a drop in blood pressure' THEN 'other conditions' WHEN 'men||postmenopausal women||children||patients with hepatic impairment||patients using alcohol||patients using moderate or strong CYP3A4 inhibitors||patients with hypersensitivity to Flibanserin or any inactive ingredient' THEN 'children||liver problems||other conditions' WHEN 'Allergic to Valium or other benzodiazepines||Pregnant women||Nursing mothers||Older adults' THEN 'pregnancy||breastfeeding||elderly||other conditions' WHEN 'people with individual intolerance of the active or additional elements of the drug||children younger than two months (ointment)||children under one year (cream)||people of old age (cautiously)||people with severe kidney dysfunction (cautiously)' THEN 'children||elderly||kidney problems||other conditions' WHEN 'patients allergic to Clarithromycin or other macrolide antibiotics||patients using Ergotamine, Dihydroergotamine, or other ergot alkaloids||patients using Terfenadine or Astemizole||patients using Cisapride||patients using statins (Lovastatin, Atorvastatin, Simvastatin, Rosuvastatin, Fluvastatin)||patients with hypokalaemia||patients with impaired liver function||patients with kidney damage||patients with cardiac problems' THEN 'kidney problems||liver problems||other conditions' ELSE unsuitable_population END AS unsuitable_population FROM drug WHERE unsuitable_population <> '') GROUP BY status;",
+     "key_rows": 2,
+     "natural_length": 719
     },
     "G6b": {
-     "question": "Among drugs whose route is stated, taken by mouth or by another route: how many drugs name the conditions they treat, how many conditions a label names on average (each condition as the label lists it, so 'cold sores' and 'genital herpes' count as two), and how many labels name two or more conditions?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "How many drug labels warn patients with glaucoma, with asthma or with diabetes, and how many warn patients taking MAO inhibitors?",
+     "natural": "SELECT SUM(CASE WHEN unsuitable_population LIKE '%glaucoma%' THEN 1 ELSE 0 END) AS glaucoma, SUM(CASE WHEN unsuitable_population LIKE '%asthma%' THEN 1 ELSE 0 END) AS asthma, SUM(CASE WHEN unsuitable_population LIKE '%diabet%' THEN 1 ELSE 0 END) AS diabetes, SUM(CASE WHEN unsuitable_population LIKE '%MAO%' THEN 1 ELSE 0 END) AS mao_inhibitors FROM drug;",
+     "key": "SELECT SUM(CASE WHEN unsuitable_population LIKE '%glaucoma%' THEN 1 ELSE 0 END) AS glaucoma, SUM(CASE WHEN unsuitable_population LIKE '%asthma%' THEN 1 ELSE 0 END) AS asthma, SUM(CASE WHEN unsuitable_population LIKE '%diabet%' THEN 1 ELSE 0 END) AS diabetes, SUM(CASE WHEN unsuitable_population LIKE '%MAO%' THEN 1 ELSE 0 END) AS mao_inhibitors FROM drug;",
+     "key_rows": 1,
+     "natural_length": 355
     }
    },
-   "forms": {
-    "G6a": {
-     "update": "UPDATE drug SET disease_name = (WITH RECURSIVE split(item, rest, pos) AS (SELECT '', REPLACE(drug.disease_name, ' || ', '||') || '||', 0 UNION ALL SELECT substr(rest, 1, instr(rest, '||') - 1), substr(rest, instr(rest, '||') + 2), pos + 1 FROM split WHERE rest <> ''), resolved AS (SELECT CASE item WHEN 'Attention Deficit Hyperactivity Disorder' THEN 'Attention-Deficit Hyperactivity Disorder' WHEN 'ADHD' THEN 'Attention-Deficit Hyperactivity Disorder' WHEN 'attention deficit disorder' THEN 'Attention-Deficit Hyperactivity Disorder' WHEN 'Urinary Tract Infections' THEN 'Urinary Tract Infection' WHEN 'HIV infection' THEN 'HIV-1 Infection' WHEN 'Human immunodeficiency virus infection' THEN 'HIV-1 Infection' WHEN 'acute graft-vs-host disease' THEN 'Acute Graft-Versus-Host Disease' WHEN 'Herpes simplex' THEN 'Herpes Simplex Virus Infection' WHEN 'Herpes labialis' THEN 'Herpes Simplex Virus Infection' WHEN 'Cold sores' THEN 'Herpes Simplex Virus Infection' WHEN 'Genital herpes' THEN 'Herpes Simplex Virus Infection' WHEN 'Type 2 Diabetes' THEN 'Type 2 Diabetes Mellitus' WHEN 'Diabetes' THEN 'Diabetes Mellitus' WHEN 'Flu' THEN 'Influenza' WHEN 'High Blood Pressure' THEN 'Hypertension' WHEN 'Sinusitis' THEN 'Sinus Infection' WHEN 'otitis media' THEN 'Ear Infections' WHEN 'Bronchial asthma' THEN 'Asthma' ELSE item END AS name, MIN(pos) AS first_pos FROM split WHERE pos > 0 GROUP BY name) SELECT group_concat(name, '||') FROM (SELECT name FROM resolved ORDER BY first_pos)) WHERE disease_name <> ''",
-     "rows_changed": 96,
-     "scores": {
-      "G6a": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G6b": {
-       "0%": 0.5,
-       "20%": 0.6667
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G6a": {
+      "0%": 0.3571,
+      "20%": 0.5
+     },
+     "G6b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G6a": {
+     "rows_changed": 58,
+     "G6a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G6b": {
+      "0%": 0.0,
+      "20%": 0.0
      }
     }
    }
   },
   {
    "group": "G7",
-   "about": "disease.affected_organs lists the organs a disease affects; G7a needs the body systems (a disease counts under each system it affects), G7b specific organs (liver, kidneys, eyes, brain) that a body-system form merges into a system or drops",
+   "about": "disease.affected_organs states organs and tissues as the source names them (brain, lungs, kidneys, ...); G7a needs the body systems they belong to, G7b the stated organs",
    "type": "fine-vs-coarse",
    "column": "disease.affected_organs",
    "problems": [],
    "queries": {
     "G7a": {
-     "question": "Per kind of disease (infectious; cancer; other, taking the first that applies), among diseases whose affected organs are stated: how many diseases, and how many affect the lungs and airways (including the pleura and sinuses), the heart and blood vessels (arteries, veins), the nervous system (brain, nerves), the digestive system (gut, stomach, intestines, bowel, colon, esophagus, liver, abdomen), the skin, the bones, joints and muscles (including the spine, ligaments and tendons, but not bone marrow), and the kidneys and urinary tract (bladder, urethra)? A disease counts under every system it affects.",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 3
+     "question": "For chronic and other diseases whose affected organs are known, how many affect the nervous system, the respiratory system, the cardiovascular system, the musculoskeletal system and the urinary system?",
+     "natural": "SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS course, COUNT(*) AS diseases, SUM(CASE WHEN affected_organs LIKE '%nervous system%' THEN 1 ELSE 0 END) AS nervous_system, SUM(CASE WHEN affected_organs LIKE '%respiratory system%' THEN 1 ELSE 0 END) AS respiratory_system, SUM(CASE WHEN affected_organs LIKE '%cardiovascular system%' THEN 1 ELSE 0 END) AS cardiovascular_system, SUM(CASE WHEN affected_organs LIKE '%musculoskeletal system%' THEN 1 ELSE 0 END) AS musculoskeletal_system, SUM(CASE WHEN affected_organs LIKE '%urinary system%' THEN 1 ELSE 0 END) AS urinary_system FROM disease WHERE affected_organs <> '' GROUP BY course;",
+     "key": "SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS course, COUNT(*) AS diseases, SUM(CASE WHEN affected_organs LIKE '%nervous system%' THEN 1 ELSE 0 END) AS nervous_system, SUM(CASE WHEN affected_organs LIKE '%respiratory system%' THEN 1 ELSE 0 END) AS respiratory_system, SUM(CASE WHEN affected_organs LIKE '%cardiovascular system%' THEN 1 ELSE 0 END) AS cardiovascular_system, SUM(CASE WHEN affected_organs LIKE '%musculoskeletal system%' THEN 1 ELSE 0 END) AS musculoskeletal_system, SUM(CASE WHEN affected_organs LIKE '%urinary system%' THEN 1 ELSE 0 END) AS urinary_system FROM (SELECT prognosis, CASE affected_organs WHEN 'cervix||womb||fallopian tubes||ovaries||reproductive organs||eyes (in babies)||lungs (in babies)' THEN 'respiratory system||reproductive system||eyes and ears' WHEN 'gastrointestinal system||abdomen' THEN 'digestive system||other body parts' WHEN 'lungs||pleura||chest' THEN 'respiratory system||other body parts' WHEN 'gastrointestinal tract||rectosigmoid colon' THEN 'digestive system' WHEN 'large_blood_vessels||kidneys||eyes||nerves||pancreas' THEN 'nervous system||cardiovascular system||digestive system||urinary system||eyes and ears' WHEN 'fingers||toes||skin||arms||legs||palms||soles' THEN 'skin||other body parts' WHEN 'joints||big toe||elbow||ankle||wrist' THEN 'musculoskeletal system' WHEN 'lungs||blood vessels||nerves||bones||liver||brain' THEN 'nervous system||respiratory system||cardiovascular system||digestive system||musculoskeletal system' WHEN 'plasma cells||bone marrow||bone' THEN 'musculoskeletal system||blood and immune system' WHEN 'limbs||nervous system' THEN 'nervous system||other body parts' WHEN 'bowels||gastrointestinal tract' THEN 'digestive system' WHEN 'skin||blood vessels||brain||cerebral white matter' THEN 'nervous system||cardiovascular system||skin' WHEN 'abdomen||liver||lung||digestive tract||skin' THEN 'respiratory system||digestive system||skin||other body parts' WHEN 'skin' THEN 'skin' WHEN 'facial skin||genital area' THEN 'skin||reproductive system' WHEN 'respiratory system' THEN 'respiratory system' WHEN 'lungs' THEN 'respiratory system' WHEN 'lungs||pancreas' THEN 'respiratory system||digestive system' WHEN 'gastrointestinal tract||intestine' THEN 'digestive system' WHEN 'joints||gums' THEN 'digestive system||musculoskeletal system' WHEN 'central nervous system' THEN 'nervous system' WHEN 'red blood cells||bone marrow||critical organs' THEN 'blood and immune system||other body parts' WHEN 'heart||arteries||legs||lungs' THEN 'respiratory system||cardiovascular system||other body parts' WHEN 'urinary tract' THEN 'urinary system' WHEN 'prostate||kidney||bladder||liver||bone||lung||lymph_nodes' THEN 'respiratory system||digestive system||musculoskeletal system||urinary system||reproductive system||blood and immune system' WHEN 'esophagus' THEN 'digestive system' WHEN 'nerves||veins||shoulders||hands||arms' THEN 'nervous system||cardiovascular system||other body parts' WHEN 'skin||eyes' THEN 'skin||eyes and ears' WHEN 'ears' THEN 'eyes and ears' WHEN 'muscles||heart' THEN 'cardiovascular system||musculoskeletal system' WHEN 'brain' THEN 'nervous system' WHEN 'appendix' THEN 'digestive system' WHEN 'pancreas||kidney||eye||skin||heart' THEN 'cardiovascular system||digestive system||urinary system||skin||eyes and ears' WHEN 'large intestine||small intestine||colon' THEN 'digestive system' WHEN 'lumbar_spine||muscles||ligaments||tendons||discs||bones||nerves' THEN 'nervous system||musculoskeletal system' WHEN 'gums||bone' THEN 'digestive system||musculoskeletal system' WHEN 'trigeminal nerve||face' THEN 'nervous system||other body parts' WHEN 'heart' THEN 'cardiovascular system' WHEN 'nervous system||joints||digestive system' THEN 'nervous system||digestive system||musculoskeletal system' WHEN 'optic nerve||eye||nervous system' THEN 'nervous system||eyes and ears' WHEN 'heart||nervous system||adrenal glands' THEN 'nervous system||cardiovascular system||endocrine system' WHEN 'lymph nodes||lungs||skin||central nervous system' THEN 'nervous system||respiratory system||skin||blood and immune system' WHEN 'heart||lungs||abdomen||chest cavity' THEN 'respiratory system||cardiovascular system||other body parts' WHEN 'stomach||nearby organs||lymph nodes' THEN 'digestive system||blood and immune system||other body parts' WHEN 'skin||dermis' THEN 'skin' WHEN 'intestinal wall' THEN 'digestive system' WHEN 'any organ||joints||small joints in hand||bones' THEN 'musculoskeletal system||other body parts' WHEN 'prostate gland||urinary tract' THEN 'urinary system||reproductive system' WHEN 'abdominal wall||intra-abdominal organs' THEN 'digestive system' WHEN 'heart||brain||arteries||vascular' THEN 'nervous system||cardiovascular system' WHEN 'brain||basal ganglia||cortex||striatum||caudate nuclei||pallidium' THEN 'nervous system' WHEN 'foot||ankle||bone||joints||ligaments||tendons' THEN 'musculoskeletal system||other body parts' WHEN 'gut' THEN 'digestive system' WHEN 'brain||nervous system' THEN 'nervous system' WHEN 'blood||lymph||subcutaneous tissues||central nervous system' THEN 'nervous system||skin||blood and immune system' WHEN 'peripheral nervous system' THEN 'nervous system' WHEN 'intestines||joints||back||mouth||eyes' THEN 'digestive system||musculoskeletal system||eyes and ears||other body parts' WHEN 'joints' THEN 'musculoskeletal system' WHEN 'breast' THEN 'reproductive system' WHEN 'medial temporal lobes||brain' THEN 'nervous system' WHEN 'sinuses||nervous system||trigeminal nerve||autonomic nervous system' THEN 'nervous system||respiratory system' WHEN 'arteries||legs||feet||toes||limbs||muscles||skin' THEN 'cardiovascular system||musculoskeletal system||skin||other body parts' WHEN 'retina||macula||eye' THEN 'eyes and ears' WHEN 'placenta||liver||kidney' THEN 'digestive system||urinary system||reproductive system' WHEN 'liver||nervous system||kidneys' THEN 'nervous system||digestive system||urinary system' WHEN 'joints||skin||cardiovascular system||blood vessels' THEN 'cardiovascular system||musculoskeletal system||skin' WHEN 'facial nerve' THEN 'nervous system' WHEN 'muscles' THEN 'musculoskeletal system' WHEN 'lungs||bone' THEN 'respiratory system||musculoskeletal system' WHEN 'peritoneum||abdomen' THEN 'digestive system||other body parts' WHEN 'heart||brain' THEN 'nervous system||cardiovascular system' WHEN 'liver' THEN 'digestive system' WHEN 'heart||blood vessels' THEN 'cardiovascular system' WHEN 'prostate||urethra' THEN 'urinary system||reproductive system' WHEN 'kidney' THEN 'urinary system' ELSE affected_organs END AS affected_organs FROM disease WHERE affected_organs <> '') GROUP BY course;",
+     "key_rows": 2,
+     "natural_length": 663
     },
     "G7b": {
-     "question": "For infectious and other diseases whose affected organs are stated: how many diseases, and how many affect the liver, the kidneys, the eyes (including the retina, macula and optic nerve), and the brain?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
+     "question": "For chronic and other diseases whose affected organs are known, how many affect the brain, the heart, the lungs, the liver and the kidneys?",
+     "natural": "SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS course, SUM(CASE WHEN affected_organs LIKE '%brain%' THEN 1 ELSE 0 END) AS brain, SUM(CASE WHEN affected_organs LIKE '%heart%' THEN 1 ELSE 0 END) AS heart, SUM(CASE WHEN affected_organs LIKE '%lung%' THEN 1 ELSE 0 END) AS lungs, SUM(CASE WHEN affected_organs LIKE '%liver%' THEN 1 ELSE 0 END) AS liver, SUM(CASE WHEN affected_organs LIKE '%kidney%' THEN 1 ELSE 0 END) AS kidneys FROM disease WHERE affected_organs <> '' GROUP BY course;",
+     "key": "SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS course, SUM(CASE WHEN affected_organs LIKE '%brain%' THEN 1 ELSE 0 END) AS brain, SUM(CASE WHEN affected_organs LIKE '%heart%' THEN 1 ELSE 0 END) AS heart, SUM(CASE WHEN affected_organs LIKE '%lung%' THEN 1 ELSE 0 END) AS lungs, SUM(CASE WHEN affected_organs LIKE '%liver%' THEN 1 ELSE 0 END) AS liver, SUM(CASE WHEN affected_organs LIKE '%kidney%' THEN 1 ELSE 0 END) AS kidneys FROM disease WHERE affected_organs <> '' GROUP BY course;",
+     "key_rows": 2,
+     "natural_length": 515
     }
    },
-   "forms": {
-    "G7a": {
-     "update": "UPDATE disease SET affected_organs = COALESCE(NULLIF(RTRIM(CASE WHEN (affected_organs LIKE '%lung%' OR affected_organs LIKE '%respirat%' OR affected_organs LIKE '%pleura%' OR affected_organs LIKE '%sinus%') THEN 'lungs and airways||' ELSE '' END || CASE WHEN (affected_organs LIKE '%heart%' OR affected_organs LIKE '%arter%' OR affected_organs LIKE '%vessel%' OR affected_organs LIKE '%vein%' OR affected_organs LIKE '%vascular%') THEN 'heart and blood vessels||' ELSE '' END || CASE WHEN (affected_organs LIKE '%brain%' OR affected_organs LIKE '%nerv%') THEN 'nervous system||' ELSE '' END || CASE WHEN (affected_organs LIKE '%gut%' OR affected_organs LIKE '%gastro%' OR affected_organs LIKE '%digest%' OR affected_organs LIKE '%intestin%' OR affected_organs LIKE '%bowel%' OR affected_organs LIKE '%colon%' OR affected_organs LIKE '%esophag%' OR affected_organs LIKE '%stomach%' OR affected_organs LIKE '%liver%' OR affected_organs LIKE '%abdom%') THEN 'digestive system||' ELSE '' END || CASE WHEN (affected_organs LIKE '%skin%' OR affected_organs LIKE '%derm%') THEN 'skin||' ELSE '' END || CASE WHEN (REPLACE(affected_organs, 'bone marrow', '') LIKE '%bone%' OR affected_organs LIKE '%joint%' OR affected_organs LIKE '%muscle%' OR affected_organs LIKE '%spine%' OR affected_organs LIKE '%ligament%' OR affected_organs LIKE '%tendon%') THEN 'bones, joints and muscles||' ELSE '' END || CASE WHEN (affected_organs LIKE '%kidney%' OR affected_organs LIKE '%urinary%' OR affected_organs LIKE '%bladder%' OR affected_organs LIKE '%urethra%') THEN 'kidneys and urinary tract||' ELSE '' END, '|'), ''), 'other') WHERE affected_organs <> ''",
-     "rows_changed": 80,
-     "scores": {
-      "G7a": {
-       "0%": 1.0,
-       "20%": 1.0
-      },
-      "G7b": {
-       "0%": 0.3,
-       "20%": 0.3
-      }
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G7a": {
+      "0%": 0.1667,
+      "20%": 0.25
+     },
+     "G7b": {
+      "0%": 1.0,
+      "20%": 1.0
      }
-    }
-   }
-  },
-  {
-   "group": "G8",
-   "about": "drug.pharmaceutical_form lists every form a drug comes in ('capsule||tablet||injection'); G8a needs all forms (any injectable or liquid form, number of forms), G8b one main form by a stated precedence (the single label a 'dosage form' reader would store)",
-   "type": "list-vs-one",
-   "column": "drug.pharmaceutical_form",
-   "problems": [],
-   "queries": {
-    "G8a": {
-     "question": "Among drugs whose route and forms are stated, taken by mouth or by another route: how many drugs, how many come in more than one form, how many come in an injectable form, and how many in a liquid form (solution, suspension, syrup, drops or liquid)?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 2
     },
-    "G8b": {
-     "question": "By each drug's main dosage form, taking the first of these it comes in (tablet; capsule; injection; liquid, meaning solution, suspension, syrup or drops; other): how many drugs, and how many of them are prescription-only?",
-     "checker_ok": true,
-     "checker_problems": [],
-     "result_rows": 5
-    }
-   },
-   "forms": {
-    "G8b": {
-     "update": "UPDATE drug SET pharmaceutical_form = CASE WHEN pharmaceutical_form LIKE '%tablet%' THEN 'tablet' WHEN pharmaceutical_form LIKE '%capsule%' THEN 'capsule' WHEN pharmaceutical_form LIKE '%injection%' THEN 'injection' WHEN (pharmaceutical_form LIKE '%solution%' OR pharmaceutical_form LIKE '%suspension%' OR pharmaceutical_form LIKE '%syrup%' OR pharmaceutical_form LIKE '%drop%' OR pharmaceutical_form LIKE '%liquid%') THEN 'liquid' ELSE 'other' END WHERE pharmaceutical_form <> ''",
+    "FORM G7a": {
      "rows_changed": 76,
-     "scores": {
-      "G8a": {
-       "0%": 0.375,
-       "20%": 0.375
-      },
-      "G8b": {
-       "0%": 1.0,
-       "20%": 1.0
-      }
+     "G7a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G7b": {
+      "0%": 0.1,
+      "20%": 0.3
      }
     }
    }

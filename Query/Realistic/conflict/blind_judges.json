@@ -1,0 +1,935 @@
+[
+ [
+  "art",
+  "G1",
+  "G1a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "Exact IN ('Sculpture','Photography','Illustration') with GROUP BY field expects a single primary field per row. Form 1 lets 'Sculpture||Painting' and similar ro",
+   "Exact IN matching with GROUP BY field assumes one field per row. Form 1 assigns each artist their primary field, so 'Sculpture||Painting' counts as Sculpture. A"
+  ]
+ ],
+ [
+  "art",
+  "G1",
+  "G1b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "LIKE '%Sculpture%' is a membership test written for a multi-valued field. Form 1 would drop sculptors listed second, as in 'Painting||Sculpture'.",
+   "field LIKE '%Sculpture%' is meant to find any artist who works in sculpture. Form 1 collapses 'Painting||Sculpture' and similar values to 'Painting', so those s"
+  ]
+ ],
+ [
+  "art",
+  "G2",
+  "G2a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "Exact IN plus GROUP BY genre expects one primary genre per row, which matches the description's 'primary genre'. Form 1 lets 'Portrait||Landscape', 'Portraiture",
+   "Exact IN matching on the canonical single labels with GROUP BY genre assumes one atomic genre per row. Form 1 provides that: it keeps the primary genre and turn"
+  ]
+ ],
+ [
+  "art",
+  "G2",
+  "G2b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The SQL requires a genre to contain both Portrait and Landscape, which is only possible if the multi-valued lists are kept. Form 1 keeps only one genre per row.",
+   "Requiring genre LIKE '%Portrait%' AND LIKE '%Landscape%' only works if a row keeps several genres. Form 1 keeps one genre per row, so no row could satisfy both "
+  ]
+ ],
+ [
+  "art",
+  "G3",
+  "G3a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "Exact IN match with GROUP BY art_movement expects one canonical movement per row. Form 1 fixes the case of 'Abstract expressionism' and turns 'Abstract Expressi",
+   "Exact IN matching on single movement names with GROUP BY assumes atomic, consistently cased values. Form 1 fixes 'Abstract expressionism' and keeps the primary "
+  ]
+ ],
+ [
+  "art",
+  "G3",
+  "G3b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "Each count uses LIKE '%X%' membership tests, so a row like 'Abstract Expressionism||Surrealism' should count for both movements. Form 1 keeps only the first mov",
+   "Substring LIKE counts per movement treat the column as multi-valued, so 'Abstract Expressionism||Surrealism' should count toward both. Form 1 keeps only the fir"
+  ]
+ ],
+ [
+  "art",
+  "G4",
+  "G4a",
+  "a judge contradicts the key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "GROUP BY century with only a non-empty filter, over a column whose description explicitly allows spans like 19th-20th, groups by the values as given. Nothing in",
+   "GROUP BY century with no filter reports the values as recorded, and the description explicitly allows spans such as '19th-20th'. Form 1 arbitrarily moves span a"
+  ]
+ ],
+ [
+  "art",
+  "G4",
+  "G4b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "LIKE '%19th%' is written to catch spans such as '19th-20th'. Form 1 would rewrite those rows as '20th' and drop them.",
+   "LIKE '%19th%' is a substring test that expects span values such as '19th-20th' to count as 19th century; Form 1 rewrites them to '20th' and drops 332 rows from "
+  ]
+ ],
+ [
+  "art",
+  "G5",
+  "G5a",
+  "a judge contradicts the key",
+  [
+   "stored as stated in the documents",
+   "ambiguous"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "Exact IN ('Realism','Expressionism') on a free-text style column picks out those exact styles. Abstract Expressionism, Neo-Expressionism and Photorealism are di",
+   "Exact equality to 'Realism' and 'Expressionism' could mean only rows literally labelled that way, or the broad style families. Form 1 rolls distinct styles such"
+  ]
+ ],
+ [
+  "art",
+  "G5",
+  "G5b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The IN list names 'Abstract Expressionism' and 'Neo-Expressionism' exactly. Form 1 collapses both to 'Expressionism', so the query would return nothing.",
+   "The query names the specific styles 'Abstract Expressionism' and 'Neo-Expressionism' and groups by them. Form 1 rolls both up into 'Expressionism', so the query"
+  ]
+ ],
+ [
+  "legal",
+  "G1",
+  "G1a",
+  "a judge contradicts the key",
+  [
+   "Form 2",
+   "Form 2"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "Grouping by defendant should treat surface variants as one defendant: a leading 'The', truncated names, and a co-respondent appended (the description says keep ",
+   "The query groups by defendant name with COUNT >= 5 to find frequent defendants. Form 2 merges the noise variants (leading 'The', a co-respondent tacked on, trun"
+  ]
+ ],
+ [
+  "legal",
+  "G1",
+  "G1b",
+  "both agree with key",
+  [
+   "Form 2",
+   "Form 2"
+  ],
+  [
+   "Form 2"
+  ],
+  [
+   "The query selects defendants starting with 'Minister for Immigration', groups by the full name and reports first and last year. That only makes sense if the dis",
+   "The query keeps rows matching LIKE 'Minister for Immigration%' and groups by defendant, then reports MIN/MAX judgment_year for each one. That only makes sense i"
+  ]
+ ],
+ [
+  "legal",
+  "G1",
+  "G1c",
+  "a judge contradicts the key",
+  [
+   "ambiguous",
+   "Form 2"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "A per-defendant, per-year breakdown of frequent defendants fits two readings equally well. Form 2 keeps distinct ministerial titles with each title's years. For",
+   "The query breaks down frequent defendants (COUNT >= 10) by judgment_year. Form 2 gives clean names, so variant spellings neither push a defendant below the thre"
+  ]
+ ],
+ [
+  "legal",
+  "G2",
+  "G2a",
+  "a judge contradicts the key",
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The query groups by case_type with no filter, so the analyst expects one row per category in the description's list, and 'Commercial Case' is one of the four. F"
+  ]
+ ],
+ [
+  "legal",
+  "G2",
+  "G2b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The query asks for Civil Case and Commercial Case as separate groups. Form 1 turns Commercial into Civil, so the Commercial group vanishes and Civil is inflated",
+   "The query uses case_type IN ('Civil Case', 'Commercial Case') and groups by case_type to compare the two categories directly. Form 1 relabels every Commercial c"
+  ]
+ ],
+ [
+  "legal",
+  "G3",
+  "G3a",
+  "a judge contradicts the key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 2"
+  ],
+  [
+   "Grouping by status follows the description's per-occupation rule, which Form 1 keeps (with International Student folded into Student). Form 2 collapses everyone",
+   "The query groups plaintiffs by occupation and excludes '' as unknown. Form 2 rules itself out: it turns occupations into 'Individual', which goes against the de"
+  ]
+ ],
+ [
+  "legal",
+  "G3",
+  "G3b",
+  "both agree with key",
+  [
+   "Form 2",
+   "Form 2"
+  ],
+  [
+   "Form 2"
+  ],
+  [
+   "The filter = 'Government' follows the description's rule that a government body is recorded as 'government'. Only Form 2 maps government plaintiffs such as 'Dep",
+   "The filter plaintiff_current_status = 'Government' looks for government-body plaintiffs, which the description says to store as 'government'. Only Form 2 maps g"
+  ]
+ ],
+ [
+  "legal",
+  "G3",
+  "G3c",
+  "both agree with key",
+  [
+   "Form 2",
+   "Form 2"
+  ],
+  [
+   "Form 2"
+  ],
+  [
+   "The IN list names occupations ('Visa Applicant', 'Refugee', 'Student', 'Employee'), so the column must keep occupations. Form 1's 'Individual' matches none of t",
+   "The filter IN ('Visa Applicant','Refugee','Student','Employee') needs occupation values, so Form 1, which collapses them to 'Individual', returns nothing. Form "
+  ]
+ ],
+ [
+  "legal",
+  "G4",
+  "G4a",
+  "a judge contradicts the key",
+  [
+   "Form 1",
+   "Form 2"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "This is the same per-lawyer grouping as legal-9890. Form 1 keeps one bare name for the first counsel, so team strings are not used as keys and 'Mr P Gray' and '",
+   "This is the same SQL as legal-9890: cases per respondent lawyer with COUNT >= 3. Form 2 stores the lead counsel with honorific and suffix kept ('Mr T Reilly', '"
+  ]
+ ],
+ [
+  "legal",
+  "G4",
+  "G4b",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The filter LIKE '% SC' / '% QC' looks for senior counsel. Only Form 1 keeps the SC suffix at the end of the value for every SC-led row (C Golvan SC, Mr P Gray S",
+   "The filter LIKE '% SC' OR LIKE '% QC' needs the senior-counsel suffix at the end of the stored value. Form 1 stores 'C Golvan SC', 'Mr P Gray SC' and 'Mr Taylor"
+  ]
+ ],
+ [
+  "legal",
+  "G4",
+  "G4c",
+  "a judge contradicts the key",
+  [
+   "Form 3",
+   "Form 1"
+  ],
+  [
+   "Form 2"
+  ],
+  [
+   "The query groups by counsel to get per-lawyer counts, so the key should name one lawyer, not a team string like 'C Golvan SC || S Ricketson'. Form 3 keeps the f",
+   "The query groups by counsel_for_respondent to count cases per lawyer. The column description names one lawyer with a title ('Mr D Barclay'), and Form 1 matches "
+  ]
+ ],
+ [
+  "med",
+  "G1",
+  "G1a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "GROUP BY disease_type on the exact value only makes sense with one class per row. Form 1 gives clean single-class groups; the stated form makes a separate group",
+   "GROUP BY disease_type implies one classification per row. Stored as stated, the multi-label values produce combined groups such as 'infectious||inflammatory'; F"
+  ]
+ ],
+ [
+  "med",
+  "G1",
+  "G1b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The query counts diseases tagged with each type using LIKE substring matching, which assumes a multi-label value. Form 1 keeps only one class and drops co-label",
+   "Separate LIKE counts per type ('inflammatory', 'vascular', 'degenerative', ...) assume each row can carry several types. Form 1 keeps only one primary type, so "
+  ]
+ ],
+ [
+  "med",
+  "G2",
+  "G2a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The filters look for 'medication', 'procedure' and 'lifestyle', which are Form 1's coarse categories. In the stated form 'procedure' never occurs, and injection",
+   "The query uses Form 1's grouped vocabulary ('medication', 'procedure', 'lifestyle'). 'procedure' never appears in the stated labels, and 'medication' would miss"
+  ]
+ ],
+ [
+  "med",
+  "G2",
+  "G2b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The filters use the exact category names from the column description (surgery, injection, lifestyle_modification, dietary_intervention, physical_therapy), which",
+   "The LIKE constants ('surgery', 'injection', 'lifestyle_modification', 'dietary_intervention', 'physical_therapy') are the original modality labels. Form 1 merge"
+  ]
+ ],
+ [
+  "med",
+  "G3",
+  "G3a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The equality join drug.disease_name = disease.disease_name needs one standard disease name per drug. Form 1 normalizes to standard names. The stated form holds ",
+   "The equality join drug.disease_name = disease.disease_name needs single standard disease names. Stated multi-disease lists never equal a disease-table name."
+  ]
+ ],
+ [
+  "med",
+  "G3",
+  "G3b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The query counts drugs whose disease list mentions panic, ulcer, gout, diabetes or heart failure. Form 1 collapses each drug to a single primary disease and los",
+   "The substring patterns 'panic', 'ulcer', 'gout' and 'heart failure' match secondary diseases in the stated lists (Panic Disorder, peptic ulcers, gout, congestiv"
+  ]
+ ],
+ [
+  "med",
+  "G4",
+  "G4a",
+  "both agree with key",
+  [
+   "Form 2",
+   "Form 2"
+  ],
+  [
+   "Form 2"
+  ],
+  [
+   "The query groups by the raw value and filters IS NOT NULL. Only Form 2 stores missing values as NULL, so the filter removes them; in the text forms an empty-str",
+   "GROUP BY dosage_frequency with WHERE IS NOT NULL expects one clean value per row and missing values stored as NULL. Only Form 2 stores missing values as NULL; t"
+  ]
+ ],
+ [
+  "med",
+  "G4",
+  "G4b",
+  "one judge ambiguous",
+  [
+   "ambiguous",
+   "ambiguous"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The filters LIKE '%hours%' and '%as needed%' with <> '' need text. Form 2's numbers break them. Form 1 and the stated form both keep 'hours' and 'as needed' in ",
+   "For '%hours%' and '%as needed%', Form 1 and the stated text agree on almost every row. They differ on one: 'twice every 24 hours' matches 'hours' as stated but "
+  ]
+ ],
+ [
+  "med",
+  "G4",
+  "G4c",
+  "both agree with key",
+  [
+   "Form 2",
+   "Form 2"
+  ],
+  [
+   "Form 2"
+  ],
+  [
+   "The filters look for the phrases 'once daily', 'twice daily', 'three times daily' and 'four times daily'. Form 2 normalizes values like 'twice a day', 'thrice d",
+   "The patterns 'once daily', 'twice daily', 'three times daily' and 'four times daily' match Form 2's normalized text. The stated text uses variants such as 'twic"
+  ]
+ ],
+ [
+  "med",
+  "G5",
+  "G5a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "CAST(single_dose AS REAL) put into mg ranges, with an IS NOT NULL filter, needs one numeric mg value with NULL for missing. Form 1 provides that; the stated tex",
+   "The query casts single_dose to REAL and buckets it in mg, so it needs a numeric value. Stated text such as 'adults 20 mg' casts to 0."
+  ]
+ ],
+ [
+  "med",
+  "G5",
+  "G5b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "LIKE '%/kg%' needs the unit text. Form 1 stores bare numbers or NULL, so no row could ever match, and the per-kg doses are NULL there anyway.",
+   "The query tests single_dose LIKE '%/kg%' and filters single_dose <> '', so it needs the unit text. Form 1 stores bare numbers, which never match '/kg'."
+  ]
+ ],
+ [
+  "med",
+  "G6",
+  "G6a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The filters (pregnan, breastfeed, children, elderly, kidney, liver) match Form 1's normalized categories. The stated text misses 'breast feeding', 'nursing wome",
+   "The aliases kidney_problems and liver_problems match Form 1's category labels. The 'kidney' pattern only catches 'patients with moderate or severe renal insuffi"
+  ]
+ ],
+ [
+  "med",
+  "G6",
+  "G6b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The filters look for specific conditions (glaucoma, asthma, diabet, MAO). These appear only in the stated detailed text; Form 1 folds them into 'other condition",
+   "The query looks for specific conditions ('glaucoma', 'asthma', 'diabet', 'MAO'). Form 1 folds these into 'other conditions', so they would not match."
+  ]
+ ],
+ [
+  "med",
+  "G7",
+  "G7a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The query looks for body-system labels ('nervous system', 'respiratory system', 'urinary system', ...). Form 1 normalizes organs into exactly these systems; the",
+   "The query matches body-system names ('nervous system', 'respiratory system', 'urinary system', ...). These are Form 1's values; the stated values list organs su"
+  ]
+ ],
+ [
+  "med",
+  "G7",
+  "G7b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The filters look for organ names (brain, heart, lung, liver, kidney). These appear in the stated organ lists; Form 1 replaces organs with system labels, so thes",
+   "The query matches organ names ('brain', 'heart', 'lung', 'liver', 'kidney'). Form 1 stores body systems such as 'respiratory system', which do not contain those"
+  ]
+ ],
+ [
+  "player",
+  "G1",
+  "G1a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The query joins player.team to team.team_name, so the stored value has to match the team table's names. Those are most likely current franchise names, which onl",
+   "The query joins player.team to team.team_name and groups by team name. A team table usually lists current franchise names, so only current names (Atlanta Hawks,"
+  ]
+ ],
+ [
+  "player",
+  "G1",
+  "G1b",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The query joins player.team = team.team_name and groups by team.location. That requires values that match the team table, most likely current franchise names (F",
+   "The query joins player.team to team.team_name to get team.location. A team table normally holds current franchise names, so only current names let these players"
+  ]
+ ],
+ [
+  "player",
+  "G1",
+  "G1c",
+  "one judge ambiguous",
+  [
+   "ambiguous",
+   "ambiguous"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The query groups by team with no join, for players drafted before 1980. Grouping by the historical team name as stated (matching 'last team joined') and groupin",
+   "It is a plain GROUP BY team with no constants and no join. Grouping pre-1980 players under the team as named at the time (Milwaukee Hawks, matching 'last team t"
+  ]
+ ],
+ [
+  "player",
+  "G2",
+  "G2a",
+  "one judge ambiguous",
+  [
+   "ambiguous",
+   "ambiguous"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The query filters nationality <> 'American'. Form 1 maps hyphenated values such as 'Nigerian-American' to 'American', which excludes them. Form 2 and the stored",
+   "The filter nationality <> 'American' supports two readings for the seven X-American / American-X values: treat them as American and exclude them (Form 1), or co"
+  ]
+ ],
+ [
+  "player",
+  "G2",
+  "G2b",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The IN list names single non-American nationalities ('Greek', 'Cameroonian', 'Mexican'), so the author expects players with those heritages to be counted. Only ",
+   "The IN-list names single non-American nationalities (Greek, Cameroonian, Mexican). An analyst listing 'Greek' expects Greek-American and 'Greek and Nigerian' pl"
+  ]
+ ],
+ [
+  "player",
+  "G3",
+  "G3a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The query matches names by exact equality on common short forms ('Kevin Durant'), so the stored value must be the common name, not the full legal name ('Kevin W",
+   "The IN-list uses common short names ('Kevin Durant', 'LeBron James'). Form 1 stores 'Kevin Durant'; the stated form stores 'Kevin Wayne Durant', which would fai"
+  ]
+ ],
+ [
+  "player",
+  "G3",
+  "G3b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The query classifies names by suffix (LIKE '% Jr.', '% Sr.'), so the suffixes must be kept. Form 1 strips them (e.g., 'Anthony Marshon Davis Jr.' becomes 'Antho",
+   "The query sorts players by whether the name ends in Jr./Sr./II/III. Form 1 strips those suffixes (Anthony Davis, Gerald Madkins, Ed Dahler, Fran Curran), which "
+  ]
+ ],
+ [
+  "player",
+  "G4",
+  "G4a",
+  "both agree with key",
+  [
+   "Form 2",
+   "Form 2"
+  ],
+  [
+   "Form 2"
+  ],
+  [
+   "The IN list uses short names ('UCLA', 'Kentucky', 'Duke', 'Michigan State', 'North Carolina'), and only Form 2 maps every variant to those short forms.",
+   "The IN-list uses short names ('UCLA', 'Kentucky', 'Duke', 'Michigan State', 'North Carolina'). Form 2 maps all variants, including University of Kentucky and Un"
+  ]
+ ],
+ [
+  "player",
+  "G4",
+  "G4b",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The IN list uses full official names ('University of Kentucky', 'Michigan State University', 'Indiana University', 'Duke University'), and only Form 1 normalize",
+   "The IN-list uses full official names ('University of Kentucky', 'Michigan State University', 'Indiana University', 'Duke University', 'University of Florida'). "
+  ]
+ ],
+ [
+  "cspaper",
+  "G1",
+  "G1a",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "Separate LIKE counts for Dense, Sparse, Graph, Hybrid and Web need the component methods kept in the string. Form 1 collapses them into 'Hybrid Retrieval', so t",
+   "The query counts each method with LIKE '%Dense%', '%Sparse%', '%Graph%', '%Web%', which needs the listed methods. Form 1 turns every combination into 'Hybrid Re"
+  ]
+ ],
+ [
+  "cspaper",
+  "G1",
+  "G1b",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "GROUP BY retrieval_method on a column described as 'choose one' expects one method per paper. Form 1 maps combinations to 'Hybrid Retrieval'; stored as stated, ",
+   "GROUP BY retrieval_method, and the column description says to choose one method from a list that includes 'Hybrid Retrieval'. The analyst expects one group per "
+  ]
+ ],
+ [
+  "cspaper",
+  "G2",
+  "G2a",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "Separate LIKE counts for General, Medical, Education, Finance and Academic assume a paper can fall under several domains. Form 1 drops 'General' and folds mixes",
+   "The query counts per domain with LIKE '%General%', '%Medical%' and so on, which needs the full list of domains. Form 1 drops 'General' and collapses combination"
+  ]
+ ],
+ [
+  "cspaper",
+  "G2",
+  "G2b",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "GROUP BY application_domain with exact grouping implies one label per paper. Form 1 gives a single domain, with 'Multiple' for real mixes; stored as stated, eac",
+   "GROUP BY application_domain makes a per-domain breakdown, and an analyst expects one clean label per group. Raw '||' combinations split into many one-off groups"
+  ]
+ ],
+ [
+  "cspaper",
+  "G3",
+  "G3a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "MIN and MAX aliased lowest_hotpotqa_f1 and best_hotpotqa_f1 call for a single numeric F1 per row, which Form 1 stores. MIN/MAX over the free-text metric strings",
+   "MIN/MAX of performance_on_hotpotqa is aliased lowest_hotpotqa_f1 and best_hotpotqa_f1, so the author expects a single F1 number per row. Form 1 stores that. Fre"
+  ]
+ ],
+ [
+  "cspaper",
+  "G3",
+  "G3b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "LIKE '%F1%' and LIKE '%Acc%' test which metric names a paper reports. Only the text as stated keeps the metric labels; Form 1 keeps just a bare F1 number or 'No",
+   "The query counts papers that report F1 or accuracy with LIKE '%F1%' and '%Acc%'. That needs the metric labels in the text. Form 1 keeps a bare F1 number or 'Non"
+  ]
+ ],
+ [
+  "cspaper",
+  "G4",
+  "G4a",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The query counts each modality with LIKE '%Image%', '%Table%', '%Code%' and '%Audio%', so it needs the individual modalities kept in the string. Form 1 collapse",
+   "The query counts papers per modality with LIKE '%Image%', '%Table%', '%Code%', '%Audio%'. That needs the listed modalities. Form 1 collapses them to 'Multimodal"
+  ]
+ ],
+ [
+  "cspaper",
+  "G4",
+  "G4b",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The filter data_modality IN ('Text','Multimodal') uses 'Multimodal' as a stored value. Only Form 1 stores it; stored as stated, every multi-modality row would d",
+   "The filter data_modality IN ('Text','Multimodal') only matches Form 1, which stores 'Multimodal'. Raw lists such as 'Image|| Text' would be dropped by the filte"
+  ]
+ ],
+ [
+  "cspaper",
+  "G5",
+  "G5a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "LIKE '%Llama 2%' and '%Llama 3%' (with a space) only match the normalized names in Form 1. Stored as stated, values like 'Llama2-13B' and 'Llama3 8B' are missed",
+   "LIKE '%Llama 2%' and '%Llama 3%' (with a space) only match the normalized names in Form 1. Raw spellings such as 'Llama2-13B' or 'LLaMA-2-7B' would be missed. F"
+  ]
+ ],
+ [
+  "cspaper",
+  "G5",
+  "G5b",
+  "both agree with key",
+  [
+   "Form 2",
+   "Form 2"
+  ],
+  [
+   "Form 2"
+  ],
+  [
+   "The filter generator_model IN ('Proprietary','Open-weight','Both') and GROUP BY only match rows if the column holds those licence categories, which only Form 2 ",
+   "The filter generator_model IN ('Proprietary','Open-weight','Both') only matches Form 2's category values. The model names in the other forms match none of them."
+  ]
+ ]
+]
