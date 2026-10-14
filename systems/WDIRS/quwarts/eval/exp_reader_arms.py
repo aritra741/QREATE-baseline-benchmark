@@ -31,6 +31,7 @@ def main(argv=None) -> int:
     ap.add_argument("--corpus", required=True)
     ap.add_argument("--qids", nargs="+", required=True)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--rep", type=int, default=0, help="replicate number; >0 writes to <arm>-r<rep> so cached replies are not reused")
     ap.add_argument("--model", help="an Anthropic model id (official SDK, key in ANTHROPIC_API_KEY) instead of the local Ollama model")
     a = ap.parse_args(argv)
     if a.arm == "whole":
@@ -42,7 +43,7 @@ def main(argv=None) -> int:
     c = a.corpus
     ctx = D.R.context(c)
     cat = catalogs(c)
-    root = repo / "results" / "reader_arms" / (f"{a.arm}-{a.model}" if a.model else a.arm) / c
+    root = repo / "results" / "reader_arms" / ((f"{a.arm}-{a.model}" if a.model else a.arm) + (f"-r{a.rep}" if a.rep else "")) / c
     root.mkdir(parents=True, exist_ok=True)
     usage = D.Usage(root / "usage.jsonl")
     caller = anthropic_caller(usage, a.model) if a.model else D.make_caller(usage)

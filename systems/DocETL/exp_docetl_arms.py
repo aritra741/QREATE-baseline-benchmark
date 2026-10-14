@@ -20,6 +20,8 @@ into 2008 and then rejecting it against a declared string type):
              tool-call output, failed documents dropped) with our reader's per-query wording instead of the harness
              prompt: context_probe.render_prompt with the planner's field specs and no SQL, as in our reader-alone runs
              (reader_arms), minus its JSON-format line (the answer form is DocETL's)
+  ourwords_cored  ourwords, reading the columns our full system's first build read together with the query's columns
+             (from results/experiments/RW-haiku/live/<corpus>/build_reads.jsonl), not only the query's columns
   ourwords_norecall  ourwords, and DocETL's built-in system prompt without "and exhaustively (i.e., high recall)"
   stated     strfix; one sentence added to DocETL's prompt, our reader's system line: "Extract only facts stated in
              the document."
@@ -43,7 +45,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated", "norecall", "ourwords", "ourwords_norecall")
+ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated", "norecall", "ourwords", "ourwords_norecall", "ourwords_cored")
 
 
 def mask(sql: str) -> str:
@@ -56,6 +58,7 @@ def main(argv=None) -> int:
     ap.add_argument("--corpus", required=True)
     ap.add_argument("--qids", nargs="+", required=True)
     ap.add_argument("--threads", type=int, default=8)
+    ap.add_argument("--rep", type=int, default=0, help="replicate number; >0 writes to <tag>-r<rep> so nothing cached is reused")
     ap.add_argument("--model", help="a litellm model id instead of the local Ollama model, e.g. anthropic/claude-haiku-5-5; "
                                     "documents are still fitted to the same 32k window, so both models see the same text")
     a = ap.parse_args(argv)
@@ -94,6 +97,8 @@ def main(argv=None) -> int:
 
         RD.MapOp = hosted
         tag = f"{a.arm}-{a.model.split('/')[-1]}"
+    if a.rep:
+        tag += f"-r{a.rep}"
     root = RD.ROOT / "results" / "docetl_arms" / tag / c
     root.mkdir(parents=True, exist_ok=True)
     per_path = root / "per_query.json"
@@ -133,7 +138,7 @@ def main(argv=None) -> int:
                     descriptions[x] = f"{descriptions[x] or x}. {tail}"
         shown = mask(sql) if a.arm == "masked" else sql
         template = RD.prompt_template(table, attrs, numeric, shown, descriptions)
-        if a.arm in ("ourwords", "ourwords_norecall"):
+        if a.arm in ("ourwords", "ourwords_norecall", "ourwords_cored"):
             from quwarts.core.router.context_probe import render_prompt
 
             ours = render_prompt("{{ input.text }}", [fields[f"{table}.{x}"] for x in attrs], None)
@@ -281,6 +286,20 @@ def main(argv=None) -> int:
             print(f"shared   {c:8s} {qid:40s} score@20 {per[qid]['score']['20%']:.3f} @0 {per[qid]['score']['0%']:.3f}", flush=True)
             continue
         fields, reads = D.C.design(ctx.spec, {qid: sql})
+        if a.arm == "ourwords_cored":  # the build's co-read column set for each table the query reads
+            build = [json.loads(x) for x in (RD.ROOT / "results" / "experiments" / "RW-haiku" / "live" / c / "build_reads.jsonl").read_text().splitlines() if x.strip()]
+            wider = {}
+            for r in reads:
+                for b in build:
+                    atts = b["attributes"] if isinstance(b["attributes"], list) else eval(b["attributes"])  # noqa: S307 (our own log)
+                    if b["table"] == r.table and set(r.attributes) <= set(atts):
+                        wider[r.table] = sorted(atts)
+                        break
+            extra = {f"_cored_{t}": f"SELECT {', '.join(cs)} FROM {t}" for t, cs in wider.items()}
+            fields, _ = D.C.design(ctx.spec, {qid: sql, **extra})
+            from quwarts.core.router.executor import Read
+            reads = [Read(r.table, r.context, tuple(wider.get(r.table, r.attributes))) for r in reads]
+            print("co-read columns:", wider, flush=True)
         tables, numeric, stats = {}, {}, []
         for r in reads:
             if r.table not in ctx.names or not r.attributes:
