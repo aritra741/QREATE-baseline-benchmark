@@ -1,0 +1,211 @@
+{
+ "summary": {
+  "corpus": "player",
+  "groups": 4,
+  "queries": 11,
+  "groups_with_problems": 0,
+  "by_type": {
+   "list-vs-one": 2,
+   "join-spelling": 1,
+   "fine-vs-coarse": 1
+  }
+ },
+ "groups": [
+  {
+   "group": "G1",
+   "about": "player.team names a player's last team as the documents do; franchise questions need former names (Milwaukee Hawks) resolved to the team table's current name (Atlanta Hawks), while where-and-under-which-name questions need the name as stated",
+   "type": "join-spelling",
+   "column": "player.team",
+   "problems": [],
+   "queries": {
+    "G1a": {
+     "question": "Per NBA franchise, counting a player whose last team was a former name of the franchise under its current name (Milwaukee Hawks as Atlanta Hawks, New Orleans Jazz as Utah Jazz, Philadelphia Warriors as Golden State Warriors, Seattle SuperSonics as Oklahoma City Thunder, Syracuse Nationals as Philadelphia 76ers, Fort Wayne Pistons as Detroit Pistons, Rochester Royals and Cincinnati Royals as Sacramento Kings, Washington Bullets as Washington Wizards, Charlotte Bobcats as Charlotte Hornets; the 1940s Baltimore Bullets and the Chicago Stags were separate franchises that folded, so their players are left out): how many players, how many MVP winners, how many NBA titles have the players won, and how many has the franchise won?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 28
+    },
+    "G1b": {
+     "question": "For each franchise that has moved or been renamed (Atlanta Hawks, formerly Milwaukee Hawks; Utah Jazz, formerly New Orleans Jazz; Golden State Warriors, formerly Philadelphia Warriors; Oklahoma City Thunder, formerly Seattle SuperSonics; Philadelphia 76ers, formerly Syracuse Nationals; Detroit Pistons, formerly Fort Wayne Pistons; Sacramento Kings, formerly Rochester Royals and Cincinnati Royals; Washington Wizards, formerly Washington Bullets; Charlotte Hornets, formerly Charlotte Bobcats): how many of its players last played for it under its current name, how many under an earlier name, and how many NBA titles did each of the two groups win?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 9
+    },
+    "G1c": {
+     "question": "Per state (or Canadian province) where players' last NBA teams played at the time, counting a player of a team that has since moved in the state it played in then (Milwaukee Hawks in Wisconsin, New Orleans Jazz in Louisiana, Philadelphia Warriors in Pennsylvania, Seattle SuperSonics in Washington, Syracuse Nationals and Rochester Royals in New York, Fort Wayne Pistons in Indiana, Cincinnati Royals in Ohio, Baltimore Bullets in Maryland, Chicago Stags in Illinois, Charlotte Bobcats in North Carolina; teams in Washington, D.C., which is not a state, are left out): how many players, MVP winners and NBA titles?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 21
+    }
+   },
+   "forms": {
+    "G1a": {
+     "update": "UPDATE player SET team = CASE team WHEN 'Milwaukee Hawks' THEN 'Atlanta Hawks' WHEN 'New Orleans Jazz' THEN 'Utah Jazz' WHEN 'Philadelphia Warriors' THEN 'Golden State Warriors' WHEN 'Seattle SuperSonics' THEN 'Oklahoma City Thunder' WHEN 'Syracuse Nationals' THEN 'Philadelphia 76ers' WHEN 'Fort Wayne Pistons' THEN 'Detroit Pistons' WHEN 'Rochester Royals' THEN 'Sacramento Kings' WHEN 'Cincinnati Royals' THEN 'Sacramento Kings' WHEN 'Washington Bullets' THEN 'Washington Wizards' WHEN 'Charlotte Bobcats' THEN 'Charlotte Hornets' ELSE team END WHERE team IN ('Milwaukee Hawks', 'New Orleans Jazz', 'Philadelphia Warriors', 'Seattle SuperSonics', 'Syracuse Nationals', 'Fort Wayne Pistons', 'Rochester Royals', 'Cincinnati Royals', 'Washington Bullets', 'Charlotte Bobcats')",
+     "rows_changed": 17,
+     "scores": {
+      "G1a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G1b": {
+       "0%": 0.4444,
+       "20%": 0.6667
+      },
+      "G1c": {
+       "0%": 0.7037,
+       "20%": 0.8186
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G2",
+   "about": "player.birth_date holds the full stated date; age-at-draft questions need only the birth year, while birth-month questions need the month that a year-only form drops",
+   "type": "fine-vs-coarse",
+   "column": "player.birth_date",
+   "problems": [],
+   "queries": {
+    "G2a": {
+     "question": "Among players with a stated draft year and pick number, by age in the draft year (draft year minus birth year: 19 or younger, 20 to 21, 22 or older): how many players, their average pick, and how many went on to win an NBA title?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G2b": {
+     "question": "By birth quarter (January to March, April to June, July to September, October to December): how many players, how many were top-10 draft picks, and how many won an NBA title?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    }
+   },
+   "forms": {
+    "G2a": {
+     "update": "UPDATE player SET birth_date = CAST(substr(birth_date, 1, 4) AS INTEGER) WHERE birth_date IS NOT NULL AND birth_date <> ''",
+     "rows_changed": 141,
+     "scores": {
+      "G2a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G2b": {
+       "0%": 0.0,
+       "20%": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G3",
+   "about": "player.nationality can name two nationalities (Greek-American, American-Chinese, Greek and Nigerian, American-born naturalized Azerbaijani); a US-nationality question wants the American one, an origin question wants the other one, and a dual-national question needs both",
+   "type": "list-vs-one",
+   "column": "player.nationality",
+   "problems": [],
+   "queries": {
+    "G3a": {
+     "question": "Players who hold US nationality, alone or with another (e.g. Greek-American, American-Chinese, and counting a US-born player who took another nationality as holding US nationality), versus players who do not: how many, how many have won an NBA title, how many have won an MVP award, and how many FIBA World Cup titles have they won?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G3b": {
+     "question": "Players with a nationality other than American, counting a dual national under his non-US nationality (Greek-American as Greek, a US-born player naturalized elsewhere under his new nationality) and a player with two non-US nationalities under the first one listed: per continent of that nationality (Europe, with Azerbaijan counted in Europe as FIBA does; Africa; the Americas outside the US; Asia), how many players and how many NBA titles?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G3c": {
+     "question": "Players with US nationality only, with US and another nationality (counting a US-born player who took another nationality here), or with another nationality only: how many, how many NBA champions, how many MVP winners, and how many Olympic gold medals?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    }
+   },
+   "forms": {
+    "G3a": {
+     "update": "UPDATE player SET nationality = 'American' WHERE nationality LIKE '%American%' AND nationality <> 'American'",
+     "rows_changed": 8,
+     "scores": {
+      "G3a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G3b": {
+       "0%": 0.2256,
+       "20%": 0.4511
+      },
+      "G3c": {
+       "0%": 0.2857,
+       "20%": 0.5714
+      }
+     }
+    },
+    "G3b": {
+     "update": "UPDATE player SET nationality = CASE WHEN nationality LIKE '%naturalized %' THEN substr(nationality, instr(nationality, 'naturalized ') + 12) WHEN nationality LIKE '%-American' THEN substr(nationality, 1, instr(nationality, '-') - 1) WHEN nationality LIKE 'American-%' THEN substr(nationality, 10) WHEN nationality LIKE '% and %' THEN substr(nationality, 1, instr(nationality, ' and ') - 1) ELSE nationality END WHERE nationality LIKE '%-%' OR nationality LIKE '% and %'",
+     "rows_changed": 9,
+     "scores": {
+      "G3a": {
+       "0%": 0.0,
+       "20%": 1.0
+      },
+      "G3b": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G3c": {
+       "0%": 0.2857,
+       "20%": 0.5714
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G4",
+   "about": "player.college lists every college a transfer attended, in order (\"Indiana University, Xavier University\"); a school question that counts a transfer under his last college wants one name, while every-college and transfer questions need the list (a comma also appears inside one name, e.g. University of California, Berkeley)",
+   "type": "list-vs-one",
+   "column": "player.college",
+   "problems": [],
+   "queries": {
+    "G4a": {
+     "question": "For UCLA, Kentucky, Michigan State, Indiana, Florida and Duke against all other colleges, counting a player who transferred under the last college he played for: how many players, NBA champions and MVP winners?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 7
+    },
+    "G4b": {
+     "question": "Players who transferred between colleges versus players who attended one college: how many, how many were first-round picks (pick 1 to 30), and how many won an NBA title?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G4c": {
+     "question": "For UCLA, Kentucky, Michigan State, Indiana, Florida and Duke against all other colleges, counting a player who transferred under every college he played for: how many players, how many were top-10 picks, and how many NBA titles have they won?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 7
+    }
+   },
+   "forms": {
+    "G4a": {
+     "update": "UPDATE player SET college = substr(college, instr(college, ', ') + 2) WHERE college LIKE '%, %' AND college NOT LIKE 'University of California, %'",
+     "rows_changed": 6,
+     "scores": {
+      "G4a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G4b": {
+       "0%": 0.1235,
+       "20%": 0.3704
+      },
+      "G4c": {
+       "0%": 0.9048,
+       "20%": 1.0
+      }
+     }
+    }
+   }
+  }
+ ]
+}

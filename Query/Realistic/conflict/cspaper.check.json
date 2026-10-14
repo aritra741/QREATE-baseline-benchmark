@@ -1,0 +1,286 @@
+{
+ "summary": {
+  "corpus": "cspaper",
+  "groups": 6,
+  "queries": 17,
+  "groups_with_problems": 0,
+  "by_type": {
+   "list-vs-one": 4,
+   "fine-vs-coarse": 2
+  }
+ },
+ "groups": [
+  {
+   "group": "G1",
+   "about": "cspaper.retrieval_method lists every retrieval method a paper combines (35 of 199 papers list two or more; 23 more state 'Hybrid Retrieval' alone); G1a counts a paper under every method it lists, G1b wants one method per paper with any combination counted as hybrid retrieval, G1c needs to see which dense-retrieval papers list another method too",
+   "type": "list-vs-one",
+   "column": "cspaper.retrieval_method",
+   "problems": [],
+   "queries": {
+    "G1a": {
+     "question": "For single-hop and multi-hop papers, how many use dense retrieval, sparse retrieval, graph-based retrieval, hybrid retrieval and web search, counting a paper that lists several methods under every method it lists?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G1b": {
+     "question": "For each retrieval method, counting a paper that lists two or more methods as hybrid retrieval, how many papers are there, how many use a reranker, and how many baselines do they compare against on average?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 6
+    },
+    "G1c": {
+     "question": "Among papers that use dense retrieval, how many use it as their only retrieval method and how many list it together with another method (sparse, graph-based, hybrid, web search or other), and how many of each use a reranker and support multi-turn retrieval?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G1b": {
+     "update": "UPDATE cspaper SET retrieval_method = CASE WHEN instr(retrieval_method, '||') > 0 THEN 'Hybrid Retrieval' ELSE retrieval_method END",
+     "rows_changed": 200,
+     "scores": {
+      "G1a": {
+       "0%": 0.25,
+       "20%": 0.25
+      },
+      "G1b": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G1c": {
+       "0%": 0.3704,
+       "20%": 0.3704
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G2",
+   "about": "cspaper.application_domain lists every domain a paper targets (39 of 199 papers list two or more, often General together with a specific domain); G2a counts a paper under every specific domain it lists, G2b needs General, Academic and Other separately, G2c wants one domain per paper (medical, finance, education, legal, or general and other)",
+   "type": "list-vs-one",
+   "column": "cspaper.application_domain",
+   "problems": [],
+   "queries": {
+    "G2a": {
+     "question": "For papers with and without an agent, how many target medical, finance, education, legal and academic applications, counting a paper under every domain it lists?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G2b": {
+     "question": "For single-hop and multi-hop papers, how many are general-purpose (list the General domain), how many target academic use, and how many target some other application, counting a paper under every domain it lists?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G2c": {
+     "question": "For each application domain (medical, finance, education, legal, or general and other; a paper naming several of the first four goes to the first in that order), how many papers are there, how many use a reranker, and how many support multi-turn retrieval?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 5
+    }
+   },
+   "forms": {
+    "G2c": {
+     "update": "UPDATE cspaper SET application_domain = CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Legal%' THEN 'Legal' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%Government%' THEN 'Government' WHEN application_domain LIKE '%Sports%' THEN 'Sports' WHEN application_domain LIKE '%Art%' THEN 'Art' WHEN application_domain LIKE '%General%' THEN 'General' ELSE application_domain END WHERE application_domain IS NOT NULL AND application_domain <> ''",
+     "rows_changed": 199,
+     "scores": {
+      "G2a": {
+       "0%": 0.3333,
+       "20%": 0.5833
+      },
+      "G2b": {
+       "0%": 0.25,
+       "20%": 0.25
+      },
+      "G2c": {
+       "0%": 1.0,
+       "20%": 1.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G3",
+   "about": "cspaper.data_modality lists every kind of input a paper handles (50 of 192 papers list two or more); G3a wants one input class per paper (images or audio / tables or code / text only), G3b counts the kinds listed, G3c needs each kind separately",
+   "type": "list-vs-one",
+   "column": "cspaper.data_modality",
+   "problems": [],
+   "queries": {
+    "G3a": {
+     "question": "For each kind of input data (papers that handle images or audio; papers that handle tables or code but no images or audio; text-only papers), how many papers are there, how many use a knowledge graph, and how many baselines do they compare against on average?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G3b": {
+     "question": "How many papers handle one kind of input, two kinds, and three or more kinds (counting text, images, audio, tables and code separately), and how many of them study multi-hop reasoning?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G3c": {
+     "question": "For single-hop and multi-hop papers, how many handle tables, code, images and audio, counting a paper under every kind of input it handles?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G3a": {
+     "update": "UPDATE cspaper SET data_modality = CASE WHEN data_modality LIKE '%Image%' THEN 'Image' WHEN data_modality LIKE '%Audio%' THEN 'Audio' WHEN data_modality LIKE '%Table%' THEN 'Table' WHEN data_modality LIKE '%Code%' THEN 'Code' WHEN data_modality LIKE '%Text%' THEN 'Text' ELSE data_modality END",
+     "rows_changed": 200,
+     "scores": {
+      "G3a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G3b": {
+       "0%": 0.0,
+       "20%": 0.0
+      },
+      "G3c": {
+       "0%": 0.5,
+       "20%": 0.5
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G4",
+   "about": "cspaper.generator_model names the specific generator models of 185 papers (GPT-4o, gpt-3.5-turbo, Llama-3.1-8B-Instruct, ...); G4a wants the model family (GPT, Llama, Qwen, Mistral), G4b needs the specific GPT version",
+   "type": "fine-vs-coarse",
+   "column": "cspaper.generator_model",
+   "problems": [],
+   "queries": {
+    "G4a": {
+     "question": "For papers with and without an agent, how many use as a generator a model whose name contains GPT (OpenAI's GPT and ChatGPT models, but also GPT-2 and GPT-Neo), a Llama model, a Qwen model, and a Mistral or Mixtral model, counting a paper under every model family it uses?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G4b": {
+     "question": "For single-hop and multi-hop papers, how many use GPT-4o (including GPT-4o-mini and ChatGPT-4o), another GPT-4 model (such as GPT-4, GPT-4 Turbo, GPT-4V, GPT-4.1 or ChatGPT-4), and GPT-3.5 as a generator? A ChatGPT entry without a version number is not counted as GPT-3.5.",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G4a": {
+     "update": "UPDATE cspaper SET generator_model = COALESCE(NULLIF(rtrim(CASE WHEN generator_model LIKE '%GPT%' THEN 'GPT|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Llama%' THEN 'Llama|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Qwen%' THEN 'Qwen|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Mistral%' OR generator_model LIKE '%Mixtral%' THEN 'Mistral|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Gemini%' THEN 'Gemini|| ' ELSE '' END || CASE WHEN generator_model LIKE '%Claude%' THEN 'Claude|| ' ELSE '' END, '| '), ''), 'Other') WHERE generator_model IS NOT NULL AND generator_model <> '' AND generator_model <> 'null'",
+     "rows_changed": 185,
+     "scores": {
+      "G4a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G4b": {
+       "0%": 0.25,
+       "20%": 0.25
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G5",
+   "about": "cspaper.evaluation_metric lists every metric a paper reports (169 of 193 papers list two or more); G5a wants only whether a paper reports the standard answer metrics (F1, exact match, accuracy, ROUGE), G5b counts the metrics listed, G5c needs the retrieval ranking metrics, which are none of the four",
+   "type": "fine-vs-coarse",
+   "column": "cspaper.evaluation_metric",
+   "problems": [],
+   "queries": {
+    "G5a": {
+     "question": "For single-hop and multi-hop papers, how many report F1, exact match, accuracy and ROUGE, counting every metric a paper reports?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G5b": {
+     "question": "Do papers that report more metrics compare against more baselines? Counting each listed metric separately (each cutoff such as Recall@1 and Recall@5 counts as its own metric), for papers reporting one metric, two or three, and four or more: how many papers, and how many baselines on average?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G5c": {
+     "question": "For papers with and without a reranker, how many report a retrieval ranking metric (Recall@k including R@k, MRR, nDCG, or a hit rate such as Hit@k, Hits@k or HR@k), out of how many papers that report any metric?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G5a": {
+     "update": "UPDATE cspaper SET evaluation_metric = COALESCE(NULLIF(rtrim(CASE WHEN evaluation_metric LIKE '%F1%' THEN 'F1|| ' ELSE '' END || CASE WHEN instr(evaluation_metric, 'EM') > 0 OR evaluation_metric LIKE '%Exact Match%' THEN 'EM|| ' ELSE '' END || CASE WHEN evaluation_metric LIKE '%Accuracy%' THEN 'Accuracy|| ' ELSE '' END || CASE WHEN evaluation_metric LIKE '%ROUGE%' THEN 'ROUGE|| ' ELSE '' END, '| '), ''), 'other') WHERE evaluation_metric IS NOT NULL AND evaluation_metric <> ''",
+     "rows_changed": 193,
+     "scores": {
+      "G5a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G5b": {
+       "0%": 0.0,
+       "20%": 0.0
+      },
+      "G5c": {
+       "0%": 0.5,
+       "20%": 0.5
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G6",
+   "about": "cspaper.evaluation_dataset names every benchmark a paper evaluates on (119 of 193 papers list two or more); G6a wants one benchmark category per paper (multi-hop QA / open-domain QA / other), G6b needs the individual multi-hop benchmarks, G6c counts the benchmarks listed",
+   "type": "list-vs-one",
+   "column": "cspaper.evaluation_dataset",
+   "problems": [],
+   "queries": {
+    "G6a": {
+     "question": "Grouping papers by the benchmarks they evaluate on (a multi-hop QA benchmark: HotpotQA, 2WikiMultihopQA or MuSiQue; otherwise an open-domain QA benchmark: Natural Questions, TriviaQA or PopQA; otherwise other datasets), how many papers are in each group, how many use an agent, and how many baselines do they compare against on average?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G6b": {
+     "question": "For multi-hop papers with and without an agent, how many evaluate on HotpotQA, on 2WikiMultihopQA and on MuSiQue?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G6c": {
+     "question": "Do papers that evaluate on more benchmarks compare against more baselines? Counting each listed dataset separately, for papers evaluating on one benchmark, two or three, and four or more: how many papers, how many study multi-hop reasoning, and how many baselines on average?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    }
+   },
+   "forms": {
+    "G6a": {
+     "update": "UPDATE cspaper SET evaluation_dataset = CASE WHEN evaluation_dataset LIKE '%HotpotQA%' THEN 'HotpotQA' WHEN evaluation_dataset LIKE '%2Wiki%' THEN '2WikiMultihopQA' WHEN evaluation_dataset LIKE '%MuSiQue%' THEN 'MuSiQue' WHEN evaluation_dataset LIKE '%Natural%Q%' OR ('||' || REPLACE(evaluation_dataset, ' ', '') || '||') LIKE '%||NQ||%' OR ('||' || REPLACE(evaluation_dataset, ' ', '') || '||') LIKE '%||NQ-Open||%' OR evaluation_dataset LIKE '%KILT NQ%' THEN 'Natural Questions' WHEN evaluation_dataset LIKE '%Trivia%QA%' THEN 'TriviaQA' WHEN evaluation_dataset LIKE '%PopQA%' THEN 'PopQA' ELSE evaluation_dataset END WHERE evaluation_dataset IS NOT NULL AND evaluation_dataset <> ''",
+     "rows_changed": 193,
+     "scores": {
+      "G6a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G6b": {
+       "0%": 0.5,
+       "20%": 0.5
+      },
+      "G6c": {
+       "0%": 0.0,
+       "20%": 0.2222
+      }
+     }
+    }
+   }
+  }
+ ]
+}

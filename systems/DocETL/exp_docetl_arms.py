@@ -10,6 +10,10 @@ into 2008 and then rejecting it against a declared string type):
            chunk, fields combined per document as ours are (most frequent non-blank value, ties to the
            earliest chunk); a document has a row if any chunk returned one
   temp01   strfix; temperature 0.1 (our reader's) instead of Ollama's default (0.8)
+  absence  strfix; a field whose schema declares an absence value (our context_probe.absence_value: a never-null
+           Yes/No field, a "0 if none" description, a never-null count) gets one sentence in its description:
+           "If the document does not mention any, answer 0." / "If the document does not say so, answer No."
+           (the information our system applies in code, given to DocETL's reader instead)
 Everything else is run_docetl_drift's (prompt, fit to the window, one retry of skipped documents, table
 building, scoring). Output: results/docetl_arms/<arm>/<corpus>/..., per_query.json with scores at 0/5/10/20%.
 
@@ -30,7 +34,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01")
+ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence")
 
 
 def mask(sql: str) -> str:
@@ -101,6 +105,15 @@ def main(argv=None) -> int:
             return json.loads(stats_path.read_text())
         numeric = {x for x in attrs if getattr(fields.get(f"{table}.{x}"), "value_type", "str") in ("int", "float")}
         descriptions = {x: getattr(fields.get(f"{table}.{x}"), "description", None) for x in attrs}
+        if a.arm == "absence":
+            from quwarts.core.router.context_probe import absence_value
+
+            for x in attrs:
+                f = fields.get(f"{table}.{x}")
+                v = absence_value(f) if f is not None else None
+                if v is not None:
+                    tail = "If the document does not mention any, answer 0." if v == 0 else f"If the document does not say so, answer {v}."
+                    descriptions[x] = f"{descriptions[x] or x}. {tail}"
         shown = mask(sql) if a.arm == "masked" else sql
         template = RD.prompt_template(table, attrs, numeric, shown, descriptions)
         if a.arm == "nosql":

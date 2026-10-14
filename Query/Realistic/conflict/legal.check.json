@@ -1,0 +1,283 @@
+{
+ "summary": {
+  "corpus": "legal",
+  "groups": 7,
+  "queries": 15,
+  "groups_with_problems": 0,
+  "by_type": {
+   "fine-vs-coarse": 5,
+   "list-vs-one": 2
+  }
+ },
+ "groups": [
+  {
+   "group": "G1",
+   "about": "legal.counsel_for_applicant lists every counsel named for the applicant; one question needs all of them (does the applicant brief a team), the other only the lead (first-named) counsel. G1 and G2 test the same list-vs-one mechanism, once per side.",
+   "type": "list-vs-one",
+   "column": "legal.counsel_for_applicant",
+   "problems": [],
+   "queries": {
+    "G1a": {
+     "question": "Per case type, do applicants who brief a team of counsel (two or more counsel named) win more often than applicants with a single named counsel? How many cases, and what share were approved (applicants appearing in person, representing themselves or not represented by counsel left out)?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 8
+    },
+    "G1b": {
+     "question": "Per case type, do applicants led by senior counsel (the first-named counsel is SC or QC, also written S.C. or Q.C.) win more often than applicants led by other counsel? How many cases, how many approved, and what share approved (applicants appearing in person, representing themselves or not represented by counsel left out)?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 8
+    }
+   },
+   "forms": {
+    "G1b": {
+     "update": "UPDATE legal SET counsel_for_applicant = trim(CASE WHEN instr(replace(replace(replace(replace(replace(replace(counsel_for_applicant, ' & ', '||'), ', ', '||'), 'SCMr', 'SC||Mr'), 'QCDr', 'QC||Dr'), 'QCMr', 'QC||Mr'), '|| QC', ' QC'), '||') > 0 THEN substr(replace(replace(replace(replace(replace(replace(counsel_for_applicant, ' & ', '||'), ', ', '||'), 'SCMr', 'SC||Mr'), 'QCDr', 'QC||Dr'), 'QCMr', 'QC||Mr'), '|| QC', ' QC'), 1, instr(replace(replace(replace(replace(replace(replace(counsel_for_applicant, ' & ', '||'), ', ', '||'), 'SCMr', 'SC||Mr'), 'QCDr', 'QC||Dr'), 'QCMr', 'QC||Mr'), '|| QC', ' QC'), '||') - 1) ELSE replace(replace(replace(replace(replace(replace(counsel_for_applicant, ' & ', '||'), ', ', '||'), 'SCMr', 'SC||Mr'), 'QCDr', 'QC||Dr'), 'QCMr', 'QC||Mr'), '|| QC', ' QC') END) WHERE counsel_for_applicant IS NOT NULL AND counsel_for_applicant <> ''",
+     "rows_changed": 321,
+     "scores": {
+      "G1a": {
+       "0%": 0.0463,
+       "20%": 0.2315
+      },
+      "G1b": {
+       "0%": 1.0,
+       "20%": 1.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G2",
+   "about": "legal.counsel_for_respondent lists every counsel named for the respondent; one question needs all of them (the size of the respondent's team), the other only the lead (first-named) counsel. Same mechanism as G1, on the respondent side.",
+   "type": "list-vs-one",
+   "column": "legal.counsel_for_respondent",
+   "problems": [],
+   "queries": {
+    "G2a": {
+     "question": "Do respondents brief bigger legal teams in more complex cases? By the number of individual counsel named for the respondent (one, two, three or more; respondents appearing in person or represented only by a solicitor's office left out): how many cases, how many statutes and precedents are cited on average, and what share were dismissed?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G2b": {
+     "question": "For government, company and organization respondents with named counsel: how many cases were led by senior counsel for the respondent (the first-named counsel is SC or QC, also written S.C. or Q.C.) and how many by other counsel, and what share of each were dismissed?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 6
+    }
+   },
+   "forms": {
+    "G2b": {
+     "update": "UPDATE legal SET counsel_for_respondent = trim(CASE WHEN instr(replace(replace(replace(replace(replace(replace(counsel_for_respondent, ' & ', '||'), ', ', '||'), 'SCMr', 'SC||Mr'), 'QCDr', 'QC||Dr'), 'QCMr', 'QC||Mr'), '|| QC', ' QC'), '||') > 0 THEN substr(replace(replace(replace(replace(replace(replace(counsel_for_respondent, ' & ', '||'), ', ', '||'), 'SCMr', 'SC||Mr'), 'QCDr', 'QC||Dr'), 'QCMr', 'QC||Mr'), '|| QC', ' QC'), 1, instr(replace(replace(replace(replace(replace(replace(counsel_for_respondent, ' & ', '||'), ', ', '||'), 'SCMr', 'SC||Mr'), 'QCDr', 'QC||Dr'), 'QCMr', 'QC||Mr'), '|| QC', ' QC'), '||') - 1) ELSE replace(replace(replace(replace(replace(replace(counsel_for_respondent, ' & ', '||'), ', ', '||'), 'SCMr', 'SC||Mr'), 'QCDr', 'QC||Dr'), 'QCMr', 'QC||Mr'), '|| QC', ' QC') END) WHERE counsel_for_respondent IS NOT NULL AND counsel_for_respondent <> ''",
+     "rows_changed": 467,
+     "scores": {
+      "G2a": {
+       "0%": 0.0,
+       "20%": 0.1442
+      },
+      "G2b": {
+       "0%": 1.0,
+       "20%": 1.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G3",
+   "about": "legal.defendant names the immigration minister under the portfolio title of the time; one question counts the minister as one party, the other needs each title as written",
+   "type": "fine-vs-coarse",
+   "column": "legal.defendant",
+   "problems": [],
+   "queries": {
+    "G3a": {
+     "question": "Per judgment year: how many cases were brought against the immigration minister (under any title the portfolio had), how many were dismissed, and how many approved?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G3b": {
+     "question": "The immigration portfolio was renamed twice in this period (Immigration and Multicultural and Indigenous Affairs, then Immigration and Multicultural Affairs, then Immigration and Citizenship). For each title the minister is sued under: how many cases, what share were dismissed, and in which judgment years does the title first and last appear?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    }
+   },
+   "forms": {
+    "G3a": {
+     "update": "UPDATE legal SET defendant = 'Minister for Immigration and Citizenship' WHERE defendant LIKE 'Minister for Immigration%'",
+     "rows_changed": 237,
+     "scores": {
+      "G3a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G3b": {
+       "0%": 0.0481,
+       "20%": 0.0481
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G4",
+   "about": "legal.charges states the charges or grounds as the judgment words them; one question needs only the area of law they fall in, the others the specific grounds or the Act invoked",
+   "type": "fine-vs-coarse",
+   "column": "legal.charges",
+   "problems": [],
+   "queries": {
+    "G4a": {
+     "question": "For areas of law with at least 20 cases, grouping cases by the area their charges mention (refugee, visa or migration; misleading or deceptive conduct; tax; patent, copyright, trade mark or other intellectual property; bankruptcy or insolvency; anything else): how many cases, what share were approved, what share dismissed, and how many statutes are cited on average?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 5
+    },
+    "G4b": {
+     "question": "Per judgment year, among cases against the immigration minister: how many cases, and in how many do the charges allege a denial of procedural fairness (including procedural unfairness), a breach of section 424A of the Migration Act, or bias (actual or apprehended)?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G4c": {
+     "question": "For civil and commercial cases, by which Act the charges invoke (the Trade Practices Act; otherwise the Corporations Act or Corporations Law; otherwise neither): how many cases, what share were approved, and what share dismissed?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    }
+   },
+   "forms": {
+    "G4a": {
+     "update": "UPDATE legal SET charges = CASE WHEN charges LIKE '%refugee%' OR charges LIKE '%visa%' OR charges LIKE '%migration%' THEN 'immigration' WHEN charges LIKE '%misleading%' OR charges LIKE '%deceptive%' THEN 'misleading or deceptive conduct' WHEN charges LIKE '%tax%' THEN 'taxation' WHEN charges LIKE '%patent%' OR charges LIKE '%copyright%' OR charges LIKE '%trade mark%' OR charges LIKE '%trademark%' OR charges LIKE '%intellectual property%' THEN 'intellectual property' WHEN charges LIKE '%bankrupt%' OR charges LIKE '%insolven%' THEN 'insolvency' ELSE 'other' END WHERE charges IS NOT NULL AND charges <> ''",
+     "rows_changed": 539,
+     "scores": {
+      "G4a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G4b": {
+       "0%": 0.3125,
+       "20%": 0.375
+      },
+      "G4c": {
+       "0%": 0.0,
+       "20%": 0.0641
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G5",
+   "about": "legal.nationality_for_applicant holds the applicant's country as stated; one question needs only the world region, the other the country",
+   "type": "fine-vs-coarse",
+   "column": "legal.nationality_for_applicant",
+   "problems": [],
+   "queries": {
+    "G5a": {
+     "question": "By where the applicant comes from (Australia, or for foreign applicants their region: South Asia, East Asia, South-East Asia, the Pacific including New Zealand and Papua New Guinea, Europe including Armenia, the Middle East and North Africa including Turkey, Lebanon, Egypt and Libya, and the rest of Africa together with the Americas): how many cases, what share were dismissed, and how many were against the immigration minister?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 8
+    },
+    "G5b": {
+     "question": "Among South Asian applicants (from India, Bangladesh, Sri Lanka, Pakistan or Nepal): how many cases does each nationality bring, how many were dismissed, and how many were approved?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 5
+    }
+   },
+   "forms": {
+    "G5a": {
+     "update": "UPDATE legal SET nationality_for_applicant = CASE WHEN nationality_for_applicant IN ('India', 'Bangladesh', 'Sri Lanka', 'Pakistan', 'Nepal') THEN 'South Asia' WHEN nationality_for_applicant IN ('China', 'Korea', 'South Korea', 'Mongolia') THEN 'East Asia' WHEN nationality_for_applicant IN ('Indonesia', 'Republic of Indonesia', 'Vietnam', 'Malaysia', 'Philippines', 'Thai') THEN 'South-East Asia' WHEN nationality_for_applicant IN ('Fiji', 'Tonga', 'Papua New Guinea', 'New Zealand') THEN 'Pacific' WHEN nationality_for_applicant IN ('United Kingdom', 'British', 'Bulgaria', 'Greece', 'Latvia', 'Romania', 'Russian Federation', 'Ukraine', 'France', 'Switzerland', 'Former Yugoslav Republic of Macedonia', 'Armenia') THEN 'Europe' WHEN nationality_for_applicant IN ('Lebanon', 'Turkey', 'Egypt', 'Libya') THEN 'Middle East and North Africa' WHEN nationality_for_applicant IN ('Ethiopia', 'Nigeria', 'South Africa', 'United States', 'Chile') THEN 'Africa and the Americas' ELSE nationality_for_applicant END WHERE nationality_for_applicant IS NOT NULL AND nationality_for_applicant <> ''",
+     "rows_changed": 303,
+     "scores": {
+      "G5a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G5b": {
+       "0%": 0.0,
+       "20%": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G6",
+   "about": "legal.case_type distinguishes commercial from other civil cases; one question treats commercial cases as civil, the other compares the two",
+   "type": "fine-vs-coarse",
+   "column": "legal.case_type",
+   "problems": [],
+   "queries": {
+    "G6a": {
+     "question": "Splitting cases into civil disputes (counting commercial cases as civil), administrative cases and criminal cases: how many cases, what share were approved, and what share dismissed?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G6b": {
+     "question": "How do commercial cases differ from other civil cases: how many cases, how many statutes and precedents are cited on average, and in how many is the defendant a company?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G6a": {
+     "update": "UPDATE legal SET case_type = 'Civil Case' WHERE case_type = 'Commercial Case'",
+     "rows_changed": 59,
+     "scores": {
+      "G6a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G6b": {
+       "0%": 0.0,
+       "20%": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G7",
+   "about": "legal.plaintiff_current_status holds the plaintiff's kind or, for a person, their stated occupation or situation; one question needs only the kind of party, the other the stated description of individual applicants",
+   "type": "fine-vs-coarse",
+   "column": "legal.plaintiff_current_status",
+   "problems": [],
+   "queries": {
+    "G7a": {
+     "question": "By kind of plaintiff (company; organization; government, counting regulators, commissioners, inspectors, departments, ministers, customs, the army and registrars as government; or an individual): how many cases, what share were approved, what share dismissed, and in what share was a fine imposed?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G7b": {
+     "question": "For individual applicants described as visa applicants, refugees, students (including international students) or employees (including former employees): how many cases, what share were dismissed, and how many were against the immigration minister?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    }
+   },
+   "forms": {
+    "G7a": {
+     "update": "UPDATE legal SET plaintiff_current_status = CASE WHEN plaintiff_current_status = 'Government' OR plaintiff_current_status LIKE '%Commission%' OR plaintiff_current_status LIKE '%Department%' OR plaintiff_current_status LIKE '%Minister%' OR plaintiff_current_status LIKE '%Customs%' OR plaintiff_current_status LIKE '%Army%' OR plaintiff_current_status LIKE '%Registrar%' OR plaintiff_current_status LIKE '%Inspector%' THEN 'Government' WHEN plaintiff_current_status IN ('Company', 'Campany') THEN 'Company' WHEN plaintiff_current_status = 'Organization' THEN 'Organization' ELSE 'Individual' END WHERE plaintiff_current_status IS NOT NULL AND plaintiff_current_status <> ''",
+     "rows_changed": 314,
+     "scores": {
+      "G7a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G7b": {
+       "0%": 0.0,
+       "20%": 0.0
+      }
+     }
+    }
+   }
+  }
+ ]
+}

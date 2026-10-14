@@ -1,0 +1,340 @@
+{
+ "summary": {
+  "corpus": "med",
+  "groups": 8,
+  "queries": 17,
+  "groups_with_problems": 0,
+  "by_type": {
+   "number-vs-text": 1,
+   "list-vs-one": 3,
+   "fine-vs-coarse": 3,
+   "join-spelling": 1
+  }
+ },
+ "groups": [
+  {
+   "group": "G1",
+   "about": "disease.disease_type lists every classification of a disease; G1a counts a disease under each classification it has, G1b files each disease under one class by a stated precedence (the single label a one-type categoriser would store)",
+   "type": "list-vs-one",
+   "column": "disease.disease_type",
+   "problems": [],
+   "queries": {
+    "G1a": {
+     "question": "Per expected outcome (high mortality; otherwise chronic; otherwise other or not stated): how many diseases have an inflammatory, an infectious, a vascular and a degenerative component, counting a disease under every classification it has?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G1b": {
+     "question": "Counting each disease once, under the first of these classes it has (infectious; cancer; psychiatric; genetic; vascular; inflammatory or autoimmune; other): how many diseases are in each class, and how many of them are chronic and how many have high mortality?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 7
+    }
+   },
+   "forms": {
+    "G1b": {
+     "update": "UPDATE disease SET disease_type = CASE WHEN disease_type LIKE '%infectious%' THEN 'infectious' WHEN disease_type LIKE '%neoplastic%' THEN 'neoplastic' WHEN disease_type LIKE '%psychiatric%' THEN 'psychiatric' WHEN disease_type LIKE '%genetic%' THEN 'genetic' WHEN disease_type LIKE '%vascular%' THEN 'vascular' WHEN disease_type LIKE '%inflammatory%' THEN 'inflammatory' WHEN disease_type LIKE '%autoimmune%' THEN 'autoimmune' ELSE 'others' END WHERE disease_type <> ''",
+     "rows_changed": 90,
+     "scores": {
+      "G1a": {
+       "0%": 0.4,
+       "20%": 0.6667
+      },
+      "G1b": {
+       "0%": 1.0,
+       "20%": 1.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G2",
+   "about": "disease.treatments lists every treatment modality; G2a counts the modalities and asks whether surgery is among them, G2b files each disease under its most invasive common treatment (the single label a 'main treatment' reader would store)",
+   "type": "list-vs-one",
+   "column": "disease.treatments",
+   "problems": [],
+   "queries": {
+    "G2a": {
+     "question": "Per kind of disease (infectious; cancer; psychiatric; inflammatory or autoimmune; other, taking the first that applies): how many diseases, how many different kinds of treatment such a disease receives on average, and how many of them are treated with surgery?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 5
+    },
+    "G2b": {
+     "question": "By the most invasive of the three common treatments a disease receives (surgery if it is treated with surgery; else injection; else oral medication; else none of these three): how many diseases, and how many of them are chronic?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    }
+   },
+   "forms": {
+    "G2b": {
+     "update": "UPDATE disease SET treatments = CASE WHEN treatments LIKE '%surgery%' THEN 'surgery' WHEN treatments LIKE '%injection%' THEN 'injection' WHEN treatments LIKE '%oral_medication%' THEN 'oral_medication' ELSE 'others' END WHERE treatments <> ''",
+     "rows_changed": 89,
+     "scores": {
+      "G2a": {
+       "0%": 0.6667,
+       "20%": 0.6667
+      },
+      "G2b": {
+       "0%": 1.0,
+       "20%": 1.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G3",
+   "about": "disease.pathogenesis states the fine mechanism (infectious_bacterial, infectious_viral, genetic_mutation, ...); G3a needs the germ type, G3b only the broad mechanism (infectious, genetic, ...) that a merged form keeps",
+   "type": "fine-vs-coarse",
+   "column": "disease.pathogenesis",
+   "problems": [],
+   "queries": {
+    "G3a": {
+     "question": "Among diseases whose stated mechanisms include an infection: how many are bacterial, how many viral (and not also bacterial), and how many parasitic (neither bacterial nor viral), and how many of each are treated with oral medication and how many with injections?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G3b": {
+     "question": "Per disease mechanism (infectious, genetic, cancer, inflammatory or autoimmune, vascular or degenerative, other; a disease with several mechanisms is counted under the first of these): how many diseases, how many are chronic, and how many are treated with surgery?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 6
+    }
+   },
+   "forms": {
+    "G3b": {
+     "update": "UPDATE disease SET pathogenesis = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(pathogenesis, 'infectious_bacterial', 'infectious'), 'infectious_viral', 'infectious'), 'infectious_parasitic', 'infectious'), 'infectious_fungal', 'infectious'), 'genetic_mutation', 'genetic'), 'metabolic_disorder', 'metabolic'), 'endocrine_disorder', 'endocrine'), 'nutritional_deficiency', 'nutritional')",
+     "rows_changed": 100,
+     "scores": {
+      "G3a": {
+       "0%": 0.0,
+       "20%": 0.0
+      },
+      "G3b": {
+       "0%": 1.0,
+       "20%": 1.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G4",
+   "about": "drug.unsuitable_population states each group that should avoid the drug as the label words it (children under 6, nursing mothers, geriatric patients, ...); G4a needs only four broad groups, G4b the youngest stated age limit for children, G4c the breastfeeding warning. ALT G4a is the broad-group normalisation; ALT G4b is a children-only extraction (a per-question prompt that asks only about children). Each breaks the others.",
+   "type": "fine-vs-coarse",
+   "column": "drug.unsuitable_population",
+   "problems": [],
+   "queries": {
+    "G4a": {
+     "question": "Among drugs for people (veterinary labels for dogs and puppies left out), per prescription status (prescription only, over the counter, other or not stated): how many drugs name groups that should avoid them, and how many should be avoided in pregnancy, by children (including infants and pediatric patients), by the elderly (including geriatric patients, older adults and people of old age), and by patients with liver or kidney problems (including hepatic or renal impairment, nephropathy, and a low creatinine clearance or glomerular filtration rate)?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G4b": {
+     "question": "Among drugs whose label names children, infants or pediatric patients among those who should not take it (a warning about nursing infants counts as breastfeeding, not as children): how many labels set the age limit at under 2 years (including infants, younger than 1 year and younger than two months), under 6 years, under 12 to 18 years, or state no age (the youngest limit stated counts), and how many of each are prescription-only?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G4c": {
+     "question": "Among drugs for people whose route is stated, taken by mouth or by another route: how many should be avoided in pregnancy, and how many of those also when breastfeeding (breastfeeding or nursing women, mothers or infants)?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G4a": {
+     "update": "UPDATE drug SET unsuitable_population = COALESCE(NULLIF(RTRIM(CASE WHEN unsuitable_population LIKE '%pregnan%' THEN 'pregnant women||' ELSE '' END || CASE WHEN (unsuitable_population LIKE '%child%' OR unsuitable_population LIKE '%pediatric%' OR REPLACE(unsuitable_population, 'nursing infants', '') LIKE '%infant%') THEN 'children||' ELSE '' END || CASE WHEN (unsuitable_population LIKE '%elderly%' OR unsuitable_population LIKE '%older adult%' OR unsuitable_population LIKE '%geriatric%' OR unsuitable_population LIKE '%old age%') THEN 'elderly||' ELSE '' END || CASE WHEN (unsuitable_population LIKE '%liver%' OR unsuitable_population LIKE '%hepatic%' OR unsuitable_population LIKE '%kidney%' OR unsuitable_population LIKE '%renal%' OR unsuitable_population LIKE '%nephro%' OR unsuitable_population LIKE '%creatinine%' OR unsuitable_population LIKE '%glomerular%') THEN 'patients with liver or kidney problems' ELSE '' END, '|'), ''), 'other groups') WHERE unsuitable_population <> '' AND unsuitable_population NOT LIKE '%dog%' AND unsuitable_population NOT LIKE '%pupp%'",
+     "rows_changed": 57,
+     "scores": {
+      "G4a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G4b": {
+       "0%": 0.0,
+       "20%": 0.0
+      },
+      "G4c": {
+       "0%": 0.5,
+       "20%": 0.75
+      }
+     }
+    },
+    "G4b": {
+     "update": "UPDATE drug SET unsuitable_population = CASE WHEN NOT (unsuitable_population LIKE '%child%' OR unsuitable_population LIKE '%pediatric%' OR REPLACE(unsuitable_population, 'nursing infants', '') LIKE '%infant%') THEN '' WHEN (unsuitable_population LIKE '%under 2 %' OR unsuitable_population LIKE '%younger than 1||%' OR unsuitable_population LIKE '%younger than 1' OR unsuitable_population LIKE '%two months%' OR unsuitable_population LIKE '%under one year%' OR REPLACE(unsuitable_population, 'nursing infants', '') LIKE '%infant%') THEN 'children under 2 years' WHEN unsuitable_population LIKE '%under 6%' THEN 'children under 6 years' WHEN unsuitable_population LIKE '%under 12%' THEN 'children under 12 years' WHEN unsuitable_population LIKE '%under 18%' OR unsuitable_population LIKE '%age of 18%' THEN 'children under 18 years' ELSE 'children' END",
+     "rows_changed": 100,
+     "scores": {
+      "G4a": {
+       "0%": 0.3333,
+       "20%": 0.5333
+      },
+      "G4b": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G4c": {
+       "0%": 0.0,
+       "20%": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G5",
+   "about": "drug.dosage_frequency states the schedule in words ('twice a day', 'every 4 to 6 hours as needed', several schedules joined by ||); G5a reads it as the most doses a day it allows, G5b needs the stated intervals in hours, ranges and choices, 'as needed' and the number of schedules. ALT G5a is the doses-a-day parse, written back as 'N times a day' (schedules that are not per day are kept as stated).",
+   "type": "number-vs-text",
+   "column": "drug.dosage_frequency",
+   "problems": [],
+   "queries": {
+    "G5a": {
+     "question": "Reading each drug's dosing schedule as the most doses a day it allows (every 4 hours or 6 times = 6; every 6 hours or 4 times = 4; every 8 hours or 3 times = 3; every 12 hours or twice = 2; once a day or every 24 hours = 1; a range or choice such as 'every 4 to 6 hours' or 'once or twice a day' counts at its higher end, 'up to three times a day' as 3, an 'as needed' schedule by its interval, and with several schedules the highest counts; weekly, single-dose, session and treatment-cycle schedules and continuous infusions are left out): per prescription status (prescription only, other or not stated), how many drugs, the average of that number, and how many allow three or more doses a day?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G5b": {
+     "question": "Among drugs whose route is stated, taken by mouth or by another route: how many state a dosing schedule, how many state at least one schedule as an interval in hours (e.g. 'every 8 hours'), how many give a range or a choice of frequencies (e.g. 'every 4-6 hours', '3 to 4 times a day', 'once or twice a day'), how many are taken as needed, and how many state more than one schedule?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G5a": {
+     "update": "UPDATE drug SET dosage_frequency = CASE CASE WHEN dosage_frequency LIKE '%continuous%' THEN NULL WHEN dosage_frequency LIKE '%every 4 %hour%' OR dosage_frequency LIKE '%every 4-%hour%' OR dosage_frequency LIKE '%every four hour%' OR dosage_frequency LIKE '%6 times%' THEN 6 WHEN dosage_frequency LIKE '%every 6%hour%' OR dosage_frequency LIKE '%4 times%' OR dosage_frequency LIKE '%four times%' OR dosage_frequency LIKE '%4 doses%' THEN 4 WHEN dosage_frequency LIKE '%every 8%hour%' OR dosage_frequency LIKE '%3 times%' OR dosage_frequency LIKE '%three times%' OR dosage_frequency LIKE '%thrice%' THEN 3 WHEN dosage_frequency LIKE '%every 12%hour%' OR dosage_frequency LIKE '%twice%' OR dosage_frequency LIKE '%2 times%' THEN 2 WHEN dosage_frequency LIKE '%once daily%' OR dosage_frequency LIKE '%once a day%' OR dosage_frequency LIKE '%once per day%' OR dosage_frequency LIKE '%every 24 hour%' THEN 1 END WHEN 6 THEN '6 times a day' WHEN 4 THEN '4 times a day' WHEN 3 THEN '3 times a day' WHEN 2 THEN '2 times a day' WHEN 1 THEN 'once a day' ELSE dosage_frequency END WHERE dosage_frequency <> ''",
+     "rows_changed": 57,
+     "scores": {
+      "G5a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G5b": {
+       "0%": 0.5,
+       "20%": 0.6
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G6",
+   "about": "drug.disease_name lists the conditions on a label as the label words them and is the join key to disease.disease_name; G6a joins label conditions to diseases and accepts both the label's wording (through a stated list of other names) and the disease table's names, G6b counts the conditions as the label lists them. ALT G6a is entity resolution: each label condition rewritten to the disease table's name, one entry per resolved disease (so 'Herpes simplex||Genital herpes||...||Cold sores' keeps one 'Herpes Simplex Virus Infection'); it keeps G6a and changes the label's own count of conditions.",
+   "type": "join-spelling",
+   "column": "drug.disease_name",
+   "problems": [],
+   "queries": {
+    "G6a": {
+     "question": "Per kind of disease (infectious; psychiatric; metabolic or endocrine; other, taking the first that applies): how many drug-disease treatment pairs are there, and in how many is the drug prescription-only? A drug treats a disease when its label names the disease by the disease's (first) name, ignoring case, or by one of these other names: Attention Deficit Hyperactivity Disorder, ADHD or attention deficit disorder for Attention-Deficit Hyperactivity Disorder; Urinary Tract Infections for Urinary Tract Infection; HIV infection or human immunodeficiency virus infection for HIV-1 Infection; acute graft-vs-host disease for Acute Graft-Versus-Host Disease; herpes simplex, herpes labialis, cold sores or genital herpes for Herpes Simplex Virus Infection; type 2 diabetes for Type 2 Diabetes Mellitus; diabetes for Diabetes Mellitus; flu for Influenza; high blood pressure for Hypertension; sinusitis for Sinus Infection; otitis media for Ear Infections; bronchial asthma for Asthma.",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G6b": {
+     "question": "Among drugs whose route is stated, taken by mouth or by another route: how many drugs name the conditions they treat, how many conditions a label names on average (each condition as the label lists it, so 'cold sores' and 'genital herpes' count as two), and how many labels name two or more conditions?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G6a": {
+     "update": "UPDATE drug SET disease_name = (WITH RECURSIVE split(item, rest, pos) AS (SELECT '', REPLACE(drug.disease_name, ' || ', '||') || '||', 0 UNION ALL SELECT substr(rest, 1, instr(rest, '||') - 1), substr(rest, instr(rest, '||') + 2), pos + 1 FROM split WHERE rest <> ''), resolved AS (SELECT CASE item WHEN 'Attention Deficit Hyperactivity Disorder' THEN 'Attention-Deficit Hyperactivity Disorder' WHEN 'ADHD' THEN 'Attention-Deficit Hyperactivity Disorder' WHEN 'attention deficit disorder' THEN 'Attention-Deficit Hyperactivity Disorder' WHEN 'Urinary Tract Infections' THEN 'Urinary Tract Infection' WHEN 'HIV infection' THEN 'HIV-1 Infection' WHEN 'Human immunodeficiency virus infection' THEN 'HIV-1 Infection' WHEN 'acute graft-vs-host disease' THEN 'Acute Graft-Versus-Host Disease' WHEN 'Herpes simplex' THEN 'Herpes Simplex Virus Infection' WHEN 'Herpes labialis' THEN 'Herpes Simplex Virus Infection' WHEN 'Cold sores' THEN 'Herpes Simplex Virus Infection' WHEN 'Genital herpes' THEN 'Herpes Simplex Virus Infection' WHEN 'Type 2 Diabetes' THEN 'Type 2 Diabetes Mellitus' WHEN 'Diabetes' THEN 'Diabetes Mellitus' WHEN 'Flu' THEN 'Influenza' WHEN 'High Blood Pressure' THEN 'Hypertension' WHEN 'Sinusitis' THEN 'Sinus Infection' WHEN 'otitis media' THEN 'Ear Infections' WHEN 'Bronchial asthma' THEN 'Asthma' ELSE item END AS name, MIN(pos) AS first_pos FROM split WHERE pos > 0 GROUP BY name) SELECT group_concat(name, '||') FROM (SELECT name FROM resolved ORDER BY first_pos)) WHERE disease_name <> ''",
+     "rows_changed": 96,
+     "scores": {
+      "G6a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G6b": {
+       "0%": 0.5,
+       "20%": 0.6667
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G7",
+   "about": "disease.affected_organs lists the organs a disease affects; G7a needs the body systems (a disease counts under each system it affects), G7b specific organs (liver, kidneys, eyes, brain) that a body-system form merges into a system or drops",
+   "type": "fine-vs-coarse",
+   "column": "disease.affected_organs",
+   "problems": [],
+   "queries": {
+    "G7a": {
+     "question": "Per kind of disease (infectious; cancer; other, taking the first that applies), among diseases whose affected organs are stated: how many diseases, and how many affect the lungs and airways (including the pleura and sinuses), the heart and blood vessels (arteries, veins), the nervous system (brain, nerves), the digestive system (gut, stomach, intestines, bowel, colon, esophagus, liver, abdomen), the skin, the bones, joints and muscles (including the spine, ligaments and tendons, but not bone marrow), and the kidneys and urinary tract (bladder, urethra)? A disease counts under every system it affects.",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    },
+    "G7b": {
+     "question": "For infectious and other diseases whose affected organs are stated: how many diseases, and how many affect the liver, the kidneys, the eyes (including the retina, macula and optic nerve), and the brain?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G7a": {
+     "update": "UPDATE disease SET affected_organs = COALESCE(NULLIF(RTRIM(CASE WHEN (affected_organs LIKE '%lung%' OR affected_organs LIKE '%respirat%' OR affected_organs LIKE '%pleura%' OR affected_organs LIKE '%sinus%') THEN 'lungs and airways||' ELSE '' END || CASE WHEN (affected_organs LIKE '%heart%' OR affected_organs LIKE '%arter%' OR affected_organs LIKE '%vessel%' OR affected_organs LIKE '%vein%' OR affected_organs LIKE '%vascular%') THEN 'heart and blood vessels||' ELSE '' END || CASE WHEN (affected_organs LIKE '%brain%' OR affected_organs LIKE '%nerv%') THEN 'nervous system||' ELSE '' END || CASE WHEN (affected_organs LIKE '%gut%' OR affected_organs LIKE '%gastro%' OR affected_organs LIKE '%digest%' OR affected_organs LIKE '%intestin%' OR affected_organs LIKE '%bowel%' OR affected_organs LIKE '%colon%' OR affected_organs LIKE '%esophag%' OR affected_organs LIKE '%stomach%' OR affected_organs LIKE '%liver%' OR affected_organs LIKE '%abdom%') THEN 'digestive system||' ELSE '' END || CASE WHEN (affected_organs LIKE '%skin%' OR affected_organs LIKE '%derm%') THEN 'skin||' ELSE '' END || CASE WHEN (REPLACE(affected_organs, 'bone marrow', '') LIKE '%bone%' OR affected_organs LIKE '%joint%' OR affected_organs LIKE '%muscle%' OR affected_organs LIKE '%spine%' OR affected_organs LIKE '%ligament%' OR affected_organs LIKE '%tendon%') THEN 'bones, joints and muscles||' ELSE '' END || CASE WHEN (affected_organs LIKE '%kidney%' OR affected_organs LIKE '%urinary%' OR affected_organs LIKE '%bladder%' OR affected_organs LIKE '%urethra%') THEN 'kidneys and urinary tract||' ELSE '' END, '|'), ''), 'other') WHERE affected_organs <> ''",
+     "rows_changed": 80,
+     "scores": {
+      "G7a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G7b": {
+       "0%": 0.3,
+       "20%": 0.3
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G8",
+   "about": "drug.pharmaceutical_form lists every form a drug comes in ('capsule||tablet||injection'); G8a needs all forms (any injectable or liquid form, number of forms), G8b one main form by a stated precedence (the single label a 'dosage form' reader would store)",
+   "type": "list-vs-one",
+   "column": "drug.pharmaceutical_form",
+   "problems": [],
+   "queries": {
+    "G8a": {
+     "question": "Among drugs whose route and forms are stated, taken by mouth or by another route: how many drugs, how many come in more than one form, how many come in an injectable form, and how many in a liquid form (solution, suspension, syrup, drops or liquid)?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G8b": {
+     "question": "By each drug's main dosage form, taking the first of these it comes in (tablet; capsule; injection; liquid, meaning solution, suspension, syrup or drops; other): how many drugs, and how many of them are prescription-only?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 5
+    }
+   },
+   "forms": {
+    "G8b": {
+     "update": "UPDATE drug SET pharmaceutical_form = CASE WHEN pharmaceutical_form LIKE '%tablet%' THEN 'tablet' WHEN pharmaceutical_form LIKE '%capsule%' THEN 'capsule' WHEN pharmaceutical_form LIKE '%injection%' THEN 'injection' WHEN (pharmaceutical_form LIKE '%solution%' OR pharmaceutical_form LIKE '%suspension%' OR pharmaceutical_form LIKE '%syrup%' OR pharmaceutical_form LIKE '%drop%' OR pharmaceutical_form LIKE '%liquid%') THEN 'liquid' ELSE 'other' END WHERE pharmaceutical_form <> ''",
+     "rows_changed": 76,
+     "scores": {
+      "G8a": {
+       "0%": 0.375,
+       "20%": 0.375
+      },
+      "G8b": {
+       "0%": 1.0,
+       "20%": 1.0
+      }
+     }
+    }
+   }
+  }
+ ]
+}

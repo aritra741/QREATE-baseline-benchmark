@@ -81,7 +81,7 @@ def main(argv=None) -> int:
         sb, sa = score_multi(c, before), score_multi(c, after)
         qs = [q for q, _ in before]
         changed = [q for q in qs if abs(sa[q][0.2] - sb[q][0.2]) > 1e-9]
-        out[c] = {"queries": len(qs), "queries_whose_score_changed_at_20": len(changed),
+        out[c] = {"queries": len(qs), "queries_whose_score_changed_at_20": len(changed), "changed_queries": {q: [round(sb[q][0.2], 3), round(sa[q][0.2], 3)] for q in changed},
                   "score_before": {f"{t:.0%}": round(S.mean(sb[q][t] for q in qs), 4) for t in TAUS},
                   "score_after": {f"{t:.0%}": round(S.mean(sa[q][t] for q in qs), 4) for t in TAUS},
                   "answer_accuracy": {k: {"answers": n, "before": round(b / n, 3), "after": round(a / n, 3)} for k, (n, b, a) in cells.items() if n}}

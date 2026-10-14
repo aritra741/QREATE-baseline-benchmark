@@ -1,0 +1,398 @@
+{
+ "summary": {
+  "corpus": "art",
+  "groups": 9,
+  "queries": 23,
+  "groups_with_problems": 0,
+  "by_type": {
+   "number-vs-text": 1,
+   "list-vs-one": 5,
+   "fine-vs-coarse": 3
+  }
+ },
+ "groups": [
+  {
+   "group": "G1",
+   "about": "art.field lists every field an artist works in; G1a needs only the field the biography names first, G1b counts an artist under every field, G1c counts how many of five named media each artist works in",
+   "type": "list-vs-one",
+   "column": "art.field",
+   "problems": [],
+   "queries": {
+    "G1a": {
+     "question": "By each artist's main field (the field the biography names first: painting, sculpture, photography, or other), how many artists are there, how many of them taught, and how many won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G1b": {
+     "question": "Per century of activity, how many artists work in painting, in sculpture, in printmaking (including etching, engraving, lithography and woodcut) and in photography, counting an artist under every field they work in?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G1c": {
+     "question": "Among artists who work in at least one of painting, sculpture, printmaking (including etching, engraving, lithography and woodcut), drawing and photography, how many work in exactly one of these five, in two, and in three or more, and how many of each group taught and how many won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    }
+   },
+   "forms": {
+    "G1a": {
+     "update": "UPDATE art SET field = CASE WHEN instr(field, '||') > 0 THEN substr(field, 1, instr(field, '||') - 1) ELSE field END",
+     "rows_changed": 1003,
+     "scores": {
+      "G1a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G1b": {
+       "0%": 0.25,
+       "20%": 0.55
+      },
+      "G1c": {
+       "0%": 0.0,
+       "20%": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G2",
+   "about": "art.genre lists every genre an artist works in; G2a needs only the genre the biography names first, G2b and G2c need every genre to see which combinations an artist works in",
+   "type": "list-vs-one",
+   "column": "art.genre",
+   "problems": [],
+   "queries": {
+    "G2a": {
+     "question": "By each artist's primary genre (the genre the biography names first: portrait, landscape, abstract, or other), how many artists are there, what share of them taught, and what share won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G2b": {
+     "question": "Looking at all the genres an artist works in, how many artists do both portraits and landscapes, portraits only, landscapes only, or neither, and what share of each group won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G2c": {
+     "question": "For artists active in the 20th century (alone or as part of a span), per century of activity: how many include abstract work among their genres, and how many of those also do figurative or portrait work?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    }
+   },
+   "forms": {
+    "G2a": {
+     "update": "UPDATE art SET genre = CASE WHEN instr(genre, '||') > 0 THEN substr(genre, 1, instr(genre, '||') - 1) ELSE genre END",
+     "rows_changed": 1003,
+     "scores": {
+      "G2a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G2b": {
+       "0%": 0.0,
+       "20%": 0.3383
+      },
+      "G2c": {
+       "0%": 0.0,
+       "20%": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G3",
+   "about": "art.style holds the specific style of the featured image (Abstract Expressionism, Neo-Expressionism, Post-Impressionism); G3a wants the broad family by name, G3b needs the specific style within the Expressionism family",
+   "type": "fine-vs-coarse",
+   "column": "art.style",
+   "problems": [],
+   "queries": {
+    "G3a": {
+     "question": "Grouping styles into broad families by name (any style whose name contains Expressionism, such as Abstract and Neo-Expressionism; contains Impressionism, such as Post-Impressionism; contains Realism but not Surrealism, such as Social, Magic and Photorealism; contains Minimalism; Surrealism; everything else as other), among artists with a plausible recorded age (15 to 110): how many artists are in each family, how old did they get on average, and how many won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 6
+    },
+    "G3b": {
+     "question": "How do Expressionists, Abstract Expressionists and Neo-Expressionists compare: how many of each, what share won at least one award, and (among those with a plausible recorded age, 15 to 110) how old did they get on average?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    }
+   },
+   "forms": {
+    "G3a": {
+     "update": "UPDATE art SET style = CASE WHEN style LIKE '%Surrealism%' THEN 'Surrealism' WHEN style LIKE '%Expressionism%' THEN 'Expressionism' WHEN style LIKE '%Impressionism%' THEN 'Impressionism' WHEN style LIKE '%Realism%' THEN 'Realism' WHEN style LIKE '%Minimalism%' THEN 'Minimalism' ELSE style END",
+     "rows_changed": 1003,
+     "scores": {
+      "G3a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G3b": {
+       "0%": 0.0,
+       "20%": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G4",
+   "about": "art.marriage holds the final marital status (married, remarried, divorced, widowed, separated, unmarried); G4a wants only whether the artist ever married, G4b and G4c need the specific final status",
+   "type": "fine-vs-coarse",
+   "column": "art.marriage",
+   "problems": [],
+   "queries": {
+    "G4a": {
+     "question": "Among artists whose final marital status is married, remarried, divorced, widowed, separated or unmarried (the two cohabiting artists left out), how many ever married (counting remarried, divorced, widowed and separated artists as having married) and how many never married, and for each group what share taught and what share won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G4b": {
+     "question": "By final marital status (married, remarried, divorced or separated counted together, widowed, unmarried), among artists with a plausible recorded age (15 to 110): how many artists, how old did they get on average, and what share won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 5
+    },
+    "G4c": {
+     "question": "For artists born in Europe and in North America whose final marital status is known: how many were still married at the end of their lives, how many had remarried, how many were divorced or separated, and how many were widowed?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G4a": {
+     "update": "UPDATE art SET marriage = 'Married' WHERE marriage IN ('Remarried', 'Divorced', 'Widowed', 'Separated')",
+     "rows_changed": 57,
+     "scores": {
+      "G4a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G4b": {
+       "0%": 0.1299,
+       "20%": 0.2165
+      },
+      "G4c": {
+       "0%": 0.2,
+       "20%": 0.2
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G5",
+   "about": "art.image_genre holds the specific genre of the featured image (portrait, genre painting, figurative, landscape, seascape); G5a wants a broad subject group, G5b needs the specific genre within the figurative group",
+   "type": "fine-vs-coarse",
+   "column": "art.image_genre",
+   "problems": [],
+   "queries": {
+    "G5a": {
+     "question": "Grouping featured images into figurative work (portraits, figures, genre scenes and nudes), landscapes (including seascapes and cityscapes), still lifes, abstract work (including geometric and non-representational images) and other: per century of activity, how many artists' featured images fall into each group?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 19
+    },
+    "G5b": {
+     "question": "Among featured images that show people, per century of activity: how many are portraits, how many are genre scenes (everyday life), and how many are other figure pictures (figurative work and nudes)?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    }
+   },
+   "forms": {
+    "G5a": {
+     "update": "UPDATE art SET image_genre = CASE WHEN image_genre LIKE '%Portrait%' OR image_genre LIKE '%Figur%' OR image_genre LIKE '%Genre%' OR image_genre LIKE '%Nude%' THEN 'Figurative' WHEN image_genre LIKE '%Landscape%' OR image_genre LIKE '%Seascape%' OR image_genre LIKE '%Cityscape%' THEN 'Landscape' WHEN image_genre LIKE '%Still Life%' THEN 'Still Life' WHEN image_genre LIKE '%Abstract%' OR image_genre LIKE '%Geometric%' OR image_genre LIKE '%Non-Representational%' THEN 'Abstract' ELSE 'Other' END WHERE image_genre IS NOT NULL AND image_genre <> ''",
+     "rows_changed": 886,
+     "scores": {
+      "G5a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G5b": {
+       "0%": 0.0,
+       "20%": 0.1667
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G6",
+   "about": "art.century holds the stated period of activity, often a span of two centuries ('19th-20th'); G6a wants only the century in which the artist became active, G6b and G6c need the whole span",
+   "type": "list-vs-one",
+   "column": "art.century",
+   "problems": [],
+   "queries": {
+    "G6a": {
+     "question": "By the century in which artists became active (the earlier one when a span such as 19th-20th is given), how many artists are there, how many of them taught, and how many won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G6b": {
+     "question": "How many artists were active within a single century and how many across two centuries (a span such as 19th-20th), and, among artists with a plausible recorded age (15 to 110), how old did each group get on average and what share taught?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G6c": {
+     "question": "Per birth continent, how many artists were active in the 19th, in the 20th and in the 21st century, counting an artist active across two centuries in both?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    }
+   },
+   "forms": {
+    "G6a": {
+     "update": "UPDATE art SET century = CASE WHEN instr(century, '-') > 0 THEN substr(century, 1, instr(century, '-') - 1) ELSE century END WHERE century IS NOT NULL AND century <> ''",
+     "rows_changed": 709,
+     "scores": {
+      "G6a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G6b": {
+       "0%": 0.0,
+       "20%": 0.0
+      },
+      "G6c": {
+       "0%": 0.3333,
+       "20%": 0.6667
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G7",
+   "about": "art.birth_date holds the stated date ('1839/1/9'); G7a wants the birth year as a number, G7b needs the month from the stated date",
+   "type": "number-vs-text",
+   "column": "art.birth_date",
+   "problems": [],
+   "queries": {
+    "G7a": {
+     "question": "Among artists with a known birth year, by birth period (before 1850, 1850-1899, 1900-1949, 1950 or later): how many artists are there, what share of them taught, and what share won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G7b": {
+     "question": "Among artists whose full birth date (year, month and day) is known, by birth quarter (January-March, April-June, July-September, October-December): how many artists, and among those with a plausible recorded age (15 to 110), how old did they get on average?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    }
+   },
+   "forms": {
+    "G7a": {
+     "update": "UPDATE art SET birth_date = CAST(substr(birth_date, 1, 4) AS INTEGER) WHERE birth_date IS NOT NULL AND birth_date <> ''",
+     "rows_changed": 978,
+     "scores": {
+      "G7a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G7b": {
+       "0%": 0.0,
+       "20%": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G8",
+   "about": "art.art_movement lists every movement an artist contributed to (264 of 778 filled values are lists); G8a needs only the movement the biography names first, G8b counts an artist under every movement",
+   "type": "list-vs-one",
+   "column": "art.art_movement",
+   "problems": [],
+   "queries": {
+    "G8a": {
+     "question": "By each artist's main movement (the movement the biography names first: Abstract Expressionism, Surrealism, Impressionism including Post- and Neo-Impressionism, Pop Art, any kind of Realism, or other), how many artists are there, what share of them taught, and what share won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 6
+    },
+    "G8b": {
+     "question": "For artists born in Europe and in North America with a known movement, counting an artist under every movement they contributed to: how many contributed to Impressionism (including Post- and Neo-Impressionism), to Expressionism (including Abstract and Neo-Expressionism), to Cubism, to Surrealism, to Pop Art and to Minimalism?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    }
+   },
+   "forms": {
+    "G8a": {
+     "update": "UPDATE art SET art_movement = CASE WHEN instr(art_movement, '||') > 0 THEN substr(art_movement, 1, instr(art_movement, '||') - 1) ELSE art_movement END",
+     "rows_changed": 1003,
+     "scores": {
+      "G8a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G8b": {
+       "0%": 0.1429,
+       "20%": 0.3571
+      }
+     }
+    }
+   }
+  },
+  {
+   "group": "G9",
+   "about": "art.art_institution lists every institution an artist was affiliated with (322 of 709 filled values are lists, 132 with three or more); G9a needs only the institution the biography names first, G9b and G9c need every institution",
+   "type": "list-vs-one",
+   "column": "art.art_institution",
+   "problems": [],
+   "queries": {
+    "G9a": {
+     "question": "By the institution the biography names first for each artist (an academy, a university, another school or college, or other), how many artists are there, what share of them taught, and what share won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 4
+    },
+    "G9b": {
+     "question": "Among artists with at least one recorded institution, do those affiliated with an academy at any point (any institution whose name contains Academy, Academie or Akademie) teach more often than the others: how many artists are in each group, what share taught, and what share won at least one award?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 2
+    },
+    "G9c": {
+     "question": "For artists active in the 20th century (alone or as part of a span), per century of activity, among artists with at least one recorded institution: how many were affiliated at some point with an academy, how many with a university, and how many with both?",
+     "checker_ok": true,
+     "checker_problems": [],
+     "result_rows": 3
+    }
+   },
+   "forms": {
+    "G9a": {
+     "update": "UPDATE art SET art_institution = CASE WHEN instr(art_institution, '||') > 0 THEN substr(art_institution, 1, instr(art_institution, '||') - 1) ELSE art_institution END",
+     "rows_changed": 1003,
+     "scores": {
+      "G9a": {
+       "0%": 1.0,
+       "20%": 1.0
+      },
+      "G9b": {
+       "0%": 0.0,
+       "20%": 0.0
+      },
+      "G9c": {
+       "0%": 0.25,
+       "20%": 0.5
+      }
+     }
+    }
+   }
+  }
+ ]
+}
