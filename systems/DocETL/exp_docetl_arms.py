@@ -22,6 +22,8 @@ into 2008 and then rejecting it against a declared string type):
              (reader_arms), minus its JSON-format line (the answer form is DocETL's)
   ourwords_cored  ourwords, reading the columns our full system's first build read together with the query's columns
              (from results/experiments/RW-haiku/live/<corpus>/build_reads.jsonl), not only the query's columns
+  ourwords_json  ourwords, with DocETL's other answer form: output mode "structured_output" (a JSON object constrained by the
+             schema) instead of the default tool call
   ourwords_norecall  ourwords, and DocETL's built-in system prompt without "and exhaustively (i.e., high recall)"
   stated     strfix; one sentence added to DocETL's prompt, our reader's system line: "Extract only facts stated in
              the document."
@@ -45,7 +47,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated", "norecall", "ourwords", "ourwords_norecall", "ourwords_cored")
+ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated", "norecall", "ourwords", "ourwords_norecall", "ourwords_cored", "ourwords_json")
 
 
 def mask(sql: str) -> str:
@@ -107,12 +109,15 @@ def main(argv=None) -> int:
     base_run_map = RD.run_map
 
     def run_map(table, fields, template, schema, data, out, threads):
-        if a.arm != "temp01":
+        if a.arm not in ("temp01", "ourwords_json"):
             return base_run_map(table, fields, template, schema, data, out, threads)
         orig = RD.MapOp
 
         def make(*args, **kw):
-            kw["litellm_completion_kwargs"] = {**kw.get("litellm_completion_kwargs", {}), "temperature": 0.1}
+            if a.arm == "temp01":
+                kw["litellm_completion_kwargs"] = {**kw.get("litellm_completion_kwargs", {}), "temperature": 0.1}
+            else:
+                kw["output"] = {**kw.get("output", {}), "mode": "structured_output"}
             return orig(*args, **kw)
 
         RD.MapOp = make
@@ -138,7 +143,7 @@ def main(argv=None) -> int:
                     descriptions[x] = f"{descriptions[x] or x}. {tail}"
         shown = mask(sql) if a.arm == "masked" else sql
         template = RD.prompt_template(table, attrs, numeric, shown, descriptions)
-        if a.arm in ("ourwords", "ourwords_norecall", "ourwords_cored"):
+        if a.arm in ("ourwords", "ourwords_norecall", "ourwords_cored", "ourwords_json"):
             from quwarts.core.router.context_probe import render_prompt
 
             ours = render_prompt("{{ input.text }}", [fields[f"{table}.{x}"] for x in attrs], None)
