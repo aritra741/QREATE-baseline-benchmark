@@ -1,0 +1,316 @@
+{
+ "store": "claude-haiku-5-5",
+ "model": "claude-haiku-5-5",
+ "agent_tokens": {
+  "input": 31470,
+  "output": 21078,
+  "calls": 28
+ },
+ "per_query": {
+  "conflict:cspaper#G1a": {
+   "score": {
+    "0%": 0.0833,
+    "5%": 0.0833,
+    "10%": 0.25,
+    "20%": 0.3333
+   },
+   "plans": {
+    "cspaper.reasoning_depth": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The two distinct stored values, 'single-hop' (126 rows) and 'multi-hop' (70 rows), exactly match the constants in the IN list and the GROUP BY. No transformation is needed, and the filter keeps every row.",
+     "values": 2,
+     "mapped_values": 0
+    },
+    "cspaper.retrieval_method": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "Each stored value is a single category, and the query's LIKE patterns ('%Dense%', '%Sparse%', '%Graph%', '%Hybrid%', '%Web%') each match the matching stored label: 'Dense Retrieval', 'Sparse Retrieval', 'Graph-based Retrieval', 'Hybrid Retrieval', 'Web Search'. 'other' matches none of them, which is the intended result. No list-valued or differently spelled entries need transformation.",
+     "values": 6,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:cspaper#G1b": {
+   "score": {
+    "0%": 0.0,
+    "5%": 0.1667,
+    "10%": 0.2778,
+    "20%": 0.3889
+   },
+   "plans": {
+    "cspaper.retrieval_method": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "All six stored values are single, non-empty category labels that match the allowed options, so the query's `<> ''` filter removes nothing and `GROUP BY retrieval_method` groups each method correctly. No list splitting, reformatting, or remapping is needed.",
+     "values": 6,
+     "mapped_values": 0
+    },
+    "cspaper.baseline_amount": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already numeric baseline counts (0.0 to 11.0). AVG(baseline_amount) therefore returns the mean number of baselines per group, which is what the query means. Storing them as floats does not change the average, and the query's other parts (COUNT, the 'Yes' check on uses_reranker, the grouping) do not involve this column.",
+     "values": 8,
+     "mapped_values": 0
+    },
+    "cspaper.uses_reranker": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column has only two distinct stored values, 'Yes' and 'No', and the query compares against the literal 'Yes'. The stored 'Yes' rows already match, so the SUM(CASE...) count works as written without any transformation.",
+     "values": 2,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:cspaper#G2a": {
+   "score": {
+    "0%": 0.0,
+    "5%": 0.0833,
+    "10%": 0.0833,
+    "20%": 0.25
+   },
+   "plans": {
+    "cspaper.use_agent": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column is already a clean two-value categorical field ('Yes'/'No') that matches its declared choice set. The query only groups by use_agent and does not filter or compare it against any specific literal, so the stored values already produce the intended breakdown of papers by agent-style architecture. The LIKE filters apply to application_domain, not to use_agent, so nothing needs to change.",
+     "values": 2,
+     "mapped_values": 0
+    },
+    "cspaper.application_domain": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The query only tests substrings with LIKE '%X%' for General, Medical, Education, Finance and Academic. The multi-valued entries use ' || ' separators, so each listed domain still appears as a substring and is counted once per paper. Every queried term is spelled exactly as stored, and the '<> ''' filter works on the stored text, so the stored values already fit the query as written.",
+     "values": 13,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:cspaper#G2b": {
+   "score": {
+    "0%": 0.0584,
+    "5%": 0.292,
+    "10%": 0.3504,
+    "20%": 0.5257
+   },
+   "plans": {
+    "cspaper.application_domain": {
+     "operation": "sql",
+     "sql_expression": "CASE WHEN INSTR(application_domain, ' || ') > 0 THEN SUBSTR(application_domain, 1, INSTR(application_domain, ' || ') - 1) ELSE application_domain END",
+     "mapping_rule": "",
+     "reason": "The query groups by application_domain and expects one single-valued domain per paper, so a multi-valued 'A || B' string would form its own group and split counts. The column is described as the primary domain, so taking the first list item gives one domain per row. Single-valued entries pass through unchanged, and the expression is deterministic in SQLite.",
+     "values": 13,
+     "mapped_values": 0
+    },
+    "cspaper.reasoning_depth": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column's allowed values are 'single-hop' and 'multi-hop', exactly the strings the query compares against with reasoning_depth = 'multi-hop'. The stored values already match, so no transformation is needed.",
+     "values": 2,
+     "mapped_values": 0
+    },
+    "cspaper.uses_knowledge_graph": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column's stored values are exactly 'Yes' and 'No', matching the query's comparison with 'Yes' directly; no transformation is needed.",
+     "values": 2,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:cspaper#G3a": {
+   "score": {
+    "0%": 0.0,
+    "5%": 0.0,
+    "10%": 0.0,
+    "20%": 0.0
+   },
+   "plans": {
+    "cspaper.use_agent": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already the two categories the column is meant to hold ('Yes' and 'No'). The query only groups by use_agent and filters on performance_on_hotpotqa, so no transformation is needed.",
+     "values": 2,
+     "mapped_values": 0
+    },
+    "cspaper.performance_on_hotpotqa": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Keep a stored value only when it gives an absolute HotpotQA score (for example a number such as 52.3 or a list of such numbers joined by ' || '). Map every other stored value to '' (empty string), including all 'Not reported...' / 'Not stated...' variants, qualitative descriptions, relative gains such as '+4.2% ... improvement' or '+4.70% EM || +3.44% F1 (gain over SOTA)', and metrics that are not HotpotQA results such as the ROUGE-1 entry. The query's WHERE clause then removes these rows, and MIN/MAX operate only on real scores.",
+     "reason": "The query filters with <> '' and takes MIN/MAX of the column, so it expects missing or non-result entries to be empty. As stored, text such as 'Not reported' passes the filter and would win the MIN/MAX comparisons, which makes the output meaningless. Blanking non-score entries makes the filter exclude them as the author intended.",
+     "values": 32,
+     "unanswered_values": 0,
+     "mapped_values": 32
+    }
+   },
+   "errors": {}
+  },
+  "conflict:cspaper#G3b": {
+   "score": {
+    "0%": 0.0,
+    "5%": 0.0,
+    "10%": 0.0,
+    "20%": 0.0
+   },
+   "plans": {
+    "cspaper.uses_reranker": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are exactly 'Yes' and 'No', which match the query's IN ('Yes', 'No') filter and GROUP BY. No transformation is needed.",
+     "values": 2,
+     "mapped_values": 0
+    },
+    "cspaper.performance_on_hotpotqa": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Map every stored value that says the HotpotQA result is not reported, not stated, not mentioned, or unavailable to the empty string ''. This covers all variants beginning 'Not reported', 'Not stated', 'not reported', 'not stated', plus notes such as 'HotpotQA not mentioned', 'evaluation is on ComplexWebQuestions', 'evaluates on MuSiQue and 2WikiMultihopQA', and 'no HotpotQA-specific metric stated'. Keep as-is any value that gives an actual HotpotQA result, including qualitative results that describe a measured outcome (for example '+4.2% accuracy improvement over Adaptive-RAG' or 'Over 20-point accuracy gains...'). Where a value reports a numeric metric alongside a non-reported note, keep the metric text.",
+     "reason": "The query filters with performance_on_hotpotqa <> '' and then counts papers by whether the text contains F1 or Acc. Placeholder phrases such as 'Not reported' are non-empty, so they pass the filter and are counted as papers with results. The author means to count only papers that actually report performance, so these placeholders must become empty strings for the filter to work as intended.",
+     "values": 32,
+     "unanswered_values": 0,
+     "mapped_values": 27
+    }
+   },
+   "errors": {}
+  },
+  "conflict:cspaper#G4a": {
+   "score": {
+    "0%": 0.0,
+    "5%": 0.0,
+    "10%": 0.0,
+    "20%": 0.1
+   },
+   "plans": {
+    "cspaper.reasoning_depth": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored distinct values are exactly 'single-hop' and 'multi-hop', which match the query's IN-list constants character for character, and the GROUP BY operates directly on these values. No transformation is needed.",
+     "values": 2,
+     "mapped_values": 0
+    },
+    "cspaper.data_modality": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "Each stored value is a list of modality names from ['Audio', 'Image', 'Table', 'Text', 'Code'] joined by ' || '. The query's LIKE '%Image%', '%Table%', '%Code%' and '%Audio%' tests are substring checks, so they match any row whose list contains that modality, regardless of position. No modality name is a substring of another, so no false positives occur. The stored format already fits the query as written.",
+     "values": 16,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:cspaper#G4b": {
+   "score": {
+    "0%": 0.0,
+    "5%": 0.0,
+    "10%": 0.0,
+    "20%": 0.0
+   },
+   "plans": {
+    "cspaper.data_modality": {
+     "operation": "sql",
+     "sql_expression": "CASE WHEN data_modality LIKE '%||%' THEN 'Multimodal' ELSE data_modality END",
+     "mapping_rule": "If the stored list contains more than one modality (contains the separator '||'), output 'Multimodal'; otherwise output the single stored value unchanged.",
+     "reason": "The query filters on 'Text' and 'Multimodal', meaning text-only papers and multi-modality papers. The stored values are '||'-joined lists, so no stored value equals 'Multimodal'. Any list with two or more items is multimodal, and the rule is deterministic, so an SQL expression fits. Single-value rows such as 'Text' keep their value and fall outside the filter as intended.",
+     "values": 16,
+     "mapped_values": 0
+    },
+    "cspaper.use_agent": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column holds only 'Yes' and 'No', and the query compares use_agent directly to 'Yes', so the stored values already match what the query expects. No transformation is needed.",
+     "values": 2,
+     "mapped_values": 0
+    },
+    "cspaper.uses_reranker": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are exactly 'Yes' and 'No', which match the constant 'Yes' the query compares against. The column is already in the form the query expects, so no transformation is needed.",
+     "values": 2,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:cspaper#G5a": {
+   "score": {
+    "0%": 0.0,
+    "5%": 0.0,
+    "10%": 0.0,
+    "20%": 0.0
+   },
+   "plans": {
+    "cspaper.reasoning_depth": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The two distinct stored values, 'single-hop' (126) and 'multi-hop' (70), exactly match the constants in the WHERE clause and the GROUP BY key. No list separators or variant spellings appear, so the query already returns the intended per-depth counts.",
+     "values": 2,
+     "mapped_values": 0
+    },
+    "cspaper.generator_model": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The query tests each row with LIKE substring patterns and counts each paper once per family. Stored lists in the form 'A || B' still match correctly, because '%Llama 3%' finds 'Llama 3' anywhere in the string, so one row can satisfy several family flags without being split. Splitting or re-keying the list would not change what the query returns. Spelling variants such as 'Llama2-13B' or 'Llama-3' will not match the patterns, but that is a naming-consistency issue, not a storage-format requirement for this column.",
+     "values": 117,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:cspaper#G5b": {
+   "score": {
+    "0%": 0.0,
+    "5%": 0.0,
+    "10%": 0.0,
+    "20%": 0.0
+   },
+   "plans": {
+    "cspaper.generator_model": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Map each distinct stored value to one of the three categories the query expects. If every named model is proprietary/API-only (e.g., GPT-4, GPT-4o, GPT-3.5, ChatGPT, Gemini, Claude, GPT-4V, gpt-35-turbo), map to 'Proprietary'. If every named model is open-weight (e.g., Llama/LLaMA/LLaMa, Mistral, Mixtral, Qwen, Gemma, Phi, Flan-UL2, BERT, Xunzi-Qwen, DeepSeek, ICAE, xRAG-7B, Qwen-VL), map to 'Open-weight'. If the list mixes both kinds, map to 'Both'. If no model is named, or the value is generic (e.g., 'Not specified', 'Not stated', 'LLM', 'large language models (LLMs)', 'None mentioned'), map to NULL so the row is excluded by the IN filter. For a value that names only the models of a single family, classify by that family. Rows that name only 'Both' models (such as 'GPT-4 || Llama-3') map to 'Both'.",
+     "reason": "The query filters and groups on the generator's licensing category ('Proprietary', 'Open-weight', 'Both'), but the column stores model names or free-text descriptions. Turning names into categories needs model-licensing knowledge that a deterministic SQL expression cannot reliably supply across 117 distinct, free-form values, so a judgment-based mapping is required.",
+     "values": 117,
+     "unanswered_values": 0,
+     "mapped_values": 117
+    },
+    "cspaper.baseline_amount": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column already stores the number of baselines per paper as numeric values (0.0 to 11.0), with no list or text formatting. AVG(baseline_amount) therefore returns the mean baseline count the author intends, and 0.0 correctly counts papers with no baselines. The query does not compare this column to text, so no transformation is needed.",
+     "values": 8,
+     "mapped_values": 0
+    },
+    "cspaper.use_agent": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already 'Yes' and 'No', exactly the vocabulary the query compares against with use_agent = 'Yes'. The query counts agent-style systems by that literal match, so no transformation is needed.",
+     "values": 2,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  }
+ }
+}

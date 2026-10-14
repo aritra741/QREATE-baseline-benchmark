@@ -33,7 +33,7 @@ from sqlglot import exp
 from quwarts.eval import drift_live as D
 from quwarts.eval.exp_docetl_variation import catalogs, safe
 from quwarts.eval.exp_profile import roles
-from quwarts.eval.exp_tau import EXP, score_multi
+from quwarts.eval.exp_tau import EXP, TAUS, score_multi
 
 CORPORA = ["cspaper", "player", "art", "med", "legal"]
 QV = Path("/scratch/general/vast/u1592362/quwarts_exp/RW-qviews/RW-norereads-V3")
@@ -163,6 +163,15 @@ def main(argv=None) -> int:
             d = sum(sc[role][q][0.2] - sc["docetl"][q][0.2] for q in qs)
             res["roles"][role] = {"queries_with_role": sum(bool(roles(cat[q])[role]) for q in qs), "score": mean(role),
                                   "share_of_gap": round(d / gap, 3) if gap else None}
+        res["by_tau"] = {}
+        for t in TAUS:  # the same steps at every tolerance
+            g = sum(sc["ours"][q][t] - sc["docetl"][q][t] for q in qs)
+            r, prev = {k: round(S.mean(sc[k][q][t] for q in qs), 4) for k in ["docetl", *STEPS, "ours"]}, "docetl"
+            r["share_of_gap"] = {}
+            for step in STEPS:
+                r["share_of_gap"][step] = round(sum(sc[step][q][t] - sc[prev][q][t] for q in qs) / g, 3) if g else None
+                prev = step
+            res["by_tau"][f"{t:.0%}"] = r
         res["per_query"] = {q: {k: round(sc[k][q][0.2], 3) for k in ["docetl", *STEPS, "ours"]} for q in qs}
         out[c] = res
         print(c, json.dumps({k: v for k, v in res.items() if k != "per_query"}), flush=True)

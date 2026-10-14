@@ -2,9 +2,9 @@
  "store": "claude-haiku-5-5",
  "model": "claude-haiku-5-5",
  "agent_tokens": {
-  "input": 89539,
-  "output": 85968,
-  "calls": 44
+  "input": 97591,
+  "output": 107576,
+  "calls": 58
  },
  "per_query": {
   "conflict:art#G1a": {
@@ -17,9 +17,9 @@
    "plans": {
     "art.field": {
      "operation": "sql",
-     "sql_expression": "TRIM(CASE WHEN instr(field, '||') > 0 THEN substr(field, 1, instr(field, '||') - 1) ELSE field END)",
-     "mapping_rule": "",
-     "reason": "The query expects one field per artist, but many rows store lists joined by '||'. Such rows never equal the IN constants and form their own GROUP BY groups, so they would be miscounted. The column is defined as the primary field, so the first list item is the intended value. Taking the text before the first '||' and trimming spaces gives one value per row, so each artist is counted once under its primary field. Single-value rows pass through unchanged.",
+     "sql_expression": "TRIM(CASE WHEN INSTR(field, '||') > 0 THEN SUBSTR(field, 1, INSTR(field, '||') - 1) ELSE field END)",
+     "mapping_rule": "Take the first item of the '||'-separated list as the primary field and trim surrounding spaces. Single-valued entries pass through unchanged.",
+     "reason": "The query compares field with single constants and groups by it, so each artist needs one scalar value. The column is documented as the primary field, and the first listed item is that primary field. Equality against 'Sculpture' or 'Illustration' fails on multi-valued strings such as 'Painting || Sculpture', so extracting the first item makes the filter and grouping match the author's intent of counting artists by primary field.",
      "values": 286,
      "mapped_values": 0
     },
@@ -27,7 +27,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The stored values are already 0.0 and 1.0, matching the documented meaning (1 if the artist taught, 0 if not). SUM(teaching) therefore counts the teaching artists per field, which is what the query intends. The float type only changes the sum's display, not its meaning.",
+     "reason": "The stored values are already 0.0 and 1.0, which match the documented 1-if-taught, 0-if-not encoding. SUM(teaching) therefore counts the teaching artists per field as the author intends. The only difference is that the sum is returned as a float, which does not change its meaning, so no transformation is needed.",
      "values": 2,
      "mapped_values": 0
     },
@@ -35,7 +35,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "All 12 stored values are already numeric counts (0.0 to 50.0) with no list separators or text. The query's test `awards >= 1` compares numerically, so the stored REAL values give the intended result. The float representation of whole numbers does not change that comparison, and the column is not used in any way that requires integer type.",
+     "reason": "The stored values are already numeric counts (0.0 through 50.0) with no list or text formatting. The query's `awards >= 1` comparison works correctly on these REAL values, and SQLite compares them numerically. The float representation of whole numbers does not change the result, so no transformation is needed.",
      "values": 12,
      "mapped_values": 0
     }
@@ -54,7 +54,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query only compares birth_continent with '' and groups by it. All six stored values are non-empty, match the allowed continent names, and need no transformation, so the column can be used as stored.",
+     "reason": "All six stored values are clean, single continent names that match the allowed vocabulary. The query only needs birth_continent to be non-empty (<> '') and to group by continent, and the stored values satisfy both without transformation. No list-valued entries appear, so no extraction is needed.",
      "values": 6,
      "mapped_values": 0
     },
@@ -62,7 +62,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The column already holds numeric 0/1 flags (0.0 and 1.0), which match its description. SUM(teaching) then counts the artists who taught in each continent group, so no transformation is needed.",
+     "reason": "The stored values are already numeric 1.0 (taught) and 0.0 (did not teach), so SUM(teaching) returns the number of teaching sculptors per continent without any transformation.",
      "values": 2,
      "mapped_values": 0
     },
@@ -70,7 +70,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query tests field LIKE '%Sculpture%', which is a substring match. In the stored '||'-delimited lists, every artist whose list includes Sculpture contains that substring, wherever it sits in the list. No other category name contains 'Sculpture', so there are no false positives. 'Not stated' values do not match. SQLite LIKE is case-insensitive for ASCII, which is harmless here. The stored format therefore already fits the query as written.",
+     "reason": "The query uses LIKE '%Sculpture%', which matches any stored value containing the word Sculpture anywhere in the string. That works for the '||'-delimited lists, so 'Sculpture || Painting' and 'Painting || Sculpture' both match. No other option name contains 'Sculpture', and LIKE's case-insensitivity causes no problem here, so no transformation is needed.",
      "values": 286,
      "mapped_values": 0
     }
@@ -87,9 +87,9 @@
    "plans": {
     "art.genre": {
      "operation": "sql",
-     "sql_expression": "TRIM(CASE WHEN instr(genre, '||') > 0 THEN substr(genre, 1, instr(genre, '||') - 1) ELSE genre END)",
+     "sql_expression": "TRIM(SUBSTR(genre || '||', 1, INSTR(genre || '||', '||') - 1))",
      "mapping_rule": "",
-     "reason": "The column is documented as the primary genre, but multi-valued rows are stored as 'A || B'. The query counts each artist once per group and compares genre to single names, so each artist needs one genre. Taking the first listed item, which is the primary one, gives that. TRIM removes the space before '||'. Single-valued rows pass through unchanged. A map could not express this without a rule, and exploding the lists would double-count artists.",
+     "reason": "The column is described as the primary genre of a work, and the query compares it with single values ('Portrait', 'Landscape', 'Abstract') and groups by it. Each artist should therefore appear once, under one genre. Stored multi-valued cells are 'A || B' lists whose first item is the primary genre. The expression takes the text before the first '||' and trims spaces. Single-valued cells pass through unchanged.",
      "values": 463,
      "mapped_values": 0
     },
@@ -97,7 +97,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The column already stores 1 for artists who taught and 0 otherwise, so SUM(teaching) correctly counts teachers per genre. The values are numeric and need no transformation.",
+     "reason": "The stored values are already numeric 1.0 (taught) and 0.0 (did not teach), so SUM(teaching) returns the number of teaching artists per genre as the author intends. No transformation is needed.",
      "values": 2,
      "mapped_values": 0
     },
@@ -105,7 +105,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "All 12 stored values are already numeric counts (0.0 to 50.0), with no lists, text, or mixed formats. The query only tests awards >= 1, which compares correctly against these floats in SQLite, and the 0.0 and 1.0+ values already separate award winners from non-winners as the author intends. No transformation is needed.",
+     "reason": "The stored values are already numeric counts (0.0 through 50.0), with no text, lists, or units. The query only tests awards >= 1 numerically, which these values support as they are. The float representation does not affect the comparison.",
      "values": 12,
      "mapped_values": 0
     }
@@ -124,7 +124,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "All six distinct stored values are clean, single continent names that match the allowed set, with no lists, delimiters, or empty strings. The query's only uses of the column are the non-empty check (<> '') and GROUP BY, and both work on these values as stored.",
+     "reason": "All six stored values are clean, single continent names that match the allowed vocabulary. The query only compares birth_continent with '' and groups by it, so these values already work as written and need no transformation.",
      "values": 6,
      "mapped_values": 0
     },
@@ -132,7 +132,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The stored values are already 0.0 and 1.0, which match the documented 1/0 indicator. SUM(teaching) over these values gives the number of teaching artists per continent, which is what the query intends. No transformation is needed; the float type only changes the display of the sum, not its meaning.",
+     "reason": "The column already stores 1 for an artist who taught and 0 otherwise. SUM(teaching) over these values counts the teachers in each group, which is what the query intends. The 0.0/1.0 real storage only changes the output type to float, not the meaning, so no transformation is needed.",
      "values": 2,
      "mapped_values": 0
     },
@@ -140,7 +140,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query uses LIKE '%Portrait%' and LIKE '%Landscape%' as substring tests on the whole genre string. Stored lists are joined with ' || ', so each name appears intact as a substring. No other genre label contains 'Portrait' or 'Landscape' as a substring, so the tests match exactly the works tagged with both genres. The stored format already works for the query as written.",
+     "reason": "The query uses LIKE '%Portrait%' and LIKE '%Landscape%' as substring tests. The stored lists are delimited by ' || ', so these substring tests find any row whose list contains Portrait and Landscape, wherever they appear in the list. No other category name in the list contains either word as a substring, so there are no false matches. The stored format already fits the query as written.",
      "values": 463,
      "mapped_values": 0
     }
@@ -149,25 +149,26 @@
   },
   "conflict:art#G3a": {
    "score": {
-    "0%": 0.1111,
-    "5%": 0.1111,
-    "10%": 0.1111,
-    "20%": 0.2222
+    "0%": 0.0,
+    "5%": 0.0,
+    "10%": 0.0,
+    "20%": 0.1111
    },
    "plans": {
     "art.art_movement": {
      "operation": "map",
      "sql_expression": "",
-     "mapping_rule": "For each distinct stored value, take the first movement listed before any ' || ' separator, trimmed. If that movement is Surrealism, Abstract Expressionism, or Pop Art, map it to that exact constant, ignoring case and treating close spelling variants as the same movement (e.g., 'Pop art' and 'pop art' become 'Pop Art'; 'Abstract expressionism', 'Abstract expression', and 'Abstract expressionist' become 'Abstract Expressionism'; 'Surrealists' becomes 'Surrealism'). Map every other value to itself or to a neutral 'Other' label so it never matches the three constants. 'Not stated' and similar placeholders are not movements and should not map to any of the three.",
-     "reason": "The query filters and groups on exact constant names, but the stored values have case variants, spelling variants, and multi-movement lists. Normalizing these requires knowledge of which labels denote the same movement, so a judgment-based mapping is needed rather than a simple SQL string operation. Taking the first listed movement is the only way to give each row one group, since the view must hold one value per row.",
+     "mapping_rule": "Split each stored value on ' || ' and trim each item. Normalize each item case-insensitively and map known variants to the canonical target names: 'Abstract expression', 'Abstract expressionism', 'Abstract expressionist' \u2192 'Abstract Expressionism'; 'Pop art' \u2192 'Pop Art'; 'Surrealists' \u2192 'Surrealism'. If any normalized item equals 'Surrealism', 'Abstract Expressionism', or 'Pop Art', map the row to the first such target in list order. If no item matches a target, keep the stored value unchanged, since the WHERE clause excludes it. Values such as 'Expressionism' or 'Abstract' are not targets and are not mapped to one.",
+     "reason": "The query compares art_movement with exact single-movement names and groups by it, so the view needs one canonical movement per row. The stored values are lists of movements with inconsistent capitalization and synonyms (e.g. 'Pop art' vs 'Pop Art', 'Abstract expression' vs 'Abstract Expressionism', 'Surrealists' vs 'Surrealism'). Fixing these needs a judgment-based synonym map, which a plain SQL expression cannot provide. A first-item SQL extraction would miss targets that appear later in a list, such as 'Abstraction || Abstract Expressionism || Impressionism'. Collapsing multi-movement rows to one target is a limitation: an artist with several target movements is counted once, under the first one listed.",
      "values": 734,
-     "mapped_values": 254
+     "unanswered_values": 0,
+     "mapped_values": 90
     },
     "art.teaching": {
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The stored values are already 0/1 numeric flags (0.0 and 1.0) matching the documented meaning of 1 if the artist taught and 0 if not. SUM(teaching) therefore counts the teaching artists in each group, which is what the query intends. No transformation is needed.",
+     "reason": "The stored values are already 0/1 indicators (1 = taught, 0 = did not), so SUM(teaching) counts the teaching artists within each movement, which is what the query intends. The values are stored as 0.0 and 1.0 rather than integers, but SUM still gives the correct count, so no transformation is needed.",
      "values": 2,
      "mapped_values": 0
     },
@@ -175,7 +176,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "Every stored value is already a whole-number count (0.0 through 50.0), which is what the description asks for. The query only tests awards >= 1 numerically, and these numeric values compare correctly, so no transformation is needed.",
+     "reason": "All 12 distinct stored values are already numeric counts (0.0 to 50.0), so SQLite compares them correctly with `awards >= 1`. The float representation does not change the comparison, and the values need no parsing or relabeling.",
      "values": 12,
      "mapped_values": 0
     }
@@ -194,7 +195,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "Every stored value is a single continent name from the allowed set, spelled exactly as the query's constants 'Europe' and 'North America'. The WHERE filter and GROUP BY work on the values as stored, so no transformation is needed.",
+     "reason": "The stored values are single, exact continent names with no lists or variant spellings. The query's filter constants 'Europe' and 'North America' match stored values exactly, and grouping by birth_continent works as written.",
      "values": 6,
      "mapped_values": 0
     },
@@ -202,7 +203,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query uses LIKE with % wildcards on both sides, so it finds each target movement anywhere inside a stored value. That already handles the 'A || B' list format, so a row listing several movements counts toward each one it names. SQLite's LIKE is case-insensitive for ASCII, so 'Pop art' and 'Surrealism' variants match without extra handling. Splitting the lists or remapping spellings would not change what the query returns for the intended meaning, so the column can stay as stored.",
+     "reason": "The query matches with LIKE '%...%' substring tests, so it already works on the stored text as written. Multi-valued entries such as 'Abstract Expressionism || Surrealism' contain each constant as a substring, so they are counted under each movement they name. SQLite's LIKE is case-insensitive for ASCII, so 'Pop art' and 'Pop Art' both match, and 'impressionism' matches '%Impressionism%'. The column needs no splitting, extraction, or relabeling for these three counts.",
      "values": 734,
      "mapped_values": 0
     }
@@ -219,9 +220,9 @@
    "plans": {
     "art.birth_date": {
      "operation": "sql",
-     "sql_expression": "CASE WHEN birth_date IS NULL OR TRIM(birth_date) = '' THEN NULL ELSE CAST(SUBSTR(TRIM(birth_date), 1, 4) AS INTEGER) END",
+     "sql_expression": "CAST(SUBSTR(birth_date, 1, 4) AS INTEGER)",
      "mapping_rule": "",
-     "reason": "The query compares birth_date numerically to 1881 and 1890 and groups by it, so it expects a birth year as an integer. The stored values are full dates like '1882/10/22' or bare years like '1940'. In SQLite, text values sort after numbers when compared with integers, so the BETWEEN filter would silently return nothing for date-formatted rows. Taking the first four characters gives the year for every stored format, and the CASE keeps empty values as NULL so they are excluded rather than becoming 0.",
+     "reason": "The query filters birth_date BETWEEN 1881 AND 1890 and groups by it, so the author means birth year. Stored values are full dates like '1882/10/22' or bare years like '1940'. Compared as text, '1890/...' would sort above '1890' and be wrongly excluded, and grouping by full dates would split each year into tiny groups. Taking the first four characters as an integer gives the year for both formats.",
      "values": 908,
      "mapped_values": 0
     },
@@ -229,7 +230,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The stored values are already numeric 0/1 flags. SUM(teaching) therefore counts the artists who taught, and the query needs nothing more from this column.",
+     "reason": "The column holds only 0.0 and 1.0, which match the documented 1-if-taught, 0-if-not encoding. SUM(teaching) over these values gives the number of teaching artists per birth year, which is what the query intends. The float type only changes the result to a float such as 3.0, not its meaning, so no transformation is needed.",
      "values": 2,
      "mapped_values": 0
     },
@@ -237,7 +238,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "Every stored value is already a number (0.0 through 50.0), and the query compares awards with `>= 1` numerically. Float versus integer storage does not change that comparison, and the counts are already integer-valued, so the column needs no transformation.",
+     "reason": "All 12 stored values are numeric counts (0.0 to 50.0), so the query's numeric comparison awards >= 1 already selects exactly the artists with one or more awards. The float storage type does not change the comparison, and no list-splitting, parsing, or category mapping is needed.",
      "values": 12,
      "mapped_values": 0
     }
@@ -256,7 +257,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The column already holds clean single continent names from the allowed list, with no list-valued entries and no empty strings among the 6 distinct values. The query's filter birth_continent <> '' and its GROUP BY work directly on these values, so no transformation is needed.",
+     "reason": "The column already holds clean, single-valued continent names from the allowed list (six distinct values, no lists, no empty strings shown). The query's only use of the column is `birth_continent <> ''` and `GROUP BY birth_continent`, and both work correctly on these stored values without transformation.",
      "values": 6,
      "mapped_values": 0
     },
@@ -264,7 +265,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The stored values are already 0 and 1, which is the representation the query needs. SUM(teaching) over 0/1 values gives the count of teaching artists per continent, and the 0.0/1.0 float storage does not change that sum.",
+     "reason": "The column already holds the 0/1 flag the query needs. SUM(teaching) counts artists who taught, and the stored 0.0/1.0 floats sum correctly, so no transformation is required.",
      "values": 2,
      "mapped_values": 0
     },
@@ -272,7 +273,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The stored values use the %Y/%-m/%-d format the query expects, so LIKE '%/1/1' already selects exactly the January 1st dates. Year-only values such as '1940' do not match, and neither do dates like '1848/1/13' or '1821/11/1', so no transformation is needed.",
+     "reason": "The query filters for birth dates falling on January 1 using LIKE '%/1/1'. The stored values already use the %Y/%-m/%-d layout, so a full date such as '1798/1/1' or '1864/1/1' matches exactly when month and day are both 1. Values like '1848/1/13' or '1800/11/1' do not match because the pattern requires the suffix '/1/1'. Year-only values such as '1940' have no month or day and correctly fail the match. No transformation is needed.",
      "values": 908,
      "mapped_values": 0
     }
@@ -284,22 +285,23 @@
     "0%": 0.0,
     "5%": 0.0,
     "10%": 0.0,
-    "20%": 0.0
+    "20%": 0.1667
    },
    "plans": {
     "art.color": {
      "operation": "map",
      "sql_expression": "",
-     "mapping_rule": "Assign each distinct stored value a colour-temperature label, 'Warm' or 'Cool', based on the dominant or characteristic colours its text describes. Warm: predominantly red, orange, yellow, ochre, brown, or gold/golden tones (e.g., 'Bright colours' only if clearly warm, 'Warm reddish-yellow', 'Later palette: warmer ... oranges, yellows, reds and browns'). Cool: predominantly blue, green, grey-blue, or described as 'Cool' or 'Cold' (e.g., 'Cool', 'Cool colors and restrained palette', 'Cold, blue-green, cadaver-like hues', 'Green', 'Light blue'). Map to NULL when the value is a 'Not stated/specified/described' variant, when the palette is black/white/monochrome/grey-only, when it is generic with no temperature (e.g., 'Bright multicolored palette', 'Colorful', 'Flat colours'), or when the warm and cool groups are mixed with no dominant side. Values with '||' separate groups: assign by the dominant group the document emphasises, or NULL if it is balanced.",
-     "reason": "The query filters and groups on colour temperature, 'Warm' or 'Cool', but the stored column holds free-text colour descriptions with many sentinel 'not stated' values. No deterministic SQL expression can extract temperature from this prose, so each distinct value needs a judgment-based label.",
+     "mapping_rule": "Map each distinct stored value to one temperature label, 'Warm' or 'Cool', according to the dominant hue the description names. Warm: red, orange, yellow, ochre, earth tones, browns, gold, or a mainly warm palette. Cool: blue, green, grey, black-and-white or monochrome palettes that are cool, cold, or blue-green. Where a value names both warm and cool groups, use the group the description calls dominant or primary, or the first one listed. Descriptions with no hue information, such as 'Not stated', 'Not specified in document', 'Not described', 'Colorful', 'Bright multicolored palette', 'Bold colors', or 'Limited palette', map to NULL so they fall outside the IN ('Warm', 'Cool') filter.",
+     "reason": "The query filters and groups on a categorical temperature label ('Warm' or 'Cool'), but the stored values are free-text palette descriptions with 408 variants. No deterministic SQL expression can extract warm/cool from this text, so each distinct value needs a judgment-based mapping to the expected labels or to NULL.",
      "values": 408,
-     "mapped_values": 23
+     "unanswered_values": 0,
+     "mapped_values": 407
     },
     "art.teaching": {
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The stored values are already numeric 0/1 flags, which is what the query needs. SUM(teaching) counts the artists who taught, and the name 'teachers' in the output matches that meaning. No conversion is required.",
+     "reason": "The column is already a 0/1 numeric flag, so SUM(teaching) correctly counts the artists who taught, and the stored values need no transformation.",
      "values": 2,
      "mapped_values": 0
     },
@@ -307,7 +309,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The awards column already holds numeric counts (0.0, 1.0, 2.0, ... 50.0). The query only applies a numeric comparison, awards >= 1, which works correctly on these REAL values. No conversion, parsing, or mapping is needed.",
+     "reason": "The stored values are already numeric counts (0.0 through 50.0). The query only uses awards in the numeric comparison awards >= 1, which works directly on these values, so no transformation is needed.",
      "values": 12,
      "mapped_values": 0
     }
@@ -325,16 +327,17 @@
     "art.color": {
      "operation": "map",
      "sql_expression": "",
-     "mapping_rule": "Assign each stored description one primary color category. Output exactly 'Blue', 'Green', 'Red', or 'Yellow' when that is the dominant or first-named characteristic color of the image (e.g., 'Blue || Black || Yellow || White' gives 'Blue'; 'Grey and green' gives 'Green'; 'Bright colours and broad spaces || ultramarine blue of the sky || ochre yellow of Californian hills' gives 'Blue' only if blue is the dominant hue, otherwise the first named). Output NULL for every other value, including 'Not stated'/'Not specified'/'Not described' variants, 'Black and white', 'Monochrome', generic descriptions with no named hue (e.g., 'Bright colors', 'Colorful', 'Limited palette'), and colors outside the four (e.g., Black, Gray, Pink, Orange, Gold, Brown). Match case-insensitively and apply the same category to all rows with the same description.",
-     "reason": "The query filters and groups on exact color names, but the stored values are free-form descriptions of color usage, often listing several colors or none. Reducing each to a single primary category among the four named colors (or NULL) requires semantic judgment that a deterministic SQL expression cannot reliably provide across 408 varied phrasings, so a value-by-value mapping is needed.",
+     "mapping_rule": "Replace each stored description with one canonical primary-color word. Take the first `||`-separated segment as the dominant color group. If that segment names Blue, Green, Red, or Yellow as its main hue (e.g., 'Blue || Yellow || Red' -> 'Blue', 'Bright colored pigment on white backgrounds || ...' -> judge the named hue), output exactly 'Blue', 'Green', 'Red', or 'Yellow'. If the dominant hue is another color or a general palette (e.g., 'Black and white', 'Bright multicolored palette', 'Cool', 'Dark'), output 'Other'. If the value says the color is not stated or not described (e.g., 'Not stated in document', 'Not specified', 'Not described'), output NULL. Output only these canonical strings so the GROUP BY and IN filter match the query's intended color names.",
+     "reason": "The stored values are free-text descriptions, almost all unique, so grouping by color and matching 'Blue', 'Green', 'Red', 'Yellow' would return almost nothing. The query clearly intends to count images by their dominant color, which requires a normalized color category per image. This needs a judgment mapping from descriptions to color names, not a deterministic string expression.",
      "values": 408,
-     "mapped_values": 31
+     "unanswered_values": 0,
+     "mapped_values": 408
     },
     "art.teaching": {
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The stored values are already numeric 1 (taught) and 0 (did not), so SUM(teaching) returns the number of teaching artists per color as the query intends. No transformation is needed.",
+     "reason": "The stored values are already numeric 0.0 and 1.0, matching the documented 1-if-yes, 0-if-none encoding. SUM(teaching) therefore counts the teaching artists per color directly, and the awards comparison does not involve this column. No transformation is needed.",
      "values": 2,
      "mapped_values": 0
     },
@@ -342,7 +345,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The stored values are all non-negative whole numbers (0.0, 1.0, 2.0, ... 50.0). They are numeric, so the query's `awards >= 1` comparison works correctly on them as written. The float display (.0) does not change any comparison, and the value meanings already match the column's definition of a count of awards, so no transformation is needed.",
+     "reason": "The query only compares awards numerically (awards >= 1). Every stored value is already a number (0.0, 1.0, 2.0, ... 50.0), and SQLite compares REAL values with >= correctly, so the flag counts the same rows as an integer column would. The float representation does not change the result, so no transformation is needed.",
      "values": 12,
      "mapped_values": 0
     }

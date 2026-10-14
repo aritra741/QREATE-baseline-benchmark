@@ -47,8 +47,9 @@ def main() -> int:
             d = json.loads(p.read_text())
             arms["ours, full system (one shared view, as run)"] = {q: d["per_query"][q] for q in qids if q in d["per_query"]}
             tokens["ours, full system (build + stream)"] = d["tokens"]
-        for src, label in (("claude-haiku-5-5-claude-haiku-5-5", "ours, stored as read, view agent per query"),
-                           ("gold-claude-haiku-5-5", "ours on perfect values, stored as read, view agent per query")):
+        for src, label in [(s + r, l + n) for r, n in (("", ""), ("-r1", " (replicate 2)"), ("-r2", " (replicate 3)"))
+                           for s, l in (("claude-haiku-5-5-claude-haiku-5-5", "ours, stored as read, view agent per query"),
+                                        ("gold-claude-haiku-5-5", "ours on perfect values, stored as read, view agent per query"))]:
             p = REPO / "results" / "conflict_agent" / src / c / "per_query.json"
             if p.exists():
                 d = json.loads(p.read_text())

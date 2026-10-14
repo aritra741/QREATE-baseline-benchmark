@@ -67,14 +67,21 @@ class Agent:
             self.tokens["output"] += r.usage.output_tokens
             self.tokens["calls"] += 1
             with self.log.open("a") as h:
-                h.write(json.dumps({"prompt": prompt[:4000], "response": text}) + "\n")
-        m = re.search(r"\{.*\}", text, re.S)
+                h.write(json.dumps({"prompt": prompt[:4000], "response": text, "stop_reason": r.stop_reason}) + "\n")
+        m = re.search(r"\{", text)
         if not m:
             return {}
         try:
             return json.JSONDecoder().raw_decode(text[m.start():])[0]
-        except json.JSONDecodeError:
-            return {}
+        except json.JSONDecodeError:  # a reply cut off inside a mapping: keep the complete "key": value pairs
+            pairs = re.findall(r'"((?:[^"\\]|\\.)*)"\s*:\s*("(?:[^"\\]|\\.)*"|null|-?[0-9.]+)\s*[,}\n]', text)
+            got = {}
+            for k, v in pairs:
+                try:
+                    got[json.loads(f'"{k}"')] = json.loads(v)
+                except json.JSONDecodeError:
+                    pass
+            return {"mapping": {k: v for k, v in got.items() if k != "mapping"}} if "mapping" in text else got
 
 
 def columns_and_uses(sql: str) -> dict[str, dict]:
@@ -148,8 +155,9 @@ MAP = """Map stored values of the column {col} to the form a SQL query expects.
 Query:
 {sql}
 Rule: {rule}
-{targets}For each stored value below give the value to store in the view. Use null to leave a value unchanged.
-Reply with JSON: {{"mapping": {{"<stored value>": "<value to store or null>", ...}}}}
+{targets}For each stored value below give the value to store in the view: a number as a JSON number, text as a JSON
+string, null for no value (stored as NULL), or the string "KEEP" to leave the stored value unchanged.
+Reply with JSON: {{"mapping": {{"<stored value>": <value to store, null or "KEEP">, ...}}}}
 Stored values:
 {values}"""
 
@@ -183,28 +191,51 @@ def plan_column(agent: Agent, con, sql: str, col: str, use: dict, desc: str) -> 
             targets = "Values the query names: " + ", ".join(repr(x) for x in sorted(use["constants"])) + "\n"
         if use["join_partner"]:
             targets += "The partner column's values: " + ", ".join(repr(v) for v, _ in distinct(con, *use["join_partner"].split(".", 1), 300)) + "\n"
-        mapping = {}
+        mapping, answered = {}, set()
         allv = [v for v, _ in vals]
-        for i in range(0, len(allv), 120):
-            batch = allv[i:i + 120]
-            m = agent.ask(MAP.format(col=col, sql=sql, rule=d.get("mapping_rule", ""), targets=targets,
-                                     values="\n".join(f"  {v!r}" for v in batch)), max_tokens=8000).get("mapping", {})
-            for v in batch:
-                if str(v) in m and m[str(v)] is not None:
-                    mapping[str(v)] = m[str(v)]
+
+        def unquote(k: str) -> str:  # the values are shown as Python literals; replies sometimes keep the quotes
+            k = str(k).strip()
+            return k[1:-1] if len(k) >= 2 and k[0] == k[-1] and k[0] in "'\"" else k
+
+        for attempt in range(2):  # a second round asks only for values the first replies left out
+            todo = [v for v in allv if str(v) not in answered]
+            for i in range(0, len(todo), 60):
+                batch = todo[i:i + 60]
+                m = agent.ask(MAP.format(col=col, sql=sql, rule=d.get("mapping_rule", ""), targets=targets,
+                                         values="\n".join(f"  {v!r}" for v in batch)), max_tokens=8000).get("mapping", {})
+                m = {unquote(k): x for k, x in (m.items() if isinstance(m, dict) else [])}
+                for v in batch:
+                    if str(v) in m:
+                        answered.add(str(v))
+                        if m[str(v)] != "KEEP":
+                            mapping[str(v)] = m[str(v)]
         d["mapping"] = mapping
+        d["unanswered_values"] = len(allv) - len(answered)
     return d
 
 
 def apply(view: Path, col: str, d: dict) -> str | None:
+    """Rewrite one column of the view. The table is rebuilt with the column computed as an expression, so the column has
+    no declared type and keeps what the expression yields (a number stays a number, NULL stays NULL)."""
     t, a = col.split(".", 1)
     con = sqlite3.connect(view)
     try:
+        cols = [r[1] for r in con.execute(f'PRAGMA table_info("{t}")')]
+        a = next((c for c in cols if c.lower() == a.lower()), a)
         if d.get("operation") == "sql" and d.get("sql_expression"):
-            con.execute(f'UPDATE "{t}" SET "{a}" = ({d["sql_expression"]}) WHERE "{a}" IS NOT NULL')
+            expr = f'CASE WHEN "{a}" IS NULL THEN NULL ELSE ({d["sql_expression"]}) END'
         elif d.get("operation") == "map" and d.get("mapping"):
-            for v, new in d["mapping"].items():
-                con.execute(f'UPDATE "{t}" SET "{a}" = ? WHERE CAST("{a}" AS TEXT) = ?', (new, v))
+            con.execute("CREATE TEMP TABLE _m (k TEXT PRIMARY KEY, v)")
+            con.executemany("INSERT OR REPLACE INTO _m VALUES (?, ?)",
+                            [(k, v if v is None or isinstance(v, (int, float, str)) else json.dumps(v)) for k, v in d["mapping"].items()])
+            expr = f'CASE WHEN CAST("{a}" AS TEXT) IN (SELECT k FROM _m) THEN (SELECT v FROM _m WHERE k = CAST("{a}" AS TEXT)) ELSE "{a}" END'
+        else:
+            return None
+        sel = ", ".join(f'{expr} AS "{c}"' if c == a else f'"{c}"' for c in cols)
+        con.execute(f'CREATE TABLE "_view_{t}" AS SELECT {sel} FROM "{t}"')
+        con.execute(f'DROP TABLE "{t}"')
+        con.execute(f'ALTER TABLE "_view_{t}" RENAME TO "{t}"')
         con.commit()
         return None
     except sqlite3.Error as exc:
@@ -219,6 +250,7 @@ def main(argv=None) -> int:
     ap.add_argument("--corpus", required=True)
     ap.add_argument("--model", default=MODEL)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--rep", type=int, default=0, help="replicate number; 0 writes to the unsuffixed folder")
     a = ap.parse_args(argv)
     c = a.corpus
     ctx = D.R.context(c)
@@ -226,7 +258,7 @@ def main(argv=None) -> int:
     for q, s in queries.items():
         ctx.catalog[q] = s
     master = REPO / "results" / "conflict_ours" / a.store / c / "asread" / "master.db"
-    out = REPO / "results" / "conflict_agent" / f"{a.store}-{a.model}" / c
+    out = REPO / "results" / "conflict_agent" / (f"{a.store}-{a.model}" + (f"-r{a.rep}" if a.rep else "")) / c
     (out / "views").mkdir(parents=True, exist_ok=True)
     agent = Agent(a.model, out / "agent_calls.jsonl")
     fields = fields_of(c)

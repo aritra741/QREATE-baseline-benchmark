@@ -2,9 +2,9 @@
  "store": "gold",
  "model": "claude-haiku-5-5",
  "agent_tokens": {
-  "input": 47308,
-  "output": 22467,
-  "calls": 20
+  "input": 57072,
+  "output": 35929,
+  "calls": 24
  },
  "per_query": {
   "conflict:med#G1a": {
@@ -18,8 +18,8 @@
     "disease.disease_type": {
      "operation": "sql",
      "sql_expression": "CASE WHEN instr(disease_type, '||') > 0 THEN trim(substr(disease_type, 1, instr(disease_type, '||') - 1)) ELSE trim(disease_type) END",
-     "mapping_rule": "",
-     "reason": "The query groups by disease_type and counts diseases per category, so it expects one category per row. Stored values are '||'-joined lists, so grouping by the raw string creates a separate group for every combination (for example 'infectious||inflammatory' is distinct from 'infectious'). Taking the first listed item gives one deterministic category per disease and keeps the WHERE <> '' filter meaningful. The expression also handles single-item values, which pass through unchanged.",
+     "mapping_rule": "Keep only the first item of the '||'-separated list (the text before the first '||', trimmed). Values without '||' are returned unchanged (trimmed).",
+     "reason": "The query groups by disease_type and filters out '' as if each disease has one type, so the column must hold a single category. The stored values are multi-valued lists, so grouping by the full string creates many one-off groups. Taking the first listed type gives one category per row, and the expression is deterministic. The first-item rule is an assumption about which type the author would treat as primary.",
      "values": 50,
      "mapped_values": 0
     },
@@ -27,7 +27,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query only tests substrings with LIKE '%chronic%' and '%high_mortality%'. The `||`-delimited lists still contain the exact tokens 'chronic_condition' and 'high_mortality' as substrings, so each row is matched correctly without changes. The `_` wildcard could in principle match a space, but no stored value has 'high mortality' with a space, and no other value contains 'chronic' or 'high_mortality' by accident, so the stored format already fits the query.",
+     "reason": "The query uses LIKE with leading and trailing % wildcards, so it matches a term anywhere in the string. The '||'-delimited lists therefore work as stored: '%chronic%' matches every value containing 'chronic_condition', and '%high_mortality%' matches every value containing 'high_mortality'. The underscore in the LIKE pattern is a single-character wildcard, but the only stored text it could match in this data is the intended 'high_mortality' token, so no transformation is needed.",
      "values": 42,
      "mapped_values": 0
     }
@@ -46,7 +46,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query tests each category with LIKE '%term%', which matches a term anywhere in the string. The stored lists joined by '||' therefore already match correctly: a row containing 'inflammatory' anywhere counts once for that category. No single-value extraction is needed, and no label translation is needed because every query term appears verbatim in the stored values. The one oddity, 'infectious_viral' also matching '%infectious%', is a data-content question rather than a storage-format problem, so it does not call for a change to the column.",
+     "reason": "The query uses case-insensitive substring LIKE tests on each category name, so the '||'-delimited lists already work: a row matches every category it contains, which is the per-category counting the author intends. No stored value needs reshaping. The non-standard token 'infectious_viral' still matches '%infectious%', so it is counted correctly without any change.",
      "values": 50,
      "mapped_values": 0
     }
@@ -55,25 +55,26 @@
   },
   "conflict:med#G2a": {
    "score": {
-    "0%": 0.375,
-    "5%": 0.375,
-    "10%": 0.5,
-    "20%": 0.625
+    "0%": 0.625,
+    "5%": 0.625,
+    "10%": 0.75,
+    "20%": 0.875
    },
    "plans": {
     "disease.treatments": {
-     "operation": "sql",
-     "sql_expression": "REPLACE(treatments, 'surgery', 'procedure')",
-     "mapping_rule": "",
-     "reason": "The query's '%procedure%' test matches no stored value, because the schema uses 'surgery' for the invasive-procedure modality. Renaming 'surgery' to 'procedure' inside each '||'-separated item makes that test match. The other predicates already fit: '%medication%' matches 'oral_medication', '%lifestyle%' matches 'lifestyle_modification', and '<> \"\"' works on the raw values. The rewrite changes nothing else, since no other stored item contains 'surgery'.",
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Rewrite each `||`-separated item into a query category, then join the categories with `||`. Items that are drug treatments (oral_medication, injection, chemotherapy, immunotherapy, biological_therapy, hormone_therapy, drug_therapy, inhaler, vaccination) become `medication`. Invasive procedures (surgery, device_implantation, radiotherapy, stem cell transplantation) become `procedure`. lifestyle_modification becomes `lifestyle`. Other items (dietary_intervention, physical_therapy, psychotherapy, regular_exercise, relaxation_techniques, meditation, laboratory_test, others, other) are left as they are or dropped, since the query does not test for them. Remove duplicate categories. A row with no mapped category keeps an empty string, which the WHERE filter then excludes.",
+     "reason": "The query tests treatments with LIKE for 'medication', 'procedure' and 'lifestyle'. The stored values use item names such as surgery and device_implantation, and the word 'procedure' never appears in any stored value. Only 'lifestyle' and 'medication' (inside oral_medication) match by substring today. The author's intent is a count of diseases by treatment category, which requires a judgment mapping from each item to the category name the query expects, not a positional or string-slicing expression.",
      "values": 50,
-     "mapped_values": 0
+     "unanswered_values": 0,
+     "mapped_values": 50
     },
     "disease.prognosis": {
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query tests prognosis LIKE '%chronic%', which is true exactly when the '||'-joined string contains the token 'chronic_condition'. No other stored token contains 'chronic', so the substring match is equivalent to list membership and gives no false positives. Values such as 'incurable' are not chronic_condition in the allowed vocabulary, so mapping them would go beyond what the data states. The stored values already fit the query as written.",
+     "reason": "The query only tests whether the text contains 'chronic' (LIKE '%chronic%'). Every stored value is a '||'-joined list of controlled terms, and 'chronic' appears only inside 'chronic_condition', so the substring test correctly flags any disease whose prognosis list includes chronic_condition. No other stored term contains 'chronic', so no transformation is needed.",
      "values": 42,
      "mapped_values": 0
     }
@@ -92,7 +93,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "Each stored value is a `||`-separated list of snake_case treatment names, and the query's LIKE patterns ('%surgery%', '%injection%', '%lifestyle_modification%', '%dietary_intervention%', '%physical_therapy%') match those names as substrings. The underscore in the patterns acts as a single-character wildcard in SQLite LIKE, but it still matches the literal underscores in the stored names and no other values here, so nothing extra is matched. The matching is case-insensitive, which does not change any result. No stored value needs transformation, so the column can stay as is.",
+     "reason": "The query tests each treatment with a substring LIKE match on names that already appear verbatim in the stored values (e.g. 'injection', 'surgery', 'lifestyle_modification', 'dietary_intervention', 'physical_therapy'). Each one occurs as a whole token inside the '||'-joined lists, and none of the queried names is a substring of a different treatment. The underscore wildcard in LIKE still matches a literal underscore, so the matches are correct. Counting rows that contain each term therefore gives what the author intends without any change.",
      "values": 50,
      "mapped_values": 0
     }
@@ -101,33 +102,34 @@
   },
   "conflict:med#G3a": {
    "score": {
-    "0%": 0.1839,
-    "5%": 0.1839,
-    "10%": 0.1839,
-    "20%": 0.1839
+    "0%": 0.5974,
+    "5%": 0.5974,
+    "10%": 0.5974,
+    "20%": 0.5974
    },
    "plans": {
     "disease.disease_name": {
      "operation": "sql",
-     "sql_expression": "TRIM(SUBSTR(disease_name, 1, INSTR(disease_name || '||', '||') - 1))",
-     "mapping_rule": "Keep only the text before the first '||' separator, then trim surrounding spaces. Values without '||' are returned unchanged.",
-     "reason": "The query joins disease.disease_name to drug.disease_name by exact equality and groups by it, so each disease should appear once under its primary name. Many stored values are synonym lists joined by '||' (e.g. 'Gastroesophageal Reflux Disease||GERD'), which would never match a plain drug name. Taking the first item gives the primary disease name. This is deterministic and needs no outside knowledge. Mapping is unnecessary because the first item is already the official name in each list.",
+     "sql_expression": "TRIM(CASE WHEN instr(disease_name, '||') > 0 THEN substr(disease_name, 1, instr(disease_name, '||') - 1) ELSE disease_name END)",
+     "mapping_rule": "",
+     "reason": "Several disease_name values are '||'-joined lists of synonyms, with the official name first. The query joins on exact equality with drug.disease_name and groups by the disease name, so each row needs its official (first-listed) name. Taking the text before the first '||' and trimming whitespace yields that name. Values without '||' are unchanged, and the first items match the drug-side names (e.g., 'Asthma', 'Hypertension', 'Depression').",
      "values": 100,
      "mapped_values": 0
     },
     "drug.disease_name": {
-     "operation": "sql",
-     "sql_expression": "TRIM(SUBSTR(disease_name || '||', 1, INSTR(disease_name || '||', '||') - 1))",
-     "mapping_rule": "",
-     "reason": "The query joins drug.disease_name to disease.disease_name by exact equality, and the partner table holds one disease per row. The stored values often pack several diseases into one \"A || B\" string, so those rows can never match. The query's intent is that each drug links to its main disease, which the column description identifies as the first-listed one. Taking the text before the first '||' and trimming whitespace gives one disease per row. Spelling and case differences between stored and partner names (for example 'Cystic fibrosis' versus 'Cystic Fibrosis') remain and are not handled by this expression.",
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "For each distinct stored value, take the first item of the '||'-separated list (the main disease the drug is intended to treat). Then, if that name refers to the same condition as a value in disease.disease_name, replace it with that partner-table spelling (e.g., 'Attention Deficit Hyperactivity Disorder' -> 'Attention-Deficit Hyperactivity Disorder', 'Type 2 Diabetes' or 'Type 2 Diabetes Mellitus' -> 'Type 2 Diabetes Mellitus', 'Irritable Bowel Syndrome with Constipation' -> 'Irritable Bowel Syndrome', 'HIV infection' -> 'HIV-1 Infection', 'Gastroesophageal reflux disease' -> 'Gastroesophageal Reflux Disease', 'Benign Prostatic Hypertrophy' -> 'Benign Prostatic Hypertrophy (BPH)'). If no matching partner name exists, keep the first item as written.",
+     "reason": "The query joins on exact equality of disease_name, so each drug row needs one standard disease name that appears in the disease table. Many stored values are multi-disease lists, and the first item alone still differs in spelling or wording from the partner table's names, so a simple SQL extraction would not produce matches. A per-value mapping that picks the primary indication and normalizes it to the partner spelling is needed.",
      "values": 94,
-     "mapped_values": 0
+     "unanswered_values": 0,
+     "mapped_values": 66
     },
     "drug.prescription_status": {
      "operation": "sql",
-     "sql_expression": "CASE WHEN instr(prescription_status, '||') > 0 THEN trim(substr(prescription_status, 1, instr(prescription_status, '||') - 1)) ELSE prescription_status END",
-     "mapping_rule": "",
-     "reason": "The query compares the column to 'prescription_only' and counts those rows. One stored value, 'prescription_only||restricted', is a list in the \"A || B\" format. Taking the first item yields 'prescription_only' for that drug, which is correct because it does require a prescription. The other stored values have no '||' and pass through unchanged, so a deterministic expression is sufficient and no judgment mapping is needed.",
+     "sql_expression": "TRIM(SUBSTR(prescription_status || '||', 1, INSTR(prescription_status || '||', '||') - 1))",
+     "mapping_rule": "Take the first item of the '||'-separated list in prescription_status, trimmed of whitespace. Single values pass through unchanged.",
+     "reason": "The query counts rows equal to 'prescription_only'. The one list value 'prescription_only||restricted' has 'prescription_only' as its first item, so the expression reduces it to that value. All other stored values have no '||' and pass through unchanged. The expression is deterministic and applies to every row.",
      "values": 4,
      "mapped_values": 0
     }
@@ -146,7 +148,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query counts each drug once per keyword it contains, using case-insensitive LIKE substring matches. Multi-valued entries are joined with '||', so a keyword appearing in any item still matches, which is the intended behaviour: the drug treats that disease. Each keyword has matches in the data (for example 'Panic Disorder', 'Gastric Ulcers', 'Gout' in the osteoarthritis list, 'Diabetes Mellitus', 'Severe congestive heart failure'). The stored strings already support the query as written, so no transformation is needed.",
+     "reason": "The query uses LIKE with wildcards on both sides, so it matches a disease term anywhere in the string. Lists joined by '||' therefore do not hide any term, and each row is counted once per disease regardless of list length. Each target term (panic, ulcer, gout, diabetes, heart failure) appears in the stored values as intended, and SQLite's case-insensitive LIKE handles the capitalisation variants. No stored value gives a spurious match, so the column can be used as stored.",
      "values": 94,
      "mapped_values": 0
     }
@@ -155,8 +157,8 @@
   },
   "conflict:med#G5a": {
    "score": {
-    "0%": 0.1667,
-    "5%": 0.1667,
+    "0%": 0.0,
+    "5%": 0.0,
     "10%": 0.1667,
     "20%": 0.3333
    },
@@ -164,16 +166,17 @@
     "drug.single_dose": {
      "operation": "map",
      "sql_expression": "",
-     "mapping_rule": "Replace each stored value with a plain number in mg: the dose amount of the first population+dose pair, with the number taken from its first 'N mg' (or 'N mg/kg' and 'N mg/m\u00b2' reduced to the stated number, not converted). Convert mcg to mg (divide by 1000) and g to mg (multiply by 1000). Where the value has no mg-convertible amount (e.g., 'two capsules', 'adults 2 capsules', 'adults and children 1 year and older [dose not specified]', 'adults 15 mL', 'adults 1 mg norethindrone acetate...' should use the 1 mg amount), store NULL so the WHERE clause excludes it. Store the result as a numeric value so CAST(... AS REAL) returns it unchanged.",
-     "reason": "The query casts single_dose directly to REAL and compares it against 10 and 100 mg. Stored values are free text such as 'adults 10 mg || adults 25 mg', which CAST turns into 0 or a wrong number, so every row would fall into 'under 10 mg'. A single deterministic SQLite expression cannot reliably pull the first mg amount from this varied text (no regex by default), and units differ (mcg, g, mL, capsules). A rule-based mapping to a numeric mg value is therefore needed.",
+     "mapping_rule": "Map each distinct stored value to one numeric mg figure: the first dose amount in mg in the value (the first listed population's dose, e.g. 'adults 10 mg || adults 25 mg' -> 10; 'oral 400mg||oral 800mg' -> 400; 'adults 25 milligrams' -> 25; 'adults 250-500mg||children 15mg/kg daily' -> 250, the lower bound of a range). Values with no mg dose, such as 'two capsules', 'adults 2 capsules', 'adults (12 years and over) 15 mL', 'infants 40 mg per 1 mL', or 'adults and children 1 year and older [dose not specified]', map to NULL, and so do values whose only figures are in mcg, mg/kg, or mg/lb, unless the mg figure is clearly stated. Values in other units can be handled by the same rule, but any mapping that would give a number not stated as mg should be NULL.",
+     "reason": "The query casts single_dose to REAL and compares it numerically, but the stored values are free text with population labels, multiple doses, ranges, and mixed units (mg, mcg, mL, capsules, mg/kg). CAST would return 0 or a wrong number for almost every row. SQLite has no regex to extract the first number reliably across these forms, so a per-value judgment mapping to the first mg dose is the accurate way to make the numeric comparison mean what the author intends.",
      "values": 56,
-     "mapped_values": 50
+     "unanswered_values": 0,
+     "mapped_values": 56
     },
     "drug.prescription_status": {
      "operation": "sql",
-     "sql_expression": "TRIM(SUBSTR(prescription_status || '||', 1, INSTR(prescription_status || '||', '||') - 1))",
-     "mapping_rule": "",
-     "reason": "The query counts rows equal to 'prescription_only', so the column should hold a single class. One stored value is a list, 'prescription_only||restricted', and the first item is the primary classification. The expression takes the text before the first '||' and trims spaces. Single-valued entries such as 'prescription_only' pass through unchanged, so the other rows are unaffected.",
+     "sql_expression": "TRIM(CASE WHEN instr(prescription_status, '||') > 0 THEN substr(prescription_status, 1, instr(prescription_status, '||') - 1) ELSE prescription_status END)",
+     "mapping_rule": "Take the first item of a '||'-separated list and trim whitespace. Single values pass through unchanged, so 'prescription_only||restricted' becomes 'prescription_only'.",
+     "reason": "The query counts rows equal to 'prescription_only', so the one list-valued row, 'prescription_only||restricted', is missed as stored. The first listed item is the primary classification, and the query's intent (counting prescription drugs) is served by taking it. A deterministic first-item extraction does this for every row without changing the other values.",
      "values": 4,
      "mapped_values": 0
     }
@@ -182,25 +185,25 @@
   },
   "conflict:med#G5b": {
    "score": {
-    "0%": 0.75,
-    "5%": 0.75,
-    "10%": 0.75,
-    "20%": 0.75
+    "0%": 0.5,
+    "5%": 0.5,
+    "10%": 0.5,
+    "20%": 0.5
    },
    "plans": {
     "drug.single_dose": {
-     "operation": "keep",
-     "sql_expression": "",
-     "mapping_rule": "",
-     "reason": "The query only tests single_dose against '' and LIKE '%/kg%', and both work on the text as stored. No stored value is an empty string, and '/kg' appears literally in the dose text where weight-based dosing is stated. Reducing lists to a first item would change which rows count as per-kg, so the stored form should stay as it is.",
+     "operation": "sql",
+     "sql_expression": "CASE WHEN instr(single_dose, '||') > 0 THEN trim(substr(single_dose, 1, instr(single_dose, '||') - 1)) ELSE trim(single_dose) END",
+     "mapping_rule": "Keep the first 'A || B' item of each list, trimmed of surrounding spaces; values without '||' are returned unchanged (trimmed).",
+     "reason": "The query asks whether each drug's single dose is weight-based (%/kg%) and counts one row per drug. Stored list values let any later item containing '/kg' trigger the match, so a drug whose primary dose is fixed but has a pediatric per-kg alternative would be miscounted. Reducing each list to its first population-plus-dose pair makes the LIKE test reflect the main single dose. The '<> ''' filter is unaffected because no stored value is empty.",
      "values": 56,
      "mapped_values": 0
     },
     "drug.prescription_status": {
      "operation": "sql",
-     "sql_expression": "CASE WHEN instr(prescription_status, '||') > 0 THEN substr(prescription_status, 1, instr(prescription_status, '||') - 1) ELSE prescription_status END",
+     "sql_expression": "TRIM(CASE WHEN INSTR(prescription_status, '||') > 0 THEN SUBSTR(prescription_status, 1, INSTR(prescription_status, '||') - 1) ELSE prescription_status END)",
      "mapping_rule": "",
-     "reason": "The query tests whether a drug is 'prescription_only'. One stored value is a list, 'prescription_only||restricted', which the query's equality test would miss. Taking the first list item gives 'prescription_only', matching the intended meaning. The other stored values have no '||' and pass through unchanged.",
+     "reason": "The query tests whether a drug is 'prescription_only' to label it 'prescription only' versus 'other'. The one list value 'prescription_only||restricted' means the drug requires a prescription and also carries a restriction, so its first item 'prescription_only' is the status the author wants. Taking the first item of the list gives that result. Single-valued rows contain no separator and pass through unchanged, and TRIM handles any spaces around the separator.",
      "values": 4,
      "mapped_values": 0
     }
@@ -218,16 +221,17 @@
     "disease.affected_organs": {
      "operation": "map",
      "sql_expression": "",
-     "mapping_rule": "Replace each distinct stored affected_organs value with the set of body-system names from the query's vocabulary ('nervous system', 'respiratory system', 'cardiovascular system', 'musculoskeletal system', 'urinary system') that its listed organs belong to, joined by ' || '. Map each organ to its system: brain, central/peripheral nervous system, nerves, facial nerve, trigeminal nerve, optic nerve, sinuses (via the nervous-system entries) to 'nervous system'; lungs, pleura, chest, respiratory system to 'respiratory system'; heart, arteries, veins, blood vessels, vascular to 'cardiovascular system'; bones, joints, muscles, ligaments, tendons, discs, spine, limbs, small joints to 'musculoskeletal system'; kidney(s), bladder, urinary tract, urethra, prostate to 'urinary system'. Keep the original text unchanged in the sense that a value mapping to nothing gets a string with none of these phrases (e.g., '' or the original). Values with no matching system (skin, gut, liver, eyes, breast, etc.) map to a non-matching string so they count only toward the total. Each row can carry several system names, so a disease with heart and lungs counts in both columns.",
-     "reason": "The query tests affected_organs with LIKE against system names such as 'respiratory system', but the stored values are individual organs or tissues, so the LIKE patterns would miss most diseases. Turning each organ into its body-system label requires domain knowledge, not a string operation on the stored value, so a value mapping is needed. The filter affected_organs <> '' still works for values that map to nothing.",
+     "mapping_rule": "For each distinct stored value, split on '||' into organ or tissue items. Replace each item with the body system(s) it belongs to, using the query's category names where they apply: 'nervous system', 'respiratory system', 'cardiovascular system', 'musculoskeletal system', 'urinary system'. Items outside these five systems can keep a neutral label such as 'other system'. Deduplicate the resulting system names and rejoin them with ' || '. Examples: 'lungs' -> 'respiratory system'; 'brain' -> 'nervous system'; 'heart' -> 'cardiovascular system'; 'joints||bones' -> 'musculoskeletal system'; 'kidney||bladder' -> 'urinary system'. Values with no item in the five systems map to 'other system' (or to the neutral label used for non-matching items). Keep '' as ''.",
+     "reason": "The query tests affected_organs with LIKE for body-system names such as '%nervous system%' and '%respiratory system%'. The stored values name organs and tissues (lungs, brain, joints), so almost none match the constants and the counts would be wrong. The LIKE patterns already handle '||' lists, so splitting is not the issue. The needed change is a knowledge mapping from organs to the body systems the query names.",
      "values": 75,
-     "mapped_values": 55
+     "unanswered_values": 0,
+     "mapped_values": 75
     },
     "disease.prognosis": {
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query tests prognosis LIKE '%chronic%', a substring match that finds 'chronic' anywhere in the string. In the stored '||'-joined lists, 'chronic' appears only inside the item 'chronic_condition', and no other stored item contains that substring. So the match is correct for every multi-item row without splitting the list. The column already fits the query as written.",
+     "reason": "The query tests prognosis LIKE '%chronic%'. Every stored chronic entry contains the substring 'chronic' (as in 'chronic_condition'), so every row that should match does match. No other stored value contains 'chronic', so there are no false positives. The '||'-joined lists still match because LIKE searches the whole string. The query therefore already returns the intended chronic/other split without any change to the stored values.",
      "values": 42,
      "mapped_values": 0
     }
@@ -246,7 +250,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query only tests substrings with LIKE ('%brain%', '%heart%', '%lung%', '%liver%', '%kidney%'), so the 'A || B' list format works as stored. Each organ name appears as a substring of any list that contains it, and no organ name matches an unintended word. The '<> ''' filter also behaves correctly on the stored text, so no transformation is needed.",
+     "reason": "The query tests each organ with LIKE '%term%' against the whole string, so the '||'-separated lists already work. Every organ term (brain, heart, lung, liver, kidney) appears as a plain substring in the stored values, including forms like 'lungs' and 'kidneys', and the '<> ''' filter works on the raw text. No transformation is needed.",
      "values": 75,
      "mapped_values": 0
     },
@@ -254,7 +258,7 @@
      "operation": "keep",
      "sql_expression": "",
      "mapping_rule": "",
-     "reason": "The query tests prognosis with LIKE '%chronic%', a substring match. The only allowed value containing 'chronic' is 'chronic_condition', and it appears as a whole item in the '||' list, so the substring test finds it wherever it sits in the list. No stored value produces a false match: 'incurable' and the other items do not contain 'chronic'. The multi-value storage therefore already gives the intended chronic/other split.",
+     "reason": "The query tests prognosis LIKE '%chronic%', which is true whenever any item in the '||'-joined list is chronic_condition. No stored value contains 'chronic' in a different sense, so the substring test already gives the intended chronic/other split. The list format needs no transformation.",
      "values": 42,
      "mapped_values": 0
     }
