@@ -931,5 +931,277 @@
    "The filter generator_model IN ('Proprietary','Open-weight','Both') and GROUP BY only match rows if the column holds those licence categories, which only Form 2 ",
    "The filter generator_model IN ('Proprietary','Open-weight','Both') only matches Form 2's category values. The model names in the other forms match none of them."
   ]
+ ],
+ [
+  "art",
+  "G12",
+  "G12a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The constants are canonical country names (United States, United Kingdom, Russia). Form 1 maps USA, America, England, Britain, Scotland and Russian Fe",
+   "The constants are the canonical names 'United States', 'United Kingdom' and 'Russia', one group per country. Form 1 maps USA/America, England/Britain/"
+  ]
+ ],
+ [
+  "art",
+  "G12",
+  "G12b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The query groups England, Scotland and Ireland separately. Form 1 merges England and Scotland into United Kingdom, so those groups would disappear.",
+   "The query keeps England, Scotland and Ireland as separate groups. Form 1 merges England and Scotland into 'United Kingdom', so those constants would m"
+  ]
+ ],
+ [
+  "art",
+  "G13",
+  "G13a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "BETWEEN 1881 AND 1890 compares against integer years and GROUP BY birth_date groups by year. Only a year-only value (Form 1) fits; full date strings w",
+   "BETWEEN 1881 AND 1890 with GROUP BY birth_date compares the column to integer years and groups by year. That only works if the column holds the bare y"
+  ]
+ ],
+ [
+  "art",
+  "G13",
+  "G13b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "LIKE '%/1/1' looks for January 1 birthdays, which needs the full Y/m/d date. Form 1 keeps only the year, so it could never match.",
+   "LIKE '%/1/1' looks for January 1 birthdays, so it needs the full Y/m/d date. Form 1 keeps only the year, has no slashes and would match nothing."
+  ]
+ ],
+ [
+  "art",
+  "G14",
+  "G14a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "The filter asks for 'Warm' and 'Cool', which are only Form 1 values. Stored as stated, the column holds specific colors, and almost no row would match",
+   "The filter and grouping use the categories 'Warm' and 'Cool', which are Form 1's values. With colors stored as stated, only the few literal 'Warm Tone"
+  ]
+ ],
+ [
+  "art",
+  "G14",
+  "G14b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The filter lists specific hues (Blue, Green, Red, Yellow) and groups by them. Form 1 keeps only Warm/Cool, so no row would match.",
+   "The filter and GROUP BY use specific color names (Blue, Green, Red, Yellow). Form 1 collapses everything into Warm/Cool, so no row would match. Only t"
+  ]
+ ],
+ [
+  "player",
+  "G11",
+  "G11a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "Joins player.team to team.team_name and reports MAX(team.championship) as franchise_titles. This implies current franchise names that exist in the tea",
+   "The query joins player.team to team.team_name and reports franchise titles per team, so it expects names that match the team table's current franchise"
+  ]
+ ],
+ [
+  "player",
+  "G11",
+  "G11b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "IN-list names historical and current team names side by side ('Seattle SuperSonics' and 'Oklahoma City Thunder', ...) and groups by team. The author w",
+   "The IN list names both historical and current franchise names (Seattle SuperSonics and Oklahoma City Thunder, Washington Bullets and Washington Wizard"
+  ]
+ ],
+ [
+  "player",
+  "G12",
+  "G12a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "Exact IN-list of single demonyms ('Greek', 'Mexican', ...), grouped by nationality. Hyphenated or compound values like 'Greek-American' would be misse",
+   "The IN list uses single nationality names (Cameroonian, Mexican, Chinese, Venezuelan, Spanish, Greek), which are exactly the values Form 1 produces fr"
+  ]
+ ],
+ [
+  "player",
+  "G12",
+  "G12b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "Uses LIKE '%American%' and groups by nationality, so it expects several distinct values that contain 'American' (e.g. 'Greek-American'). Those exist o",
+   "The query uses LIKE '%American%' with GROUP BY nationality, not = 'American'. That points to matching the hyphenated variants (Nigerian-American, Amer"
+  ]
+ ],
+ [
+  "player",
+  "G13",
+  "G13a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "Uses BETWEEN 1985 AND 1995 and aliases the column as birth_year. Only works if birth_date holds a bare year; full 'YYYY/m/d' strings would not compare",
+   "The query aliases birth_date as birth_year, filters it with BETWEEN 1985 AND 1995, and groups by it, so it treats the column as a numeric year. Only t"
+  ]
+ ],
+ [
+  "player",
+  "G13",
+  "G13b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "Uses LIKE '%/1/%' and similar patterns to pick out the month, which needs the full YYYY/m/d date. A bare year has no month.",
+   "The query finds the month with patterns like '%/1/%', so it needs full YYYY/m/d dates. Year-only values (Form 1) would put every player in 'April to D"
+  ]
+ ],
+ [
+  "player",
+  "G14",
+  "G14a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "Joins team.location to city.city_name and filters on 'New York City' and 'Washington, D.C.'. Teams join to those city rows only if location uses the c",
+   "The query joins team.location to city.city_name and filters on 'New York City' and 'Washington, D.C.'. Only Form 1 stores those values; 'Brooklyn' and"
+  ]
+ ],
+ [
+  "player",
+  "G14",
+  "G14b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "The IN-list includes 'Brooklyn' and 'Washington' as separate values and leaves out 'Washington, D.C.'. With Form 1 the Washington team would drop out ",
+   "The IN list names 'Brooklyn' and 'New York City' as separate locations and uses 'Washington', not 'Washington, D.C.'. Those constants match only the d"
+  ]
+ ],
+ [
+  "player",
+  "G15",
+  "G15a",
+  "both agree with key",
+  [
+   "Form 1",
+   "Form 1"
+  ],
+  [
+   "Form 1"
+  ],
+  [
+   "IN-list uses short common names ('Joe Lacob', 'Steve Ballmer', 'Joe Tsai', ...), which match only the shortened form.",
+   "The filter constants are short common names ('Joe Lacob', 'Steve Ballmer', 'Joe Tsai', ...). Those exist only under Form 1, and the full legal names s"
+  ]
+ ],
+ [
+  "player",
+  "G15",
+  "G15b",
+  "both agree with key",
+  [
+   "stored as stated in the documents",
+   "stored as stated in the documents"
+  ],
+  [
+   "stored as stated in the documents"
+  ],
+  [
+   "IN-list uses full legal names ('Joseph Steven Lacob', 'Steven Anthony Ballmer', ...), which match only the stated form.",
+   "The filter constants are full legal names ('Joseph Steven Lacob', 'Steven Anthony Ballmer', 'Daniel Gilbert', ...). Those match only the values stored"
+  ]
  ]
 ]

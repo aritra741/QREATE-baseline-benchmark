@@ -1,10 +1,12 @@
 {
  "summary": {
   "corpus": "art",
-  "groups": 3,
-  "questions": 6,
+  "groups": 5,
+  "questions": 10,
   "groups_with_problems": 0,
   "by_type": {
+   "number-vs-text": 1,
+   "fine-vs-coarse": 1,
    "list-vs-one": 3
   }
  },
@@ -146,6 +148,100 @@
      "G3b": {
       "0%": 0.1667,
       "20%": 0.1667
+     }
+    }
+   }
+  },
+  {
+   "group": "G13",
+   "about": "art.birth_date holds the full date of birth as stated ('1885/3/2'); a per-birth-year question that filters and groups on year numbers needs the year alone as a number, a question about birth dates of 1 January (a common stand-in for an unknown day) needs the full date",
+   "type": "number-vs-text",
+   "column": "art.birth_date",
+   "problems": [],
+   "queries": {
+    "G13a": {
+     "question": "For each birth year from 1881 to 1890, how many artists were born that year, how many taught, and how many won at least one award?",
+     "natural": "SELECT birth_date, COUNT(*) AS artists, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE birth_date BETWEEN 1881 AND 1890 GROUP BY birth_date;",
+     "key": "SELECT birth_date, COUNT(*) AS artists, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM (SELECT CAST(substr(birth_date, 1, 4) AS INTEGER) AS birth_date, teaching, awards FROM art WHERE birth_date GLOB '[0-9][0-9][0-9][0-9]/*') WHERE birth_date BETWEEN 1881 AND 1890 GROUP BY birth_date;",
+     "key_rows": 10,
+     "natural_length": 197
+    },
+    "G13b": {
+     "question": "Per birth continent, how many artists have a birth date of 1 January (often a stand-in when only the year is known), and how many of them taught?",
+     "natural": "SELECT birth_continent, COUNT(*) AS artists, SUM(teaching) AS teachers FROM art WHERE birth_date LIKE '%/1/1' AND birth_continent <> '' GROUP BY birth_continent;",
+     "key": "SELECT birth_continent, COUNT(*) AS artists, SUM(teaching) AS teachers FROM art WHERE birth_date LIKE '%/1/1' AND birth_continent <> '' GROUP BY birth_continent;",
+     "key_rows": 4,
+     "natural_length": 161
+    }
+   },
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G13a": {
+      "0%": 0.0,
+      "20%": 0.0
+     },
+     "G13b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G13a": {
+     "rows_changed": 976,
+     "G13a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G13b": {
+      "0%": 0.0,
+      "20%": 0.0
+     }
+    }
+   }
+  },
+  {
+   "group": "G14",
+   "about": "art.color describes the featured image's dominant colors as stated ('Blue', 'Earth Tones', 'Red', 'Warm Tones (Reds, Oranges)'); a warm-versus-cool palette question needs each palette stored as its temperature (Warm, Cool), a question about specific colors needs the stated color",
+   "type": "fine-vs-coarse",
+   "column": "art.color",
+   "problems": [],
+   "queries": {
+    "G14a": {
+     "question": "Comparing featured images with a warm palette and with a cool palette: how many images of each, how many of their artists taught, and how many won at least one award?",
+     "natural": "SELECT color, COUNT(*) AS images, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE color IN ('Warm', 'Cool') GROUP BY color;",
+     "key": "SELECT color, COUNT(*) AS images, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM (SELECT CASE WHEN color IN ('Beige/Brown', 'Black, Brown, Red', 'Black, Gray, Red', 'Black, Red', 'Black, White, Red', 'Black, Yellow, White', 'Bright Yellow', 'Bronze', 'Brown', 'Brown And Black', 'Dark And Earthy Tones', 'Dark Brown', 'Dark Earth Tones', 'Dark Red', 'Dark Tones With Earth Colors', 'Dark Tones With Earthy Hues', 'Dark Tones With Red And Pale Skin', 'Dark, With Prominent Use Of Red And White', 'Earth Tones', 'Earth Tones (Brown, Beige, And Muted Red)', 'Earth Tones And Reds', 'Earth Tones, Muted Colors', 'Earth Tones, Predominantly Brown And Orange', 'Earth Tones, White', 'Earth Tones, With Reds And Whites', 'Earth Tones, Yellow, Brown', 'Earthy Tones', 'Gold', 'Gold And Cream', 'Golden', 'Gray, Red, Yellow-Orange', 'Light Earth Tones', 'Muted Browns And Grays', 'Muted Earth Tones', 'Muted Earthy Tones', 'Muted Tones, Earthy Colors', 'Neutral Tones (Beige, Brown)', 'Orange', 'Orange And Beige', 'Orange And Yellow', 'Orange, Gray, Yellow', 'Pink', 'Predominantly Earthy Tones', 'Predominantly Pink And White', 'Predominantly Warm Colors (Pinks, Browns)', 'Red', 'Red And Black', 'Red And White', 'Red, Black', 'Red, Black, Gray', 'Red, Brown', 'Red, Orange, Grey', 'Red, Yellow, White', 'Red/White', 'Rust', 'Soft Beige And Earth Tones', 'Warm Autumn Tones', 'Warm Colors', 'Warm Earth Tones', 'Warm Hues', 'Warm Hues (Yellow, Orange)', 'Warm Tones', 'Warm Tones (Browns And Reds)', 'Warm Tones (Browns, Reds, And Whites)', 'Warm Tones (Golden, Brown)', 'Warm Tones (Orange And Gold)', 'Warm Tones (Orange, Yellow)', 'Warm Tones (Reds, Oranges)', 'Warm Tones (Reds, Oranges, Yellows)', 'Warm Tones (Reds, Yellows)', 'Warm Tones (Yellows, Browns)', 'Warm Tones With Prominent Use Of Yellows, Browns, And Reds', 'Yellow', 'Yellow, Black, Red', 'Yellow, Red, Gray') THEN 'Warm' WHEN color IN ('Beige And Blue', 'Black, Blue, White', 'Blue', 'Blue And Beige', 'Blue And Black', 'Blue And Gray', 'Blue And Green', 'Blue, Black', 'Blue-Green', 'Blues And Greens', 'Dark Blue', 'Dark Blue And Green', 'Dark Blue Tones', 'Dark Blue, Black', 'Dark Blues And Blacks', 'Dark Blues And Grays', 'Dark Green', 'Dark Purple', 'Dark Tones With Muted Blues And Blacks', 'Green', 'Green, Purple', 'Grey, Blue, Green', 'Light Blue', 'Light Green', 'Muted Blue And Gray', 'Pastel Blues And Greens', 'Predominantly Blue And Green', 'Predominantly Light Blue And White', 'Predominantly White And Purple', 'Purple', 'Purple, Black, White', 'White, Blue, Green, Black') THEN 'Cool' ELSE color END AS color, teaching, awards FROM art) WHERE color IN ('Warm', 'Cool') GROUP BY color;",
+     "key_rows": 2,
+     "natural_length": 179
+    },
+    "G14b": {
+     "question": "How many featured images are dominated by blue, by green, by red and by yellow, how many of their artists taught, and how many won at least one award?",
+     "natural": "SELECT color, COUNT(*) AS images, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE color IN ('Blue', 'Green', 'Red', 'Yellow') GROUP BY color;",
+     "key": "SELECT color, COUNT(*) AS images, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE color IN ('Blue', 'Green', 'Red', 'Yellow') GROUP BY color;",
+     "key_rows": 4,
+     "natural_length": 197
+    }
+   },
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G14a": {
+      "0%": 0.0,
+      "20%": 0.0
+     },
+     "G14b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G14a": {
+     "rows_changed": 598,
+     "G14a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G14b": {
+      "0%": 0.0,
+      "20%": 0.0
      }
     }
    }

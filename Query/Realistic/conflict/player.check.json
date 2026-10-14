@@ -1,11 +1,12 @@
 {
  "summary": {
   "corpus": "player",
-  "groups": 2,
-  "questions": 4,
+  "groups": 5,
+  "questions": 10,
   "groups_with_problems": 0,
   "by_type": {
-   "join-spelling": 2
+   "join-spelling": 4,
+   "fine-vs-coarse": 1
   }
  },
  "groups": [
@@ -110,6 +111,147 @@
      "G4b": {
       "0%": 1.0,
       "20%": 1.0
+     }
+    }
+   }
+  },
+  {
+   "group": "G11",
+   "about": "player.team is the player's last team as the documents name it (Milwaukee Hawks, Seattle SuperSonics); a per-franchise question that joins the team table needs a former name stored as the franchise's current name (Atlanta Hawks, Oklahoma City Thunder), a question that compares players of a franchise's old name with players of its current name needs the names as stated",
+   "type": "join-spelling",
+   "column": "player.team",
+   "problems": [],
+   "queries": {
+    "G11a": {
+     "question": "Per NBA franchise (counting a player whose last team was a former name of the franchise under its current name): how many players, how many MVP winners, how many NBA titles have they won, and how many has the franchise won?",
+     "natural": "SELECT team.team_name, COUNT(*) AS players, SUM(CASE WHEN player.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winners, SUM(player.nba_championships) AS nba_titles, MAX(team.championship) AS franchise_titles FROM player JOIN team ON player.team = team.team_name GROUP BY team.team_name;",
+     "key": "SELECT team.team_name, COUNT(*) AS players, SUM(CASE WHEN player.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winners, SUM(player.nba_championships) AS nba_titles, MAX(team.championship) AS franchise_titles FROM player JOIN team ON team.team_name = CASE player.team WHEN 'Milwaukee Hawks' THEN 'Atlanta Hawks' WHEN 'New Orleans Jazz' THEN 'Utah Jazz' WHEN 'Philadelphia Warriors' THEN 'Golden State Warriors' WHEN 'Seattle SuperSonics' THEN 'Oklahoma City Thunder' WHEN 'Syracuse Nationals' THEN 'Philadelphia 76ers' WHEN 'Fort Wayne Pistons' THEN 'Detroit Pistons' WHEN 'Rochester Royals' THEN 'Sacramento Kings' WHEN 'Cincinnati Royals' THEN 'Sacramento Kings' WHEN 'Washington Bullets' THEN 'Washington Wizards' WHEN 'Charlotte Bobcats' THEN 'Charlotte Hornets' WHEN 'Chicago Bulls, Washington Wizards' THEN 'Washington Wizards' ELSE player.team END GROUP BY team.team_name;",
+     "key_rows": 28,
+     "natural_length": 282
+    },
+    "G11b": {
+     "question": "For relocated or renamed franchises, compare players whose last team was the old name with those whose last team was the current name (Seattle SuperSonics / Oklahoma City Thunder, Washington Bullets / Washington Wizards, Charlotte Bobcats / Charlotte Hornets, New Orleans Jazz / Utah Jazz, Milwaukee Hawks / Atlanta Hawks, Philadelphia Warriors / Golden State Warriors): per team name, how many players, NBA titles and MVP awards?",
+     "natural": "SELECT team, COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(mvp_awards) AS mvp_awards FROM player WHERE team IN ('Seattle SuperSonics', 'Oklahoma City Thunder', 'Washington Bullets', 'Washington Wizards', 'Charlotte Bobcats', 'Charlotte Hornets', 'New Orleans Jazz', 'Utah Jazz', 'Milwaukee Hawks', 'Atlanta Hawks', 'Philadelphia Warriors', 'Golden State Warriors') GROUP BY team;",
+     "key": "SELECT team, COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(mvp_awards) AS mvp_awards FROM player WHERE team IN ('Seattle SuperSonics', 'Oklahoma City Thunder', 'Washington Bullets', 'Washington Wizards', 'Charlotte Bobcats', 'Charlotte Hornets', 'New Orleans Jazz', 'Utah Jazz', 'Milwaukee Hawks', 'Atlanta Hawks', 'Philadelphia Warriors', 'Golden State Warriors') GROUP BY team;",
+     "key_rows": 8,
+     "natural_length": 396
+    }
+   },
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G11a": {
+      "0%": 0.7721,
+      "20%": 0.806
+     },
+     "G11b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G11a": {
+     "rows_changed": 18,
+     "G11a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G11b": {
+      "0%": 0.0501,
+      "20%": 0.0627
+     }
+    }
+   }
+  },
+  {
+   "group": "G13",
+   "about": "player.birth_date holds the full date the article states (1984/12/30, the YYYY/M/D form the field description prescribes); a question that compares birth_date with year numbers and groups by it needs the birth year alone, a question that matches birth months in the stated YYYY/M/D form (LIKE '%/1/%') needs the full date",
+   "type": "fine-vs-coarse",
+   "column": "player.birth_date",
+   "problems": [],
+   "queries": {
+    "G13a": {
+     "question": "For players born 1985 through 1995, per birth year (birth_date read as the year): how many players, how many NBA champions, and how many Olympic gold medals?",
+     "natural": "SELECT birth_date AS birth_year, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1 ELSE 0 END) AS nba_champions, SUM(olympic_gold_medals) AS olympic_golds FROM player WHERE birth_date BETWEEN 1985 AND 1995 GROUP BY birth_year;",
+     "key": "SELECT birth_date AS birth_year, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1 ELSE 0 END) AS nba_champions, SUM(olympic_gold_medals) AS olympic_golds FROM (SELECT CAST(substr(birth_date, 1, 4) AS INTEGER) AS birth_date, nba_championships, olympic_gold_medals FROM player WHERE birth_date <> '') AS p WHERE birth_date BETWEEN 1985 AND 1995 GROUP BY birth_year;",
+     "key_rows": 11,
+     "natural_length": 241
+    },
+    "G13b": {
+     "question": "Relative age: players born January to March versus April to December: how many players, how many NBA champions, how many MVP winners, and how many top-10 draft picks?",
+     "natural": "SELECT CASE WHEN birth_date LIKE '%/1/%' OR birth_date LIKE '%/2/%' OR birth_date LIKE '%/3/%' THEN 'January to March' ELSE 'April to December' END AS birth_months, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1 ELSE 0 END) AS nba_champions, SUM(CASE WHEN mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winners, SUM(CASE WHEN draft_pick BETWEEN 1 AND 10 THEN 1 ELSE 0 END) AS top_10_picks FROM player WHERE birth_date <> '' GROUP BY birth_months;",
+     "key": "SELECT CASE WHEN birth_date LIKE '%/1/%' OR birth_date LIKE '%/2/%' OR birth_date LIKE '%/3/%' THEN 'January to March' ELSE 'April to December' END AS birth_months, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1 ELSE 0 END) AS nba_champions, SUM(CASE WHEN mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winners, SUM(CASE WHEN draft_pick BETWEEN 1 AND 10 THEN 1 ELSE 0 END) AS top_10_picks FROM player WHERE birth_date <> '' GROUP BY birth_months;",
+     "key_rows": 2,
+     "natural_length": 459
+    }
+   },
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G13a": {
+      "0%": 0.0,
+      "20%": 0.0
+     },
+     "G13b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G13a": {
+     "rows_changed": 141,
+     "G13a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G13b": {
+      "0%": 0.0,
+      "20%": 0.0
+     }
+    }
+   }
+  },
+  {
+   "group": "G15",
+   "about": "team.ownership holds the owner's name as the article states it (Joseph Steven Lacob, Steven Anthony Ballmer), the spelling the owner table uses; a question that names owners as the press does (Joe Lacob, Steve Ballmer) needs the common name, a question that names owners as the owner table lists them (Joseph Steven Lacob) needs the full name as stated",
+   "type": "join-spelling",
+   "column": "team.ownership",
+   "problems": [],
+   "queries": {
+    "G15a": {
+     "question": "For the teams of Joe Lacob, Steve Ballmer, Joe Tsai, Jerry Reinsdorf, Tilman Fertitta, Josh Harris, James Dolan, Dan Gilbert, Mark Cuban and Micky Arison: per owner, how many players had the team as their last team, and how many NBA titles and MVP awards have they won?",
+     "natural": "SELECT team.ownership, COUNT(*) AS players, SUM(player.nba_championships) AS nba_titles, SUM(player.mvp_awards) AS mvp_awards FROM team JOIN player ON player.team = team.team_name WHERE team.ownership IN ('Joe Lacob', 'Steve Ballmer', 'Joe Tsai', 'Jerry Reinsdorf', 'Tilman Fertitta', 'Josh Harris', 'James Dolan', 'Dan Gilbert', 'Mark Cuban', 'Micky Arison') GROUP BY team.ownership;",
+     "key": "SELECT ownership, COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(mvp_awards) AS mvp_awards FROM (SELECT CASE team.ownership WHEN 'Joseph Steven Lacob' THEN 'Joe Lacob' WHEN 'Steven Anthony Ballmer' THEN 'Steve Ballmer' WHEN 'Enos Stanley Kroenke' THEN 'Stan Kroenke' WHEN 'Joseph Chung-Hsin Tsai' THEN 'Joe Tsai' WHEN 'Jerry Michael Reinsdorf' THEN 'Jerry Reinsdorf' WHEN 'Tilman Joseph Fertitta' THEN 'Tilman Fertitta' WHEN 'Joshua Jordan Harris' THEN 'Josh Harris' WHEN 'James Lawrence Dolan' THEN 'James Dolan' WHEN 'Gayle Marie LaJaunie Bird Benson' THEN 'Gayle Benson' WHEN 'Daniel Gilbert' THEN 'Dan Gilbert' WHEN 'Daniel G. DeVos' THEN 'Dan DeVos' WHEN 'Robert J. Pera' THEN 'Robert Pera' ELSE team.ownership END AS ownership, player.nba_championships, player.mvp_awards FROM team JOIN player ON player.team = team.team_name) AS p WHERE ownership IN ('Joe Lacob', 'Steve Ballmer', 'Joe Tsai', 'Jerry Reinsdorf', 'Tilman Fertitta', 'Josh Harris', 'James Dolan', 'Dan Gilbert', 'Mark Cuban', 'Micky Arison') GROUP BY ownership;",
+     "key_rows": 10,
+     "natural_length": 384
+    },
+    "G15b": {
+     "question": "For the teams of Joseph Steven Lacob, Steven Anthony Ballmer, Jerry Michael Reinsdorf, Joseph Chung-Hsin Tsai, James Lawrence Dolan, Tilman Joseph Fertitta, Joshua Jordan Harris and Daniel Gilbert (full names, as the owner table lists them): per owner, how many players had the team as their last team, and how many NBA titles and MVP awards have they won?",
+     "natural": "SELECT team.ownership, COUNT(*) AS players, SUM(player.nba_championships) AS nba_titles, SUM(player.mvp_awards) AS mvp_awards FROM team JOIN player ON player.team = team.team_name WHERE team.ownership IN ('Joseph Steven Lacob', 'Steven Anthony Ballmer', 'Jerry Michael Reinsdorf', 'Joseph Chung-Hsin Tsai', 'James Lawrence Dolan', 'Tilman Joseph Fertitta', 'Joshua Jordan Harris', 'Daniel Gilbert') GROUP BY team.ownership;",
+     "key": "SELECT team.ownership, COUNT(*) AS players, SUM(player.nba_championships) AS nba_titles, SUM(player.mvp_awards) AS mvp_awards FROM team JOIN player ON player.team = team.team_name WHERE team.ownership IN ('Joseph Steven Lacob', 'Steven Anthony Ballmer', 'Jerry Michael Reinsdorf', 'Joseph Chung-Hsin Tsai', 'James Lawrence Dolan', 'Tilman Joseph Fertitta', 'Joshua Jordan Harris', 'Daniel Gilbert') GROUP BY team.ownership;",
+     "key_rows": 8,
+     "natural_length": 423
+    }
+   },
+   "scores": {
+    "raw": {
+     "rows_changed": 0,
+     "G15a": {
+      "0%": 0.0794,
+      "20%": 0.0794
+     },
+     "G15b": {
+      "0%": 1.0,
+      "20%": 1.0
+     }
+    },
+    "FORM G15a": {
+     "rows_changed": 12,
+     "G15a": {
+      "0%": 1.0,
+      "20%": 1.0
+     },
+     "G15b": {
+      "0%": 0.0,
+      "20%": 0.0
      }
     }
    }

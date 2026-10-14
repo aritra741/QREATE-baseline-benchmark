@@ -2,23 +2,17 @@
 
 **What the systems see:** only the SQL below each question. The question text is a label for us. The correct answer comes from a hidden **answer key** (folded under each query), computed from the correct data, where values are stored as the documents state them.
 
-**What makes a group a conflict:** its queries use one column, and each needs that column stored in a different form. The **stored forms** table shows each query's score (exact match) when the column is stored as the documents state it, and under each alternative form. Every query scores 1.0 under some form, and no single form gives 1.0 to all of them.
+**What makes a group a conflict:** its queries use one column, and each needs that column stored in a different form. The **stored forms** table shows each query's score (exact match) with the column as stated and under each alternative form; every query scores 1.0 under some form, and no single form gives 1.0 to all.
 
-**How it was checked:**
-1. Written, reviewed by a devil's advocate (realism of the SQL first) and revised, per collection.
-2. The checker, re-run by me: the answer keys pass the standard query checks, the natural queries pass the realism rules, and the stored-form conditions above hold.
-3. A blind reading test. Two judges per collection saw only the SQL, the schema and the differing values (no question, no key) and picked the stored form the SQL's author most likely means. 44 of 55 queries were kept, where both judges picked the key's form; the 11 others were dropped, along with 2 groups left without a conflict (listed at the end). Every query below passed.
+**How it was checked:** (1) written, reviewed by a devil's advocate (realism of the SQL first) and revised; (2) the checker, re-run by me (answer keys pass the standard query checks, natural queries pass the realism rules, the stored-form conditions hold); (3) a blind reading test: two judges per collection saw only the SQL, the schema and the differing values (no question, no key) and picked the stored form the SQL's author most likely means. A query is kept only if both judges picked the key's form. 71 queries were judged; the ones that failed are listed at the end. Legal is not included yet (all its groups failed the blind test; to be reworked).
 
-| Collection | Groups | Queries |
-|---|---|---|
-| Artists | 3 | 6 |
-| Med | 7 | 14 |
-| Players | 2 | 4 |
-| Papers | 5 | 10 |
-| **Total** | **17** | **34** |
-
-Coverage by type: see each heading. Legal has no group left: every legal group had a query the blind judges read differently from its key.
-
+| Collection | Groups | Queries | Types |
+|---|---|---|---|
+| Artists | 5 | 10 | one value vs a list 3, number vs stated text 1, fine vs coarse 1 |
+| Med | 5 | 10 | one value vs a list 1, fine vs coarse 2, join partner's spelling 1, number vs stated text 1 |
+| Players | 5 | 10 | join partner's spelling 4, fine vs coarse 1 |
+| Papers | 5 | 10 | one value vs a list 2, number vs stated text 1, fine vs coarse 2 |
+| **Total** | **20** | **40** | |
 
 ## Artists
 
@@ -31,7 +25,7 @@ art.field lists every field an artist works in, main field first; a per-main-fie
 ```sql
 SELECT field, COUNT(*) AS artists, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE field IN ('Sculpture', 'Photography', 'Illustration') GROUP BY field;
 ```
-<sub>Blind judges: Exact IN ('Sculpture','Photography','Illustration') with GROUP BY field expects a single primary field per row. Form 1 lets 'Sculpture||Painting' and similar ro</sub>
+<sub>Blind judge: Exact IN ('Sculpture','Photography','Illustration') with GROUP BY field expects a single primary field per row. Form 1 lets 'Sculpture||Painting' and similar ro</sub>
 
 <details><summary>answer key</summary>
 
@@ -45,7 +39,7 @@ SELECT field, COUNT(*) AS artists, SUM(teaching) AS teachers, SUM(CASE WHEN awar
 ```sql
 SELECT birth_continent, COUNT(*) AS sculptors, SUM(teaching) AS teachers FROM art WHERE field LIKE '%Sculpture%' AND birth_continent <> '' GROUP BY birth_continent HAVING COUNT(*) >= 5;
 ```
-<sub>Blind judges: LIKE '%Sculpture%' is a membership test written for a multi-valued field. Form 1 would drop sculptors listed second, as in 'Painting||Sculpture'.</sub>
+<sub>Blind judge: LIKE '%Sculpture%' is a membership test written for a multi-valued field. Form 1 would drop sculptors listed second, as in 'Painting||Sculpture'.</sub>
 
 <details><summary>answer key</summary>
 
@@ -54,7 +48,7 @@ SELECT birth_continent, COUNT(*) AS sculptors, SUM(teaching) AS teachers FROM ar
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G1a needs (599) |
 |---|---|---|
@@ -78,7 +72,7 @@ art.genre lists every genre an artist works in, main genre first; a per-main-gen
 ```sql
 SELECT genre, COUNT(*) AS artists, SUM(teaching) AS teachers, AVG(CASE WHEN awards >= 1 THEN 1.0 ELSE 0.0 END) AS share_award_winners FROM art WHERE genre IN ('Portrait', 'Landscape', 'Abstract') GROUP BY genre;
 ```
-<sub>Blind judges: Exact IN plus GROUP BY genre expects one primary genre per row, which matches the description's 'primary genre'. Form 1 lets 'Portrait||Landscape', 'Portraiture</sub>
+<sub>Blind judge: Exact IN plus GROUP BY genre expects one primary genre per row, which matches the description's 'primary genre'. Form 1 lets 'Portrait||Landscape', 'Portraiture</sub>
 
 <details><summary>answer key</summary>
 
@@ -92,7 +86,7 @@ SELECT genre, COUNT(*) AS artists, SUM(teaching) AS teachers, AVG(CASE WHEN awar
 ```sql
 SELECT birth_continent, COUNT(*) AS artists, SUM(teaching) AS teachers FROM art WHERE genre LIKE '%Portrait%' AND genre LIKE '%Landscape%' AND birth_continent <> '' GROUP BY birth_continent HAVING COUNT(*) >= 5;
 ```
-<sub>Blind judges: The SQL requires a genre to contain both Portrait and Landscape, which is only possible if the multi-valued lists are kept. Form 1 keeps only one genre per row.</sub>
+<sub>Blind judge: The SQL requires a genre to contain both Portrait and Landscape, which is only possible if the multi-valued lists are kept. Form 1 keeps only one genre per row.</sub>
 
 <details><summary>answer key</summary>
 
@@ -101,7 +95,7 @@ SELECT birth_continent, COUNT(*) AS artists, SUM(teaching) AS teachers FROM art 
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G2a needs (399) |
 |---|---|---|
@@ -125,7 +119,7 @@ art.art_movement lists every movement an artist took part in, main movement firs
 ```sql
 SELECT art_movement, COUNT(*) AS artists, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE art_movement IN ('Surrealism', 'Abstract Expressionism', 'Pop Art') GROUP BY art_movement;
 ```
-<sub>Blind judges: Exact IN match with GROUP BY art_movement expects one canonical movement per row. Form 1 fixes the case of 'Abstract expressionism' and turns 'Abstract Expressi</sub>
+<sub>Blind judge: Exact IN match with GROUP BY art_movement expects one canonical movement per row. Form 1 fixes the case of 'Abstract expressionism' and turns 'Abstract Expressi</sub>
 
 <details><summary>answer key</summary>
 
@@ -139,7 +133,7 @@ SELECT art_movement, COUNT(*) AS artists, SUM(teaching) AS teachers, SUM(CASE WH
 ```sql
 SELECT birth_continent, SUM(CASE WHEN art_movement LIKE '%Surrealism%' THEN 1 ELSE 0 END) AS surrealism, SUM(CASE WHEN art_movement LIKE '%Pop Art%' THEN 1 ELSE 0 END) AS pop_art, SUM(CASE WHEN art_movement LIKE '%Abstract Expressionism%' THEN 1 ELSE 0 END) AS abstract_expressionism FROM art WHERE birth_continent IN ('Europe', 'North America') GROUP BY birth_continent;
 ```
-<sub>Blind judges: Each count uses LIKE '%X%' membership tests, so a row like 'Abstract Expressionism||Surrealism' should count for both movements. Form 1 keeps only the first mov</sub>
+<sub>Blind judge: Each count uses LIKE '%X%' membership tests, so a row like 'Abstract Expressionism||Surrealism' should count for both movements. Form 1 keeps only the first mov</sub>
 
 <details><summary>answer key</summary>
 
@@ -148,7 +142,7 @@ SELECT birth_continent, SUM(CASE WHEN art_movement LIKE '%Surrealism%' THEN 1 EL
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G3a needs (269) |
 |---|---|---|
@@ -160,6 +154,100 @@ Stored forms (exact match; rows changed):
 ```sql
 -- G3a
 UPDATE art SET art_movement = CASE WHEN lower(trim(CASE WHEN instr(art_movement, '||') > 0 THEN substr(art_movement, 1, instr(art_movement, '||') - 1) ELSE art_movement END)) LIKE '%surrealism%' THEN 'Surrealism' WHEN lower(trim(CASE WHEN instr(art_movement, '||') > 0 THEN substr(art_movement, 1, instr(art_movement, '||') - 1) ELSE art_movement END)) LIKE '%abstract expressionism%' THEN 'Abstract Expressionism' WHEN lower(trim(CASE WHEN instr(art_movement, '||') > 0 THEN substr(art_movement, 1, instr(art_movement, '||') - 1) ELSE art_movement END)) LIKE '%pop art%' THEN 'Pop Art' ELSE trim(CASE WHEN instr(art_movement, '||') > 0 THEN substr(art_movement, 1, instr(art_movement, '||') - 1) ELSE art_movement END) END;
+```
+</details>
+
+### Artists G13: `art.birth_date` (number vs stated text)
+
+art.birth_date holds the full date of birth as stated ('1885/3/2'); a per-birth-year question that filters and groups on year numbers needs the year alone as a number, a question about birth dates of 1 January (a common stand-in for an unknown day) needs the full date
+
+**G13a.** For each birth year from 1881 to 1890, how many artists were born that year, how many taught, and how many won at least one award?
+
+```sql
+SELECT birth_date, COUNT(*) AS artists, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE birth_date BETWEEN 1881 AND 1890 GROUP BY birth_date;
+```
+<sub>Blind judge: BETWEEN 1881 AND 1890 compares against integer years and GROUP BY birth_date groups by year. Only a year-only value (Form 1) fits; full date strings w</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT birth_date, COUNT(*) AS artists, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM (SELECT CAST(substr(birth_date, 1, 4) AS INTEGER) AS birth_date, teaching, awards FROM art WHERE birth_date GLOB '[0-9][0-9][0-9][0-9]/*') WHERE birth_date BETWEEN 1881 AND 1890 GROUP BY birth_date;
+```
+</details>
+
+**G13b.** Per birth continent, how many artists have a birth date of 1 January (often a stand-in when only the year is known), and how many of them taught?
+
+```sql
+SELECT birth_continent, COUNT(*) AS artists, SUM(teaching) AS teachers FROM art WHERE birth_date LIKE '%/1/1' AND birth_continent <> '' GROUP BY birth_continent;
+```
+<sub>Blind judge: LIKE '%/1/1' looks for January 1 birthdays, which needs the full Y/m/d date. Form 1 keeps only the year, so it could never match.</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT birth_continent, COUNT(*) AS artists, SUM(teaching) AS teachers FROM art WHERE birth_date LIKE '%/1/1' AND birth_continent <> '' GROUP BY birth_continent;
+```
+</details>
+
+Stored forms (exact match; rows changed in brackets):
+
+| Query | as stated (0) | stored as G13a needs (976) |
+|---|---|---|
+| G13a | 0.00 | 1.00 |
+| G13b | 1.00 | 0.00 |
+
+<details><summary>stored forms as SQL</summary>
+
+```sql
+-- G13a
+UPDATE art SET birth_date = CAST(substr(birth_date, 1, 4) AS INTEGER) WHERE birth_date GLOB '[0-9][0-9][0-9][0-9]/*';
+```
+</details>
+
+### Artists G14: `art.color` (fine vs coarse)
+
+art.color describes the featured image's dominant colors as stated ('Blue', 'Earth Tones', 'Red', 'Warm Tones (Reds, Oranges)'); a warm-versus-cool palette question needs each palette stored as its temperature (Warm, Cool), a question about specific colors needs the stated color
+
+**G14a.** Comparing featured images with a warm palette and with a cool palette: how many images of each, how many of their artists taught, and how many won at least one award?
+
+```sql
+SELECT color, COUNT(*) AS images, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE color IN ('Warm', 'Cool') GROUP BY color;
+```
+<sub>Blind judge: The filter asks for 'Warm' and 'Cool', which are only Form 1 values. Stored as stated, the column holds specific colors, and almost no row would match</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT color, COUNT(*) AS images, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM (SELECT CASE WHEN color IN ('Beige/Brown', 'Black, Brown, Red', 'Black, Gray, Red', 'Black, Red', 'Black, White, Red', 'Black, Yellow, White', 'Bright Yellow', 'Bronze', 'Brown', 'Brown And Black', 'Dark And Earthy Tones', 'Dark Brown', 'Dark Earth Tones', 'Dark Red', 'Dark Tones With Earth Colors', 'Dark Tones With Earthy Hues', 'Dark Tones With Red And Pale Skin', 'Dark, With Prominent Use Of Red And White', 'Earth Tones', 'Earth Tones (Brown, Beige, And Muted Red)', 'Earth Tones And Reds', 'Earth Tones, Muted Colors', 'Earth Tones, Predominantly Brown And Orange', 'Earth Tones, White', 'Earth Tones, With Reds And Whites', 'Earth Tones, Yellow, Brown', 'Earthy Tones', 'Gold', 'Gold And Cream', 'Golden', 'Gray, Red, Yellow-Orange', 'Light Earth Tones', 'Muted Browns And Grays', 'Muted Earth Tones', 'Muted Earthy Tones', 'Muted Tones, Earthy Colors', 'Neutral Tones (Beige, Brown)', 'Orange', 'Orange And Beige', 'Orange And Yellow', 'Orange, Gray, Yellow', 'Pink', 'Predominantly Earthy Tones', 'Predominantly Pink And White', 'Predominantly Warm Colors (Pinks, Browns)', 'Red', 'Red And Black', 'Red And White', 'Red, Black', 'Red, Black, Gray', 'Red, Brown', 'Red, Orange, Grey', 'Red, Yellow, White', 'Red/White', 'Rust', 'Soft Beige And Earth Tones', 'Warm Autumn Tones', 'Warm Colors', 'Warm Earth Tones', 'Warm Hues', 'Warm Hues (Yellow, Orange)', 'Warm Tones', 'Warm Tones (Browns And Reds)', 'Warm Tones (Browns, Reds, And Whites)', 'Warm Tones (Golden, Brown)', 'Warm Tones (Orange And Gold)', 'Warm Tones (Orange, Yellow)', 'Warm Tones (Reds, Oranges)', 'Warm Tones (Reds, Oranges, Yellows)', 'Warm Tones (Reds, Yellows)', 'Warm Tones (Yellows, Browns)', 'Warm Tones With Prominent Use Of Yellows, Browns, And Reds', 'Yellow', 'Yellow, Black, Red', 'Yellow, Red, Gray') THEN 'Warm' WHEN color IN ('Beige And Blue', 'Black, Blue, White', 'Blue', 'Blue And Beige', 'Blue And Black', 'Blue And Gray', 'Blue And Green', 'Blue, Black', 'Blue-Green', 'Blues And Greens', 'Dark Blue', 'Dark Blue And Green', 'Dark Blue Tones', 'Dark Blue, Black', 'Dark Blues And Blacks', 'Dark Blues And Grays', 'Dark Green', 'Dark Purple', 'Dark Tones With Muted Blues And Blacks', 'Green', 'Green, Purple', 'Grey, Blue, Green', 'Light Blue', 'Light Green', 'Muted Blue And Gray', 'Pastel Blues And Greens', 'Predominantly Blue And Green', 'Predominantly Light Blue And White', 'Predominantly White And Purple', 'Purple', 'Purple, Black, White', 'White, Blue, Green, Black') THEN 'Cool' ELSE color END AS color, teaching, awards FROM art) WHERE color IN ('Warm', 'Cool') GROUP BY color;
+```
+</details>
+
+**G14b.** How many featured images are dominated by blue, by green, by red and by yellow, how many of their artists taught, and how many won at least one award?
+
+```sql
+SELECT color, COUNT(*) AS images, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE color IN ('Blue', 'Green', 'Red', 'Yellow') GROUP BY color;
+```
+<sub>Blind judge: The filter lists specific hues (Blue, Green, Red, Yellow) and groups by them. Form 1 keeps only Warm/Cool, so no row would match.</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT color, COUNT(*) AS images, SUM(teaching) AS teachers, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS award_winners FROM art WHERE color IN ('Blue', 'Green', 'Red', 'Yellow') GROUP BY color;
+```
+</details>
+
+Stored forms (exact match; rows changed in brackets):
+
+| Query | as stated (0) | stored as G14a needs (598) |
+|---|---|---|
+| G14a | 0.00 | 1.00 |
+| G14b | 1.00 | 0.00 |
+
+<details><summary>stored forms as SQL</summary>
+
+```sql
+-- G14a
+UPDATE art SET color = CASE WHEN color IN ('Beige/Brown', 'Black, Brown, Red', 'Black, Gray, Red', 'Black, Red', 'Black, White, Red', 'Black, Yellow, White', 'Bright Yellow', 'Bronze', 'Brown', 'Brown And Black', 'Dark And Earthy Tones', 'Dark Brown', 'Dark Earth Tones', 'Dark Red', 'Dark Tones With Earth Colors', 'Dark Tones With Earthy Hues', 'Dark Tones With Red And Pale Skin', 'Dark, With Prominent Use Of Red And White', 'Earth Tones', 'Earth Tones (Brown, Beige, And Muted Red)', 'Earth Tones And Reds', 'Earth Tones, Muted Colors', 'Earth Tones, Predominantly Brown And Orange', 'Earth Tones, White', 'Earth Tones, With Reds And Whites', 'Earth Tones, Yellow, Brown', 'Earthy Tones', 'Gold', 'Gold And Cream', 'Golden', 'Gray, Red, Yellow-Orange', 'Light Earth Tones', 'Muted Browns And Grays', 'Muted Earth Tones', 'Muted Earthy Tones', 'Muted Tones, Earthy Colors', 'Neutral Tones (Beige, Brown)', 'Orange', 'Orange And Beige', 'Orange And Yellow', 'Orange, Gray, Yellow', 'Pink', 'Predominantly Earthy Tones', 'Predominantly Pink And White', 'Predominantly Warm Colors (Pinks, Browns)', 'Red', 'Red And Black', 'Red And White', 'Red, Black', 'Red, Black, Gray', 'Red, Brown', 'Red, Orange, Grey', 'Red, Yellow, White', 'Red/White', 'Rust', 'Soft Beige And Earth Tones', 'Warm Autumn Tones', 'Warm Colors', 'Warm Earth Tones', 'Warm Hues', 'Warm Hues (Yellow, Orange)', 'Warm Tones', 'Warm Tones (Browns And Reds)', 'Warm Tones (Browns, Reds, And Whites)', 'Warm Tones (Golden, Brown)', 'Warm Tones (Orange And Gold)', 'Warm Tones (Orange, Yellow)', 'Warm Tones (Reds, Oranges)', 'Warm Tones (Reds, Oranges, Yellows)', 'Warm Tones (Reds, Yellows)', 'Warm Tones (Yellows, Browns)', 'Warm Tones With Prominent Use Of Yellows, Browns, And Reds', 'Yellow', 'Yellow, Black, Red', 'Yellow, Red, Gray') THEN 'Warm' WHEN color IN ('Beige And Blue', 'Black, Blue, White', 'Blue', 'Blue And Beige', 'Blue And Black', 'Blue And Gray', 'Blue And Green', 'Blue, Black', 'Blue-Green', 'Blues And Greens', 'Dark Blue', 'Dark Blue And Green', 'Dark Blue Tones', 'Dark Blue, Black', 'Dark Blues And Blacks', 'Dark Blues And Grays', 'Dark Green', 'Dark Purple', 'Dark Tones With Muted Blues And Blacks', 'Green', 'Green, Purple', 'Grey, Blue, Green', 'Light Blue', 'Light Green', 'Muted Blue And Gray', 'Pastel Blues And Greens', 'Predominantly Blue And Green', 'Predominantly Light Blue And White', 'Predominantly White And Purple', 'Purple', 'Purple, Black, White', 'White, Blue, Green, Black') THEN 'Cool' ELSE color END;
 ```
 </details>
 
@@ -175,7 +263,7 @@ disease.disease_type lists every class a disease belongs to; G1a groups by a dis
 ```sql
 SELECT disease_type, COUNT(*) AS diseases, SUM(CASE WHEN prognosis LIKE '%chronic%' THEN 1 ELSE 0 END) AS chronic, SUM(CASE WHEN prognosis LIKE '%high_mortality%' THEN 1 ELSE 0 END) AS high_mortality FROM disease WHERE disease_type <> '' GROUP BY disease_type;
 ```
-<sub>Blind judges: GROUP BY disease_type on the exact value only makes sense with one class per row. Form 1 gives clean single-class groups; the stated form makes a separate group</sub>
+<sub>Blind judge: GROUP BY disease_type on the exact value only makes sense with one class per row. Form 1 gives clean single-class groups; the stated form makes a separate group</sub>
 
 <details><summary>answer key</summary>
 
@@ -189,7 +277,7 @@ SELECT disease_type, COUNT(*) AS diseases, SUM(CASE WHEN prognosis LIKE '%chroni
 ```sql
 SELECT SUM(CASE WHEN disease_type LIKE '%inflammatory%' THEN 1 ELSE 0 END) AS inflammatory, SUM(CASE WHEN disease_type LIKE '%infectious%' THEN 1 ELSE 0 END) AS infectious, SUM(CASE WHEN disease_type LIKE '%vascular%' THEN 1 ELSE 0 END) AS vascular, SUM(CASE WHEN disease_type LIKE '%degenerative%' THEN 1 ELSE 0 END) AS degenerative, SUM(CASE WHEN disease_type LIKE '%psychiatric%' THEN 1 ELSE 0 END) AS psychiatric FROM disease;
 ```
-<sub>Blind judges: The query counts diseases tagged with each type using LIKE substring matching, which assumes a multi-label value. Form 1 keeps only one class and drops co-label</sub>
+<sub>Blind judge: The query counts diseases tagged with each type using LIKE substring matching, which assumes a multi-label value. Form 1 keeps only one class and drops co-label</sub>
 
 <details><summary>answer key</summary>
 
@@ -198,7 +286,7 @@ SELECT SUM(CASE WHEN disease_type LIKE '%inflammatory%' THEN 1 ELSE 0 END) AS in
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G1a needs (52) |
 |---|---|---|
@@ -222,7 +310,7 @@ disease.treatments lists each treatment modality as stated (oral_medication, inj
 ```sql
 SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS course, COUNT(*) AS diseases, SUM(CASE WHEN treatments LIKE '%medication%' THEN 1 ELSE 0 END) AS medication, SUM(CASE WHEN treatments LIKE '%procedure%' THEN 1 ELSE 0 END) AS procedure, SUM(CASE WHEN treatments LIKE '%lifestyle%' THEN 1 ELSE 0 END) AS lifestyle FROM disease WHERE treatments <> '' GROUP BY course;
 ```
-<sub>Blind judges: The filters look for 'medication', 'procedure' and 'lifestyle', which are Form 1's coarse categories. In the stated form 'procedure' never occurs, and injection</sub>
+<sub>Blind judge: The filters look for 'medication', 'procedure' and 'lifestyle', which are Form 1's coarse categories. In the stated form 'procedure' never occurs, and injection</sub>
 
 <details><summary>answer key</summary>
 
@@ -236,7 +324,7 @@ SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS c
 ```sql
 SELECT SUM(CASE WHEN treatments LIKE '%surgery%' THEN 1 ELSE 0 END) AS surgery, SUM(CASE WHEN treatments LIKE '%injection%' THEN 1 ELSE 0 END) AS injection, SUM(CASE WHEN treatments LIKE '%lifestyle_modification%' THEN 1 ELSE 0 END) AS lifestyle_modification, SUM(CASE WHEN treatments LIKE '%dietary_intervention%' THEN 1 ELSE 0 END) AS dietary_intervention, SUM(CASE WHEN treatments LIKE '%physical_therapy%' THEN 1 ELSE 0 END) AS physical_therapy FROM disease;
 ```
-<sub>Blind judges: The filters use the exact category names from the column description (surgery, injection, lifestyle_modification, dietary_intervention, physical_therapy), which</sub>
+<sub>Blind judge: The filters use the exact category names from the column description (surgery, injection, lifestyle_modification, dietary_intervention, physical_therapy), which</sub>
 
 <details><summary>answer key</summary>
 
@@ -245,7 +333,7 @@ SELECT SUM(CASE WHEN treatments LIKE '%surgery%' THEN 1 ELSE 0 END) AS surgery, 
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G2a needs (89) |
 |---|---|---|
@@ -269,7 +357,7 @@ drug.disease_name lists the conditions a label treats as the label words them; G
 ```sql
 SELECT disease.disease_name, COUNT(*) AS drugs, SUM(CASE WHEN drug.prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.disease_name;
 ```
-<sub>Blind judges: The equality join drug.disease_name = disease.disease_name needs one standard disease name per drug. Form 1 normalizes to standard names. The stated form holds </sub>
+<sub>Blind judge: The equality join drug.disease_name = disease.disease_name needs one standard disease name per drug. Form 1 normalizes to standard names. The stated form holds </sub>
 
 <details><summary>answer key</summary>
 
@@ -283,7 +371,7 @@ SELECT disease.disease_name, COUNT(*) AS drugs, SUM(CASE WHEN drug.prescription_
 ```sql
 SELECT SUM(CASE WHEN disease_name LIKE '%panic%' THEN 1 ELSE 0 END) AS panic, SUM(CASE WHEN disease_name LIKE '%ulcer%' THEN 1 ELSE 0 END) AS ulcer, SUM(CASE WHEN disease_name LIKE '%gout%' THEN 1 ELSE 0 END) AS gout, SUM(CASE WHEN disease_name LIKE '%diabetes%' THEN 1 ELSE 0 END) AS diabetes, SUM(CASE WHEN disease_name LIKE '%heart failure%' THEN 1 ELSE 0 END) AS heart_failure FROM drug;
 ```
-<sub>Blind judges: The query counts drugs whose disease list mentions panic, ulcer, gout, diabetes or heart failure. Form 1 collapses each drug to a single primary disease and los</sub>
+<sub>Blind judge: The query counts drugs whose disease list mentions panic, ulcer, gout, diabetes or heart failure. Form 1 collapses each drug to a single primary disease and los</sub>
 
 <details><summary>answer key</summary>
 
@@ -292,7 +380,7 @@ SELECT SUM(CASE WHEN disease_name LIKE '%panic%' THEN 1 ELSE 0 END) AS panic, SU
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G3a needs (28) |
 |---|---|---|
@@ -307,57 +395,6 @@ UPDATE drug SET disease_name = CASE disease_name WHEN 'Major depressive disorder
 ```
 </details>
 
-### Med G4: `drug.dosage_frequency` (number vs stated text)
-
-drug.dosage_frequency states the schedule in words ('twice a day', 'every 4-6 hours', several schedules joined); G4a needs the most doses a day as a number, G4c one wording per schedule ('twice a day' = 'twice daily'), G4b the stated wording (hours, 'as needed')
-
-**G4a.** Grouping drugs by the most doses a day their label allows, how many drugs are in each group and how many of them need a prescription?
-
-```sql
-SELECT dosage_frequency, COUNT(*) AS drugs, SUM(CASE WHEN prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM drug WHERE dosage_frequency IS NOT NULL GROUP BY dosage_frequency;
-```
-<sub>Blind judges: The query groups by the raw value and filters IS NOT NULL. Only Form 2 stores missing values as NULL, so the filter removes them; in the text forms an empty-str</sub>
-
-<details><summary>answer key</summary>
-
-```sql
-SELECT dosage_frequency, COUNT(*) AS drugs, SUM(CASE WHEN prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM (SELECT CASE dosage_frequency WHEN '2 or 3 times a day' THEN 3 WHEN '2 or 3 times daily' THEN 3 WHEN '3-4 times per day||once daily' THEN 4 WHEN 'continuous infusion||three times a day||once or twice a day||once every 8 hours' THEN 3 WHEN 'every 12 hours||every 24 hours' THEN 2 WHEN 'every 4 to 6 hours as needed' THEN 6 WHEN 'every 4-6 hours' THEN 6 WHEN 'every 4-6 hours||3 to 4 times a day' THEN 6 WHEN 'every 6 to 8 hours || every 6 hours' THEN 4 WHEN 'every 6-8 hours||maximum 4 doses per day' THEN 4 WHEN 'every 8 hours' THEN 3 WHEN 'every 8 hours||every 8-12 hours||every 12 hours' THEN 3 WHEN 'every four hours as needed' THEN 6 WHEN 'once a day' THEN 1 WHEN 'once a day||once daily' THEN 1 WHEN 'once daily' THEN 1 WHEN 'once daily || three times daily' THEN 3 WHEN 'once daily||not more than once per day||not more than once in every 48 hours' THEN 1 WHEN 'once daily||twice a day' THEN 2 WHEN 'once daily||twice daily' THEN 2 WHEN 'once every 4 to eight hours' THEN 6 WHEN 'once or thrice daily' THEN 3 WHEN 'once or twice a day' THEN 2 WHEN 'three times a day' THEN 3 WHEN 'three times daily||twice daily' THEN 3 WHEN 'three times per day' THEN 3 WHEN 'twice a day' THEN 2 WHEN 'twice daily' THEN 2 WHEN 'twice every 24 hours || thrice daily' THEN 3 WHEN 'up to three times a day' THEN 3 ELSE NULL END AS dosage_frequency, prescription_status FROM drug) WHERE dosage_frequency IS NOT NULL GROUP BY dosage_frequency;
-```
-</details>
-
-**G4c.** For prescription-only drugs and the others, how many labels give a dosing schedule, and how many give it as once, twice, three times or four times a day (not as an hour interval)?
-
-```sql
-SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN dosage_frequency LIKE '%once daily%' THEN 1 ELSE 0 END) AS once_daily, SUM(CASE WHEN dosage_frequency LIKE '%twice daily%' THEN 1 ELSE 0 END) AS twice_daily, SUM(CASE WHEN dosage_frequency LIKE '%three times daily%' THEN 1 ELSE 0 END) AS three_times_daily, SUM(CASE WHEN dosage_frequency LIKE '%four times daily%' THEN 1 ELSE 0 END) AS four_times_daily FROM drug WHERE dosage_frequency <> '' GROUP BY status;
-```
-<sub>Blind judges: The filters look for the phrases 'once daily', 'twice daily', 'three times daily' and 'four times daily'. Form 2 normalizes values like 'twice a day', 'thrice d</sub>
-
-<details><summary>answer key</summary>
-
-```sql
-SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN dosage_frequency LIKE '%once daily%' THEN 1 ELSE 0 END) AS once_daily, SUM(CASE WHEN dosage_frequency LIKE '%twice daily%' THEN 1 ELSE 0 END) AS twice_daily, SUM(CASE WHEN dosage_frequency LIKE '%three times daily%' THEN 1 ELSE 0 END) AS three_times_daily, SUM(CASE WHEN dosage_frequency LIKE '%four times daily%' THEN 1 ELSE 0 END) AS four_times_daily FROM (SELECT prescription_status, CASE dosage_frequency WHEN '2 or 3 times a day' THEN 'twice daily||three times daily' WHEN '2 or 3 times daily' THEN 'twice daily||three times daily' WHEN '3-4 times per day||once daily' THEN 'three times daily||four times daily||once daily' WHEN 'continuous infusion||three times a day||once or twice a day||once every 8 hours' THEN 'continuous infusion||three times daily||once daily||twice daily||every 8 hours' WHEN 'every 4 to 6 hours as needed' THEN 'every 4-6 hours as needed' WHEN 'every 4-6 hours||3 to 4 times a day' THEN 'every 4-6 hours||three times daily||four times daily' WHEN 'every 6 to 8 hours || every 6 hours' THEN 'every 6-8 hours||every 6 hours' WHEN 'every 6-8 hours||maximum 4 doses per day' THEN 'every 6-8 hours||up to four times daily' WHEN 'every four hours as needed' THEN 'every 4 hours as needed' WHEN 'once a day' THEN 'once daily' WHEN 'once a day||once daily' THEN 'once daily' WHEN 'once daily || three times daily' THEN 'once daily||three times daily' WHEN 'once daily||not more than once per day||not more than once in every 48 hours' THEN 'once daily||not more than once every 48 hours' WHEN 'once daily||twice a day' THEN 'once daily||twice daily' WHEN 'once every 4 to eight hours' THEN 'every 4-8 hours' WHEN 'once or thrice daily' THEN 'once daily||three times daily' WHEN 'once or twice a day' THEN 'once daily||twice daily' WHEN 'three times a day' THEN 'three times daily' WHEN 'three times per day' THEN 'three times daily' WHEN 'twice a day' THEN 'twice daily' WHEN 'twice every 24 hours || thrice daily' THEN 'twice daily||three times daily' WHEN 'up to three times a day' THEN 'up to three times daily' ELSE dosage_frequency END AS dosage_frequency FROM drug WHERE dosage_frequency <> '') GROUP BY status;
-```
-</details>
-
-Stored forms (exact match; rows changed):
-
-| Query | as stated (0) | stored as G4a needs (100) | stored as G4c needs (31) |
-|---|---|---|---|
-| G4a | 0.00 | 1.00 | 0.00 |
-| G4c | 0.30 | 0.10 | 1.00 |
-
-<details><summary>stored forms as SQL</summary>
-
-```sql
--- G4a
-UPDATE drug SET dosage_frequency = CASE dosage_frequency WHEN '2 or 3 times a day' THEN 3 WHEN '2 or 3 times daily' THEN 3 WHEN '3-4 times per day||once daily' THEN 4 WHEN 'continuous infusion||three times a day||once or twice a day||once every 8 hours' THEN 3 WHEN 'every 12 hours||every 24 hours' THEN 2 WHEN 'every 4 to 6 hours as needed' THEN 6 WHEN 'every 4-6 hours' THEN 6 WHEN 'every 4-6 hours||3 to 4 times a day' THEN 6 WHEN 'every 6 to 8 hours || every 6 hours' THEN 4 WHEN 'every 6-8 hours||maximum 4 doses per day' THEN 4 WHEN 'every 8 hours' THEN 3 WHEN 'every 8 hours||every 8-12 hours||every 12 hours' THEN 3 WHEN 'every four hours as needed' THEN 6 WHEN 'once a day' THEN 1 WHEN 'once a day||once daily' THEN 1 WHEN 'once daily' THEN 1 WHEN 'once daily || three times daily' THEN 3 WHEN 'once daily||not more than once per day||not more than once in every 48 hours' THEN 1 WHEN 'once daily||twice a day' THEN 2 WHEN 'once daily||twice daily' THEN 2 WHEN 'once every 4 to eight hours' THEN 6 WHEN 'once or thrice daily' THEN 3 WHEN 'once or twice a day' THEN 2 WHEN 'three times a day' THEN 3 WHEN 'three times daily||twice daily' THEN 3 WHEN 'three times per day' THEN 3 WHEN 'twice a day' THEN 2 WHEN 'twice daily' THEN 2 WHEN 'twice every 24 hours || thrice daily' THEN 3 WHEN 'up to three times a day' THEN 3 ELSE NULL END;
-```
-```sql
--- G4c
-UPDATE drug SET dosage_frequency = CASE dosage_frequency WHEN '2 or 3 times a day' THEN 'twice daily||three times daily' WHEN '2 or 3 times daily' THEN 'twice daily||three times daily' WHEN '3-4 times per day||once daily' THEN 'three times daily||four times daily||once daily' WHEN 'continuous infusion||three times a day||once or twice a day||once every 8 hours' THEN 'continuous infusion||three times daily||once daily||twice daily||every 8 hours' WHEN 'every 4 to 6 hours as needed' THEN 'every 4-6 hours as needed' WHEN 'every 4-6 hours||3 to 4 times a day' THEN 'every 4-6 hours||three times daily||four times daily' WHEN 'every 6 to 8 hours || every 6 hours' THEN 'every 6-8 hours||every 6 hours' WHEN 'every 6-8 hours||maximum 4 doses per day' THEN 'every 6-8 hours||up to four times daily' WHEN 'every four hours as needed' THEN 'every 4 hours as needed' WHEN 'once a day' THEN 'once daily' WHEN 'once a day||once daily' THEN 'once daily' WHEN 'once daily || three times daily' THEN 'once daily||three times daily' WHEN 'once daily||not more than once per day||not more than once in every 48 hours' THEN 'once daily||not more than once every 48 hours' WHEN 'once daily||twice a day' THEN 'once daily||twice daily' WHEN 'once every 4 to eight hours' THEN 'every 4-8 hours' WHEN 'once or thrice daily' THEN 'once daily||three times daily' WHEN 'once or twice a day' THEN 'once daily||twice daily' WHEN 'three times a day' THEN 'three times daily' WHEN 'three times per day' THEN 'three times daily' WHEN 'twice a day' THEN 'twice daily' WHEN 'twice every 24 hours || thrice daily' THEN 'twice daily||three times daily' WHEN 'up to three times a day' THEN 'up to three times daily' ELSE dosage_frequency END;
-```
-</details>
-
 ### Med G5: `drug.single_dose` (number vs stated text)
 
 drug.single_dose states population + dose pairs as text ('adults 10 mg || children 5 mg'); G5a needs the highest adult dose as a number of mg, G5b needs the stated text (weight-based doses)
@@ -367,7 +404,7 @@ drug.single_dose states population + dose pairs as text ('adults 10 mg || childr
 ```sql
 SELECT CASE WHEN CAST(single_dose AS REAL) < 10 THEN 'under 10 mg' WHEN CAST(single_dose AS REAL) < 100 THEN '10 to 99 mg' ELSE '100 mg or more' END AS dose_range, COUNT(*) AS drugs, SUM(CASE WHEN prescription_status = 'prescription_only' THEN 1 ELSE 0 END) AS prescription_only FROM drug WHERE single_dose IS NOT NULL GROUP BY dose_range;
 ```
-<sub>Blind judges: CAST(single_dose AS REAL) put into mg ranges, with an IS NOT NULL filter, needs one numeric mg value with NULL for missing. Form 1 provides that; the stated tex</sub>
+<sub>Blind judge: CAST(single_dose AS REAL) put into mg ranges, with an IS NOT NULL filter, needs one numeric mg value with NULL for missing. Form 1 provides that; the stated tex</sub>
 
 <details><summary>answer key</summary>
 
@@ -381,7 +418,7 @@ SELECT CASE WHEN CAST(mg AS REAL) < 10 THEN 'under 10 mg' WHEN CAST(mg AS REAL) 
 ```sql
 SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN single_dose LIKE '%/kg%' THEN 1 ELSE 0 END) AS per_kg FROM drug WHERE single_dose <> '' GROUP BY status;
 ```
-<sub>Blind judges: LIKE '%/kg%' needs the unit text. Form 1 stores bare numbers or NULL, so no row could ever match, and the per-kg doses are NULL there anyway.</sub>
+<sub>Blind judge: LIKE '%/kg%' needs the unit text. Form 1 stores bare numbers or NULL, so no row could ever match, and the per-kg doses are NULL there anyway.</sub>
 
 <details><summary>answer key</summary>
 
@@ -390,7 +427,7 @@ SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription on
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G5a needs (100) |
 |---|---|---|
@@ -405,53 +442,6 @@ UPDATE drug SET single_dose = CASE single_dose WHEN 'adults 25 milligrams' THEN 
 ```
 </details>
 
-### Med G6: `drug.unsuitable_population` (fine vs coarse)
-
-drug.unsuitable_population states each group to avoid the drug as the label words it ('nursing mothers', 'geriatric patients', 'renal insufficiency', 'patients with glaucoma'); G6a needs standard population groups, G6b the stated conditions
-
-**G6a.** For prescription-only drugs and the others, how many labels name groups who should avoid the drug, and how many of them warn against use in pregnancy, while breastfeeding, in children, in the elderly, and in patients with kidney or with liver problems?
-
-```sql
-SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN unsuitable_population LIKE '%pregnan%' THEN 1 ELSE 0 END) AS pregnancy, SUM(CASE WHEN unsuitable_population LIKE '%breastfeed%' THEN 1 ELSE 0 END) AS breastfeeding, SUM(CASE WHEN unsuitable_population LIKE '%children%' THEN 1 ELSE 0 END) AS children, SUM(CASE WHEN unsuitable_population LIKE '%elderly%' THEN 1 ELSE 0 END) AS elderly, SUM(CASE WHEN unsuitable_population LIKE '%kidney%' THEN 1 ELSE 0 END) AS kidney_problems, SUM(CASE WHEN unsuitable_population LIKE '%liver%' THEN 1 ELSE 0 END) AS liver_problems FROM drug WHERE unsuitable_population <> '' GROUP BY status;
-```
-<sub>Blind judges: The filters (pregnan, breastfeed, children, elderly, kidney, liver) match Form 1's normalized categories. The stated text misses 'breast feeding', 'nursing wome</sub>
-
-<details><summary>answer key</summary>
-
-```sql
-SELECT CASE WHEN prescription_status = 'prescription_only' THEN 'prescription only' ELSE 'other' END AS status, COUNT(*) AS drugs, SUM(CASE WHEN unsuitable_population LIKE '%pregnan%' THEN 1 ELSE 0 END) AS pregnancy, SUM(CASE WHEN unsuitable_population LIKE '%breastfeed%' THEN 1 ELSE 0 END) AS breastfeeding, SUM(CASE WHEN unsuitable_population LIKE '%children%' THEN 1 ELSE 0 END) AS children, SUM(CASE WHEN unsuitable_population LIKE '%elderly%' THEN 1 ELSE 0 END) AS elderly, SUM(CASE WHEN unsuitable_population LIKE '%kidney%' THEN 1 ELSE 0 END) AS kidney_problems, SUM(CASE WHEN unsuitable_population LIKE '%liver%' THEN 1 ELSE 0 END) AS liver_problems FROM (SELECT prescription_status, CASE unsuitable_population WHEN 'children under 18||pregnant women||breastfeeding women||patients with active liver disease||patients with persistent elevated transaminases||patients with hereditary problems of galactose intolerance, Lapp lactase deficiency, or glucose-galactose malabsorption' THEN 'pregnancy||breastfeeding||children||liver problems||other conditions' WHEN 'patients using antidepressants' THEN 'other conditions' WHEN 'pregnant women' THEN 'pregnancy' WHEN 'patients with cyst on the ovary||patients with fibroid tumor of the uterus||patients with inflamed veins due to blood clots||patients with endometriosis||patients with liver disease||patients with depression||patients with unusual vaginal bleeding||pregnant women' THEN 'pregnancy||liver problems||other conditions' WHEN 'patients with severe psychiatric illness' THEN 'other conditions' WHEN 'children under 18 years of age' THEN 'children' WHEN 'children under 6 years||children under 12 years (for some products)||patients with breathing problems||patients with diabetes||patients with glaucoma||patients with heart problems||patients with high blood pressure||patients with kidney problems||patients with liver disease||patients with seizures||patients with stomach/intestinal problems||patients with overactive thyroid||patients with urination problems||elderly' THEN 'children||elderly||kidney problems||liver problems||other conditions' WHEN 'children younger than 1||pediatric patients with pneumonia who are judged to be inappropriate for oral therapy' THEN 'children||other conditions' WHEN 'individuals with cardiovascular diseases' THEN 'other conditions' WHEN 'pregnant women (unless clearly needed)||breastfeeding women' THEN 'pregnancy||breastfeeding' WHEN 'patients with moderate or severe renal insufficiency' THEN 'kidney problems' WHEN 'children' THEN 'children' WHEN 'people with moderate to severe kidney disease||people with AST or ALT values of 2.5 to 10 times the upper limit of normal||people with total bilirubin levels of 1.5 to 3 times the upper limit of normal||pregnant women||people allergic to Bendeka or polyethylene glycol 400, propylene glycol, or monothioglycerol' THEN 'pregnancy||kidney problems||liver problems||other conditions' WHEN 'women with current or past breast cancer||pregnant women||nursing infants' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'diabetes mellitus at the time of transplant||history of antidiabetic therapy||unable to consent||steroid pulse therapy in the 2 weeks prior to OGTT||pregnancy||breast feeding||estimated glomerular filtration rate (eGFR) ≤30 mL/min/1.73 m2||current substance abuse (including alcohol)||any major illness or comorbidity that may result in death within 12 months' THEN 'pregnancy||breastfeeding||kidney problems||other conditions' WHEN 'pediatric patients||patients with cognitive impairment or mental disabilities||patients with neuromuscular diseases such as Parkinson''s disease or multiple sclerosis' THEN 'children||other conditions' WHEN 'children under 6 years||children under 12 years (for some forms)||patients with breathing problems||patients with diabetes||patients with glaucoma||patients with heart problems||patients with high blood pressure||patients with kidney problems||patients with liver disease||patients with seizures||patients with stomach/intestinal problems||patients with overactive thyroid||patients with urination problems||elderly||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||children||elderly||kidney problems||liver problems||other conditions' WHEN 'tetracycline allergy||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'allergy to Pamelor or similar medicines||currently taking or recently taken MAO inhibitors||recent heart attack' THEN 'other conditions' WHEN 'children under 6||patients with allergy or hypersensitivity to methylphenidate HCI||patients with anxiety||patients with glaucoma||patients with tics or history of Tourette’s syndrome||patients taking monoamine oxidase inhibitors (MAOIs)||patients with heart or mental problems||patients with seizures||patients with abnormal brain wave tests||patients with circulation problems||patients with esophagus, stomach or intestine problems||pregnant women||nursing mothers' THEN 'pregnancy||breastfeeding||children||other conditions' WHEN 'pregnant or breastfeeding women' THEN 'pregnancy||breastfeeding' WHEN 'patients with kidney disease||patients with liver disease||older adults' THEN 'elderly||kidney problems||liver problems' WHEN 'Allergy to Lopid||Gallbladder disease||Liver disease||Taking Repaglinide||Pregnant women||Nursing women' THEN 'pregnancy||breastfeeding||liver problems||other conditions' WHEN 'people with liver complications||people with kidney problems||pregnant women (except with medical recommendation)||children under 12 (without medical advice)||people allergic to any components' THEN 'pregnancy||children||kidney problems||liver problems||other conditions' WHEN 'allergic to Tolterodine or Fesoterodine fumarate||untreated or uncontrolled narrow-angle glaucoma||blockage of the urinary tract||blockage of the stomach||blockage of the intestines' THEN 'other conditions' WHEN 'pediatric patients||pregnant women||breastfeeding women||patients receiving strong CYP3A inhibitors' THEN 'pregnancy||breastfeeding||children||other conditions' WHEN 'patients who are hypersensitive to animal—specifically avian-based—proteins' THEN 'other conditions' WHEN 'Patients with liver or kidney problem' THEN 'kidney problems||liver problems' WHEN 'children under 6 years||children under 12 years||patients with glaucoma||patients with bronchitis||patients with emphysema||patients with high blood pressure||patients with kidney disease||asthmatics||pregnant women||breastfeeding mothers' THEN 'pregnancy||breastfeeding||children||kidney problems||other conditions' WHEN 'children||adolescents||pregnant women||breast-feeding women||patients with epilepsy||patients with history of tendon problems with quinolones||patients with glucose-6-phosphate dehydrogenase deficiency||patients with kidney disease' THEN 'pregnancy||breastfeeding||children||kidney problems||other conditions' WHEN 'children taking ibuprofen or ASA||children allergic to ibuprofen, ASA, salicylates, NSAIDs, or any inactive ingredients||children right before or after heart surgery' THEN 'other conditions' WHEN 'patients with asthma||patients allergic to aclidinium bromide||patients allergic to formoterol fumarate||patients allergic to any of the other ingredients' THEN 'other conditions' WHEN 'children under 6 years||breastfeeding women' THEN 'breastfeeding||children' WHEN 'individuals with histories of significant allergies and/or asthma' THEN 'other conditions' WHEN 'patients with cataracts||patients with kidney disease||patients with diabetic retinopathy||patients with optic neuritis||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||kidney problems||other conditions' WHEN 'patients with creatinine clearance <50 mL/min||patients with significant or unstable cardiac disease||patients with autoimmune disorders||patients with preexisting ophthalmologic disorders||pregnant women||nursing mothers||pediatric patients below the age of 18 years' THEN 'pregnancy||breastfeeding||children||kidney problems||other conditions' WHEN 'pregnant women||nursing mothers' THEN 'pregnancy||breastfeeding' WHEN 'pregnant dogs||nursing dogs||dogs with diabetes||dogs taking Novocox||dogs taking Metacam||dogs taking Rimadyl||dogs taking NSAIDs' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'pregnant women||elderly people||patients with nephropathy||patients with neuropathy||patients with cardiovascular disorders' THEN 'pregnancy||elderly||kidney problems||other conditions' WHEN 'patients with pancreatitis||patients with hepatic decompensation||patients with severe peripheral neuropathy||pregnant women (with caution)||patients with history of lactic acidosis' THEN 'pregnancy||liver problems||other conditions' WHEN 'children under 2 years old||pregnant women' THEN 'pregnancy||children' WHEN 'hypersensitivity to beta-lactamics||moderate or serious renal alteration||hepatic alteration||granulocytopenia less than 1,000/mm3||thrombocytopenia less than 50,000/mm3' THEN 'kidney problems||liver problems||other conditions' WHEN 'children under 12 years||pregnant women||nursing women||patients with persistent/chronic cough||patients with shortness of breath||patients with chronic lung disease||patients taking MAOI||patients taking SSRI||patients taking medications for depression, psychiatric, or emotional conditions, or Parkinson''s disease' THEN 'pregnancy||breastfeeding||children||other conditions' WHEN 'nursing mothers||infants' THEN 'breastfeeding||children' WHEN 'people allergic to azelaic acid or any other ingredient listed in the gel' THEN 'other conditions' WHEN 'pediatric patients||geriatric patients||pregnant women||nursing mothers||patients with allergy to aminoglycoside antibiotics||patients with breathing problems||patients with kidney problems||patients with myasthenia gravis||patients with Parkinson''s disease||patients with hearing or balance problems' THEN 'pregnancy||breastfeeding||children||elderly||kidney problems||other conditions' WHEN 'patients hypersensitive to glimepiride||patients hypersensitive to other sulfonylureas||patients hypersensitive to other sulfonamides||patients with type I diabetes mellitus||patients with diabetic ketoacidosis||patients with diabetic precoma or coma||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'individuals with hypersensitivity to any component of the drug or other rifamycin antibiotics||patients with intestinal obstruction||patients with ulcerative colitis' THEN 'other conditions' WHEN 'Pregnant females||Young puppies||Pets with unspecified conditions' THEN 'pregnancy||other conditions' WHEN 'pregnant women || women planning to become pregnant || breastfeeding women || patients with severe liver disease || patients with severe kidney disease || patients with high triglycerides || patients allergic to retinoids' THEN 'pregnancy||breastfeeding||kidney problems||liver problems||other conditions' WHEN 'patients with severe bradycardia||heart block greater than first degree||patients with cardiogenic shock||decompensated cardiac failure||sick sinus syndrome (unless a permanent pacemaker is in place)||patients with severe hepatic impairment (Child-Pugh greater than B)||hypersensitive to any component of this product||children under 18' THEN 'children||liver problems||other conditions' WHEN 'pregnant women||breastfeeding women||children' THEN 'pregnancy||breastfeeding||children' WHEN 'Women using oral contraceptives' THEN 'other conditions' WHEN 'patients taking nitrate containing medicines for cardiac insufficiency||patients with heart failure II stage||angina||complex forms of arrhythmias||resistant hypertension||states associated with a drop in blood pressure' THEN 'other conditions' WHEN 'men||postmenopausal women||children||patients with hepatic impairment||patients using alcohol||patients using moderate or strong CYP3A4 inhibitors||patients with hypersensitivity to Flibanserin or any inactive ingredient' THEN 'children||liver problems||other conditions' WHEN 'Allergic to Valium or other benzodiazepines||Pregnant women||Nursing mothers||Older adults' THEN 'pregnancy||breastfeeding||elderly||other conditions' WHEN 'people with individual intolerance of the active or additional elements of the drug||children younger than two months (ointment)||children under one year (cream)||people of old age (cautiously)||people with severe kidney dysfunction (cautiously)' THEN 'children||elderly||kidney problems||other conditions' WHEN 'patients allergic to Clarithromycin or other macrolide antibiotics||patients using Ergotamine, Dihydroergotamine, or other ergot alkaloids||patients using Terfenadine or Astemizole||patients using Cisapride||patients using statins (Lovastatin, Atorvastatin, Simvastatin, Rosuvastatin, Fluvastatin)||patients with hypokalaemia||patients with impaired liver function||patients with kidney damage||patients with cardiac problems' THEN 'kidney problems||liver problems||other conditions' ELSE unsuitable_population END AS unsuitable_population FROM drug WHERE unsuitable_population <> '') GROUP BY status;
-```
-</details>
-
-**G6b.** How many drug labels warn patients with glaucoma, with asthma or with diabetes, and how many warn patients taking MAO inhibitors?
-
-```sql
-SELECT SUM(CASE WHEN unsuitable_population LIKE '%glaucoma%' THEN 1 ELSE 0 END) AS glaucoma, SUM(CASE WHEN unsuitable_population LIKE '%asthma%' THEN 1 ELSE 0 END) AS asthma, SUM(CASE WHEN unsuitable_population LIKE '%diabet%' THEN 1 ELSE 0 END) AS diabetes, SUM(CASE WHEN unsuitable_population LIKE '%MAO%' THEN 1 ELSE 0 END) AS mao_inhibitors FROM drug;
-```
-<sub>Blind judges: The filters look for specific conditions (glaucoma, asthma, diabet, MAO). These appear only in the stated detailed text; Form 1 folds them into 'other condition</sub>
-
-<details><summary>answer key</summary>
-
-```sql
-SELECT SUM(CASE WHEN unsuitable_population LIKE '%glaucoma%' THEN 1 ELSE 0 END) AS glaucoma, SUM(CASE WHEN unsuitable_population LIKE '%asthma%' THEN 1 ELSE 0 END) AS asthma, SUM(CASE WHEN unsuitable_population LIKE '%diabet%' THEN 1 ELSE 0 END) AS diabetes, SUM(CASE WHEN unsuitable_population LIKE '%MAO%' THEN 1 ELSE 0 END) AS mao_inhibitors FROM drug;
-```
-</details>
-
-Stored forms (exact match; rows changed):
-
-| Query | as stated (0) | stored as G6a needs (58) |
-|---|---|---|
-| G6a | 0.36 | 1.00 |
-| G6b | 1.00 | 0.00 |
-
-<details><summary>stored forms as SQL</summary>
-
-```sql
--- G6a
-UPDATE drug SET unsuitable_population = CASE unsuitable_population WHEN 'children under 18||pregnant women||breastfeeding women||patients with active liver disease||patients with persistent elevated transaminases||patients with hereditary problems of galactose intolerance, Lapp lactase deficiency, or glucose-galactose malabsorption' THEN 'pregnancy||breastfeeding||children||liver problems||other conditions' WHEN 'patients using antidepressants' THEN 'other conditions' WHEN 'pregnant women' THEN 'pregnancy' WHEN 'patients with cyst on the ovary||patients with fibroid tumor of the uterus||patients with inflamed veins due to blood clots||patients with endometriosis||patients with liver disease||patients with depression||patients with unusual vaginal bleeding||pregnant women' THEN 'pregnancy||liver problems||other conditions' WHEN 'patients with severe psychiatric illness' THEN 'other conditions' WHEN 'children under 18 years of age' THEN 'children' WHEN 'children under 6 years||children under 12 years (for some products)||patients with breathing problems||patients with diabetes||patients with glaucoma||patients with heart problems||patients with high blood pressure||patients with kidney problems||patients with liver disease||patients with seizures||patients with stomach/intestinal problems||patients with overactive thyroid||patients with urination problems||elderly' THEN 'children||elderly||kidney problems||liver problems||other conditions' WHEN 'children younger than 1||pediatric patients with pneumonia who are judged to be inappropriate for oral therapy' THEN 'children||other conditions' WHEN 'individuals with cardiovascular diseases' THEN 'other conditions' WHEN 'pregnant women (unless clearly needed)||breastfeeding women' THEN 'pregnancy||breastfeeding' WHEN 'patients with moderate or severe renal insufficiency' THEN 'kidney problems' WHEN 'children' THEN 'children' WHEN 'people with moderate to severe kidney disease||people with AST or ALT values of 2.5 to 10 times the upper limit of normal||people with total bilirubin levels of 1.5 to 3 times the upper limit of normal||pregnant women||people allergic to Bendeka or polyethylene glycol 400, propylene glycol, or monothioglycerol' THEN 'pregnancy||kidney problems||liver problems||other conditions' WHEN 'women with current or past breast cancer||pregnant women||nursing infants' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'diabetes mellitus at the time of transplant||history of antidiabetic therapy||unable to consent||steroid pulse therapy in the 2 weeks prior to OGTT||pregnancy||breast feeding||estimated glomerular filtration rate (eGFR) ≤30 mL/min/1.73 m2||current substance abuse (including alcohol)||any major illness or comorbidity that may result in death within 12 months' THEN 'pregnancy||breastfeeding||kidney problems||other conditions' WHEN 'pediatric patients||patients with cognitive impairment or mental disabilities||patients with neuromuscular diseases such as Parkinson''s disease or multiple sclerosis' THEN 'children||other conditions' WHEN 'children under 6 years||children under 12 years (for some forms)||patients with breathing problems||patients with diabetes||patients with glaucoma||patients with heart problems||patients with high blood pressure||patients with kidney problems||patients with liver disease||patients with seizures||patients with stomach/intestinal problems||patients with overactive thyroid||patients with urination problems||elderly||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||children||elderly||kidney problems||liver problems||other conditions' WHEN 'tetracycline allergy||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'allergy to Pamelor or similar medicines||currently taking or recently taken MAO inhibitors||recent heart attack' THEN 'other conditions' WHEN 'children under 6||patients with allergy or hypersensitivity to methylphenidate HCI||patients with anxiety||patients with glaucoma||patients with tics or history of Tourette’s syndrome||patients taking monoamine oxidase inhibitors (MAOIs)||patients with heart or mental problems||patients with seizures||patients with abnormal brain wave tests||patients with circulation problems||patients with esophagus, stomach or intestine problems||pregnant women||nursing mothers' THEN 'pregnancy||breastfeeding||children||other conditions' WHEN 'pregnant or breastfeeding women' THEN 'pregnancy||breastfeeding' WHEN 'patients with kidney disease||patients with liver disease||older adults' THEN 'elderly||kidney problems||liver problems' WHEN 'Allergy to Lopid||Gallbladder disease||Liver disease||Taking Repaglinide||Pregnant women||Nursing women' THEN 'pregnancy||breastfeeding||liver problems||other conditions' WHEN 'people with liver complications||people with kidney problems||pregnant women (except with medical recommendation)||children under 12 (without medical advice)||people allergic to any components' THEN 'pregnancy||children||kidney problems||liver problems||other conditions' WHEN 'allergic to Tolterodine or Fesoterodine fumarate||untreated or uncontrolled narrow-angle glaucoma||blockage of the urinary tract||blockage of the stomach||blockage of the intestines' THEN 'other conditions' WHEN 'pediatric patients||pregnant women||breastfeeding women||patients receiving strong CYP3A inhibitors' THEN 'pregnancy||breastfeeding||children||other conditions' WHEN 'patients who are hypersensitive to animal—specifically avian-based—proteins' THEN 'other conditions' WHEN 'Patients with liver or kidney problem' THEN 'kidney problems||liver problems' WHEN 'children under 6 years||children under 12 years||patients with glaucoma||patients with bronchitis||patients with emphysema||patients with high blood pressure||patients with kidney disease||asthmatics||pregnant women||breastfeeding mothers' THEN 'pregnancy||breastfeeding||children||kidney problems||other conditions' WHEN 'children||adolescents||pregnant women||breast-feeding women||patients with epilepsy||patients with history of tendon problems with quinolones||patients with glucose-6-phosphate dehydrogenase deficiency||patients with kidney disease' THEN 'pregnancy||breastfeeding||children||kidney problems||other conditions' WHEN 'children taking ibuprofen or ASA||children allergic to ibuprofen, ASA, salicylates, NSAIDs, or any inactive ingredients||children right before or after heart surgery' THEN 'other conditions' WHEN 'patients with asthma||patients allergic to aclidinium bromide||patients allergic to formoterol fumarate||patients allergic to any of the other ingredients' THEN 'other conditions' WHEN 'children under 6 years||breastfeeding women' THEN 'breastfeeding||children' WHEN 'individuals with histories of significant allergies and/or asthma' THEN 'other conditions' WHEN 'patients with cataracts||patients with kidney disease||patients with diabetic retinopathy||patients with optic neuritis||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||kidney problems||other conditions' WHEN 'patients with creatinine clearance <50 mL/min||patients with significant or unstable cardiac disease||patients with autoimmune disorders||patients with preexisting ophthalmologic disorders||pregnant women||nursing mothers||pediatric patients below the age of 18 years' THEN 'pregnancy||breastfeeding||children||kidney problems||other conditions' WHEN 'pregnant women||nursing mothers' THEN 'pregnancy||breastfeeding' WHEN 'pregnant dogs||nursing dogs||dogs with diabetes||dogs taking Novocox||dogs taking Metacam||dogs taking Rimadyl||dogs taking NSAIDs' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'pregnant women||elderly people||patients with nephropathy||patients with neuropathy||patients with cardiovascular disorders' THEN 'pregnancy||elderly||kidney problems||other conditions' WHEN 'patients with pancreatitis||patients with hepatic decompensation||patients with severe peripheral neuropathy||pregnant women (with caution)||patients with history of lactic acidosis' THEN 'pregnancy||liver problems||other conditions' WHEN 'children under 2 years old||pregnant women' THEN 'pregnancy||children' WHEN 'hypersensitivity to beta-lactamics||moderate or serious renal alteration||hepatic alteration||granulocytopenia less than 1,000/mm3||thrombocytopenia less than 50,000/mm3' THEN 'kidney problems||liver problems||other conditions' WHEN 'children under 12 years||pregnant women||nursing women||patients with persistent/chronic cough||patients with shortness of breath||patients with chronic lung disease||patients taking MAOI||patients taking SSRI||patients taking medications for depression, psychiatric, or emotional conditions, or Parkinson''s disease' THEN 'pregnancy||breastfeeding||children||other conditions' WHEN 'nursing mothers||infants' THEN 'breastfeeding||children' WHEN 'people allergic to azelaic acid or any other ingredient listed in the gel' THEN 'other conditions' WHEN 'pediatric patients||geriatric patients||pregnant women||nursing mothers||patients with allergy to aminoglycoside antibiotics||patients with breathing problems||patients with kidney problems||patients with myasthenia gravis||patients with Parkinson''s disease||patients with hearing or balance problems' THEN 'pregnancy||breastfeeding||children||elderly||kidney problems||other conditions' WHEN 'patients hypersensitive to glimepiride||patients hypersensitive to other sulfonylureas||patients hypersensitive to other sulfonamides||patients with type I diabetes mellitus||patients with diabetic ketoacidosis||patients with diabetic precoma or coma||pregnant women||nursing women' THEN 'pregnancy||breastfeeding||other conditions' WHEN 'individuals with hypersensitivity to any component of the drug or other rifamycin antibiotics||patients with intestinal obstruction||patients with ulcerative colitis' THEN 'other conditions' WHEN 'Pregnant females||Young puppies||Pets with unspecified conditions' THEN 'pregnancy||other conditions' WHEN 'pregnant women || women planning to become pregnant || breastfeeding women || patients with severe liver disease || patients with severe kidney disease || patients with high triglycerides || patients allergic to retinoids' THEN 'pregnancy||breastfeeding||kidney problems||liver problems||other conditions' WHEN 'patients with severe bradycardia||heart block greater than first degree||patients with cardiogenic shock||decompensated cardiac failure||sick sinus syndrome (unless a permanent pacemaker is in place)||patients with severe hepatic impairment (Child-Pugh greater than B)||hypersensitive to any component of this product||children under 18' THEN 'children||liver problems||other conditions' WHEN 'pregnant women||breastfeeding women||children' THEN 'pregnancy||breastfeeding||children' WHEN 'Women using oral contraceptives' THEN 'other conditions' WHEN 'patients taking nitrate containing medicines for cardiac insufficiency||patients with heart failure II stage||angina||complex forms of arrhythmias||resistant hypertension||states associated with a drop in blood pressure' THEN 'other conditions' WHEN 'men||postmenopausal women||children||patients with hepatic impairment||patients using alcohol||patients using moderate or strong CYP3A4 inhibitors||patients with hypersensitivity to Flibanserin or any inactive ingredient' THEN 'children||liver problems||other conditions' WHEN 'Allergic to Valium or other benzodiazepines||Pregnant women||Nursing mothers||Older adults' THEN 'pregnancy||breastfeeding||elderly||other conditions' WHEN 'people with individual intolerance of the active or additional elements of the drug||children younger than two months (ointment)||children under one year (cream)||people of old age (cautiously)||people with severe kidney dysfunction (cautiously)' THEN 'children||elderly||kidney problems||other conditions' WHEN 'patients allergic to Clarithromycin or other macrolide antibiotics||patients using Ergotamine, Dihydroergotamine, or other ergot alkaloids||patients using Terfenadine or Astemizole||patients using Cisapride||patients using statins (Lovastatin, Atorvastatin, Simvastatin, Rosuvastatin, Fluvastatin)||patients with hypokalaemia||patients with impaired liver function||patients with kidney damage||patients with cardiac problems' THEN 'kidney problems||liver problems||other conditions' ELSE unsuitable_population END;
-```
-</details>
-
 ### Med G7: `disease.affected_organs` (fine vs coarse)
 
 disease.affected_organs states organs and tissues as the source names them (brain, lungs, kidneys, ...); G7a needs the body systems they belong to, G7b the stated organs
@@ -461,7 +451,7 @@ disease.affected_organs states organs and tissues as the source names them (brai
 ```sql
 SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS course, COUNT(*) AS diseases, SUM(CASE WHEN affected_organs LIKE '%nervous system%' THEN 1 ELSE 0 END) AS nervous_system, SUM(CASE WHEN affected_organs LIKE '%respiratory system%' THEN 1 ELSE 0 END) AS respiratory_system, SUM(CASE WHEN affected_organs LIKE '%cardiovascular system%' THEN 1 ELSE 0 END) AS cardiovascular_system, SUM(CASE WHEN affected_organs LIKE '%musculoskeletal system%' THEN 1 ELSE 0 END) AS musculoskeletal_system, SUM(CASE WHEN affected_organs LIKE '%urinary system%' THEN 1 ELSE 0 END) AS urinary_system FROM disease WHERE affected_organs <> '' GROUP BY course;
 ```
-<sub>Blind judges: The query looks for body-system labels ('nervous system', 'respiratory system', 'urinary system', ...). Form 1 normalizes organs into exactly these systems; the</sub>
+<sub>Blind judge: The query looks for body-system labels ('nervous system', 'respiratory system', 'urinary system', ...). Form 1 normalizes organs into exactly these systems; the</sub>
 
 <details><summary>answer key</summary>
 
@@ -475,7 +465,7 @@ SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS c
 ```sql
 SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS course, SUM(CASE WHEN affected_organs LIKE '%brain%' THEN 1 ELSE 0 END) AS brain, SUM(CASE WHEN affected_organs LIKE '%heart%' THEN 1 ELSE 0 END) AS heart, SUM(CASE WHEN affected_organs LIKE '%lung%' THEN 1 ELSE 0 END) AS lungs, SUM(CASE WHEN affected_organs LIKE '%liver%' THEN 1 ELSE 0 END) AS liver, SUM(CASE WHEN affected_organs LIKE '%kidney%' THEN 1 ELSE 0 END) AS kidneys FROM disease WHERE affected_organs <> '' GROUP BY course;
 ```
-<sub>Blind judges: The filters look for organ names (brain, heart, lung, liver, kidney). These appear in the stated organ lists; Form 1 replaces organs with system labels, so thes</sub>
+<sub>Blind judge: The filters look for organ names (brain, heart, lung, liver, kidney). These appear in the stated organ lists; Form 1 replaces organs with system labels, so thes</sub>
 
 <details><summary>answer key</summary>
 
@@ -484,7 +474,7 @@ SELECT CASE WHEN prognosis LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS c
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G7a needs (76) |
 |---|---|---|
@@ -511,7 +501,7 @@ player.name holds the full name the article states (Wardell Stephen Curry II); a
 ```sql
 SELECT COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(mvp_awards) AS mvp_awards, SUM(olympic_gold_medals) AS olympic_golds FROM player WHERE name IN ('LeBron James', 'Stephen Curry', 'Kevin Durant', 'Michael Jordan', 'Kobe Bryant', 'Shaquille O''Neal', 'Tim Duncan', 'Giannis Antetokounmpo');
 ```
-<sub>Blind judges: The query matches names by exact equality on common short forms ('Kevin Durant'), so the stored value must be the common name, not the full legal name ('Kevin W</sub>
+<sub>Blind judge: The query matches names by exact equality on common short forms ('Kevin Durant'), so the stored value must be the common name, not the full legal name ('Kevin W</sub>
 
 <details><summary>answer key</summary>
 
@@ -525,7 +515,7 @@ SELECT COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(mvp_awards
 ```sql
 SELECT CASE WHEN name LIKE '% Jr.' OR name LIKE '% Sr.' OR name LIKE '% II' OR name LIKE '% III' THEN 'with suffix' ELSE 'without suffix' END AS name_suffix, COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(mvp_awards) AS mvp_awards FROM player GROUP BY name_suffix;
 ```
-<sub>Blind judges: The query classifies names by suffix (LIKE '% Jr.', '% Sr.'), so the suffixes must be kept. Form 1 strips them (e.g., 'Anthony Marshon Davis Jr.' becomes 'Antho</sub>
+<sub>Blind judge: The query classifies names by suffix (LIKE '% Jr.', '% Sr.'), so the suffixes must be kept. Form 1 strips them (e.g., 'Anthony Marshon Davis Jr.' becomes 'Antho</sub>
 
 <details><summary>answer key</summary>
 
@@ -534,7 +524,7 @@ SELECT CASE WHEN name LIKE '% Jr.' OR name LIKE '% Sr.' OR name LIKE '% II' OR n
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G3a needs (81) |
 |---|---|---|
@@ -558,7 +548,7 @@ player.college names a school as each article does (UCLA, University of Kentucky
 ```sql
 SELECT college, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1 ELSE 0 END) AS nba_champions, SUM(CASE WHEN draft_pick BETWEEN 1 AND 10 THEN 1 ELSE 0 END) AS top_10_picks FROM player WHERE college IN ('UCLA', 'Kentucky', 'Duke', 'Michigan State', 'North Carolina') GROUP BY college;
 ```
-<sub>Blind judges: The IN list uses short names ('UCLA', 'Kentucky', 'Duke', 'Michigan State', 'North Carolina'), and only Form 2 maps every variant to those short forms.</sub>
+<sub>Blind judge: The IN list uses short names ('UCLA', 'Kentucky', 'Duke', 'Michigan State', 'North Carolina'), and only Form 2 maps every variant to those short forms.</sub>
 
 <details><summary>answer key</summary>
 
@@ -572,7 +562,7 @@ SELECT college, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1
 ```sql
 SELECT college, COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(olympic_gold_medals) AS olympic_golds FROM player WHERE college IN ('University of Kentucky', 'Duke University', 'Michigan State University', 'Indiana University', 'University of Florida') GROUP BY college;
 ```
-<sub>Blind judges: The IN list uses full official names ('University of Kentucky', 'Michigan State University', 'Indiana University', 'Duke University'), and only Form 1 normalize</sub>
+<sub>Blind judge: The IN list uses full official names ('University of Kentucky', 'Michigan State University', 'Indiana University', 'Duke University'), and only Form 1 normalize</sub>
 
 <details><summary>answer key</summary>
 
@@ -581,7 +571,7 @@ SELECT college, COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(o
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G4a needs (33) | stored as G4b needs (27) |
 |---|---|---|---|
@@ -600,6 +590,147 @@ UPDATE player SET college = CASE WHEN college IN ('UCLA', 'University of Califor
 ```
 </details>
 
+### Players G11: `player.team` (join partner's spelling)
+
+player.team is the player's last team as the documents name it (Milwaukee Hawks, Seattle SuperSonics); a per-franchise question that joins the team table needs a former name stored as the franchise's current name (Atlanta Hawks, Oklahoma City Thunder), a question that compares players of a franchise's old name with players of its current name needs the names as stated
+
+**G11a.** Per NBA franchise (counting a player whose last team was a former name of the franchise under its current name): how many players, how many MVP winners, how many NBA titles have they won, and how many has the franchise won?
+
+```sql
+SELECT team.team_name, COUNT(*) AS players, SUM(CASE WHEN player.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winners, SUM(player.nba_championships) AS nba_titles, MAX(team.championship) AS franchise_titles FROM player JOIN team ON player.team = team.team_name GROUP BY team.team_name;
+```
+<sub>Blind judge: Joins player.team to team.team_name and reports MAX(team.championship) as franchise_titles. This implies current franchise names that exist in the tea</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT team.team_name, COUNT(*) AS players, SUM(CASE WHEN player.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winners, SUM(player.nba_championships) AS nba_titles, MAX(team.championship) AS franchise_titles FROM player JOIN team ON team.team_name = CASE player.team WHEN 'Milwaukee Hawks' THEN 'Atlanta Hawks' WHEN 'New Orleans Jazz' THEN 'Utah Jazz' WHEN 'Philadelphia Warriors' THEN 'Golden State Warriors' WHEN 'Seattle SuperSonics' THEN 'Oklahoma City Thunder' WHEN 'Syracuse Nationals' THEN 'Philadelphia 76ers' WHEN 'Fort Wayne Pistons' THEN 'Detroit Pistons' WHEN 'Rochester Royals' THEN 'Sacramento Kings' WHEN 'Cincinnati Royals' THEN 'Sacramento Kings' WHEN 'Washington Bullets' THEN 'Washington Wizards' WHEN 'Charlotte Bobcats' THEN 'Charlotte Hornets' WHEN 'Chicago Bulls, Washington Wizards' THEN 'Washington Wizards' ELSE player.team END GROUP BY team.team_name;
+```
+</details>
+
+**G11b.** For relocated or renamed franchises, compare players whose last team was the old name with those whose last team was the current name (Seattle SuperSonics / Oklahoma City Thunder, Washington Bullets / Washington Wizards, Charlotte Bobcats / Charlotte Hornets, New Orleans Jazz / Utah Jazz, Milwaukee Hawks / Atlanta Hawks, Philadelphia Warriors / Golden State Warriors): per team name, how many players, NBA titles and MVP awards?
+
+```sql
+SELECT team, COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(mvp_awards) AS mvp_awards FROM player WHERE team IN ('Seattle SuperSonics', 'Oklahoma City Thunder', 'Washington Bullets', 'Washington Wizards', 'Charlotte Bobcats', 'Charlotte Hornets', 'New Orleans Jazz', 'Utah Jazz', 'Milwaukee Hawks', 'Atlanta Hawks', 'Philadelphia Warriors', 'Golden State Warriors') GROUP BY team;
+```
+<sub>Blind judge: IN-list names historical and current team names side by side ('Seattle SuperSonics' and 'Oklahoma City Thunder', ...) and groups by team. The author w</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT team, COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(mvp_awards) AS mvp_awards FROM player WHERE team IN ('Seattle SuperSonics', 'Oklahoma City Thunder', 'Washington Bullets', 'Washington Wizards', 'Charlotte Bobcats', 'Charlotte Hornets', 'New Orleans Jazz', 'Utah Jazz', 'Milwaukee Hawks', 'Atlanta Hawks', 'Philadelphia Warriors', 'Golden State Warriors') GROUP BY team;
+```
+</details>
+
+Stored forms (exact match; rows changed in brackets):
+
+| Query | as stated (0) | stored as G11a needs (18) |
+|---|---|---|
+| G11a | 0.77 | 1.00 |
+| G11b | 1.00 | 0.05 |
+
+<details><summary>stored forms as SQL</summary>
+
+```sql
+-- G11a
+UPDATE player SET team = CASE team WHEN 'Milwaukee Hawks' THEN 'Atlanta Hawks' WHEN 'New Orleans Jazz' THEN 'Utah Jazz' WHEN 'Philadelphia Warriors' THEN 'Golden State Warriors' WHEN 'Seattle SuperSonics' THEN 'Oklahoma City Thunder' WHEN 'Syracuse Nationals' THEN 'Philadelphia 76ers' WHEN 'Fort Wayne Pistons' THEN 'Detroit Pistons' WHEN 'Rochester Royals' THEN 'Sacramento Kings' WHEN 'Cincinnati Royals' THEN 'Sacramento Kings' WHEN 'Washington Bullets' THEN 'Washington Wizards' WHEN 'Charlotte Bobcats' THEN 'Charlotte Hornets' WHEN 'Chicago Bulls, Washington Wizards' THEN 'Washington Wizards' ELSE team END;
+```
+</details>
+
+### Players G13: `player.birth_date` (fine vs coarse)
+
+player.birth_date holds the full date the article states (1984/12/30, the YYYY/M/D form the field description prescribes); a question that compares birth_date with year numbers and groups by it needs the birth year alone, a question that matches birth months in the stated YYYY/M/D form (LIKE '%/1/%') needs the full date
+
+**G13a.** For players born 1985 through 1995, per birth year (birth_date read as the year): how many players, how many NBA champions, and how many Olympic gold medals?
+
+```sql
+SELECT birth_date AS birth_year, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1 ELSE 0 END) AS nba_champions, SUM(olympic_gold_medals) AS olympic_golds FROM player WHERE birth_date BETWEEN 1985 AND 1995 GROUP BY birth_year;
+```
+<sub>Blind judge: Uses BETWEEN 1985 AND 1995 and aliases the column as birth_year. Only works if birth_date holds a bare year; full 'YYYY/m/d' strings would not compare</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT birth_date AS birth_year, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1 ELSE 0 END) AS nba_champions, SUM(olympic_gold_medals) AS olympic_golds FROM (SELECT CAST(substr(birth_date, 1, 4) AS INTEGER) AS birth_date, nba_championships, olympic_gold_medals FROM player WHERE birth_date <> '') AS p WHERE birth_date BETWEEN 1985 AND 1995 GROUP BY birth_year;
+```
+</details>
+
+**G13b.** Relative age: players born January to March versus April to December: how many players, how many NBA champions, how many MVP winners, and how many top-10 draft picks?
+
+```sql
+SELECT CASE WHEN birth_date LIKE '%/1/%' OR birth_date LIKE '%/2/%' OR birth_date LIKE '%/3/%' THEN 'January to March' ELSE 'April to December' END AS birth_months, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1 ELSE 0 END) AS nba_champions, SUM(CASE WHEN mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winners, SUM(CASE WHEN draft_pick BETWEEN 1 AND 10 THEN 1 ELSE 0 END) AS top_10_picks FROM player WHERE birth_date <> '' GROUP BY birth_months;
+```
+<sub>Blind judge: Uses LIKE '%/1/%' and similar patterns to pick out the month, which needs the full YYYY/m/d date. A bare year has no month.</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT CASE WHEN birth_date LIKE '%/1/%' OR birth_date LIKE '%/2/%' OR birth_date LIKE '%/3/%' THEN 'January to March' ELSE 'April to December' END AS birth_months, COUNT(*) AS players, SUM(CASE WHEN nba_championships >= 1 THEN 1 ELSE 0 END) AS nba_champions, SUM(CASE WHEN mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winners, SUM(CASE WHEN draft_pick BETWEEN 1 AND 10 THEN 1 ELSE 0 END) AS top_10_picks FROM player WHERE birth_date <> '' GROUP BY birth_months;
+```
+</details>
+
+Stored forms (exact match; rows changed in brackets):
+
+| Query | as stated (0) | stored as G13a needs (141) |
+|---|---|---|
+| G13a | 0.00 | 1.00 |
+| G13b | 1.00 | 0.00 |
+
+<details><summary>stored forms as SQL</summary>
+
+```sql
+-- G13a
+UPDATE player SET birth_date = CAST(substr(birth_date, 1, 4) AS INTEGER) WHERE birth_date IS NOT NULL AND birth_date <> '';
+```
+</details>
+
+### Players G15: `team.ownership` (join partner's spelling)
+
+team.ownership holds the owner's name as the article states it (Joseph Steven Lacob, Steven Anthony Ballmer), the spelling the owner table uses; a question that names owners as the press does (Joe Lacob, Steve Ballmer) needs the common name, a question that names owners as the owner table lists them (Joseph Steven Lacob) needs the full name as stated
+
+**G15a.** For the teams of Joe Lacob, Steve Ballmer, Joe Tsai, Jerry Reinsdorf, Tilman Fertitta, Josh Harris, James Dolan, Dan Gilbert, Mark Cuban and Micky Arison: per owner, how many players had the team as their last team, and how many NBA titles and MVP awards have they won?
+
+```sql
+SELECT team.ownership, COUNT(*) AS players, SUM(player.nba_championships) AS nba_titles, SUM(player.mvp_awards) AS mvp_awards FROM team JOIN player ON player.team = team.team_name WHERE team.ownership IN ('Joe Lacob', 'Steve Ballmer', 'Joe Tsai', 'Jerry Reinsdorf', 'Tilman Fertitta', 'Josh Harris', 'James Dolan', 'Dan Gilbert', 'Mark Cuban', 'Micky Arison') GROUP BY team.ownership;
+```
+<sub>Blind judge: IN-list uses short common names ('Joe Lacob', 'Steve Ballmer', 'Joe Tsai', ...), which match only the shortened form.</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT ownership, COUNT(*) AS players, SUM(nba_championships) AS nba_titles, SUM(mvp_awards) AS mvp_awards FROM (SELECT CASE team.ownership WHEN 'Joseph Steven Lacob' THEN 'Joe Lacob' WHEN 'Steven Anthony Ballmer' THEN 'Steve Ballmer' WHEN 'Enos Stanley Kroenke' THEN 'Stan Kroenke' WHEN 'Joseph Chung-Hsin Tsai' THEN 'Joe Tsai' WHEN 'Jerry Michael Reinsdorf' THEN 'Jerry Reinsdorf' WHEN 'Tilman Joseph Fertitta' THEN 'Tilman Fertitta' WHEN 'Joshua Jordan Harris' THEN 'Josh Harris' WHEN 'James Lawrence Dolan' THEN 'James Dolan' WHEN 'Gayle Marie LaJaunie Bird Benson' THEN 'Gayle Benson' WHEN 'Daniel Gilbert' THEN 'Dan Gilbert' WHEN 'Daniel G. DeVos' THEN 'Dan DeVos' WHEN 'Robert J. Pera' THEN 'Robert Pera' ELSE team.ownership END AS ownership, player.nba_championships, player.mvp_awards FROM team JOIN player ON player.team = team.team_name) AS p WHERE ownership IN ('Joe Lacob', 'Steve Ballmer', 'Joe Tsai', 'Jerry Reinsdorf', 'Tilman Fertitta', 'Josh Harris', 'James Dolan', 'Dan Gilbert', 'Mark Cuban', 'Micky Arison') GROUP BY ownership;
+```
+</details>
+
+**G15b.** For the teams of Joseph Steven Lacob, Steven Anthony Ballmer, Jerry Michael Reinsdorf, Joseph Chung-Hsin Tsai, James Lawrence Dolan, Tilman Joseph Fertitta, Joshua Jordan Harris and Daniel Gilbert (full names, as the owner table lists them): per owner, how many players had the team as their last team, and how many NBA titles and MVP awards have they won?
+
+```sql
+SELECT team.ownership, COUNT(*) AS players, SUM(player.nba_championships) AS nba_titles, SUM(player.mvp_awards) AS mvp_awards FROM team JOIN player ON player.team = team.team_name WHERE team.ownership IN ('Joseph Steven Lacob', 'Steven Anthony Ballmer', 'Jerry Michael Reinsdorf', 'Joseph Chung-Hsin Tsai', 'James Lawrence Dolan', 'Tilman Joseph Fertitta', 'Joshua Jordan Harris', 'Daniel Gilbert') GROUP BY team.ownership;
+```
+<sub>Blind judge: IN-list uses full legal names ('Joseph Steven Lacob', 'Steven Anthony Ballmer', ...), which match only the stated form.</sub>
+
+<details><summary>answer key</summary>
+
+```sql
+SELECT team.ownership, COUNT(*) AS players, SUM(player.nba_championships) AS nba_titles, SUM(player.mvp_awards) AS mvp_awards FROM team JOIN player ON player.team = team.team_name WHERE team.ownership IN ('Joseph Steven Lacob', 'Steven Anthony Ballmer', 'Jerry Michael Reinsdorf', 'Joseph Chung-Hsin Tsai', 'James Lawrence Dolan', 'Tilman Joseph Fertitta', 'Joshua Jordan Harris', 'Daniel Gilbert') GROUP BY team.ownership;
+```
+</details>
+
+Stored forms (exact match; rows changed in brackets):
+
+| Query | as stated (0) | stored as G15a needs (12) |
+|---|---|---|
+| G15a | 0.08 | 1.00 |
+| G15b | 1.00 | 0.00 |
+
+<details><summary>stored forms as SQL</summary>
+
+```sql
+-- G15a
+UPDATE team SET ownership = CASE ownership WHEN 'Joseph Steven Lacob' THEN 'Joe Lacob' WHEN 'Steven Anthony Ballmer' THEN 'Steve Ballmer' WHEN 'Enos Stanley Kroenke' THEN 'Stan Kroenke' WHEN 'Joseph Chung-Hsin Tsai' THEN 'Joe Tsai' WHEN 'Jerry Michael Reinsdorf' THEN 'Jerry Reinsdorf' WHEN 'Tilman Joseph Fertitta' THEN 'Tilman Fertitta' WHEN 'Joshua Jordan Harris' THEN 'Josh Harris' WHEN 'James Lawrence Dolan' THEN 'James Dolan' WHEN 'Gayle Marie LaJaunie Bird Benson' THEN 'Gayle Benson' WHEN 'Daniel Gilbert' THEN 'Dan Gilbert' WHEN 'Daniel G. DeVos' THEN 'Dan DeVos' WHEN 'Robert J. Pera' THEN 'Robert Pera' ELSE ownership END;
+```
+</details>
+
 
 ## Papers
 
@@ -612,7 +743,7 @@ cspaper.retrieval_method lists every retrieval method a paper names (35 of 199 p
 ```sql
 SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN retrieval_method LIKE '%Dense%' THEN 1 ELSE 0 END) AS dense, SUM(CASE WHEN retrieval_method LIKE '%Sparse%' THEN 1 ELSE 0 END) AS sparse, SUM(CASE WHEN retrieval_method LIKE '%Graph%' THEN 1 ELSE 0 END) AS graph_based, SUM(CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 1 ELSE 0 END) AS hybrid, SUM(CASE WHEN retrieval_method LIKE '%Web%' THEN 1 ELSE 0 END) AS web_search FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth;
 ```
-<sub>Blind judges: Separate LIKE counts for Dense, Sparse, Graph, Hybrid and Web need the component methods kept in the string. Form 1 collapses them into 'Hybrid Retrieval', so t</sub>
+<sub>Blind judge: Separate LIKE counts for Dense, Sparse, Graph, Hybrid and Web need the component methods kept in the string. Form 1 collapses them into 'Hybrid Retrieval', so t</sub>
 
 <details><summary>answer key</summary>
 
@@ -626,7 +757,7 @@ SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN retrieval_method LIKE 
 ```sql
 SELECT retrieval_method, COUNT(*) AS papers, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS with_reranker, AVG(baseline_amount) AS average_baselines FROM cspaper WHERE retrieval_method <> '' GROUP BY retrieval_method;
 ```
-<sub>Blind judges: GROUP BY retrieval_method on a column described as 'choose one' expects one method per paper. Form 1 maps combinations to 'Hybrid Retrieval'; stored as stated, </sub>
+<sub>Blind judge: GROUP BY retrieval_method on a column described as 'choose one' expects one method per paper. Form 1 maps combinations to 'Hybrid Retrieval'; stored as stated, </sub>
 
 <details><summary>answer key</summary>
 
@@ -635,7 +766,7 @@ SELECT CASE WHEN retrieval_method LIKE '%||%' THEN 'Hybrid Retrieval' ELSE retri
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G1b needs (35) |
 |---|---|---|
@@ -659,7 +790,7 @@ cspaper.application_domain lists every domain a paper targets (39 of 199 papers 
 ```sql
 SELECT use_agent, COUNT(*) AS papers, SUM(CASE WHEN application_domain LIKE '%General%' THEN 1 ELSE 0 END) AS general_purpose, SUM(CASE WHEN application_domain LIKE '%Medical%' THEN 1 ELSE 0 END) AS medical, SUM(CASE WHEN application_domain LIKE '%Education%' THEN 1 ELSE 0 END) AS education, SUM(CASE WHEN application_domain LIKE '%Finance%' THEN 1 ELSE 0 END) AS finance, SUM(CASE WHEN application_domain LIKE '%Academic%' THEN 1 ELSE 0 END) AS academic FROM cspaper WHERE application_domain <> '' GROUP BY use_agent;
 ```
-<sub>Blind judges: Separate LIKE counts for General, Medical, Education, Finance and Academic assume a paper can fall under several domains. Form 1 drops 'General' and folds mixes</sub>
+<sub>Blind judge: Separate LIKE counts for General, Medical, Education, Finance and Academic assume a paper can fall under several domains. Form 1 drops 'General' and folds mixes</sub>
 
 <details><summary>answer key</summary>
 
@@ -673,7 +804,7 @@ SELECT use_agent, COUNT(*) AS papers, SUM(CASE WHEN application_domain LIKE '%Ge
 ```sql
 SELECT application_domain, COUNT(*) AS papers, SUM(CASE WHEN reasoning_depth = 'multi-hop' THEN 1 ELSE 0 END) AS multi_hop, SUM(CASE WHEN uses_knowledge_graph = 'Yes' THEN 1 ELSE 0 END) AS with_knowledge_graph FROM cspaper WHERE application_domain <> '' GROUP BY application_domain;
 ```
-<sub>Blind judges: GROUP BY application_domain with exact grouping implies one label per paper. Form 1 gives a single domain, with 'Multiple' for real mixes; stored as stated, eac</sub>
+<sub>Blind judge: GROUP BY application_domain with exact grouping implies one label per paper. Form 1 gives a single domain, with 'Multiple' for real mixes; stored as stated, eac</sub>
 
 <details><summary>answer key</summary>
 
@@ -682,7 +813,7 @@ SELECT CASE WHEN application_domain NOT LIKE '%||%' THEN application_domain WHEN
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G2b needs (39) |
 |---|---|---|
@@ -706,7 +837,7 @@ cspaper.performance_on_hotpotqa is the HotpotQA result as the paper states it (3
 ```sql
 SELECT use_agent, MIN(performance_on_hotpotqa) AS lowest_hotpotqa_f1, MAX(performance_on_hotpotqa) AS best_hotpotqa_f1 FROM cspaper WHERE performance_on_hotpotqa <> '' GROUP BY use_agent;
 ```
-<sub>Blind judges: MIN and MAX aliased lowest_hotpotqa_f1 and best_hotpotqa_f1 call for a single numeric F1 per row, which Form 1 stores. MIN/MAX over the free-text metric strings</sub>
+<sub>Blind judge: MIN and MAX aliased lowest_hotpotqa_f1 and best_hotpotqa_f1 call for a single numeric F1 per row, which Form 1 stores. MIN/MAX over the free-text metric strings</sub>
 
 <details><summary>answer key</summary>
 
@@ -720,7 +851,7 @@ SELECT use_agent, MIN(f1) AS lowest_hotpotqa_f1, MAX(f1) AS best_hotpotqa_f1 FRO
 ```sql
 SELECT uses_reranker, COUNT(*) AS papers, SUM(CASE WHEN performance_on_hotpotqa LIKE '%F1%' THEN 1 ELSE 0 END) AS report_f1, SUM(CASE WHEN performance_on_hotpotqa LIKE '%Acc%' THEN 1 ELSE 0 END) AS report_accuracy FROM cspaper WHERE performance_on_hotpotqa <> '' AND uses_reranker IN ('Yes', 'No') GROUP BY uses_reranker;
 ```
-<sub>Blind judges: LIKE '%F1%' and LIKE '%Acc%' test which metric names a paper reports. Only the text as stated keeps the metric labels; Form 1 keeps just a bare F1 number or 'No</sub>
+<sub>Blind judge: LIKE '%F1%' and LIKE '%Acc%' test which metric names a paper reports. Only the text as stated keeps the metric labels; Form 1 keeps just a bare F1 number or 'No</sub>
 
 <details><summary>answer key</summary>
 
@@ -729,7 +860,7 @@ SELECT uses_reranker, COUNT(*) AS papers, SUM(CASE WHEN performance_on_hotpotqa 
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G3a needs (31) |
 |---|---|---|
@@ -753,7 +884,7 @@ cspaper.data_modality lists the input types a paper handles (Text, Image, Table,
 ```sql
 SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN data_modality LIKE '%Image%' THEN 1 ELSE 0 END) AS image, SUM(CASE WHEN data_modality LIKE '%Table%' THEN 1 ELSE 0 END) AS tables, SUM(CASE WHEN data_modality LIKE '%Code%' THEN 1 ELSE 0 END) AS code, SUM(CASE WHEN data_modality LIKE '%Audio%' THEN 1 ELSE 0 END) AS audio FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth;
 ```
-<sub>Blind judges: The query counts each modality with LIKE '%Image%', '%Table%', '%Code%' and '%Audio%', so it needs the individual modalities kept in the string. Form 1 collapse</sub>
+<sub>Blind judge: The query counts each modality with LIKE '%Image%', '%Table%', '%Code%' and '%Audio%', so it needs the individual modalities kept in the string. Form 1 collapse</sub>
 
 <details><summary>answer key</summary>
 
@@ -767,7 +898,7 @@ SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN data_modality LIKE '%I
 ```sql
 SELECT data_modality, COUNT(*) AS papers, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS with_agent, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS with_reranker FROM cspaper WHERE data_modality IN ('Text', 'Multimodal') GROUP BY data_modality;
 ```
-<sub>Blind judges: The filter data_modality IN ('Text','Multimodal') uses 'Multimodal' as a stored value. Only Form 1 stores it; stored as stated, every multi-modality row would d</sub>
+<sub>Blind judge: The filter data_modality IN ('Text','Multimodal') uses 'Multimodal' as a stored value. Only Form 1 stores it; stored as stated, every multi-modality row would d</sub>
 
 <details><summary>answer key</summary>
 
@@ -776,7 +907,7 @@ SELECT CASE WHEN data_modality = 'Text' THEN 'Text' ELSE 'Multimodal' END AS dat
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G4b needs (53) |
 |---|---|---|
@@ -800,7 +931,7 @@ cspaper.generator_model lists the generator models as each paper spells them (Ll
 ```sql
 SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN generator_model LIKE '%Llama 2%' THEN 1 ELSE 0 END) AS llama_2, SUM(CASE WHEN generator_model LIKE '%Llama 3%' THEN 1 ELSE 0 END) AS llama_3, SUM(CASE WHEN generator_model LIKE '%Qwen2.5%' THEN 1 ELSE 0 END) AS qwen_2_5 FROM cspaper WHERE reasoning_depth IN ('multi-hop', 'single-hop') GROUP BY reasoning_depth;
 ```
-<sub>Blind judges: LIKE '%Llama 2%' and '%Llama 3%' (with a space) only match the normalized names in Form 1. Stored as stated, values like 'Llama2-13B' and 'Llama3 8B' are missed</sub>
+<sub>Blind judge: LIKE '%Llama 2%' and '%Llama 3%' (with a space) only match the normalized names in Form 1. Stored as stated, values like 'Llama2-13B' and 'Llama3 8B' are missed</sub>
 
 <details><summary>answer key</summary>
 
@@ -814,7 +945,7 @@ SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN (replace(replace(repla
 ```sql
 SELECT generator_model, COUNT(*) AS papers, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS with_agent, AVG(baseline_amount) AS average_baselines FROM cspaper WHERE generator_model IN ('Proprietary', 'Open-weight', 'Both') GROUP BY generator_model;
 ```
-<sub>Blind judges: The filter generator_model IN ('Proprietary','Open-weight','Both') and GROUP BY only match rows if the column holds those licence categories, which only Form 2 </sub>
+<sub>Blind judge: The filter generator_model IN ('Proprietary','Open-weight','Both') and GROUP BY only match rows if the column holds those licence categories, which only Form 2 </sub>
 
 <details><summary>answer key</summary>
 
@@ -823,7 +954,7 @@ SELECT CASE WHEN (replace(replace(replace(lower(generator_model), 'gpt-neo', '')
 ```
 </details>
 
-Stored forms (exact match; rows changed):
+Stored forms (exact match; rows changed in brackets):
 
 | Query | as stated (0) | stored as G5a needs (77) | stored as G5b needs (185) |
 |---|---|---|---|
@@ -845,7 +976,7 @@ UPDATE cspaper SET generator_model = CASE WHEN (replace(replace(replace(lower(ge
 
 ## Dropped by the blind reading test
 
-| Query | Outcome | Judges' reason (first judge) |
+| Query | Outcome | Judge's reason |
 |---|---|---|
 | Artists G4a | a judge contradicts the key | GROUP BY century with only a non-empty filter, over a column whose description explicitly allows spans like 19th-20th, groups by the values as given. Nothing in |
 | Artists G5a | a judge contradicts the key | Exact IN ('Realism','Expressionism') on a free-text style column picks out those exact styles. Abstract Expressionism, Neo-Expressionism and Photorealism are di |
@@ -859,4 +990,4 @@ UPDATE cspaper SET generator_model = CASE WHEN (replace(replace(replace(lower(ge
 | Players G1c | one judge ambiguous | The query groups by team with no join, for players drafted before 1980. Grouping by the historical team name as stated (matching 'last team joined') and groupin |
 | Players G2a | one judge ambiguous | The query filters nationality <> 'American'. Form 1 maps hyphenated values such as 'Nigerian-American' to 'American', which excludes them. Form 2 and the stored |
 
-Also dropped: Players G1 (after G1c was dropped, one stored form answered both remaining queries) and Legal G3 (its remaining query needed the form of a dropped one).
+Also not included: Players G1 and Legal G3 (no conflict left after dropping a query); med G4 and G6, artists G12 and players G12, G14 passed every check but were left out to balance the collections (5 groups each), keeping the larger conflicts.

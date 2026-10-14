@@ -14,7 +14,6 @@ SELECT retrieval_method, COUNT(*) AS papers, SUM(CASE WHEN uses_reranker = 'Yes'
 -- KEY G1b:
 SELECT CASE WHEN retrieval_method LIKE '%||%' THEN 'Hybrid Retrieval' ELSE retrieval_method END AS retrieval_method, COUNT(*) AS papers, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS with_reranker, AVG(baseline_amount) AS average_baselines FROM cspaper WHERE retrieval_method <> '' GROUP BY CASE WHEN retrieval_method LIKE '%||%' THEN 'Hybrid Retrieval' ELSE retrieval_method END;
 
-
 -- GROUP G2: cspaper.application_domain lists every domain a paper targets (39 of 199 papers name two or more, often General plus a specific domain); G2a counts a paper under each domain it names (needs the list as stated), G2b counts each paper once under its specific domain (needs one value per paper)
 -- TYPE: list-vs-one
 -- COLUMN: cspaper.application_domain
@@ -29,7 +28,6 @@ SELECT use_agent, COUNT(*) AS papers, SUM(CASE WHEN application_domain LIKE '%Ge
 SELECT application_domain, COUNT(*) AS papers, SUM(CASE WHEN reasoning_depth = 'multi-hop' THEN 1 ELSE 0 END) AS multi_hop, SUM(CASE WHEN uses_knowledge_graph = 'Yes' THEN 1 ELSE 0 END) AS with_knowledge_graph FROM cspaper WHERE application_domain <> '' GROUP BY application_domain;
 -- KEY G2b:
 SELECT CASE WHEN application_domain NOT LIKE '%||%' THEN application_domain WHEN length(application_domain) - length(replace(application_domain, '||', '')) = 2 AND application_domain LIKE '%General%' THEN trim(replace(replace(application_domain, 'General||', ''), '|| General', '')) ELSE 'Multiple' END AS application_domain, COUNT(*) AS papers, SUM(CASE WHEN reasoning_depth = 'multi-hop' THEN 1 ELSE 0 END) AS multi_hop, SUM(CASE WHEN uses_knowledge_graph = 'Yes' THEN 1 ELSE 0 END) AS with_knowledge_graph FROM cspaper WHERE application_domain <> '' GROUP BY CASE WHEN application_domain NOT LIKE '%||%' THEN application_domain WHEN length(application_domain) - length(replace(application_domain, '||', '')) = 2 AND application_domain LIKE '%General%' THEN trim(replace(replace(application_domain, 'General||', ''), '|| General', '')) ELSE 'Multiple' END;
-
 
 -- GROUP G3: cspaper.performance_on_hotpotqa is the HotpotQA result as the paper states it (31 papers; metric names, model variants, several numbers); G3a needs each paper's best answer F1 as one number on a 0-100 scale (empty when the paper reports no answer F1), G3b needs the stated text to see which metrics are reported
 -- TYPE: number-vs-text
@@ -48,7 +46,6 @@ SELECT uses_reranker, COUNT(*) AS papers, SUM(CASE WHEN performance_on_hotpotqa 
 -- KEY G3b:
 SELECT uses_reranker, COUNT(*) AS papers, SUM(CASE WHEN performance_on_hotpotqa LIKE '%F1%' THEN 1 ELSE 0 END) AS report_f1, SUM(CASE WHEN performance_on_hotpotqa LIKE '%Acc%' THEN 1 ELSE 0 END) AS report_accuracy FROM cspaper WHERE performance_on_hotpotqa <> '' AND uses_reranker IN ('Yes', 'No') GROUP BY uses_reranker;
 
-
 -- GROUP G4: cspaper.data_modality lists the input types a paper handles (Text, Image, Table, Code, Audio; 53 papers name more than text alone); G4a counts papers per stated input type (needs the list as stated), G4b compares text-only with multimodal papers (needs one coarse value per paper)
 -- TYPE: fine-vs-coarse
 -- COLUMN: cspaper.data_modality
@@ -63,7 +60,6 @@ SELECT reasoning_depth, COUNT(*) AS papers, SUM(CASE WHEN data_modality LIKE '%I
 SELECT data_modality, COUNT(*) AS papers, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS with_agent, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS with_reranker FROM cspaper WHERE data_modality IN ('Text', 'Multimodal') GROUP BY data_modality;
 -- KEY G4b:
 SELECT CASE WHEN data_modality = 'Text' THEN 'Text' ELSE 'Multimodal' END AS data_modality, COUNT(*) AS papers, SUM(CASE WHEN use_agent = 'Yes' THEN 1 ELSE 0 END) AS with_agent, SUM(CASE WHEN uses_reranker = 'Yes' THEN 1 ELSE 0 END) AS with_reranker FROM cspaper WHERE data_modality <> '' AND data_modality <> 'proprietary enterprise dataset' GROUP BY CASE WHEN data_modality = 'Text' THEN 'Text' ELSE 'Multimodal' END;
-
 
 -- GROUP G5: cspaper.generator_model lists the generator models as each paper spells them (Llama2-7B, Llama 2 7B, LLaMA-2-7b, Qwen-2.5-7B, GPT-4o, ...); G5a needs model versions under one spelling (Llama 2, Llama 3, Qwen2.5), G5b needs one coarse class per paper (proprietary only, open-weight only, both)
 -- TYPE: fine-vs-coarse
