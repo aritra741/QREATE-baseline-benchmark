@@ -35,8 +35,17 @@ def safe(qid: str) -> str:
     return qid.replace("/", "_").replace(":", "_").replace("#", "_")
 
 
+# Answer keys: query id -> the SQL that computes the correct answer from the correct data, when it is not the query
+# itself. A natural query ("JOIN team ON player.team = team.team_name") is answered by the system as written; its
+# correct answer may need post-processing of the stated values (a renamed franchise counted under its current name)
+# that the system must do itself, so the answer key, never shown to a system, holds that post-processing. Same
+# output columns, in the same order, as the query.
+REFERENCE: dict[str, str] = {}
+
+
 def score_multi(corpus: str, items: list[tuple[str, Path]]) -> dict[str, dict[float, float]]:
-    """Per query: structure F2 x cell F1 at every tau, on the official SQL path of drift_run.Scorer('benchmark')."""
+    """Per query: structure F2 x cell F1 at every tau, on the official SQL path of drift_run.Scorer('benchmark').
+    The correct rows come from the query's answer key (REFERENCE) when it has one, else from the query itself."""
     from quwarts.core.pipeline import official_sql
     from quwarts.eval.drift_run import predicates
     from quwarts.experiments.player_case80 import execute
@@ -56,7 +65,7 @@ def score_multi(corpus: str, items: list[tuple[str, Path]]) -> dict[str, dict[fl
         res = {t: 0.0 for t in TAUS} | {"structure": 0.0, "cell": {t: 0.0 for t in TAUS}}
         try:
             psql = official_sql(sql, str(db), preds, query_id=qid)
-            gold_rows = execute(gold_conn, sql)
+            gold_rows = execute(gold_conn, REFERENCE.get(qid, sql))
             con = sqlite3.connect(db)
             try:
                 pred_rows = execute(con, psql) if psql else []
