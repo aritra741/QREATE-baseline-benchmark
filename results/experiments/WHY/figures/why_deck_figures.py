@@ -280,3 +280,47 @@ ax.set_ylim(0, 1)
 ax.set_ylabel("Mean query score, view agent", fontsize=20)
 save(fig, "remaining")
 print("wrote", sorted(p.name for p in OUT.glob("*.png")))
+
+# 11. small-model ingredient ladder, players (shared read; WHY/ingredients/summary.json) --------------------------------------------
+ing = json.loads((WHY / "ingredients" / "summary.json").read_text())["player"]
+steps = [("DocETL,\nits wording", "L0 DocETL shared read, harness wording", DOC), ("+ our\nwording", "L1 + our wording", OURS),
+         ("+ split long\ndocuments", "L2 + split documents", OURS), ("our reader\n(plain JSON)", "L3 our reader, values as read", OURS),
+         ("+ commit\nstep", "L4 + our commit step", OURS), ("our full\nsystem", "our full system, as run", INK)]
+fig, ax = plt.subplots(figsize=(14, 6.4))
+prev = None
+for i, (n, k, c) in enumerate(steps):
+    v20, v0 = ing[k]["mean"]["20%"], ing[k]["mean"]["0%"]
+    ax.bar(i, v20, 0.62, color=c)
+    tick0(ax, [i], [v0], 0.62)
+    lab = f"{v20:.2f}" if prev is None or i == len(steps) - 1 else f"{v20:.2f}\n(+{v20 - prev:.2f})"
+    ax.annotate(lab, (i, v20), xytext=(0, 6), textcoords="offset points", ha="center", fontsize=20, color=INK, fontweight="semibold")
+    if "lost_documents" in ing[k]:
+        ax.annotate(f"{ing[k]['lost_documents']} lost", (i, -0.075), ha="center", fontsize=17, color=DOC, annotation_clip=False)
+    prev = v20
+ax.set_xticks(range(len(steps)), [s[0] for s in steps], fontsize=18)
+ax.tick_params(axis="x", pad=34)
+ax.set_ylim(0, 0.72)
+ax.set_ylabel("Mean query score, players", fontsize=20)
+save(fig, "ingredients")
+
+# 12. workload awareness: L4 vs no use lines vs every column, three collections ----------------------------------------------------
+allw = json.loads((WHY / "ingredients" / "summary.json").read_text())
+cols3 = [("player", "Players"), ("art", "Artists"), ("cspaper", "Papers")]
+var = [("L4 + our commit step", "Workload columns,\nwith use lines", OURS), ("W1 L4 without workload use lines", "No use lines", LIGHT),
+       ("W2 L4 reading every schema column", "Every column", GREY)]
+fig, ax = plt.subplots(figsize=(14, 6.2))
+w = 0.26
+for j, (k, lab, c) in enumerate(var):
+    xs = [i + (j - 1) * w for i in range(len(cols3))]
+    v20 = [allw[cc][k]["mean"]["20%"] for cc, _ in cols3]
+    v0 = [allw[cc][k]["mean"]["0%"] for cc, _ in cols3]
+    ax.bar(xs, v20, w * 0.92, color=c, label=lab.replace("\n", " "))
+    tick0(ax, xs, v0, w * 0.92)
+    for x_, v in zip(xs, v20):
+        ax.annotate(f"{v:.2f}", (x_, v), xytext=(0, 5), textcoords="offset points", ha="center", fontsize=17, color=INK, fontweight="semibold")
+ax.set_xticks(range(len(cols3)), [n for _, n in cols3], fontsize=20)
+ax.set_ylim(0, 0.68)
+ax.set_ylabel("Mean query score", fontsize=20)
+ax.legend(frameon=False, fontsize=18, loc="upper right")
+save(fig, "workload")
+print("wrote extra", ["ingredients.png", "workload.png"])
