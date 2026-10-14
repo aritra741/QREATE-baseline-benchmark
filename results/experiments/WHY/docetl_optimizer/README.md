@@ -11,6 +11,7 @@ Queries: players QJ14, QJ15, QJ17, QJ19, QJ20 (joins over long team/city documen
 | DocETL + MOAR (labeled sample, upper bound) | 0.398 | 33.6M (understated: search tokens of the 5 salvaged runs were not recorded) |
 | DocETL + v1 (no labels) | 0.476 | 281.1M |
 | our reader alone (no build, planner or representation layer) | 0.431 | 5.9M |
+| **our full system** (initial build, planner, representation layer, reuse; whole realistic stream run from scratch on Haiku) | **0.626** | 23.1M for the whole stream of 48 queries (0.48M per query; DocETL ~1.6M per query) |
 
 - MOAR improved one query (QJ14 0.941 -> 1.000), lowered one (QJ15 0.881 -> 0.851), and left the rest unchanged. Its search looped
   without terminating on 5 of 8 queries (millions of SELECTION steps, no new evaluations); for those, per table, the best
@@ -31,6 +32,13 @@ rows; agent-written steps naming OpenAI models and OpenAI embeddings mapped to l
 6 hours per table and ended with "No valid plans were generated" on one query; MOAR's candidate plans produced empty outputs
 (steps written for a strong model, run on a 7B model with a small default context). Outputs of those attempts are kept under
 `results/docetl_optimized/invalid-*` and `incomplete-v1-qwen-7h`, not used in any comparison.
+
+## Our full system on Haiku vs on Qwen (`full_system_haiku.json`)
+
+Whole realistic stream, mean at 20%: players 0.593 on Haiku vs 0.564 on Qwen (28 queries); med 0.185 vs 0.259 (20 queries).
+On the 8 queries: identical on QJ14, QJ17, QJ19, QJ20 and med Q12; QJ15 0.705 vs 0.749; med Q8 and QJ4 0 on Haiku vs 1.0 on
+Qwen. Those two are exact single counts (one document off scores 0); on Qwen, Q8 was exact in only 1 of 3 replicates, so
+their 1.0 on Qwen is partly chance.
 
 ## Caveat on "ours"
 

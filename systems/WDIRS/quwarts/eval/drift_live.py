@@ -80,7 +80,7 @@ ORDER = ["attribute/100", "combined/100", "value/100", "attribute/0", "attribute
 HEADLINE = ["attribute/100", "value/100", "attribute/0", "combined/0", "value/0"]
 WORKERS = int(os.environ.get("QUWARTS_WORKERS", 24))
 BACKEND = os.environ.get("QUWARTS_LLM", "openrouter")
-assert BACKEND in ("openrouter", "ollama"), BACKEND
+assert BACKEND in ("openrouter", "ollama", "anthropic"), BACKEND
 PRICE = {"input": 0.10 / 1e6, "output": 0.20 / 1e6}  # OpenRouter list price of qwen/qwen-2.5-7b-instruct
 # Ablations of the patch prompt (QUWARTS_LIVE_VARIANT): ``no_literals`` keeps a patched column's usage phrase but
 # drops the example constants from the queries; ``no_usage`` gives a patched column no usage phrase. The build is
@@ -181,6 +181,10 @@ def make_caller(usage: Usage, max_tokens: int = 700):
         return BudgetedCaller(TokenLedger(theta=10**13), refuse)
     if BACKEND == "ollama":
         return ollama_caller(usage, max_tokens)
+    if BACKEND == "anthropic":  # Claude through the official SDK (ANTHROPIC_API_KEY, ANTHROPIC_MODEL); Haiku writes longer notes
+        from quwarts.eval.exp_reader_arms import anthropic_caller
+
+        return anthropic_caller(usage, os.environ.get("ANTHROPIC_MODEL", "claude-haiku-5-5"), max_tokens=max(max_tokens, 2000))
     return openrouter_caller(usage, max_tokens)
 
 
