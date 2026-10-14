@@ -24,6 +24,8 @@ into 2008 and then rejecting it against a declared string type):
              (from results/experiments/RW-haiku/live/<corpus>/build_reads.jsonl), not only the query's columns
   ourwords_json  ourwords, with DocETL's other answer form: output mode "structured_output" (a JSON object constrained by the
              schema) instead of the default tool call
+  shared_ourwords          shared (one read per table, the union of the queries' columns), with our wording
+  shared_ourwords_chunked  shared_ourwords, documents split into our reader's chunks (combined as in chunked)
   ourwords_norecall  ourwords, and DocETL's built-in system prompt without "and exhaustively (i.e., high recall)"
   stated     strfix; one sentence added to DocETL's prompt, our reader's system line: "Extract only facts stated in
              the document."
@@ -47,7 +49,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated", "norecall", "ourwords", "ourwords_norecall", "ourwords_cored", "ourwords_json")
+ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated", "norecall", "ourwords", "ourwords_norecall", "ourwords_cored", "ourwords_json", "shared_ourwords", "shared_ourwords_chunked")
 
 
 def mask(sql: str) -> str:
@@ -66,6 +68,8 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     if a.arm != "asis":
         os.environ["DOCETL_STR_COERCE"] = "1"
+    if a.arm.startswith("ourwords") or a.arm.startswith("shared_ourwords"):
+        os.environ["DOCETL_NULL_OK"] = "1"  # our wording says "use null"; keep an explicit null as "not stated"
     if a.arm in ("norecall", "ourwords_norecall"):
         os.environ["DOCETL_NO_RECALL"] = "1"
 
@@ -143,7 +147,7 @@ def main(argv=None) -> int:
                     descriptions[x] = f"{descriptions[x] or x}. {tail}"
         shown = mask(sql) if a.arm == "masked" else sql
         template = RD.prompt_template(table, attrs, numeric, shown, descriptions)
-        if a.arm in ("ourwords", "ourwords_norecall", "ourwords_cored", "ourwords_json"):
+        if a.arm in ("ourwords", "ourwords_norecall", "ourwords_cored", "ourwords_json", "shared_ourwords", "shared_ourwords_chunked"):
             from quwarts.core.router.context_probe import render_prompt
 
             ours = render_prompt("{{ input.text }}", [fields[f"{table}.{x}"] for x in attrs], None)
@@ -160,7 +164,7 @@ def main(argv=None) -> int:
             template = template.replace(f"for this natural-language query:\n{sql}\n\n", ".\n\n")
             assert not sql or sql not in template
         texts = {d: Path(p).read_text(errors="ignore") for d, p in ctx.docs[table].items()}
-        if a.arm in ("chunked", "chunked_er"):
+        if a.arm in ("chunked", "chunked_er", "shared_ourwords_chunked"):
             size = chunked.chunk_tokens(int(V3["window_tokens"]))
             data = [{"doc_id": f"{d}#{i}", "text": RD.fit(ch, template)}
                     for d in ctx.names[table] for i, ch in enumerate(chunked.split_chunks(texts[d], size))]
@@ -175,7 +179,7 @@ def main(argv=None) -> int:
             rows += run_map(table, attrs, template, schema, missing, out / "retry", a.threads)
         rows = RD.clean(rows, attrs)
         items = len(data)
-        if a.arm in ("chunked", "chunked_er"):  # combine chunk rows per document
+        if a.arm in ("chunked", "chunked_er", "shared_ourwords_chunked"):  # combine chunk rows per document
             by_doc: dict[str, list[dict]] = {}
             for r in rows:
                 d, _, i = str(r["doc_id"]).rpartition("#")
@@ -205,7 +209,7 @@ def main(argv=None) -> int:
         return stats
 
     shared_tables, shared_numeric = {}, {}
-    if a.arm == "shared":  # one read of each table, the union of all the queries' columns, no query in the prompt
+    if a.arm.startswith("shared"):  # one read of each table, the union of all the queries' columns, no query in the prompt
         fields_u, reads_u = D.C.design(ctx.spec, {q: cat[q] for q in a.qids})
         for r in reads_u:
             if r.table not in ctx.names or not r.attributes:
@@ -282,7 +286,7 @@ def main(argv=None) -> int:
         if qid in per:
             continue
         sql = cat[qid]
-        if a.arm == "shared":
+        if a.arm.startswith("shared"):
             db = RD.build_db(c, sql, {t: [dict(x) for x in v] for t, v in shared_tables.items()}, shared_numeric, root / "db" / f"{RD.safe(qid)}.db")
             sc = score_multi(c, [(qid, db)])[qid]
             per[qid] = {"score": {f"{t:.0%}": sc.get(t) for t in TAUS}, "tables": sorted(shared_tables), "prompt_tokens": 0,

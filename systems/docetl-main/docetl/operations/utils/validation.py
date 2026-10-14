@@ -237,9 +237,15 @@ def validate_output_types(
         key: convert_val(value_type, model) for key, value_type in output_schema.items()
     }
 
+    import os
+
     for field, field_schema in field_schemas.items():
         if field not in output:
             errors.append(f"Missing required field: {field}")
+            continue
+        # QuWARTS harness (opt-in, DOCETL_NULL_OK=1): an explicit null ("not stated") is kept as an empty value, the
+        # meaning of DocETL's own "empty string / -1 if unknown" convention, instead of failing the type check.
+        if output[field] is None and os.environ.get("DOCETL_NULL_OK") == "1":
             continue
         if not _validate_value_against_schema(output[field], field_schema):
             errors.append(
