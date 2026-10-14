@@ -14,6 +14,9 @@ into 2008 and then rejecting it against a declared string type):
            Yes/No field, a "0 if none" description, a never-null count) gets one sentence in its description:
            "If the document does not mention any, answer 0." / "If the document does not say so, answer No."
            (the information our system applies in code, given to DocETL's reader instead)
+  noconcise  strfix; the sentence "Keep names concise and normalized." removed from DocETL's prompt
+  stated     strfix; one sentence added to DocETL's prompt, our reader's system line: "Extract only facts stated in
+             the document."
 Everything else is run_docetl_drift's (prompt, fit to the window, one retry of skipped documents, table
 building, scoring). Output: results/docetl_arms/<arm>/<corpus>/..., per_query.json with scores at 0/5/10/20%.
 
@@ -34,7 +37,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er")
+ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated")
 
 
 def mask(sql: str) -> str:
@@ -122,6 +125,12 @@ def main(argv=None) -> int:
                     descriptions[x] = f"{descriptions[x] or x}. {tail}"
         shown = mask(sql) if a.arm == "masked" else sql
         template = RD.prompt_template(table, attrs, numeric, shown, descriptions)
+        if a.arm == "noconcise":
+            assert "Keep names concise and normalized.\n\n" in template
+            template = template.replace("Keep names concise and normalized.\n\n", "\n")
+        if a.arm == "stated":
+            assert "If a numeric field is unknown" in template
+            template = template.replace("If a numeric field is unknown", "Extract only facts stated in the document. If a numeric field is unknown")
         if a.arm in ("nosql", "shared"):
             template = template.replace(f"for this natural-language query:\n{sql}\n\n", ".\n\n")
             assert not sql or sql not in template
