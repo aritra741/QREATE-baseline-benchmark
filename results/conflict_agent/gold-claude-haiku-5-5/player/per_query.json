@@ -1,0 +1,401 @@
+{
+ "store": "gold",
+ "model": "claude-haiku-5-5",
+ "agent_tokens": {
+  "input": 60266,
+  "output": 35849,
+  "calls": 43
+ },
+ "per_query": {
+  "conflict:player#G3a": {
+   "score": {
+    "0%": 1.0,
+    "5%": 1.0,
+    "10%": 1.0,
+    "20%": 1.0
+   },
+   "plans": {
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column already holds a plain numeric count of championships for each player (0 to 13). SUM(nba_championships) therefore totals the titles as the query intends. The REAL storage (e.g., 4.0) only changes the output type of the sum, not its meaning, so no transformation is needed.",
+     "values": 9,
+     "mapped_values": 0
+    },
+    "player.olympic_gold_medals": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column already holds one numeric count per row (0.0, 1.0, 2.0, 3.0, 4.0), with no lists, text, or unknown categories. SUM(olympic_gold_medals) therefore returns the total number of Olympic gold medals for the eight named players, which is what the query intends. No transformation is needed.",
+     "values": 5,
+     "mapped_values": 0
+    },
+    "player.name": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Map each stored legal full name to the common name the query uses, for these eight players only: 'LeBron Raymone James Sr.' \u2192 'LeBron James'; 'Wardell Stephen Curry II' \u2192 'Stephen Curry'; 'Kevin Wayne Durant' \u2192 'Kevin Durant'; 'Michael Jeffrey Jordan' \u2192 'Michael Jordan'; 'Kobe Bean Bryant' \u2192 'Kobe Bryant'; \"Shaquille Rashaun O'Neal\" \u2192 \"Shaquille O'Neal\"; 'Giannis Sina Ugo Antetokounmpo' \u2192 'Giannis Antetokounmpo'. 'Tim Duncan' already matches. All other names stay unchanged.",
+     "reason": "The query filters with IN on short, commonly used names, but the stored values are full legal names with middle names, suffixes, or nicknames. Without a mapping, seven of the eight target players would match zero rows and the counts and totals would be wrong. The correspondence is a knowledge-based identity judgment, not a string transformation that SQL can derive deterministically, so a map is required.",
+     "values": 141,
+     "mapped_values": 7
+    }
+   },
+   "errors": {}
+  },
+  "conflict:player#G3b": {
+   "score": {
+    "0%": 1.0,
+    "5%": 1.0,
+    "10%": 1.0,
+    "20%": 1.0
+   },
+   "plans": {
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column holds one numeric championship count per player, with no list-valued entries. The query only sums it with SUM(), which works on the REAL values as stored (for example 1.0 and 4.0). The only difference is that the totals come back as floats, which does not change their meaning.",
+     "values": 9,
+     "mapped_values": 0
+    },
+    "player.name": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The query tests whether name ends with ' Jr.', ' Sr.', ' II' or ' III'. In the stored values, the suffix appears at the end of the name where one exists (e.g., 'Anthony Marshon Davis Jr.', 'Jimmy Butler III', 'Wardell Stephen Curry II', 'Dewayne \"D. J.\" White, Jr.'). Names with alternate forms, such as 'Ed Dahler Edward Dahler Jr.', still end in the suffix, so the LIKE tests classify them correctly. No value has a suffix in a non-final position that the query would miss. SQLite's LIKE is case-insensitive for ASCII, which does not change these matches. The stored text already fits the query as written.",
+     "values": 141,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:player#G4a": {
+   "score": {
+    "0%": 1.0,
+    "5%": 1.0,
+    "10%": 1.0,
+    "20%": 1.0
+   },
+   "plans": {
+    "player.college": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Map each stored value to one of the five names the query uses when it denotes that same university (main campus or its athletic program): 'UCLA' from 'UCLA' and 'University of California, Los Angeles'; 'Kentucky' from 'Kentucky', 'Kentucky Wildcats', and 'University of Kentucky'; 'Duke' from 'Duke' and 'Duke University'; 'Michigan State' from 'Michigan State', 'Michigan State University', and 'Michigan State Spartans'; 'North Carolina' from 'North Carolina', 'North Carolina Tar Heels', 'University of North Carolina', and 'University of North Carolina at Chapel Hill'. Leave every other value unchanged. Do not map different schools that share a name, such as 'UNC Wilmington', 'NC State Wolfpack', 'University of Michigan', 'Indiana University', or 'Villanova Wildcats'. Multi-school values such as 'Indiana University, Xavier University' or 'Wichita State Shockers, Oklahoma Sooners' are left unchanged.",
+     "reason": "The query filters and groups on exact strings, but the stored values use many variants of the same five universities (full names, nicknames, and alternate spellings). Without a mapping, those rows would be missed or counted under separate groups. A knowledge-based mapping to the query's canonical names is needed, and a deterministic SQL expression cannot express it.",
+     "values": 92,
+     "mapped_values": 13
+    },
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already numeric counts (0.0 through 13.0). The query's `nba_championships >= 1` comparison works directly on them, and the float representation does not change the result. No transformation is needed.",
+     "values": 9,
+     "mapped_values": 0
+    },
+    "player.draft_pick": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "draft_pick is already numeric (stored as REAL, e.g. 1.0), and SQLite compares it correctly with the integer bounds in BETWEEN 1 AND 10. The 0.0 values (likely undrafted players) fall outside 1-10, so they are correctly excluded from top_10_picks and need no change. No transformation is required for the query to return what its author intends.",
+     "values": 39,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:player#G4b": {
+   "score": {
+    "0%": 0.9333,
+    "5%": 0.9333,
+    "10%": 0.9333,
+    "20%": 0.9333
+   },
+   "plans": {
+    "player.college": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Map each stored value that names one of the five target schools to that school's exact query spelling, and leave every other value unchanged. 'University of Kentucky', 'Kentucky', 'Kentucky Wildcats' \u2192 'University of Kentucky'. 'Duke University', 'Duke' \u2192 'Duke University'. 'Indiana University', 'Indiana Hoosiers' \u2192 'Indiana University'. 'Michigan State University', 'Michigan State', 'Michigan State Spartans' \u2192 'Michigan State University'. 'University of Florida' is already exact. For the multi-school value 'Indiana University, Xavier University', take the first listed school as the player's college, giving 'Indiana University'. Do not map 'University of Michigan' or other schools to Michigan State.",
+     "reason": "The query filters and groups on exact canonical school names. Several stored values are the same school written as a nickname, short form, or team name (Kentucky, Duke, Indiana Hoosiers, Michigan State, Michigan State Spartans, Kentucky Wildcats), so without mapping those players would be dropped from the counts. A fixed alias mapping is needed rather than a string expression, because the variants are not derivable by a deterministic rule from the text alone.",
+     "values": 92,
+     "mapped_values": 7
+    },
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column already holds a plain numeric count of NBA championships per player (0.0 to 13.0), with no lists, text, or dates. SUM(nba_championships) therefore adds up the correct totals. The REAL storage only makes the sums print as floats (e.g., 5.0), which does not change their meaning.",
+     "values": 9,
+     "mapped_values": 0
+    },
+    "player.olympic_gold_medals": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values (0.0, 1.0, 2.0, 3.0, 4.0) are already per-player counts of Olympic gold medals, which is what the column is described as holding. SUM and the per-college grouping will therefore total the right quantities. The values are stored as floats, so the sums may display as, for example, 5.0 rather than 5, but the numbers are correct and no transformation is needed.",
+     "values": 5,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:player#G11a": {
+   "score": {
+    "0%": 0.9821,
+    "5%": 0.9821,
+    "10%": 0.9911,
+    "20%": 0.9911
+   },
+   "plans": {
+    "team.team_name": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "team.team_name already holds one clean, full NBA team name per row across 30 distinct values, matching the column description (e.g. 'Los Angeles Lakers'). The query groups by this column and joins it to player.team, so it works as written. The mismatched or historical names (e.g. 'Milwaukee Hawks', 'New Orleans Jazz', non-NBA clubs) occur on the player.team side, which this column does not control, so they are not a reason to change team.team_name.",
+     "values": 30,
+     "mapped_values": 0
+    },
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already numeric championship counts (0.0 to 13.0), which is what the column description asks for. SUM(player.nba_championships) aggregates them correctly, and the float representation does not change the total. No transformation is needed.",
+     "values": 9,
+     "mapped_values": 0
+    },
+    "team.championship": {
+     "operation": "sql",
+     "sql_expression": "CAST(championship AS INTEGER)",
+     "mapping_rule": "",
+     "reason": "The query uses MAX(team.championship) as the franchise title count, which needs numeric comparison. The stored values are text digit strings, and SQLite's MAX on text is lexicographic, so '3' ranks above '18' and '7' above '17'. Casting each value to INTEGER makes MAX return the true largest title count. Every stored value is a plain integer string, so the cast is deterministic and loses nothing.",
+     "values": 9,
+     "mapped_values": 0
+    },
+    "player.team": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Map each distinct stored value to the franchise name in team.team_name that the player's team belongs to. Historical NBA names map to the current franchise name (e.g., 'Milwaukee Hawks' and 'St. Louis Hawks' to 'Atlanta Hawks'; 'Baltimore Bullets' and 'Washington Bullets' to 'Washington Wizards'; 'Philadelphia Warriors' to 'Golden State Warriors'; 'Seattle SuperSonics' to 'Oklahoma City Thunder'; 'Charlotte Bobcats' to 'Charlotte Hornets'; 'New Orleans Jazz' to 'Utah Jazz'; 'Fort Wayne Pistons' to 'Detroit Pistons'; 'Syracuse Nationals' to 'Philadelphia 76ers'; 'Rochester Royals' and 'Cincinnati Royals' to 'Sacramento Kings'). For multi-team values like 'Chicago Bulls, Washington Wizards', map to the last NBA team listed ('Washington Wizards'). Values already matching a team_name stay unchanged. Non-NBA clubs (e.g., 'AS Monaco', 'Olympiacos', 'Grand Rapids Hoops') and non-team strings (e.g., 'Senior Consultant to Hockey Operations for the St. Louis Blues') map to NULL so they do not join.",
+     "reason": "The query inner-joins player.team to team.team_name, which lists current NBA franchises only. Many stored values are historical NBA franchise names, multi-team strings, non-NBA clubs, or free text. Resolving them to the matching franchise requires domain knowledge of franchise history, which a deterministic SQL expression cannot supply.",
+     "values": 67,
+     "mapped_values": 12
+    },
+    "player.mvp_awards": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already numeric counts (0.0 through 5.0), with no lists, text, or unmapped categories. The query compares mvp_awards >= 1 numerically, which works directly on these floats, and the 0 default is already present as 0.0. SUM and the CASE expression need no transformation.",
+     "values": 6,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:player#G11b": {
+   "score": {
+    "0%": 0.9182,
+    "5%": 0.9182,
+    "10%": 0.9182,
+    "20%": 0.9182
+   },
+   "plans": {
+    "player.team": {
+     "operation": "sql",
+     "sql_expression": "CASE WHEN INSTR(team, ',') > 0 THEN TRIM(SUBSTR(team, INSTR(team, ',') + 1)) ELSE team END",
+     "mapping_rule": "",
+     "reason": "The column is defined as a single team (the current or last team joined), but the stored value 'Chicago Bulls, Washington Wizards' packs two teams into one comma-separated string. The query filters and groups on single team names, so the player should count under the last-listed team, Washington Wizards, which matches the column's 'last team joined' definition. The expression keeps the part after the comma for any comma-containing value and leaves every other value unchanged. No other stored value contains a comma.",
+     "values": 67,
+     "mapped_values": 0
+    },
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already numeric championship counts (0.0 through 13.0). The query only aggregates them with SUM, which works directly on numbers. SUM will return a float such as 45.0 because the values are stored as REAL, but that does not change the meaning of the result, so no transformation is needed.",
+     "values": 9,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:player#G13a": {
+   "score": {
+    "0%": 1.0,
+    "5%": 1.0,
+    "10%": 1.0,
+    "20%": 1.0
+   },
+   "plans": {
+    "player.birth_date": {
+     "operation": "sql",
+     "sql_expression": "CAST(substr(birth_date, 1, instr(birth_date, '/') - 1) AS INTEGER)",
+     "mapping_rule": "",
+     "reason": "The query means birth year: it filters BETWEEN 1985 AND 1995 and groups by birth_year. The stored values are 'YYYY/M/D' text, and in SQLite text compares greater than any number, so the BETWEEN test would fail as stored. Extracting the leading year as an INTEGER gives the numeric year the query expects, and it is deterministic for every stored format.",
+     "values": 141,
+     "mapped_values": 0
+    },
+    "player.olympic_gold_medals": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column already holds a numeric count of Olympic gold medals per player (0.0, 1.0, 2.0, 3.0, 4.0). The query uses SUM(olympic_gold_medals), which correctly totals those counts within each birth-year group. The REAL storage only makes the sum a float, which does not change its meaning, so no transformation is needed.",
+     "values": 5,
+     "mapped_values": 0
+    },
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already numeric championship counts (0.0 through 13.0). The query only applies `nba_championships >= 1` as a numeric comparison, which returns the intended result for these values. No transformation is needed.",
+     "values": 9,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:player#G13b": {
+   "score": {
+    "0%": 0.875,
+    "5%": 0.875,
+    "10%": 1.0,
+    "20%": 1.0
+   },
+   "plans": {
+    "player.birth_date": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored format is YYYY/M/D, which matches the format the column description specifies. The query's LIKE patterns ('%/1/%', '%/2/%', '%/3/%') match only the slash-delimited month field, because the year has no leading slash and the day has no trailing slash. Months 10 to 12 do not falsely match, since '/10/' does not contain '/1/'. The empty-string filter also works on these values, so the stored values already fit the query as written.",
+     "values": 141,
+     "mapped_values": 0
+    },
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already numeric (0.0, 1.0, 2.0, ... 13.0). The query uses nba_championships only in numeric comparisons (`>= 1`, `ELSE 0`), and SQLite compares REAL and INTEGER values numerically, so the query returns the intended counts without any transformation.",
+     "values": 9,
+     "mapped_values": 0
+    },
+    "player.mvp_awards": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already numeric counts of MVP awards (0.0, 1.0, 2.0, 3.0, 4.0, 5.0), with 0 meaning no awards, as the column description specifies. The query's `mvp_awards >= 1` test compares them numerically and returns the intended count of MVP winners, so no transformation is needed.",
+     "values": 6,
+     "mapped_values": 0
+    },
+    "player.draft_pick": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The query compares draft_pick numerically with BETWEEN 1 AND 10. The stored values are numeric pick numbers (1.0 through 169.0), so the range test already selects picks 1 to 10 as intended. The 0.0 entries (likely undrafted players) fall outside the range and are correctly excluded, so no transformation is needed.",
+     "values": 39,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:player#G15a": {
+   "score": {
+    "0%": 0.9,
+    "5%": 0.9,
+    "10%": 0.9333,
+    "20%": 0.9667
+   },
+   "plans": {
+    "team.ownership": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Replace each stored full legal name with the common short name the query compares against: 'Daniel Gilbert' -> 'Dan Gilbert'; 'James Lawrence Dolan' -> 'James Dolan'; 'Jerry Michael Reinsdorf' -> 'Jerry Reinsdorf'; 'Joseph Steven Lacob' -> 'Joe Lacob'; 'Joseph Chung-Hsin Tsai' -> 'Joe Tsai'; 'Joshua Jordan Harris' -> 'Josh Harris'; 'Tilman Joseph Fertitta' -> 'Tilman Fertitta'; 'Steven Anthony Ballmer' -> 'Steve Ballmer'. 'Mark Cuban' and 'Micky Arison' are already identical. Leave all other values unchanged.",
+     "reason": "The query filters on nicknames and short forms (e.g., 'Joe Lacob', 'Steve Ballmer'), while the stored values use full legal names. Matching requires knowledge of each owner's identity, not a string transformation, so a per-value mapping is needed. Only the eight listed owners need changes; the rest do not appear in the IN list and can stay as stored.",
+     "values": 24,
+     "mapped_values": 8
+    },
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column already holds one numeric championship count per player (0.0 through 13.0), which is what SUM(player.nba_championships) needs. The query only sums it and does not filter or compare on it, so no transformation is required. The stored floats only change how the totals print, not their values.",
+     "values": 9,
+     "mapped_values": 0
+    },
+    "player.mvp_awards": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column already holds numeric counts (0.0 for players with no MVP awards, then 1.0 through 5.0). The query sums the column and does not compare or parse it, so SUM(player.mvp_awards) returns the total MVP awards per ownership group as intended. The float representation does not change the result meaningfully.",
+     "values": 6,
+     "mapped_values": 0
+    },
+    "player.team": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Map each stored player.team value to the team.team_name spelling of the same NBA franchise, using the partner list. Historical or renamed franchises map to their current name: 'Milwaukee Hawks' and 'St. Louis Hawks' to 'Atlanta Hawks'; 'Philadelphia Warriors' to 'Golden State Warriors'; 'Syracuse Nationals' to 'Philadelphia 76ers'; 'Fort Wayne Pistons' to 'Detroit Pistons'; 'Rochester Royals' and 'Cincinnati Royals' to 'Sacramento Kings'; 'Seattle SuperSonics' to 'Oklahoma City Thunder'; 'New Orleans Jazz' to 'Utah Jazz'; 'Charlotte Bobcats' to 'Charlotte Hornets'; 'Baltimore Bullets', 'Capital City Go-Go' and 'Washington Bullets' to 'Washington Wizards'. For the multi-team value 'Chicago Bulls, Washington Wizards', map to 'Washington Wizards', the last team listed. Values that are not NBA franchises (e.g. 'AS Monaco', 'Grand Rapids Hoops', 'Senior Consultant to Hockey Operations for the St. Louis Blues', 'Split') and 'Chicago Stags' have no current partner and stay unchanged so they do not join. Values already matching a partner name stay as they are.",
+     "reason": "The query joins player.team to team.team_name by exact string, and the team table lists only current franchise names. Many stored values are historical or renamed franchise names, or non-NBA teams, that would never match. Mapping them to the current franchise name lets those players join to their owner, which is what the author means by counting players per owner. The historical-to-current correspondence is external knowledge, so this is a mapping rather than a deterministic SQL expression.",
+     "values": 67,
+     "mapped_values": 13
+    },
+    "team.team_name": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "team.team_name already holds one clean, full franchise name per row (30 distinct values, all unique), which is the form the join needs. The query joins on equality with player.team, and the current franchise names match the player-side values that use those same names. The historical or variant spellings (Milwaukee Hawks, Charlotte Bobcats, New Orleans Jazz) appear only on the player side and are not a defect of team_name, so changing team_name would not help. Mapping those would be a separate change to player.team, which the instruction does not cover.",
+     "values": 30,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  },
+  "conflict:player#G15b": {
+   "score": {
+    "0%": 0.875,
+    "5%": 0.875,
+    "10%": 0.9167,
+    "20%": 0.9583
+   },
+   "plans": {
+    "team.ownership": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "Every owner name the WHERE clause tests (Joseph Steven Lacob, Steven Anthony Ballmer, Jerry Michael Reinsdorf, Joseph Chung-Hsin Tsai, James Lawrence Dolan, Tilman Joseph Fertitta, Joshua Jordan Harris, Daniel Gilbert) appears in the stored values exactly as written, with one row each. The remaining stored values are not in the filter list, so they are excluded and need no change. The multi-owner entries ('Gabe Plotkin and Rick Schnall', 'Wes Edens and Marc Lasry') are not in the list either, so they do not affect the result.",
+     "values": 24,
+     "mapped_values": 0
+    },
+    "player.nba_championships": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The column already holds one numeric championship count per player (0 to 13). The query only applies SUM to it, which works directly on these values. The float representation (for example 1.0 rather than 1) changes only how the sums display, not their meaning, so no transformation is needed.",
+     "values": 9,
+     "mapped_values": 0
+    },
+    "player.mvp_awards": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "The stored values are already numeric (0.0, 1.0, 2.0, 3.0, 4.0, 5.0), matching the documented count of MVP awards with 0 for none. SUM(player.mvp_awards) works directly on them, and no list or text parsing is needed, so the query returns the intended totals as written.",
+     "values": 6,
+     "mapped_values": 0
+    },
+    "player.team": {
+     "operation": "map",
+     "sql_expression": "",
+     "mapping_rule": "Map each stored value to the partner team.team_name of the same NBA franchise, using the team the player was with last. Historical or relocated names map to the current franchise: 'Philadelphia Warriors' and 'Golden State Warriors' to 'Golden State Warriors'; 'Syracuse Nationals' to 'Philadelphia 76ers'; 'Milwaukee Hawks' to 'Atlanta Hawks'; 'Seattle SuperSonics' to 'Oklahoma City Thunder'; 'Charlotte Bobcats' to 'Charlotte Hornets'; 'New Orleans Jazz' to 'Utah Jazz'; 'Washington Bullets' and 'Baltimore Bullets' to 'Washington Wizards'; 'Fort Wayne Pistons' to 'Detroit Pistons'; 'Rochester Royals' and 'Cincinnati Royals' to 'Sacramento Kings'. For multi-team entries such as 'Chicago Bulls, Washington Wizards', take the last NBA team, here 'Washington Wizards'. Values with no NBA franchise (foreign clubs, college, non-NBA leagues, non-player roles) stay unmapped so they match nothing.",
+     "reason": "The join is an exact string match on team.team_name. Several stored values are historical names of current franchises or multi-team strings, so they fail to match partner names and drop players the author intends to count. Relevant owners' teams (Warriors, Clippers, Bulls, Nets, Knicks, Rockets, 76ers, Cavaliers) are affected by mappings such as Philadelphia Warriors and Syracuse Nationals, so the stored values must be normalized to the partner's franchise names. A simple SQL expression cannot express this franchise knowledge.",
+     "values": 67,
+     "mapped_values": 12
+    },
+    "team.team_name": {
+     "operation": "keep",
+     "sql_expression": "",
+     "mapping_rule": "",
+     "reason": "team.team_name already holds the 30 current full franchise names, which is what the query's join to player.team expects. The query filters on team.ownership and never uses team_name beyond the join key, so no change to this column is needed. The historical names in player.team (e.g. 'Milwaukee Hawks', 'New Orleans Jazz') are a mismatch on the partner side, and that is not something this column's storage can fix.",
+     "values": 30,
+     "mapped_values": 0
+    }
+   },
+   "errors": {}
+  }
+ }
+}
