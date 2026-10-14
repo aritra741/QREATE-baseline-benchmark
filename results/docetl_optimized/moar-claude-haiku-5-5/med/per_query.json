@@ -1,0 +1,133 @@
+{
+ "real:med#Q12": {
+  "score": {
+   "0%": 0.0,
+   "5%": 0.0,
+   "10%": 0.0,
+   "20%": 0.0
+  },
+  "tables": [
+   {
+    "table": "disease",
+    "fields": [
+     "treatments"
+    ],
+    "plan_ops": [
+     "code_map:extract_treatment_context",
+     "split:split_extract_fields",
+     "topk:topk_extract_fields_chunks",
+     "reduce:reduce_extract_fields"
+    ],
+    "best_plan": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/QREATE-baseline-benchmark/results/docetl_optimized/moar-claude-haiku-5-5/med/real_med_Q12/table_disease/moar/pipeline_anthropic_7.yaml",
+    "optimization_tokens": {
+     "prompt": 3752543,
+     "completion": 61512,
+     "calls": 382
+    },
+    "run_tokens": {
+     "prompt": 1108342,
+     "completion": 5473,
+     "calls": 100
+    },
+    "rows": 100,
+    "documents": 100,
+    "seconds": 356.9
+   }
+  ]
+ },
+ "real:med#Q8": {
+  "score": {
+   "0%": 0.0,
+   "5%": 0.0,
+   "10%": 0.0,
+   "20%": 0.0
+  },
+  "tables": [
+   {
+    "table": "drug",
+    "fields": [
+     "manufacturer"
+    ],
+    "plan_ops": [
+     "split:split_extract_fields",
+     "topk:topk_extract_fields_chunks",
+     "reduce:reduce_extract_fields"
+    ],
+    "best_plan": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/QREATE-baseline-benchmark/results/docetl_optimized/moar-claude-haiku-5-5/med/real_med_Q8/table_drug/moar/pipeline_anthropic_4.yaml",
+    "optimization_tokens": {
+     "prompt": 6848749,
+     "completion": 27492,
+     "calls": 395
+    },
+    "run_tokens": {
+     "prompt": 1991880,
+     "completion": 3790,
+     "calls": 98
+    },
+    "rows": 98,
+    "documents": 98,
+    "seconds": 730.0
+   }
+  ]
+ },
+ "real:med#QJ4": {
+  "score": {
+   "0%": 0.0,
+   "5%": 0.0,
+   "10%": 0.0,
+   "20%": 0.0
+  },
+  "tables": [
+   {
+    "salvage": "search looped; best of 9 evaluated (sample accuracy 0.289)",
+    "table": "disease",
+    "fields": [
+     "disease_name",
+     "disease_type"
+    ],
+    "plan_ops": [
+     "map:extract_fields"
+    ],
+    "best_plan": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/QREATE-baseline-benchmark/results/docetl_optimized/moar-claude-haiku-5-5/med/real_med_QJ4/table_disease/moar/pipeline_anthropic_3.yaml",
+    "optimization_tokens": {
+     "prompt": 0,
+     "completion": 0,
+     "calls": 0
+    },
+    "run_tokens": {
+     "prompt": 3817487,
+     "completion": 17980,
+     "calls": 249
+    },
+    "rows": 99,
+    "documents": 100,
+    "seconds": 1940.8
+   },
+   {
+    "salvage": "never searched; original plan",
+    "table": "drug",
+    "fields": [
+     "administration_route",
+     "disease_name"
+    ],
+    "plan_ops": [
+     "map:extract_fields"
+    ],
+    "best_plan": null,
+    "optimization_tokens": {
+     "prompt": 0,
+     "completion": 0,
+     "calls": 0
+    },
+    "run_tokens": {
+     "prompt": 2006721,
+     "completion": 7145,
+     "calls": 98
+    },
+    "rows": 98,
+    "documents": 98,
+    "seconds": 101.5
+   }
+  ]
+ }
+}

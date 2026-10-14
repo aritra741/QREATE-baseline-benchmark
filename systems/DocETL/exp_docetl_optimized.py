@@ -39,6 +39,9 @@ def main(argv=None) -> int:
     ap.add_argument("--sample", type=int, default=30, help="labeled documents for MOAR's evaluation function")
     ap.add_argument("--iterations", type=int, default=10, help="MOAR search iterations per (query, table)")
     ap.add_argument("--threads", type=int, default=8)
+    ap.add_argument("--salvage", action="store_true",
+                    help="MOAR runs that never finished: per table, MOAR's chosen plan if its search finished; else the evaluated "
+                         "candidate with the best accuracy on the labeled sample; else (never searched) the original plan")
     a = ap.parse_args(argv)
     os.environ["DOCETL_STR_COERCE"] = "1"
 
@@ -125,7 +128,30 @@ def main(argv=None) -> int:
             full = [{"doc_id": d, "text": RD.fit(texts[d], template)} for d in ctx.names[t]]
             (tdir / "all_docs.json").write_text(json.dumps(full))
             before, started = dict(RD.TOKENS), time.time()
-            if a.optimizer == "moar":
+            salvage_note = None
+            if a.salvage and (tdir / "pipeline_output.json").exists() and (tdir / "plan_used.yaml").exists():
+                plan = yaml.safe_load((tdir / "plan_used.yaml").read_text())  # MOAR finished this table: reuse its plan's output
+                best_yaml, salvage_note = str(tdir / "plan_used.yaml"), "search finished"
+            elif a.salvage:
+                cands = []
+                if (tdir / "evaluate.py").exists():
+                    import importlib.util
+
+                    spec = importlib.util.spec_from_file_location(f"ev_{abs(hash(str(tdir)))}", tdir / "evaluate.py")
+                    ev = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(ev)
+                    for rj in sorted((tdir / "moar").glob("pipeline_*.json")):
+                        y = rj.with_suffix(".yaml")
+                        if y.exists():
+                            acc = ev.evaluate.__wrapped__(str(tdir / "sample_docs.json"), str(rj)) if hasattr(ev.evaluate, "__wrapped__") else ev.evaluate(str(tdir / "sample_docs.json"), str(rj))
+                            cands.append((acc["field_accuracy"], str(y)))
+                if cands:
+                    acc, best_yaml = max(cands)
+                    plan, salvage_note = yaml.safe_load(Path(best_yaml).read_text()), f"search looped; best of {len(cands)} evaluated (sample accuracy {acc:.3f})"
+                else:
+                    cfg, _, _ = base_config("orig", t, attrs, fields, sql, tdir / "all_docs.json", tdir / "x.json")
+                    plan, best_yaml, salvage_note = cfg, None, "never searched; original plan"
+            elif a.optimizer == "moar":
                 gt = {str(d).rsplit(".", 1)[0]: row for d, row in gdoc.get(t, {}).items()}
                 labeled = [x for x in full if any(not is_null((gt.get(str(x["doc_id"]).rsplit(".", 1)[0]) or {}).get(f)) for f in attrs)]
                 sample = random.Random(f"{qid}|{t}").sample(labeled, min(a.sample, len(labeled)))
@@ -174,7 +200,10 @@ def main(argv=None) -> int:
             plan.setdefault("pipeline", {})["output"] = {"type": "file", "path": str(tdir / "pipeline_output.json"), "intermediate_dir": str(tdir / "final_intermediate")}
             (tdir / "plan_used.yaml").write_text(yaml.safe_dump(plan, sort_keys=False))
             before2 = dict(RD.TOKENS)
-            rows = RD.clean(run_config(plan, tdir), attrs)
+            if salvage_note == "search finished":
+                rows = RD.clean(json.loads((tdir / "pipeline_output.json").read_text()), attrs)
+            else:
+                rows = RD.clean(run_config(plan, tdir), attrs)
             got = {}
             for row in rows:  # a plan may emit one row per chunk: keep one row per document, first non-empty value per field
                 d = row.get("doc_id")
@@ -185,7 +214,7 @@ def main(argv=None) -> int:
             tables[t] = list(got.values())
             numeric_by_t[t] = {x.lower() for x in numeric}
             run_tokens = {k: RD.TOKENS[k] - before2[k] for k in RD.TOKENS}
-            info.append({"table": t, "fields": attrs, "plan_ops": [o.get("type") + ":" + o.get("name", "") for o in plan.get("operations", [])],
+            info.append({"salvage": salvage_note, "table": t, "fields": attrs, "plan_ops": [o.get("type") + ":" + o.get("name", "") for o in plan.get("operations", [])],
                          "best_plan": str(best_yaml) if best_yaml else None, "optimization_tokens": opt_tokens, "run_tokens": run_tokens,
                          "rows": len(tables[t]), "documents": len(full), "seconds": round(time.time() - started, 1)})
         db = RD.build_db(c, sql, tables, numeric_by_t, root / "db" / f"{RD.safe(qid)}.db")

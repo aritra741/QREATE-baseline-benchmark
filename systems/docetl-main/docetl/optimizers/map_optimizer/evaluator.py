@@ -297,6 +297,9 @@ class Evaluator:
 
         # Get output schema
         output_schema = op_config.get("output", {}).get("schema", {})
+        # QuWARTS harness fix: an unparseable model reply can be kept as a plain string; show it as an empty row
+        input_sample = [x if isinstance(x, dict) else {} for x in input_sample]
+        output_sample = [x if isinstance(x, dict) else {} for x in output_sample]
         # Calculate available tokens for sample data
         model_input_context_length = model_cost.get(
             self.llm_client.judge_agent_model, {}

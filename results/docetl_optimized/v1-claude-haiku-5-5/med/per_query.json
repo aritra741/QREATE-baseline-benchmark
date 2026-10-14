@@ -1,0 +1,136 @@
+{
+ "real:med#Q12": {
+  "score": {
+   "0%": 0.0,
+   "5%": 0.0,
+   "10%": 0.0,
+   "20%": 0.0
+  },
+  "tables": [
+   {
+    "salvage": null,
+    "table": "disease",
+    "fields": [
+     "treatments"
+    ],
+    "plan_ops": [
+     "reduce:subreduce_extract_fields",
+     "map:submap_extract_fields",
+     "gather:gather_text_extract_fields",
+     "map:header_extraction_text_extract_fields",
+     "split:split_extract_fields"
+    ],
+    "best_plan": null,
+    "optimization_tokens": {
+     "prompt": 10598669,
+     "completion": 349495,
+     "calls": 1446
+    },
+    "run_tokens": {
+     "prompt": 3829905,
+     "completion": 127229,
+     "calls": 388
+    },
+    "rows": 100,
+    "documents": 100,
+    "seconds": 2765.2
+   }
+  ]
+ },
+ "real:med#Q8": {
+  "score": {
+   "0%": 1.0,
+   "5%": 1.0,
+   "10%": 1.0,
+   "20%": 1.0
+  },
+  "tables": [
+   {
+    "salvage": null,
+    "table": "drug",
+    "fields": [
+     "manufacturer"
+    ],
+    "plan_ops": [
+     "map:extract_fields"
+    ],
+    "best_plan": null,
+    "optimization_tokens": {
+     "prompt": 20884397,
+     "completion": 588172,
+     "calls": 2453
+    },
+    "run_tokens": {
+     "prompt": 2218028,
+     "completion": 4359,
+     "calls": 110
+    },
+    "rows": 56,
+    "documents": 98,
+    "seconds": 1222.7
+   }
+  ]
+ },
+ "real:med#QJ4": {
+  "score": {
+   "0%": 0.0,
+   "5%": 0.0,
+   "10%": 0.0,
+   "20%": 0.0
+  },
+  "tables": [
+   {
+    "salvage": null,
+    "table": "disease",
+    "fields": [
+     "disease_name",
+     "disease_type"
+    ],
+    "plan_ops": [
+     "map:extract_fields_subtask_3",
+     "map:extract_fields_subtask_2",
+     "map:extract_fields_subtask_1"
+    ],
+    "best_plan": null,
+    "optimization_tokens": {
+     "prompt": 11471678,
+     "completion": 437401,
+     "calls": 1602
+    },
+    "run_tokens": {
+     "prompt": 3080088,
+     "completion": 15483,
+     "calls": 286
+    },
+    "rows": 100,
+    "documents": 100,
+    "seconds": 1134.3
+   },
+   {
+    "salvage": null,
+    "table": "drug",
+    "fields": [
+     "administration_route",
+     "disease_name"
+    ],
+    "plan_ops": [
+     "parallel_map:extract_fields_parallel_map"
+    ],
+    "best_plan": null,
+    "optimization_tokens": {
+     "prompt": 21306657,
+     "completion": 726904,
+     "calls": 2550
+    },
+    "run_tokens": {
+     "prompt": 3279654,
+     "completion": 7749,
+     "calls": 156
+    },
+    "rows": 98,
+    "documents": 98,
+    "seconds": 1155.7
+   }
+  ]
+ }
+}
