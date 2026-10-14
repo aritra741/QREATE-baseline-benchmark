@@ -34,7 +34,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared")
+ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er")
 
 
 def mask(sql: str) -> str:
@@ -126,7 +126,7 @@ def main(argv=None) -> int:
             template = template.replace(f"for this natural-language query:\n{sql}\n\n", ".\n\n")
             assert not sql or sql not in template
         texts = {d: Path(p).read_text(errors="ignore") for d, p in ctx.docs[table].items()}
-        if a.arm == "chunked":
+        if a.arm in ("chunked", "chunked_er"):
             size = chunked.chunk_tokens(int(V3["window_tokens"]))
             data = [{"doc_id": f"{d}#{i}", "text": RD.fit(ch, template)}
                     for d in ctx.names[table] for i, ch in enumerate(chunked.split_chunks(texts[d], size))]
@@ -141,7 +141,7 @@ def main(argv=None) -> int:
             rows += run_map(table, attrs, template, schema, missing, out / "retry", a.threads)
         rows = RD.clean(rows, attrs)
         items = len(data)
-        if a.arm == "chunked":  # combine chunk rows per document
+        if a.arm in ("chunked", "chunked_er"):  # combine chunk rows per document
             by_doc: dict[str, list[dict]] = {}
             for r in rows:
                 d, _, i = str(r["doc_id"]).rpartition("#")
@@ -181,6 +181,69 @@ def main(argv=None) -> int:
             s_ = run_table("shared", "", r.table, list(r.attributes), fields_u, out)
             shared_tables[r.table] = json.loads((out / "pipeline_output.json").read_text())
             shared_numeric[r.table] = {x.lower() for x in s_["numeric"]}
+    def resolve_joins(sql, tables, out):
+        """DocETL's resolve operator on each equality join's key values; rewrites both columns in place."""
+        import sqlglot
+        from sqlglot import exp as E
+
+        tree = sqlglot.parse_one(sql, read="sqlite")
+        alias = {t.alias_or_name: t.name for t in tree.find_all(E.Table)}
+        pairs = []
+        for j in tree.find_all(E.Join):
+            on = j.args.get("on")
+            if on is None:
+                continue
+            for eq in on.find_all(E.EQ):
+                l, r = eq.this, eq.expression
+                if isinstance(l, E.Column) and isinstance(r, E.Column) and l.table and r.table:
+                    pairs.append(((alias.get(l.table, l.table), l.name.lower()), (alias.get(r.table, r.table), r.name.lower())))
+        stats = []
+        for (t1, a1), (t2, a2) in pairs:
+            if t1 not in tables or t2 not in tables:
+                continue
+            def distinct(t, col):
+                return sorted({str(row.get(col)).strip() for row in tables[t] if row.get(col) not in (None, "", -1) and str(row.get(col)).strip() not in ("", "-1")})
+            v1, v2 = distinct(t1, a1), distinct(t2, a2)
+            ratio = lambda t, v: len(v) / max(1, len(tables[t]))  # noqa: E731
+            entity = f"{t1}.{a1}" if ratio(t1, v1) >= ratio(t2, v2) else f"{t2}.{a2}"
+            data = [{"value": v, "source": f"{t1}.{a1}", "orig": v} for v in v1] + [{"value": v, "source": f"{t2}.{a2}", "orig": v} for v in v2 if v not in v1]
+            if len(data) < 2:
+                continue
+            kwargs = {"num_ctx": RD.NUM_CTX, "api_base": RD.API_BASE} if RD.API_BASE else {}
+            from docetl.api import ResolveOp
+
+            op = ResolveOp(name="resolve_keys", type="resolve", model=RD.MODEL,
+                              comparison_prompt=("Do these two values refer to the same real-world entity?\n"
+                                                 "Value 1: {{ input1.value }} (from {{ input1.source }})\n"
+                                                 "Value 2: {{ input2.value }} (from {{ input2.source }})\n"
+                                                 "Answer true only if they name the same entity."),
+                              resolution_prompt=("These values name the same entity:\n{% for i in inputs %}- {{ i.value }} (from {{ i.source }})\n{% endfor %}"
+                                                 f"Return one canonical name. If one of them comes from {entity}, return that value exactly."),
+                              output={"schema": {"value": "str"}}, blocking_keys=["value"],
+                              blocking_conditions=["len(set(str(input1['value']).lower().replace(',', ' ').split()) & set(str(input2['value']).lower().replace(',', ' ').split())) > 0"],
+                              litellm_completion_kwargs=kwargs)
+            out.mkdir(parents=True, exist_ok=True)
+            pipe = RD.Pipeline(name="resolve", datasets={"keys": RD.Dataset(type="memory", path=data, source="local")}, operations=[op],
+                               steps=[RD.PipelineStep(name="resolve_step", input="keys", operations=["resolve_keys"])],
+                               output=RD.PipelineOutput(type="file", path=str(out / f"{t1}.{a1}__{t2}.{a2}.json"), intermediate_dir=str(out / "intermediate")),
+                               default_model=RD.MODEL, default_lm_api_base=RD.API_BASE, bypass_cache=True)
+            cwd = os.getcwd()
+            try:
+                os.chdir(out)
+                pipe.run(max_threads=a.threads)
+            finally:
+                os.chdir(cwd)
+            res = json.loads((out / f"{t1}.{a1}__{t2}.{a2}.json").read_text())
+            mapping = {r["orig"]: r["value"] for r in res if r.get("orig") and r.get("value") and str(r["value"]).strip() != r["orig"]}
+            for t, col in ((t1, a1), (t2, a2)):
+                for row in tables[t]:
+                    v = str(row.get(col)).strip() if row.get(col) is not None else None
+                    if v in mapping:
+                        row[col] = mapping[v]
+            stats.append({"join": f"{t1}.{a1} = {t2}.{a2}", "entity_side": entity, "values": len(data), "rewritten": len(mapping),
+                          "examples": dict(list(mapping.items())[:8])})
+        return stats
+
     for qid in a.qids:
         if qid in per:
             continue
@@ -204,9 +267,10 @@ def main(argv=None) -> int:
             stats.append(s)
             tables[r.table] = json.loads((out / "pipeline_output.json").read_text())
             numeric[r.table] = {x.lower() for x in s["numeric"]}
+        er_stats = resolve_joins(sql, tables, root / RD.safe(qid) / "resolve") if a.arm in ("er", "chunked_er") else None
         db = RD.build_db(c, sql, tables, numeric, root / "db" / f"{RD.safe(qid)}.db")
         sc = score_multi(c, [(qid, db)])[qid]
-        per[qid] = {"score": {f"{t:.0%}": sc.get(t) for t in TAUS}, "tables": [s["table"] for s in stats],
+        per[qid] = {"entity_resolution": er_stats, "score": {f"{t:.0%}": sc.get(t) for t in TAUS}, "tables": [s["table"] for s in stats],
                     "prompt_tokens": sum(s["prompt_tokens"] for s in stats), "completion_tokens": sum(s["completion_tokens"] for s in stats),
                     "calls": sum(s["calls"] for s in stats), "failed_docs": sum(len(s["failed"]) for s in stats),
                     "seconds": round(sum(s["seconds"] for s in stats), 1)}

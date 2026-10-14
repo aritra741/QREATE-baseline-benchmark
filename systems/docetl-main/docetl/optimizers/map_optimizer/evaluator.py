@@ -438,6 +438,8 @@ class Evaluator:
         """
 
         system_prompt = "You are an AI assistant tasked with evaluating the quality of data processing outputs."
+        if not output_data:  # QuWARTS harness fix: every sampled item failed; show the declared fields as empty
+            output_data = [{**input_data[0], **{k: None for k in op_config.get("output", {}).get("schema", {})}}]
         output_schema_keys = list(
             set(output_data[0].keys()) - set(input_data[0].keys())
         )

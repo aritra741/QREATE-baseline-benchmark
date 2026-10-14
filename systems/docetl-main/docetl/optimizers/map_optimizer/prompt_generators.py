@@ -37,6 +37,8 @@ class PromptGenerator:
 
         variables_in_prompt = extract_jinja_variables(op_config["prompt"])
         variables_in_prompt = [v.replace("input.", "") for v in variables_in_prompt]
+        if not output_data:  # QuWARTS harness fix: every sampled item failed; show the declared fields as empty
+            output_data = [{**input_data[0], **{k: None for k in op_config.get("output", {}).get("schema", {})}}]
         output_keys_not_in_input = [
             k for k in output_data[0].keys() if k not in input_data[0].keys()
         ]

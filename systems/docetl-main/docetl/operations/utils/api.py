@@ -187,6 +187,9 @@ class APIWrapper(object):
             and self.runner.config.get("from_docwrangler", False)
         ):
             model = "azure/" + model
+        # QuWARTS harness fix (opt-in): with no OpenAI access, OpenAI embedding names run on a local embedding model
+        if os.environ.get("DOCETL_EMBEDDING_MODEL") and model.startswith("text-embedding"):
+            model = os.environ["DOCETL_EMBEDDING_MODEL"]
 
         with cache as c:
             # Try to get the result from cache
