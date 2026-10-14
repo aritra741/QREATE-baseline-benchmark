@@ -43,5 +43,5 @@ their 1.0 on Qwen is partly chance.
 ## Caveat on "ours"
 
 "ours (Qwen)" in comparison.json is the full system (initial build, planner, representation layer, reuse across the
-stream): mean 0.844 on these 8 queries. "ours (Haiku)" is only the reader on each query's fields. They are different setups;
-the full system has not been run on Haiku.
+stream): mean 0.844 on these 8 queries. "ours (Haiku)" in comparison.json is only the reader on each query's fields; the
+full system on Haiku is the separate row above (0.626) and `full_system_haiku.json`.
