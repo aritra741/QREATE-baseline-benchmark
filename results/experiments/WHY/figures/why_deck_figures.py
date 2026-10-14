@@ -195,14 +195,20 @@ fullq = [full[r["query"].split(":")[1].split("#")[0]]["RW-haiku"]["per_query"][r
 rows = [("DocETL", mean("DocETL (Haiku)", "20%"), mean("DocETL (Haiku)", "0%"), "13M", DOC),
         ("DocETL + its optimizer\n(MOAR, with labels)", mean("DocETL + MOAR (Haiku)", "20%"), mean("DocETL + MOAR (Haiku)", "0%"), "34M+", DOC),
         ("DocETL + its optimizer\n(v1, no labels)", mean("DocETL + v1 (Haiku)", "20%"), mean("DocETL + v1 (Haiku)", "0%"), "281M", DOC),
+        ("DocETL with our\nprompt wording", None, None, "13M", LIGHT),
         ("Our full system", S.mean(q["20%"] for q in fullq), S.mean(q["0%"] for q in fullq), "about 4M", OURS)]
-fig, ax = plt.subplots(figsize=(14, 6.2))
+ow = {}
+for c_ in ("player", "med"):
+    ow.update(json.loads((REPO / "results" / "docetl_arms" / "ourwords-claude-haiku-5-5" / c_ / "per_query.json").read_text()))
+owq = [ow[r["query"]]["score"] for r in comp]
+rows[3] = (rows[3][0], S.mean(x["20%"] for x in owq), S.mean(x["0%"] for x in owq), rows[3][3], rows[3][4])
+fig, ax = plt.subplots(figsize=(14, 7))
 for i, (n, v20, v0, tok, c) in enumerate(rows):
     ax.barh(i, v20, 0.6, color=c)
     ax.plot([v0, v0], [i - 0.3, i + 0.3], color=INK, lw=3)
     ax.annotate(f"{v20:.2f}   ({tok} tokens)", (v20, i), xytext=(10, 0), textcoords="offset points", va="center", fontsize=20, color=INK,
                 fontweight="semibold")
-ax.set_yticks(range(4), [r[0] for r in rows], fontsize=19)
+ax.set_yticks(range(len(rows)), [r[0] for r in rows], fontsize=19)
 ax.invert_yaxis()
 ax.set_xlim(0, 1)
 ax.set_xlabel("Mean query score on the 8 hardest queries, all on Haiku", fontsize=20)

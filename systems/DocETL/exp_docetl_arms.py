@@ -16,6 +16,11 @@ into 2008 and then rejecting it against a declared string type):
            (the information our system applies in code, given to DocETL's reader instead)
   noconcise  strfix; the sentence "Keep names concise and normalized." removed from DocETL's prompt
   norecall   strfix; DocETL's own system prompt without "and exhaustively (i.e., high recall)" (DOCETL_NO_RECALL=1)
+  ourwords   strfix; DocETL's architecture (one map per query and table over that query's columns, whole document, typed
+             tool-call output, failed documents dropped) with our reader's per-query wording instead of the harness
+             prompt: context_probe.render_prompt with the planner's field specs and no SQL, as in our reader-alone runs
+             (reader_arms), minus its JSON-format line (the answer form is DocETL's)
+  ourwords_norecall  ourwords, and DocETL's built-in system prompt without "and exhaustively (i.e., high recall)"
   stated     strfix; one sentence added to DocETL's prompt, our reader's system line: "Extract only facts stated in
              the document."
 Everything else is run_docetl_drift's (prompt, fit to the window, one retry of skipped documents, table
@@ -38,7 +43,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated", "norecall")
+ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated", "norecall", "ourwords", "ourwords_norecall")
 
 
 def mask(sql: str) -> str:
@@ -56,7 +61,7 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     if a.arm != "asis":
         os.environ["DOCETL_STR_COERCE"] = "1"
-    if a.arm == "norecall":
+    if a.arm in ("norecall", "ourwords_norecall"):
         os.environ["DOCETL_NO_RECALL"] = "1"
 
     import run_docetl_drift as RD
@@ -128,6 +133,13 @@ def main(argv=None) -> int:
                     descriptions[x] = f"{descriptions[x] or x}. {tail}"
         shown = mask(sql) if a.arm == "masked" else sql
         template = RD.prompt_template(table, attrs, numeric, shown, descriptions)
+        if a.arm in ("ourwords", "ourwords_norecall"):
+            from quwarts.core.router.context_probe import render_prompt
+
+            ours = render_prompt("{{ input.text }}", [fields[f"{table}.{x}"] for x in attrs], None)
+            tail = 'Return JSON with this shape and no other keys: {"fields": {"<field>": <value or null>}}'
+            assert ours.endswith(tail)
+            template = ours[: -len(tail)].rstrip() + "\n"
         if a.arm == "noconcise":
             assert "Keep names concise and normalized.\n\n" in template
             template = template.replace("Keep names concise and normalized.\n\n", "\n")
