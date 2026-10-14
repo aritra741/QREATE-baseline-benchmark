@@ -42,6 +42,11 @@ def main() -> int:
                 else:
                     tokens[name] = sum(json.loads(Path(f).read_text())["prompt_tokens"] + json.loads(Path(f).read_text())["completion_tokens"]
                                        for f in glob.glob(str(p.parent / "_shared" / "table_*" / "stats.json")))
+        p = REPO / "results" / "conflict_full" / "RW-haiku-conflict" / c / "per_query.json"
+        if p.exists():  # our full system (build, planner, representation layer, reuse) on the conflict stream, Haiku reading
+            d = json.loads(p.read_text())
+            arms["ours, full system (one shared view, as run)"] = {q: d["per_query"][q] for q in qids if q in d["per_query"]}
+            tokens["ours, full system (build + stream)"] = d["tokens"]
         for src, label in (("claude-haiku-5-5", "ours"), ("gold", "ours on perfect values")):
             for store, sl in (("", "as committed"), ("asread", "stored as read")):
                 p = REPO / "results" / "conflict_ours" / src / c / store / "per_query.json"

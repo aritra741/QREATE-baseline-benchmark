@@ -16,6 +16,12 @@ VERSION = os.environ.get("QUWARTS_REALISTIC", "v1")
 def load(corpus: str) -> list[tuple[str, str, str]]:
     """(id, question, sql) in file order."""
     out = []
+    if VERSION == "conflict":  # the representation-conflict queries (natural SQL; answer keys go to the scorer's REFERENCE)
+        from quwarts.eval.validate_conflicts import load as load_conflicts, parse
+
+        load_conflicts(corpus)
+        return [(f"conflict:{corpus}#{q['id']}", q["question"], q["sql"]) for g in parse(QDIR / "conflict" / f"{corpus}.sql")
+                for q in g["queries"]]
     if VERSION == "v1":
         path, prefix = QDIR / f"{corpus}.sql", "real"
     elif VERSION == "v2":
