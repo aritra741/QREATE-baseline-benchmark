@@ -819,6 +819,8 @@ class APIWrapper(object):
 
         # Different system prompts based on model type
         base_prompt = f"You are a {persona}, helping the user make sense of their data. The dataset description is: {dataset_description}. You will be performing a {op_type} operation ({parethetical_op_instructions}). You will perform the specified task on the provided data, as precisely and exhaustively (i.e., high recall) as possible."
+        if os.environ.get("DOCETL_NO_RECALL") == "1":  # QuWARTS test: drop the high-recall request only
+            base_prompt = base_prompt.replace(" as precisely and exhaustively (i.e., high recall) as possible.", " as precisely as possible.")
 
         if use_structured_output:
             system_prompt = (

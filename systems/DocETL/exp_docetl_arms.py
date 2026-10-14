@@ -15,6 +15,7 @@ into 2008 and then rejecting it against a declared string type):
            "If the document does not mention any, answer 0." / "If the document does not say so, answer No."
            (the information our system applies in code, given to DocETL's reader instead)
   noconcise  strfix; the sentence "Keep names concise and normalized." removed from DocETL's prompt
+  norecall   strfix; DocETL's own system prompt without "and exhaustively (i.e., high recall)" (DOCETL_NO_RECALL=1)
   stated     strfix; one sentence added to DocETL's prompt, our reader's system line: "Extract only facts stated in
              the document."
 Everything else is run_docetl_drift's (prompt, fit to the window, one retry of skipped documents, table
@@ -37,7 +38,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated")
+ARMS = ("asis", "strfix", "masked", "nosql", "chunked", "temp01", "absence", "shared", "er", "chunked_er", "v3fix", "noconcise", "stated", "norecall")
 
 
 def mask(sql: str) -> str:
@@ -55,6 +56,8 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     if a.arm != "asis":
         os.environ["DOCETL_STR_COERCE"] = "1"
+    if a.arm == "norecall":
+        os.environ["DOCETL_NO_RECALL"] = "1"
 
     import run_docetl_drift as RD
     from quwarts.core.router import chunked
