@@ -58,7 +58,7 @@ fig, (a1, a2) = plt.subplots(1, 2, figsize=(16, 6.2), gridspec_kw={"wspace": 0.2
 x = range(len(cols))
 w = 0.38
 b1 = a1.bar([i - w / 2 for i in x], [sw[c]["20%"]["docetl"] for c, _ in cols], w, color=DOC, label="DocETL")
-b2 = a1.bar([i + w / 2 for i in x], [sw[c]["20%"]["ours"] for c, _ in cols], w, color=OURS, label="Our system")
+b2 = a1.bar([i + w / 2 for i in x], [sw[c]["20%"]["ours"] for c, _ in cols], w, color=OURS, label="QuWARTS")
 tick0(a1, [i - w / 2 for i in x], [sw[c]["0%"]["docetl"] for c, _ in cols], w)
 tick0(a1, [i + w / 2 for i in x], [sw[c]["0%"]["ours"] for c, _ in cols], w)
 label_bars(a1, b2)
@@ -82,7 +82,7 @@ save(fig, "headline")
 # 2. waterfall for players ----------------------------------------------------------------------------------------
 p = sw["player"]["20%"]
 steps = [("DocETL", 0, p["docetl"], DOC), ("+ lost\ndocuments", p["docetl"], p["rows"], OURS), ("+ empty\ncells", p["rows"], p["empty"], OURS),
-         ("+ wrong\nvalues", p["empty"], p["values"], OURS), ("= our system", 0, p["ours"], INK)]
+         ("+ wrong\nvalues", p["empty"], p["values"], OURS), ("= QuWARTS", 0, p["ours"], INK)]
 fig, ax = plt.subplots(figsize=(13, 6.2))
 for i, (n, lo, hi, c) in enumerate(steps):
     ax.bar(i, hi - lo, 0.62, bottom=lo, color=c)
@@ -117,7 +117,7 @@ save(fig, "droplen")
 arms = json.loads((WHY / "arms" / "results.json").read_text())
 get = lambda sysn, arm, q: next(r for r in arms if r["system"] == sysn and r["arm"] == arm and r["query"] == q)  # noqa: E731
 sets = [("DocETL\nas is", "docetl", "strfix", DOC), ("DocETL, less\nrandomness", "docetl", "temp01", DOC),
-        ("DocETL,\ndocuments split", "docetl", "chunked", OURS), ("Our reader,\nwhole documents", "ours", "whole", OURS),
+        ("DocETL,\ndocuments split", "docetl", "chunked", OURS), ("QuWARTS reader,\nwhole documents", "ours", "whole", OURS),
         ("DocETL,\nstronger model", "docetl", "strfix-claude-haiku-5-5", OURS)]
 fig, ax = plt.subplots(figsize=(14, 6.2))
 for i, (n, s, a, c) in enumerate(sets):
@@ -163,7 +163,7 @@ fig, ax = plt.subplots(figsize=(14, 6.2))
 for i, (c, n) in enumerate(cols):
     d, o = cost[c]["docetl_passes"], cost[c]["ours_passes"]
     ax.bar(i - 0.2, d, 0.38, color=DOC, label="DocETL" if i == 0 else None)
-    ax.bar(i + 0.2, o, 0.38, color=OURS, label="Our system" if i == 0 else None)
+    ax.bar(i + 0.2, o, 0.38, color=OURS, label="QuWARTS" if i == 0 else None)
     ax.annotate(str(d), (i - 0.2, d), xytext=(0, 5), textcoords="offset points", ha="center", fontsize=20, color=INK, fontweight="semibold")
     ax.annotate(str(int(o)), (i + 0.2, o), xytext=(0, 5), textcoords="offset points", ha="center", fontsize=20, color=INK, fontweight="semibold")
     ax.annotate(f"{cost[c]['docetl_tokens'] / cost[c]['ours_tokens']:.1f}x fewer tokens", (i, -17), ha="center", fontsize=17, color=OURS,
@@ -195,8 +195,8 @@ fullq = [full[r["query"].split(":")[1].split("#")[0]]["RW-haiku"]["per_query"][r
 rows = [("DocETL", mean("DocETL (Haiku)", "20%"), mean("DocETL (Haiku)", "0%"), "13M", DOC),
         ("DocETL + its optimizer\n(MOAR, with labels)", mean("DocETL + MOAR (Haiku)", "20%"), mean("DocETL + MOAR (Haiku)", "0%"), "34M+", DOC),
         ("DocETL + its optimizer\n(v1, no labels)", mean("DocETL + v1 (Haiku)", "20%"), mean("DocETL + v1 (Haiku)", "0%"), "281M", DOC),
-        ("DocETL with our\nprompt wording", None, None, "13M", LIGHT),
-        ("Our full system", S.mean(q["20%"] for q in fullq), S.mean(q["0%"] for q in fullq), "about 4M", OURS)]
+        ("DocETL with\nQuWARTS wording", None, None, "13M", LIGHT),
+        ("QuWARTS", S.mean(q["20%"] for q in fullq), S.mean(q["0%"] for q in fullq), "about 4M", OURS)]
 ow = {}
 for c_ in ("player", "med"):
     ow.update(json.loads((REPO / "results" / "docetl_arms" / "ourwords-claude-haiku-5-5" / c_ / "per_query.json").read_text()))
@@ -283,9 +283,9 @@ print("wrote", sorted(p.name for p in OUT.glob("*.png")))
 
 # 11. small-model ingredient ladder, players (shared read; WHY/ingredients/summary.json) --------------------------------------------
 ing = json.loads((WHY / "ingredients" / "summary.json").read_text())["player"]
-steps = [("DocETL,\nits wording", "L0 DocETL shared read, harness wording", DOC), ("+ our\nwording", "L1 + our wording", OURS),
-         ("+ split long\ndocuments", "L2 + split documents", OURS), ("our reader\n(plain JSON)", "L3 our reader, values as read", OURS),
-         ("+ commit\nstep", "L4 + our commit step", OURS), ("our full\nsystem", "our full system, as run", INK)]
+steps = [("DocETL,\nits wording", "L0 DocETL shared read, harness wording", DOC), ("+ QuWARTS\nwording", "L1 + our wording", OURS),
+         ("+ split long\ndocuments", "L2 + split documents", OURS), ("QuWARTS reader\n(plain JSON)", "L3 our reader, values as read", OURS),
+         ("+ commit\nstep", "L4 + our commit step", OURS), ("QuWARTS\n(full system)", "our full system, as run", INK)]
 fig, ax = plt.subplots(figsize=(14, 6.4))
 prev = None
 for i, (n, k, c) in enumerate(steps):
