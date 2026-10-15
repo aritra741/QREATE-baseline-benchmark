@@ -166,7 +166,7 @@ for i, (c, n) in enumerate(cols):
     ax.bar(i + 0.2, o, 0.38, color=OURS, label="Our system" if i == 0 else None)
     ax.annotate(str(d), (i - 0.2, d), xytext=(0, 5), textcoords="offset points", ha="center", fontsize=20, color=INK, fontweight="semibold")
     ax.annotate(str(int(o)), (i + 0.2, o), xytext=(0, 5), textcoords="offset points", ha="center", fontsize=20, color=INK, fontweight="semibold")
-    ax.annotate(f"{cost[c]['docetl_tokens'] / cost[c]['ours_tokens']:.1f}x fewer tokens", (i, -11), ha="center", fontsize=17, color=OURS,
+    ax.annotate(f"{cost[c]['docetl_tokens'] / cost[c]['ours_tokens']:.1f}x fewer tokens", (i, -17), ha="center", fontsize=17, color=OURS,
                 annotation_clip=False)
 ax.set_xticks(range(len(cols)), [n for _, n in cols], fontsize=20)
 ax.set_ylabel("Times every document was read", fontsize=20)
